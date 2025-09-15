@@ -26,6 +26,7 @@ import { useNavigationStore } from "@/store/navigationStore";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -41,40 +42,107 @@ const Header = () => {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Mock global results
+  // Mock global results with complete details
   const students = useMemo(
     () =>
       [
-        { id: "STU2024156", name: "Priya Patel", class: "Class 8" },
-        { id: "STU2024157", name: "Arjun Sharma", class: "Class 9" },
+        {
+          id: "NZN24250001",
+          name: "Aarav Sharma",
+          class: "Class V",
+          fatherName: "Rajesh Sharma",
+          mobile: "9876543210",
+          admissionDate: "2024-01-15",
+          totalFee: 24000,
+          paidAmount: 15000,
+          balance: 9000,
+          transport: "Yes - City Center",
+          status: "Active",
+        },
+        {
+          id: "NZN24250002",
+          name: "Divya Mehta",
+          class: "Class IX",
+          fatherName: "Suresh Mehta",
+          mobile: "9876543212",
+          admissionDate: "2024-01-16",
+          totalFee: 20000,
+          paidAmount: 20000,
+          balance: 0,
+          transport: "No",
+          status: "Active",
+        },
       ].filter(
         (s) =>
           s.name.toLowerCase().includes(query.toLowerCase()) ||
-          s.id.toLowerCase().includes(query.toLowerCase())
+          s.id.toLowerCase().includes(query.toLowerCase()) ||
+          s.fatherName.toLowerCase().includes(query.toLowerCase()) ||
+          s.mobile.includes(query)
       ),
     [query]
   );
   const employees = useMemo(
     () =>
       [
-        { id: "EMP001", name: "Dr. Rajesh Kumar", role: "Principal" },
-        { id: "EMP002", name: "Prof. Sarah Johnson", role: "HOD CS" },
+        {
+          id: "EMP001",
+          name: "Dr. Rajesh Kumar",
+          role: "Principal",
+          department: "Administration",
+          joinDate: "2020-01-15",
+          salary: 75000,
+          mobile: "9876543210",
+          email: "rajesh@school.com",
+          status: "Active",
+        },
+        {
+          id: "EMP002",
+          name: "Ms. Sunita Singh",
+          role: "Mathematics Teacher",
+          department: "Academic",
+          joinDate: "2021-06-01",
+          salary: 45000,
+          mobile: "9876543211",
+          email: "sunita@school.com",
+          status: "Active",
+        },
       ].filter(
         (e) =>
           e.name.toLowerCase().includes(query.toLowerCase()) ||
-          e.id.toLowerCase().includes(query.toLowerCase())
+          e.id.toLowerCase().includes(query.toLowerCase()) ||
+          e.role.toLowerCase().includes(query.toLowerCase()) ||
+          e.mobile.includes(query)
       ),
     [query]
   );
   const transactions = useMemo(
     () =>
       [
-        { id: "REC2024001", type: "Fee Payment", amount: "₹5,000" },
-        { id: "REC2024002", type: "Fee Payment", amount: "₹8,666" },
+        {
+          id: "TXN001",
+          type: "Fee Payment",
+          amount: "₹15,000",
+          student: "Aarav Sharma",
+          date: "2024-01-15",
+          mode: "Cash",
+          status: "Completed",
+        },
+        {
+          id: "TXN002",
+          type: "Salary Payment",
+          amount: "₹25,000",
+          employee: "Dr. Rajesh Kumar",
+          date: "2024-01-31",
+          mode: "Bank Transfer",
+          status: "Completed",
+        },
       ].filter(
         (t) =>
+          t.type.toLowerCase().includes(query.toLowerCase()) ||
           t.id.toLowerCase().includes(query.toLowerCase()) ||
-          t.type.toLowerCase().includes(query.toLowerCase())
+          (t.student &&
+            t.student.toLowerCase().includes(query.toLowerCase())) ||
+          (t.employee && t.employee.toLowerCase().includes(query.toLowerCase()))
       ),
     [query]
   );
@@ -364,16 +432,20 @@ const Header = () => {
         </div>
       </div>
       <Dialog open={openSearch} onOpenChange={setOpenSearch}>
-        <DialogContent className="sm:max-w-[700px]">
+        <DialogContent className="sm:max-w-[900px] max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Global Search</DialogTitle>
+            <DialogDescription>
+              Search across students, employees, and transactions with complete
+              details
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 ref={inputRef}
-                placeholder="Search students, employees, transactions..."
+                placeholder="Search by name, ID, mobile, or any detail..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="pl-9"
@@ -392,74 +464,230 @@ const Header = () => {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="students">
-                <div className="max-h-64 overflow-auto divide-y">
+                <div className="max-h-96 overflow-auto space-y-3">
                   {students.map((s) => (
-                    <a
+                    <div
                       key={s.id}
-                      href="/students"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-between py-2 hover:bg-slate-50 rounded px-2"
+                      className="border rounded-lg p-4 hover:bg-slate-50 transition-colors"
                     >
-                      <div className="flex items-center gap-3">
-                        <Users className="h-4 w-4 text-blue-600" />
-                        <div>
-                          <div className="font-medium">{s.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {s.id} • {s.class}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          <Users className="h-5 w-5 text-blue-600 mt-1" />
+                          <div className="space-y-2">
+                            <div>
+                              <div className="font-semibold text-lg">
+                                {s.name}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {s.id} • {s.class} • Father: {s.fatherName}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="font-medium">Mobile:</span>{" "}
+                                {s.mobile}
+                              </div>
+                              <div>
+                                <span className="font-medium">Admission:</span>{" "}
+                                {s.admissionDate}
+                              </div>
+                              <div>
+                                <span className="font-medium">Transport:</span>{" "}
+                                {s.transport}
+                              </div>
+                              <div>
+                                <span className="font-medium">Status:</span>
+                                <Badge
+                                  variant={
+                                    s.status === "Active"
+                                      ? "default"
+                                      : "secondary"
+                                  }
+                                  className="ml-1"
+                                >
+                                  {s.status}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="flex gap-4 pt-2">
+                              <div className="text-sm">
+                                <span className="font-medium text-green-600">
+                                  Paid: ₹{s.paidAmount.toLocaleString()}
+                                </span>
+                              </div>
+                              <div className="text-sm">
+                                <span className="font-medium text-red-600">
+                                  Balance: ₹{s.balance.toLocaleString()}
+                                </span>
+                              </div>
+                              <div className="text-sm">
+                                <span className="font-medium">
+                                  Total: ₹{s.totalFee.toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         </div>
+                        <div className="flex flex-col gap-2">
+                          <Button size="sm" variant="outline" asChild>
+                            <a
+                              href="/reservations/new?tab=collect"
+                              target="_blank"
+                            >
+                              Collect Fee
+                            </a>
+                          </Button>
+                          <Button size="sm" variant="outline" asChild>
+                            <a href="/admissions/new" target="_blank">
+                              View Details
+                            </a>
+                          </Button>
+                        </div>
                       </div>
-                      <span className="text-xs text-slate-400">Open ↗</span>
-                    </a>
+                    </div>
                   ))}
                 </div>
               </TabsContent>
               <TabsContent value="employees">
-                <div className="max-h-64 overflow-auto divide-y">
+                <div className="max-h-96 overflow-auto space-y-3">
                   {employees.map((e) => (
-                    <a
+                    <div
                       key={e.id}
-                      href="/employees"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-between py-2 hover:bg-slate-50 rounded px-2"
+                      className="border rounded-lg p-4 hover:bg-slate-50 transition-colors"
                     >
-                      <div className="flex items-center gap-3">
-                        <Users className="h-4 w-4 text-green-600" />
-                        <div>
-                          <div className="font-medium">{e.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {e.id} • {e.role}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          <Users className="h-5 w-5 text-green-600 mt-1" />
+                          <div className="space-y-2">
+                            <div>
+                              <div className="font-semibold text-lg">
+                                {e.name}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {e.id} • {e.role} • {e.department}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="font-medium">Mobile:</span>{" "}
+                                {e.mobile}
+                              </div>
+                              <div>
+                                <span className="font-medium">Email:</span>{" "}
+                                {e.email}
+                              </div>
+                              <div>
+                                <span className="font-medium">Join Date:</span>{" "}
+                                {e.joinDate}
+                              </div>
+                              <div>
+                                <span className="font-medium">Status:</span>
+                                <Badge
+                                  variant={
+                                    e.status === "Active"
+                                      ? "default"
+                                      : "secondary"
+                                  }
+                                  className="ml-1"
+                                >
+                                  {e.status}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="pt-2">
+                              <span className="font-medium text-blue-600">
+                                Salary: ₹{e.salary.toLocaleString()}/month
+                              </span>
+                            </div>
                           </div>
                         </div>
+                        <div className="flex flex-col gap-2">
+                          <Button size="sm" variant="outline" asChild>
+                            <a href="/employees" target="_blank">
+                              View Profile
+                            </a>
+                          </Button>
+                          <Button size="sm" variant="outline" asChild>
+                            <a href="/payroll" target="_blank">
+                              Payroll
+                            </a>
+                          </Button>
+                        </div>
                       </div>
-                      <span className="text-xs text-slate-400">Open ↗</span>
-                    </a>
+                    </div>
                   ))}
                 </div>
               </TabsContent>
               <TabsContent value="transactions">
-                <div className="max-h-64 overflow-auto divide-y">
+                <div className="max-h-96 overflow-auto space-y-3">
                   {transactions.map((t) => (
-                    <a
+                    <div
                       key={t.id}
-                      href="/fees"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-between py-2 hover:bg-slate-50 rounded px-2"
+                      className="border rounded-lg p-4 hover:bg-slate-50 transition-colors"
                     >
-                      <div className="flex items-center gap-3">
-                        <Users className="h-4 w-4 text-purple-600" />
-                        <div>
-                          <div className="font-medium">{t.type}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {t.id} • {t.amount}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          <Users className="h-5 w-5 text-purple-600 mt-1" />
+                          <div className="space-y-2">
+                            <div>
+                              <div className="font-semibold text-lg">
+                                {t.type}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {t.id} • {t.date}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="font-medium">Amount:</span>{" "}
+                                {t.amount}
+                              </div>
+                              <div>
+                                <span className="font-medium">Mode:</span>{" "}
+                                {t.mode}
+                              </div>
+                              {t.student && (
+                                <div>
+                                  <span className="font-medium">Student:</span>{" "}
+                                  {t.student}
+                                </div>
+                              )}
+                              {t.employee && (
+                                <div>
+                                  <span className="font-medium">Employee:</span>{" "}
+                                  {t.employee}
+                                </div>
+                              )}
+                              <div>
+                                <span className="font-medium">Status:</span>
+                                <Badge
+                                  variant={
+                                    t.status === "Completed"
+                                      ? "default"
+                                      : "secondary"
+                                  }
+                                  className="ml-1"
+                                >
+                                  {t.status}
+                                </Badge>
+                              </div>
+                            </div>
                           </div>
                         </div>
+                        <div className="flex flex-col gap-2">
+                          <Button size="sm" variant="outline" asChild>
+                            <a href="/fees" target="_blank">
+                              View Details
+                            </a>
+                          </Button>
+                          <Button size="sm" variant="outline" asChild>
+                            <a href="/financial-reports" target="_blank">
+                              Reports
+                            </a>
+                          </Button>
+                        </div>
                       </div>
-                      <span className="text-xs text-slate-400">Open ↗</span>
-                    </a>
+                    </div>
                   ))}
                 </div>
               </TabsContent>

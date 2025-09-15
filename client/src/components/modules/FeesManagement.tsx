@@ -276,10 +276,18 @@ const FeesManagement = () => {
     mockTransportFeeStructures
   );
   const [feePayments, setFeePayments] = useState(mockFeePayments);
-  const [activeTab, setActiveTab] = useState("structures");
+  const [activeTab, setActiveTab] = useState("collect");
   const [isAddFeeStructureOpen, setIsAddFeeStructureOpen] = useState(false);
   const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
   const [isCollectOpen, setIsCollectOpen] = useState(false);
+  const [showStudentPopup, setShowStudentPopup] = useState(false);
+  const [showPaymentPopup, setShowPaymentPopup] = useState(false);
+  const [showReceiptPopup, setShowReceiptPopup] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [feeType, setFeeType] = useState("tuition");
+  const [selectedTerms, setSelectedTerms] = useState<string[]>([]);
+  const [customAmount, setCustomAmount] = useState("");
+  const [paymentMode, setPaymentMode] = useState("Cash");
   const [collectTarget, setCollectTarget] = useState<any | null>(null);
   const [collectSelection, setCollectSelection] = useState<{
     books: boolean;
@@ -719,19 +727,132 @@ const FeesManagement = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="structures">Fee Structures</TabsTrigger>
-            <TabsTrigger value="balances">Student Balances</TabsTrigger>
-            <TabsTrigger value="transport">Transport Fees</TabsTrigger>
-            <TabsTrigger value="payments">Payment History</TabsTrigger>
-            <TabsTrigger value="vouchers">Vouchers</TabsTrigger>
-            <TabsTrigger value="reservations">Reservations</TabsTrigger>
-            <TabsTrigger value="promotions">Promotion/Dropout</TabsTrigger>
-          </TabsList>
+        {/* Simple Tabs with Border Bottom */}
+        <div className="border-b">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab("collect")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "collect"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Collect Fee
+            </button>
+            <button
+              onClick={() => setActiveTab("structures")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "structures"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Fee Structures
+            </button>
+            <button
+              onClick={() => setActiveTab("balances")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "balances"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Student Balances
+            </button>
+            <button
+              onClick={() => setActiveTab("transport")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "transport"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Transport Fees
+            </button>
+            <button
+              onClick={() => setActiveTab("payments")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "payments"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Payment History
+            </button>
+            <button
+              onClick={() => setActiveTab("vouchers")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "vouchers"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Vouchers
+            </button>
+            <button
+              onClick={() => setActiveTab("reservations")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "reservations"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Reservations
+            </button>
+            <button
+              onClick={() => setActiveTab("promotions")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "promotions"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Promotion/Dropout
+            </button>
+          </nav>
+        </div>
 
-          {/* Fee Structures Tab */}
-          <TabsContent value="structures" className="space-y-4">
+        {/* Tab Content */}
+        {activeTab === "collect" && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Collect Fee</CardTitle>
+                <CardDescription>
+                  Search for students to collect fees
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Student Search */}
+                <div className="space-y-4">
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <Label htmlFor="studentSearch">Search Student</Label>
+                      <Input
+                        id="studentSearch"
+                        placeholder="Search by Admission Number, Student Name, Father Name, or Mobile Number..."
+                        className="text-lg py-3"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        className="gap-2"
+                        onClick={() => setShowStudentPopup(true)}
+                      >
+                        <Search className="h-4 w-4" />
+                        Search
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === "structures" && (
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Input
@@ -932,10 +1053,11 @@ const FeesManagement = () => {
                   </motion.div>
                 ))}
             </div>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Student Balances Tab */}
-          <TabsContent value="balances" className="space-y-4">
+        {activeTab === "balances" && (
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Input
@@ -1179,10 +1301,11 @@ const FeesManagement = () => {
                 ))}
               </TableBody>
             </Table>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Transport Fees Tab */}
-          <TabsContent value="transport" className="space-y-4">
+        {activeTab === "transport" && (
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Input
@@ -1284,10 +1407,11 @@ const FeesManagement = () => {
                   </motion.div>
                 ))}
             </div>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Payment History Tab */}
-          <TabsContent value="payments" className="space-y-4">
+        {activeTab === "payments" && (
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Input
@@ -1412,10 +1536,11 @@ const FeesManagement = () => {
                 ))}
               </TableBody>
             </Table>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Vouchers Tab */}
-          <TabsContent value="vouchers" className="space-y-4">
+        {activeTab === "vouchers" && (
+          <div className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Misc. Income & Expenditure</CardTitle>
@@ -1476,10 +1601,11 @@ const FeesManagement = () => {
                 <Download className="h-4 w-4" /> Export
               </Button>
             </div>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Reservations Tab */}
-          <TabsContent value="reservations" className="space-y-4">
+        {activeTab === "reservations" && (
+          <div className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Reservations Dashboard</CardTitle>
@@ -1536,10 +1662,11 @@ const FeesManagement = () => {
                 </Table>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Promotion & Dropout Tab */}
-          <TabsContent value="promotions" className="space-y-4">
+        {activeTab === "promotions" && (
+          <div className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Promotion</CardTitle>
@@ -1610,11 +1737,9 @@ const FeesManagement = () => {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </motion.div>
-      {/* Accountant Extensions */}
-      <Tabs value={activeTab} className="hidden" />
 
       <Dialog open={isCollectOpen} onOpenChange={setIsCollectOpen}>
         <DialogContent>
@@ -1722,6 +1847,530 @@ const FeesManagement = () => {
             </Button>
             <Button disabled={!isSelectionValid()} onClick={applyCollect}>
               Collect
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Student Details Popup */}
+      <Dialog open={showStudentPopup} onOpenChange={setShowStudentPopup}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Student Details</DialogTitle>
+            <DialogDescription>
+              Complete student information and fee details
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Personal Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium text-gray-500">
+                  Student Name
+                </Label>
+                <p className="text-lg font-semibold">Aarav Sharma</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">
+                  Admission Number
+                </Label>
+                <p className="text-lg font-semibold">NZN24250001</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">
+                  Class
+                </Label>
+                <p className="text-lg">Class V</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">
+                  Father Name
+                </Label>
+                <p className="text-lg">Rajesh Sharma</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">
+                  Mobile Number
+                </Label>
+                <p className="text-lg">9876543210</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">
+                  Transport
+                </Label>
+                <p className="text-lg">Yes - City Center Route</p>
+              </div>
+            </div>
+
+            {/* Fee Structure */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Fee Structure</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <h4 className="font-medium">Tuition Fees</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Books Fee:</span>
+                      <span>₹7,000</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Tuition Term 1 (40%):</span>
+                      <span>₹6,400</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Tuition Term 2 (30%):</span>
+                      <span>₹4,800</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Tuition Term 3 (30%):</span>
+                      <span>₹4,800</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <h4 className="font-medium">Transport Fees</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Transport Term 1 (50%):</span>
+                      <span>₹4,000</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Transport Term 2 (50%):</span>
+                      <span>₹4,000</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Status */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Payment Status</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 bg-green-50 rounded-lg">
+                  <div className="text-sm text-green-600 font-medium">
+                    Paid Amount
+                  </div>
+                  <div className="text-2xl font-bold text-green-700">
+                    ₹15,000
+                  </div>
+                </div>
+                <div className="p-4 bg-red-50 rounded-lg">
+                  <div className="text-sm text-red-600 font-medium">
+                    Outstanding
+                  </div>
+                  <div className="text-2xl font-bold text-red-700">₹9,000</div>
+                </div>
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <div className="text-sm text-blue-600 font-medium">
+                    Total Fee
+                  </div>
+                  <div className="text-2xl font-bold text-blue-700">
+                    ₹24,000
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment History */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Payment History</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                  <div>
+                    <div className="font-medium">Books Fee</div>
+                    <div className="text-sm text-gray-500">2024-01-15</div>
+                  </div>
+                  <div className="text-green-600 font-semibold">₹7,000</div>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                  <div>
+                    <div className="font-medium">Tuition Term 1</div>
+                    <div className="text-sm text-gray-500">2024-01-15</div>
+                  </div>
+                  <div className="text-green-600 font-semibold">₹6,400</div>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                  <div>
+                    <div className="font-medium">Transport Term 1</div>
+                    <div className="text-sm text-gray-500">2024-01-15</div>
+                  </div>
+                  <div className="text-green-600 font-semibold">₹4,000</div>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-yellow-50 rounded border-l-4 border-yellow-400">
+                  <div>
+                    <div className="font-medium">Tuition Term 2</div>
+                    <div className="text-sm text-gray-500">Pending</div>
+                  </div>
+                  <div className="text-yellow-600 font-semibold">₹4,800</div>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-yellow-50 rounded border-l-4 border-yellow-400">
+                  <div>
+                    <div className="font-medium">Transport Term 2</div>
+                    <div className="text-sm text-gray-500">Pending</div>
+                  </div>
+                  <div className="text-yellow-600 font-semibold">₹4,000</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowStudentPopup(false)}
+            >
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                setShowStudentPopup(false);
+                setShowPaymentPopup(true);
+              }}
+            >
+              Pay Fee
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Popup */}
+      <Dialog open={showPaymentPopup} onOpenChange={setShowPaymentPopup}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Pay Fee</DialogTitle>
+            <DialogDescription>
+              Select fee type and terms to collect payment
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Fee Type Selection */}
+            <div className="space-y-3">
+              <Label className="text-base font-medium">Fee Type</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="feeType"
+                    value="tuition"
+                    checked={feeType === "tuition"}
+                    onChange={(e) => setFeeType(e.target.value)}
+                    className="text-blue-600"
+                  />
+                  <span>Tuition Fee</span>
+                </label>
+                <label className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="feeType"
+                    value="transport"
+                    checked={feeType === "transport"}
+                    onChange={(e) => setFeeType(e.target.value)}
+                    className="text-blue-600"
+                  />
+                  <span>Transport Fee</span>
+                </label>
+                <label className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="feeType"
+                    value="books"
+                    checked={feeType === "books"}
+                    onChange={(e) => setFeeType(e.target.value)}
+                    className="text-blue-600"
+                  />
+                  <span>Books Fee</span>
+                </label>
+                <label className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="feeType"
+                    value="others"
+                    checked={feeType === "others"}
+                    onChange={(e) => setFeeType(e.target.value)}
+                    className="text-blue-600"
+                  />
+                  <span>Others</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Term Selection */}
+            {feeType === "tuition" && (
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Select Terms</Label>
+                <div className="space-y-2">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedTerms.includes("books")}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedTerms([...selectedTerms, "books"]);
+                        } else {
+                          setSelectedTerms(
+                            selectedTerms.filter((t) => t !== "books")
+                          );
+                        }
+                      }}
+                      className="text-blue-600"
+                    />
+                    <span>Books Fee - ₹7,000</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedTerms.includes("t1")}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedTerms([...selectedTerms, "t1"]);
+                        } else {
+                          setSelectedTerms(
+                            selectedTerms.filter((t) => t !== "t1")
+                          );
+                        }
+                      }}
+                      className="text-blue-600"
+                    />
+                    <span>Tuition Term 1 (40%) - ₹6,400</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedTerms.includes("t2")}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedTerms([...selectedTerms, "t2"]);
+                        } else {
+                          setSelectedTerms(
+                            selectedTerms.filter((t) => t !== "t2")
+                          );
+                        }
+                      }}
+                      className="text-blue-600"
+                    />
+                    <span>Tuition Term 2 (30%) - ₹4,800</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedTerms.includes("t3")}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedTerms([...selectedTerms, "t3"]);
+                        } else {
+                          setSelectedTerms(
+                            selectedTerms.filter((t) => t !== "t3")
+                          );
+                        }
+                      }}
+                      className="text-blue-600"
+                    />
+                    <span>Tuition Term 3 (30%) - ₹4,800</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {feeType === "transport" && (
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Select Terms</Label>
+                <div className="space-y-2">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedTerms.includes("tr1")}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedTerms([...selectedTerms, "tr1"]);
+                        } else {
+                          setSelectedTerms(
+                            selectedTerms.filter((t) => t !== "tr1")
+                          );
+                        }
+                      }}
+                      className="text-blue-600"
+                    />
+                    <span>Transport Term 1 (50%) - ₹4,000</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedTerms.includes("tr2")}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedTerms([...selectedTerms, "tr2"]);
+                        } else {
+                          setSelectedTerms(
+                            selectedTerms.filter((t) => t !== "tr2")
+                          );
+                        }
+                      }}
+                      className="text-blue-600"
+                    />
+                    <span>Transport Term 2 (50%) - ₹4,000</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* Custom Amount */}
+            <div className="space-y-3">
+              <Label className="text-base font-medium">
+                Custom Amount (Optional)
+              </Label>
+              <Input
+                type="number"
+                placeholder="Enter custom amount"
+                value={customAmount}
+                onChange={(e) => setCustomAmount(e.target.value)}
+              />
+            </div>
+
+            {/* Payment Mode */}
+            <div className="space-y-3">
+              <Label className="text-base font-medium">Payment Mode</Label>
+              <Select value={paymentMode} onValueChange={setPaymentMode}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment mode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Cash">Cash</SelectItem>
+                  <SelectItem value="Cheque">Cheque</SelectItem>
+                  <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="DD">DD</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Total Amount */}
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-medium">Total Amount:</span>
+                <span className="text-2xl font-bold text-blue-700">
+                  ₹
+                  {(() => {
+                    let total = 0;
+                    if (feeType === "tuition") {
+                      if (selectedTerms.includes("books")) total += 7000;
+                      if (selectedTerms.includes("t1")) total += 6400;
+                      if (selectedTerms.includes("t2")) total += 4800;
+                      if (selectedTerms.includes("t3")) total += 4800;
+                    } else if (feeType === "transport") {
+                      if (selectedTerms.includes("tr1")) total += 4000;
+                      if (selectedTerms.includes("tr2")) total += 4000;
+                    } else if (feeType === "books") {
+                      total = 7000;
+                    }
+                    if (customAmount) {
+                      total = parseFloat(customAmount);
+                    }
+                    return total.toLocaleString();
+                  })()}
+                </span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowPaymentPopup(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setShowPaymentPopup(false);
+                setShowReceiptPopup(true);
+              }}
+            >
+              Process Payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Receipt Popup */}
+      <Dialog open={showReceiptPopup} onOpenChange={setShowReceiptPopup}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Payment Receipt</DialogTitle>
+            <DialogDescription>
+              Payment processed successfully
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <strong>Receipt No:</strong> REC
+                {Date.now().toString().slice(-6)}
+              </div>
+              <div>
+                <strong>Date:</strong> {new Date().toLocaleDateString()}
+              </div>
+              <div>
+                <strong>Student Name:</strong> Aarav Sharma
+              </div>
+              <div>
+                <strong>Admission No:</strong> NZN24250001
+              </div>
+              <div>
+                <strong>Class:</strong> Class V
+              </div>
+              <div>
+                <strong>Payment Mode:</strong> {paymentMode}
+              </div>
+            </div>
+            <div className="border-t pt-4">
+              <div className="flex justify-between">
+                <span>Fee Type:</span>
+                <span>
+                  {feeType.charAt(0).toUpperCase() + feeType.slice(1)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Selected Terms:</span>
+                <span>{selectedTerms.join(", ") || "Custom Amount"}</span>
+              </div>
+              <div className="flex justify-between font-bold text-lg border-t pt-2">
+                <span>Total Amount:</span>
+                <span>
+                  ₹
+                  {(() => {
+                    let total = 0;
+                    if (feeType === "tuition") {
+                      if (selectedTerms.includes("books")) total += 7000;
+                      if (selectedTerms.includes("t1")) total += 6400;
+                      if (selectedTerms.includes("t2")) total += 4800;
+                      if (selectedTerms.includes("t3")) total += 4800;
+                    } else if (feeType === "transport") {
+                      if (selectedTerms.includes("tr1")) total += 4000;
+                      if (selectedTerms.includes("tr2")) total += 4000;
+                    } else if (feeType === "books") {
+                      total = 7000;
+                    }
+                    if (customAmount) {
+                      total = parseFloat(customAmount);
+                    }
+                    return total.toLocaleString();
+                  })()}
+                </span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => window.print()}>
+              <Receipt className="h-4 w-4 mr-2" />
+              Print
+            </Button>
+            <Button
+              onClick={() => {
+                setShowReceiptPopup(false);
+                setSelectedTerms([]);
+                setCustomAmount("");
+                setFeeType("tuition");
+              }}
+            >
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
