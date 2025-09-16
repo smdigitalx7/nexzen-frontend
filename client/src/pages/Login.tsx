@@ -104,9 +104,6 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [selectedRole, setSelectedRole] = useState<
-    "institute_admin" | "academic" | "accountant" | ""
-  >("");
   const [selectedYear, setSelectedYear] = useState<string>("");
 
   const { login, setAcademicYear } = useAuthStore();
@@ -116,12 +113,6 @@ const Login = () => {
     setIsLoading(true);
     setError("");
 
-    // Basic validations for role and academic year per PRD
-    if (!selectedRole) {
-      setError("Please select your role");
-      setIsLoading(false);
-      return;
-    }
     if (!selectedYear) {
       setError("Please select an academic year");
       setIsLoading(false);
@@ -134,14 +125,6 @@ const Login = () => {
     );
 
     if (mockUser) {
-      // Role validation to prevent spoofing
-      if (mockUser.user.role !== selectedRole) {
-        setTimeout(() => {
-          setError("Selected role does not match user role");
-          setIsLoading(false);
-        }, 600);
-        return;
-      }
       setTimeout(() => {
         setAcademicYear(selectedYear);
         login(mockUser.user, mockUser.branches);
@@ -205,24 +188,62 @@ const Login = () => {
 
           <CardContent className="space-y-6">
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Role Selector */}
               <div className="space-y-2">
-                <Label htmlFor="role" className="text-sm font-medium">
-                  Role
+                <Label htmlFor="email" className="text-sm font-medium">
+                  Email
                 </Label>
-                <Select
-                  value={selectedRole}
-                  onValueChange={(v) => setSelectedRole(v as any)}
-                >
-                  <SelectTrigger id="role" data-testid="select-role">
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="institute_admin">Admin</SelectItem>
-                    <SelectItem value="accountant">Accountant</SelectItem>
-                    <SelectItem value="academic">Academic</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    data-testid="input-email"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium">
+                  Password
+                </Label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                  </div>
+
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 pr-12"
+                    data-testid="input-password"
+                    required
+                  />
+                  {/* <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute inset-y-0 right-2 my-auto h-8 w-8 p-0 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                    data-testid="button-toggle-password"
+                    aria-label="Toggle password visibility"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button> */}
+                </div>
               </div>
 
               {/* Academic Year Selector */}
@@ -243,59 +264,6 @@ const Login = () => {
                     <SelectItem value="2026-2027">2026-2027</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">
-                  Email
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
-                    data-testid="input-email"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/4 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10"
-                    data-testid="input-password"
-                    required
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                    data-testid="button-toggle-password"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </Button>
-                </div>
               </div>
 
               {error && (

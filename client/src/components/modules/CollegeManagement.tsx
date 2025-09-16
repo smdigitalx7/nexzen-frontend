@@ -1183,3 +1183,4 @@ const CollegeManagement = () => {
 
 export default CollegeManagement;
 
+
