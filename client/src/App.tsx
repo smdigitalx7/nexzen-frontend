@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Header from "@/components/Header";
@@ -35,6 +35,10 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { AuthTokenTimers } from "@/lib/api";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/query";
+import BranchesManagement from "@/components/modules/BranchesManagement";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { sidebarOpen } = useNavigationStore();
@@ -67,8 +71,8 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
                     .replace(/\b\w/g, (c) => c.toUpperCase());
                   const isLast = idx === segments.length - 1;
                   return (
-                    <>
-                      <BreadcrumbItem key={href}>
+                    <React.Fragment key={href}>
+                      <BreadcrumbItem>
                         {isLast ? (
                           <BreadcrumbPage>{label}</BreadcrumbPage>
                         ) : (
@@ -76,7 +80,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
                         )}
                       </BreadcrumbItem>
                       {!isLast && <BreadcrumbSeparator key={`${href}-sep`} />}
-                    </>
+                    </React.Fragment>
                   );
                 })}
               </BreadcrumbList>
@@ -105,6 +109,11 @@ function Router() {
           path="/institutes"
           roles={["institute_admin"]}
           component={InstituteManagement}
+        />
+        <ProtectedRoute
+          path="/branches"
+          roles={["institute_admin", "academic", "accountant", "admin" as any]}
+          component={BranchesManagement}
         />
         <ProtectedRoute
           path="/reservations/new"
@@ -191,6 +200,7 @@ function NotAuthorized() {
 
 function App() {
   const { setIsMobile } = useNavigationStore();
+  const { token, tokenExpireAt } = useAuthStore();
 
   useEffect(() => {
     const checkIfMobile = () => {
@@ -202,13 +212,24 @@ function App() {
     return () => window.removeEventListener("resize", checkIfMobile);
   }, [setIsMobile]);
 
+  useEffect(() => {
+    if (token && tokenExpireAt) {
+      AuthTokenTimers.scheduleProactiveRefresh();
+    }
+    return () => {
+      AuthTokenTimers.clearProactiveRefresh();
+    };
+  }, [token, tokenExpireAt]);
+
   return (
-    <TooltipProvider>
-      <div className="min-h-screen bg-background text-foreground">
-        <Router />
-        <Toaster />
-      </div>
-    </TooltipProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <div className="min-h-screen bg-background text-foreground">
+          <Router />
+          <Toaster />
+        </div>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
 

@@ -10,6 +10,7 @@ import {
   School,
   Users,
   Search,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,9 +33,10 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Api, AuthTokenTimers } from "@/lib/api";
 
 const Header = () => {
-  const { user, currentBranch, branches, switchBranch, logout, academicYear } =
+  const { user, currentBranch, branches, switchBranch, logout, academicYear, academicYears, switchAcademicYear } =
     useAuthStore();
   const { isMobile } = useNavigationStore();
   const [notifications] = useState(3); // Mock notification count
@@ -160,6 +162,39 @@ const Header = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Fetch academic years on component mount
+  useEffect(() => {
+    const fetchAcademicYears = async () => {
+      try {
+        const years = await Api.get<Array<{
+          id: number;
+          year_name: string;
+          start_date: string;
+          end_date: string;
+          active: boolean;
+          branch_type: "school" | "college";
+        }>>("/academic-years/");
+        
+        const { setAcademicYears } = useAuthStore.getState();
+        setAcademicYears(years);
+        
+        // Set default academic year if none is selected
+        const { academicYear } = useAuthStore.getState();
+        if (!academicYear && years.length > 0) {
+          const activeYear = years.find(year => year.active) || years[0];
+          const { setAcademicYear } = useAuthStore.getState();
+          setAcademicYear(activeYear.year_name);
+        }
+      } catch (error) {
+        console.error("Failed to fetch academic years:", error);
+      }
+    };
+
+    if (user && academicYears.length === 0) {
+      fetchAcademicYears();
+    }
+  }, [user, academicYears.length]);
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case "institute_admin":
@@ -191,9 +226,21 @@ const Header = () => {
     console.log("Branch switched to:", branch.branch_name);
   };
 
-  const handleLogout = () => {
-    logout();
-    console.log("User logged out");
+  const handleAcademicYearSwitch = (year: any) => {
+    switchAcademicYear(year);
+    console.log("Academic year switched to:", year.year_name);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await Api.post("/auth/logout");
+    } catch {
+      // ignore errors; we'll clear client state regardless
+    } finally {
+      AuthTokenTimers.clearProactiveRefresh();
+      logout();
+      console.log("User logged out");
+    }
   };
 
   return (
@@ -272,6 +319,69 @@ const Header = () => {
                             className="ml-auto text-xs"
                           >
                             {branch.branch_type}
+                          </Badge>
+                        )}
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </motion.div>
+              </DropdownMenuContent>
+            </AnimatePresence>
+          </DropdownMenu>
+
+          {/* Academic Year Switcher */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="hover-elevate min-w-[200px] justify-between bg-white/80 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 shadow-sm rounded-xl px-4 py-2.5"
+                data-testid="dropdown-academic-year-switcher"
+                aria-label="Select academic year"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-blue-400 to-blue-600">
+                    <Calendar className="h-4 w-4 text-white" />
+                  </div>
+                  <div className="flex flex-col items-start">
+                    <span
+                      className="truncate max-w-[120px] font-semibold text-base text-slate-700"
+                      title={academicYear || "Select Academic Year"}
+                    >
+                      {academicYear || "Select Academic Year"}
+                    </span>
+                  </div>
+                </div>
+                <ChevronDown className="h-4 w-4 text-slate-400" />
+              </Button>
+            </DropdownMenuTrigger>
+            <AnimatePresence>
+              <DropdownMenuContent align="center" className="w-[220px]" asChild>
+                <motion.div
+                  initial={{ y: -10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -10, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {academicYears
+                    .filter(year => year.branch_type === currentBranch?.branch_type)
+                    .map((year) => (
+                    <DropdownMenuItem
+                      key={year.id}
+                      onClick={() => handleAcademicYearSwitch(year)}
+                      className="hover-elevate"
+                      data-testid={`menuitem-academic-year-${year.id}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        <span className="truncate" title={year.year_name}>
+                          {year.year_name}
+                        </span>
+                        {year.active && (
+                          <Badge
+                            variant="default"
+                            className="ml-auto text-xs"
+                          >
+                            Active
                           </Badge>
                         )}
                       </div>

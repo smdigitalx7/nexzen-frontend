@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Mail, Lock, GraduationCap } from "lucide-react";
+import { Mail, Lock, GraduationCap, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,89 +13,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/store/authStore";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-// Mock login data - TODO: remove mock functionality
-const mockUsers = [
-  {
-    email: "admin@nexzen.edu",
-    password: "admin123",
-    user: {
-      user_id: "1",
-      full_name: "Sarah Johnson",
-      email: "admin@nexzen.edu",
-      role: "institute_admin" as const,
-      institute_id: "inst_1",
-      current_branch_id: "branch_1",
-    },
-    branches: [
-      {
-        branch_id: "branch_1",
-        branch_name: "Nexzen School",
-        branch_type: "school" as const,
-        is_default: true,
-      },
-      {
-        branch_id: "branch_2",
-        branch_name: "Velocity College",
-        branch_type: "college" as const,
-        is_default: false,
-      },
-    ],
-  },
-  {
-    email: "academic@nexzen.edu",
-    password: "academic123",
-    user: {
-      user_id: "2",
-      full_name: "Michael Chen",
-      email: "academic@nexzen.edu",
-      role: "academic" as const,
-      institute_id: "inst_1",
-      current_branch_id: "branch_1",
-    },
-    branches: [
-      {
-        branch_id: "branch_1",
-        branch_name: "Nexzen School",
-        branch_type: "school" as const,
-        is_default: true,
-      },
-    ],
-  },
-  {
-    email: "accountant@nexzen.edu",
-    password: "accountant123",
-    user: {
-      user_id: "3",
-      full_name: "Emily Rodriguez",
-      email: "accountant@nexzen.edu",
-      role: "accountant" as const,
-      institute_id: "inst_1",
-      current_branch_id: "branch_1",
-    },
-    branches: [
-      {
-        branch_id: "branch_1",
-        branch_name: "Nexzen School",
-        branch_type: "school" as const,
-        is_default: true,
-      },
-      {
-        branch_id: "branch_2",
-        branch_name: "Velocity College",
-        branch_type: "college" as const,
-        is_default: false,
-      },
-    ],
-  },
-];
+import { Api } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
   const [, setLocation] = useLocation();
@@ -104,57 +23,83 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [selectedYear, setSelectedYear] = useState<string>("");
 
-  const { login, setAcademicYear } = useAuthStore();
+  const { login, setTokenAndExpiry } = useAuthStore();
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
-    if (!selectedYear) {
-      setError("Please select an academic year");
+
+    try {
+      type TokenResponse = {
+        access_token: string;
+        token_type: string;
+        expiretime: string;
+      };
+
+      const tokenRes = await Api.post<TokenResponse>(
+        "/auth/login",
+        { identifier: email, password },
+        undefined,
+        { noAuth: true }
+      );
+
+      setTokenAndExpiry(
+        tokenRes.access_token,
+        tokenRes.expiretime ? new Date(tokenRes.expiretime).getTime() : null
+      );
+
+      const me = await Api.get<{
+        user_id: number;
+        institute_id: number;
+        current_branch_id: number;
+        branch_name?: string;
+        current_branch?: "SCHOOL" | "COLLEGE";
+        is_institute_admin?: boolean;
+        roles?: Array<{ role_name?: string } | string>;
+      }>("/auth/me");
+
+      const branches = await Api.get<Array<{
+        branch_id: number;
+        branch_name: string;
+        branch_type: "SCHOOL" | "COLLEGE";
+      }>>("/branches/");
+
+      const role: "institute_admin" | "academic" | "accountant" = (() => {
+        if (me.is_institute_admin) return "institute_admin";
+        const roleNames = (me.roles || []).map((r: any) => (typeof r === "string" ? r : r?.role_name)).filter(Boolean);
+        if (roleNames.includes("ACCOUNTANT")) return "accountant";
+        return "academic";
+      })();
+
+      const user = {
+        user_id: String(me.user_id),
+        full_name: "",
+        email,
+        role,
+        institute_id: String(me.institute_id),
+        current_branch_id: String(me.current_branch_id),
+      } as const;
+
+      const branchList = branches.map((b) => ({
+        branch_id: String(b.branch_id),
+        branch_name: b.branch_name,
+        branch_type: b.branch_type === "SCHOOL" ? "school" : "college",
+      }));
+
+      login(user as any, branchList as any);
+
+      const redirectPath = role === "institute_admin" ? "/" : role === "accountant" ? "/fees" : "/academic";
+      setLocation(redirectPath);
+    } catch (err: any) {
+      const message = err?.message || "Login failed";
+      setError(message);
+      toast({ title: "Login failed", description: message, variant: "destructive" });
+    } finally {
       setIsLoading(false);
-      return;
-    }
-
-    // TODO: remove mock functionality - replace with real API call
-    const mockUser = mockUsers.find(
-      (u) => u.email === email && u.password === password
-    );
-
-    if (mockUser) {
-      setTimeout(() => {
-        setAcademicYear(selectedYear);
-        login(mockUser.user, mockUser.branches);
-        // Redirect based on role per PRD
-        const role = mockUser.user.role;
-        const redirectPath =
-          role === "institute_admin"
-            ? "/"
-            : role === "accountant"
-            ? "/fees"
-            : "/academic";
-        setLocation(redirectPath);
-        setIsLoading(false);
-        console.log("Login successful:", mockUser.user.full_name);
-      }, 1000);
-    } else {
-      setTimeout(() => {
-        setError("Invalid email or password");
-        setIsLoading(false);
-      }, 1000);
-    }
-  };
-
-  const handleDemoLogin = (userType: "admin" | "academic" | "accountant") => {
-    const demoUser = mockUsers.find(
-      (u) => u.user.role === `institute_${userType}` || u.user.role === userType
-    );
-    if (demoUser) {
-      setEmail(demoUser.email);
-      setPassword(demoUser.password);
     }
   };
 
@@ -224,47 +169,27 @@ const Login = () => {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-12"
+                    className="pl-10 pr-10"
                     data-testid="input-password"
                     required
                   />
-                  {/* <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute inset-y-0 right-2 my-auto h-8 w-8 p-0 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-2 my-auto grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowPassword((v) => !v)}
                     data-testid="button-toggle-password"
                     aria-label="Toggle password visibility"
+                    aria-pressed={showPassword}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      <EyeOff className="h-4 w-4" />
                     ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
+                      <Eye className="h-4 w-4" />
                     )}
-                  </Button> */}
+                  </button>
                 </div>
               </div>
 
-              {/* Academic Year Selector */}
-              <div className="space-y-2">
-                <Label htmlFor="academicYear" className="text-sm font-medium">
-                  Academic Year
-                </Label>
-                <Select
-                  value={selectedYear}
-                  onValueChange={(v) => setSelectedYear(v)}
-                >
-                  <SelectTrigger id="academicYear" data-testid="select-year">
-                    <SelectValue placeholder="Select academic year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="2024-2025">2024-2025</SelectItem>
-                    <SelectItem value="2025-2026">2025-2026</SelectItem>
-                    <SelectItem value="2026-2027">2026-2027</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
 
               {error && (
                 <motion.div
@@ -286,49 +211,7 @@ const Login = () => {
               </Button>
             </form>
 
-            {/* Demo Login Options */}
-            <div className="space-y-3">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-muted-foreground/20"></div>
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Try Demo Accounts
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDemoLogin("admin")}
-                  className="text-xs hover-elevate"
-                  data-testid="button-demo-admin"
-                >
-                  Admin
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDemoLogin("academic")}
-                  className="text-xs hover-elevate"
-                  data-testid="button-demo-academic"
-                >
-                  Academic
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDemoLogin("accountant")}
-                  className="text-xs hover-elevate"
-                  data-testid="button-demo-accountant"
-                >
-                  Accountant
-                </Button>
-              </div>
-            </div>
+            
           </CardContent>
         </Card>
 

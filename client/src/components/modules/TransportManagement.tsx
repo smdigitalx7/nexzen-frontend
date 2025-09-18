@@ -43,6 +43,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -54,167 +55,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useAuthStore } from "@/store/authStore";
+import { useBusRoutes, useBusStops, useTransportFees, useCreateBusStop, useDeleteBusStop, useDeleteBusRoute, useDeleteTransportFee, useCreateTransportFee, useCreateBusRoute, useUpdateBusRoute, useUpdateBusStop, useUpdateTransportFee } from "@/lib/hooks/useTransport";
 
-// Mock data for transport management
-const mockBusRoutes = [
-  {
-    id: 1,
-    route_number: "R001",
-    route_name: "City Center",
-    vehicle_number: "TN01AB1234",
-    vehicle_capacity: 40,
-    driver_id: "EMP025",
-    driver_name: "Rajesh Kumar",
-    distance_km: 15.5,
-    estimated_duration: 45,
-    pickup_time: "07:15",
-    drop_time: "15:45",
-    active: true,
-    students_count: 35,
-    fuel_cost: 800,
-    maintenance_cost: 500,
-  },
-  {
-    id: 2,
-    route_number: "R002",
-    route_name: "North District",
-    vehicle_number: "TN02CD5678",
-    vehicle_capacity: 35,
-    driver_id: "EMP026",
-    driver_name: "Suresh Patel",
-    distance_km: 22.3,
-    estimated_duration: 60,
-    pickup_time: "07:00",
-    drop_time: "16:00",
-    active: true,
-    students_count: 28,
-    fuel_cost: 1200,
-    maintenance_cost: 750,
-  },
-  {
-    id: 3,
-    route_number: "R003",
-    route_name: "South Zone",
-    vehicle_number: "TN03EF9012",
-    vehicle_capacity: 45,
-    driver_id: "EMP027",
-    driver_name: "Vikram Singh",
-    distance_km: 18.7,
-    estimated_duration: 50,
-    pickup_time: "07:30",
-    drop_time: "15:30",
-    active: true,
-    students_count: 42,
-    fuel_cost: 950,
-    maintenance_cost: 600,
-  },
-];
-
-const mockBusStops = [
-  {
-    id: 1,
-    route_id: 1,
-    stop_name: "Main Market",
-    stop_sequence: 1,
-    pickup_time: "07:15",
-    drop_time: "15:45",
-    distance_from_start: 0,
-    landmark: "Near City Bank",
-    students_count: 12,
-  },
-  {
-    id: 2,
-    route_id: 1,
-    stop_name: "Central Plaza",
-    stop_sequence: 2,
-    pickup_time: "07:25",
-    drop_time: "15:35",
-    distance_from_start: 3.2,
-    landmark: "Opposite Metro Station",
-    students_count: 8,
-  },
-  {
-    id: 3,
-    route_id: 1,
-    stop_name: "Garden View",
-    stop_sequence: 3,
-    pickup_time: "07:35",
-    drop_time: "15:25",
-    distance_from_start: 6.8,
-    landmark: "Near Public Garden",
-    students_count: 15,
-  },
-  {
-    id: 4,
-    route_id: 2,
-    stop_name: "North Point",
-    stop_sequence: 1,
-    pickup_time: "07:00",
-    drop_time: "16:00",
-    distance_from_start: 0,
-    landmark: "Near North Mall",
-    students_count: 18,
-  },
-  {
-    id: 5,
-    route_id: 2,
-    stop_name: "Tech Park",
-    stop_sequence: 2,
-    pickup_time: "07:15",
-    drop_time: "15:45",
-    distance_from_start: 8.5,
-    landmark: "IT Park Entrance",
-    students_count: 10,
-  },
-];
-
-const mockTransportFeeStructures = [
-  {
-    id: 1,
-    route_id: 1,
-    stop_id: 1,
-    route_name: "R001-City Center",
-    stop_name: "Main Market",
-    distance_km: 3.2,
-    term_1_fee: 1200,
-    term_2_fee: 1200,
-    total_fee: 2400,
-    effective_from: "2024-04-01",
-    effective_to: "2025-03-31",
-    active: true,
-    students_count: 12,
-  },
-  {
-    id: 2,
-    route_id: 1,
-    stop_id: 2,
-    route_name: "R001-City Center",
-    stop_name: "Central Plaza",
-    distance_km: 6.8,
-    term_1_fee: 1500,
-    term_2_fee: 1500,
-    total_fee: 3000,
-    effective_from: "2024-04-01",
-    effective_to: "2025-03-31",
-    active: true,
-    students_count: 8,
-  },
-  {
-    id: 3,
-    route_id: 2,
-    stop_id: 4,
-    route_name: "R002-North District",
-    stop_name: "North Point",
-    distance_km: 8.5,
-    term_1_fee: 1800,
-    term_2_fee: 1800,
-    total_fee: 3600,
-    effective_from: "2024-04-01",
-    effective_to: "2025-03-31",
-    active: true,
-    students_count: 18,
-  },
-];
+// Removed mock data. Using backend data via hooks.
 
 const mockVehicleExpenses = [
   {
@@ -278,29 +121,93 @@ const mockStudentTransportAssignments = [
 
 const TransportManagement = () => {
   const { user, currentBranch } = useAuthStore();
-  const [busRoutes, setBusRoutes] = useState(mockBusRoutes);
-  const [busStops, setBusStops] = useState(mockBusStops);
-  const [transportFeeStructures, setTransportFeeStructures] = useState(
-    mockTransportFeeStructures
-  );
+  const { data: routesData = [], isLoading: routesLoading, error: routesError } = useBusRoutes();
+  const { data: stopsData = [], isLoading: stopsLoading, error: stopsError } = useBusStops();
+  const { data: feesData = [], isLoading: feesLoading, error: feesError } = useTransportFees();
+  const deleteRouteMutation = useDeleteBusRoute();
+  const deleteFeeMutation = useDeleteTransportFee();
+  const createRouteMutation = useCreateBusRoute();
+  const updateRouteMutation = useUpdateBusRoute();
+  const updateStopMutation = useUpdateBusStop();
+  const updateFeeMutation = useUpdateTransportFee();
+  const createFeeMutation = useCreateTransportFee();
+  // Adapt backend data to UI expectations (temporary fields like students_count are defaulted)
+  const busRoutes = routesData.map((r) => ({
+    id: r.bus_route_id,
+    route_number: r.route_no || "-",
+    route_name: r.route_name || "-",
+    vehicle_number: r.vehicle_number || "-",
+    vehicle_capacity: r.vehicle_capacity ?? 0,
+    driver_id: r.driver_employee_id ? String(r.driver_employee_id) : "-",
+    driver_name: "-",
+    distance_km: r.total_distance ?? 0,
+    estimated_duration: r.estimated_duration ?? 0,
+    pickup_time: "-",
+    drop_time: "-",
+    active: r.is_active ?? true,
+    students_count: 0,
+    fuel_cost: 0,
+    maintenance_cost: 0,
+  }));
+  const busStops = stopsData.map((s) => ({
+    id: s.stop_id,
+    route_id: s.bus_route_id,
+    stop_name: s.stop_name,
+    stop_sequence: s.stop_sequence,
+    pickup_time: String(s.pickup_time),
+    drop_time: String(s.drop_time),
+    distance_from_start: s.distance_from_start ?? 0,
+    landmark: s.landmark,
+    students_count: 0,
+  }));
+  const transportFeeStructures = feesData.map((f) => ({
+    id: f.fee_structure_id,
+    route_id: f.bus_route_id,
+    stop_id: f.stop_id,
+    route_name: String(f.bus_route_id),
+    stop_name: String(f.stop_id),
+    distance_km: 0,
+    term_1_fee: f.fee_amount,
+    term_2_fee: 0,
+    total_fee: f.fee_amount,
+    effective_from: f.effective_from_date || "",
+    effective_to: f.effective_to_date || "",
+    active: true,
+    students_count: 0,
+  }));
   const [studentAssignments, setStudentAssignments] = useState(
     mockStudentTransportAssignments
   );
   const [activeTab, setActiveTab] = useState("routes");
   const [isAddRouteOpen, setIsAddRouteOpen] = useState(false);
   const [isAddStopOpen, setIsAddStopOpen] = useState(false);
+  const [isAddFeeOpen, setIsAddFeeOpen] = useState(false);
+  const [isEditStopOpen, setIsEditStopOpen] = useState(false);
+  const [isEditFeeOpen, setIsEditFeeOpen] = useState(false);
+  const [confirmRouteDeleteId, setConfirmRouteDeleteId] = useState<number | null>(null);
+  const [confirmFeeDeleteId, setConfirmFeeDeleteId] = useState<number | null>(null);
+  const [confirmStopDeleteId, setConfirmStopDeleteId] = useState<number | null>(null);
+  const createStopMutation = useCreateBusStop();
+  const deleteStopMutation = useDeleteBusStop();
   const [searchTerm, setSearchTerm] = useState("");
-  const [newRoute, setNewRoute] = useState({
-    route_number: "",
-    route_name: "",
+  const [routeForm, setRouteForm] = useState({
     vehicle_number: "",
     vehicle_capacity: "",
-    driver_id: "",
-    distance_km: "",
+    registration_number: "",
+    insurance_expiry: "",
+    fitness_expiry: "",
+    permit_expiry: "",
+    driver_employee_id: "",
+    route_no: "",
+    route_name: "",
+    start_location: "",
+    end_location: "",
+    total_distance: "",
     estimated_duration: "",
-    pickup_time: "",
-    drop_time: "",
+    is_active: true,
   });
+  const [isEditingRoute, setIsEditingRoute] = useState(false);
+  const [routeEditingId, setRouteEditingId] = useState<number | null>(null);
   const [newStop, setNewStop] = useState({
     route_id: "",
     stop_name: "",
@@ -309,6 +216,31 @@ const TransportManagement = () => {
     drop_time: "",
     distance_from_start: "",
     landmark: "",
+  });
+
+  const [newFee, setNewFee] = useState({
+    bus_route_id: "",
+    stop_id: "",
+    fee_amount: "",
+    effective_from_date: "",
+    effective_to_date: "",
+  });
+
+  const [editStopId, setEditStopId] = useState<number | null>(null);
+  const [editStopForm, setEditStopForm] = useState({
+    stop_name: "",
+    stop_sequence: "",
+    pickup_time: "",
+    drop_time: "",
+    landmark: "",
+    distance_from_start: "",
+  });
+
+  const [editFeeId, setEditFeeId] = useState<number | null>(null);
+  const [editFeeForm, setEditFeeForm] = useState({
+    fee_amount: "",
+    effective_from_date: "",
+    effective_to_date: "",
   });
 
   const [expenses, setExpenses] = useState(mockVehicleExpenses);
@@ -355,47 +287,71 @@ const TransportManagement = () => {
   };
 
   const handleAddRoute = () => {
-    const newId = Math.max(...busRoutes.map((r) => r.id)) + 1;
-    const route = {
-      id: newId,
-      ...newRoute,
-      vehicle_capacity: parseInt(newRoute.vehicle_capacity),
-      distance_km: parseFloat(newRoute.distance_km),
-      estimated_duration: parseInt(newRoute.estimated_duration),
-      driver_name: "New Driver", // This would be fetched from employee data
-      active: true,
-      students_count: 0,
-      fuel_cost: 0,
-      maintenance_cost: 0,
-    };
-
-    setBusRoutes([...busRoutes, route]);
-    setNewRoute({
-      route_number: "",
-      route_name: "",
+    const required = [
+      routeForm.vehicle_number,
+      routeForm.vehicle_capacity,
+      routeForm.registration_number,
+      routeForm.insurance_expiry,
+      routeForm.fitness_expiry,
+      routeForm.permit_expiry,
+      routeForm.driver_employee_id,
+      routeForm.route_no,
+      routeForm.route_name,
+      routeForm.start_location,
+      routeForm.end_location,
+      routeForm.total_distance,
+      routeForm.estimated_duration,
+    ];
+    if (required.some((v) => !v)) return;
+    createRouteMutation.mutate({
+      vehicle_number: routeForm.vehicle_number,
+      vehicle_capacity: parseInt(routeForm.vehicle_capacity),
+      registration_number: routeForm.registration_number,
+      insurance_expiry: routeForm.insurance_expiry,
+      fitness_expiry: routeForm.fitness_expiry,
+      permit_expiry: routeForm.permit_expiry,
+      driver_employee_id: parseInt(routeForm.driver_employee_id),
+      route_no: routeForm.route_no,
+      route_name: routeForm.route_name,
+      start_location: routeForm.start_location,
+      end_location: routeForm.end_location,
+      total_distance: parseFloat(routeForm.total_distance),
+      estimated_duration: parseInt(routeForm.estimated_duration),
+      is_active: routeForm.is_active,
+    });
+    setRouteForm({
       vehicle_number: "",
       vehicle_capacity: "",
-      driver_id: "",
-      distance_km: "",
+      registration_number: "",
+      insurance_expiry: "",
+      fitness_expiry: "",
+      permit_expiry: "",
+      driver_employee_id: "",
+      route_no: "",
+      route_name: "",
+      start_location: "",
+      end_location: "",
+      total_distance: "",
       estimated_duration: "",
-      pickup_time: "",
-      drop_time: "",
+      is_active: true,
     });
     setIsAddRouteOpen(false);
   };
 
   const handleAddStop = () => {
-    const newId = Math.max(...busStops.map((s) => s.id)) + 1;
-    const stop = {
-      id: newId,
-      ...newStop,
-      route_id: parseInt(newStop.route_id),
+    if (!newStop.route_id || !newStop.stop_name || !newStop.stop_sequence || !newStop.pickup_time || !newStop.drop_time || !newStop.landmark) {
+      return;
+    }
+    createStopMutation.mutate({
+      bus_route_id: parseInt(newStop.route_id),
+      stop_name: newStop.stop_name,
       stop_sequence: parseInt(newStop.stop_sequence),
-      distance_from_start: parseFloat(newStop.distance_from_start),
-      students_count: 0,
-    };
+      pickup_time: newStop.pickup_time,
+      drop_time: newStop.drop_time,
+      landmark: newStop.landmark,
+      distance_from_start: newStop.distance_from_start ? parseFloat(newStop.distance_from_start) : null,
+    });
 
-    setBusStops([...busStops, stop]);
     setNewStop({
       route_id: "",
       stop_name: "",
@@ -424,14 +380,8 @@ const TransportManagement = () => {
     0
   );
   const overallUtilization = (totalStudents / totalCapacity) * 100;
-  const totalFuelCost = busRoutes.reduce(
-    (sum, route) => sum + route.fuel_cost,
-    0
-  );
-  const totalMaintenanceCost = busRoutes.reduce(
-    (sum, route) => sum + route.maintenance_cost,
-    0
-  );
+  const totalFuelCost = busRoutes.reduce((sum, route) => sum + (route.fuel_cost || 0), 0);
+  const totalMaintenanceCost = busRoutes.reduce((sum, route) => sum + (route.maintenance_cost || 0), 0);
 
   return (
     <div className="space-y-6 p-6">
@@ -552,34 +502,28 @@ const TransportManagement = () => {
                 />
                 <Badge variant="outline">{filteredRoutes.length} Routes</Badge>
               </div>
-              <Dialog open={isAddRouteOpen} onOpenChange={setIsAddRouteOpen}>
+              <Dialog open={isAddRouteOpen} onOpenChange={(open) => { if (!open) { setIsEditingRoute(false); setRouteEditingId(null);} setIsAddRouteOpen(open); }}>
                 <DialogTrigger asChild>
-                  <Button className="gap-2">
+                  <Button className="gap-2" onClick={() => { setIsEditingRoute(false); setRouteEditingId(null); }}>
                     <Plus className="h-4 w-4" />
                     Add Route
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Add New Bus Route</DialogTitle>
+                    <DialogTitle>{isEditingRoute ? "Edit Bus Route" : "Add New Bus Route"}</DialogTitle>
                     <DialogDescription>
-                      Create a new transport route with vehicle and driver
-                      details
+                      {isEditingRoute ? "Update route details" : "Create a new transport route with vehicle and driver details"}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="route_number">Route Number</Label>
+                        <Label htmlFor="route_no">Route Number</Label>
                         <Input
-                          id="route_number"
-                          value={newRoute.route_number}
-                          onChange={(e) =>
-                            setNewRoute({
-                              ...newRoute,
-                              route_number: e.target.value,
-                            })
-                          }
+                          id="route_no"
+                          value={routeForm.route_no}
+                          onChange={(e) => setRouteForm({ ...routeForm, route_no: e.target.value })}
                           placeholder="R001"
                         />
                       </div>
@@ -587,13 +531,8 @@ const TransportManagement = () => {
                         <Label htmlFor="route_name">Route Name</Label>
                         <Input
                           id="route_name"
-                          value={newRoute.route_name}
-                          onChange={(e) =>
-                            setNewRoute({
-                              ...newRoute,
-                              route_name: e.target.value,
-                            })
-                          }
+                          value={routeForm.route_name}
+                          onChange={(e) => setRouteForm({ ...routeForm, route_name: e.target.value })}
                           placeholder="City Center"
                         />
                       </div>
@@ -601,113 +540,59 @@ const TransportManagement = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="vehicle_number">Vehicle Number</Label>
-                        <Input
-                          id="vehicle_number"
-                          value={newRoute.vehicle_number}
-                          onChange={(e) =>
-                            setNewRoute({
-                              ...newRoute,
-                              vehicle_number: e.target.value,
-                            })
-                          }
-                          placeholder="TN01AB1234"
-                        />
+                        <Input id="vehicle_number" value={routeForm.vehicle_number} onChange={(e) => setRouteForm({ ...routeForm, vehicle_number: e.target.value })} placeholder="TN01AB1234" />
                       </div>
                       <div>
                         <Label htmlFor="vehicle_capacity">
                           Vehicle Capacity
                         </Label>
-                        <Input
-                          id="vehicle_capacity"
-                          type="number"
-                          value={newRoute.vehicle_capacity}
-                          onChange={(e) =>
-                            setNewRoute({
-                              ...newRoute,
-                              vehicle_capacity: e.target.value,
-                            })
-                          }
-                          placeholder="40"
-                        />
+                        <Input id="vehicle_capacity" type="number" value={routeForm.vehicle_capacity} onChange={(e) => setRouteForm({ ...routeForm, vehicle_capacity: e.target.value })} placeholder="40" />
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <Label htmlFor="distance_km">Distance (km)</Label>
-                        <Input
-                          id="distance_km"
-                          type="number"
-                          step="0.1"
-                          value={newRoute.distance_km}
-                          onChange={(e) =>
-                            setNewRoute({
-                              ...newRoute,
-                              distance_km: e.target.value,
-                            })
-                          }
-                          placeholder="15.5"
-                        />
+                        <Label htmlFor="total_distance">Distance (km)</Label>
+                        <Input id="total_distance" type="number" step="0.1" value={routeForm.total_distance} onChange={(e) => setRouteForm({ ...routeForm, total_distance: e.target.value })} placeholder="15.5" />
                       </div>
                       <div>
                         <Label htmlFor="estimated_duration">
                           Duration (min)
                         </Label>
-                        <Input
-                          id="estimated_duration"
-                          type="number"
-                          value={newRoute.estimated_duration}
-                          onChange={(e) =>
-                            setNewRoute({
-                              ...newRoute,
-                              estimated_duration: e.target.value,
-                            })
-                          }
-                          placeholder="45"
-                        />
+                        <Input id="estimated_duration" type="number" value={routeForm.estimated_duration} onChange={(e) => setRouteForm({ ...routeForm, estimated_duration: e.target.value })} placeholder="45" />
                       </div>
                       <div>
-                        <Label htmlFor="driver_id">Driver ID</Label>
-                        <Input
-                          id="driver_id"
-                          value={newRoute.driver_id}
-                          onChange={(e) =>
-                            setNewRoute({
-                              ...newRoute,
-                              driver_id: e.target.value,
-                            })
-                          }
-                          placeholder="EMP025"
-                        />
+                        <Label htmlFor="driver_employee_id">Driver Employee ID</Label>
+                        <Input id="driver_employee_id" value={routeForm.driver_employee_id} onChange={(e) => setRouteForm({ ...routeForm, driver_employee_id: e.target.value })} placeholder="25" />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="pickup_time">Pickup Time</Label>
-                        <Input
-                          id="pickup_time"
-                          type="time"
-                          value={newRoute.pickup_time}
-                          onChange={(e) =>
-                            setNewRoute({
-                              ...newRoute,
-                              pickup_time: e.target.value,
-                            })
-                          }
-                        />
+                        <Label htmlFor="start_location">Start Location</Label>
+                        <Input id="start_location" value={routeForm.start_location} onChange={(e) => setRouteForm({ ...routeForm, start_location: e.target.value })} />
                       </div>
                       <div>
-                        <Label htmlFor="drop_time">Drop Time</Label>
-                        <Input
-                          id="drop_time"
-                          type="time"
-                          value={newRoute.drop_time}
-                          onChange={(e) =>
-                            setNewRoute({
-                              ...newRoute,
-                              drop_time: e.target.value,
-                            })
-                          }
-                        />
+                        <Label htmlFor="end_location">End Location</Label>
+                        <Input id="end_location" value={routeForm.end_location} onChange={(e) => setRouteForm({ ...routeForm, end_location: e.target.value })} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="registration_number">Registration Number</Label>
+                        <Input id="registration_number" value={routeForm.registration_number} onChange={(e) => setRouteForm({ ...routeForm, registration_number: e.target.value })} placeholder="REG123" />
+                      </div>
+                      <div>
+                        <Label htmlFor="insurance_expiry">Insurance Expiry</Label>
+                        <Input id="insurance_expiry" type="date" value={routeForm.insurance_expiry} onChange={(e) => setRouteForm({ ...routeForm, insurance_expiry: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label htmlFor="fitness_expiry">Fitness Expiry</Label>
+                        <Input id="fitness_expiry" type="date" value={routeForm.fitness_expiry} onChange={(e) => setRouteForm({ ...routeForm, fitness_expiry: e.target.value })} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="permit_expiry">Permit Expiry</Label>
+                        <Input id="permit_expiry" type="date" value={routeForm.permit_expiry} onChange={(e) => setRouteForm({ ...routeForm, permit_expiry: e.target.value })} />
                       </div>
                     </div>
                   </div>
@@ -718,12 +603,35 @@ const TransportManagement = () => {
                     >
                       Cancel
                     </Button>
-                    <Button onClick={handleAddRoute}>Add Route</Button>
+                    <Button onClick={() => {
+                      if (isEditingRoute && routeEditingId) {
+                        updateRouteMutation.mutate({
+                          id: routeEditingId,
+                          payload: {
+                            route_no: routeForm.route_no || undefined,
+                            route_name: routeForm.route_name || undefined,
+                            is_active: routeForm.is_active,
+                          }
+                        });
+                        setIsAddRouteOpen(false);
+                        setIsEditingRoute(false);
+                        setRouteEditingId(null);
+                      } else {
+                        handleAddRoute();
+                      }
+                    }}>{isEditingRoute ? "Update Route" : "Add Route"}</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
             </div>
 
+            {filteredRoutes.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  No routes found. Click "Add Route" to create the first route.
+                </CardContent>
+              </Card>
+            ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredRoutes.map((route, index) => {
                 const utilization = getRouteUtilization(
@@ -758,6 +666,34 @@ const TransportManagement = () => {
                           >
                             {route.active ? "Active" : "Inactive"}
                           </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setIsEditingRoute(true);
+                              setRouteEditingId(route.id);
+                              setIsAddRouteOpen(true);
+                              setRouteForm({
+                                ...routeForm,
+                                route_no: route.route_number || "",
+                                route_name: route.route_name || "",
+                                is_active: route.active,
+                              });
+                            }}
+                            title="Edit route"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setConfirmRouteDeleteId(route.id)}
+                            className="text-red-600 hover:text-red-700"
+                            title="Delete route"
+                            aria-label="Delete route"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </CardHeader>
                       <CardContent>
@@ -818,6 +754,7 @@ const TransportManagement = () => {
                 );
               })}
             </div>
+            )}
           </TabsContent>
 
           {/* Bus Stops Tab */}
@@ -984,6 +921,13 @@ const TransportManagement = () => {
               </Dialog>
             </div>
 
+            {busStops.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  No stops yet. Use "Add Stop" to create one for a route.
+                </CardContent>
+              </Card>
+            ) : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -1042,8 +986,31 @@ const TransportManagement = () => {
                             <Button variant="ghost" size="sm">
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditStopId(stop.id);
+                                setEditStopForm({
+                                  stop_name: stop.stop_name,
+                                  stop_sequence: String(stop.stop_sequence),
+                                  pickup_time: String(stop.pickup_time),
+                                  drop_time: String(stop.drop_time),
+                                  landmark: stop.landmark,
+                                  distance_from_start: String(stop.distance_from_start ?? ""),
+                                });
+                                setIsEditStopOpen(true);
+                              }}
+                            >
                               <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setConfirmStopDeleteId(stop.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -1052,6 +1019,65 @@ const TransportManagement = () => {
                   })}
               </TableBody>
             </Table>
+            )}
+          {/* Edit Stop Dialog */}
+          <Dialog open={isEditStopOpen} onOpenChange={setIsEditStopOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Bus Stop</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit_stop_name">Stop Name</Label>
+                    <Input id="edit_stop_name" value={editStopForm.stop_name} onChange={(e) => setEditStopForm({ ...editStopForm, stop_name: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit_stop_sequence">Sequence</Label>
+                    <Input id="edit_stop_sequence" type="number" value={editStopForm.stop_sequence} onChange={(e) => setEditStopForm({ ...editStopForm, stop_sequence: e.target.value })} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit_pickup_time">Pickup Time</Label>
+                    <Input id="edit_pickup_time" type="time" value={editStopForm.pickup_time} onChange={(e) => setEditStopForm({ ...editStopForm, pickup_time: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit_drop_time">Drop Time</Label>
+                    <Input id="edit_drop_time" type="time" value={editStopForm.drop_time} onChange={(e) => setEditStopForm({ ...editStopForm, drop_time: e.target.value })} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit_distance">Distance (km)</Label>
+                    <Input id="edit_distance" type="number" step="0.1" value={editStopForm.distance_from_start} onChange={(e) => setEditStopForm({ ...editStopForm, distance_from_start: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit_landmark">Landmark</Label>
+                    <Input id="edit_landmark" value={editStopForm.landmark} onChange={(e) => setEditStopForm({ ...editStopForm, landmark: e.target.value })} />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditStopOpen(false)}>Cancel</Button>
+                <Button onClick={() => {
+                  if (!editStopId) return;
+                  updateStopMutation.mutate({
+                    id: editStopId,
+                    payload: {
+                      stop_name: editStopForm.stop_name,
+                      stop_sequence: parseInt(editStopForm.stop_sequence),
+                      pickup_time: editStopForm.pickup_time,
+                      drop_time: editStopForm.drop_time,
+                      landmark: editStopForm.landmark,
+                      distance_from_start: editStopForm.distance_from_start ? parseFloat(editStopForm.distance_from_start) : undefined,
+                    }
+                  });
+                  setIsEditStopOpen(false);
+                }}>Update Stop</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           </TabsContent>
 
           {/* Transport Fees Tab */}
@@ -1079,8 +1105,120 @@ const TransportManagement = () => {
                   Fee Structures
                 </Badge>
               </div>
+              <Dialog open={isAddFeeOpen} onOpenChange={setIsAddFeeOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Fee
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Transport Fee</DialogTitle>
+                    <DialogDescription>Link a stop to a fee amount</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="fee_route">Route</Label>
+                        <Select
+                          value={newFee.bus_route_id}
+                          onValueChange={(value) => setNewFee({ ...newFee, bus_route_id: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select route" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {busRoutes.map((route) => (
+                              <SelectItem key={route.id} value={String(route.id)}>
+                                {route.route_number} - {route.route_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="fee_stop">Stop</Label>
+                        <Select
+                          value={newFee.stop_id}
+                          onValueChange={(value) => setNewFee({ ...newFee, stop_id: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select stop" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {busStops.map((stop) => (
+                              <SelectItem key={stop.id} value={String(stop.id)}>
+                                {stop.stop_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="fee_amount">Fee Amount</Label>
+                        <Input
+                          id="fee_amount"
+                          type="number"
+                          value={newFee.fee_amount}
+                          onChange={(e) => setNewFee({ ...newFee, fee_amount: e.target.value })}
+                          placeholder="e.g. 1500"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="effective_from">Effective From</Label>
+                        <Input
+                          id="effective_from"
+                          type="date"
+                          value={newFee.effective_from_date}
+                          onChange={(e) => setNewFee({ ...newFee, effective_from_date: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="effective_to">Effective To</Label>
+                        <Input
+                          id="effective_to"
+                          type="date"
+                          value={newFee.effective_to_date}
+                          onChange={(e) => setNewFee({ ...newFee, effective_to_date: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsAddFeeOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (!newFee.bus_route_id || !newFee.stop_id || !newFee.fee_amount) return;
+                        createFeeMutation.mutate({
+                          bus_route_id: parseInt(newFee.bus_route_id),
+                          stop_id: parseInt(newFee.stop_id),
+                          fee_amount: parseFloat(newFee.fee_amount),
+                          effective_from_date: newFee.effective_from_date || null,
+                          effective_to_date: newFee.effective_to_date || null,
+                        });
+                        setNewFee({ bus_route_id: "", stop_id: "", fee_amount: "", effective_from_date: "", effective_to_date: "" });
+                        setIsAddFeeOpen(false);
+                      }}
+                    >
+                      Add Fee
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
 
+            {transportFeeStructures.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  No fee structures found. Click "Add Fee" to create one.
+                </CardContent>
+              </Card>
+            ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {transportFeeStructures
                 .filter(
@@ -1114,6 +1252,34 @@ const TransportManagement = () => {
                           <Badge variant={fee.active ? "default" : "secondary"}>
                             {fee.active ? "Active" : "Inactive"}
                           </Badge>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditFeeId(fee.id);
+                                setEditFeeForm({
+                                  fee_amount: String(fee.total_fee),
+                                  effective_from_date: fee.effective_from || "",
+                                  effective_to_date: fee.effective_to || "",
+                                });
+                                setIsEditFeeOpen(true);
+                              }}
+                              title="Edit fee"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setConfirmFeeDeleteId(fee.id)}
+                              className="text-red-600 hover:text-red-700"
+                              title="Delete fee"
+                              aria-label="Delete fee"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent>
@@ -1153,6 +1319,44 @@ const TransportManagement = () => {
                   </motion.div>
                 ))}
             </div>
+            )}
+          {/* Edit Fee Dialog */}
+          <Dialog open={isEditFeeOpen} onOpenChange={setIsEditFeeOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Transport Fee</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="edit_fee_amount">Fee Amount</Label>
+                    <Input id="edit_fee_amount" type="number" value={editFeeForm.fee_amount} onChange={(e) => setEditFeeForm({ ...editFeeForm, fee_amount: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit_effective_from">Effective From</Label>
+                    <Input id="edit_effective_from" type="date" value={editFeeForm.effective_from_date} onChange={(e) => setEditFeeForm({ ...editFeeForm, effective_from_date: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit_effective_to">Effective To</Label>
+                    <Input id="edit_effective_to" type="date" value={editFeeForm.effective_to_date} onChange={(e) => setEditFeeForm({ ...editFeeForm, effective_to_date: e.target.value })} />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditFeeOpen(false)}>Cancel</Button>
+                <Button onClick={() => {
+                  if (!editFeeId) return;
+                  updateFeeMutation.mutate({
+                    id: editFeeId,
+                    payload: {
+                      fee_amount: parseFloat(editFeeForm.fee_amount),
+                    }
+                  });
+                  setIsEditFeeOpen(false);
+                }}>Update Fee</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           </TabsContent>
 
           {/* Student Assignments Tab */}
@@ -1310,6 +1514,45 @@ const TransportManagement = () => {
             </div>
           </TabsContent>
         </Tabs>
+        {/* Confirm Stop Delete */}
+        <AlertDialog open={confirmStopDeleteId !== null} onOpenChange={(open) => { if (!open) setConfirmStopDeleteId(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Stop</AlertDialogTitle>
+              <AlertDialogDescription>This action will permanently delete this bus stop.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => { if (confirmStopDeleteId) deleteStopMutation.mutate(confirmStopDeleteId); setConfirmStopDeleteId(null); }} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        {/* Confirm Route Delete */}
+        <AlertDialog open={confirmRouteDeleteId !== null} onOpenChange={(open) => { if (!open) setConfirmRouteDeleteId(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Route</AlertDialogTitle>
+              <AlertDialogDescription>This action will permanently delete this route.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => { if (confirmRouteDeleteId) deleteRouteMutation.mutate(confirmRouteDeleteId); setConfirmRouteDeleteId(null); }} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        {/* Confirm Fee Delete */}
+        <AlertDialog open={confirmFeeDeleteId !== null} onOpenChange={(open) => { if (!open) setConfirmFeeDeleteId(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Fee</AlertDialogTitle>
+              <AlertDialogDescription>This action will permanently delete this fee structure.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => { if (confirmFeeDeleteId) deleteFeeMutation.mutate(confirmFeeDeleteId); setConfirmFeeDeleteId(null); }} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </motion.div>
     </div>
   );

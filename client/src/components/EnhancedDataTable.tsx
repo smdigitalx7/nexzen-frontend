@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   ColumnDef,
@@ -42,13 +42,22 @@ export function EnhancedDataTable<TData>({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [rowSelection, setRowSelection] = useState({});
-  const [pageSize, setPageSize] = useState(10);
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  // Reset to first page when data changes
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, pageIndex: 0 }));
+  }, [data]);
 
   const table = useReactTable({
     data,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -61,10 +70,7 @@ export function EnhancedDataTable<TData>({
       columnFilters,
       rowSelection,
       globalFilter,
-      pagination: {
-        pageIndex: 0,
-        pageSize,
-      },
+      pagination,
     },
   });
 
@@ -141,7 +147,13 @@ export function EnhancedDataTable<TData>({
               data-testid="input-search"
             />
           </div>
-          <Select value={pageSize.toString()} onValueChange={(value) => setPageSize(Number(value))}>
+          <Select 
+            value={pagination.pageSize.toString()} 
+            onValueChange={(value) => {
+              const newPageSize = Number(value);
+              setPagination(prev => ({ ...prev, pageSize: newPageSize, pageIndex: 0 }));
+            }}
+          >
             <SelectTrigger className="w-24" data-testid="select-page-size">
               <SelectValue />
             </SelectTrigger>

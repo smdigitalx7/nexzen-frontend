@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ColumnDef } from "@tanstack/react-table";
 import {
@@ -9,6 +9,7 @@ import {
   Calendar,
   DollarSign,
   Award,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,72 +30,61 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-// Mock employee data - TODO: remove mock functionality
-const mockEmployees = [
-  {
-    employee_id: "1",
-    employee_name: "Dr. Rajesh Kumar",
-    employee_code: "EMP001",
-    employee_type: "teaching",
-    designation: "Principal",
-    qualification: "M.Ed, Ph.D",
-    experience_years: 15,
-    mobile_no: "+91-9876543220",
-    email: "rajesh@nexzen.edu",
-    salary: "75000",
-    status: "ACTIVE",
-    date_of_joining: "2020-06-01",
-  },
-  {
-    employee_id: "2",
-    employee_name: "Mrs. Priya Sharma",
-    employee_code: "EMP002",
-    employee_type: "teaching",
-    designation: "Mathematics Teacher",
-    qualification: "M.Sc Mathematics, B.Ed",
-    experience_years: 8,
-    mobile_no: "+91-9876543221",
-    email: "priya@nexzen.edu",
-    salary: "45000",
-    status: "ACTIVE",
-    date_of_joining: "2021-03-15",
-  },
-  {
-    employee_id: "3",
-    employee_name: "Mr. Arun Patel",
-    employee_code: "EMP003",
-    employee_type: "non_teaching",
-    designation: "Administrator",
-    qualification: "MBA",
-    experience_years: 12,
-    mobile_no: "+91-9876543222",
-    email: "arun@nexzen.edu",
-    salary: "55000",
-    status: "ACTIVE",
-    date_of_joining: "2020-08-20",
-  },
-  {
-    employee_id: "4",
-    employee_name: "Ms. Kavitha Nair",
-    employee_code: "EMP004",
-    employee_type: "teaching",
-    designation: "English Teacher",
-    qualification: "M.A English, B.Ed",
-    experience_years: 6,
-    mobile_no: "+91-9876543223",
-    email: "kavitha@nexzen.edu",
-    salary: "40000",
-    status: "ON_LEAVE",
-    date_of_joining: "2022-01-10",
-  },
-];
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useEmployeesByBranch, useEmployeesByInstitute, useDeleteEmployee, useUpdateEmployeeStatus, useCreateEmployee, useUpdateEmployee } from "@/lib/hooks/useEmployees";
+import { EmployeeRead, EmployeeCreate, EmployeeUpdate } from "@/lib/types/employees";
 
 const EmployeeManagement = () => {
-  const [employees, setEmployees] = useState(mockEmployees);
-  const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null);
+  const [viewMode, setViewMode] = useState<"branch" | "institute">("branch");
+  
+  const { data: branchEmployees = [], isLoading: branchLoading, error: branchError } = useEmployeesByBranch();
+  const { data: instituteEmployees = [], isLoading: instituteLoading, error: instituteError } = useEmployeesByInstitute();
+  
+  // Use the selected view mode
+  const employees = viewMode === "branch" ? branchEmployees : instituteEmployees;
+  const isLoading = viewMode === "branch" ? branchLoading : instituteLoading;
+  const error = viewMode === "branch" ? branchError : instituteError;
+  const deleteEmployeeMutation = useDeleteEmployee();
+  const updateStatusMutation = useUpdateEmployeeStatus();
+  const createEmployeeMutation = useCreateEmployee();
+  const updateEmployeeMutation = useUpdateEmployee();
+
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeRead | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [newStatus, setNewStatus] = useState<string>("ACTIVE");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<EmployeeRead | null>(null);
+  
+  // Add/Edit Employee Form States
+  const [showEmployeeForm, setShowEmployeeForm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState<EmployeeCreate>({
+    employee_name: "",
+    employee_type: "teaching",
+    employee_code: "",
+    aadhar_no: "",
+    mobile_no: "",
+    email: "",
+    address: "",
+    date_of_joining: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+    designation: "",
+    qualification: "",
+    experience_years: 0,
+    status: "ACTIVE",
+    salary: 0,
+  });
 
   const getEmployeeTypeColor = (type: string) => {
     switch (type) {
@@ -128,17 +118,121 @@ const EmployeeManagement = () => {
       : text;
   };
 
-  const formatCurrency = (amount: string) => {
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",
-    }).format(parseInt(amount));
+    }).format(amount);
   };
 
-  const columns: ColumnDef<any>[] = [
+  const handleDeleteEmployee = (employee: EmployeeRead) => {
+    setEmployeeToDelete(employee);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = () => {
+    if (employeeToDelete) {
+      deleteEmployeeMutation.mutate(employeeToDelete.employee_id);
+      setShowDeleteDialog(false);
+      setEmployeeToDelete(null);
+    }
+  };
+
+  const handleStatusUpdate = () => {
+    if (selectedEmployee && newStatus !== selectedEmployee.status) {
+      updateStatusMutation.mutate({
+        id: selectedEmployee.employee_id,
+        status: newStatus,
+      });
+      setShowDetail(false);
+    }
+  };
+
+  const handleAddEmployee = () => {
+    setIsEditing(false);
+    setFormData({
+      employee_name: "",
+      employee_type: "teaching",
+      employee_code: "",
+      aadhar_no: "",
+      mobile_no: "",
+      email: "",
+      address: "",
+      date_of_joining: new Date().toISOString().split('T')[0],
+      designation: "",
+      qualification: "",
+      experience_years: 0,
+      status: "ACTIVE",
+      salary: 0,
+    });
+    setShowEmployeeForm(true);
+  };
+
+  const handleEditEmployee = (employee: EmployeeRead) => {
+    setIsEditing(true);
+    setFormData({
+      employee_name: employee.employee_name,
+      employee_type: employee.employee_type,
+      employee_code: employee.employee_code,
+      aadhar_no: employee.aadhar_no || "",
+      mobile_no: employee.mobile_no || "",
+      email: employee.email || "",
+      address: employee.address || "",
+      date_of_joining: employee.date_of_joining,
+      designation: employee.designation,
+      qualification: employee.qualification || "",
+      experience_years: employee.experience_years || 0,
+      status: employee.status,
+      salary: employee.salary,
+    });
+    setShowEmployeeForm(true);
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (isEditing && selectedEmployee) {
+      // Update existing employee
+      const updateData: EmployeeUpdate = {
+        employee_name: formData.employee_name,
+        employee_type: formData.employee_type,
+        employee_code: formData.employee_code,
+        aadhar_no: formData.aadhar_no || null,
+        mobile_no: formData.mobile_no || null,
+        email: formData.email || null,
+        address: formData.address || null,
+        date_of_joining: formData.date_of_joining,
+        designation: formData.designation,
+        qualification: formData.qualification || null,
+        experience_years: formData.experience_years || null,
+        status: formData.status,
+        salary: formData.salary,
+      };
+      
+      updateEmployeeMutation.mutate({
+        id: selectedEmployee.employee_id,
+        payload: updateData,
+      });
+    } else {
+      // Create new employee
+      createEmployeeMutation.mutate(formData);
+    }
+    
+    setShowEmployeeForm(false);
+  };
+
+  const handleFormChange = (field: keyof EmployeeCreate, value: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const columns: ColumnDef<EmployeeRead>[] = [
     {
       accessorKey: "employee_code",
       header: "Employee Code",
+      cell: ({ row }) => row.original.employee_code || "-",
     },
     {
       accessorKey: "employee_name",
@@ -181,13 +275,17 @@ const EmployeeManagement = () => {
       accessorKey: "experience_years",
       header: "Experience",
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Progress
-            value={(row.original.experience_years / 20) * 100}
-            className="w-16 h-2"
-          />
-          <span className="text-sm">{row.original.experience_years}y</span>
-        </div>
+        row.original.experience_years ? (
+          <div className="flex items-center gap-2">
+            <Progress
+              value={(row.original.experience_years / 20) * 100}
+              className="w-16 h-2"
+            />
+            <span className="text-sm">{row.original.experience_years}y</span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        )
       ),
     },
     {
@@ -225,8 +323,17 @@ const EmployeeManagement = () => {
             variant="ghost"
             size="sm"
             className="h-8 w-8 p-0 hover-elevate"
+            onClick={() => handleEditEmployee(row.original)}
           >
             <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 hover-elevate text-red-600 hover:text-red-700"
+            onClick={() => handleDeleteEmployee(row.original)}
+          >
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       ),
@@ -250,12 +357,9 @@ const EmployeeManagement = () => {
     },
     {
       title: "Average Salary",
-      value: formatCurrency(
-        (
-          employees.reduce((acc, e) => acc + parseInt(e.salary), 0) /
-          employees.length
-        ).toString()
-      ),
+      value: employees.length > 0
+        ? formatCurrency(employees.reduce((acc, e) => acc + e.salary, 0) / employees.length)
+        : "-",
       icon: DollarSign,
       color: "text-purple-600",
     },
@@ -282,8 +386,42 @@ const EmployeeManagement = () => {
           <p className="text-muted-foreground mt-1">
             Manage staff records, attendance, and payroll information
           </p>
+          <div className="flex items-center gap-4 mt-2">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="view-mode" className="text-sm">View:</Label>
+              <Select value={viewMode} onValueChange={(value: "branch" | "institute") => setViewMode(value)}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="branch">Branch Only</SelectItem>
+                  <SelectItem value="institute">All Institute</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Showing {employees.length} employees
+              {viewMode === "branch" && branchEmployees.length === 0 && instituteEmployees.length > 0 && (
+                <span className="text-orange-600 ml-1">
+                  (No branch assignments - showing all institute employees)
+                </span>
+              )}
+              <div className="text-xs mt-1">
+                Branch: {branchEmployees.length} | Institute: {instituteEmployees.length}
+                {employees.length > 10 && (
+                  <span className="text-blue-600 ml-2">
+                    (Pagination available below)
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-        <Button className="hover-elevate" data-testid="button-add-employee">
+        <Button 
+          className="hover-elevate" 
+          data-testid="button-add-employee"
+          onClick={handleAddEmployee}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add Employee
         </Button>
@@ -314,14 +452,23 @@ const EmployeeManagement = () => {
       </div>
 
       {/* Employees Table */}
-      <EnhancedDataTable
-        data={employees}
-        columns={columns}
-        title="Employees"
-        searchKey="employee_name"
-        exportable={true}
-        selectable={true}
-      />
+      {error ? (
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center text-red-600">
+              <p>Failed to load employees: {error.message}</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <EnhancedDataTable
+          data={employees}
+          columns={columns}
+          title={isLoading ? "Employees (Loading...)" : "Employees"}
+          searchKey="employee_name"
+          exportable={true}
+        />
+      )}
 
       {/* Detail Drawer/Dialog */}
       <Dialog open={showDetail} onOpenChange={setShowDetail}>
@@ -337,8 +484,8 @@ const EmployeeManagement = () => {
                     {selectedEmployee.employee_name}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {selectedEmployee.employee_code} •{" "}
-                    {selectedEmployee.designation}
+                    {selectedEmployee.employee_code || "EMP"} •{" "}
+                    {selectedEmployee.designation || "-"}
                   </div>
                 </div>
                 <Badge className={getStatusColor(selectedEmployee.status)}>
@@ -347,44 +494,52 @@ const EmployeeManagement = () => {
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
+                  <strong>Employee Code:</strong> {selectedEmployee.employee_code}
+                </div>
+                <div>
                   <strong>Type:</strong> {selectedEmployee.employee_type}
                 </div>
                 <div>
                   <strong>Experience:</strong>{" "}
-                  {selectedEmployee.experience_years} years
+                  {selectedEmployee.experience_years ?? "-"} years
                 </div>
                 <div>
-                  <strong>Mobile:</strong> {selectedEmployee.mobile_no}
+                  <strong>Qualification:</strong> {selectedEmployee.qualification || "-"}
                 </div>
                 <div>
-                  <strong>Email:</strong> {selectedEmployee.email}
+                  <strong>Mobile:</strong> {selectedEmployee.mobile_no || "-"}
                 </div>
                 <div>
-                  <strong>Joined:</strong> {selectedEmployee.date_of_joining}
+                  <strong>Email:</strong> {selectedEmployee.email || "-"}
                 </div>
                 <div>
-                  <strong>Salary:</strong>{" "}
-                  {formatCurrency(selectedEmployee.salary)}
+                  <strong>Joined:</strong> {new Date(selectedEmployee.date_of_joining).toLocaleDateString()}
+                </div>
+                <div>
+                  <strong>Salary:</strong> {formatCurrency(selectedEmployee.salary)}
+                </div>
+                <div className="col-span-2">
+                  <strong>Address:</strong> {selectedEmployee.address || "-"}
                 </div>
               </div>
 
-              {/* Employment History (mock) */}
+              {/* Employment History */}
               <div className="space-y-2">
                 <div className="font-medium">Employment History</div>
                 <div className="text-sm bg-muted/50 rounded p-3">
                   <ul className="list-disc ml-5 space-y-1">
-                    <li>Promoted to {selectedEmployee.designation} (2023)</li>
-                    <li>Annual increment applied (2024)</li>
-                    <li>
-                      Joined institution ({selectedEmployee.date_of_joining})
-                    </li>
+                    <li>Joined as {selectedEmployee.designation} on {new Date(selectedEmployee.date_of_joining).toLocaleDateString()}</li>
+                    <li>Created on {new Date(selectedEmployee.created_at).toLocaleDateString()}</li>
+                    {selectedEmployee.updated_at && (
+                      <li>Last updated on {new Date(selectedEmployee.updated_at).toLocaleDateString()}</li>
+                    )}
                   </ul>
                 </div>
               </div>
 
               {/* Status Change */}
               <div className="space-y-2">
-                <div className="font-medium">Status</div>
+                <div className="font-medium">Update Status</div>
                 <div className="flex items-center gap-3">
                   <Select value={newStatus} onValueChange={setNewStatus}>
                     <SelectTrigger className="w-40">
@@ -396,24 +551,234 @@ const EmployeeManagement = () => {
                       <SelectItem value="INACTIVE">INACTIVE</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button
-                    onClick={() => {
-                      setEmployees((prev) =>
-                        prev.map((e) =>
-                          e.employee_id === selectedEmployee.employee_id
-                            ? { ...e, status: newStatus }
-                            : e
-                        )
-                      );
-                      setShowDetail(false);
-                    }}
+                  <Button 
+                    onClick={handleStatusUpdate}
+                    disabled={updateStatusMutation.isPending || newStatus === selectedEmployee.status}
                   >
-                    Update
+                    {updateStatusMutation.isPending ? "Updating..." : "Update Status"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowDetail(false)}>
+                    Close
                   </Button>
                 </div>
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Employee</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{employeeToDelete?.employee_name}</strong>? 
+              This action cannot be undone and will permanently remove the employee record.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteEmployeeMutation.isPending}
+            >
+              {deleteEmployeeMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Add/Edit Employee Form Dialog */}
+      <Dialog open={showEmployeeForm} onOpenChange={setShowEmployeeForm}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {isEditing ? "Edit Employee" : "Add New Employee"}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <form onSubmit={handleFormSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="employee_name">Employee Name *</Label>
+                <Input
+                  id="employee_name"
+                  value={formData.employee_name}
+                  onChange={(e) => handleFormChange("employee_name", e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="employee_code">Employee Code *</Label>
+                <Input
+                  id="employee_code"
+                  value={formData.employee_code}
+                  onChange={(e) => handleFormChange("employee_code", e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="employee_type">Employee Type *</Label>
+                <Select
+                  value={formData.employee_type}
+                  onValueChange={(value) => handleFormChange("employee_type", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="teaching">Teaching</SelectItem>
+                    <SelectItem value="non_teaching">Non-Teaching</SelectItem>
+                    <SelectItem value="administrative">Administrative</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="designation">Designation *</Label>
+                <Input
+                  id="designation"
+                  value={formData.designation}
+                  onChange={(e) => handleFormChange("designation", e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="mobile_no">Mobile Number</Label>
+                <Input
+                  id="mobile_no"
+                  value={formData.mobile_no || ""}
+                  onChange={(e) => handleFormChange("mobile_no", e.target.value)}
+                  type="tel"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  value={formData.email || ""}
+                  onChange={(e) => handleFormChange("email", e.target.value)}
+                  type="email"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="aadhar_no">Aadhar Number</Label>
+                <Input
+                  id="aadhar_no"
+                  value={formData.aadhar_no || ""}
+                  onChange={(e) => handleFormChange("aadhar_no", e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="date_of_joining">Date of Joining *</Label>
+                <Input
+                  id="date_of_joining"
+                  value={formData.date_of_joining}
+                  onChange={(e) => handleFormChange("date_of_joining", e.target.value)}
+                  type="date"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="qualification">Qualification</Label>
+                <Input
+                  id="qualification"
+                  value={formData.qualification || ""}
+                  onChange={(e) => handleFormChange("qualification", e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="experience_years">Experience (Years)</Label>
+                <Input
+                  id="experience_years"
+                  value={formData.experience_years || 0}
+                  onChange={(e) => handleFormChange("experience_years", parseInt(e.target.value) || 0)}
+                  type="number"
+                  min="0"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="salary">Salary *</Label>
+                <Input
+                  id="salary"
+                  value={formData.salary}
+                  onChange={(e) => handleFormChange("salary", parseFloat(e.target.value) || 0)}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="status">Status *</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => handleFormChange("status", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ACTIVE">Active</SelectItem>
+                    <SelectItem value="ON_LEAVE">On Leave</SelectItem>
+                    <SelectItem value="INACTIVE">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Textarea
+                id="address"
+                value={formData.address || ""}
+                onChange={(e) => handleFormChange("address", e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowEmployeeForm(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createEmployeeMutation.isPending || updateEmployeeMutation.isPending}
+              >
+                {createEmployeeMutation.isPending || updateEmployeeMutation.isPending
+                  ? "Saving..."
+                  : isEditing
+                  ? "Update Employee"
+                  : "Add Employee"}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </motion.div>

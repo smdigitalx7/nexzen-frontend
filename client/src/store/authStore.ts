@@ -16,6 +16,16 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   academicYear: string | null;
+  academicYears: Array<{
+    id: number;
+    year_name: string;
+    start_date: string;
+    end_date: string;
+    active: boolean;
+    branch_type: "school" | "college";
+  }>;
+  token: string | null;
+  tokenExpireAt: number | null;
   branches: Array<{
     branch_id: string;
     branch_name: string;
@@ -29,8 +39,12 @@ interface AuthState {
   login: (user: AuthUser, branches: any[]) => void;
   logout: () => void;
   switchBranch: (branch: any) => void;
+  switchAcademicYear: (year: any) => void;
+  setAcademicYears: (years: any[]) => void;
   setLoading: (loading: boolean) => void;
   setAcademicYear: (year: string) => void;
+  setToken: (token: string | null) => void;
+  setTokenAndExpiry: (token: string | null, expireAtMs: number | null) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -40,6 +54,9 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       academicYear: null,
+      academicYears: [],
+      token: null,
+      tokenExpireAt: null,
       branches: [],
       currentBranch: null,
       login: (user, branches) => {
@@ -57,6 +74,9 @@ export const useAuthStore = create<AuthState>()(
           user: null,
           isAuthenticated: false,
           academicYear: null,
+          academicYears: [],
+          token: null,
+          tokenExpireAt: null,
           branches: [],
           currentBranch: null,
           isLoading: false,
@@ -65,11 +85,23 @@ export const useAuthStore = create<AuthState>()(
       switchBranch: (branch) => {
         set({ currentBranch: branch });
       },
+      switchAcademicYear: (year) => {
+        set({ academicYear: year.year_name });
+      },
+      setAcademicYears: (years) => {
+        set({ academicYears: years });
+      },
       setLoading: (loading) => {
         set({ isLoading: loading });
       },
       setAcademicYear: (year) => {
         set({ academicYear: year });
+      },
+      setToken: (token) => {
+        set({ token });
+      },
+      setTokenAndExpiry: (token, expireAtMs) => {
+        set({ token, tokenExpireAt: expireAtMs });
       },
     }),
     {
@@ -78,6 +110,9 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         isAuthenticated: state.isAuthenticated,
         academicYear: state.academicYear,
+        academicYears: state.academicYears,
+        token: state.token,
+        tokenExpireAt: state.tokenExpireAt,
         branches: state.branches,
         currentBranch: state.currentBranch,
       }),
