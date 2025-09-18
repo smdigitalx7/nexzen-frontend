@@ -112,7 +112,7 @@ function Router() {
         />
         <ProtectedRoute
           path="/branches"
-          roles={["institute_admin", "academic", "accountant", "admin" as any]}
+          roles={["institute_admin", "academic", "accountant"]}
           component={BranchesManagement}
         />
         <ProtectedRoute
@@ -125,18 +125,46 @@ function Router() {
           roles={["institute_admin", "accountant"]}
           component={AdmissionNew}
         />
-        <Route path="/users" component={UserManagement} />
-        <Route path="/students" component={StudentManagement} />
-        <Route path="/employees" component={EmployeeManagement} />
-        <Route path="/classes" component={ClassesManagement} />
-        <Route path="/attendance" component={AttendanceManagement} />
-        <Route path="/marks" component={MarksManagement} />
+        <ProtectedRoute
+          path="/users"
+          roles={["institute_admin"]}
+          component={UserManagement}
+        />
+        <ProtectedRoute
+          path="/students"
+          roles={["institute_admin", "academic"]}
+          component={StudentManagement}
+        />
+        <ProtectedRoute
+          path="/employees"
+          roles={["institute_admin"]}
+          component={EmployeeManagement}
+        />
+        <ProtectedRoute
+          path="/classes"
+          roles={["institute_admin", "academic"]}
+          component={ClassesManagement}
+        />
+        <ProtectedRoute
+          path="/attendance"
+          roles={["institute_admin", "academic"]}
+          component={AttendanceManagement}
+        />
+        <ProtectedRoute
+          path="/marks"
+          roles={["institute_admin", "academic"]}
+          component={MarksManagement}
+        />
         <ProtectedRoute
           path="/fees"
           roles={["institute_admin", "accountant"]}
           component={FeesManagement}
         />
-        <Route path="/transport" component={TransportManagement} />
+        <ProtectedRoute
+          path="/transport"
+          roles={["institute_admin"]}
+          component={TransportManagement}
+        />
         <ProtectedRoute
           path="/payroll"
           roles={["institute_admin", "accountant"]}

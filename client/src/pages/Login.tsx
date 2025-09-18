@@ -69,9 +69,21 @@ const Login = () => {
       }>>("/branches/");
 
       const role: "institute_admin" | "academic" | "accountant" = (() => {
-        if (me.is_institute_admin) return "institute_admin";
-        const roleNames = (me.roles || []).map((r: any) => (typeof r === "string" ? r : r?.role_name)).filter(Boolean);
+        const roleNames = (me.roles || [])
+          .map((r: any) => {
+            if (typeof r === "string") return r;
+            if (r?.role_name) return r.role_name;
+            if (r?.role) return r.role;
+            return undefined;
+          })
+          .filter(Boolean)
+          .map((s: string) => s.toUpperCase());
+
+        if (roleNames.includes("INSTITUTE_ADMIN") || roleNames.includes("ADMIN")) return "institute_admin";
         if (roleNames.includes("ACCOUNTANT")) return "accountant";
+        if (roleNames.includes("ACADEMIC")) return "academic";
+
+        if (me.is_institute_admin) return "institute_admin";
         return "academic";
       })();
 

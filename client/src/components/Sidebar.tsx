@@ -177,6 +177,7 @@ const Sidebar = () => {
           href: "/classes",
           icon: BookOpen,
           description: "Class management",
+          roles: ["institute_admin", "academic"],
         },
         {
           title: "Students",
@@ -184,18 +185,21 @@ const Sidebar = () => {
           icon: GraduationCap,
           badge: 15,
           description: "Student records",
+          roles: ["institute_admin", "academic"],
         },
         {
           title: "Attendance",
           href: "/attendance",
           icon: Calendar,
           description: "Daily attendance",
+          roles: ["institute_admin", "academic"],
         },
         {
           title: "Marks",
           href: "/marks",
           icon: Trophy,
           description: "Exam results",
+          roles: ["institute_admin", "academic"],
         },
         {
           title: "Fees",
@@ -220,6 +224,7 @@ const Sidebar = () => {
           href: "/college",
           icon: Building2,
           description: "Groups, courses & combinations",
+          roles: ["institute_admin", "academic"],
         },
         {
           title: "Students",
@@ -227,12 +232,14 @@ const Sidebar = () => {
           icon: GraduationCap,
           badge: 25,
           description: "Student records",
+          roles: ["institute_admin", "academic"],
         },
         {
           title: "Attendance",
           href: "/attendance",
           icon: Calendar,
           description: "Daily attendance",
+          roles: ["institute_admin", "academic"],
         },
         {
           title: "Fees",
