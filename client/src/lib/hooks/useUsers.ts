@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { UsersService } from "@/lib/services/users.service";
-import type { UserRead, UserCreate, UserUpdate } from "@/lib/types/users";
+import type { UserRead, UserCreate, UserUpdate, UserWithRolesAndBranches } from "@/lib/types/users";
 import { useToast } from "@/hooks/use-toast";
 
 const keys = {
   all: ["users"] as const,
+  allWithRoles: ["users", "with-roles"] as const,
   detail: (id: number) => ["users", id] as const,
 };
 
@@ -15,6 +16,19 @@ export function useUsers() {
       console.log("Fetching users...");
       const result = await UsersService.list();
       console.log("Users result:", result);
+      return result;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+}
+
+export function useUsersWithRoles() {
+  return useQuery<UserWithRolesAndBranches[]>({ 
+    queryKey: keys.allWithRoles, 
+    queryFn: async () => {
+      console.log("Fetching users with roles and branches...");
+      const result = await UsersService.listWithRolesAndBranches();
+      console.log("Users with roles result:", result);
       return result;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -43,6 +57,7 @@ export function useCreateUser() {
     mutationFn: (payload: UserCreate) => UsersService.create(payload),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: keys.all });
+      qc.invalidateQueries({ queryKey: keys.allWithRoles });
       toast({
         title: "Success",
         description: `User "${data.full_name}" created successfully.`,
@@ -66,6 +81,7 @@ export function useUpdateUser() {
     mutationFn: ({ id, payload }: { id: number; payload: UserUpdate }) => UsersService.update(id, payload),
     onSuccess: (data, { id }) => {
       qc.invalidateQueries({ queryKey: keys.all });
+      qc.invalidateQueries({ queryKey: keys.allWithRoles });
       qc.invalidateQueries({ queryKey: keys.detail(id) });
       toast({
         title: "Success",
@@ -90,6 +106,7 @@ export function useDeleteUser() {
     mutationFn: (id: number) => UsersService.remove(id),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: keys.all });
+      qc.invalidateQueries({ queryKey: keys.allWithRoles });
       toast({
         title: "Success",
         description: `User "${data.full_name}" deleted successfully.`,
@@ -114,6 +131,7 @@ export function useUpdateUserStatus() {
       UsersService.update(id, { is_active }),
     onSuccess: (data, { id }) => {
       qc.invalidateQueries({ queryKey: keys.all });
+      qc.invalidateQueries({ queryKey: keys.allWithRoles });
       qc.invalidateQueries({ queryKey: keys.detail(id) });
       toast({
         title: "Success",

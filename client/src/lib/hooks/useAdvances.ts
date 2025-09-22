@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdvancesService } from "@/lib/services/advances.service";
-import type { AdvanceRead, AdvanceCreate, AdvanceUpdate } from "@/lib/types/advances";
+import type { AdvanceRead, AdvanceCreate, AdvanceUpdate, AdvanceListResponse } from "@/lib/types/advances";
 
 const keys = {
   all: ["advances", "all"] as const,
@@ -9,11 +9,11 @@ const keys = {
 };
 
 export function useAdvancesAll() {
-  return useQuery<AdvanceRead[]>({ queryKey: keys.all, queryFn: () => AdvancesService.list() });
+  return useQuery<AdvanceListResponse>({ queryKey: keys.all, queryFn: () => AdvancesService.list() });
 }
 
 export function useAdvancesByBranch() {
-  return useQuery<AdvanceRead[]>({ queryKey: keys.branch, queryFn: () => AdvancesService.listByBranch() });
+  return useQuery<AdvanceListResponse>({ queryKey: keys.branch, queryFn: () => AdvancesService.listByBranch() });
 }
 
 export function useAdvance(id: number) {

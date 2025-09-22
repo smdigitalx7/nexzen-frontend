@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import {
   Plus,
   Bus,
-  MapPin,
   Clock,
   Users,
   Route,
@@ -59,65 +58,7 @@ import { useBusRoutes, useBusStops, useTransportFees, useCreateBusStop, useDelet
 
 // Removed mock data. Using backend data via hooks.
 
-const mockVehicleExpenses = [
-  {
-    id: 1,
-    date: "2025-08-01",
-    vehicle_number: "TN01AB1234",
-    type: "Fuel",
-    amount: 2800,
-    remarks: "Diesel refill",
-  },
-  {
-    id: 2,
-    date: "2025-08-05",
-    vehicle_number: "TN01AB1234",
-    type: "Maintenance",
-    amount: 1500,
-    remarks: "Brake pads",
-  },
-  {
-    id: 3,
-    date: "2025-08-10",
-    vehicle_number: "TN02CD5678",
-    type: "Fuel",
-    amount: 3000,
-    remarks: "Diesel refill",
-  },
-];
-
-const mockStudentTransportAssignments = [
-  {
-    id: 1,
-    student_id: "STU2024156",
-    student_name: "Priya Patel",
-    class_name: "Class 8",
-    route_id: 1,
-    route_name: "R001-City Center",
-    stop_id: 1,
-    stop_name: "Main Market",
-    assignment_date: "2024-04-01",
-    academic_year: "2024-25",
-    active: true,
-    pickup_time: "07:15",
-    drop_time: "15:45",
-  },
-  {
-    id: 2,
-    student_id: "STU2024157",
-    student_name: "Arjun Sharma",
-    class_name: "Class 9",
-    route_id: 2,
-    route_name: "R002-North District",
-    stop_id: 4,
-    stop_name: "North Point",
-    assignment_date: "2024-04-01",
-    academic_year: "2024-25",
-    active: true,
-    pickup_time: "07:00",
-    drop_time: "16:00",
-  },
-];
+// Removed Student Assignments and Expenses mock data
 
 const TransportManagement = () => {
   const { user, currentBranch } = useAuthStore();
@@ -175,9 +116,6 @@ const TransportManagement = () => {
     active: true,
     students_count: 0,
   }));
-  const [studentAssignments, setStudentAssignments] = useState(
-    mockStudentTransportAssignments
-  );
   const [activeTab, setActiveTab] = useState("routes");
   const [isAddRouteOpen, setIsAddRouteOpen] = useState(false);
   const [isAddStopOpen, setIsAddStopOpen] = useState(false);
@@ -243,30 +181,7 @@ const TransportManagement = () => {
     effective_to_date: "",
   });
 
-  const [expenses, setExpenses] = useState(mockVehicleExpenses);
-  const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
-  const exportExpenses = () => {
-    const rows = [
-      ["Date", "Vehicle", "Type", "Amount", "Remarks"],
-      ...expenses.map((e) => [
-        e.date,
-        e.vehicle_number,
-        e.type,
-        String(e.amount),
-        e.remarks,
-      ]),
-    ];
-    const csv = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `transport_expenses_${new Date()
-      .toISOString()
-      .slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  // Removed Student Assignments and Expenses state and helpers
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-IN", {
@@ -482,12 +397,10 @@ const TransportManagement = () => {
         transition={{ delay: 0.2 }}
       >
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="routes">Bus Routes</TabsTrigger>
             <TabsTrigger value="stops">Bus Stops</TabsTrigger>
             <TabsTrigger value="fees">Transport Fees</TabsTrigger>
-            <TabsTrigger value="assignments">Student Assignments</TabsTrigger>
-            <TabsTrigger value="expenses">Expenses</TabsTrigger>
           </TabsList>
 
           {/* Bus Routes Tab */}
@@ -1219,106 +1132,85 @@ const TransportManagement = () => {
                 </CardContent>
               </Card>
             ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {transportFeeStructures
-                .filter(
-                  (f) =>
-                    f.route_name
-                      .toLowerCase()
-                      .includes(searchTerm.toLowerCase()) ||
-                    f.stop_name.toLowerCase().includes(searchTerm.toLowerCase())
-                )
-                .map((fee, index) => (
-                  <motion.div
-                    key={fee.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <Card className="hover-elevate">
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-                              <DollarSign className="h-5 w-5 text-white" />
-                            </div>
-                            <div>
-                              <CardTitle className="text-lg">
-                                {fee.route_name}
-                              </CardTitle>
-                              <CardDescription>{fee.stop_name}</CardDescription>
-                            </div>
-                          </div>
-                          <Badge variant={fee.active ? "default" : "secondary"}>
-                            {fee.active ? "Active" : "Inactive"}
-                          </Badge>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setEditFeeId(fee.id);
-                                setEditFeeForm({
-                                  fee_amount: String(fee.total_fee),
-                                  effective_from_date: fee.effective_from || "",
-                                  effective_to_date: fee.effective_to || "",
-                                });
-                                setIsEditFeeOpen(true);
-                              }}
-                              title="Edit fee"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setConfirmFeeDeleteId(fee.id)}
-                              className="text-red-600 hover:text-red-700"
-                              title="Delete fee"
-                              aria-label="Delete fee"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Route</TableHead>
+                  <TableHead>Stop</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Effective From</TableHead>
+                  <TableHead>Effective To</TableHead>
+                  <TableHead>Students</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transportFeeStructures
+                  .filter(
+                    (f) =>
+                      f.route_name
+                        .toLowerCase()
+                        .includes(searchTerm.toLowerCase()) ||
+                      f.stop_name.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                  .map((fee) => (
+                    <TableRow key={fee.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="h-4 w-4 text-green-600" />
+                          <span className="font-medium">{fee.route_name}</span>
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          <div className="flex justify-between text-sm">
-                            <span>Distance:</span>
-                            <span className="font-medium">
-                              {fee.distance_km} km
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>Term 1 Fee:</span>
-                            <span className="font-medium">
-                              {formatCurrency(fee.term_1_fee)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>Term 2 Fee:</span>
-                            <span className="font-medium">
-                              {formatCurrency(fee.term_2_fee)}
-                            </span>
-                          </div>
-                          <div className="border-t pt-2">
-                            <div className="flex justify-between font-bold">
-                              <span>Total Fee:</span>
-                              <span className="text-green-600">
-                                {formatCurrency(fee.total_fee)}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Students: {fee.students_count}
-                          </div>
+                        <div className="text-xs text-muted-foreground">Distance: {fee.distance_km} km</div>
+                      </TableCell>
+                      <TableCell>{fee.stop_name}</TableCell>
+                      <TableCell className="text-right font-semibold text-green-700">
+                        {formatCurrency(fee.total_fee)}
+                      </TableCell>
+                      <TableCell>{fee.effective_from || "-"}</TableCell>
+                      <TableCell>{fee.effective_to || "-"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{fee.students_count}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={fee.active ? "default" : "secondary"}>
+                          {fee.active ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditFeeId(fee.id);
+                              setEditFeeForm({
+                                fee_amount: String(fee.total_fee),
+                                effective_from_date: fee.effective_from || "",
+                                effective_to_date: fee.effective_to || "",
+                              });
+                              setIsEditFeeOpen(true);
+                            }}
+                            title="Edit fee"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setConfirmFeeDeleteId(fee.id)}
+                            className="text-red-600 hover:text-red-700"
+                            title="Delete fee"
+                            aria-label="Delete fee"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-            </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
             )}
           {/* Edit Fee Dialog */}
           <Dialog open={isEditFeeOpen} onOpenChange={setIsEditFeeOpen}>
@@ -1359,160 +1251,7 @@ const TransportManagement = () => {
           </Dialog>
           </TabsContent>
 
-          {/* Student Assignments Tab */}
-          <TabsContent value="assignments" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Input
-                  placeholder="Search student assignments..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="max-w-sm"
-                />
-                <Badge variant="outline">
-                  {
-                    studentAssignments.filter(
-                      (a) =>
-                        a.student_name
-                          .toLowerCase()
-                          .includes(searchTerm.toLowerCase()) ||
-                        a.route_name
-                          .toLowerCase()
-                          .includes(searchTerm.toLowerCase())
-                    ).length
-                  }{" "}
-                  Assignments
-                </Badge>
-              </div>
-            </div>
-
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Class</TableHead>
-                  <TableHead>Route</TableHead>
-                  <TableHead>Stop</TableHead>
-                  <TableHead>Timing</TableHead>
-                  <TableHead>Assignment Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {studentAssignments
-                  .filter(
-                    (a) =>
-                      a.student_name
-                        .toLowerCase()
-                        .includes(searchTerm.toLowerCase()) ||
-                      a.route_name
-                        .toLowerCase()
-                        .includes(searchTerm.toLowerCase())
-                  )
-                  .map((assignment) => (
-                    <TableRow key={assignment.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">
-                            {assignment.student_name}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {assignment.student_id}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{assignment.class_name}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Bus className="h-4 w-4 text-blue-600" />
-                          <span>{assignment.route_name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-green-600" />
-                          <span>{assignment.stop_name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div>Pickup: {assignment.pickup_time}</div>
-                          <div>Drop: {assignment.drop_time}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(
-                          assignment.assignment_date
-                        ).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={assignment.active ? "default" : "secondary"}
-                        >
-                          {assignment.active ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </TabsContent>
-
-          {/* Expenses Tab */}
-          <TabsContent value="expenses" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                Vehicle maintenance and fuel expenses
-              </div>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportExpenses}
-              >
-                <DollarSign className="h-4 w-4" /> Export
-              </Button>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Vehicle</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Remarks</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {expenses.map((e) => (
-                  <TableRow key={e.id}>
-                    <TableCell>
-                      {new Date(e.date).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>{e.vehicle_number}</TableCell>
-                    <TableCell>{e.type}</TableCell>
-                    <TableCell className="text-green-700 font-medium">
-                      ₹{e.amount.toLocaleString()}
-                    </TableCell>
-                    <TableCell>{e.remarks}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <div className="text-right text-sm font-semibold">
-              Total: ₹{totalExpenses.toLocaleString()}
-            </div>
-          </TabsContent>
+          {/* Removed Student Assignments and Expenses tabs */}
         </Tabs>
         {/* Confirm Stop Delete */}
         <AlertDialog open={confirmStopDeleteId !== null} onOpenChange={(open) => { if (!open) setConfirmStopDeleteId(null); }}>

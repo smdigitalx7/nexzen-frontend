@@ -5,8 +5,8 @@ export const PayrollsService = {
   list(query?: PayrollQuery): Promise<PayrollListResponse> {
     return Api.get("/payrolls/", query as any);
   },
-  listByBranch(branch_id: number, query?: PayrollQuery): Promise<PayrollListResponse> {
-    return Api.get(`/payrolls/branch/${branch_id}`, query as any);
+  listByBranch(query?: PayrollQuery): Promise<PayrollListResponse> {
+    return Api.get("/payrolls/branch", query as any);
   },
   getById(id: number): Promise<PayrollRead> {
     return Api.get(`/payrolls/${id}`);
@@ -18,7 +18,7 @@ export const PayrollsService = {
     return Api.put(`/payrolls/${id}`, payload);
   },
   updateStatus(id: number, new_status: string): Promise<PayrollRead> {
-    return Api.put(`/payrolls/${id}/status`, new_status as any);
+    return Api.put(`/payrolls/${id}/status`, new_status);
   },
 };
 

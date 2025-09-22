@@ -11,6 +11,7 @@ import {
   Users,
   Search,
   Calendar,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
 import { useNavigationStore } from "@/store/navigationStore";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -34,11 +36,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Api, AuthTokenTimers } from "@/lib/api";
+import { AuthService } from "@/lib/services/auth.service";
 
 const Header = () => {
-  const { user, currentBranch, branches, switchBranch, logout, academicYear, academicYears, switchAcademicYear } =
+  const { user, currentBranch, branches, switchBranch, logoutAsync, academicYear, academicYears, switchAcademicYear, isBranchSwitching } =
     useAuthStore();
   const { isMobile } = useNavigationStore();
+  const queryClient = useQueryClient();
   const [notifications] = useState(3); // Mock notification count
   const [openSearch, setOpenSearch] = useState(false);
   const [query, setQuery] = useState("");
@@ -221,9 +225,18 @@ const Header = () => {
     }
   };
 
-  const handleBranchSwitch = (branch: any) => {
-    switchBranch(branch);
-    console.log("Branch switched to:", branch.branch_name);
+  const handleBranchSwitch = async (branch: any) => {
+    try {
+      console.log("Starting branch switch to:", branch.branch_name);
+      await switchBranch(branch);
+      
+      // Invalidate all queries to refetch data with new branch context
+      queryClient.invalidateQueries();
+      
+      console.log("Branch switched successfully, data will be refreshed");
+    } catch (error) {
+      console.error("Failed to switch branch:", error);
+    }
   };
 
   const handleAcademicYearSwitch = (year: any) => {
@@ -233,13 +246,15 @@ const Header = () => {
 
   const handleLogout = async () => {
     try {
-      await Api.post("/auth/logout");
-    } catch {
-      // ignore errors; we'll clear client state regardless
-    } finally {
-      AuthTokenTimers.clearProactiveRefresh();
-      logout();
-      console.log("User logged out");
+      // Use the centralized logout method from auth store
+      await logoutAsync();
+      
+      // Clear React Query cache after logout
+      queryClient.clear();
+      
+      console.log("User logged out successfully");
+    } catch (error) {
+      console.error("Logout failed:", error);
     }
   };
 
@@ -256,6 +271,7 @@ const Header = () => {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
+                disabled={isBranchSwitching}
                 className="hover-elevate min-w-[240px] justify-between bg-white/80 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 shadow-sm rounded-xl px-4 py-2.5"
                 data-testid="dropdown-branch-switcher"
                 aria-label="Select schema and branch"
@@ -263,12 +279,12 @@ const Header = () => {
                 <div className="flex items-center gap-3">
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                      currentBranch?.branch_type === "school"
+                      currentBranch?.branch_type === "SCHOOL"
                         ? "bg-gradient-to-br from-emerald-400 to-emerald-600"
                         : "bg-gradient-to-br from-purple-400 to-purple-600"
                     }`}
                   >
-                    {currentBranch?.branch_type === "school" ? (
+                    {currentBranch?.branch_type === "SCHOOL" ? (
                       <School className="h-4 w-4 text-white" />
                     ) : (
                       <GraduationCap className="h-4 w-4 text-white" />
@@ -279,14 +295,18 @@ const Header = () => {
                       className="truncate max-w-[140px] font-semibold text-base text-slate-700"
                       title={currentBranch?.branch_name}
                     >
-                      {currentBranch?.branch_name || "Select Branch"}
+                      {isBranchSwitching ? "Switching..." : (currentBranch?.branch_name || "Select Branch")}
                     </span>
                     {/* <span className="text-xs text-slate-500 capitalize">
                       {currentBranch?.branch_type || "Institution"}
                     </span> */}
                   </div>
                 </div>
-                <ChevronDown className="h-4 w-4 text-slate-400" />
+                {isBranchSwitching ? (
+                  <Loader2 className="h-4 w-4 text-slate-400 animate-spin" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-slate-400" />
+                )}
               </Button>
             </DropdownMenuTrigger>
             <AnimatePresence>
@@ -305,7 +325,7 @@ const Header = () => {
                       data-testid={`menuitem-branch-${branch.branch_id}`}
                     >
                       <div className="flex items-center gap-2">
-                        {branch.branch_type === "school" ? (
+                        {branch.branch_type === "SCHOOL" ? (
                           <School className="h-4 w-4" />
                         ) : (
                           <GraduationCap className="h-4 w-4" />
@@ -363,7 +383,7 @@ const Header = () => {
                   transition={{ duration: 0.2 }}
                 >
                   {academicYears
-                    .filter(year => year.branch_type === currentBranch?.branch_type)
+                    .filter(year => year.branch_type === currentBranch?.branch_type?.toLowerCase())
                     .map((year) => (
                     <DropdownMenuItem
                       key={year.id}

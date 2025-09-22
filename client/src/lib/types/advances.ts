@@ -15,4 +15,11 @@ export interface AdvanceCreate {
 
 export type AdvanceUpdate = Partial<AdvanceCreate>;
 
+export interface AdvanceListResponse {
+  data: AdvanceRead[];
+  total: number;
+  pages: number;
+  current_page: number;
+}
+
 

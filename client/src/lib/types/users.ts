@@ -30,4 +30,22 @@ export interface UserUpdate {
   is_active?: boolean;
 }
 
+// Role and Branch interfaces for detailed user information
+export interface RoleInfo {
+  role_id: number;
+  role_name: string;
+  display_name: string;
+}
+
+export interface BranchInfo {
+  branch_id: number;
+  branch_name: string;
+  branch_type: string;
+}
+
+export interface UserWithRolesAndBranches extends UserRead {
+  roles: RoleInfo[];
+  branches: BranchInfo[];
+}
+
 

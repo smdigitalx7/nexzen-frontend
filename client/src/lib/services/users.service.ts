@@ -1,5 +1,5 @@
 import { Api } from "@/lib/api";
-import type { UserRead, UserCreate, UserUpdate } from "@/lib/types/users";
+import type { UserRead, UserCreate, UserUpdate, UserWithRolesAndBranches } from "@/lib/types/users";
 
 /**
  * UsersService - Handles all user-related API operations
@@ -21,6 +21,15 @@ export const UsersService = {
   list(): Promise<UserRead[]> {
     console.log("API: Calling /users/ endpoint");
     return Api.get<UserRead[]>("/users/");
+  },
+
+  /**
+   * Get all users with their roles and branches
+   * @returns Promise<UserWithRolesAndBranches[]> - List of all users with detailed role and branch information
+   */
+  listWithRolesAndBranches(): Promise<UserWithRolesAndBranches[]> {
+    console.log("API: Calling /users/roles-and-branches endpoint");
+    return Api.get<UserWithRolesAndBranches[]>("/users/roles-and-branches");
   },
 
   /**

@@ -52,331 +52,306 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { EnhancedDataTable } from "@/components/EnhancedDataTable";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthStore } from "@/store/authStore";
+import { usePayrolls, usePayrollsByBranch, useCreatePayroll, useUpdatePayroll, useUpdatePayrollStatus } from "@/lib/hooks/usePayrolls";
+import { useEmployeesByBranch, useEmployeesByInstitute } from "@/lib/hooks/useEmployees";
+import type { PayrollRead, PayrollCreate, PayrollUpdate } from "@/lib/types/payrolls";
+import { PayrollStatusEnum, PaymentMethodEnum } from "@/lib/types/payrolls";
 
-// Mock data for employees across both School and College
-const mockEmployeesData = [
-  {
-    employee_id: "EMP001",
-    employee_name: "Dr. Rajesh Kumar",
-    designation: "Principal",
-    employee_type: "teaching",
-    department: "Administration",
-    base_salary: 75000,
-    allowances: 15000,
-    deductions: 8000,
-    net_salary: 82000,
-    branch: "Nexzen School",
-    status: "active",
-    joining_date: "2020-06-15",
-    bank_account: "HDFC-****1234",
-    pan_number: "ABCPD1234E",
-  },
-  {
-    employee_id: "EMP002",
-    employee_name: "Prof. Sarah Johnson",
-    designation: "HOD Computer Science",
-    employee_type: "teaching",
-    department: "Computer Science",
-    base_salary: 65000,
-    allowances: 12000,
-    deductions: 6500,
-    net_salary: 70500,
-    branch: "Velocity College",
-    status: "active",
-    joining_date: "2019-08-01",
-    bank_account: "ICICI-****5678",
-    pan_number: "XYZPD5678F",
-  },
-  {
-    employee_id: "EMP003",
-    employee_name: "Ms. Priya Singh",
-    designation: "Mathematics Teacher",
-    employee_type: "teaching",
-    department: "Mathematics",
-    base_salary: 45000,
-    allowances: 8000,
-    deductions: 4500,
-    net_salary: 48500,
-    branch: "Nexzen School",
-    status: "active",
-    joining_date: "2021-04-10",
-    bank_account: "SBI-****9012",
-    pan_number: "PQRPD9012G",
-  },
-  {
-    employee_id: "EMP004",
-    employee_name: "Mr. Robert Miller",
-    designation: "Lab Assistant",
-    employee_type: "non_teaching",
-    department: "Laboratory",
-    base_salary: 25000,
-    allowances: 3000,
-    deductions: 2000,
-    net_salary: 26000,
-    branch: "Velocity College",
-    status: "active",
-    joining_date: "2022-01-15",
-    bank_account: "PNB-****3456",
-    pan_number: "LMNPD3456H",
-  },
-];
-
-// Mock data for payroll history
-const mockPayrollHistory = [
-  {
-    payroll_id: 1,
-    month: "2024-01",
-    month_name: "January 2024",
-    total_employees: 45,
-    total_amount: 1850000,
-    processed_count: 45,
-    pending_count: 0,
-    status: "completed",
-    processed_date: "2024-01-31",
-    processed_by: "Emily Rodriguez",
-  },
-  {
-    payroll_id: 2,
-    month: "2024-02",
-    month_name: "February 2024",
-    total_employees: 46,
-    total_amount: 1920000,
-    processed_count: 46,
-    pending_count: 0,
-    status: "completed",
-    processed_date: "2024-02-29",
-    processed_by: "Michael Chen",
-  },
-  {
-    payroll_id: 3,
-    month: "2024-03",
-    month_name: "March 2024",
-    total_employees: 47,
-    total_amount: 1980000,
-    processed_count: 42,
-    pending_count: 5,
-    status: "processing",
-    processed_date: null,
-    processed_by: null,
-  },
-];
-
-const salaryProcessingSchema = z.object({
-  month: z.string().min(1, "Month is required"),
-  employee_ids: z
-    .array(z.string())
-    .min(1, "At least one employee must be selected"),
+const payrollCreateSchema = z.object({
+  employee_id: z.number().min(1, "Employee is required"),
+  payroll_month: z.string().min(1, "Payroll month is required"),
+  previous_balance: z.number().min(0).optional(),
+  gross_pay: z.number().min(0, "Gross pay must be positive"),
+  lop: z.number().min(0).optional(),
+  advance_deduction: z.number().min(0).optional(),
+  other_deductions: z.number().min(0).optional(),
 });
 
-type PayrollFormData = z.infer<typeof salaryProcessingSchema>;
+const payrollUpdateSchema = z.object({
+  previous_balance: z.number().min(0).optional(),
+  gross_pay: z.number().min(0).optional(),
+  lop: z.number().min(0).optional(),
+  advance_deduction: z.number().min(0).optional(),
+  other_deductions: z.number().min(0).optional(),
+  paid_amount: z.number().min(0).optional(),
+  payment_method: z.nativeEnum(PaymentMethodEnum).optional(),
+  payment_notes: z.string().optional(),
+  status: z.nativeEnum(PayrollStatusEnum).optional(),
+});
+
+type PayrollCreateFormData = z.infer<typeof payrollCreateSchema>;
+type PayrollUpdateFormData = z.infer<typeof payrollUpdateSchema>;
 
 const PayrollManagement = () => {
-  const [employees] = useState(mockEmployeesData);
-  const [payrollHistory, setPayrollHistory] = useState(mockPayrollHistory);
+  const { user, currentBranch } = useAuthStore();
+  const [viewMode, setViewMode] = useState<"branch" | "institute">("branch");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedBranch, setSelectedBranch] = useState("all");
-  const [selectedDepartment, setSelectedDepartment] = useState("all");
-  const [selectedEmployeeType, setSelectedEmployeeType] = useState("all");
-  const [showProcessDialog, setShowProcessDialog] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
+  const [selectedYear, setSelectedYear] = useState<number | undefined>();
+  const [selectedStatus, setSelectedStatus] = useState<string | undefined>();
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [showPayslipDialog, setShowPayslipDialog] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState("employees");
-  const [salaryStructures, setSalaryStructures] = useState<any[]>([
-    {
-      id: 1,
-      title: "Teaching Staff",
-      base: 40000,
-      hra: 8000,
-      da: 4000,
-      created: "2024-04-01",
-    },
-    {
-      id: 2,
-      title: "Non-Teaching",
-      base: 25000,
-      hra: 5000,
-      da: 2500,
-      created: "2024-04-01",
-    },
-  ]);
-  const [leaveAllocations, setLeaveAllocations] = useState<any[]>([
-    { id: 1, role: "teaching", annual: 12, casual: 8, sick: 6 },
-    { id: 2, role: "non_teaching", annual: 10, casual: 6, sick: 6 },
-  ]);
+  const [selectedPayroll, setSelectedPayroll] = useState<PayrollRead | null>(null);
+  const [activeTab, setActiveTab] = useState("payrolls");
   const { toast } = useToast();
 
-  const form = useForm<PayrollFormData>({
-    resolver: zodResolver(salaryProcessingSchema),
+  // API Hooks
+  const { data: branchEmployees = [], isLoading: branchEmployeesLoading } = useEmployeesByBranch();
+  const { data: instituteEmployees = [], isLoading: instituteEmployeesLoading } = useEmployeesByInstitute();
+  
+  const payrollQuery = {
+    limit: 50,
+    offset: 0,
+    month: selectedMonth,
+    year: selectedYear,
+    status: selectedStatus,
+  };
+
+  const { data: branchPayrollsResponse, isLoading: branchPayrollsLoading } = usePayrollsByBranch(payrollQuery);
+  const { data: institutePayrollsResponse, isLoading: institutePayrollsLoading } = usePayrolls(payrollQuery);
+
+  const branchPayrolls = branchPayrollsResponse?.data || [];
+  const institutePayrolls = institutePayrollsResponse?.data || [];
+
+  // Use the selected view mode
+  const employees = viewMode === "branch" ? branchEmployees : instituteEmployees;
+  const payrolls = viewMode === "branch" ? branchPayrolls : institutePayrolls;
+  const isLoading = viewMode === "branch" ? branchPayrollsLoading : institutePayrollsLoading;
+
+  // Mutations
+  const createPayrollMutation = useCreatePayroll();
+  const updatePayrollMutation = useUpdatePayroll();
+  const updateStatusMutation = useUpdatePayrollStatus();
+
+  // Forms
+  const createForm = useForm<PayrollCreateFormData>({
+    resolver: zodResolver(payrollCreateSchema),
     defaultValues: {
-      month: "",
-      employee_ids: [],
+      employee_id: 0,
+      payroll_month: "",
+      previous_balance: 0,
+      gross_pay: 0,
+      lop: 0,
+      advance_deduction: 0,
+      other_deductions: 0,
     },
   });
 
-  // Get unique values for dropdowns
-  const branches = Array.from(new Set(employees.map((emp) => emp.branch)));
-  const departments = Array.from(
-    new Set(employees.map((emp) => emp.department))
-  );
-  const employeeTypes = ["teaching", "non_teaching", "administrative"];
+  const updateForm = useForm<PayrollUpdateFormData>({
+    resolver: zodResolver(payrollUpdateSchema),
+    defaultValues: {
+      previous_balance: 0,
+      gross_pay: 0,
+      lop: 0,
+      advance_deduction: 0,
+      other_deductions: 0,
+      paid_amount: 0,
+      payment_method: undefined,
+      payment_notes: "",
+      status: undefined,
+    },
+  });
+
+  // Handler functions
+  const handleCreatePayroll = (values: PayrollCreateFormData) => {
+    createPayrollMutation.mutate(values, {
+      onSuccess: () => {
+        createForm.reset();
+        setShowCreateDialog(false);
+      },
+    });
+  };
+
+  const handleUpdatePayroll = (values: PayrollUpdateFormData) => {
+    if (!selectedPayroll) return;
+    
+    updatePayrollMutation.mutate({
+      id: selectedPayroll.payroll_id,
+      payload: values,
+    }, {
+      onSuccess: () => {
+        updateForm.reset();
+        setShowUpdateDialog(false);
+        setSelectedPayroll(null);
+      },
+    });
+  };
+
+  const handleStatusUpdate = (payrollId: number, newStatus: string) => {
+    updateStatusMutation.mutate({
+      id: payrollId,
+      status: newStatus,
+    });
+  };
+
+  const handleEditPayroll = (payroll: PayrollRead) => {
+    setSelectedPayroll(payroll);
+    updateForm.reset({
+      previous_balance: payroll.previous_balance,
+      gross_pay: payroll.gross_pay,
+      lop: payroll.lop,
+      advance_deduction: payroll.advance_deduction,
+      other_deductions: payroll.other_deductions,
+      paid_amount: payroll.paid_amount,
+      payment_method: payroll.payment_method,
+      payment_notes: payroll.payment_notes || "",
+      status: payroll.status,
+    });
+    setShowUpdateDialog(true);
+  };
+
+  const handleViewPayslip = (payroll: PayrollRead) => {
+    setSelectedPayroll(payroll);
+    setShowPayslipDialog(true);
+  };
 
   // Get status styling
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "completed":
-        return "bg-green-50 text-green-600 border-green-200";
-      case "processing":
-        return "bg-blue-50 text-blue-600 border-blue-200";
-      case "pending":
-        return "bg-yellow-50 text-yellow-600 border-yellow-200";
-      case "failed":
-        return "bg-red-50 text-red-600 border-red-200";
+      case "PAID":
+        return "bg-green-100 text-green-800";
+      case "PENDING":
+        return "bg-yellow-100 text-yellow-800";
+      case "HOLD":
+        return "bg-red-100 text-red-800";
       default:
-        return "bg-gray-50 text-gray-600 border-gray-200";
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "completed":
-        return <CheckCircle className="h-4 w-4" />;
-      case "processing":
-        return <Clock className="h-4 w-4" />;
-      case "pending":
-        return <Clock className="h-4 w-4" />;
-      case "failed":
-        return <XCircle className="h-4 w-4" />;
+      case "PAID":
+        return <CheckCircle className="h-3 w-3 mr-1" />;
+      case "PENDING":
+        return <Clock className="h-3 w-3 mr-1" />;
+      case "HOLD":
+        return <XCircle className="h-3 w-3 mr-1" />;
       default:
-        return <AlertCircle className="h-4 w-4" />;
+        return <AlertCircle className="h-3 w-3 mr-1" />;
     }
   };
 
-  // Filtered employee data
-  const filteredEmployees = useMemo(() => {
-    return employees.filter((employee) => {
-      const matchesSearch =
-        employee.employee_name
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        employee.employee_id
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        employee.designation.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesBranch =
-        selectedBranch === "all" || employee.branch === selectedBranch;
-      const matchesDepartment =
-        selectedDepartment === "all" ||
-        employee.department === selectedDepartment;
-      const matchesType =
-        selectedEmployeeType === "all" ||
-        employee.employee_type === selectedEmployeeType;
-
-      return matchesSearch && matchesBranch && matchesDepartment && matchesType;
+  // Filter payrolls based on search
+  const filteredPayrolls = useMemo(() => {
+    if (!searchQuery) return payrolls;
+    
+    return payrolls.filter((payroll) => {
+      const employee = employees.find(emp => emp.employee_id === payroll.employee_id);
+      if (!employee) return false;
+      
+      return (
+        employee.employee_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        employee.employee_id.toString().includes(searchQuery) ||
+        payroll.payroll_id.toString().includes(searchQuery)
+      );
     });
-  }, [
-    employees,
-    searchQuery,
-    selectedBranch,
-    selectedDepartment,
-    selectedEmployeeType,
-  ]);
+  }, [payrolls, employees, searchQuery]);
 
-  // Statistics calculations
-  const statistics = useMemo(() => {
-    const totalEmployees = employees.length;
-    const schoolEmployees = employees.filter((e) =>
-      e.branch.includes("School")
-    ).length;
-    const collegeEmployees = employees.filter((e) =>
-      e.branch.includes("College")
-    ).length;
-    const totalSalaryBudget = employees.reduce(
-      (sum, emp) => sum + emp.net_salary,
-      0
-    );
-    const teachingStaff = employees.filter(
-      (e) => e.employee_type === "teaching"
-    ).length;
-    const nonTeachingStaff = employees.filter(
-      (e) => e.employee_type === "non_teaching"
-    ).length;
-
-    const currentMonth = payrollHistory.find(
-      (p) => p.status === "processing" || p.status === "pending"
-    );
-    const lastProcessed = payrollHistory.find((p) => p.status === "completed");
+  // Calculate summary statistics
+  const summaryStats = useMemo(() => {
+    const totalPayrolls = filteredPayrolls.length;
+    const totalAmount = filteredPayrolls.reduce((sum, payroll) => sum + payroll.net_pay, 0);
+    const paidAmount = filteredPayrolls.reduce((sum, payroll) => sum + payroll.paid_amount, 0);
+    const pendingAmount = totalAmount - paidAmount;
+    const paidCount = filteredPayrolls.filter(p => p.status === "PAID").length;
 
     return {
-      totalEmployees,
-      schoolEmployees,
-      collegeEmployees,
-      totalSalaryBudget,
-      teachingStaff,
-      nonTeachingStaff,
-      currentMonth,
-      lastProcessed,
+      totalPayrolls,
+      totalAmount,
+      paidAmount,
+      pendingAmount,
+      paidCount,
     };
-  }, [employees, payrollHistory]);
+  }, [filteredPayrolls]);
 
-  const employeeColumns = [
+  // Payroll columns for data table
+  const payrollColumns = [
     {
-      key: "employee_name",
-      header: "Employee Details",
+      key: "payroll_id",
+      header: "Payroll ID",
       sortable: true,
-      render: (value: string, row: any) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-            <span className="text-xs font-semibold text-white">
-              {value
-                .split(" ")
-                .map((n) => n[0])
-                .join("")}
-            </span>
-          </div>
+      render: (value: number) => (
+        <div className="font-medium text-slate-900">#{value}</div>
+      ),
+    },
+    {
+      key: "employee_id",
+      header: "Employee",
+      sortable: true,
+      render: (value: number) => {
+        const employee = employees.find(emp => emp.employee_id === value);
+        return (
           <div>
-            <div className="font-semibold text-slate-900">{value}</div>
+            <div className="font-medium text-slate-900">
+              {employee?.employee_name || `Employee ${value}`}
+            </div>
             <div className="text-sm text-slate-500">
-              {row.employee_id} • {row.designation}
+              {employee?.designation || "Unknown"}
             </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
-      key: "branch",
-      header: "Branch & Department",
-      sortable: true,
-      render: (value: string, row: any) => (
-        <div>
-          <div className="font-medium text-slate-900">{value}</div>
-          <div className="text-sm text-slate-500">{row.department}</div>
-        </div>
-      ),
-    },
-    {
-      key: "employee_type",
-      header: "Type",
+      key: "payroll_month",
+      header: "Month",
       sortable: true,
       render: (value: string) => (
-        <Badge variant="outline" className="capitalize">
-          {value.replace("_", " ")}
-        </Badge>
+        <div className="text-sm">
+          {new Date(value).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+          })}
+        </div>
       ),
     },
     {
-      key: "base_salary",
-      header: "Salary Breakdown",
+      key: "gross_pay",
+      header: "Gross Pay",
       sortable: true,
-      render: (value: number, row: any) => (
+      render: (value: number, row: PayrollRead) => (
         <div className="text-right">
-          <div className="font-semibold text-slate-900">
-            ₹{row.net_salary.toLocaleString()}
+          <div className="font-medium text-slate-900">
+            ₹{value.toLocaleString()}
           </div>
           <div className="text-xs text-slate-500">
-            Base: ₹{value.toLocaleString()} + ₹{row.allowances.toLocaleString()}{" "}
-            - ₹{row.deductions.toLocaleString()}
+            Net: ₹{row.net_pay.toLocaleString()}
           </div>
+        </div>
+      ),
+    },
+    {
+      key: "total_deductions",
+      header: "Deductions",
+      sortable: true,
+      render: (value: number, row: PayrollRead) => (
+        <div className="text-right">
+          <div className="font-medium text-red-600">
+            ₹{value.toLocaleString()}
+          </div>
+          <div className="text-xs text-slate-500">
+            LOP: ₹{row.lop.toLocaleString()}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "paid_amount",
+      header: "Paid Amount",
+      sortable: true,
+      render: (value: number, row: PayrollRead) => (
+        <div className="text-right">
+          <div className="font-semibold text-green-600">
+            ₹{value.toLocaleString()}
+          </div>
+          {row.carryover_balance > 0 && (
+            <div className="text-xs text-orange-600">
+              Carryover: ₹{row.carryover_balance.toLocaleString()}
+          </div>
+          )}
         </div>
       ),
     },
@@ -385,765 +360,565 @@ const PayrollManagement = () => {
       header: "Status",
       sortable: true,
       render: (value: string) => (
-        <div
-          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(
-            value
-          )}`}
-        >
+        <Badge className={getStatusColor(value)}>
           {getStatusIcon(value)}
-          <span className="capitalize">{value}</span>
-        </div>
+          {value}
+        </Badge>
       ),
     },
     {
       key: "actions",
       header: "Actions",
-      render: (_: any, row: any) => (
+      sortable: false,
+      render: (value: any, row: PayrollRead) => (
         <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setSelectedEmployee(row);
-              setShowPayslipDialog(true);
-            }}
-            className="hover-elevate"
-            data-testid={`button-view-payslip-${row.employee_id}`}
-          >
-            <Receipt className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hover-elevate"
-            data-testid={`button-edit-salary-${row.employee_id}`}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hover-elevate"
-            data-testid={`button-view-employee-${row.employee_id}`}
+            variant="outline"
+            size="sm"
+            onClick={() => handleViewPayslip(row)}
           >
             <Eye className="h-4 w-4" />
           </Button>
-        </div>
-      ),
-    },
-  ];
-
-  const payrollHistoryColumns = [
-    {
-      key: "month_name",
-      header: "Month",
-      sortable: true,
-      render: (value: string, row: any) => (
-        <div>
-          <div className="font-semibold text-slate-900">{value}</div>
-          <div className="text-sm text-slate-500">
-            {row.total_employees} employees
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: "total_amount",
-      header: "Total Amount",
-      sortable: true,
-      render: (value: number) => (
-        <div className="font-bold text-lg text-slate-900">
-          ₹{value.toLocaleString()}
-        </div>
-      ),
-    },
-    {
-      key: "processed_count",
-      header: "Progress",
-      sortable: true,
-      render: (value: number, row: any) => (
-        <div>
-          <div className="font-medium">
-            {value}/{row.total_employees} processed
-          </div>
-          <div className="w-full bg-slate-200 rounded-full h-2 mt-1">
-            <div
-              className="bg-green-500 h-2 rounded-full"
-              style={{ width: `${(value / row.total_employees) * 100}%` }}
-            ></div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      sortable: true,
-      render: (value: string) => (
-        <div
-          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(
-            value
-          )}`}
-        >
-          {getStatusIcon(value)}
-          <span className="capitalize">{value}</span>
-        </div>
-      ),
-    },
-    {
-      key: "processed_date",
-      header: "Processed",
-      sortable: true,
-      render: (value: string | null, row: any) => (
-        <div className="text-sm">
-          {value ? (
-            <>
-              <div>{new Date(value).toLocaleDateString()}</div>
-              <div className="text-slate-500">by {row.processed_by}</div>
-            </>
-          ) : (
-            <span className="text-slate-400">Pending</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleEditPayroll(row)}
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          {row.status === "PENDING" && (
+          <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleStatusUpdate(row.payroll_id, "PAID")}
+              className="text-green-600 hover:text-green-700"
+            >
+              <CheckCircle className="h-4 w-4" />
+          </Button>
           )}
         </div>
       ),
     },
   ];
 
-  const handleProcessPayroll = (values: any) => {
-    const selectedEmployees = employees.filter((emp) =>
-      values.employee_ids.includes(emp.employee_id)
-    );
-    const totalAmount = selectedEmployees.reduce(
-      (sum, emp) => sum + emp.net_salary,
-      0
-    );
-
-    const newPayroll = {
-      payroll_id: Date.now(),
-      month: values.month,
-      month_name: new Date(values.month + "-01").toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-      }),
-      total_employees: selectedEmployees.length,
-      total_amount: totalAmount,
-      processed_count: selectedEmployees.length,
-      pending_count: 0,
-      status: "completed",
-      processed_date: new Date().toISOString().split("T")[0],
-      processed_by: "Current User",
-    };
-
-    setPayrollHistory([newPayroll, ...payrollHistory]);
-
-    toast({
-      title: "Payroll Processed Successfully",
-      description: `Processed salary for ${
-        selectedEmployees.length
-      } employees - ₹${totalAmount.toLocaleString()}`,
-    });
-
-    form.reset();
-    setShowProcessDialog(false);
-    console.log(
-      "Payroll processed:",
-      values,
-      "Selected employees:",
-      selectedEmployees
-    );
-  };
-
   return (
-    <div className="flex flex-col h-full bg-slate-50/30">
-      <div className="flex-1 overflow-auto">
-        <div className="p-6 space-y-6">
+    <div className="space-y-6">
           {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
-          >
+      <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">
-                Payroll Management
-              </h1>
+          <h1 className="text-3xl font-bold text-slate-900">Payroll Management</h1>
               <p className="text-slate-600 mt-1">
-                Manage employee salaries across School and College
+            Manage employee payroll, salary processing, and payment tracking
               </p>
             </div>
-            <div className="flex gap-3">
+        <div className="flex items-center gap-3">
               <Button
-                onClick={() => console.log("Export payroll data")}
                 variant="outline"
-                className="hover-elevate"
-                data-testid="button-export-payroll"
+            onClick={() => setViewMode(viewMode === "branch" ? "institute" : "branch")}
               >
-                <Download className="mr-2 h-4 w-4" />
-                Export
+            <Building className="h-4 w-4 mr-2" />
+            {viewMode === "branch" ? "Branch View" : "Institute View"}
               </Button>
-              <Dialog
-                open={showProcessDialog}
-                onOpenChange={setShowProcessDialog}
-              >
-                <DialogTrigger asChild>
-                  <Button
-                    className="hover-elevate"
-                    data-testid="button-process-payroll"
-                  >
-                    <Calculator className="mr-2 h-4 w-4" />
-                    Process Payroll
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Payroll
                   </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
-                  <DialogHeader>
-                    <DialogTitle>Process Monthly Payroll</DialogTitle>
-                  </DialogHeader>
-                  <Form {...form}>
-                    <form
-                      onSubmit={form.handleSubmit(handleProcessPayroll)}
-                      className="space-y-4"
-                    >
-                      <FormField
-                        control={form.control}
-                        name="month"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Select Month</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="month"
-                                {...field}
-                                data-testid="input-payroll-month"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="employee_ids"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Select Employees</FormLabel>
-                            <div className="max-h-60 overflow-y-auto border rounded-lg p-3 space-y-2">
-                              {employees.map((employee) => (
-                                <label
-                                  key={employee.employee_id}
-                                  className="flex items-center space-x-3 cursor-pointer"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    value={employee.employee_id}
-                                    checked={field.value.includes(
-                                      employee.employee_id
-                                    )}
-                                    onChange={(e) => {
-                                      if (e.target.checked) {
-                                        field.onChange([
-                                          ...field.value,
-                                          employee.employee_id,
-                                        ]);
-                                      } else {
-                                        field.onChange(
-                                          field.value.filter(
-                                            (id) => id !== employee.employee_id
-                                          )
-                                        );
-                                      }
-                                    }}
-                                    className="rounded"
-                                    data-testid={`checkbox-employee-${employee.employee_id}`}
-                                  />
-                                  <div className="flex-1">
-                                    <div className="font-medium">
-                                      {employee.employee_name}
                                     </div>
-                                    <div className="text-sm text-slate-500">
-                                      {employee.branch} • ₹
-                                      {employee.net_salary.toLocaleString()}
                                     </div>
-                                  </div>
-                                </label>
-                              ))}
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            form.reset();
-                            setShowProcessDialog(false);
-                          }}
-                          data-testid="button-cancel-payroll"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="submit"
-                          data-testid="button-submit-payroll"
-                        >
-                          Process Payroll
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </motion.div>
 
-          {/* Statistics Cards */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
-          >
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-white" />
-                  </div>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-600">
-                      Total Staff
-                    </p>
+                <p className="text-sm font-medium text-slate-600">Total Payrolls</p>
                     <p className="text-2xl font-bold text-slate-900">
-                      {statistics.totalEmployees}
+                  {summaryStats.totalPayrolls}
                     </p>
-                    <p className="text-xs text-slate-500">
-                      School: {statistics.schoolEmployees} • College:{" "}
-                      {statistics.collegeEmployees}
-                    </p>
+                  </div>
+              <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Receipt className="h-6 w-6 text-blue-600" />
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
-                    <DollarSign className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">
-                      Monthly Budget
-                    </p>
-                    <p className="text-2xl font-bold text-slate-900">
-                      ₹{(statistics.totalSalaryBudget / 100000).toFixed(1)}L
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-                    <TrendingUp className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">
-                      Teaching Staff
-                    </p>
-                    <p className="text-2xl font-bold text-slate-900">
-                      {statistics.teachingStaff}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      Non-teaching: {statistics.nonTeachingStaff}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-                    <Clock className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">
-                      Last Processed
-                    </p>
-                    <p className="text-lg font-bold text-slate-900">
-                      {statistics.lastProcessed?.month_name || "N/A"}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
 
-          {/* Main Content */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Tabs
-              value={activeTab}
-              onValueChange={setActiveTab}
-              className="space-y-6"
-            >
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="employees" data-testid="tab-employees">
-                  Employee Salaries
-                </TabsTrigger>
-                <TabsTrigger value="history" data-testid="tab-history">
-                  Payroll History
-                </TabsTrigger>
-                <TabsTrigger value="structures" data-testid="tab-structures">
-                  Salary Structures
-                </TabsTrigger>
-                <TabsTrigger value="leaves" data-testid="tab-leaves">
-                  Leave Allocations
-                </TabsTrigger>
-              </TabsList>
-              {/* Salary Structures Tab */}
-              <TabsContent value="structures" className="space-y-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+                  <div>
+                <p className="text-sm font-medium text-slate-600">Total Amount</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                  ₹{summaryStats.totalAmount.toLocaleString()}
+                    </p>
+                  </div>
+              <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <DollarSign className="h-6 w-6 text-green-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+        <Card>
+          <CardContent className="p-6">
                 <div className="flex items-center justify-between">
-                  <div className="text-sm text-slate-600">
-                    Configure base and allowances by role
-                  </div>
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() =>
-                      setSalaryStructures([
-                        ...salaryStructures,
-                        {
-                          id: Date.now(),
-                          title: "New Structure",
-                          base: 0,
-                          hra: 0,
-                          da: 0,
-                          created: new Date().toISOString().slice(0, 10),
-                        },
-                      ])
-                    }
-                  >
-                    Add Structure
-                  </Button>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  {salaryStructures.map((s) => (
-                    <Card key={s.id} className="hover-elevate">
-                      <CardHeader>
-                        <CardTitle className="text-base">{s.title}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-3 gap-4 text-sm">
                           <div>
-                            <span className="text-slate-500">Base</span>
-                            <div className="font-semibold">
-                              ₹{s.base.toLocaleString()}
+                <p className="text-sm font-medium text-slate-600">Paid Amount</p>
+                <p className="text-2xl font-bold text-green-600">
+                  ₹{summaryStats.paidAmount.toLocaleString()}
+                </p>
                             </div>
-                          </div>
-                          <div>
-                            <span className="text-slate-500">HRA</span>
-                            <div className="font-semibold">
-                              ₹{s.hra.toLocaleString()}
-                            </div>
-                          </div>
-                          <div>
-                            <span className="text-slate-500">DA</span>
-                            <div className="font-semibold">
-                              ₹{s.da.toLocaleString()}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-xs text-slate-500 mt-2">
-                          Created: {s.created}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </TabsContent>
-
-              {/* Leave Allocations Tab */}
-              <TabsContent value="leaves" className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-slate-600">
-                    Annual leave entitlements by role
-                  </div>
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() =>
-                      setLeaveAllocations([
-                        ...leaveAllocations,
-                        {
-                          id: Date.now(),
-                          role: "administrative",
-                          annual: 10,
-                          casual: 6,
-                          sick: 6,
-                        },
-                      ])
-                    }
-                  >
-                    Add Allocation
-                  </Button>
-                </div>
-                <div className="grid gap-4 md:grid-cols-3">
-                  {leaveAllocations.map((l) => (
-                    <Card key={l.id} className="hover-elevate">
-                      <CardHeader>
-                        <CardTitle className="text-base capitalize">
-                          {l.role.replace("_", " ")}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-3 gap-4 text-sm">
-                          <div>
-                            <span className="text-slate-500">Annual</span>
-                            <div className="font-semibold">{l.annual} days</div>
-                          </div>
-                          <div>
-                            <span className="text-slate-500">Casual</span>
-                            <div className="font-semibold">{l.casual} days</div>
-                          </div>
-                          <div>
-                            <span className="text-slate-500">Sick</span>
-                            <div className="font-semibold">{l.sick} days</div>
+              <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <CheckCircle className="h-6 w-6 text-green-600" />
                           </div>
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
-                </div>
-              </TabsContent>
 
-              {/* Employee Salaries Tab */}
-              <TabsContent value="employees" className="space-y-6">
+        <Card>
+          <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                          <div>
+                <p className="text-sm font-medium text-slate-600">Pending Amount</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  ₹{summaryStats.pendingAmount.toLocaleString()}
+                </p>
+                          </div>
+              <div className="h-12 w-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                <Clock className="h-6 w-6 text-orange-600" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                </div>
+
                 {/* Filters */}
+      <Card>
+        <CardContent className="p-6">
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
                     <Input
-                      placeholder="Search employees, IDs, designations..."
+                  placeholder="Search payrolls, employees..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10"
-                      data-testid="input-search-employees"
                     />
                   </div>
-                  <Select
-                    value={selectedBranch}
-                    onValueChange={setSelectedBranch}
-                  >
-                    <SelectTrigger
-                      className="w-full sm:w-[150px]"
-                      data-testid="select-filter-branch"
-                    >
-                      <SelectValue placeholder="All Branches" />
+            </div>
+            <Select value={selectedMonth?.toString() || "all"} onValueChange={(value) => setSelectedMonth(value === "all" ? undefined : parseInt(value))}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Month" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Branches</SelectItem>
-                      {branches.map((branch) => (
-                        <SelectItem key={branch} value={branch}>
-                          {branch}
+                <SelectItem value="all">All Months</SelectItem>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <SelectItem key={i + 1} value={(i + 1).toString()}>
+                    {new Date(2024, i).toLocaleDateString("en-US", { month: "long" })}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <Select
-                    value={selectedDepartment}
-                    onValueChange={setSelectedDepartment}
-                  >
-                    <SelectTrigger
-                      className="w-full sm:w-[150px]"
-                      data-testid="select-filter-department"
-                    >
-                      <SelectValue placeholder="All Departments" />
+            <Select value={selectedYear?.toString() || "all"} onValueChange={(value) => setSelectedYear(value === "all" ? undefined : parseInt(value))}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Year" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Departments</SelectItem>
-                      {departments.map((department) => (
-                        <SelectItem key={department} value={department}>
-                          {department}
-                        </SelectItem>
-                      ))}
+                <SelectItem value="all">All Years</SelectItem>
+                <SelectItem value="2024">2024</SelectItem>
+                <SelectItem value="2023">2023</SelectItem>
+                <SelectItem value="2022">2022</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select
-                    value={selectedEmployeeType}
-                    onValueChange={setSelectedEmployeeType}
-                  >
-                    <SelectTrigger
-                      className="w-full sm:w-[150px]"
-                      data-testid="select-filter-type"
-                    >
-                      <SelectValue placeholder="All Types" />
+            <Select value={selectedStatus || "all"} onValueChange={(value) => setSelectedStatus(value === "all" ? undefined : value)}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      {employeeTypes.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type
-                            .replace("_", " ")
-                            .replace(/\b\w/g, (l) => l.toUpperCase())}
-                        </SelectItem>
-                      ))}
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="PAID">Paid</SelectItem>
+                <SelectItem value="HOLD">Hold</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+        </CardContent>
+      </Card>
 
-                {/* Data Table */}
+      {/* Payroll Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Payroll Records
+            <Badge variant="secondary" className="ml-auto">
+              {filteredPayrolls.length} records
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
                 <EnhancedDataTable
-                  data={filteredEmployees}
-                  columns={employeeColumns}
-                  exportable={true}
-                />
-              </TabsContent>
+            data={filteredPayrolls}
+            columns={payrollColumns}
+            searchKey="payroll_id"
+          />
+        </CardContent>
+      </Card>
 
-              {/* Payroll History Tab */}
-              <TabsContent value="history" className="space-y-6">
-                <EnhancedDataTable
-                  data={payrollHistory}
-                  columns={payrollHistoryColumns}
-                  exportable={true}
+      {/* Create Payroll Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create Payroll Record</DialogTitle>
+          </DialogHeader>
+          <Form {...createForm}>
+            <form onSubmit={createForm.handleSubmit(handleCreatePayroll)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={createForm.control}
+                  name="employee_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Employee</FormLabel>
+                      <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select employee" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {employees.map((employee) => (
+                            <SelectItem key={employee.employee_id} value={employee.employee_id.toString()}>
+                              {employee.employee_name} - {employee.designation}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </TabsContent>
-            </Tabs>
-          </motion.div>
+                <FormField
+                  control={createForm.control}
+                  name="payroll_month"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payroll Month</FormLabel>
+                      <FormControl>
+                        <Input type="month" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={createForm.control}
+                  name="gross_pay"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gross Pay</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={createForm.control}
+                  name="previous_balance"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Previous Balance</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <FormField
+                  control={createForm.control}
+                  name="lop"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>LOP (Loss of Pay)</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={createForm.control}
+                  name="advance_deduction"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Advance Deduction</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={createForm.control}
+                  name="other_deductions"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Other Deductions</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createPayrollMutation.isPending}>
+                  {createPayrollMutation.isPending ? "Creating..." : "Create Payroll"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Update Payroll Dialog */}
+      <Dialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Update Payroll Record</DialogTitle>
+          </DialogHeader>
+          <Form {...updateForm}>
+            <form onSubmit={updateForm.handleSubmit(handleUpdatePayroll)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={updateForm.control}
+                  name="gross_pay"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gross Pay</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={updateForm.control}
+                  name="paid_amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Paid Amount</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <FormField
+                  control={updateForm.control}
+                  name="lop"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>LOP (Loss of Pay)</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={updateForm.control}
+                  name="advance_deduction"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Advance Deduction</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={updateForm.control}
+                  name="other_deductions"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Other Deductions</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={updateForm.control}
+                  name="payment_method"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payment Method</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select payment method" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="CASH">Cash</SelectItem>
+                          <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+                          <SelectItem value="CHEQUE">Cheque</SelectItem>
+                          <SelectItem value="UPI">UPI</SelectItem>
+                          <SelectItem value="OTHER">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={updateForm.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="PENDING">Pending</SelectItem>
+                          <SelectItem value="PAID">Paid</SelectItem>
+                          <SelectItem value="HOLD">Hold</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={updateForm.control}
+                name="payment_notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Payment Notes</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Optional payment notes" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end gap-3">
+                <Button type="button" variant="outline" onClick={() => setShowUpdateDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={updatePayrollMutation.isPending}>
+                  {updatePayrollMutation.isPending ? "Updating..." : "Update Payroll"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
           {/* Payslip Dialog */}
           <Dialog open={showPayslipDialog} onOpenChange={setShowPayslipDialog}>
-            <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Employee Payslip</DialogTitle>
               </DialogHeader>
-              {selectedEmployee && (
-                <div className="space-y-6">
-                  {/* Employee Details */}
-                  <div className="border-b pb-4">
-                    <div className="flex justify-between">
+          {selectedPayroll && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <h3 className="font-semibold text-lg">
-                          {selectedEmployee.employee_name}
-                        </h3>
-                        <p className="text-slate-600">
-                          {selectedEmployee.designation}
-                        </p>
-                        <p className="text-sm text-slate-500">
-                          {selectedEmployee.employee_id} •{" "}
-                          {selectedEmployee.branch}
+                  <h3 className="font-semibold text-slate-900">Employee Details</h3>
+                  <p className="text-sm text-slate-600">
+                    {employees.find(emp => emp.employee_id === selectedPayroll.employee_id)?.employee_name || `Employee ${selectedPayroll.employee_id}`}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900">Payroll Month</h3>
+                  <p className="text-sm text-slate-600">
+                    {new Date(selectedPayroll.payroll_month).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                    })}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-slate-600">Pay Period</p>
-                        <p className="font-medium">March 2024</p>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Salary Breakdown */}
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <h4 className="font-medium text-green-700 mb-3">
-                        Earnings
-                      </h4>
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-slate-900 mb-3">Salary Breakdown</h3>
                       <div className="space-y-2">
                         <div className="flex justify-between">
-                          <span>Basic Salary</span>
-                          <span>
-                            ₹{selectedEmployee.base_salary.toLocaleString()}
-                          </span>
+                    <span>Gross Pay:</span>
+                    <span>₹{selectedPayroll.gross_pay.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Allowances</span>
-                          <span>
-                            ₹{selectedEmployee.allowances.toLocaleString()}
-                          </span>
+                    <span>Previous Balance:</span>
+                    <span>₹{selectedPayroll.previous_balance.toLocaleString()}</span>
                         </div>
-                        <div className="border-t pt-2 font-semibold flex justify-between">
-                          <span>Gross Salary</span>
-                          <span>
-                            ₹
-                            {(
-                              selectedEmployee.base_salary +
-                              selectedEmployee.allowances
-                            ).toLocaleString()}
-                          </span>
+                  <div className="flex justify-between text-red-600">
+                    <span>LOP:</span>
+                    <span>-₹{selectedPayroll.lop.toLocaleString()}</span>
                         </div>
+                  <div className="flex justify-between text-red-600">
+                    <span>Advance Deduction:</span>
+                    <span>-₹{selectedPayroll.advance_deduction.toLocaleString()}</span>
                       </div>
+                  <div className="flex justify-between text-red-600">
+                    <span>Other Deductions:</span>
+                    <span>-₹{selectedPayroll.other_deductions.toLocaleString()}</span>
                     </div>
-                    <div>
-                      <h4 className="font-medium text-red-700 mb-3">
-                        Deductions
-                      </h4>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span>Tax Deduction</span>
-                          <span>
-                            ₹
-                            {Math.floor(
-                              selectedEmployee.deductions * 0.7
-                            ).toLocaleString()}
-                          </span>
+                  <div className="flex justify-between text-red-600 font-semibold">
+                    <span>Total Deductions:</span>
+                    <span>-₹{selectedPayroll.total_deductions.toLocaleString()}</span>
+                  </div>
+                  <div className="border-t pt-2">
+                    <div className="flex justify-between font-semibold text-green-600">
+                      <span>Net Pay:</span>
+                      <span>₹{selectedPayroll.net_pay.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>PF Contribution</span>
-                          <span>
-                            ₹
-                            {Math.floor(
-                              selectedEmployee.deductions * 0.3
-                            ).toLocaleString()}
-                          </span>
+                      <span>Paid Amount:</span>
+                      <span>₹{selectedPayroll.paid_amount.toLocaleString()}</span>
                         </div>
-                        <div className="border-t pt-2 font-semibold flex justify-between">
-                          <span>Total Deductions</span>
-                          <span>
-                            ₹{selectedEmployee.deductions.toLocaleString()}
-                          </span>
+                    {selectedPayroll.carryover_balance > 0 && (
+                      <div className="flex justify-between text-orange-600">
+                        <span>Carryover Balance:</span>
+                        <span>₹{selectedPayroll.carryover_balance.toLocaleString()}</span>
                         </div>
+                    )}
                       </div>
                     </div>
                   </div>
-
-                  {/* Net Salary */}
-                  <div className="bg-slate-50 p-4 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-semibold">Net Salary</span>
-                      <span className="text-2xl font-bold text-green-600">
-                        ₹{selectedEmployee.net_salary.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Bank Details */}
-                  <div className="text-sm text-slate-600">
-                    <p>
-                      <strong>Bank Account:</strong>{" "}
-                      {selectedEmployee.bank_account}
-                    </p>
-                    <p>
-                      <strong>PAN Number:</strong> {selectedEmployee.pan_number}
-                    </p>
-                  </div>
-
-                  <div className="flex justify-end space-x-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => console.log("Download payslip")}
-                      data-testid="button-download-payslip"
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      Download
-                    </Button>
-                    <Button
-                      onClick={() => setShowPayslipDialog(false)}
-                      data-testid="button-close-payslip"
-                    >
+              <div className="flex justify-end">
+                <Button onClick={() => setShowPayslipDialog(false)}>
                       Close
                     </Button>
                   </div>
@@ -1151,8 +926,6 @@ const PayrollManagement = () => {
               )}
             </DialogContent>
           </Dialog>
-        </div>
-      </div>
     </div>
   );
 };

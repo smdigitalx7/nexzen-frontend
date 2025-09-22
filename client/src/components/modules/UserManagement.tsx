@@ -14,23 +14,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EnhancedDataTable } from '@/components/EnhancedDataTable';
-import { useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserStatus } from '@/lib/hooks/useUsers';
-import { UserRead, UserCreate, UserUpdate } from '@/lib/types/users';
+import { useUsersWithRoles, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserStatus } from '@/lib/hooks/useUsers';
+import { useRoles } from '@/lib/hooks/useRoles';
+import { useBranches } from '@/lib/hooks/useBranches';
+import { useCreateUserBranchAccess } from '@/lib/hooks/useUserBranchAccess';
+import { UserWithRolesAndBranches, UserCreate, UserUpdate } from '@/lib/types/users';
+import { RoleRead } from '@/lib/types/roles';
+import { BranchRead } from '@/lib/types/branches';
 
 const UserManagement = () => {
   // API hooks
-  const { data: users = [], isLoading, error } = useUsers();
+  const { data: users = [], isLoading, error } = useUsersWithRoles();
+  const { data: roles = [], isLoading: rolesLoading } = useRoles();
+  const { data: branches = [], isLoading: branchesLoading } = useBranches();
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
   const updateStatusMutation = useUpdateUserStatus();
+  const createUserBranchAccessMutation = useCreateUserBranchAccess();
 
   // Component state
-  const [selectedUser, setSelectedUser] = useState<UserRead | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserWithRolesAndBranches | null>(null);
   const [showUserForm, setShowUserForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<UserRead | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserWithRolesAndBranches | null>(null);
   const [showDetail, setShowDetail] = useState(false);
 
   // Form data
@@ -44,16 +52,54 @@ const UserManagement = () => {
     is_active: true,
   });
 
-  const getRoleIcon = (isInstituteAdmin: boolean) => {
-    return isInstituteAdmin ? 
-      <ShieldCheck className="h-4 w-4 text-red-600" /> : 
-      <Shield className="h-4 w-4 text-blue-600" />;
+  // Role and branch selections
+  const [selectedRole, setSelectedRole] = useState<number | null>(null);
+  const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
+  const [selectedDefaultBranch, setSelectedDefaultBranch] = useState<number | null>(null);
+
+  const getRoleIcon = (roleName: string) => {
+    switch (roleName) {
+      case 'INSTITUTE_ADMIN':
+        return <ShieldCheck className="h-4 w-4 text-red-600" />;
+      case 'ADMIN':
+        return <ShieldCheck className="h-4 w-4 text-purple-600" />;
+      case 'ACCOUNTANT':
+        return <Shield className="h-4 w-4 text-green-600" />;
+      case 'ACADEMIC':
+        return <Shield className="h-4 w-4 text-blue-600" />;
+      default:
+        return <Shield className="h-4 w-4 text-gray-600" />;
+    }
   };
 
-  const getRoleColor = (isInstituteAdmin: boolean) => {
-    return isInstituteAdmin ? 
-      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' : 
-      'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+  const getRoleColor = (roleName: string) => {
+    switch (roleName) {
+      case 'INSTITUTE_ADMIN':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      case 'ADMIN':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+      case 'ACCOUNTANT':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case 'ACADEMIC':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+    }
+  };
+
+  const getDisplayRoleName = (roleName: string) => {
+    switch (roleName) {
+      case 'INSTITUTE_ADMIN':
+        return 'Institute Admin';
+      case 'ADMIN':
+        return 'Admin';
+      case 'ACCOUNTANT':
+        return 'Accountant';
+      case 'ACADEMIC':
+        return 'Academic';
+      default:
+        return roleName;
+    }
   };
 
   const getStatusColor = (isActive: boolean) => {
@@ -75,10 +121,13 @@ const UserManagement = () => {
       is_institute_admin: false,
       is_active: true,
     });
+    setSelectedRole(null);
+    setSelectedBranch(null);
+    setSelectedDefaultBranch(null);
     setShowUserForm(true);
   };
 
-  const handleEditUser = (user: UserRead) => {
+  const handleEditUser = (user: UserWithRolesAndBranches) => {
     setIsEditing(true);
     setSelectedUser(user);
     setFormData({
@@ -90,10 +139,14 @@ const UserManagement = () => {
       is_institute_admin: user.is_institute_admin,
       is_active: user.is_active,
     });
+    // Set role and branch selections for editing
+    setSelectedRole(user.roles && user.roles.length > 0 ? user.roles[0].role_id : null);
+    setSelectedBranch(user.branches && user.branches.length > 0 ? user.branches[0].branch_id : null);
+    setSelectedDefaultBranch(user.branches && user.branches.length > 0 ? user.branches[0].branch_id : null);
     setShowUserForm(true);
   };
 
-  const handleDeleteUser = (user: UserRead) => {
+  const handleDeleteUser = (user: UserWithRolesAndBranches) => {
     setUserToDelete(user);
     setShowDeleteDialog(true);
   };
@@ -108,6 +161,19 @@ const UserManagement = () => {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate role and branch selection for new users
+    if (!isEditing) {
+      if (!selectedRole) {
+        alert('Please select a role for the user.');
+        return;
+      }
+      if (!selectedBranch) {
+        alert('Please select a branch for the user.');
+        return;
+      }
+    }
+    
     if (isEditing && selectedUser) {
       const updateData: UserUpdate = {
         full_name: formData.full_name,
@@ -118,7 +184,21 @@ const UserManagement = () => {
       };
       updateUserMutation.mutate({ id: selectedUser.user_id, payload: updateData });
     } else {
-      createUserMutation.mutate(formData);
+      // Create user first, then create user branch access
+      createUserMutation.mutate(formData, {
+        onSuccess: (createdUser) => {
+          // After user is created successfully, create the user branch access
+          if (selectedRole && selectedBranch) {
+            createUserBranchAccessMutation.mutate({
+              user_id: createdUser.user_id,
+              branch_id: selectedBranch,
+              role_id: selectedRole,
+              is_default: selectedDefaultBranch === selectedBranch,
+              is_active: true,
+            });
+          }
+        },
+      });
     }
     setShowUserForm(false);
   };
@@ -127,14 +207,14 @@ const UserManagement = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleStatusToggle = (user: UserRead) => {
+  const handleStatusToggle = (user: UserWithRolesAndBranches) => {
     updateStatusMutation.mutate({
       id: user.user_id,
       is_active: !user.is_active,
     });
   };
 
-  const columns: ColumnDef<UserRead>[] = [
+  const columns: ColumnDef<UserWithRolesAndBranches>[] = [
     {
       accessorKey: 'full_name',
       header: 'Full Name',
@@ -170,16 +250,24 @@ const UserManagement = () => {
       ),
     },
     {
-      accessorKey: 'is_institute_admin',
+      accessorKey: 'roles',
       header: 'Role',
-      cell: ({ row }) => (
-        <Badge className={getRoleColor(row.original.is_institute_admin)}>
-          <div className="flex items-center gap-1">
-            {getRoleIcon(row.original.is_institute_admin)}
-            {row.original.is_institute_admin ? 'Institute Admin' : 'User'}
-          </div>
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const user = row.original;
+        // If user has roles, show the first role, otherwise show based on is_institute_admin
+        const primaryRole = user.roles && user.roles.length > 0 
+          ? user.roles[0].role_name 
+          : (user.is_institute_admin ? 'INSTITUTE_ADMIN' : 'USER');
+        
+        return (
+          <Badge className={getRoleColor(primaryRole)}>
+            <div className="flex items-center gap-1">
+              {getRoleIcon(primaryRole)}
+              {getDisplayRoleName(primaryRole)}
+            </div>
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: 'is_active',
@@ -338,6 +426,12 @@ const UserManagement = () => {
             <DialogDescription>
               {isEditing ? "Update user information" : "Create a new user account for your institute"}
             </DialogDescription>
+            {!isEditing && (
+              <div className="text-sm text-green-600 bg-green-50 p-3 rounded-md">
+                <strong>Complete Setup:</strong> The user will be created with the selected role and branch assignment. 
+                The default branch will be set if specified.
+              </div>
+            )}
           </DialogHeader>
           <form onSubmit={handleFormSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -385,6 +479,78 @@ const UserManagement = () => {
                 <Label htmlFor="is_institute_admin">Institute Admin</Label>
               </div>
             </div>
+            
+            {/* Role and Branch Selection */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="role">Role *</Label>
+                <Select value={selectedRole?.toString() || ""} onValueChange={(value) => setSelectedRole(parseInt(value))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {rolesLoading ? (
+                      <SelectItem value="" disabled>Loading roles...</SelectItem>
+                    ) : (
+                      roles.map((role) => (
+                        <SelectItem key={role.role_id} value={role.role_id.toString()}>
+                          {getDisplayRoleName(role.role_name)}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="branch">Branch *</Label>
+                <Select value={selectedBranch?.toString() || ""} onValueChange={(value) => setSelectedBranch(parseInt(value))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a branch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branchesLoading ? (
+                      <SelectItem value="" disabled>Loading branches...</SelectItem>
+                    ) : (
+                      branches.map((branch) => (
+                        <SelectItem key={branch.branch_id} value={branch.branch_id.toString()}>
+                          {branch.branch_name} ({branch.branch_type})
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="default_branch">Default Branch</Label>
+                <Select value={selectedDefaultBranch?.toString() || ""} onValueChange={(value) => setSelectedDefaultBranch(parseInt(value))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select default branch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branchesLoading ? (
+                      <SelectItem value="" disabled>Loading branches...</SelectItem>
+                    ) : (
+                      branches.map((branch) => (
+                        <SelectItem key={branch.branch_id} value={branch.branch_id.toString()}>
+                          {branch.branch_name} ({branch.branch_type})
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="is_active"
+                  checked={formData.is_active}
+                  onCheckedChange={(checked) => handleFormChange('is_active', checked as boolean)}
+                />
+                <Label htmlFor="is_active">Active</Label>
+              </div>
+            </div>
             {!isEditing && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -415,24 +581,16 @@ const UserManagement = () => {
                 </div>
               </div>
             )}
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="is_active"
-                checked={formData.is_active}
-                onCheckedChange={(checked) => handleFormChange('is_active', checked as boolean)}
-              />
-              <Label htmlFor="is_active">Active</Label>
-            </div>
             <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="outline" onClick={() => setShowUserForm(false)}>
                 Cancel
               </Button>
               <Button 
                 type="submit" 
-                disabled={createUserMutation.isPending || updateUserMutation.isPending}
+                disabled={createUserMutation.isPending || updateUserMutation.isPending || createUserBranchAccessMutation.isPending}
                 data-testid="button-submit-user"
               >
-                {createUserMutation.isPending || updateUserMutation.isPending ? "Saving..." : isEditing ? "Update User" : "Add User"}
+                {createUserMutation.isPending || updateUserMutation.isPending || createUserBranchAccessMutation.isPending ? "Saving..." : isEditing ? "Update User" : "Add User"}
               </Button>
             </div>
           </form>

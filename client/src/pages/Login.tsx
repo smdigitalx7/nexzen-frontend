@@ -69,6 +69,12 @@ const Login = () => {
       }>>("/branches/");
 
       const role: "institute_admin" | "academic" | "accountant" = (() => {
+        // First check if user is marked as institute admin
+        if (me.is_institute_admin) {
+          return "institute_admin";
+        }
+        
+        // Then check roles from UserBranchAccess
         const roleNames = (me.roles || [])
           .map((r: any) => {
             if (typeof r === "string") return r;
@@ -83,7 +89,7 @@ const Login = () => {
         if (roleNames.includes("ACCOUNTANT")) return "accountant";
         if (roleNames.includes("ACADEMIC")) return "academic";
 
-        if (me.is_institute_admin) return "institute_admin";
+        // Default fallback
         return "academic";
       })();
 
@@ -93,13 +99,13 @@ const Login = () => {
         email,
         role,
         institute_id: String(me.institute_id),
-        current_branch_id: String(me.current_branch_id),
+        current_branch_id: me.current_branch_id,
       } as const;
 
       const branchList = branches.map((b) => ({
-        branch_id: String(b.branch_id),
+        branch_id: b.branch_id,
         branch_name: b.branch_name,
-        branch_type: b.branch_type === "SCHOOL" ? "school" : "college",
+        branch_type: b.branch_type,
       }));
 
       login(user as any, branchList as any);

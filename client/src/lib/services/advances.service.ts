@@ -1,11 +1,11 @@
 import { Api } from "@/lib/api";
-import type { AdvanceRead, AdvanceCreate, AdvanceUpdate } from "@/lib/types/advances";
+import type { AdvanceRead, AdvanceCreate, AdvanceUpdate, AdvanceListResponse } from "@/lib/types/advances";
 
 export const AdvancesService = {
-  list(): Promise<AdvanceRead[]> {
+  list(): Promise<AdvanceListResponse> {
     return Api.get("/advances/");
   },
-  listByBranch(): Promise<AdvanceRead[]> {
+  listByBranch(): Promise<AdvanceListResponse> {
     return Api.get("/advances/branch");
   },
   getById(id: number): Promise<AdvanceRead> {

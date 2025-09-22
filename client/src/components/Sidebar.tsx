@@ -170,7 +170,7 @@ const Sidebar = () => {
   }
 
   const getSchemaModules = (): NavigationItem[] => {
-    if (currentBranch?.branch_type === "school") {
+    if (currentBranch?.branch_type === "SCHOOL") {
       return [
         {
           title: "Classes",
@@ -217,7 +217,7 @@ const Sidebar = () => {
           roles: ["institute_admin", "academic"],
         },
       ];
-    } else if (currentBranch?.branch_type === "college") {
+    } else if (currentBranch?.branch_type === "COLLEGE") {
       return [
         {
           title: "College Management",
@@ -339,12 +339,12 @@ const Sidebar = () => {
             >
               <div
                 className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-md ${
-                  currentBranch?.branch_type === "school"
+                  currentBranch?.branch_type === "SCHOOL"
                     ? "bg-gradient-to-br from-emerald-400 to-emerald-600"
                     : "bg-gradient-to-br from-purple-400 to-purple-600"
                 }`}
               >
-                {currentBranch?.branch_type === "school" ? (
+                {currentBranch?.branch_type === "SCHOOL" ? (
                   <School className="h-6 w-6 text-white" />
                 ) : (
                   <GraduationCap className="h-6 w-6 text-white" />
@@ -404,7 +404,7 @@ const Sidebar = () => {
               {sidebarOpen && (
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    {currentBranch.branch_type === "school"
+                    {currentBranch.branch_type === "SCHOOL"
                       ? "School"
                       : "College"}
                   </h3>
