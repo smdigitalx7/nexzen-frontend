@@ -22,7 +22,7 @@ export class ApiClient {
     
     // Set fallback URL for error handling
     if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-      this.fallbackUrl = 'http://nexzenapi.smdigitalx.com/api';
+      this.fallbackUrl = 'https://nexzenapi.smdigitalx.com/api';
       console.log('ApiClient: Development mode - using proxy:', this.baseUrl);
     } else {
       this.fallbackUrl = baseUrl.replace('http://', 'https://');

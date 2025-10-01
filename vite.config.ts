@@ -34,9 +34,9 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://nexzenapi.smdigitalx.com',
+        target: 'https://nexzenapi.smdigitalx.com',
         changeOrigin: true,
-        secure: false, // Allow HTTP
+        secure: true, // Use HTTPS
         rewrite: (path) => {
           // The external API expects /api/v1 paths, so we need to ensure they're preserved
           console.log('🔄 Proxy rewrite:', path);

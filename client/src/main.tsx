@@ -16,8 +16,9 @@ let apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 let apiClientBaseUrl: string;
 
 if (apiBaseUrl.includes('nexzenapi.smdigitalx.com') || apiBaseUrl.includes('http://') || apiBaseUrl.includes('https://')) {
-  console.warn('Detected external API URL, forcing proxy usage for ApiClient');
-  apiClientBaseUrl = '/api'; // Use proxy for ApiClient
+  console.warn('Detected external API URL, using direct connection for ApiClient');
+  // In production, use the full URL directly
+  apiClientBaseUrl = apiBaseUrl.replace('/api/v1', '/api'); // Remove /v1 for ApiClient
 } else if (apiBaseUrl === '/api/v1') {
   // In development with proxy, ApiClient should use /api (without /v1)
   apiClientBaseUrl = '/api';
