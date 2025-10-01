@@ -101,8 +101,10 @@ const Carousel = React.forwardRef<
         return
       }
 
+      // Only react to api changes. Avoid depending on setApi identity to prevent
+      // parent inline function props from causing an infinite re-render loop.
       setApi(api)
-    }, [api, setApi])
+    }, [api])
 
     React.useEffect(() => {
       if (!api) {

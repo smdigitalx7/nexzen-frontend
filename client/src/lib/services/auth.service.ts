@@ -1,19 +1,19 @@
-import { Api } from "@/lib/api";
+import { unifiedApi } from "./unified-api.service";
 
 export const AuthService = {
   login: (identifier: string, password: string) => {
-    return Api.post("/auth/login", { identifier, password });
+    return unifiedApi.post("/auth/login", { identifier, password }, {}, true);
   },
   me: () => {
-    return Api.get("/auth/me");
+    return unifiedApi.get("/auth/me");
   },
   refresh: () => {
-    return Api.post("/auth/refresh");
+    return unifiedApi.post("/auth/refresh");
   },
   logout: () => {
-    return Api.post("/auth/logout");
+    return unifiedApi.post("/auth/logout");
   },
   switchBranch: (branchId: number) => {
-    return Api.post(`/auth/switch-branch/${branchId}`);
+    return unifiedApi.post(`/auth/switch-branch/${branchId}`);
   },
 };

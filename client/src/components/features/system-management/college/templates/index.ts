@@ -1,0 +1,1 @@
+export { CollegeManagementTemplate } from './CollegeManagementTemplate';

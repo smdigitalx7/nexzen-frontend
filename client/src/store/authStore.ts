@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { AuthService } from "@/lib/services/auth.service";
 import { AuthTokenTimers } from "@/lib/api";
+import { ServiceLocator } from "@/core";
 
 export interface AuthUser {
   user_id: string;
@@ -20,12 +21,15 @@ interface AuthState {
   isBranchSwitching: boolean;
   academicYear: string | null;
   academicYears: Array<{
-    id: number;
+    academic_year_id: number;
     year_name: string;
     start_date: string;
     end_date: string;
-    active: boolean;
-    branch_type: "school" | "college";
+    is_active: boolean;
+    created_at: string;
+    updated_at: string | null;
+    created_by: number | null;
+    updated_by: number | null;
   }>;
   token: string | null;
   tokenExpireAt: number | null;
@@ -129,15 +133,20 @@ export const useAuthStore = create<AuthState>()(
           const response = await AuthService.switchBranch(branch.branch_id) as any;
           console.log("Branch switch response:", response);
           
-          // Update token with new branch context
-          if (response.access_token) {
-            set({ 
-              currentBranch: branch,
-              token: response.access_token,
-              tokenExpireAt: new Date(response.expiretime).getTime(),
-              isBranchSwitching: false
-            });
-            console.log("Branch switched successfully with new token");
+          // Update branch and token with new branch context
+          if (response?.access_token) {
+            // Update current branch first for UI immediacy
+            set({ currentBranch: branch });
+            // Persist token and propagate to ServiceLocator
+            const expireAtMs = response?.expiretime ? new Date(response.expiretime).getTime() : null;
+            useAuthStore.getState().setTokenAndExpiry(response.access_token, expireAtMs);
+            // Keep user object in sync with branch id if available
+            const current = useAuthStore.getState();
+            if (current.user) {
+              set({ user: { ...current.user, current_branch_id: branch.branch_id } });
+            }
+            set({ isBranchSwitching: false });
+            console.log("Branch switched successfully with new token and clients updated");
           } else {
             // Fallback to just updating the branch if no token response
             set({ 
@@ -170,9 +179,21 @@ export const useAuthStore = create<AuthState>()(
       },
       setToken: (token) => {
         set({ token });
+        // Update ServiceLocator with new token
+        if (token) {
+          ServiceLocator.setAuthToken(token);
+        } else {
+          ServiceLocator.removeAuthToken();
+        }
       },
       setTokenAndExpiry: (token, expireAtMs) => {
         set({ token, tokenExpireAt: expireAtMs });
+        // Update ServiceLocator with new token
+        if (token) {
+          ServiceLocator.setAuthToken(token);
+        } else {
+          ServiceLocator.removeAuthToken();
+        }
       },
     }),
     {

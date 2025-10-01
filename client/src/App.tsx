@@ -2,28 +2,18 @@ import { Switch, Route, useLocation } from "wouter";
 import React, { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Header from "@/components/Header";
-import Sidebar from "@/components/Sidebar";
-import Dashboard from "@/components/Dashboard";
-import Login from "@/pages/Login";
-import UserManagement from "@/components/modules/UserManagement";
-import StudentManagement from "@/components/modules/StudentManagement";
-import EmployeeManagement from "@/components/modules/EmployeeManagement";
-import ClassesManagement from "@/components/modules/ClassesManagement";
-import AttendanceManagement from "@/components/modules/AttendanceManagement";
-import MarksManagement from "@/components/modules/MarksManagement";
-import FeesManagement from "@/components/modules/FeesManagement";
-import TransportManagement from "@/components/modules/TransportManagement";
-import PayrollManagement from "@/components/modules/PayrollManagement";
-import InstituteManagement from "@/components/modules/InstituteManagement";
-import AnnouncementsManagement from "@/components/modules/AnnouncementsManagement";
-import CollegeManagement from "@/components/modules/CollegeManagement";
-import AcademicManagement from "@/components/modules/AcademicManagement";
-import FinancialReports from "@/components/modules/FinancialReports";
-import AuditLog from "@/components/modules/AuditLog";
-import NotFound from "@/pages/not-found";
-import ReservationNew from "@/pages/ReservationNew";
-import AdmissionNew from "@/pages/AdmissionNew";
+import { Header, Sidebar, Dashboard } from "@/components/layout";
+import Login from "@/components/pages/Login";
+import { UserManagement, AnnouncementsManagement, AuditLog } from "@/components/features/user-management";
+import { StudentManagement, ClassManagement, MarksManagement, AcademicYearManagement } from "@/components/features/academic-management";
+import EmployeeManagement from "@/components/pages/EmployeeManagement";
+import AttendanceManagement from "@/components/pages/AttendanceManagement";
+import { FeesManagement, PayrollManagement, FinancialReports } from "@/components/features/financial-management";
+import { TransportManagement, BranchesManagement, InstituteManagement, CollegeManagement } from "@/components/features/system-management";
+import AcademicManagement from "@/components/pages/AcademicManagement";
+import NotFound from "@/components/pages/not-found";
+import ReservationNew from "@/components/pages/ReservationNew";
+import AdmissionNew from "@/components/pages/AdmissionNew";
 import { useAuthStore } from "@/store/authStore";
 import { useNavigationStore } from "@/store/navigationStore";
 import { cn } from "@/lib/utils";
@@ -38,7 +28,6 @@ import {
 import { AuthTokenTimers } from "@/lib/api";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query";
-import BranchesManagement from "@/components/modules/BranchesManagement";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { sidebarOpen } = useNavigationStore();
@@ -143,7 +132,12 @@ function Router() {
         <ProtectedRoute
           path="/classes"
           roles={["institute_admin", "academic"]}
-          component={ClassesManagement}
+          component={ClassManagement}
+        />
+        <ProtectedRoute
+          path="/academic-years"
+          roles={["institute_admin", "academic"]}
+          component={AcademicYearManagement}
         />
         <ProtectedRoute
           path="/attendance"

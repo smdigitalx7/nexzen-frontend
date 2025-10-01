@@ -1,6 +1,11 @@
 import { useAuthStore } from "@/store/authStore";
 
+// For the simple API, we need to use /api/v1 since the proxy forwards /api to the external server
+// and the external server expects /v1 paths
 const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || "/api/v1";
+
+// Debug: Log API configuration on module load
+console.log('📡 Simple API initialized with base URL:', API_BASE_URL);
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -27,6 +32,7 @@ function buildQuery(query?: ApiRequestOptions["query"]) {
 }
 
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+let isRefreshing = false;
 
 function scheduleProactiveRefresh() {
 	const { token, tokenExpireAt } = useAuthStore.getState();
@@ -57,7 +63,9 @@ function clearProactiveRefresh() {
 }
 
 async function tryRefreshToken(oldAccessToken: string | null): Promise<string | null> {
-	if (!oldAccessToken) return null;
+	if (!oldAccessToken || isRefreshing) return null;
+	
+	isRefreshing = true;
 	try {
 		const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
 			method: "POST",
@@ -67,7 +75,12 @@ async function tryRefreshToken(oldAccessToken: string | null): Promise<string | 
 			},
 			credentials: "include",
 		});
-		if (!res.ok) return null;
+		if (!res.ok) {
+			// If refresh fails, clear auth state to prevent infinite loops
+			console.warn("Token refresh failed, clearing auth state");
+			useAuthStore.getState().logout();
+			return null;
+		}
 		const data = await res.json();
 		const newToken = (data?.access_token as string) || null;
 		const expireIso = (data?.expiretime as string) || null;
@@ -77,8 +90,12 @@ async function tryRefreshToken(oldAccessToken: string | null): Promise<string | 
 			scheduleProactiveRefresh();
 		}
 		return newToken;
-	} catch {
+	} catch (error) {
+		console.warn("Token refresh error, clearing auth state:", error);
+		useAuthStore.getState().logout();
 		return null;
+	} finally {
+		isRefreshing = false;
 	}
 }
 
@@ -88,6 +105,20 @@ export async function api<T = unknown>({ method = "GET", path, body, query, head
 
 	const url = `${API_BASE_URL}${path}${buildQuery(query)}`;
 
+	console.log(`🌐 API Request: ${method} ${url}`);
+	console.log(`🔑 Token available: ${!!token}`);
+	console.log(`🔒 noAuth flag: ${noAuth}`);
+	
+	if (token) {
+		console.log(`🎫 Token preview: ${token.substring(0, 20)}...`);
+		// Check token expiry
+		if (state.tokenExpireAt) {
+			const isExpired = Date.now() > state.tokenExpireAt;
+			console.log(`⏰ Token expires at: ${new Date(state.tokenExpireAt).toISOString()}`);
+			console.log(`⏰ Token expired: ${isExpired}`);
+		}
+	}
+
 	const requestHeaders: Record<string, string> = {
 		"Content-Type": "application/json",
 		...headers,
@@ -95,6 +126,9 @@ export async function api<T = unknown>({ method = "GET", path, body, query, head
 
 	if (!noAuth && token) {
 		requestHeaders["Authorization"] = `Bearer ${token}`;
+		console.log(`🔑 Authorization header set`);
+	} else if (!noAuth && !token) {
+		console.warn(`⚠️ No token available for authenticated request to ${path}`);
 	}
 
 	const res = await fetch(url, {
@@ -118,11 +152,16 @@ export async function api<T = unknown>({ method = "GET", path, body, query, head
 		}
 	}
 
-	// Attempt refresh on 401 once for authenticated calls
-	if (!noAuth && res.status === 401 && !_isRetry) {
+	// Attempt refresh on 401 or 403 once for authenticated calls
+	// 403 can also indicate token expiration in some API implementations
+	if (!noAuth && (res.status === 401 || res.status === 403) && !_isRetry) {
+		console.log(`Received ${res.status} status, attempting token refresh...`);
 		const refreshed = await tryRefreshToken(token);
 		if (refreshed) {
+			console.log("Token refreshed successfully, retrying request...");
 			return api<T>({ method, path, body, query, headers, noAuth, _isRetry: true });
+		} else {
+			console.log("Token refresh failed, user will need to re-login");
 		}
 	}
 

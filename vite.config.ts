@@ -32,5 +32,35 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    proxy: {
+      '/api': {
+        target: 'http://nexzenapi.smdigitalx.com',
+        changeOrigin: true,
+        secure: false, // Allow HTTP
+        rewrite: (path) => {
+          // The external API expects /api/v1 paths, so we need to ensure they're preserved
+          console.log('🔄 Proxy rewrite:', path);
+          return path;
+        },
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('❌ Proxy error:', err);
+            console.log('Request URL:', req.url);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            const targetUrl = `${proxyReq.protocol}//${proxyReq.getHeader('host')}${proxyReq.path}`;
+            console.log('🔄 Proxying request:', req.method, req.url, '→', targetUrl);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('✅ Proxy response:', proxyRes.statusCode, req.url);
+            // Add CORS headers to the response
+            proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+            proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+            proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+            proxyRes.headers['Access-Control-Allow-Credentials'] = 'true';
+          });
+        },
+      },
+    },
   },
 });

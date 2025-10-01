@@ -3,12 +3,9 @@ import type {
   BusRouteRead,
   BusRouteCreate,
   BusRouteUpdate,
-  BusStopRead,
-  BusStopCreate,
-  BusStopUpdate,
-  TransportFeeStructureRead,
-  TransportFeeStructureCreate,
-  TransportFeeStructureUpdate,
+  DistanceSlabRead,
+  DistanceSlabCreate,
+  DistanceSlabUpdate,
 } from "@/lib/types/transport";
 
 export const TransportService = {
@@ -28,43 +25,18 @@ export const TransportService = {
   deleteRoute(id: number): Promise<BusRouteRead> {
     return Api.delete<BusRouteRead>(`/bus-routes/${id}`);
   },
-
-  // Bus Stops
-  listStops(): Promise<BusStopRead[]> {
-    return Api.get<BusStopRead[]>("/bus-stops/");
+  
+  // Distance Slabs
+  listDistanceSlabs(): Promise<DistanceSlabRead[]> {
+    return Api.get<DistanceSlabRead[]>("/transport-fee-structures/");
   },
-  getStop(id: number): Promise<BusStopRead> {
-    return Api.get<BusStopRead>(`/bus-stops/${id}`);
+  getDistanceSlab(id: number): Promise<DistanceSlabRead> {
+    return Api.get<DistanceSlabRead>(`/transport-fee-structures/${id}`);
   },
-  listStopsByRoute(routeId: number): Promise<BusStopRead[]> {
-    return Api.get<BusStopRead[]>(`/bus-stops/route/${routeId}`);
+  createDistanceSlab(payload: DistanceSlabCreate): Promise<DistanceSlabRead> {
+    return Api.post<DistanceSlabRead>("/transport-fee-structures/", payload);
   },
-  createStop(payload: BusStopCreate): Promise<BusStopRead> {
-    return Api.post<BusStopRead>("/bus-stops/", payload);
-  },
-  updateStop(id: number, payload: BusStopUpdate): Promise<BusStopRead> {
-    return Api.put<BusStopRead>(`/bus-stops/${id}`, payload);
-  },
-  deleteStop(id: number): Promise<BusStopRead> {
-    return Api.delete<BusStopRead>(`/bus-stops/${id}`);
-  },
-
-  // Transport Fee Structures
-  listFees(): Promise<TransportFeeStructureRead[]> {
-    return Api.get<TransportFeeStructureRead[]>("/transport-fee-structures/");
-  },
-  getFee(id: number): Promise<TransportFeeStructureRead> {
-    return Api.get<TransportFeeStructureRead>(`/transport-fee-structures/${id}`);
-  },
-  createFee(payload: TransportFeeStructureCreate): Promise<TransportFeeStructureRead> {
-    return Api.post<TransportFeeStructureRead>("/transport-fee-structures/", payload);
-  },
-  updateFee(id: number, payload: TransportFeeStructureUpdate): Promise<TransportFeeStructureRead> {
-    return Api.put<TransportFeeStructureRead>(`/transport-fee-structures/${id}`, payload);
-  },
-  deleteFee(id: number): Promise<TransportFeeStructureRead> {
-    return Api.delete<TransportFeeStructureRead>(`/transport-fee-structures/${id}`);
+  updateDistanceSlab(id: number, payload: DistanceSlabUpdate): Promise<DistanceSlabRead> {
+    return Api.put<DistanceSlabRead>(`/transport-fee-structures/${id}`, payload);
   },
 };
-
-

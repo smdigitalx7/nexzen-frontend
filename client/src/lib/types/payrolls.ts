@@ -30,8 +30,8 @@ export interface PayrollRead {
   status: PayrollStatusEnum;
   generated_at: string; // datetime as string
   updated_at?: string;
-  generated_by?: number;
-  updated_by?: number;
+  generated_by?: number | null;
+  updated_by?: number | null;
 }
 
 export interface PayrollCreate {
