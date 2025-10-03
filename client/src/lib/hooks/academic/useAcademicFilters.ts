@@ -4,7 +4,6 @@ export const useAcademicFilters = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBranchType, setSelectedBranchType] = useState("all");
   const [selectedClass, setSelectedClass] = useState<string>("all");
-  const [selectedSection, setSelectedSection] = useState<string>("all");
 
   // Filter functions
   const filterClasses = (classes: any[]) => {
@@ -34,7 +33,6 @@ export const useAcademicFilters = () => {
     setSearchTerm("");
     setSelectedBranchType("all");
     setSelectedClass("all");
-    setSelectedSection("all");
   };
 
   return {
@@ -45,8 +43,6 @@ export const useAcademicFilters = () => {
     setSelectedBranchType,
     selectedClass,
     setSelectedClass,
-    selectedSection,
-    setSelectedSection,
     
     // Filter functions
     filterClasses,

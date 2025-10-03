@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Plus, Award } from "lucide-react";
+import { Plus, Award, Edit, Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -28,15 +27,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface ExamsTabProps {
   exams: any[];
   setExams: (exams: any[]) => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  selectedBranchType: string;
-  setSelectedBranchType: (type: string) => void;
-  currentBranch: any;
   isLoading?: boolean;
   hasError?: boolean;
   errorMessage?: string;
@@ -47,68 +53,111 @@ export const ExamsTab = ({
   setExams,
   searchTerm,
   setSearchTerm,
-  selectedBranchType,
-  setSelectedBranchType,
-  currentBranch,
   isLoading = false,
   hasError = false,
   errorMessage,
 }: ExamsTabProps) => {
   const [isAddExamOpen, setIsAddExamOpen] = useState(false);
+  const [isEditExamOpen, setIsEditExamOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedExam, setSelectedExam] = useState<any>(null);
   const [newExam, setNewExam] = useState({
     exam_name: "",
-    exam_type: "",
-    class_range: "",
-    start_date: "",
-    end_date: "",
+    exam_date: "",
     pass_marks: "",
     max_marks: "",
   });
+  const [editExam, setEditExam] = useState({
+    exam_name: "",
+    exam_date: "",
+    pass_marks: "",
+    max_marks: "",
+  });
+  
+  const { toast } = useToast();
 
   const handleAddExam = () => {
-    const newId = Math.max(...exams.map((e) => e.id)) + 1;
+    const newId = Math.max(...exams.map((e) => e.exam_id || e.id || 0)) + 1;
     const exam = {
-      id: newId,
+      exam_id: newId,
       exam_name: newExam.exam_name,
-      exam_type: newExam.exam_type,
-      academic_year_id: 0,
-      academic_year: "2024-25",
-      class_range: newExam.class_range,
-      start_date: newExam.start_date,
-      end_date: newExam.end_date,
+      exam_date: newExam.exam_date,
       pass_marks: parseInt(newExam.pass_marks || "0"),
       max_marks: parseInt(newExam.max_marks || "0"),
-      status: "scheduled",
-      students_count: 0,
     };
 
     setExams([...exams, exam]);
     setNewExam({
       exam_name: "",
-      exam_type: "",
-      class_range: "",
-      start_date: "",
-      end_date: "",
+      exam_date: "",
       pass_marks: "",
       max_marks: "",
     });
     setIsAddExamOpen(false);
+    toast({
+      title: "Success",
+      description: "Exam added successfully",
+    });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "scheduled":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "ongoing":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "cancelled":
-        return "bg-red-100 text-red-800 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
+  const handleEditExam = (exam: any) => {
+    setSelectedExam(exam);
+    setEditExam({
+      exam_name: exam.exam_name,
+      exam_date: exam.exam_date,
+      pass_marks: exam.pass_marks.toString(),
+      max_marks: exam.max_marks.toString(),
+    });
+    setIsEditExamOpen(true);
   };
+
+  const handleUpdateExam = () => {
+    if (selectedExam) {
+      const updatedExams = exams.map((exam) =>
+        (exam.exam_id || exam.id) === (selectedExam.exam_id || selectedExam.id)
+          ? {
+              ...exam,
+              exam_name: editExam.exam_name,
+              exam_date: editExam.exam_date,
+              pass_marks: parseInt(editExam.pass_marks || "0"),
+              max_marks: parseInt(editExam.max_marks || "0"),
+            }
+          : exam
+      );
+      setExams(updatedExams);
+      toast({
+        title: "Success",
+        description: "Exam updated successfully",
+      });
+    }
+    setEditExam({
+      exam_name: "",
+      exam_date: "",
+      pass_marks: "",
+      max_marks: "",
+    });
+    setSelectedExam(null);
+    setIsEditExamOpen(false);
+  };
+
+  const handleDeleteExam = (exam: any) => {
+    setSelectedExam(exam);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteExam = () => {
+    if (selectedExam) {
+      const updatedExams = exams.filter((exam) => (exam.exam_id || exam.id) !== (selectedExam.exam_id || selectedExam.id));
+      setExams(updatedExams);
+      toast({
+        title: "Success",
+        description: "Exam deleted successfully",
+      });
+    }
+    setSelectedExam(null);
+    setIsDeleteDialogOpen(false);
+  };
+
 
   const filteredExams = (exams || []).filter((exam) => {
     const name = (exam?.exam_name || '').toString().toLowerCase();
@@ -167,81 +216,21 @@ export const ExamsTab = ({
                   />
                 </div>
                 <div>
-                  <Label htmlFor="exam_type">Exam Type</Label>
-                  <Select
-                    value={newExam.exam_type}
-                    onValueChange={(value) =>
-                      setNewExam({ ...newExam, exam_type: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Formal">Formal Exam</SelectItem>
-                      <SelectItem value="Test">Test</SelectItem>
-                      <SelectItem value="Quiz">Quiz</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="class_range">Class Range</Label>
-                <Input
-                  id="class_range"
-                  value={newExam.class_range}
-                  onChange={(e) =>
-                    setNewExam({
-                      ...newExam,
-                      class_range: e.target.value,
-                    })
-                  }
-                  placeholder="6-10 or 1st-2nd Year"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="start_date">Start Date</Label>
+                  <Label htmlFor="exam_date">Exam Date</Label>
                   <Input
-                    id="start_date"
+                    id="exam_date"
                     type="date"
-                    value={newExam.start_date}
+                    value={newExam.exam_date}
                     onChange={(e) =>
                       setNewExam({
                         ...newExam,
-                        start_date: e.target.value,
+                        exam_date: e.target.value,
                       })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="end_date">End Date</Label>
-                  <Input
-                    id="end_date"
-                    type="date"
-                    value={newExam.end_date}
-                    onChange={(e) =>
-                      setNewExam({ ...newExam, end_date: e.target.value })
                     }
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="max_marks">Max Marks</Label>
-                  <Input
-                    id="max_marks"
-                    type="number"
-                    value={newExam.max_marks}
-                    onChange={(e) =>
-                      setNewExam({
-                        ...newExam,
-                        max_marks: e.target.value,
-                      })
-                    }
-                    placeholder="100"
-                  />
-                </div>
                 <div>
                   <Label htmlFor="pass_marks">Pass Marks</Label>
                   <Input
@@ -255,6 +244,21 @@ export const ExamsTab = ({
                       })
                     }
                     placeholder="35"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="max_marks">Max Marks</Label>
+                  <Input
+                    id="max_marks"
+                    type="number"
+                    value={newExam.max_marks}
+                    onChange={(e) =>
+                      setNewExam({
+                        ...newExam,
+                        max_marks: e.target.value,
+                      })
+                    }
+                    placeholder="100"
                   />
                 </div>
               </div>
@@ -281,62 +285,159 @@ export const ExamsTab = ({
         </div>
       ) : hasError ? (
         <div className="border rounded-md p-4 text-sm bg-amber-50 text-amber-800">
-          Could not load exams{errorMessage ? `: ${errorMessage}` : ''}. Showing controls only.
+          Could not load exams{errorMessage ? `: ${errorMessage}` : ''}.
         </div>
       ) : filteredExams.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center border rounded-md">
-          <Award className="h-10 w-10 text-slate-300 mb-2" />
-          <p className="text-slate-600 mb-4">No exams found.</p>
-          <Button className="gap-2" onClick={() => setIsAddExamOpen(true)}>
+        <div className="text-center py-12">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
+            <Award className="h-8 w-8 text-slate-400" />
+          </div>
+          <h3 className="text-lg font-medium text-slate-900 mb-2">No exams found</h3>
+          <p className="text-slate-500 mb-4">Get started by creating your first exam.</p>
+          <Button onClick={() => setIsAddExamOpen(true)} className="gap-2">
             <Plus className="h-4 w-4" />
             Add Exam
           </Button>
         </div>
       ) : (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredExams.map((exam, index) => (
-          <motion.div
-            key={exam.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className="hover-elevate">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
-                      <Award className="h-5 w-5 text-white" />
+      <Card>
+        <CardHeader>
+          <CardTitle>All Exams</CardTitle>
+          <CardDescription>Complete list of examinations and tests</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Exam Name</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Pass Marks</TableHead>
+                <TableHead>Max Marks</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredExams.map((exam) => (
+                <TableRow key={exam.exam_id || exam.id}>
+                  <TableCell className="font-mono text-xs text-slate-500">{exam.exam_id || exam.id}</TableCell>
+                  <TableCell className="font-medium">{exam.exam_name}</TableCell>
+                  <TableCell>{formatDate(exam.exam_date)}</TableCell>
+                  <TableCell>{exam.pass_marks}</TableCell>
+                  <TableCell>{exam.max_marks}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleEditExam(exam)}
+                        title="Edit exam"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleDeleteExam(exam)}
+                        title="Delete exam"
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <div>
-                      <CardTitle className="text-lg">
-                        {(exam?.exam_name || '').toString()}
-                      </CardTitle>
-                      <CardDescription>{(exam?.exam_type || '').toString()}</CardDescription>
-                    </div>
-                  </div>
-                  <Badge className={getStatusColor(exam.status)}>
-                    {(exam?.status || '').toString()}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span>Date:</span>
-                    <span className="font-medium">{formatDate(exam.exam_date) || '-'}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Marks:</span>
-                    <span className="font-medium">{(Number.isFinite(exam?.pass_marks) ? exam.pass_marks : 0)}/{(Number.isFinite(exam?.max_marks) ? exam.max_marks : 0)}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
       )}
+
+      {/* Edit Exam Dialog */}
+      <Dialog open={isEditExamOpen} onOpenChange={setIsEditExamOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Exam</DialogTitle>
+            <DialogDescription>
+              Update the exam information.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-exam-name">Exam Name</Label>
+                <Input
+                  id="edit-exam-name"
+                  value={editExam.exam_name}
+                  onChange={(e) => setEditExam({ ...editExam, exam_name: e.target.value })}
+                  placeholder="Enter exam name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-exam-date">Exam Date</Label>
+                <Input
+                  id="edit-exam-date"
+                  type="date"
+                  value={editExam.exam_date}
+                  onChange={(e) => setEditExam({ ...editExam, exam_date: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-pass-marks">Pass Marks</Label>
+                <Input
+                  id="edit-pass-marks"
+                  type="number"
+                  value={editExam.pass_marks}
+                  onChange={(e) => setEditExam({ ...editExam, pass_marks: e.target.value })}
+                  placeholder="Enter pass marks"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-max-marks">Max Marks</Label>
+                <Input
+                  id="edit-max-marks"
+                  type="number"
+                  value={editExam.max_marks}
+                  onChange={(e) => setEditExam({ ...editExam, max_marks: e.target.value })}
+                  placeholder="Enter max marks"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditExamOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateExam}>
+              Update Exam
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the exam "{selectedExam?.exam_name}".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteExam}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

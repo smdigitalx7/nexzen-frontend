@@ -36,6 +36,7 @@ export class TransportUseCases {
       request.routeNo || '',
       request.routeName || '',
       request.startLocation || '',
+      request.endLocation || '',
       request.totalDistance || 0,
       request.estimatedDuration || 0,
       true,
@@ -67,11 +68,12 @@ export class TransportUseCases {
       updatedTransport = updatedTransport.updateDriverInfo(request.driverEmployeeId);
     }
 
-    if (request.routeNo !== undefined || request.routeName !== undefined || request.startLocation !== undefined || request.totalDistance !== undefined || request.estimatedDuration !== undefined) {
+    if (request.routeNo !== undefined || request.routeName !== undefined || request.startLocation !== undefined || request.endLocation !== undefined || request.totalDistance !== undefined || request.estimatedDuration !== undefined) {
       updatedTransport = updatedTransport.updateRoute(
         request.routeNo ?? updatedTransport.routeNo,
         request.routeName ?? updatedTransport.routeName,
         request.startLocation ?? updatedTransport.startLocation,
+        request.endLocation ?? updatedTransport.endLocation,
         request.totalDistance ?? updatedTransport.totalDistance,
         request.estimatedDuration ?? updatedTransport.estimatedDuration
       );
@@ -104,6 +106,7 @@ export class TransportUseCases {
       routeNo: transportEntity.routeNo,
       routeName: transportEntity.routeName,
       startLocation: transportEntity.startLocation,
+      endLocation: transportEntity.endLocation,
       totalDistance: transportEntity.totalDistance,
       estimatedDuration: transportEntity.estimatedDuration,
       isActive: transportEntity.isActive,

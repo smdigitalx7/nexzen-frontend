@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Eye, Edit } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useCreateSubject } from '@/lib/hooks/useSchool';
+import { useCreateSubject, useUpdateSubject } from '@/lib/hooks/useSchool';
+import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface SubjectsTabProps {
   backendSubjects: any[];
@@ -45,20 +47,78 @@ export const SubjectsTab = ({
   setSelectedBranchType: _setSelectedBranchType,
 }: SubjectsTabProps) => {
   const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
+  const [isEditSubjectOpen, setIsEditSubjectOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState<any>(null);
   const [newSubject, setNewSubject] = useState({
     subject_name: "",
   });
+  const [editSubject, setEditSubject] = useState({
+    subject_name: "",
+  });
+  
   const createSubjectMutation = useCreateSubject();
+  const updateSubjectMutation = useUpdateSubject();
+  const { toast } = useToast();
 
   const handleAddSubject = () => {
     if (newSubject.subject_name?.trim()) {
       createSubjectMutation.mutate({ subject_name: newSubject.subject_name.trim() });
+      toast({
+        title: "Success",
+        description: "Subject added successfully",
+      });
     }
     setNewSubject({
       subject_name: "",
     });
     setIsAddSubjectOpen(false);
   };
+
+  const handleEditSubject = (subject: any) => {
+    setSelectedSubject(subject);
+    setEditSubject({
+      subject_name: subject.subject_name,
+    });
+    setIsEditSubjectOpen(true);
+  };
+
+  const handleUpdateSubject = () => {
+    if (editSubject.subject_name?.trim() && selectedSubject) {
+      updateSubjectMutation.mutate({
+        id: selectedSubject.subject_id,
+        payload: { subject_name: editSubject.subject_name.trim() }
+      });
+      toast({
+        title: "Success",
+        description: "Subject updated successfully",
+      });
+    }
+    setEditSubject({
+      subject_name: "",
+    });
+    setSelectedSubject(null);
+    setIsEditSubjectOpen(false);
+  };
+
+  const handleDeleteSubject = (subject: any) => {
+    setSelectedSubject(subject);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteSubject = () => {
+    if (selectedSubject) {
+      // For now, just show a message that delete is not implemented
+      toast({
+        title: "Not Available",
+        description: "Delete functionality is not yet implemented",
+        variant: "destructive",
+      });
+    }
+    setSelectedSubject(null);
+    setIsDeleteDialogOpen(false);
+  };
+
 
   const filteredSubjects = backendSubjects.filter(
     (subject) => subject.subject_name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -164,11 +224,22 @@ export const SubjectsTab = ({
               )}
               <TableCell>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => handleEditSubject(subject)}
+                    title="Edit subject"
+                  >
                     <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => handleDeleteSubject(subject)}
+                    title="Delete subject"
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </TableCell>
@@ -177,6 +248,58 @@ export const SubjectsTab = ({
           )}
         </TableBody>
       </Table>
+
+      {/* Edit Subject Dialog */}
+      <Dialog open={isEditSubjectOpen} onOpenChange={setIsEditSubjectOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Subject</DialogTitle>
+            <DialogDescription>
+              Update the subject information.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-subject-name">Subject Name</Label>
+              <Input
+                id="edit-subject-name"
+                value={editSubject.subject_name}
+                onChange={(e) => setEditSubject({ ...editSubject, subject_name: e.target.value })}
+                placeholder="Enter subject name"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditSubjectOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateSubject}>
+              Update Subject
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the subject "{selectedSubject?.subject_name}".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteSubject}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

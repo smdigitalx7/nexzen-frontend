@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { BarChart3, Download, Filter, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -21,17 +22,25 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFinancialReports } from "@/lib/hooks/useFinancialReports";
+import { useIncome, useExpenditure } from "@/lib/hooks/useIncomeExpenditure";
 import { 
   FinancialStatsCards, 
   RevenueChart, 
   ExpenseChart, 
   ProfitLossTable 
 } from "../components";
+import { IncomeTable } from "../components/IncomeTable";
+import { ExpenditureTable } from "../components/ExpenditureTable";
+import { AddIncomeDialog } from "../components/AddIncomeDialog";
+import { AddExpenditureDialog } from "../components/AddExpenditureDialog";
 
 export const FinancialReportsTemplate = () => {
+  const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
+  const [showAddExpenditureDialog, setShowAddExpenditureDialog] = useState(false);
+
   const {
     // Data
-    incomeData,
+    incomeData: mockIncomeData,
     expenseData,
     profitLossData,
     expenseBreakdown,
@@ -74,6 +83,10 @@ export const FinancialReportsTemplate = () => {
     user,
     currentBranch,
   } = useFinancialReports();
+
+  // Fetch real income and expenditure data
+  const { data: incomeData = [] } = useIncome();
+  const { data: expenditureData = [] } = useExpenditure();
 
   return (
     <div className="space-y-6 p-6">
@@ -163,6 +176,8 @@ export const FinancialReportsTemplate = () => {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
+          <TabsTrigger value="income">Income</TabsTrigger>
+          <TabsTrigger value="expenditure">Expenditure</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="revenue">Revenue Analysis</TabsTrigger>
           <TabsTrigger value="expenses">Expense Analysis</TabsTrigger>
@@ -170,9 +185,25 @@ export const FinancialReportsTemplate = () => {
           <TabsTrigger value="trends">Trends</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="income" className="space-y-6">
+          <IncomeTable
+            incomeData={incomeData}
+            onExportCSV={() => console.log('Export income CSV')}
+            onAddIncome={() => setShowAddIncomeDialog(true)}
+          />
+        </TabsContent>
+
+        <TabsContent value="expenditure" className="space-y-6">
+          <ExpenditureTable
+            expenditureData={expenditureData}
+            onExportCSV={() => console.log('Export expenditure CSV')}
+            onAddExpenditure={() => setShowAddExpenditureDialog(true)}
+          />
+        </TabsContent>
+
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <RevenueChart data={incomeData} formatCurrency={formatCurrency} />
+            <RevenueChart data={mockIncomeData} formatCurrency={formatCurrency} />
             <ExpenseChart data={expenseData} formatCurrency={formatCurrency} />
           </div>
           <ProfitLossTable
@@ -183,7 +214,7 @@ export const FinancialReportsTemplate = () => {
         </TabsContent>
 
         <TabsContent value="revenue" className="space-y-6">
-          <RevenueChart data={incomeData} formatCurrency={formatCurrency} />
+          <RevenueChart data={mockIncomeData} formatCurrency={formatCurrency} />
           <ProfitLossTable
             profitLossData={profitLossData}
             expenseBreakdown={[]}
@@ -264,6 +295,18 @@ export const FinancialReportsTemplate = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add Income Dialog */}
+      <AddIncomeDialog
+        open={showAddIncomeDialog}
+        onOpenChange={setShowAddIncomeDialog}
+      />
+
+      {/* Add Expenditure Dialog */}
+      <AddExpenditureDialog
+        open={showAddExpenditureDialog}
+        onOpenChange={setShowAddExpenditureDialog}
+      />
     </div>
   );
 };

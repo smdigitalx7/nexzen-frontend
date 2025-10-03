@@ -9,6 +9,7 @@ import {
   Trash2,
   Navigation,
   DollarSign,
+  Eye,
 } from "lucide-react";
 import {
   Card,
@@ -42,7 +43,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useAuthStore } from "@/store/authStore";
-import { useBusRoutes, useDeleteBusRoute, useCreateBusRoute, useUpdateBusRoute, useDistanceSlabs, useCreateDistanceSlab, useUpdateDistanceSlab } from "@/lib/hooks/useTransport";
+import { useBusRoutes, useBusRoute, useDeleteBusRoute, useCreateBusRoute, useUpdateBusRoute, useDistanceSlabs, useCreateDistanceSlab, useUpdateDistanceSlab } from "@/lib/hooks/useTransport";
 
 
 const TransportManagement = () => {
@@ -61,15 +62,15 @@ const TransportManagement = () => {
     vehicle_number: r.vehicle_number || "-",
     vehicle_capacity: r.vehicle_capacity ?? 0,
     driver_id: r.driver_employee_id ? String(r.driver_employee_id) : "-",
-    driver_name: "-",
+    driver_name: "-", // This would need to be fetched from employee service
     distance_km: r.total_distance ?? 0,
     estimated_duration: r.estimated_duration ?? 0,
-    pickup_time: "-",
-    drop_time: "-",
+    pickup_time: "-", // Not available in current schema
+    drop_time: "-", // Not available in current schema
     active: r.is_active ?? true,
-    students_count: 0,
-    fuel_cost: 0,
-    maintenance_cost: 0,
+    students_count: 0, // This would need to be calculated from student transport assignments
+    fuel_cost: 0, // Not available in current schema
+    maintenance_cost: 0, // Not available in current schema
   }));
   const transportFeeStructures = slabsData.map((f) => ({
     id: f.slab_id,
@@ -84,7 +85,14 @@ const TransportManagement = () => {
   const [isAddRouteOpen, setIsAddRouteOpen] = useState(false);
   const [isAddFeeOpen, setIsAddFeeOpen] = useState(false);
   const [isEditFeeOpen, setIsEditFeeOpen] = useState(false);
+  const [isViewRouteOpen, setIsViewRouteOpen] = useState(false);
   const [confirmRouteDeleteId, setConfirmRouteDeleteId] = useState<number | null>(null);
+  const [viewRouteId, setViewRouteId] = useState<number | null>(null);
+  
+  // Get route data from the list instead of individual API call
+  const viewRouteData = viewRouteId ? routesData.find(route => route.bus_route_id === viewRouteId) : null;
+  const viewRouteLoading = routesLoading;
+  const viewRouteError = routesError;
   const [searchTerm, setSearchTerm] = useState("");
   const [routeForm, setRouteForm] = useState({
     vehicle_number: "",
@@ -94,6 +102,7 @@ const TransportManagement = () => {
     route_no: "",
     route_name: "",
     start_location: "",
+    end_location: "",
     total_distance: "",
     estimated_duration: "",
     is_active: true,
@@ -144,6 +153,7 @@ const TransportManagement = () => {
       routeForm.route_no,
       routeForm.route_name,
       routeForm.start_location,
+      routeForm.end_location,
       routeForm.total_distance,
       routeForm.estimated_duration,
     ];
@@ -156,6 +166,7 @@ const TransportManagement = () => {
       route_no: routeForm.route_no,
       route_name: routeForm.route_name,
       start_location: routeForm.start_location,
+      end_location: routeForm.end_location,
       total_distance: parseFloat(routeForm.total_distance),
       estimated_duration: parseInt(routeForm.estimated_duration),
       is_active: routeForm.is_active,
@@ -168,6 +179,7 @@ const TransportManagement = () => {
       route_no: "",
       route_name: "",
       start_location: "",
+      end_location: "",
       total_distance: "",
       estimated_duration: "",
       is_active: true,
@@ -391,6 +403,12 @@ const TransportManagement = () => {
                         <Input id="start_location" value={routeForm.start_location} onChange={(e) => setRouteForm({ ...routeForm, start_location: e.target.value })} />
                       </div>
                       <div>
+                        <Label htmlFor="end_location">End Location</Label>
+                        <Input id="end_location" value={routeForm.end_location} onChange={(e) => setRouteForm({ ...routeForm, end_location: e.target.value })} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
                         <Label htmlFor="registration_number">Registration Number</Label>
                         <Input id="registration_number" value={routeForm.registration_number} onChange={(e) => setRouteForm({ ...routeForm, registration_number: e.target.value })} placeholder="REG123" />
                       </div>
@@ -425,10 +443,28 @@ const TransportManagement = () => {
               </Dialog>
             </div>
 
-            {filteredRoutes.length === 0 ? (
+            {routesLoading ? (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <span className="text-muted-foreground">Loading routes...</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : routesError ? (
+              <Card>
+                <CardContent className="p-6 text-center text-red-600">
+                  <div className="flex flex-col items-center gap-2">
+                    <span>Error loading routes</span>
+                    <span className="text-sm text-muted-foreground">{routesError.message}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : filteredRoutes.length === 0 ? (
               <Card>
                 <CardContent className="p-6 text-center text-muted-foreground">
-                  No routes found. Click "Add Route" to create the first route.
+                  {searchTerm ? "No routes match your search." : "No routes found. Click 'Add Route' to create the first route."}
                 </CardContent>
               </Card>
             ) : (
@@ -454,10 +490,10 @@ const TransportManagement = () => {
                             </div>
                             <div>
                               <CardTitle className="text-lg">
-                                {route.route_number}
+                                {route.route_number !== "-" ? route.route_number : "Route #" + route.id}
                               </CardTitle>
                               <CardDescription>
-                                {route.route_name}
+                                {route.route_name !== "-" ? route.route_name : "Unnamed Route"}
                               </CardDescription>
                             </div>
                           </div>
@@ -466,6 +502,17 @@ const TransportManagement = () => {
                           >
                             {route.active ? "Active" : "Inactive"}
                           </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setViewRouteId(route.id);
+                              setIsViewRouteOpen(true);
+                            }}
+                            title="View route details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -499,52 +546,33 @@ const TransportManagement = () => {
                       <CardContent>
                         <div className="space-y-3">
                           <div className="flex justify-between text-sm">
-                            <span>Vehicle:</span>
+                            <span>Driver ID:</span>
                             <span className="font-medium">
-                              {route.vehicle_number}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>Driver:</span>
-                            <span className="font-medium">
-                              {route.driver_name}
+                              {route.driver_id !== "-" ? `#${route.driver_id}` : "Not Assigned"}
                             </span>
                           </div>
                           <div className="flex justify-between text-sm">
                             <span>Distance:</span>
                             <span className="font-medium">
-                              {route.distance_km} km
+                              {route.distance_km > 0 ? `${route.distance_km} km` : "Not Set"}
                             </span>
                           </div>
                           <div className="flex justify-between text-sm">
                             <span>Duration:</span>
                             <span className="font-medium">
-                              {route.estimated_duration} min
+                              {route.estimated_duration > 0 ? `${route.estimated_duration} min` : "Not Set"}
                             </span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span>Students:</span>
+                            <span>Registration:</span>
                             <span className="font-medium">
-                              {route.students_count}/{route.vehicle_capacity}
+                              {routesData.find(r => r.bus_route_id === route.id)?.registration_number || "Not Set"}
                             </span>
                           </div>
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-sm">
-                              <span>Utilization:</span>
-                              <span
-                                className={`font-medium ${getUtilizationColor(
-                                  utilization
-                                )}`}
-                              >
-                                {utilization.toFixed(1)}%
-                              </span>
-                            </div>
-                            <Progress value={utilization} className="h-2" />
-                          </div>
                           <div className="flex justify-between text-sm">
-                            <span>Timing:</span>
+                            <span>Start Location:</span>
                             <span className="font-medium">
-                              {route.pickup_time} - {route.drop_time}
+                              {routesData.find(r => r.bus_route_id === route.id)?.start_location || "Not Set"}
                             </span>
                           </div>
                         </div>
@@ -569,17 +597,14 @@ const TransportManagement = () => {
                 />
                 <Badge variant="outline">
                   {
-                    transportFeeStructures.filter(
-                      (f) =>
-                        f.route_name
-                          .toLowerCase()
-                          .includes(searchTerm.toLowerCase()) ||
-                        f.stop_name
+                    slabsData.filter(
+                      (slab) =>
+                        slab.slab_name
                           .toLowerCase()
                           .includes(searchTerm.toLowerCase())
                     ).length
                   }{" "}
-                  Fee Structures
+                  Distance Slabs
                 </Badge>
               </div>
               <Dialog open={isAddFeeOpen} onOpenChange={setIsAddFeeOpen}>
@@ -636,10 +661,10 @@ const TransportManagement = () => {
               </Dialog>
             </div>
 
-            {transportFeeStructures.length === 0 ? (
+            {slabsData.length === 0 ? (
               <Card>
                 <CardContent className="p-6 text-center text-muted-foreground">
-                  No fee structures found. Click "Add Fee" to create one.
+                  No distance slabs found. Click "Add Fee" to create one.
                 </CardContent>
               </Card>
             ) : (
@@ -649,28 +674,62 @@ const TransportManagement = () => {
                   <TableHead>Slab</TableHead>
                   <TableHead>Range</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transportFeeStructures
+                {slabsData
                   .filter(
-                    (f) =>
-                      f.route_name
+                    (slab) =>
+                      slab.slab_name
                         .toLowerCase()
-                        .includes(searchTerm.toLowerCase()) ||
-                      f.stop_name.toLowerCase().includes(searchTerm.toLowerCase())
+                        .includes(searchTerm.toLowerCase())
                   )
-                  .map((fee) => (
-                    <TableRow key={fee.id}>
+                  .map((slab) => (
+                    <TableRow key={slab.slab_id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <DollarSign className="h-4 w-4 text-green-600" />
-                          <span className="font-medium">{fee.route_name}</span>
+                          <span className="font-medium">{slab.slab_name}</span>
                         </div>
                       </TableCell>
-                      <TableCell>{fee.stop_name}</TableCell>
+                      <TableCell>
+                        {slab.min_distance} - {slab.max_distance || '∞'} km
+                      </TableCell>
                       <TableCell className="text-right font-semibold text-green-700">
-                        {formatCurrency(fee.total_fee)}
+                        ₹{slab.fee_amount.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditFeeId(slab.slab_id);
+                              setEditFeeForm({
+                                slab_name: slab.slab_name,
+                                min_distance: slab.min_distance.toString(),
+                                max_distance: slab.max_distance?.toString() || "",
+                                fee_amount: slab.fee_amount.toString(),
+                              });
+                              setIsEditFeeOpen(true);
+                            }}
+                            title="Edit slab"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              // Add delete functionality here
+                            }}
+                            className="text-red-600 hover:text-red-700"
+                            title="Delete slab"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -725,6 +784,142 @@ const TransportManagement = () => {
 
         </Tabs>
         
+        {/* View Route Details Dialog */}
+        <Dialog open={isViewRouteOpen} onOpenChange={(open) => {
+          setIsViewRouteOpen(open);
+          if (!open) {
+            setViewRouteId(null);
+          }
+        }}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Bus className="h-5 w-5" />
+                Route Details
+              </DialogTitle>
+              <DialogDescription>
+                Complete information for {viewRouteData?.route_name || 'this route'}
+              </DialogDescription>
+            </DialogHeader>
+            {viewRouteLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-2 text-sm text-slate-600">Loading route details...</p>
+                </div>
+              </div>
+            ) : viewRouteError ? (
+              <div className="text-center py-8 text-red-600">
+                <p>Failed to load route details.</p>
+                <p className="text-sm text-muted-foreground mt-1">{viewRouteError.message}</p>
+              </div>
+            ) : viewRouteData ? (
+              <div className="space-y-6">
+                {/* Route Header */}
+                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                    <Bus className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold">{viewRouteData.route_no} - {viewRouteData.route_name}</h3>
+                    <p className="text-sm text-muted-foreground">Route ID: #{viewRouteData.bus_route_id}</p>
+                  </div>
+                  <Badge variant={viewRouteData.is_active ? "default" : "secondary"} className="ml-auto">
+                    {viewRouteData.is_active ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+
+                {/* Route Information Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Vehicle Information */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Bus className="h-4 w-4" />
+                        Vehicle Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Vehicle Number:</span>
+                        <span className="font-medium">{viewRouteData.vehicle_number}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Registration:</span>
+                        <span className="font-medium">{viewRouteData.registration_number}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Capacity:</span>
+                        <span className="font-medium">{viewRouteData.vehicle_capacity} students</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Driver ID:</span>
+                        <span className="font-medium">{viewRouteData.driver_employee_id ? `#${viewRouteData.driver_employee_id}` : "Not Assigned"}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Route Information */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Route className="h-4 w-4" />
+                        Route Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Start Location:</span>
+                        <span className="font-medium">{viewRouteData.start_location}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">End Location:</span>
+                        <span className="font-medium">{viewRouteData.end_location || "Not Set"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Distance:</span>
+                        <span className="font-medium">{viewRouteData.total_distance ? `${viewRouteData.total_distance} km` : "Not Set"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Duration:</span>
+                        <span className="font-medium">{viewRouteData.estimated_duration ? `${viewRouteData.estimated_duration} min` : "Not Set"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Route Number:</span>
+                        <span className="font-medium">{viewRouteData.route_no}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Timestamps */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Timestamps</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Created:</span>
+                      <span className="font-medium">{new Date(viewRouteData.created_at).toLocaleString()}</span>
+                    </div>
+                    {viewRouteData.updated_at && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Last Updated:</span>
+                        <span className="font-medium">{new Date(viewRouteData.updated_at).toLocaleString()}</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            ) : null}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsViewRouteOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Confirm Route Delete */}
         <AlertDialog open={confirmRouteDeleteId !== null} onOpenChange={(open) => { if (!open) setConfirmRouteDeleteId(null); }}>
           <AlertDialogContent>

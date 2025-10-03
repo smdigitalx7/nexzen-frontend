@@ -10,6 +10,7 @@ export class TransportEntity {
     public readonly routeNo: string,
     public readonly routeName: string,
     public readonly startLocation: string,
+    public readonly endLocation: string,
     public readonly totalDistance: number,
     public readonly estimatedDuration: number,
     public readonly isActive: boolean,
@@ -27,6 +28,7 @@ export class TransportEntity {
       this.routeNo,
       this.routeName,
       this.startLocation,
+      this.endLocation,
       this.totalDistance,
       this.estimatedDuration,
       this.isActive,
@@ -45,6 +47,7 @@ export class TransportEntity {
       this.routeNo,
       this.routeName,
       this.startLocation,
+      this.endLocation,
       this.totalDistance,
       this.estimatedDuration,
       this.isActive,
@@ -53,7 +56,7 @@ export class TransportEntity {
     );
   }
 
-  public updateRoute(routeNo: string, routeName: string, startLocation: string, totalDistance: number, estimatedDuration: number): TransportEntity {
+  public updateRoute(routeNo: string, routeName: string, startLocation: string, endLocation: string, totalDistance: number, estimatedDuration: number): TransportEntity {
     return new TransportEntity(
       this.id,
       this.vehicleNumber,
@@ -63,6 +66,7 @@ export class TransportEntity {
       routeNo,
       routeName,
       startLocation,
+      endLocation,
       totalDistance,
       estimatedDuration,
       this.isActive,
@@ -81,6 +85,7 @@ export class TransportEntity {
       this.routeNo,
       this.routeName,
       this.startLocation,
+      this.endLocation,
       this.totalDistance,
       this.estimatedDuration,
       true,
@@ -99,6 +104,7 @@ export class TransportEntity {
       this.routeNo,
       this.routeName,
       this.startLocation,
+      this.endLocation,
       this.totalDistance,
       this.estimatedDuration,
       false,

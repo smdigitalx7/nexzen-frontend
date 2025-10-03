@@ -16,14 +16,17 @@ export const TransportService = {
   getRoute(id: number): Promise<BusRouteRead> {
     return Api.get<BusRouteRead>(`/bus-routes/${id}`);
   },
+  getRouteNames(): Promise<{ bus_route_id: number; route_name: string; route_no?: string }[]> {
+    return Api.get<{ bus_route_id: number; route_name: string; route_no?: string }[]>("/bus-routes/names");
+  },
   createRoute(payload: BusRouteCreate): Promise<BusRouteRead> {
     return Api.post<BusRouteRead>("/bus-routes/", payload);
   },
   updateRoute(id: number, payload: BusRouteUpdate): Promise<BusRouteRead> {
     return Api.put<BusRouteRead>(`/bus-routes/${id}`, payload);
   },
-  deleteRoute(id: number): Promise<BusRouteRead> {
-    return Api.delete<BusRouteRead>(`/bus-routes/${id}`);
+  deleteRoute(id: number): Promise<void> {
+    return Api.delete<void>(`/bus-routes/${id}`);
   },
   
   // Distance Slabs

@@ -1,10 +1,16 @@
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFeesManagement } from "@/lib/hooks/useFeesManagement";
+import { useClasses } from "@/lib/hooks/useSchool";
+import { useTuitionFeeBalances, useTransportFeeBalances } from "@/lib/hooks/useFeeBalances";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TuitionFeeBalancesPanel } from "../components/TuitionFeeBalancesPanel";
+import { TuitionFeeStructuresPanel } from "../components/TuitionFeeStructuresPanel";
+import { TransportFeeBalancesPanel } from "../components/TransportFeeBalancesPanel";
 import { FeeStatsCards } from "../components/FeeStatsCards";
-import { FeeStructureTable } from "../components/FeeStructureTable";
 import { StudentFeeBalancesTable } from "../components/StudentFeeBalancesTable";
 import { PaymentCollectionForm } from "../components/PaymentCollectionForm";
 
@@ -35,9 +41,20 @@ export const FeesManagementTemplate = () => {
     
     // Business logic
     applyCollect,
-    handleAddFeeStructure,
     exportBalancesCSV,
   } = useFeesManagement();
+
+  // Class selection for balances
+  const { data: classes = [] } = useClasses();
+  const [balanceClass, setBalanceClass] = useState<string>(classes[0]?.class_id?.toString() || "");
+  useEffect(() => {
+    if (!balanceClass && classes.length > 0) {
+      setBalanceClass(classes[0].class_id.toString());
+    }
+  }, [classes, balanceClass]);
+  const classIdNum = balanceClass ? parseInt(balanceClass) : undefined;
+  const { data: tuitionResp } = useTuitionFeeBalances({ class_id: classIdNum, page: 1, page_size: 50 });
+  const { data: transportResp } = useTransportFeeBalances({ class_id: classIdNum, page: 1, page_size: 50 });
 
   const handleViewStudent = (student: any) => {
     setSelectedStudent(student);
@@ -85,9 +102,9 @@ export const FeesManagementTemplate = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="collect">Collect Fees</TabsTrigger>
-          <TabsTrigger value="structures">Fee Structures</TabsTrigger>
-          <TabsTrigger value="balances">Student Balances</TabsTrigger>
-          <TabsTrigger value="transport">Transport Fees</TabsTrigger>
+          <TabsTrigger value="tuition-structures">Tuition Fee Structures</TabsTrigger>
+          <TabsTrigger value="tuition-balances">Tuition Fee Balances</TabsTrigger>
+          <TabsTrigger value="transport-balances">Transport Fee Balances</TabsTrigger>          
         </TabsList>
 
         <TabsContent value="collect" className="space-y-4">
@@ -114,45 +131,19 @@ export const FeesManagementTemplate = () => {
           </motion.div>
         </TabsContent>
 
-        <TabsContent value="structures" className="space-y-4">
-          <FeeStructureTable
-            feeStructures={feeStructures}
-            onAddFeeStructure={handleAddFeeStructure}
-            onEditFeeStructure={(id) => console.log('Edit fee structure:', id)}
-            onDeleteFeeStructure={(id) => console.log('Delete fee structure:', id)}
-            onViewFeeStructure={(id) => console.log('View fee structure:', id)}
-          />
+
+        <TabsContent value="tuition-balances" className="space-y-4">
+          <TuitionFeeBalancesPanel onViewStudent={handleViewStudent} onExportCSV={exportBalancesCSV} />
         </TabsContent>
 
-        <TabsContent value="balances" className="space-y-4">
-          <StudentFeeBalancesTable
-            studentBalances={filteredStudentBalances}
-            onViewStudent={handleViewStudent}
-            onExportCSV={exportBalancesCSV}
-          />
+        <TabsContent value="transport-balances" className="space-y-4">
+          <TransportFeeBalancesPanel onViewStudent={handleViewStudent} onExportCSV={exportBalancesCSV} />
         </TabsContent>
 
-        <TabsContent value="transport" className="space-y-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="space-y-4"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold">Transport Fee Management</h2>
-                <p className="text-muted-foreground">
-                  Manage transport fee structures and routes
-                </p>
-              </div>
-            </div>
-            
-            <div className="text-center py-12 text-muted-foreground">
-              <p>Transport fee management coming soon...</p>
-            </div>
-          </motion.div>
+        <TabsContent value="tuition-structures" className="space-y-4">
+          <TuitionFeeStructuresPanel />
         </TabsContent>
+
       </Tabs>
 
       {/* Payment Collection Dialog */}

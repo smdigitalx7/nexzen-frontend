@@ -69,13 +69,13 @@ const Sidebar = () => {
   if (user?.role === "institute_admin") {
     publicModules = [
       ...baseGeneral,
-      {
-        title: "Institutes",
-        href: "/institutes",
-        icon: Building2,
-        description: "Institute and branch management",
-        roles: ["institute_admin"],
-      },
+      // {
+      //   title: "Institutes",
+      //   href: "/institutes",
+      //   icon: Building2,
+      //   description: "Institute and branch management",
+      //   roles: ["institute_admin"],
+      // },
       {
         title: "Users",
         href: "/users",
@@ -178,6 +178,13 @@ const Sidebar = () => {
           icon: Calendar,
           description: "Academic year management",
           roles: ["institute_admin", "academic"],
+        },
+        {
+          title: "Reservations",
+          href: "/reservations/new",
+          icon: ClipboardList,
+          description: "Student reservations",
+          roles: ["institute_admin", "accountant"],
         },
         {
           title: "Classes",

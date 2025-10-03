@@ -7,6 +7,7 @@ export interface BusRouteRead {
   route_no?: string | null;
   route_name?: string | null;
   start_location?: string | null;
+  end_location?: string | null;
   total_distance?: number | null;
   estimated_duration?: number | null;
   is_active?: boolean | null;
@@ -24,6 +25,7 @@ export interface BusRouteCreate {
   route_no: string;
   route_name: string;
   start_location: string;
+  end_location: string;
   total_distance: number;
   estimated_duration: number;
   is_active?: boolean;
@@ -38,6 +40,7 @@ export type BusRouteUpdate = Partial<{
   route_name: string;
   start_location: string;
   end_location: string;
+  total_distance: number;
   estimated_duration: number;
   is_active: boolean;
 }>;

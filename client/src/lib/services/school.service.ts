@@ -86,6 +86,31 @@ export const SchoolService = {
     return Api.put<ClassSubjectRead>(`${SCHOOL_PREFIX}/class-subjects/subjects/${subjectId}` , payload);
   },
 
+  // Reservations
+  createReservation(form: FormData) {
+    return Api.postForm(`${SCHOOL_PREFIX}/reservations/`, form);
+  },
+  listReservations(query?: { page?: number; page_size?: number; class_id?: number }) {
+    return Api.get<{ reservations: any[]; current_page: number; page_size: number; total_pages: number; total_count: number }>(
+      `${SCHOOL_PREFIX}/reservations/`,
+      query as any,
+    );
+  },
+  getReservation(reservationId: number) {
+    return Api.get(`${SCHOOL_PREFIX}/reservations/${reservationId}`);
+  },
+  updateReservation(reservationId: number, form: FormData) {
+    return Api.putForm(`${SCHOOL_PREFIX}/reservations/${reservationId}`, form);
+  },
+  deleteReservation(reservationId: number) {
+    return Api.delete(`${SCHOOL_PREFIX}/reservations/${reservationId}`);
+  },
+  updateReservationStatus(reservationId: number, status: 'PENDING' | 'ADMITTED' | 'CANCELLED') {
+    const fd = new FormData();
+    fd.append('status', status);
+    return Api.putForm(`${SCHOOL_PREFIX}/reservations/${reservationId}/status`, fd);
+  },
+
   // Tuition Fee Structures
   listTuitionFeeStructures(): Promise<TuitionFeeStructureRead[]> {
     return Api.get<TuitionFeeStructureRead[]>(`${SCHOOL_PREFIX}/tuition-fee-structures/`);

@@ -4,13 +4,12 @@ import { School, Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthStore } from "@/store/authStore";
-import { useAcademicData, useAcademicFilters } from '@/hooks/academic';
+import { useAcademicData, useAcademicFilters } from '@/lib/hooks/academic';
 import {
   AcademicOverviewCards,
   ClassesTab,
   SubjectsTab,
   ExamsTab,
-  SectionMappingTab,
   TestTab,
 } from '../features/academic-management';
 
@@ -22,7 +21,6 @@ const AcademicManagement = () => {
     backendClasses,
     classesWithSubjects,
     backendSubjects,
-    allSectionsData,
     exams,
     setExams,
     tests,
@@ -44,8 +42,6 @@ const AcademicManagement = () => {
     setSelectedBranchType,
     selectedClass,
     setSelectedClass,
-    selectedSection,
-    setSelectedSection,
   } = useAcademicFilters();
 
   // Local state
@@ -94,23 +90,18 @@ const AcademicManagement = () => {
         transition={{ delay: 0.2 }}
       >
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="classes">Classes</TabsTrigger>
             <TabsTrigger value="subjects">Subjects</TabsTrigger>
             <TabsTrigger value="exams">Exams</TabsTrigger>
             <TabsTrigger value="tests">Tests</TabsTrigger>
-            <TabsTrigger value="sections">Section Mapping</TabsTrigger>
           </TabsList>
 
           {/* Classes Tab */}
           <TabsContent value="classes" className="space-y-4">
             <ClassesTab
               classesWithSubjects={classesWithSubjects}
-              allSectionsData={allSectionsData}
               classesLoading={isLoading}
-              classesWithSubjectsLoading={isLoading}
-              sectionsLoading={isLoading}
-              currentBranch={currentBranch}
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
               hasError={hasError}
@@ -138,9 +129,6 @@ const AcademicManagement = () => {
               setExams={setExams}
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
-              selectedBranchType={selectedBranchType}
-              setSelectedBranchType={setSelectedBranchType}
-              currentBranch={currentBranch}
               isLoading={isLoading}
               hasError={hasError}
               errorMessage={errorMessage}
@@ -152,9 +140,6 @@ const AcademicManagement = () => {
             <TestTab
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
-              selectedBranchType={selectedBranchType}
-              setSelectedBranchType={setSelectedBranchType}
-              currentBranch={currentBranch}
               tests={tests}
               setTests={setTests}
               isLoading={isLoading}
@@ -163,16 +148,6 @@ const AcademicManagement = () => {
             />
           </TabsContent>
 
-          {/* Section Mapping Tab */}
-          <TabsContent value="sections" className="space-y-4">
-            <SectionMappingTab
-              backendClasses={backendClasses}
-              selectedClass={selectedClass}
-              setSelectedClass={setSelectedClass}
-              selectedSection={selectedSection}
-              setSelectedSection={setSelectedSection}
-            />
-          </TabsContent>
         </Tabs>
       </motion.div>
     </div>

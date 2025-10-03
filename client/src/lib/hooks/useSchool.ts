@@ -19,6 +19,7 @@ import type {
   TuitionFeeStructureUpdate,
 } from "@/lib/types/school";
 import { useToast } from "@/hooks/use-toast";
+import { EnrollmentsService } from "@/lib/services/enrollments.service";
 
 const keys = {
   classes: ["school", "classes"] as const,
@@ -36,6 +37,8 @@ const keys = {
   tuitionFeeStructureByClass: (classId: number) => ["school", "tuition-fee-structures", "class", classId] as const,
   students: ["school", "students"] as const,
   student: (id: number) => ["school", "students", id] as const,
+  enrollments: (classId: number, filters?: any) => ["school", "classes", classId, "enrollments", filters || {}] as const,
+  enrollment: (id: number) => ["school", "enrollments", id] as const,
 };
 
 // Classes
@@ -76,6 +79,19 @@ export function useClassesWithSubjects() {
         subjects: [], // TODO: Add subjects support
       }));
     }, 
+    staleTime: 1000 * 60 * 5 
+  });
+}
+
+export function useClassWithSubjects(classId: number) {
+  return useQuery<ClassWithSubjects>({ 
+    queryKey: ["school", "classes", classId, "subjects"], 
+    queryFn: async (): Promise<ClassWithSubjects> => {
+      const apiClient = ServiceLocator.getApiClient();
+      const response = await apiClient.get(`/school/classes/${classId}/subjects`);
+      return response.data as ClassWithSubjects;
+    }, 
+    enabled: Number.isFinite(classId) && classId > 0,
     staleTime: 1000 * 60 * 5 
   });
 }
@@ -331,19 +347,47 @@ export function useUpdateClassSubjectBySubject() {
 
 // Tuition Fee Structures
 export function useTuitionFeeStructures() {
-  return useQuery<TuitionFeeStructureRead[]>({ queryKey: keys.tuitionFeeStructures, queryFn: () => Promise.resolve([]), staleTime: 1000 * 60 * 5 }); // TODO: Implement tuition fee structures functionality
+  return useQuery<TuitionFeeStructureRead[]>({ 
+    queryKey: keys.tuitionFeeStructures, 
+    queryFn: async () => {
+      const api = ServiceLocator.getApiClient();
+      const res = await api.get<TuitionFeeStructureRead[]>(`/school/tuition-fee-structures/`);
+      return res.data as TuitionFeeStructureRead[];
+    }, 
+    staleTime: 1000 * 60 * 5 
+  });
 }
 export function useTuitionFeeStructure(id: number) {
-  return useQuery<TuitionFeeStructureRead>({ queryKey: keys.tuitionFeeStructure(id), queryFn: () => Promise.resolve({} as TuitionFeeStructureRead), enabled: Number.isFinite(id) }); // TODO: Implement tuition fee structures functionality
+  return useQuery<TuitionFeeStructureRead>({ 
+    queryKey: keys.tuitionFeeStructure(id), 
+    queryFn: async () => {
+      const api = ServiceLocator.getApiClient();
+      const res = await api.get<TuitionFeeStructureRead>(`/school/tuition-fee-structures/${id}`);
+      return res.data as TuitionFeeStructureRead;
+    }, 
+    enabled: Number.isFinite(id) 
+  });
 }
 export function useTuitionFeeStructureByClass(classId: number) {
-  return useQuery<TuitionFeeStructureRead>({ queryKey: keys.tuitionFeeStructureByClass(classId), queryFn: () => Promise.resolve({} as TuitionFeeStructureRead), enabled: Number.isFinite(classId) }); // TODO: Implement tuition fee structures functionality
+  return useQuery<TuitionFeeStructureRead>({ 
+    queryKey: keys.tuitionFeeStructureByClass(classId), 
+    queryFn: async () => {
+      const api = ServiceLocator.getApiClient();
+      const res = await api.get<TuitionFeeStructureRead>(`/school/tuition-fee-structures/class/${classId}`);
+      return res.data as TuitionFeeStructureRead;
+    }, 
+    enabled: Number.isFinite(classId) 
+  });
 }
 export function useCreateTuitionFeeStructure() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: (payload: TuitionFeeStructureCreate) => Promise.resolve({} as TuitionFeeStructureRead), // TODO: Implement tuition fee structures functionality
+    mutationFn: async (payload: TuitionFeeStructureCreate) => {
+      const api = ServiceLocator.getApiClient();
+      const res = await api.post<TuitionFeeStructureRead>(`/school/tuition-fee-structures/`, payload);
+      return res.data as TuitionFeeStructureRead;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.tuitionFeeStructures });
       toast({ title: "Success", description: `Tuition fee structure created.` });
@@ -354,7 +398,11 @@ export function useUpdateTuitionFeeStructure() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: TuitionFeeStructureUpdate }) => Promise.resolve({} as TuitionFeeStructureRead), // TODO: Implement tuition fee structures functionality
+    mutationFn: async ({ id, payload }: { id: number; payload: TuitionFeeStructureUpdate }) => {
+      const api = ServiceLocator.getApiClient();
+      const res = await api.put<TuitionFeeStructureRead>(`/school/tuition-fee-structures/${id}`, payload);
+      return res.data as TuitionFeeStructureRead;
+    },
     onSuccess: (_data, { id }) => {
       qc.invalidateQueries({ queryKey: keys.tuitionFeeStructures });
       qc.invalidateQueries({ queryKey: keys.tuitionFeeStructure(id) });
@@ -391,6 +439,45 @@ export function useStudent(id: number) {
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 5,
+  });
+}
+
+// Enrollments
+export function useEnrollments(params: { class_id: number; section_id?: number; admission_no?: string }) {
+  const queryKey = keys.enrollments(params.class_id, { section_id: params.section_id || null, admission_no: params.admission_no || null });
+  return useQuery({
+    queryKey,
+    queryFn: async () => {
+      const res = await EnrollmentsService.list(params);
+      return res.data || [];
+    },
+    enabled: Number.isFinite(params.class_id) && params.class_id > 0,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+export function useCreateEnrollment() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: EnrollmentsService.create,
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: keys.enrollments(data.class_id) });
+      toast({ title: "Success", description: "Enrollment created." });
+    },
+  });
+}
+
+export function useUpdateEnrollment() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ class_id, id, payload }: { class_id: number; id: number; payload: any }) => EnrollmentsService.update(class_id, id, payload),
+    onSuccess: (data, { class_id, id }) => {
+      qc.invalidateQueries({ queryKey: keys.enrollment(id) });
+      if (class_id) qc.invalidateQueries({ queryKey: keys.enrollments(class_id) });
+      toast({ title: "Success", description: "Enrollment updated." });
+    },
   });
 }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ServiceLocator } from '@/core';
-import { useClasses, useSubjects, useClassesWithSubjects, useAllClassesSections } from '@/lib/hooks/useSchool';
+import { useClasses, useSubjects, useClassesWithSubjects } from '@/lib/hooks/useSchool';
 
 export const useAcademicData = () => {
   // Backend data hooks
@@ -9,10 +9,8 @@ export const useAcademicData = () => {
   const { data: classesWithSubjects = [], isLoading: classesWithSubjectsLoading, isError: classesWithSubjectsError, error: classesWithSubjectsErrObj } = useClassesWithSubjects();
   const { data: backendSubjects = [], isLoading: subjectsLoading, isError: subjectsError, error: subjectsErrObj } = useSubjects();
   
-  // Get sections for all classes
+  // Get effective classes
   const effectiveClasses = (classesWithSubjects && classesWithSubjects.length > 0) ? classesWithSubjects : backendClasses;
-  const classIds = effectiveClasses.map(c => c.class_id);
-  const { data: allSectionsData = {}, isLoading: sectionsLoading } = useAllClassesSections(classIds);
 
   // Local state for exams (mock data for now)
   const [exams, setExams] = useState<any[]>([]);
@@ -92,7 +90,7 @@ export const useAcademicData = () => {
   }, [fetchedTests]);
 
   // Loading states
-  const isLoading = classesLoading || classesWithSubjectsLoading || subjectsLoading || sectionsLoading || examsLoading || testsLoading;
+  const isLoading = classesLoading || classesWithSubjectsLoading || subjectsLoading || examsLoading || testsLoading;
   const hasError = classesError || classesWithSubjectsError || subjectsError || examsError || testsError;
   const errorMessage = (
     (classesErrObj as any)?.message ||
@@ -108,7 +106,6 @@ export const useAcademicData = () => {
     backendClasses,
     classesWithSubjects,
     backendSubjects,
-    allSectionsData,
     exams,
     setExams,
     tests,
@@ -127,6 +124,5 @@ export const useAcademicData = () => {
     classesLoading,
     classesWithSubjectsLoading,
     subjectsLoading,
-    sectionsLoading,
   };
 };

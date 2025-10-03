@@ -14,6 +14,7 @@ import { useAuthStore } from "@/store/authStore";
 const keys = {
   routes: ["transport", "routes"] as const,
   route: (id: number) => ["transport", "routes", id] as const,
+  routeNames: ["transport", "routes", "names"] as const,
   distanceSlabs: ["transport", "distance-slabs"] as const,
   distanceSlab: (id: number) => ["transport", "distance-slabs", id] as const,
 };
@@ -37,16 +38,17 @@ export function useBusRoutes() {
           bus_route_id: transport.id,
           vehicle_number: transport.vehicleNumber,
           vehicle_capacity: transport.vehicleCapacity,
-          registration_number: transport.vehicleNumber,
-          driver_employee_id: null, // Not available in entity
-          route_no: transport.vehicleNumber,
+          registration_number: transport.registrationNumber,
+          driver_employee_id: transport.driverEmployeeId,
+          route_no: transport.routeNo,
           route_name: transport.routeName,
           start_location: transport.startLocation,
-          total_distance: null, // Not available in entity
-          estimated_duration: null, // Not available in entity
+          end_location: transport.endLocation,
+          total_distance: transport.totalDistance,
+          estimated_duration: transport.estimatedDuration,
           is_active: transport.isActive,
-          created_at: transport.createdAt, // Already in correct format
-          updated_at: transport.updatedAt, // Already in correct format
+          created_at: transport.createdAt,
+          updated_at: transport.updatedAt,
           created_by: null, // Not available in entity
           updated_by: null, // Not available in entity
         }));
@@ -78,21 +80,22 @@ export function useBusRoute(id: number) {
         bus_route_id: transport.id,
         vehicle_number: transport.vehicleNumber,
         vehicle_capacity: transport.vehicleCapacity,
-        registration_number: transport.vehicleNumber,
-        driver_employee_id: null, // Not available in entity
-        route_no: transport.vehicleNumber,
+        registration_number: transport.registrationNumber,
+        driver_employee_id: transport.driverEmployeeId,
+        route_no: transport.routeNo,
         route_name: transport.routeName,
         start_location: transport.startLocation,
-        total_distance: null, // Not available in entity
-        estimated_duration: null, // Not available in entity
+        end_location: transport.endLocation,
+        total_distance: transport.totalDistance,
+        estimated_duration: transport.estimatedDuration,
         is_active: transport.isActive,
-        created_at: transport.createdAt, // Already in correct format
-        updated_at: transport.updatedAt, // Already in correct format
-        created_by: null, // Not available in entity
-        updated_by: null, // Not available in entity
+        created_at: transport.createdAt,
+        updated_at: transport.updatedAt,
+        created_by: null, // Not available in response
+        updated_by: null, // Not available in response
       };
     }, 
-    enabled: Number.isFinite(id),
+    enabled: Number.isFinite(id) && id > 0,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
@@ -103,17 +106,18 @@ export function useCreateBusRoute() {
     mutationFn: async (payload: BusRouteCreate) => {
       console.log("Creating bus route with clean architecture...");
       const transportUseCases = ServiceLocator.getTransportUseCases();
-      const transport = await transportUseCases.createTransport({
-        vehicleNumber: payload.vehicle_number || payload.route_no || 'ROUTE001',
-        vehicleCapacity: payload.vehicle_capacity || 50,
-        registrationNumber: payload.vehicle_number || '',
-        driverEmployeeId: 0,
-        routeNo: payload.route_no || '',
-        routeName: payload.route_name || 'Unknown Route',
-        startLocation: '',
-        totalDistance: 0,
-        estimatedDuration: 0,
-      });
+            const transport = await transportUseCases.createTransport({
+              vehicleNumber: payload.vehicle_number,
+              vehicleCapacity: payload.vehicle_capacity,
+              registrationNumber: payload.registration_number,
+              driverEmployeeId: payload.driver_employee_id,
+              routeNo: payload.route_no,
+              routeName: payload.route_name,
+              startLocation: payload.start_location,
+              endLocation: payload.end_location,
+              totalDistance: payload.total_distance,
+              estimatedDuration: payload.estimated_duration,
+            });
       
       // Return the response data directly
       return transport;
@@ -135,13 +139,14 @@ export function useUpdateBusRoute() {
         id,
         vehicleNumber: payload.vehicle_number,
         vehicleCapacity: payload.vehicle_capacity,
-        registrationNumber: payload.vehicle_number,
-        driverEmployeeId: 0,
+        registrationNumber: payload.registration_number,
+        driverEmployeeId: payload.driver_employee_id,
         routeNo: payload.route_no,
         routeName: payload.route_name,
-        startLocation: '',
-        totalDistance: 0,
-        estimatedDuration: 0,
+        startLocation: payload.start_location,
+        endLocation: payload.end_location,
+        totalDistance: payload.total_distance,
+        estimatedDuration: payload.estimated_duration,
         isActive: payload.is_active,
       });
       
@@ -166,24 +171,46 @@ export function useDeleteBusRoute() {
       
       // Return mock response for compatibility
       return {
-        route_id: id,
-        route_name: 'Deleted Route',
-        route_no: 'DELETED',
+        bus_route_id: id,
         vehicle_number: 'DELETED',
-        vehicle_type: 'DELETED',
-        capacity: 0,
-        driver_name: 'Deleted Driver',
-        driver_phone: '',
+        vehicle_capacity: 0,
+        registration_number: 'DELETED',
+        driver_employee_id: null,
+        route_no: 'DELETED',
+        route_name: 'Deleted Route',
+        start_location: 'DELETED',
+        end_location: 'DELETED',
+        total_distance: 0,
+        estimated_duration: 0,
         is_active: false,
-        branch_id: 1,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        created_by: null,
+        updated_by: null,
       };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.routes });
       toast({ title: "Success", description: `Route deleted.` });
     },
+  });
+}
+
+export function useBusRouteNames() {
+  return useQuery<{ bus_route_id: number; route_name: string; route_no?: string }[]>({ 
+    queryKey: keys.routeNames, 
+    queryFn: async () => {
+      const transportUseCases = ServiceLocator.getTransportUseCases();
+      const transports = await transportUseCases.getAllTransports();
+      
+      // Convert to route names format for dropdowns
+      return transports.map(transport => ({
+        bus_route_id: transport.id,
+        route_name: transport.routeName,
+        route_no: transport.routeNo,
+      }));
+    },
+    staleTime: 1000 * 60 * 5 
   });
 }
 

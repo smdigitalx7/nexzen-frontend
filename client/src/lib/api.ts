@@ -184,6 +184,59 @@ export const Api = {
 		api<T>({ method: "PATCH", path, body, headers }),
 	delete: <T>(path: string, query?: ApiRequestOptions["query"], headers?: Record<string, string>) =>
 		api<T>({ method: "DELETE", path, query, headers }),
+
+  // FormData helper (avoids JSON content-type)
+  postForm: async <T>(path: string, formData: FormData, headers?: Record<string, string>) => {
+    const state = useAuthStore.getState();
+    const token = state.token;
+    const url = `${API_BASE_URL}${path}`;
+    const requestHeaders: Record<string, string> = {
+      ...headers,
+    };
+    if (token) {
+      requestHeaders["Authorization"] = `Bearer ${token}`;
+    }
+    const res = await fetch(url, {
+      method: "POST",
+      headers: requestHeaders, // don't set Content-Type; browser will add multipart boundary
+      body: formData,
+      credentials: "include",
+    });
+    const contentType = res.headers.get("content-type") || "";
+    const isJson = contentType.includes("application/json");
+    const data = isJson ? await res.json() : (await res.text() as unknown as T);
+    if (!res.ok) {
+      const message = (isJson && (((data as any)?.detail) || ((data as any)?.message))) || res.statusText || "Request failed";
+      throw new Error(message as string);
+    }
+    return data as T;
+  },
+
+  putForm: async <T>(path: string, formData: FormData, headers?: Record<string, string>) => {
+    const state = useAuthStore.getState();
+    const token = state.token;
+    const url = `${API_BASE_URL}${path}`;
+    const requestHeaders: Record<string, string> = {
+      ...headers,
+    };
+    if (token) {
+      requestHeaders["Authorization"] = `Bearer ${token}`;
+    }
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: requestHeaders,
+      body: formData,
+      credentials: "include",
+    });
+    const contentType = res.headers.get("content-type") || "";
+    const isJson = contentType.includes("application/json");
+    const data = isJson ? await res.json() : (await res.text() as unknown as T);
+    if (!res.ok) {
+      const message = (isJson && (((data as any)?.detail) || ((data as any)?.message))) || res.statusText || "Request failed";
+      throw new Error(message as string);
+    }
+    return data as T;
+  },
 };
 
 export function getApiBaseUrl() {

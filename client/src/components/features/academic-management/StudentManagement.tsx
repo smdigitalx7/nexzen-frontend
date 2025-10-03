@@ -7,7 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -15,7 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { EnhancedDataTable } from '@/components/shared';
 import { useAuthStore } from '@/store/authStore';
-import { useStudents, useDeleteStudent, useCreateStudent, useUpdateStudent, useStudent } from '@/lib/hooks/useSchool';
+import { useStudents, useDeleteStudent, useCreateStudent, useUpdateStudent, useStudent, useEnrollments, useCreateEnrollment, useUpdateEnrollment } from '@/lib/hooks/useSchool';
+import { useStudentTransport, useCreateStudentTransport } from '@/lib/hooks/useStudentTransport';
 import { toast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -50,6 +54,73 @@ const StudentManagement = () => {
   const createStudentMutation = useCreateStudent();
   const updateStudentMutation = useUpdateStudent();
   
+  // Page-level tabs state & queries (Enrollments, Transport)
+  const [pageEnrollmentQuery, setPageEnrollmentQuery] = useState<{ class_id: number | ''; section_id?: number | ''; admission_no?: string }>({ class_id: '', section_id: '', admission_no: '' });
+  const [pageTransportQuery, setPageTransportQuery] = useState<{ class_id: number | ''; section_id?: number | '' }>({ class_id: '', section_id: '' });
+  const pageEnrollmentsResult = useEnrollments(
+    pageEnrollmentQuery.class_id ? { class_id: Number(pageEnrollmentQuery.class_id), section_id: pageEnrollmentQuery.section_id ? Number(pageEnrollmentQuery.section_id) : undefined, admission_no: pageEnrollmentQuery.admission_no || undefined } : { class_id: 0 }
+  );
+  const pageTransportResult = useStudentTransport(
+    pageTransportQuery.class_id ? { class_id: Number(pageTransportQuery.class_id), section_id: pageTransportQuery.section_id ? Number(pageTransportQuery.section_id) : undefined } : { class_id: 0 }
+  );
+
+  // Create Enrollment form state
+  const createEnrollment = useCreateEnrollment();
+  const updateEnrollment = useUpdateEnrollment();
+  const [newEnrollment, setNewEnrollment] = useState<{
+    student_id: number | '';
+    class_id: number | '';
+    section_id: number | '';
+    roll_number: string;
+    enrollment_date: string;
+    is_active: boolean;
+  }>({ student_id: '', class_id: '', section_id: '', roll_number: '', enrollment_date: '', is_active: true });
+  const [isCreateEnrollmentOpen, setIsCreateEnrollmentOpen] = useState(false);
+
+  const handleCreateEnrollment = async () => {
+    if (newEnrollment.student_id === '' || newEnrollment.class_id === '' || newEnrollment.section_id === '' || !newEnrollment.roll_number) return;
+    await createEnrollment.mutateAsync({
+      student_id: Number(newEnrollment.student_id),
+      class_id: Number(newEnrollment.class_id),
+      section_id: Number(newEnrollment.section_id),
+      roll_number: newEnrollment.roll_number,
+      enrollment_date: newEnrollment.enrollment_date || null,
+      is_active: newEnrollment.is_active,
+    } as any);
+    setNewEnrollment({ student_id: '', class_id: '', section_id: '', roll_number: '', enrollment_date: '', is_active: true });
+    setIsCreateEnrollmentOpen(false);
+  };
+
+  // Update Enrollment state
+  const [selectedEnrollment, setSelectedEnrollment] = useState<any | null>(null);
+  const [editEnrollment, setEditEnrollment] = useState<{ section_id: number | ''; roll_number: string; enrollment_date: string; is_active: boolean }>({ section_id: '', roll_number: '', enrollment_date: '', is_active: true });
+  const [isEditEnrollmentOpen, setIsEditEnrollmentOpen] = useState(false);
+  const startEditEnrollment = (en: any) => {
+    setSelectedEnrollment(en);
+    setEditEnrollment({
+      section_id: en.section_id ?? '',
+      roll_number: en.roll_number ?? '',
+      enrollment_date: en.enrollment_date ?? '',
+      is_active: true,
+    });
+    setIsEditEnrollmentOpen(true);
+  };
+  const handleUpdateEnrollment = async () => {
+    if (!selectedEnrollment || pageEnrollmentQuery.class_id === '' || selectedEnrollment.enrollment_id == null) return;
+    await updateEnrollment.mutateAsync({
+      class_id: Number(pageEnrollmentQuery.class_id),
+      id: Number(selectedEnrollment.enrollment_id),
+      payload: {
+        section_id: editEnrollment.section_id === '' ? undefined : Number(editEnrollment.section_id),
+        roll_number: editEnrollment.roll_number || undefined,
+        enrollment_date: editEnrollment.enrollment_date || undefined,
+        is_active: editEnrollment.is_active,
+      },
+    } as any);
+    setSelectedEnrollment(null);
+    setIsEditEnrollmentOpen(false);
+  };
+
   // Dialog states
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
@@ -59,6 +130,50 @@ const StudentManagement = () => {
   
   // Fetch detailed student data when viewing
   const { data: detailedStudent, isLoading: isDetailedStudentLoading } = useStudent(selectedStudentId || 0);
+
+  // Local state for tabs data fetch (requires class_id per backend contract)
+  const [enrollmentQuery, setEnrollmentQuery] = useState<{ class_id: number | ''; section_id?: number | ''; admission_no?: string }>({ class_id: '', section_id: '', admission_no: '' });
+  const [transportQuery, setTransportQuery] = useState<{ class_id: number | ''; section_id?: number | '' }>({ class_id: '', section_id: '' });
+
+  const enrollmentsResult = useEnrollments(
+    enrollmentQuery.class_id ? { class_id: Number(enrollmentQuery.class_id), section_id: enrollmentQuery.section_id ? Number(enrollmentQuery.section_id) : undefined, admission_no: enrollmentQuery.admission_no || undefined } : { class_id: 0 }
+  );
+  const transportResult = useStudentTransport(
+    transportQuery.class_id ? { class_id: Number(transportQuery.class_id), section_id: transportQuery.section_id ? Number(transportQuery.section_id) : undefined } : { class_id: 0 }
+  );
+  
+  // Create Transport Assignment state
+  const createStudentTransport = useCreateStudentTransport();
+  const [isCreateTransportOpen, setIsCreateTransportOpen] = useState(false);
+  const [newTransportAssignment, setNewTransportAssignment] = useState<{
+    enrollment_id: number | '';
+    bus_route_id: number | '';
+    slab_id: number | '';
+    pickup_point: string;
+    start_date: string;
+    end_date: string;
+    is_active: boolean;
+  }>({ enrollment_id: '', bus_route_id: '', slab_id: '', pickup_point: '', start_date: '', end_date: '', is_active: true });
+
+  const handleCreateTransport = async () => {
+    if (
+      newTransportAssignment.enrollment_id === '' ||
+      newTransportAssignment.bus_route_id === '' ||
+      newTransportAssignment.slab_id === '' ||
+      !newTransportAssignment.start_date
+    ) return;
+    await createStudentTransport.mutateAsync({
+      enrollment_id: Number(newTransportAssignment.enrollment_id),
+      bus_route_id: Number(newTransportAssignment.bus_route_id),
+      slab_id: Number(newTransportAssignment.slab_id),
+      pickup_point: newTransportAssignment.pickup_point || null as any,
+      start_date: newTransportAssignment.start_date,
+      end_date: newTransportAssignment.end_date || null,
+      is_active: newTransportAssignment.is_active,
+    } as any);
+    setNewTransportAssignment({ enrollment_id: '', bus_route_id: '', slab_id: '', pickup_point: '', start_date: '', end_date: '', is_active: true });
+    setIsCreateTransportOpen(false);
+  };
   
   // Form setup
   const form = useForm<StudentFormData>({
@@ -356,6 +471,8 @@ const StudentManagement = () => {
     }
   ];
 
+  const [activePageTab, setActivePageTab] = useState<string>('students');
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -377,78 +494,436 @@ const StudentManagement = () => {
             </div>
           )}
         </div>
-        <Button className="hover-elevate" data-testid="button-add-student" onClick={handleAddStudent}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Student
-        </Button>
+        <div className="flex items-center gap-2">
+          {activePageTab === 'enrollments' && (
+            <Button className="hover-elevate" onClick={() => setIsCreateEnrollmentOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Enrollment
+            </Button>
+          )}
+          {activePageTab === 'transport' && (
+            <Button className="hover-elevate" onClick={() => setIsCreateTransportOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Transport
+            </Button>
+          )}
+          {activePageTab === 'students' && (
+            <Button className="hover-elevate" data-testid="button-add-student" onClick={handleAddStudent}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Student
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {statsCards.map((stat, index) => (
-          <motion.div
-            key={stat.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className="hover-elevate">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
+      {/* Stats Cards (only on Students tab) */}
+      {activePageTab === 'students' && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {statsCards.map((stat, index) => (
+            <motion.div
+              key={stat.title}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <Card className="hover-elevate">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stat.value}</div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {/* Page-level Tabs */}
+      <Tabs value={activePageTab} onValueChange={setActivePageTab} className="space-y-4 w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="students">
+            <Users className="w-4 h-4 mr-2" />
+            Students
+          </TabsTrigger>
+          <TabsTrigger value="enrollments">
+            <IdCard className="w-4 h-4 mr-2" />
+            Enrollments
+          </TabsTrigger>
+          <TabsTrigger value="transport">
+            <MapPin className="w-4 h-4 mr-2" />
+            Transport
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="students">
+          {isLoading ? (
+            <Card>
+              <CardContent className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-2 text-sm text-slate-600">Loading students...</p>
+                </div>
               </CardContent>
             </Card>
-          </motion.div>
-        ))}
-      </div>
+          ) : error ? (
+            <Card>
+              <CardContent className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <p className="text-sm text-red-600">Error loading students: {error.message}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : students.length === 0 ? (
+            <Card>
+              <CardContent className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
+                    <Users className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">No students found</h3>
+                  <p className="text-slate-500 mb-4">Get started by adding your first student.</p>
+                  <Button className="gap-2" onClick={handleAddStudent}>
+                    <Plus className="h-4 w-4" />
+                    Add Student
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <EnhancedDataTable
+              data={students}
+              columns={columns}
+              title="Students"
+              searchKey="student_name"
+              exportable={true}
+              selectable={true}
+            />
+          )}
+        </TabsContent>
 
-      {/* Students Table */}
-      {isLoading ? (
-        <Card>
-          <CardContent className="flex items-center justify-center py-8">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-sm text-slate-600">Loading students...</p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : error ? (
-        <Card>
-          <CardContent className="flex items-center justify-center py-8">
-            <div className="text-center">
-              <p className="text-sm text-red-600">Error loading students: {error.message}</p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : students.length === 0 ? (
-        <Card>
-          <CardContent className="flex items-center justify-center py-8">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
-                <Users className="h-8 w-8 text-slate-400" />
+        <TabsContent value="enrollments">
+            <div className="space-y-4">
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="text-sm font-medium text-slate-700">Class ID</label>
+                <Input
+                  type="number"
+                  placeholder="Enter class ID"
+                  value={pageEnrollmentQuery.class_id}
+                  onChange={(e) => setPageEnrollmentQuery((q) => ({ ...q, class_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+                />
               </div>
-              <h3 className="text-lg font-medium text-slate-900 mb-2">No students found</h3>
-              <p className="text-slate-500 mb-4">Get started by adding your first student.</p>
-              <Button className="gap-2" onClick={handleAddStudent}>
-                <Plus className="h-4 w-4" />
-                Add Student
-              </Button>
+              <div>
+                <label className="text-sm font-medium text-slate-700">Section ID (optional)</label>
+                <Input
+                  type="number"
+                  placeholder="Enter section ID"
+                  value={pageEnrollmentQuery.section_id ?? ''}
+                  onChange={(e) => setPageEnrollmentQuery((q) => ({ ...q, section_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700">Admission No (optional)</label>
+                <Input
+                  placeholder="Admission no"
+                  value={pageEnrollmentQuery.admission_no ?? ''}
+                  onChange={(e) => setPageEnrollmentQuery((q) => ({ ...q, admission_no: e.target.value }))}
+                />
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-      <EnhancedDataTable
-        data={students}
-        columns={columns}
-        title="Students"
-        searchKey="student_name"
-        exportable={true}
-        selectable={true}
-      />
-      )}
+
+            {pageEnrollmentQuery.class_id === '' ? (
+              <div className="text-sm text-slate-600">Enter a class ID to load enrollments.</div>
+            ) : pageEnrollmentsResult.isLoading ? (
+              <div className="text-sm text-slate-600">Loading enrollments...</div>
+            ) : pageEnrollmentsResult.isError ? (
+              <div className="text-sm text-red-600">Failed to load enrollments</div>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Enrollments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {Array.isArray(pageEnrollmentsResult.data) && pageEnrollmentsResult.data.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-slate-600">
+                            <th className="py-2 pr-4">Enrollment ID</th>
+                            <th className="py-2 pr-4">Admission No</th>
+                            <th className="py-2 pr-4">Student</th>
+                            <th className="py-2 pr-4">Roll No</th>
+                            <th className="py-2 pr-4">Section</th>
+                            <th className="py-2 pr-4">Date</th>
+                            <th className="py-2 pr-4">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pageEnrollmentsResult.data.map((en: any) => (
+                            <tr key={en.enrollment_id} className="border-t">
+                              <td className="py-2 pr-4 font-mono">{en.enrollment_id}</td>
+                              <td className="py-2 pr-4">{en.admission_no}</td>
+                              <td className="py-2 pr-4">{en.student_name}</td>
+                              <td className="py-2 pr-4">{en.roll_number}</td>
+                              <td className="py-2 pr-4">{en.section_name}</td>
+                              <td className="py-2 pr-4">{en.enrollment_date || '-'}</td>
+                              <td className="py-2 pr-4">
+                                <Button variant="outline" size="sm" onClick={() => startEditEnrollment(en)}>Edit</Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-slate-600">No enrollments found.</div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            <Dialog
+              open={isEditEnrollmentOpen}
+              onOpenChange={(open) => {
+                setIsEditEnrollmentOpen(open);
+                if (!open) {
+                  setSelectedEnrollment(null);
+                }
+              }}
+            >
+              <DialogContent className="max-w-xl">
+                <DialogHeader>
+                  <DialogTitle>Edit Enrollment{selectedEnrollment ? ` #${selectedEnrollment.enrollment_id}` : ''}</DialogTitle>
+                  <DialogDescription>
+                    Update enrollment details for the selected student.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-enrollment-section">Section ID</Label>
+                    <Input
+                      id="edit-enrollment-section"
+                      type="number"
+                      value={editEnrollment.section_id}
+                      onChange={(e) => setEditEnrollment((v) => ({ ...v, section_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-enrollment-roll">Roll Number</Label>
+                    <Input
+                      id="edit-enrollment-roll"
+                      value={editEnrollment.roll_number}
+                      onChange={(e) => setEditEnrollment((v) => ({ ...v, roll_number: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-enrollment-date">Enrollment Date</Label>
+                    <Input
+                      id="edit-enrollment-date"
+                      type="date"
+                      value={editEnrollment.enrollment_date}
+                      onChange={(e) => setEditEnrollment((v) => ({ ...v, enrollment_date: e.target.value }))}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pt-6">
+                    <Switch
+                      id="edit-enrollment-active"
+                      checked={editEnrollment.is_active}
+                      onCheckedChange={(checked) => setEditEnrollment((v) => ({ ...v, is_active: Boolean(checked) }))}
+                    />
+                    <Label htmlFor="edit-enrollment-active">Active</Label>
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditEnrollmentOpen(false);
+                      setSelectedEnrollment(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button disabled={updateEnrollment.isPending} onClick={handleUpdateEnrollment}>
+                    {updateEnrollment.isPending ? 'Updating...' : 'Update Enrollment'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog
+              open={isCreateEnrollmentOpen}
+              onOpenChange={(open) => {
+                setIsCreateEnrollmentOpen(open);
+                if (!open) {
+                  setNewEnrollment({ student_id: '', class_id: '', section_id: '', roll_number: '', enrollment_date: '', is_active: true });
+                }
+              }}
+            >
+              <DialogContent className="max-w-xl">
+                <DialogHeader>
+                  <DialogTitle>Create Enrollment</DialogTitle>
+                  <DialogDescription>
+                    Provide details to create a new enrollment.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="create-enrollment-student">Student ID</Label>
+                    <Input
+                      id="create-enrollment-student"
+                      type="number"
+                      placeholder="student_id"
+                      value={newEnrollment.student_id}
+                      onChange={(e) => setNewEnrollment((v) => ({ ...v, student_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="create-enrollment-class">Class ID</Label>
+                    <Input
+                      id="create-enrollment-class"
+                      type="number"
+                      placeholder="class_id"
+                      value={newEnrollment.class_id}
+                      onChange={(e) => setNewEnrollment((v) => ({ ...v, class_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="create-enrollment-section">Section ID</Label>
+                    <Input
+                      id="create-enrollment-section"
+                      type="number"
+                      placeholder="section_id"
+                      value={newEnrollment.section_id}
+                      onChange={(e) => setNewEnrollment((v) => ({ ...v, section_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="create-enrollment-roll">Roll Number</Label>
+                    <Input
+                      id="create-enrollment-roll"
+                      placeholder="roll_number"
+                      value={newEnrollment.roll_number}
+                      onChange={(e) => setNewEnrollment((v) => ({ ...v, roll_number: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="create-enrollment-date">Enrollment Date</Label>
+                    <Input
+                      id="create-enrollment-date"
+                      type="date"
+                      value={newEnrollment.enrollment_date}
+                      onChange={(e) => setNewEnrollment((v) => ({ ...v, enrollment_date: e.target.value }))}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pt-6">
+                    <Switch
+                      id="create-enrollment-active"
+                      checked={newEnrollment.is_active}
+                      onCheckedChange={(checked) => setNewEnrollment((v) => ({ ...v, is_active: Boolean(checked) }))}
+                    />
+                    <Label htmlFor="create-enrollment-active">Active</Label>
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsCreateEnrollmentOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button disabled={createEnrollment.isPending} onClick={handleCreateEnrollment}>
+                    {createEnrollment.isPending ? 'Creating...' : 'Create Enrollment'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="transport">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="text-sm font-medium text-slate-700">Class ID</label>
+                <Input
+                  type="number"
+                  placeholder="Enter class ID"
+                  value={pageTransportQuery.class_id}
+                  onChange={(e) => setPageTransportQuery((q) => ({ ...q, class_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700">Section ID (optional)</label>
+                <Input
+                  type="number"
+                  placeholder="Enter section ID"
+                  value={pageTransportQuery.section_id ?? ''}
+                  onChange={(e) => setPageTransportQuery((q) => ({ ...q, section_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+                />
+              </div>
+            </div>
+
+            {pageTransportQuery.class_id === '' ? (
+              <div className="text-sm text-slate-600">Enter a class ID to load transport assignments.</div>
+            ) : pageTransportResult.isLoading ? (
+              <div className="text-sm text-slate-600">Loading transport assignments...</div>
+            ) : pageTransportResult.isError ? (
+              <div className="text-sm text-red-600">Failed to load transport assignments</div>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Transport Assignments (Grouped by Route)</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {Array.isArray(pageTransportResult.data) && pageTransportResult.data.length > 0 ? (
+                    pageTransportResult.data.map((route) => (
+                      <div key={route.bus_route_id} className="border rounded-md">
+                        <div className="px-4 py-2 font-medium bg-slate-50">{route.route_name}</div>
+                        <div className="overflow-x-auto p-2">
+                          <table className="min-w-full text-sm">
+                            <thead>
+                              <tr className="text-left text-slate-600">
+                                <th className="py-2 pr-4">Admission No</th>
+                                <th className="py-2 pr-4">Student</th>
+                                <th className="py-2 pr-4">Roll No</th>
+                                <th className="py-2 pr-4">Section</th>
+                                <th className="py-2 pr-4">Slab</th>
+                                <th className="py-2 pr-4">Pickup</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {route.students.map((s) => (
+                                <tr key={s.transport_assignment_id} className="border-t">
+                                  <td className="py-2 pr-4">{s.admission_no}</td>
+                                  <td className="py-2 pr-4">{s.student_name}</td>
+                                  <td className="py-2 pr-4">{s.roll_number}</td>
+                                  <td className="py-2 pr-4">{s.section_name}</td>
+                                  <td className="py-2 pr-4">{s.slab_name || '-'}</td>
+                                  <td className="py-2 pr-4">{s.pickup_point || '-'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-slate-600">No transport assignments found.</div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* View Student Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={(open) => {
@@ -498,8 +973,25 @@ const StudentManagement = () => {
                 </div>
               </div>
 
-              {/* Personal Information */}
-              <Card>
+              <Tabs defaultValue="profile" className="space-y-4 w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="profile">
+                    <User className="w-4 h-4 mr-2" />
+                    Profile
+                  </TabsTrigger>
+                  <TabsTrigger value="enrollments">
+                    <IdCard className="w-4 h-4 mr-2" />
+                    Enrollments
+                  </TabsTrigger>
+                  <TabsTrigger value="transport">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Transport
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="profile" className="space-y-6">
+                  {/* Personal Information */}
+                  <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <User className="h-4 w-4" />
@@ -539,12 +1031,12 @@ const StudentManagement = () => {
                       <p className="text-sm text-slate-900">{detailedStudent.permanent_address || 'N/A'}</p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
 
-              {/* Parent Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
+                  {/* Parent Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Father Information</CardTitle>
                   </CardHeader>
@@ -568,10 +1060,10 @@ const StudentManagement = () => {
                       <label className="text-sm font-medium text-slate-700">Aadhar</label>
                       <p className="text-sm text-slate-900">{detailedStudent.father_aadhar_no || 'N/A'}</p>
                     </div>
-                  </CardContent>
-                </Card>
+                      </CardContent>
+                    </Card>
 
-                <Card>
+                    <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Mother Information</CardTitle>
                   </CardHeader>
@@ -595,12 +1087,12 @@ const StudentManagement = () => {
                       <label className="text-sm font-medium text-slate-700">Aadhar</label>
                       <p className="text-sm text-slate-900">{detailedStudent.mother_aadhar_no || 'N/A'}</p>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+                      </CardContent>
+                    </Card>
+                  </div>
 
-              {/* System Information */}
-              <Card>
+                  {/* System Information */}
+                  <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">System Information</CardTitle>
                 </CardHeader>
@@ -624,9 +1116,166 @@ const StudentManagement = () => {
                         {detailedStudent.updated_at ? new Date(detailedStudent.updated_at).toLocaleDateString() : 'N/A'}
                       </p>
                     </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                </TabsContent>
+
+                <TabsContent value="enrollments">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-sm font-medium text-slate-700">Class ID</label>
+                        <Input
+                          type="number"
+                          placeholder="Enter class ID"
+                          value={enrollmentQuery.class_id}
+                          onChange={(e) => setEnrollmentQuery((q) => ({ ...q, class_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-slate-700">Section ID (optional)</label>
+                        <Input
+                          type="number"
+                          placeholder="Enter section ID"
+                          value={enrollmentQuery.section_id ?? ''}
+                          onChange={(e) => setEnrollmentQuery((q) => ({ ...q, section_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-slate-700">Admission No (optional)</label>
+                        <Input
+                          placeholder="Admission no"
+                          value={enrollmentQuery.admission_no ?? detailedStudent.admission_no}
+                          onChange={(e) => setEnrollmentQuery((q) => ({ ...q, admission_no: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+
+                    {enrollmentQuery.class_id === '' ? (
+                      <div className="text-sm text-slate-600">Enter a class ID to load enrollments.</div>
+                    ) : enrollmentsResult.isLoading ? (
+                      <div className="text-sm text-slate-600">Loading enrollments...</div>
+                    ) : enrollmentsResult.isError ? (
+                      <div className="text-sm text-red-600">Failed to load enrollments</div>
+                    ) : (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">Enrollments</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {Array.isArray(enrollmentsResult.data) && enrollmentsResult.data.length > 0 ? (
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full text-sm">
+                                <thead>
+                                  <tr className="text-left text-slate-600">
+                                    <th className="py-2 pr-4">Enrollment ID</th>
+                                    <th className="py-2 pr-4">Admission No</th>
+                                    <th className="py-2 pr-4">Student</th>
+                                    <th className="py-2 pr-4">Roll No</th>
+                                    <th className="py-2 pr-4">Section</th>
+                                    <th className="py-2 pr-4">Date</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {enrollmentsResult.data.map((en: any) => (
+                                    <tr key={en.enrollment_id} className="border-t">
+                                      <td className="py-2 pr-4 font-mono">{en.enrollment_id}</td>
+                                      <td className="py-2 pr-4">{en.admission_no}</td>
+                                      <td className="py-2 pr-4">{en.student_name}</td>
+                                      <td className="py-2 pr-4">{en.roll_number}</td>
+                                      <td className="py-2 pr-4">{en.section_name}</td>
+                                      <td className="py-2 pr-4">{en.enrollment_date || '-'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <div className="text-sm text-slate-600">No enrollments found.</div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
+                </TabsContent>
+
+                <TabsContent value="transport">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-sm font-medium text-slate-700">Class ID</label>
+                        <Input
+                          type="number"
+                          placeholder="Enter class ID"
+                          value={transportQuery.class_id}
+                          onChange={(e) => setTransportQuery((q) => ({ ...q, class_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-slate-700">Section ID (optional)</label>
+                        <Input
+                          type="number"
+                          placeholder="Enter section ID"
+                          value={transportQuery.section_id ?? ''}
+                          onChange={(e) => setTransportQuery((q) => ({ ...q, section_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+                        />
+                      </div>
+                    </div>
+
+                    {transportQuery.class_id === '' ? (
+                      <div className="text-sm text-slate-600">Enter a class ID to load transport assignments.</div>
+                    ) : transportResult.isLoading ? (
+                      <div className="text-sm text-slate-600">Loading transport assignments...</div>
+                    ) : transportResult.isError ? (
+                      <div className="text-sm text-red-600">Failed to load transport assignments</div>
+                    ) : (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">Transport Assignments (Grouped by Route)</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {Array.isArray(transportResult.data) && transportResult.data.length > 0 ? (
+                            transportResult.data.map((route) => (
+                              <div key={route.bus_route_id} className="border rounded-md">
+                                <div className="px-4 py-2 font-medium bg-slate-50">{route.route_name}</div>
+                                <div className="overflow-x-auto p-2">
+                                  <table className="min-w-full text-sm">
+                                    <thead>
+                                      <tr className="text-left text-slate-600">
+                                        <th className="py-2 pr-4">Admission No</th>
+                                        <th className="py-2 pr-4">Student</th>
+                                        <th className="py-2 pr-4">Roll No</th>
+                                        <th className="py-2 pr-4">Section</th>
+                                        <th className="py-2 pr-4">Slab</th>
+                                        <th className="py-2 pr-4">Pickup</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {route.students.map((s) => (
+                                        <tr key={s.transport_assignment_id} className="border-t">
+                                          <td className="py-2 pr-4">{s.admission_no}</td>
+                                          <td className="py-2 pr-4">{s.student_name}</td>
+                                          <td className="py-2 pr-4">{s.roll_number}</td>
+                                          <td className="py-2 pr-4">{s.section_name}</td>
+                                          <td className="py-2 pr-4">{s.slab_name || '-'}</td>
+                                          <td className="py-2 pr-4">{s.pickup_point || '-'}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-sm text-slate-600">No transport assignments found.</div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
           ) : (
             <div className="flex items-center justify-center py-8">
@@ -635,6 +1284,101 @@ const StudentManagement = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Transport Dialog */}
+      <Dialog
+        open={isCreateTransportOpen}
+        onOpenChange={(open) => {
+          setIsCreateTransportOpen(open);
+          if (!open) {
+            setNewTransportAssignment({ enrollment_id: '', bus_route_id: '', slab_id: '', pickup_point: '', start_date: '', end_date: '', is_active: true });
+          }
+        }}
+      >
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Create Student Transport</DialogTitle>
+            <DialogDescription>
+              Assign a student to a bus route and slab.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="create-transport-enrollment">Enrollment ID</Label>
+              <Input
+                id="create-transport-enrollment"
+                type="number"
+                placeholder="enrollment_id"
+                value={newTransportAssignment.enrollment_id}
+                onChange={(e) => setNewTransportAssignment((v) => ({ ...v, enrollment_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="create-transport-route">Bus Route ID</Label>
+              <Input
+                id="create-transport-route"
+                type="number"
+                placeholder="bus_route_id"
+                value={newTransportAssignment.bus_route_id}
+                onChange={(e) => setNewTransportAssignment((v) => ({ ...v, bus_route_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="create-transport-slab">Slab ID</Label>
+              <Input
+                id="create-transport-slab"
+                type="number"
+                placeholder="slab_id"
+                value={newTransportAssignment.slab_id}
+                onChange={(e) => setNewTransportAssignment((v) => ({ ...v, slab_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="create-transport-pickup">Pickup Point</Label>
+              <Input
+                id="create-transport-pickup"
+                placeholder="pickup point (optional)"
+                value={newTransportAssignment.pickup_point}
+                onChange={(e) => setNewTransportAssignment((v) => ({ ...v, pickup_point: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="create-transport-start">Start Date</Label>
+              <Input
+                id="create-transport-start"
+                type="date"
+                value={newTransportAssignment.start_date}
+                onChange={(e) => setNewTransportAssignment((v) => ({ ...v, start_date: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="create-transport-end">End Date</Label>
+              <Input
+                id="create-transport-end"
+                type="date"
+                value={newTransportAssignment.end_date}
+                onChange={(e) => setNewTransportAssignment((v) => ({ ...v, end_date: e.target.value }))}
+              />
+            </div>
+            <div className="flex items-center gap-2 pt-6">
+              <Switch
+                id="create-transport-active"
+                checked={newTransportAssignment.is_active}
+                onCheckedChange={(checked) => setNewTransportAssignment((v) => ({ ...v, is_active: Boolean(checked) }))}
+              />
+              <Label htmlFor="create-transport-active">Active</Label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateTransportOpen(false)}>Cancel</Button>
+            <Button disabled={createStudentTransport.isPending} onClick={handleCreateTransport}>
+              {createStudentTransport.isPending ? 'Creating...' : 'Create Transport'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useAuthStore } from "@/store/authStore";
-import { usePayrolls, usePayrollsByBranch, useCreatePayroll, useUpdatePayroll, useUpdatePayrollStatus } from "@/lib/hooks/usePayrolls";
-import { useEmployeesByBranch, useEmployeesByInstitute } from "@/lib/hooks/useEmployees";
+import { usePayrollsByBranch, useCreatePayroll, useUpdatePayroll, useUpdatePayrollStatus } from "@/lib/hooks/usePayrolls";
+import { useEmployeesByBranch } from "@/lib/hooks/useEmployees";
 import type { PayrollRead, PayrollCreate, PayrollUpdate } from "@/lib/types/payrolls";
 import { PayrollStatusEnum, PaymentMethodEnum } from "@/lib/types/payrolls";
 
@@ -9,7 +9,6 @@ export const usePayrollManagement = () => {
   const { user, currentBranch } = useAuthStore();
   
   // UI State
-  const [viewMode, setViewMode] = useState<"branch" | "institute">("branch");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
   const [selectedYear, setSelectedYear] = useState<number | undefined>();
@@ -20,30 +19,26 @@ export const usePayrollManagement = () => {
   const [selectedPayroll, setSelectedPayroll] = useState<PayrollRead | null>(null);
   const [activeTab, setActiveTab] = useState("payrolls");
 
-  // API Hooks
-  const { data: branchPayrollsResp, isLoading: branchPayrollsLoading } = usePayrollsByBranch(currentBranch?.branch_id || 0);
-  const { data: institutePayrollsResp, isLoading: institutePayrollsLoading } = usePayrolls();
-  const { data: branchEmployees = [], isLoading: branchEmployeesLoading } = useEmployeesByBranch();
-  const { data: instituteEmployees = [], isLoading: instituteEmployeesLoading } = useEmployeesByInstitute();
+  // API Hooks - Only use branch-specific data since branch switching is handled globally
+  const { data: payrollsResp, isLoading: payrollsLoading } = usePayrollsByBranch(currentBranch?.branch_id || 0);
+  const { data: employees = [], isLoading: employeesLoading } = useEmployeesByBranch();
   
   const createPayrollMutation = useCreatePayroll();
   const updatePayrollMutation = useUpdatePayroll();
   const updatePayrollStatusMutation = useUpdatePayrollStatus();
 
-  // Computed values
+  // Computed values - Simplified to use only branch-specific data
   const currentPayrolls = useMemo(() => {
-    const branchList = branchPayrollsResp?.data || [];
-    const instituteList = institutePayrollsResp?.data || [];
-    return viewMode === "branch" ? branchList : instituteList;
-  }, [viewMode, branchPayrollsResp, institutePayrollsResp]);
+    return payrollsResp?.data || [];
+  }, [payrollsResp]);
 
   const currentEmployees = useMemo(() => {
-    return viewMode === "branch" ? branchEmployees : instituteEmployees;
-  }, [viewMode, branchEmployees, instituteEmployees]);
+    return employees;
+  }, [employees]);
 
   const isLoading = useMemo(() => {
-    return viewMode === "branch" ? branchPayrollsLoading : institutePayrollsLoading;
-  }, [viewMode, branchPayrollsLoading, institutePayrollsLoading]);
+    return payrollsLoading || employeesLoading;
+  }, [payrollsLoading, employeesLoading]);
 
   const filteredPayrolls = useMemo(() => {
     return currentPayrolls.filter((payroll) => {
@@ -99,9 +94,9 @@ export const usePayrollManagement = () => {
     }
   };
 
-  const handleUpdateStatus = async (id: number, status: PayrollStatusEnum) => {
+  const handleUpdateStatus = async (id: number, status: string) => {
     try {
-      await updatePayrollStatusMutation.mutateAsync({ id, status });
+      await updatePayrollStatusMutation.mutateAsync({ id, status: status as PayrollStatusEnum });
     } catch (error) {
       console.error("Failed to update payroll status:", error);
     }
@@ -115,6 +110,17 @@ export const usePayrollManagement = () => {
   const handleEditPayroll = (payroll: PayrollRead) => {
     setSelectedPayroll(payroll);
     setShowUpdateDialog(true);
+  };
+
+  // Wrapper function for SalaryCalculationForm
+  const handleFormSubmit = async (data: PayrollCreate | PayrollUpdate) => {
+    if (selectedPayroll) {
+      // Update existing payroll
+      await handleUpdatePayroll(selectedPayroll.payroll_id, data as PayrollUpdate);
+    } else {
+      // Create new payroll
+      await handleCreatePayroll(data as PayrollCreate);
+    }
   };
 
   // Utility functions
@@ -165,8 +171,6 @@ export const usePayrollManagement = () => {
     pendingAmount,
     
     // UI State
-    viewMode,
-    setViewMode,
     searchQuery,
     setSearchQuery,
     selectedMonth,
@@ -195,6 +199,7 @@ export const usePayrollManagement = () => {
     handleUpdateStatus,
     handleViewPayslip,
     handleEditPayroll,
+    handleFormSubmit,
     
     // Utilities
     formatCurrency,

@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Plus, FileText, Edit, Eye, Trash2, Grid3X3, List } from "lucide-react";
+import { Plus, FileText, Edit, Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -36,53 +35,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
-// Mock data for tests
-const mockTests = [
-  {
-    id: 1,
-    test_name: "Mathematics Unit Test 1",
-    test_type: "Unit Test",
-    subject: "Mathematics",
-    class_name: "Class 8",
-    max_marks: 50,
-    duration: 60,
-    date: "2024-10-15",
-    status: "scheduled",
-    students_count: 35,
-  },
-  {
-    id: 2,
-    test_name: "Science Quiz",
-    test_type: "Quiz",
-    subject: "Science",
-    class_name: "Class 9",
-    max_marks: 25,
-    duration: 30,
-    date: "2024-10-20",
-    status: "completed",
-    students_count: 40,
-  },
-  {
-    id: 3,
-    test_name: "English Literature Test",
-    test_type: "Chapter Test",
-    subject: "English",
-    class_name: "Class 10",
-    max_marks: 40,
-    duration: 45,
-    date: "2024-10-25",
-    status: "ongoing",
-    students_count: 38,
-  },
-];
 
 export interface TestTabProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  selectedBranchType: string;
-  setSelectedBranchType: (type: string) => void;
-  currentBranch: any;
   tests: any[];
   setTests: (tests: any[]) => void;
   isLoading?: boolean;
@@ -93,9 +52,6 @@ export interface TestTabProps {
 export const TestTab = ({
   searchTerm,
   setSearchTerm,
-  selectedBranchType,
-  setSelectedBranchType,
-  currentBranch,
   tests,
   setTests,
   isLoading = false,
@@ -104,111 +60,112 @@ export const TestTab = ({
 }: TestTabProps) => {
   // Using tests from parent
   const [isAddTestOpen, setIsAddTestOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [isEditTestOpen, setIsEditTestOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedTest, setSelectedTest] = useState<any>(null);
   const [newTest, setNewTest] = useState({
     test_name: "",
-    test_type: "",
-    subject: "",
-    class_name: "",
+    test_date: "",
+    pass_marks: "",
     max_marks: "",
-    duration: "",
-    date: "",
   });
+  const [editTest, setEditTest] = useState({
+    test_name: "",
+    test_date: "",
+    pass_marks: "",
+    max_marks: "",
+  });
+  
+  const { toast } = useToast();
 
   const handleAddTest = () => {
     const newId = Math.max(...tests.map((t) => t.id)) + 1;
     const test = {
       id: newId,
       test_name: newTest.test_name,
-      test_type: newTest.test_type,
-      subject: newTest.subject,
-      class_name: newTest.class_name,
+      test_date: newTest.test_date,
+      pass_marks: parseInt(newTest.pass_marks || "0"),
       max_marks: parseInt(newTest.max_marks || "0"),
-      duration: parseInt(newTest.duration || "0"),
-      date: newTest.date,
-      status: "scheduled",
-      students_count: 0,
     };
 
     setTests([...tests, test]);
     setNewTest({
       test_name: "",
-      test_type: "",
-      subject: "",
-      class_name: "",
+      test_date: "",
+      pass_marks: "",
       max_marks: "",
-      duration: "",
-      date: "",
     });
     setIsAddTestOpen(false);
+    toast({
+      title: "Success",
+      description: "Test added successfully",
+    });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "scheduled":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "ongoing":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "cancelled":
-        return "bg-red-100 text-red-800 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
+  const handleEditTest = (test: any) => {
+    setSelectedTest(test);
+    setEditTest({
+      test_name: test.test_name,
+      test_date: test.test_date,
+      pass_marks: test.pass_marks.toString(),
+      max_marks: test.max_marks.toString(),
+    });
+    setIsEditTestOpen(true);
   };
+
+  const handleUpdateTest = () => {
+    if (selectedTest) {
+      const updatedTests = tests.map((test) =>
+        test.id === selectedTest.id
+          ? {
+              ...test,
+              test_name: editTest.test_name,
+              test_date: editTest.test_date,
+              pass_marks: parseInt(editTest.pass_marks || "0"),
+              max_marks: parseInt(editTest.max_marks || "0"),
+            }
+          : test
+      );
+      setTests(updatedTests);
+      toast({
+        title: "Success",
+        description: "Test updated successfully",
+      });
+    }
+    setEditTest({
+      test_name: "",
+      test_date: "",
+      pass_marks: "",
+      max_marks: "",
+    });
+    setSelectedTest(null);
+    setIsEditTestOpen(false);
+  };
+
+  const handleDeleteTest = (test: any) => {
+    setSelectedTest(test);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteTest = () => {
+    if (selectedTest) {
+      const updatedTests = tests.filter((test) => test.id !== selectedTest.id);
+      setTests(updatedTests);
+      toast({
+        title: "Success",
+        description: "Test deleted successfully",
+      });
+    }
+    setSelectedTest(null);
+    setIsDeleteDialogOpen(false);
+  };
+
 
   const filteredTests = (tests || []).filter(
     (test) =>
-      test.test_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      // subject/class not available from backend; filter by name only
-      false
+      test.test_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const tableRows = isLoading ? (
-    <TableRow>
-      <TableCell colSpan={9} className="text-center py-6 text-slate-500">Loading tests...</TableCell>
-    </TableRow>
-  ) : filteredTests.length === 0 ? (
-    <TableRow>
-      <TableCell colSpan={9} className="text-center py-6 text-slate-500">
-        {isLoading ? 'Loading tests...' : 'No tests found. Click "Add Test" to create your first test.'}
-      </TableCell>
-    </TableRow>
-  ) : (
-    <>
-      {filteredTests.map((test) => (
-        <TableRow key={test.id}>
-          <TableCell className="font-medium">
-            {test.test_name}
-          </TableCell>
-          <TableCell>
-            <Badge variant="outline">Test</Badge>
-          </TableCell>
-          <TableCell>-</TableCell>
-          <TableCell>-</TableCell>
-          <TableCell>
-            {new Date(test.test_date || '').toLocaleDateString()}
-          </TableCell>
-          <TableCell>{test.max_marks}</TableCell>
-          <TableCell><Badge variant="outline">Scheduled</Badge></TableCell>
-          <TableCell>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm">
-                <Eye className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </TableCell>
-        </TableRow>
-      ))}
-    </>
-  );
 
   return (
     <div className="space-y-4">
@@ -220,43 +177,9 @@ export const TestTab = ({
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
           />
-          <Select
-            value={selectedBranchType}
-            onValueChange={setSelectedBranchType}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Branch Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="school">School</SelectItem>
-              <SelectItem value="college">College</SelectItem>
-            </SelectContent>
-          </Select>
           <Badge variant="outline">{filteredTests.length} Tests</Badge>
         </div>
         
-        {/* View Toggle */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant={viewMode === 'grid' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('grid')}
-            className="gap-2"
-          >
-            <Grid3X3 className="h-4 w-4" />
-            Grid
-          </Button>
-          <Button
-            variant={viewMode === 'table' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('table')}
-            className="gap-2"
-          >
-            <List className="h-4 w-4" />
-            Table
-          </Button>
-        </div>
         
         <Dialog open={isAddTestOpen} onOpenChange={setIsAddTestOpen}>
           <DialogTrigger asChild>
@@ -289,56 +212,36 @@ export const TestTab = ({
                   />
                 </div>
                 <div>
-                  <Label htmlFor="test_type">Test Type</Label>
-                  <Select
-                    value={newTest.test_type}
-                    onValueChange={(value) =>
-                      setNewTest({ ...newTest, test_type: value })
+                  <Label htmlFor="test_date">Test Date</Label>
+                  <Input
+                    id="test_date"
+                    type="date"
+                    value={newTest.test_date}
+                    onChange={(e) =>
+                      setNewTest({
+                        ...newTest,
+                        test_date: e.target.value,
+                      })
                     }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Unit Test">Unit Test</SelectItem>
-                      <SelectItem value="Quiz">Quiz</SelectItem>
-                      <SelectItem value="Chapter Test">Chapter Test</SelectItem>
-                      <SelectItem value="Mock Test">Mock Test</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="subject">Subject</Label>
+                  <Label htmlFor="pass_marks">Pass Marks</Label>
                   <Input
-                    id="subject"
-                    value={newTest.subject}
+                    id="pass_marks"
+                    type="number"
+                    value={newTest.pass_marks}
                     onChange={(e) =>
                       setNewTest({
                         ...newTest,
-                        subject: e.target.value,
+                        pass_marks: e.target.value,
                       })
                     }
-                    placeholder="Mathematics"
+                    placeholder="20"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="class_name">Class</Label>
-                  <Input
-                    id="class_name"
-                    value={newTest.class_name}
-                    onChange={(e) =>
-                      setNewTest({
-                        ...newTest,
-                        class_name: e.target.value,
-                      })
-                    }
-                    placeholder="Class 8"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="max_marks">Max Marks</Label>
                   <Input
@@ -352,35 +255,6 @@ export const TestTab = ({
                       })
                     }
                     placeholder="50"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="duration">Duration (minutes)</Label>
-                  <Input
-                    id="duration"
-                    type="number"
-                    value={newTest.duration}
-                    onChange={(e) =>
-                      setNewTest({
-                        ...newTest,
-                        duration: e.target.value,
-                      })
-                    }
-                    placeholder="60"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="date">Test Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={newTest.date}
-                    onChange={(e) =>
-                      setNewTest({
-                        ...newTest,
-                        date: e.target.value,
-                      })
-                    }
                   />
                 </div>
               </div>
@@ -398,10 +272,8 @@ export const TestTab = ({
         </Dialog>
       </div>
 
-      {/* Tests Grid View */}
-      {viewMode === 'grid' && (
-        <>
-          {isLoading ? (
+      {/* Tests Table View */}
+      {isLoading ? (
         <div className="flex items-center justify-center py-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -425,66 +297,6 @@ export const TestTab = ({
           </Button>
         </div>
       ) : (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredTests.map((test, index) => (
-          <motion.div
-            key={test.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className="hover-elevate">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center">
-                      <FileText className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">
-                        {test.test_name}
-                      </CardTitle>
-                      <CardDescription>Test</CardDescription>
-                    </div>
-                  </div>
-                  <Badge variant="outline">Scheduled</Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span>Date:</span>
-                    <span className="font-medium">
-                      {new Date(test.test_date || '').toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Marks:</span>
-                    <span className="font-medium">{test.pass_marks}/{test.max_marks}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 mt-4">
-                  <Button variant="ghost" size="sm">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-          )}
-        </>
-      )}
-
-      {/* Tests Table View */}
-      {viewMode === 'table' && (
       <Card>
         <CardHeader>
           <CardTitle>All Tests</CardTitle>
@@ -503,18 +315,7 @@ export const TestTab = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-6 text-slate-500">Loading tests...</TableCell>
-                </TableRow>
-              ) : filteredTests.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-6 text-slate-500">
-                    {isLoading ? 'Loading tests...' : 'No tests found. Click "Add Test" to create your first test.'}
-                  </TableCell>
-                </TableRow>
-              ) : (
-              filteredTests.map((test) => (
+              {filteredTests.map((test) => (
                 <TableRow key={test.id}>
                   <TableCell className="font-mono text-xs text-slate-500">{test.id}</TableCell>
                   <TableCell className="font-medium">{test.test_name}</TableCell>
@@ -523,25 +324,113 @@ export const TestTab = ({
                   <TableCell>{test.max_marks}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleEditTest(test)}
+                        title="Edit test"
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleDeleteTest(test)}
+                        title="Delete test"
+                        className="text-red-600 hover:text-red-700"
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
+              ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
       )}
+
+      {/* Edit Test Dialog */}
+      <Dialog open={isEditTestOpen} onOpenChange={setIsEditTestOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Test</DialogTitle>
+            <DialogDescription>
+              Update the test information.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="edit-test-name">Test Name</Label>
+              <Input
+                id="edit-test-name"
+                value={editTest.test_name}
+                onChange={(e) => setEditTest({ ...editTest, test_name: e.target.value })}
+                placeholder="Enter test name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-test-date">Test Date</Label>
+              <Input
+                id="edit-test-date"
+                type="date"
+                value={editTest.test_date}
+                onChange={(e) => setEditTest({ ...editTest, test_date: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-pass-marks">Pass Marks</Label>
+              <Input
+                id="edit-pass-marks"
+                type="number"
+                value={editTest.pass_marks}
+                onChange={(e) => setEditTest({ ...editTest, pass_marks: e.target.value })}
+                placeholder="Enter pass marks"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-max-marks">Max Marks</Label>
+              <Input
+                id="edit-max-marks"
+                type="number"
+                value={editTest.max_marks}
+                onChange={(e) => setEditTest({ ...editTest, max_marks: e.target.value })}
+                placeholder="Enter max marks"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditTestOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateTest}>
+              Update Test
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the test "{selectedTest?.test_name}".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteTest}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

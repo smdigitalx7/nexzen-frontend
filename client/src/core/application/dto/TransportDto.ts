@@ -6,6 +6,7 @@ export interface CreateTransportRequest {
   routeNo?: string;
   routeName?: string;
   startLocation?: string;
+  endLocation?: string;
   totalDistance?: number;
   estimatedDuration?: number;
 }
@@ -19,6 +20,7 @@ export interface UpdateTransportRequest {
   routeNo?: string;
   routeName?: string;
   startLocation?: string;
+  endLocation?: string;
   totalDistance?: number;
   estimatedDuration?: number;
   isActive?: boolean;
@@ -33,6 +35,7 @@ export interface TransportResponse {
   routeNo: string;
   routeName: string;
   startLocation: string;
+  endLocation: string;
   totalDistance: number;
   estimatedDuration: number;
   isActive: boolean;

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { CreditCard, Plus, Download, Users, Building } from "lucide-react";
+import { CreditCard, Plus, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,8 +23,6 @@ export const PayrollManagementTemplate = () => {
     pendingAmount,
     
     // UI State
-    viewMode,
-    setViewMode,
     searchQuery,
     setSearchQuery,
     selectedMonth,
@@ -53,6 +51,7 @@ export const PayrollManagementTemplate = () => {
     handleUpdateStatus,
     handleViewPayslip,
     handleEditPayroll,
+    handleFormSubmit,
     
     // Utilities
     formatCurrency,
@@ -90,36 +89,6 @@ export const PayrollManagementTemplate = () => {
         </div>
       </motion.div>
 
-      {/* View Mode Toggle */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg"
-      >
-        <div className="flex items-center gap-2">
-          <Building className="h-4 w-4" />
-          <span className="font-medium">View Mode:</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={viewMode === "branch" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("branch")}
-          >
-            <Building className="h-4 w-4 mr-2" />
-            Branch Only
-          </Button>
-          <Button
-            variant={viewMode === "institute" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("institute")}
-          >
-            <Users className="h-4 w-4 mr-2" />
-            All Institute
-          </Button>
-        </div>
-      </motion.div>
 
       {/* Payroll Overview Cards */}
       <PayrollStatsCards
@@ -185,7 +154,7 @@ export const PayrollManagementTemplate = () => {
           setShowUpdateDialog(false);
           setSelectedPayroll(null);
         }}
-        onSubmit={selectedPayroll ? handleUpdatePayroll : handleCreatePayroll}
+        onSubmit={handleFormSubmit}
         employees={employees}
         selectedPayroll={selectedPayroll}
         formatCurrency={formatCurrency}
@@ -204,7 +173,7 @@ export const PayrollManagementTemplate = () => {
             className="bg-background rounded-lg p-6 max-w-2xl w-full mx-4"
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Payslip - {selectedPayroll.employee_name}</h3>
+              <h3 className="text-lg font-semibold">Payslip - Employee {selectedPayroll.employee_id}</h3>
               <Button
                 variant="ghost"
                 size="sm"
@@ -222,7 +191,7 @@ export const PayrollManagementTemplate = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Pay Period</p>
-                  <p className="font-medium">{selectedPayroll.payroll_month}/{selectedPayroll.payroll_year}</p>
+                  <p className="font-medium">{new Date(selectedPayroll.payroll_month).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>
                 </div>
               </div>
               
@@ -237,7 +206,7 @@ export const PayrollManagementTemplate = () => {
                 </div>
                 <div className="flex justify-between font-bold text-lg">
                   <span>Net Pay:</span>
-                  <span>{formatCurrency(selectedPayroll.net_salary)}</span>
+                  <span>{formatCurrency(selectedPayroll.net_pay)}</span>
                 </div>
               </div>
             </div>

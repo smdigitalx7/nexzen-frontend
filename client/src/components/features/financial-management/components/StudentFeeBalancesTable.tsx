@@ -43,6 +43,9 @@ interface StudentFeeBalancesTableProps {
   studentBalances: StudentFeeBalance[];
   onViewStudent: (student: StudentFeeBalance) => void;
   onExportCSV: () => void;
+  title?: string;
+  description?: string;
+  showHeader?: boolean;
 }
 
 const formatCurrency = (amount: number) => {
@@ -70,6 +73,9 @@ export const StudentFeeBalancesTable = ({
   studentBalances,
   onViewStudent,
   onExportCSV,
+  title = "Student Fee Balances",
+  description = "Track individual student fee payments and outstanding amounts",
+  showHeader = true,
 }: StudentFeeBalancesTableProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClass, setSelectedClass] = useState("all");
@@ -96,18 +102,20 @@ export const StudentFeeBalancesTable = ({
       className="space-y-4"
     >
       {/* Header and Actions */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Student Fee Balances</h2>
-          <p className="text-muted-foreground">
-            Track individual student fee payments and outstanding amounts
-          </p>
+      {showHeader && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">{title}</h2>
+            <p className="text-muted-foreground">
+              {description}
+            </p>
+          </div>
+          <Button onClick={onExportCSV} variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
         </div>
-        <Button onClick={onExportCSV} variant="outline">
-          <Download className="h-4 w-4 mr-2" />
-          Export CSV
-        </Button>
-      </div>
+      )}
 
       {/* Filters */}
       <div className="flex items-center gap-4">
