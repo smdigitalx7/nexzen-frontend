@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ServiceLocator } from "@/core";
+import { QUERY_STALE_TIME } from "@/lib/constants/query";
 import type { UserRead, UserCreate, UserUpdate, UserWithRolesAndBranches } from "@/lib/types/users";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/authStore";
@@ -22,7 +23,7 @@ export function useUsers() {
       // Clean architecture already returns the correct format
       return users;
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: QUERY_STALE_TIME, // 5 minutes
   });
 }
 
@@ -68,7 +69,7 @@ export function useUsersWithRoles() {
         throw new Error(`Failed to fetch users: ${error.message}`);
       }
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: QUERY_STALE_TIME, // 5 minutes
   });
 }
 
@@ -83,7 +84,7 @@ export function useUser(id: number) {
       return user;
     },
     enabled: Number.isFinite(id),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: QUERY_STALE_TIME, // 5 minutes
   });
 }
 

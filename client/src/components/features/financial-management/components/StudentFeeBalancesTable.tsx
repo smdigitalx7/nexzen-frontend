@@ -4,6 +4,8 @@ import { Eye, Download, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { formatCurrency } from "@/lib/utils";
+import { useTableState } from "@/lib/hooks/common/useTableState";
 import {
   Table,
   TableBody,
@@ -48,14 +50,6 @@ interface StudentFeeBalancesTableProps {
   showHeader?: boolean;
 }
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
-
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'PAID':
@@ -77,9 +71,26 @@ export const StudentFeeBalancesTable = ({
   description = "Track individual student fee payments and outstanding amounts",
   showHeader = true,
 }: StudentFeeBalancesTableProps) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedClass, setSelectedClass] = useState("all");
-  const [selectedStatus, setSelectedStatus] = useState("all");
+  // Using shared table state management
+  const {
+    searchTerm,
+    setSearchTerm,
+    filters,
+    setFilters,
+  } = useTableState({
+    initialFilters: { class: "all", status: "all" }
+  });
+  
+  const selectedClass = filters.class || "all";
+  const selectedStatus = filters.status || "all";
+
+  const handleClassFilterChange = (value: string) => {
+    setFilters(prev => ({ ...prev, class: value }));
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    setFilters(prev => ({ ...prev, status: value }));
+  };
 
   const filteredBalances = studentBalances.filter((student) => {
     const searchMatch = searchTerm === "" || 
@@ -130,7 +141,7 @@ export const StudentFeeBalancesTable = ({
             />
           </div>
         </div>
-        <Select value={selectedClass} onValueChange={setSelectedClass}>
+        <Select value={selectedClass} onValueChange={handleClassFilterChange}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Filter by class" />
           </SelectTrigger>
@@ -143,7 +154,7 @@ export const StudentFeeBalancesTable = ({
             ))}
           </SelectContent>
         </Select>
-        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+        <Select value={selectedStatus} onValueChange={handleStatusFilterChange}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>

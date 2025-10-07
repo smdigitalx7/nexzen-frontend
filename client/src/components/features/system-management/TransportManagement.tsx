@@ -11,6 +11,7 @@ import {
   DollarSign,
   Eye,
 } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -123,16 +124,6 @@ const TransportManagement = () => {
     max_distance: "",
     fee_amount: "",
   });
-
-  // Removed Student Assignments and Expenses state and helpers
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   const getRouteUtilization = (students: number, capacity: number) => {
     return (students / capacity) * 100;

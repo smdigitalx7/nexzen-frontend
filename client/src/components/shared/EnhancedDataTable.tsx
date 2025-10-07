@@ -95,7 +95,6 @@ export function EnhancedDataTable<TData>({
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     
-    console.log('Data exported to CSV');
   };
 
   const truncateText = (text: string, maxLength: number = 20) => {

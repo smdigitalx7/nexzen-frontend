@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ServiceLocator } from '@/core';
+import { QUERY_STALE_TIME } from '@/lib/constants/query';
 import { useClasses, useSubjects, useClassesWithSubjects } from '@/lib/hooks/useSchool';
 
 export const useAcademicData = () => {
@@ -33,7 +34,7 @@ export const useAcademicData = () => {
       };
       return Array.isArray(res.data) ? res.data.map(mapExam) : [];
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: QUERY_STALE_TIME,
   });
 
   useEffect(() => {
@@ -79,7 +80,7 @@ export const useAcademicData = () => {
         throw error;
       }
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: QUERY_STALE_TIME,
   });
 
   const [tests, setTests] = useState<any[]>([]);

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ServiceLocator } from "@/core";
+import { QUERY_STALE_TIME } from "@/lib/constants/query";
 import type { EmployeeRead, EmployeeCreate, EmployeeUpdate } from "@/lib/types/employees";
 import { useToast } from "@/hooks/use-toast";
 import { CreateEmployeeRequest, UpdateEmployeeRequest } from "@/core/application/dto/EmployeeDto";
@@ -66,7 +67,7 @@ export function useEmployeesByInstitute() {
         throw error;
       }
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: QUERY_STALE_TIME, // 5 minutes
   });
 }
 
@@ -140,7 +141,7 @@ export function useEmployee(id: number) {
       };
     },
     enabled: Number.isFinite(id) && id > 0,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: QUERY_STALE_TIME, // 5 minutes
   });
 }
 

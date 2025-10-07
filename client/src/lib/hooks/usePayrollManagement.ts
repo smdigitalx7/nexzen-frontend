@@ -4,6 +4,7 @@ import { usePayrollsByBranch, useCreatePayroll, useUpdatePayroll, useUpdatePayro
 import { useEmployeesByBranch } from "@/lib/hooks/useEmployees";
 import type { PayrollRead, PayrollCreate, PayrollUpdate } from "@/lib/types/payrolls";
 import { PayrollStatusEnum, PaymentMethodEnum } from "@/lib/types/payrolls";
+import { formatCurrency } from "@/lib/utils";
 
 export const usePayrollManagement = () => {
   const { user, currentBranch } = useAuthStore();
@@ -56,6 +57,21 @@ export const usePayrollManagement = () => {
       return matchesSearch && matchesMonth && matchesYear && matchesStatus;
     });
   }, [currentPayrolls, searchQuery, selectedMonth, selectedYear, selectedStatus]);
+
+  // Transform payrolls to include employee information
+  const payrollsWithEmployee = useMemo(() => {
+    return filteredPayrolls.map((payroll) => {
+      const employee = currentEmployees.find(emp => emp.employee_id === payroll.employee_id);
+      const date = new Date(payroll.payroll_month);
+      const year = date.getFullYear();
+      
+      return {
+        ...payroll,
+        employee_name: employee?.employee_name || 'Unknown Employee',
+        payroll_year: year,
+      };
+    });
+  }, [filteredPayrolls, currentEmployees]);
 
   // Statistics
   const totalPayrolls = currentPayrolls.length;
@@ -123,16 +139,6 @@ export const usePayrollManagement = () => {
     }
   };
 
-  // Utility functions
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case PayrollStatusEnum.PAID:
@@ -161,7 +167,7 @@ export const usePayrollManagement = () => {
 
   return {
     // Data
-    payrolls: filteredPayrolls,
+    payrolls: payrollsWithEmployee,
     employees: currentEmployees,
     
     // Statistics

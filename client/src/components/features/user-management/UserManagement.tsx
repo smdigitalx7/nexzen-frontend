@@ -14,6 +14,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
+import {
+  createAvatarColumn,
+  createTextColumn,
+  createBadgeColumn,
+  createDateColumn,
+  createActionColumn,
+  createViewAction,
+  createEditAction,
+  createDeleteAction
+} from "@/lib/utils/columnFactories.tsx";
 import { useUsersWithRoles, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserStatus } from '@/lib/hooks/useUsers';
 import { useRoles } from '@/lib/hooks/useRoles';
 import { useBranches } from '@/lib/hooks/useBranches';
@@ -58,58 +68,6 @@ const UserManagement = () => {
   const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
   const [selectedDefaultBranch, setSelectedDefaultBranch] = useState<number | null>(null);
 
-  const getRoleIcon = (roleName: string) => {
-    switch (roleName) {
-      case 'INSTITUTE_ADMIN':
-        return <ShieldCheck className="h-4 w-4 text-red-600" />;
-      case 'ADMIN':
-        return <ShieldCheck className="h-4 w-4 text-purple-600" />;
-      case 'ACCOUNTANT':
-        return <Shield className="h-4 w-4 text-green-600" />;
-      case 'ACADEMIC':
-        return <Shield className="h-4 w-4 text-blue-600" />;
-      default:
-        return <Shield className="h-4 w-4 text-gray-600" />;
-    }
-  };
-
-  const getRoleColor = (roleName: string) => {
-    switch (roleName) {
-      case 'INSTITUTE_ADMIN':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      case 'ADMIN':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
-      case 'ACCOUNTANT':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'ACADEMIC':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-    }
-  };
-
-  const getDisplayRoleName = (roleName: string) => {
-    switch (roleName) {
-      case 'INSTITUTE_ADMIN':
-        return 'Institute Admin';
-      case 'ADMIN':
-        return 'Admin';
-      case 'ACCOUNTANT':
-        return 'Accountant';
-      case 'ACADEMIC':
-        return 'Academic';
-      default:
-        return roleName;
-    }
-  };
-
-  const getStatusColor = (isActive: boolean) => {
-    return isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-  };
-
-  const truncateText = (text: string, maxLength: number = 20) => {
-    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
-  };
 
   const handleAddUser = () => {
     setIsEditing(false);
@@ -215,123 +173,18 @@ const UserManagement = () => {
     });
   };
 
-  const columns: ColumnDef<UserWithRolesAndBranches>[] = [
-    {
-      accessorKey: 'full_name',
-      header: 'Full Name',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="text-xs">
-              {row.original.full_name ? row.original.full_name.split(' ').map((n: string) => n[0]).join('') : 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <span className="font-medium" title={row.original.full_name || 'Unknown User'}>
-              {truncateText(row.original.full_name || 'Unknown User')}
-            </span>
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'email',
-      header: 'Email',
-      cell: ({ row }) => (
-        <span title={row.original.email || 'No email'}>
-          {truncateText(row.original.email || 'No email', 25)}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'mobile_no',
-      header: 'Mobile',
-      cell: ({ row }) => (
-        <span>{row.original.mobile_no || 'N/A'}</span>
-      ),
-    },
-    {
-      accessorKey: 'roles',
-      header: 'Role',
-      cell: ({ row }) => {
-        const user = row.original;
-        // If user has roles, show the first role, otherwise show based on is_institute_admin
-        const primaryRole = user.roles && user.roles.length > 0 
-          ? user.roles[0].role_name 
-          : (user.is_institute_admin ? 'INSTITUTE_ADMIN' : 'USER');
-        
-        return (
-          <Badge className={getRoleColor(primaryRole)}>
-            <div className="flex items-center gap-1">
-              {getRoleIcon(primaryRole)}
-              {getDisplayRoleName(primaryRole)}
-            </div>
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: 'is_active',
-      header: 'Status',
-      cell: ({ row }) => (
-        <Badge className={getStatusColor(row.original.is_active)}>
-          <div className={`w-2 h-2 rounded-full mr-2 ${row.original.is_active ? 'bg-green-500' : 'bg-gray-400'}`} />
-          {row.original.is_active ? 'Active' : 'Inactive'}
-        </Badge>
-      ),
-    },
-    {
-      accessorKey: 'created_at',
-      header: 'Created',
-      cell: ({ row }) => row.original.created_at ? new Date(row.original.created_at).toLocaleDateString() : 'N/A',
-    },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover-elevate">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => {
-              setSelectedUser(row.original);
-              setShowDetail(true);
-            }}>
-              <Eye className="mr-2 h-4 w-4" />
-              View Details
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleEditUser(row.original)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit User
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleStatusToggle(row.original)}>
-              {row.original.is_active ? (
-                <>
-                  <UserX className="mr-2 h-4 w-4" />
-                  Deactivate
-                </>
-              ) : (
-                <>
-                  <UserCheck className="mr-2 h-4 w-4" />
-                  Activate
-                </>
-              )}
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => handleDeleteUser(row.original)}
-              className="text-red-600 focus:text-red-600"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete User
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
-  ];
+  const columns: ColumnDef<UserWithRolesAndBranches>[] = useMemo(() => ([
+    createAvatarColumn<UserWithRolesAndBranches>('full_name', 'email', { header: 'Full Name' }),
+    createTextColumn<UserWithRolesAndBranches>('email', { header: 'Email' }),
+    createTextColumn<UserWithRolesAndBranches>('mobile_no', { header: 'Mobile', fallback: 'N/A' }),
+    createBadgeColumn<UserWithRolesAndBranches>('is_active', { header: 'Status', variant: 'outline' }),
+    createDateColumn<UserWithRolesAndBranches>('created_at', { header: 'Created' }),
+    createActionColumn<UserWithRolesAndBranches>([
+      createViewAction((row) => { setSelectedUser(row); setShowDetail(true); }),
+      createEditAction((row) => handleEditUser(row)),
+      createDeleteAction((row) => handleDeleteUser(row))
+    ])
+  ]), [handleEditUser, handleDeleteUser]);
 
   // Stats cards
   const statsCards = useMemo(() => [
@@ -495,7 +348,7 @@ const UserManagement = () => {
                     ) : (
                       roles.map((role) => (
                         <SelectItem key={role.role_id} value={role.role_id.toString()}>
-                          {getDisplayRoleName(role.role_name)}
+                          {role.role_name}
                         </SelectItem>
                       ))
                     )}
@@ -628,7 +481,7 @@ const UserManagement = () => {
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Status</Label>
-                  <Badge className={getStatusColor(selectedUser.is_active)}>
+                  <Badge className={selectedUser.is_active ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'}>
                     {selectedUser.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>

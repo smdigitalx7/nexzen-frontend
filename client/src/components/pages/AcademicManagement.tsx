@@ -11,6 +11,7 @@ import {
   SubjectsTab,
   ExamsTab,
   TestTab,
+  AcademicYearManagement,
 } from '../features/academic-management';
 
 const AcademicManagement = () => {
@@ -90,11 +91,12 @@ const AcademicManagement = () => {
         transition={{ delay: 0.2 }}
       >
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="classes">Classes</TabsTrigger>
             <TabsTrigger value="subjects">Subjects</TabsTrigger>
             <TabsTrigger value="exams">Exams</TabsTrigger>
             <TabsTrigger value="tests">Tests</TabsTrigger>
+            <TabsTrigger value="academic-years">Academic Years</TabsTrigger>
           </TabsList>
 
           {/* Classes Tab */}
@@ -146,6 +148,11 @@ const AcademicManagement = () => {
               hasError={hasError}
               errorMessage={errorMessage}
             />
+          </TabsContent>
+
+          {/* Academic Years Tab */}
+          <TabsContent value="academic-years" className="space-y-4">
+            <AcademicYearManagement />
           </TabsContent>
 
         </Tabs>

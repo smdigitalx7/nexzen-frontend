@@ -58,88 +58,69 @@ export const CollegeManagementTemplate = () => {
     handleUpdateSection,
     handleDeleteSection,
     
-    // Utilities
-    formatCurrency,
-    
     // User context
     user,
     currentBranch
   } = useCollegeManagement();
 
   const handleAddGroup = () => {
-    console.log("Add group clicked");
     setShowGroupForm(true);
   };
 
   const handleEditGroup = (group: any) => {
-    console.log("Edit group:", group);
     setShowGroupForm(true);
   };
 
   const handleDeleteGroupClick = (id: number) => {
-    console.log("Delete group:", id);
     handleDeleteGroup(id);
   };
 
   const handleViewGroup = (group: any) => {
-    console.log("View group:", group);
   };
 
   const handleAddCourse = () => {
-    console.log("Add course clicked");
     setShowCourseForm(true);
   };
 
   const handleEditCourse = (course: any) => {
-    console.log("Edit course:", course);
     setShowCourseForm(true);
   };
 
   const handleDeleteCourseClick = (id: number) => {
-    console.log("Delete course:", id);
     handleDeleteCourse(id);
   };
 
   const handleViewCourse = (course: any) => {
-    console.log("View course:", course);
   };
 
   const handleAddCombination = () => {
-    console.log("Add combination clicked");
     setShowCombinationForm(true);
   };
 
   const handleEditCombination = (combination: any) => {
-    console.log("Edit combination:", combination);
     setShowCombinationForm(true);
   };
 
   const handleDeleteCombinationClick = (id: number) => {
-    console.log("Delete combination:", id);
     handleDeleteCombination(id);
   };
 
   const handleViewCombination = (combination: any) => {
-    console.log("View combination:", combination);
   };
 
   const handleAddSection = () => {
-    console.log("Add section clicked");
     setShowSectionForm(true);
   };
 
   const handleEditSection = (section: any) => {
-    console.log("Edit section:", section);
     setShowSectionForm(true);
   };
 
   const handleDeleteSectionClick = (id: number) => {
-    console.log("Delete section:", id);
     handleDeleteSection(id);
   };
 
   const handleViewSection = (section: any) => {
-    console.log("View section:", section);
   };
 
   return (
@@ -211,7 +192,6 @@ export const CollegeManagementTemplate = () => {
               onEditGroup={handleEditGroup}
               onDeleteGroup={handleDeleteGroupClick}
               onViewGroup={handleViewGroup}
-              formatCurrency={formatCurrency}
             />
           </motion.div>
         </TabsContent>
@@ -239,7 +219,6 @@ export const CollegeManagementTemplate = () => {
               onEditCourse={handleEditCourse}
               onDeleteCourse={handleDeleteCourseClick}
               onViewCourse={handleViewCourse}
-              formatCurrency={formatCurrency}
             />
           </motion.div>
         </TabsContent>
@@ -267,7 +246,6 @@ export const CollegeManagementTemplate = () => {
               onEditCombination={handleEditCombination}
               onDeleteCombination={handleDeleteCombinationClick}
               onViewCombination={handleViewCombination}
-              formatCurrency={formatCurrency}
             />
           </motion.div>
         </TabsContent>

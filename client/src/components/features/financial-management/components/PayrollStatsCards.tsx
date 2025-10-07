@@ -2,13 +2,13 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, CreditCard, Clock, TrendingUp } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 interface PayrollStatsCardsProps {
   totalPayrolls: number;
   totalAmount: number;
   paidAmount: number;
   pendingAmount: number;
-  formatCurrency: (amount: number) => string;
   currentBranch?: { branch_name: string } | null;
 }
 
@@ -17,7 +17,6 @@ export const PayrollStatsCards = ({
   totalAmount,
   paidAmount,
   pendingAmount,
-  formatCurrency,
   currentBranch,
 }: PayrollStatsCardsProps) => {
   const stats = [

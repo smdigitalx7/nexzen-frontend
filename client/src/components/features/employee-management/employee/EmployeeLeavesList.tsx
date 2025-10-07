@@ -26,11 +26,6 @@ const statusColor = (status: string) => {
 };
 
 const EmployeeLeavesList = ({ leaves, employees, onApprove, onReject, onEdit, onDelete, page, pageSize, total, setPage }: EmployeeLeavesListProps) => {
-  console.log('🔍 EmployeeLeavesList: Received props:', {
-    leavesCount: leaves?.length || 0,
-    employeesCount: employees?.length || 0,
-    leaves: leaves?.slice(0, 2) // Show first 2 records for debugging
-  });
   return (
     <div className="space-y-4">
       {leaves.map((leave) => {

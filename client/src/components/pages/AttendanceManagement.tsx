@@ -9,6 +9,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
+import { useSearchFilters, useTableFilters } from '@/lib/hooks/common';
 import { useToast } from '@/hooks/use-toast';
 
 // Mock data for attendance
@@ -65,7 +66,7 @@ const AttendanceManagement = () => {
   const [selectedClass, setSelectedClass] = useState('all');
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [activeTab, setActiveTab] = useState('mark');
-  const [searchQuery, setSearchQuery] = useState('');
+  
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const { toast } = useToast();
 
@@ -166,14 +167,19 @@ const AttendanceManagement = () => {
   };
 
   // Filtered attendance data for reports
-  const filteredAttendanceData = useMemo(() => {
-    return attendanceRecords.filter(record => {
-      const matchesClass = selectedClass === 'all' || record.class_id.toString() === selectedClass;
-      const matchesSubject = selectedSubject === 'all' || record.subject === selectedSubject;
-      const matchesSearch = record.student_name.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesClass && matchesSubject && matchesSearch;
-    });
-  }, [attendanceRecords, selectedClass, selectedSubject, searchQuery]);
+  // Shared search + select filters for reports tab
+  const { searchTerm, setSearchTerm, filteredItems: searchFiltered } = useSearchFilters<any>(
+    attendanceRecords,
+    { keys: ['student_name'] as any }
+  );
+
+  const { setFilter, filteredItems: filteredAttendanceData } = useTableFilters<any>(
+    searchFiltered,
+    [
+      { key: 'class_id' as any, value: selectedClass === 'all' ? 'all' : selectedClass ? parseInt(selectedClass) : 'all' },
+      { key: 'subject' as any, value: selectedSubject === 'all' ? 'all' : selectedSubject },
+    ]
+  );
 
   // Calculate attendance statistics
   const attendanceStats = useMemo(() => {
@@ -546,13 +552,13 @@ const AttendanceManagement = () => {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
                       placeholder="Search students..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10"
                       data-testid="input-search-attendance"
                     />
                   </div>
-                  <Select value={selectedClass} onValueChange={setSelectedClass}>
+                  <Select value={selectedClass} onValueChange={(v) => { setSelectedClass(v); setFilter('class_id', v === 'all' ? 'all' : parseInt(v)); }}>
                     <SelectTrigger className="w-full sm:w-[150px]" data-testid="select-report-class">
                       <SelectValue placeholder="All Classes" />
                     </SelectTrigger>
@@ -565,7 +571,7 @@ const AttendanceManagement = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                  <Select value={selectedSubject} onValueChange={(v) => { setSelectedSubject(v); setFilter('subject', v === 'all' ? 'all' : v); }}>
                     <SelectTrigger className="w-full sm:w-[150px]" data-testid="select-report-subject">
                       <SelectValue placeholder="All Subjects" />
                     </SelectTrigger>

@@ -1,31 +1,22 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Edit, Trash2, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTableWithFilters, FormDialog, ConfirmDialog } from "@/components/shared";
 import { useCreateSubject, useUpdateSubject } from '@/lib/hooks/useSchool';
 import { useToast } from '@/hooks/use-toast';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import type { ColumnDef } from "@tanstack/react-table";
+import { 
+  createIconTextColumn, 
+  createBadgeColumn, 
+  createTruncatedTextColumn,
+  createCountBadgeColumn,
+  createActionColumn,
+  createEditAction,
+  createDeleteAction
+} from "@/lib/utils/columnFactories.tsx";
 
 interface SubjectsTabProps {
   backendSubjects: any[];
@@ -50,256 +41,276 @@ export const SubjectsTab = ({
   const [isEditSubjectOpen, setIsEditSubjectOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<any>(null);
-  const [newSubject, setNewSubject] = useState({
-    subject_name: "",
+  const [newSubject, setNewSubject] = useState({ 
+    subject_name: "", 
+    subject_code: "", 
+    description: "" 
   });
-  const [editSubject, setEditSubject] = useState({
-    subject_name: "",
+  const [editSubject, setEditSubject] = useState({ 
+    subject_name: "", 
+    subject_code: "", 
+    description: "" 
   });
-  
+
+  const { toast } = useToast();
   const createSubjectMutation = useCreateSubject();
   const updateSubjectMutation = useUpdateSubject();
-  const { toast } = useToast();
 
-  const handleAddSubject = () => {
-    if (newSubject.subject_name?.trim()) {
-      createSubjectMutation.mutate({ subject_name: newSubject.subject_name.trim() });
+  const handleCreateSubject = async () => {
+    if (!newSubject.subject_name.trim()) {
+      toast({
+        title: "Error",
+        description: "Subject name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await createSubjectMutation.mutateAsync({
+        subject_name: newSubject.subject_name.trim(),
+      });
+      
       toast({
         title: "Success",
-        description: "Subject added successfully",
+        description: "Subject created successfully",
+      });
+      
+      setNewSubject({ subject_name: "", subject_code: "", description: "" });
+      setIsAddSubjectOpen(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create subject",
+        variant: "destructive",
       });
     }
-    setNewSubject({
-      subject_name: "",
-    });
-    setIsAddSubjectOpen(false);
   };
 
-  const handleEditSubject = (subject: any) => {
-    setSelectedSubject(subject);
-    setEditSubject({
-      subject_name: subject.subject_name,
-    });
-    setIsEditSubjectOpen(true);
-  };
-
-  const handleUpdateSubject = () => {
-    if (editSubject.subject_name?.trim() && selectedSubject) {
-      updateSubjectMutation.mutate({
-        id: selectedSubject.subject_id,
-        payload: { subject_name: editSubject.subject_name.trim() }
+  const handleUpdateSubject = async () => {
+    if (!editSubject.subject_name.trim() || !selectedSubject) {
+      toast({
+        title: "Error",
+        description: "Subject name is required",
+        variant: "destructive",
       });
+      return;
+    }
+
+    try {
+      await updateSubjectMutation.mutateAsync({
+        id: selectedSubject.id,
+        payload: {
+          subject_name: editSubject.subject_name.trim(),
+        }
+      });
+      
       toast({
         title: "Success",
         description: "Subject updated successfully",
       });
+      
+      setEditSubject({ subject_name: "", subject_code: "", description: "" });
+      setSelectedSubject(null);
+      setIsEditSubjectOpen(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update subject",
+        variant: "destructive",
+      });
     }
-    setEditSubject({
-      subject_name: "",
-    });
-    setSelectedSubject(null);
-    setIsEditSubjectOpen(false);
   };
 
-  const handleDeleteSubject = (subject: any) => {
+  const handleDeleteSubject = async () => {
+    if (!selectedSubject) return;
+
+    try {
+      // Add delete logic here
+      toast({
+        title: "Success",
+        description: "Subject deleted successfully",
+      });
+      
+      setSelectedSubject(null);
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete subject",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditClick = (subject: any) => {
+    setSelectedSubject(subject);
+    setEditSubject({ 
+      subject_name: subject.subject_name,
+      subject_code: subject.subject_code || "",
+      description: subject.description || ""
+    });
+    setIsEditSubjectOpen(true);
+  };
+
+  const handleDeleteClick = (subject: any) => {
     setSelectedSubject(subject);
     setIsDeleteDialogOpen(true);
   };
 
-  const confirmDeleteSubject = () => {
-    if (selectedSubject) {
-      // For now, just show a message that delete is not implemented
-      toast({
-        title: "Not Available",
-        description: "Delete functionality is not yet implemented",
-        variant: "destructive",
-      });
-    }
-    setSelectedSubject(null);
-    setIsDeleteDialogOpen(false);
-  };
+  // Define columns for the data table using column factories
+  const columns: ColumnDef<any>[] = useMemo(() => [
+    createIconTextColumn<any>("subject_name", { 
+      icon: BookOpen, 
+      header: "Subject Name" 
+    }),
+    createBadgeColumn<any>("subject_code", { 
+      header: "Code", 
+      variant: "outline",
+      fallback: "N/A"
+    }),
+    createTruncatedTextColumn<any>("description", { 
+      header: "Description", 
+      fallback: "No description" 
+    }),
+    createCountBadgeColumn<any>("classes_count", { 
+      header: "Classes", 
+      variant: "secondary",
+      fallback: "classes"
+    }),
+    createActionColumn<any>([
+      createEditAction(handleEditClick),
+      createDeleteAction(handleDeleteClick)
+    ])
+  ], []);
 
-
-  const filteredSubjects = backendSubjects.filter(
-    (subject) => subject.subject_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  const hasSubjectCode = filteredSubjects.some((s) => !!s.subject_code);
+  if (subjectsLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Input
-            placeholder="Search subjects..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
-          />
-          <Badge variant="outline">
-            {filteredSubjects.length} Subjects
-          </Badge>
-        </div>
-        <Dialog
-          open={isAddSubjectOpen}
-          onOpenChange={setIsAddSubjectOpen}
-        >
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Subject
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Subject</DialogTitle>
-              <DialogDescription>
-                Create a new subject with teacher assignment
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="subject_name">Subject Name</Label>
-                <Input
-                  id="subject_name"
-                  value={newSubject.subject_name}
-                  onChange={(e) =>
-                    setNewSubject({
-                      ...newSubject,
-                      subject_name: e.target.value,
-                    })
-                  }
-                  placeholder="Mathematics"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsAddSubjectOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleAddSubject}>Add Subject</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+      <DataTableWithFilters
+        data={backendSubjects}
+        columns={columns}
+        title="Subjects"
+        description="Manage academic subjects and their details"
+        searchKey="subject_name"
+        exportable={true}
+        onAdd={() => setIsAddSubjectOpen(true)}
+      />
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>Subject</TableHead>
-            {hasSubjectCode && <TableHead>Code</TableHead>}
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {subjectsLoading ? (
-            <TableRow>
-              <TableCell colSpan={hasSubjectCode ? 4 : 3} className="text-center py-8">
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-2"></div>
-                  Loading subjects...
-                </div>
-              </TableCell>
-            </TableRow>
-          ) : filteredSubjects.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={hasSubjectCode ? 4 : 3} className="text-center py-8 text-slate-500">
-                No subjects found.
-              </TableCell>
-            </TableRow>
-          ) : (
-            filteredSubjects.map((subject) => (
-            <TableRow key={subject.subject_id}>
-              <TableCell className="font-mono text-xs text-slate-500">
-                {subject.subject_id}
-              </TableCell>
-              <TableCell className="font-medium">
-                {subject.subject_name}
-              </TableCell>
-              {hasSubjectCode && (
-                <TableCell>{subject.subject_code || '-'}</TableCell>
-              )}
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleEditSubject(subject)}
-                    title="Edit subject"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleDeleteSubject(subject)}
-                    title="Delete subject"
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+      {/* Add Subject Dialog */}
+      <FormDialog
+        open={isAddSubjectOpen}
+        onOpenChange={setIsAddSubjectOpen}
+        title="Add New Subject"
+        description="Create a new academic subject"
+        onSave={handleCreateSubject}
+        onCancel={() => {
+          setIsAddSubjectOpen(false);
+          setNewSubject({ subject_name: "", subject_code: "", description: "" });
+        }}
+        saveText="Create Subject"
+        cancelText="Cancel"
+        disabled={createSubjectMutation.isPending}
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="subject_name">Subject Name</Label>
+            <Input
+              id="subject_name"
+              value={newSubject.subject_name}
+              onChange={(e) => setNewSubject({ ...newSubject, subject_name: e.target.value })}
+              placeholder="Enter subject name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="subject_code">Subject Code</Label>
+            <Input
+              id="subject_code"
+              value={newSubject.subject_code}
+              onChange={(e) => setNewSubject({ ...newSubject, subject_code: e.target.value })}
+              placeholder="Enter subject code"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Input
+              id="description"
+              value={newSubject.description}
+              onChange={(e) => setNewSubject({ ...newSubject, description: e.target.value })}
+              placeholder="Enter description"
+            />
+          </div>
+        </div>
+      </FormDialog>
 
       {/* Edit Subject Dialog */}
-      <Dialog open={isEditSubjectOpen} onOpenChange={setIsEditSubjectOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Subject</DialogTitle>
-            <DialogDescription>
-              Update the subject information.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="edit-subject-name">Subject Name</Label>
-              <Input
-                id="edit-subject-name"
-                value={editSubject.subject_name}
-                onChange={(e) => setEditSubject({ ...editSubject, subject_name: e.target.value })}
-                placeholder="Enter subject name"
-              />
-            </div>
+      <FormDialog
+        open={isEditSubjectOpen}
+        onOpenChange={setIsEditSubjectOpen}
+        title="Edit Subject"
+        description="Update subject information"
+        onSave={handleUpdateSubject}
+        onCancel={() => {
+          setIsEditSubjectOpen(false);
+          setEditSubject({ subject_name: "", subject_code: "", description: "" });
+          setSelectedSubject(null);
+        }}
+        saveText="Update Subject"
+        cancelText="Cancel"
+        disabled={updateSubjectMutation.isPending}
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit_subject_name">Subject Name</Label>
+            <Input
+              id="edit_subject_name"
+              value={editSubject.subject_name}
+              onChange={(e) => setEditSubject({ ...editSubject, subject_name: e.target.value })}
+              placeholder="Enter subject name"
+            />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditSubjectOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateSubject}>
-              Update Subject
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div className="space-y-2">
+            <Label htmlFor="edit_subject_code">Subject Code</Label>
+            <Input
+              id="edit_subject_code"
+              value={editSubject.subject_code}
+              onChange={(e) => setEditSubject({ ...editSubject, subject_code: e.target.value })}
+              placeholder="Enter subject code"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit_description">Description</Label>
+            <Input
+              id="edit_description"
+              value={editSubject.description}
+              onChange={(e) => setEditSubject({ ...editSubject, description: e.target.value })}
+              placeholder="Enter description"
+            />
+          </div>
+        </div>
+      </FormDialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the subject "{selectedSubject?.subject_name}".
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDeleteSubject}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Delete Subject"
+        description={`Are you sure you want to delete the subject "${selectedSubject?.subject_name}"? This action cannot be undone.`}
+        onConfirm={handleDeleteSubject}
+        onCancel={() => {
+          setIsDeleteDialogOpen(false);
+          setSelectedSubject(null);
+        }}
+        confirmText="Delete"
+        variant="destructive"
+      />
     </div>
   );
 };

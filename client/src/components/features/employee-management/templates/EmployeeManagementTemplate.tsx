@@ -17,6 +17,9 @@ import AdvanceFormDialog from "../Advance/AdvanceFormDialog";
 import AdvanceStatusDialog from "../Advance/AdvanceStatusDialog";
 import AdvanceAmountDialog from "../Advance/AdvanceAmountDialog";
 import AdvanceDeleteDialog from "../Advance/AdvanceDeleteDialog";
+import EmployeeFormDialog from "../employee/EmployeeFormDialog";
+import EmployeeDetailDialog from "../employee/EmployeeDetailDialog";
+import EmployeeDeleteDialog from "../employee/EmployeeDeleteDialog";
 
 export const EmployeeManagementTemplate = () => {
   const {
@@ -47,6 +50,22 @@ export const EmployeeManagementTemplate = () => {
     attendanceLoading,
     leavesLoading,
     advancesLoading,
+    
+    // Employee state
+    showEmployeeForm,
+    setShowEmployeeForm,
+    isEditingEmployee,
+    setIsEditingEmployee,
+    selectedEmployee,
+    setSelectedEmployee,
+    showEmployeeDetail,
+    setShowEmployeeDetail,
+    showDeleteEmployeeDialog,
+    setShowDeleteEmployeeDialog,
+    employeeToDelete,
+    setEmployeeToDelete,
+    newStatus,
+    setNewStatus,
     
     // Business logic
     handleCreateEmployee,
@@ -105,39 +124,38 @@ export const EmployeeManagementTemplate = () => {
     user,
   } = useEmployeeManagement();
 
-  console.log('🔍 EmployeeManagementTemplate: Data received:', {
-    employeesCount: employees?.length || 0,
-    totalEmployees,
-    activeEmployees,
-    presentToday,
-    pendingLeaves,
-    pendingAdvances,
-    currentBranch: currentBranch?.branch_name
-  });
 
   const handleAddEmployee = () => {
-    console.log("Add employee clicked");
-    // Implement add employee logic
+    setSelectedEmployee(null);
+    setIsEditingEmployee(false);
+    setShowEmployeeForm(true);
   };
 
   const handleEditEmployee = (employee: any) => {
-    console.log("Edit employee:", employee);
-    // Implement edit employee logic
+    setSelectedEmployee(employee);
+    setIsEditingEmployee(true);
+    setShowEmployeeForm(true);
   };
 
-  const handleDeleteEmployeeClick = (employee: any) => {
-    console.log("Delete employee:", employee);
-    // Implement delete employee logic
+  const handleDeleteEmployeeClick = async (id: number) => {
+    const employee = employees.find(emp => emp.employee_id === id);
+    if (employee) {
+      setEmployeeToDelete(employee as any);
+      setShowDeleteEmployeeDialog(true);
+    }
   };
 
   const handleViewEmployee = (employee: any) => {
-    console.log("View employee:", employee);
-    // Implement view employee logic
+    setSelectedEmployee(employee);
+    setShowEmployeeDetail(true);
   };
 
-  const handleUpdateEmployeeStatusClick = (id: number, status: string) => {
-    console.log("Update employee status:", id, status);
-    // Implement update status logic
+  const handleUpdateEmployeeStatusClick = async (id: number, status: string) => {
+    try {
+      await handleUpdateEmployeeStatus(id, status);
+    } catch (error) {
+      console.error("Failed to update employee status:", error);
+    }
   };
 
   return (
@@ -212,10 +230,10 @@ export const EmployeeManagementTemplate = () => {
             <AttendanceTable
               attendance={attendance}
               isLoading={attendanceLoading}
-              onAddAttendance={() => console.log("Add attendance")}
-              onEditAttendance={(record) => console.log("Edit attendance:", record)}
-              onDeleteAttendance={(id) => console.log("Delete attendance:", id)}
-              onViewAttendance={(record) => console.log("View attendance:", record)}
+              onAddAttendance={() => {}}
+              onEditAttendance={(record) => {}}
+              onDeleteAttendance={(id) => {}}
+              onViewAttendance={(record) => {}}
             />
           </motion.div>
         </TabsContent>
@@ -479,10 +497,80 @@ export const EmployeeManagementTemplate = () => {
         onConfirm={async () => {
           if (advanceToDelete) {
             // Add delete handler when available
-            console.log('Delete advance:', advanceToDelete);
             setShowAdvanceDeleteDialog(false);
           }
         }}
+      />
+      
+      {/* Employee Form Dialog */}
+      <EmployeeFormDialog
+        open={showEmployeeForm}
+        onOpenChange={setShowEmployeeForm}
+        isEditing={isEditingEmployee}
+        formData={selectedEmployee as any || {}}
+        onChange={(field, value) => {
+          if (selectedEmployee) {
+            setSelectedEmployee({ ...selectedEmployee, [field]: value } as any);
+          }
+        }}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (isEditingEmployee && selectedEmployee) {
+            await handleUpdateEmployee(selectedEmployee.employee_id, selectedEmployee as any);
+          } else {
+            await handleCreateEmployee(selectedEmployee as any);
+          }
+        }}
+        isCreatePending={false}
+        isUpdatePending={false}
+      />
+      
+      {/* Employee Detail Dialog */}
+      <EmployeeDetailDialog
+        open={showEmployeeDetail}
+        onOpenChange={setShowEmployeeDetail}
+        employee={selectedEmployee}
+        newStatus={newStatus}
+        onStatusChange={setNewStatus}
+        onUpdateStatus={async () => {
+          if (selectedEmployee) {
+            await handleUpdateEmployeeStatus(selectedEmployee.employee_id, newStatus);
+          }
+        }}
+        isUpdating={false}
+        getStatusColor={(status: string) => {
+          switch (status.toUpperCase()) {
+            case "ACTIVE":
+              return "bg-green-100 text-green-800 border-green-200";
+            case "INACTIVE":
+              return "bg-red-100 text-red-800 border-red-200";
+            case "SUSPENDED":
+              return "bg-yellow-100 text-yellow-800 border-yellow-200";
+            default:
+              return "bg-gray-100 text-gray-800 border-gray-200";
+          }
+        }}
+        formatCurrency={(amount: number) => {
+          return new Intl.NumberFormat("en-IN", {
+            style: "currency",
+            currency: "INR",
+          }).format(amount);
+        }}
+      />
+      
+      {/* Employee Delete Dialog */}
+      <EmployeeDeleteDialog
+        open={showDeleteEmployeeDialog}
+        onOpenChange={setShowDeleteEmployeeDialog}
+        employee={employeeToDelete}
+        onConfirm={async () => {
+          if (employeeToDelete) {
+            await handleDeleteEmployee(employeeToDelete.employee_id);
+            setShowDeleteEmployeeDialog(false);
+            setEmployeeToDelete(null);
+          }
+        }}
+        isPending={false}
       />
     </div>
   );

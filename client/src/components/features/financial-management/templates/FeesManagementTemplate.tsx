@@ -63,7 +63,6 @@ export const FeesManagementTemplate = () => {
   };
 
   const handleCollectPayment = (amount: number, paymentMode: string) => {
-    console.log(`Collecting ${amount} via ${paymentMode} from ${selectedStudent?.student_name}`);
     // Implement actual payment collection logic here
     applyCollect();
   };

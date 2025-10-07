@@ -1,10 +1,8 @@
 import { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Calendar, Edit, Trash2, Search, Filter, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Plus, Trash2, Search, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -13,6 +11,15 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { EnhancedDataTable } from '@/components/shared';
+import { useSearchFilters, useTableFilters } from '@/lib/hooks/common';
+import {
+  createTextColumn,
+  createDateColumn,
+  createBadgeColumn,
+  createActionColumn,
+  createEditAction,
+  createDeleteAction
+} from "@/lib/utils/columnFactories.tsx";
 import { useToast } from '@/hooks/use-toast';
 import { useAcademicYears, useCreateAcademicYear, useUpdateAcademicYear, useDeleteAcademicYear } from '@/lib/hooks/useAcademicYear';
 
@@ -43,7 +50,6 @@ const AcademicYearManagement = () => {
   const createAcademicYearMutation = useCreateAcademicYear();
   const updateAcademicYearMutation = useUpdateAcademicYear();
   const deleteAcademicYearMutation = useDeleteAcademicYear();
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingAcademicYear, setEditingAcademicYear] = useState<any>(null);
@@ -60,112 +66,30 @@ const AcademicYearManagement = () => {
     },
   });
 
-  // Filtered data based on search and filters
-  const filteredData = useMemo(() => {
-    return academicYears.filter((academicYear: UIAcademicYearRow) => {
-      const matchesSearch = 
-        academicYear.year_name.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesStatus = selectedStatus === 'all' || 
-        (selectedStatus === 'active' && academicYear.is_active) ||
-        (selectedStatus === 'inactive' && !academicYear.is_active);
-      
-      return matchesSearch && matchesStatus;
-    });
-  }, [academicYears, searchQuery, selectedStatus]);
+  // Shared search + select filters
+  const { searchTerm, setSearchTerm, filteredItems: searchFiltered } = useSearchFilters<UIAcademicYearRow>(
+    academicYears,
+    { keys: ['year_name'] as any }
+  );
 
-  const getStatusColor = (isActive: boolean) => {
-    return isActive ? 'bg-green-500' : 'bg-gray-500';
-  };
+  const { setFilter, filteredItems: filteredData } = useTableFilters<UIAcademicYearRow>(
+    searchFiltered,
+    [
+      { key: 'is_active' as keyof UIAcademicYearRow, value: selectedStatus === 'all' ? 'all' : (selectedStatus === 'active') },
+    ]
+  );
 
-  const getStatusText = (isActive: boolean) => {
-    return isActive ? 'Active' : 'Inactive';
-  };
-
-  const columns = [
-    {
-      accessorKey: 'year_name',
-      header: 'Academic Year',
-      cell: ({ row }: { row: { original: UIAcademicYearRow } }) => (
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-blue-600" />
-          <span className="font-medium">{row.original.year_name}</span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'start_date',
-      header: 'Start Date',
-      cell: ({ row }: { row: { original: UIAcademicYearRow } }) => {
-        const date = new Date(row.original.start_date);
-        return (
-          <span className="text-slate-600">
-            {isNaN(date.getTime()) ? row.original.start_date : date.toLocaleDateString()}
-          </span>
-        );
-      },
-    },
-    {
-      accessorKey: 'end_date',
-      header: 'End Date',
-      cell: ({ row }: { row: { original: UIAcademicYearRow } }) => {
-        const date = new Date(row.original.end_date);
-        return (
-          <span className="text-slate-600">
-            {isNaN(date.getTime()) ? row.original.end_date : date.toLocaleDateString()}
-          </span>
-        );
-      },
-    },
-    {
-      accessorKey: 'is_active',
-      header: 'Status',
-      cell: ({ row }: { row: { original: UIAcademicYearRow } }) => (
-        <Badge 
-          variant={row.original.is_active ? "default" : "secondary"}
-          className={`${getStatusColor(row.original.is_active)} text-white`}
-        >
-          {getStatusText(row.original.is_active)}
-        </Badge>
-      ),
-    },
-    {
-      accessorKey: 'created_at',
-      header: 'Created',
-      cell: ({ row }: { row: { original: UIAcademicYearRow } }) => {
-        const date = new Date(row.original.created_at);
-        return (
-          <span className="text-slate-500 text-sm">
-            {isNaN(date.getTime()) ? row.original.created_at : date.toLocaleDateString()}
-          </span>
-        );
-      },
-    },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: ({ row }: { row: { original: UIAcademicYearRow } }) => (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleEdit(row.original)}
-            className="hover-elevate"
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleDelete(row.original)}
-            className="hover-elevate text-red-600 hover:text-red-700"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
-    },
-  ];
+  const columns = useMemo(() => ([
+    createTextColumn<UIAcademicYearRow>('year_name', { header: 'Academic Year', className: 'font-medium' }),
+    createDateColumn<UIAcademicYearRow>('start_date', { header: 'Start Date' }),
+    createDateColumn<UIAcademicYearRow>('end_date', { header: 'End Date' }),
+    createBadgeColumn<UIAcademicYearRow>('is_active', { header: 'Status', variant: 'outline', fallback: 'Inactive' }),
+    createDateColumn<UIAcademicYearRow>('created_at', { header: 'Created' }),
+    createActionColumn<UIAcademicYearRow>([
+      createEditAction((row) => handleEdit(row)),
+      createDeleteAction((row) => handleDelete(row))
+    ])
+  ]), []);
 
   const handleAdd = () => {
     setEditingAcademicYear(null);
@@ -345,14 +269,14 @@ const AcademicYearManagement = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
                 <Input
                   placeholder="Search academic years..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
             </div>
             <div className="flex gap-3">
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <Select value={selectedStatus} onValueChange={(v) => { setSelectedStatus(v); setFilter('is_active', v === 'all' ? 'all' : v === 'active'); }}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ServiceLocator } from "@/core";
+import { QUERY_STALE_TIME } from "@/lib/constants/query";
 import type {
   ExamMarkCreate,
   ExamMarkUpdate,
@@ -24,32 +25,53 @@ import type {
 import { useToast } from "@/hooks/use-toast";
 
 const keys = {
-  examMarks: (query?: ExamMarksQuery) => ["school", "exam-marks", query || {}] as const,
+  examMarks: (query?: ExamMarksQuery) => {
+    if (!query) return ["school", "exam-marks"] as const;
+    const stableQuery = {
+      class_id: query.class_id,
+      subject_id: query.subject_id,
+      section_id: query.section_id,
+      exam_id: query.exam_id,
+    };
+    return ["school", "exam-marks", stableQuery] as const;
+  },
   examMark: (id: number) => ["school", "exam-marks", id] as const,
-  testMarks: (query?: TestMarksQuery) => ["school", "test-marks", query || {}] as const,
+  testMarks: (query?: TestMarksQuery) => {
+    if (!query) return ["school", "test-marks"] as const;
+    const stableQuery = {
+      class_id: query.class_id,
+      subject_id: query.subject_id,
+      section_id: query.section_id,
+      test_id: query.test_id,
+    };
+    return ["school", "test-marks", stableQuery] as const;
+  },
   testMark: (id: number) => ["school", "test-marks", id] as const,
 };
 
 // Exam Marks Hooks
 export function useExamMarks(query?: ExamMarksQuery) {
-  const queryKey = ['school', 'exam-marks', query ? query : 'idle'] as const;
   return useQuery<ExamGroupAndSubjectResponse[]>({
-    queryKey,
+    queryKey: keys.examMarks(query),
     queryFn: async () => {
+      if (!query?.class_id) {
+        return [];
+      }
+      
       const apiClient = ServiceLocator.getApiClient();
       const params = new URLSearchParams();
       
       // class_id is required
-      if (query?.class_id) params.append('class_id', query.class_id.toString());
-      if (query?.subject_id) params.append('subject_id', query.subject_id.toString());
-      if (query?.section_id) params.append('section_id', query.section_id.toString());
-      if (query?.exam_id) params.append('exam_id', query.exam_id.toString());
+      if (query.class_id) params.append('class_id', query.class_id.toString());
+      if (query.subject_id) params.append('subject_id', query.subject_id.toString());
+      if (query.section_id) params.append('section_id', query.section_id.toString());
+      if (query.exam_id) params.append('exam_id', query.exam_id.toString());
 
       const response = await apiClient.get(`/school/exam-marks/?${params.toString()}`);
       return response.data as ExamGroupAndSubjectResponse[];
     },
     enabled: !!query?.class_id, // Only run query if class_id is provided
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: QUERY_STALE_TIME, // 5 minutes
   });
 }
 
@@ -62,7 +84,7 @@ export function useExamMark(id: number) {
       return response.data as ExamMarkFullReadResponse;
     },
     enabled: !!id,
-    staleTime: 1000 * 60 * 5,
+    staleTime: QUERY_STALE_TIME,
   });
 }
 
@@ -179,20 +201,24 @@ export function useTestMarks(query?: TestMarksQuery) {
   return useQuery<TestGroupAndSubjectResponse[]>({
     queryKey: keys.testMarks(query),
     queryFn: async () => {
+      if (!query?.class_id) {
+        return [];
+      }
+      
       const apiClient = ServiceLocator.getApiClient();
       const params = new URLSearchParams();
       
       // class_id is required
-      if (query?.class_id) params.append('class_id', query.class_id.toString());
-      if (query?.subject_id) params.append('subject_id', query.subject_id.toString());
-      if (query?.section_id) params.append('section_id', query.section_id.toString());
-      if (query?.test_id) params.append('test_id', query.test_id.toString());
+      if (query.class_id) params.append('class_id', query.class_id.toString());
+      if (query.subject_id) params.append('subject_id', query.subject_id.toString());
+      if (query.section_id) params.append('section_id', query.section_id.toString());
+      if (query.test_id) params.append('test_id', query.test_id.toString());
 
       const response = await apiClient.get(`/school/test-marks/?${params.toString()}`);
       return response.data as TestGroupAndSubjectResponse[];
     },
     enabled: !!query?.class_id, // Only run query if class_id is provided
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: QUERY_STALE_TIME, // 5 minutes
   });
 }
 
@@ -205,7 +231,7 @@ export function useTestMark(id: number) {
       return response.data as TestMarkFullReadResponse;
     },
     enabled: !!id,
-    staleTime: 1000 * 60 * 5,
+    staleTime: QUERY_STALE_TIME,
   });
 }
 

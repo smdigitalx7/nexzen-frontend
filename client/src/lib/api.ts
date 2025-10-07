@@ -5,7 +5,6 @@ import { useAuthStore } from "@/store/authStore";
 const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || "/api/v1";
 
 // Debug: Log API configuration on module load
-console.log('📡 Simple API initialized with base URL:', API_BASE_URL);
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -105,17 +104,11 @@ export async function api<T = unknown>({ method = "GET", path, body, query, head
 
 	const url = `${API_BASE_URL}${path}${buildQuery(query)}`;
 
-	console.log(`🌐 API Request: ${method} ${url}`);
-	console.log(`🔑 Token available: ${!!token}`);
-	console.log(`🔒 noAuth flag: ${noAuth}`);
 	
 	if (token) {
-		console.log(`🎫 Token preview: ${token.substring(0, 20)}...`);
 		// Check token expiry
 		if (state.tokenExpireAt) {
 			const isExpired = Date.now() > state.tokenExpireAt;
-			console.log(`⏰ Token expires at: ${new Date(state.tokenExpireAt).toISOString()}`);
-			console.log(`⏰ Token expired: ${isExpired}`);
 		}
 	}
 
@@ -126,7 +119,6 @@ export async function api<T = unknown>({ method = "GET", path, body, query, head
 
 	if (!noAuth && token) {
 		requestHeaders["Authorization"] = `Bearer ${token}`;
-		console.log(`🔑 Authorization header set`);
 	} else if (!noAuth && !token) {
 		console.warn(`⚠️ No token available for authenticated request to ${path}`);
 	}
@@ -155,13 +147,9 @@ export async function api<T = unknown>({ method = "GET", path, body, query, head
 	// Attempt refresh on 401 or 403 once for authenticated calls
 	// 403 can also indicate token expiration in some API implementations
 	if (!noAuth && (res.status === 401 || res.status === 403) && !_isRetry) {
-		console.log(`Received ${res.status} status, attempting token refresh...`);
 		const refreshed = await tryRefreshToken(token);
 		if (refreshed) {
-			console.log("Token refreshed successfully, retrying request...");
 			return api<T>({ method, path, body, query, headers, noAuth, _isRetry: true });
-		} else {
-			console.log("Token refresh failed, user will need to re-login");
 		}
 	}
 

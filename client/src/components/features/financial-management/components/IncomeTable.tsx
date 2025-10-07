@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Eye, Download, Search, Filter, Plus, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -20,24 +19,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { IncomeItem, useUpdateIncome } from "@/lib/hooks/useIncomeExpenditure";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { FormDialog, ConfirmDialog } from "@/components/shared";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { useTableState } from "@/lib/hooks/common/useTableState";
+import { useSearchFilters, useTableFilters } from "@/lib/hooks/common";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -51,18 +36,6 @@ interface IncomeTableProps {
   showHeader?: boolean;
 }
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("en-IN");
-};
-
 export const IncomeTable = ({
   incomeData,
   onViewIncome,
@@ -72,11 +45,19 @@ export const IncomeTable = ({
   description = "Track all income transactions and payments",
   showHeader = true,
 }: IncomeTableProps) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedPurpose, setSelectedPurpose] = useState("all");
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedIncome, setSelectedIncome] = useState<IncomeItem | null>(null);
+  // Using shared table state management
+  const {
+    // keep dialog and selection state from shared table state
+    showEditDialog,
+    showDeleteDialog,
+    openEditDialog,
+    closeEditDialog,
+    openDeleteDialog,
+    closeDeleteDialog,
+    selectedItem: selectedIncome,
+    setSelectedItem: setSelectedIncome,
+  } = useTableState();
+  
   const [editForm, setEditForm] = useState({
     purpose: "",
     amount: "",
@@ -87,18 +68,18 @@ export const IncomeTable = ({
 
   const updateIncomeMutation = useUpdateIncome();
 
-  const filteredIncome = useMemo(() => {
-    return incomeData.filter((income) => {
-      const searchMatch = searchTerm === "" || 
-        income.purpose.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        income.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        income.admission_no?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const purposeMatch = selectedPurpose === "all" || income.purpose === selectedPurpose;
-      
-      return searchMatch && purposeMatch;
-    });
-  }, [incomeData, searchTerm, selectedPurpose]);
+  // Apply shared search + select filters
+  const { searchTerm, setSearchTerm, filteredItems: searchFiltered } = useSearchFilters<IncomeItem>(
+    incomeData,
+    { keys: ["purpose", "student_name", "admission_no"] as any }
+  );
+
+  const { filters, setFilter, filteredItems: filteredIncome } = useTableFilters<IncomeItem>(
+    searchFiltered,
+    [
+      { key: "purpose" as keyof IncomeItem, value: "all" },
+    ]
+  );
 
   const uniquePurposes = Array.from(new Set(incomeData.map(i => i.purpose)));
 
@@ -113,12 +94,16 @@ export const IncomeTable = ({
       term_number: income.term_number?.toString() || "",
       description: income.description || "",
     });
-    setShowEditDialog(true);
+    openEditDialog(income);
   };
 
   const handleDelete = (income: IncomeItem) => {
     setSelectedIncome(income);
-    setShowDeleteDialog(true);
+    openDeleteDialog(income);
+  };
+
+  const handlePurposeFilterChange = (value: string) => {
+    setFilter("purpose", value);
   };
 
   const handleUpdateIncome = async () => {
@@ -135,8 +120,7 @@ export const IncomeTable = ({
           description: editForm.description,
         },
       });
-      setShowEditDialog(false);
-      setSelectedIncome(null);
+      closeEditDialog();
     } catch (error) {
       console.error("Failed to update income:", error);
     }
@@ -188,7 +172,7 @@ export const IncomeTable = ({
             />
           </div>
         </div>
-        <Select value={selectedPurpose} onValueChange={setSelectedPurpose}>
+        <Select value={(filters.purpose as string) || 'all'} onValueChange={handlePurposeFilterChange}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Filter by purpose" />
           </SelectTrigger>
@@ -289,14 +273,17 @@ export const IncomeTable = ({
       </div>
 
       {/* Edit Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Income Record</DialogTitle>
-            <DialogDescription>
-              Update the income record details below.
-            </DialogDescription>
-          </DialogHeader>
+      <FormDialog
+        open={showEditDialog}
+        onOpenChange={(open) => !open && closeEditDialog()}
+        title="Edit Income Record"
+        description="Update the income record details below."
+        size="MEDIUM"
+        isLoading={updateIncomeMutation.isPending}
+        onSave={handleUpdateIncome}
+        onCancel={closeEditDialog}
+        saveText="Update"
+      >
           <div className="space-y-4">
             <div>
               <Label htmlFor="purpose">Purpose</Label>
@@ -342,47 +329,22 @@ export const IncomeTable = ({
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleUpdateIncome}
-              disabled={updateIncomeMutation.isPending}
-            >
-              {updateIncomeMutation.isPending ? "Updating..." : "Update"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </FormDialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Income Record</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this income record? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowDeleteDialog(false)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                // Note: Income deletion not implemented in backend
-                console.log("Delete income:", selectedIncome?.income_id);
-                setShowDeleteDialog(false);
-                setSelectedIncome(null);
-              }}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={(open) => !open && closeDeleteDialog()}
+        title="Delete Income Record"
+        description="Are you sure you want to delete this income record? This action cannot be undone."
+        confirmText="Delete"
+        variant="destructive"
+        onConfirm={() => {
+          // Note: Income deletion not implemented in backend
+          closeDeleteDialog();
+        }}
+        onCancel={closeDeleteDialog}
+      />
     </motion.div>
   );
 };

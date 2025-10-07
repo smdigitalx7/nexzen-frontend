@@ -27,11 +27,6 @@ const statusColor = (status: string) => {
 };
 
 const EmployeeAdvancesList = ({ advances, employees, onApprove, onEdit, onDelete, onUpdateAmount, onReject, page, pageSize, total, setPage }: EmployeeAdvancesListProps) => {
-  console.log('🔍 EmployeeAdvancesList: Received props:', {
-    advancesCount: advances?.length || 0,
-    employeesCount: employees?.length || 0,
-    advances: advances?.slice(0, 2) // Show first 2 records for debugging
-  });
   return (
     <div className="space-y-4">
       {advances.map((advance) => {

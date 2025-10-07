@@ -1,28 +1,68 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Calculator } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import { DataTableWithFilters } from "@/components/shared";
+import type { ColumnDef } from "@tanstack/react-table";
+import {
+  createTextColumn,
+  createCurrencyColumn,
+} from "@/lib/utils/columnFactories.tsx";
 
 interface ProfitLossTableProps {
   profitLossData: any[];
   expenseBreakdown: any[];
-  formatCurrency: (amount: number) => string;
 }
 
 export const ProfitLossTable = ({ 
   profitLossData, 
   expenseBreakdown, 
-  formatCurrency 
 }: ProfitLossTableProps) => {
+  
+  // Define columns for income breakdown
+  const incomeColumns: ColumnDef<any>[] = useMemo(() => [
+    createTextColumn<any>("category", { header: "Category", className: "font-medium" }),
+    createCurrencyColumn<any>("amount", { header: "Amount" }),
+    {
+      accessorKey: "percentage",
+      header: "Percentage",
+      cell: ({ row }) => (
+        <div className="flex items-center justify-end gap-2">
+          <Progress 
+            value={row.original.percentage} 
+            className="w-16 h-2" 
+          />
+          <span className="text-sm text-muted-foreground">
+            {row.original.percentage}%
+          </span>
+        </div>
+      ),
+    },
+  ], []);
+
+  // Define columns for expense breakdown
+  const expenseColumns: ColumnDef<any>[] = useMemo(() => [
+    createTextColumn<any>("category", { header: "Category", className: "font-medium" }),
+    createCurrencyColumn<any>("amount", { header: "Amount" }),
+    {
+      accessorKey: "percentage",
+      header: "Percentage",
+      cell: ({ row }) => (
+        <div className="flex items-center justify-end gap-2">
+          <Progress 
+            value={row.original.percentage} 
+            className="w-16 h-2" 
+          />
+          <span className="text-sm text-muted-foreground">
+            {row.original.percentage}%
+          </span>
+        </div>
+      ),
+    },
+  ], []);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Income Breakdown */}
@@ -39,38 +79,14 @@ export const ProfitLossTable = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Percentage</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {profitLossData.map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">
-                      {item.category}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(item.amount)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Progress 
-                          value={item.percentage} 
-                          className="w-16 h-2" 
-                        />
-                        <span className="text-sm text-muted-foreground">
-                          {item.percentage}%
-                        </span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTableWithFilters
+              data={profitLossData}
+              columns={incomeColumns}
+              title=""
+              description=""
+              searchKey="category"
+              exportable={true}
+            />
           </CardContent>
         </Card>
       </motion.div>
@@ -89,38 +105,14 @@ export const ProfitLossTable = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Percentage</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {expenseBreakdown.map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">
-                      {item.category}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(item.amount)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Progress 
-                          value={item.percentage} 
-                          className="w-16 h-2" 
-                        />
-                        <span className="text-sm text-muted-foreground">
-                          {item.percentage}%
-                        </span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTableWithFilters
+              data={expenseBreakdown}
+              columns={expenseColumns}
+              title=""
+              description=""
+              searchKey="category"
+              exportable={true}
+            />
           </CardContent>
         </Card>
       </motion.div>

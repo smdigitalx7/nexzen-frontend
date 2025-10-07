@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useAuthStore } from "@/store/authStore";
+import { formatCurrency } from "@/lib/utils";
 
 // Mock data for financial reports
 const mockIncomeData = [
@@ -187,16 +188,6 @@ export const useFinancialReports = () => {
   const filteredRevenueTrends = useMemo(() => {
     return mockRevenueTrends;
   }, [dateRange, selectedBranch]);
-
-  // Utility functions
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   const formatCompactCurrency = (amount: number) => {
     if (amount >= 10000000) {

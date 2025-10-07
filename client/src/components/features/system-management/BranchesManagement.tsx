@@ -1,101 +1,114 @@
 import { useMemo, useState } from "react";
 import { useBranches, useDeleteBranch } from "@/lib/hooks/useBranches";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { DataTableWithFilters, ConfirmDialog } from "@/components/shared";
+import { Edit, Trash2, Eye, Building2 } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { 
+  createIconTextColumn, 
+  createBadgeColumn, 
+  createTruncatedTextColumn, 
+  createTextColumn,
+  createActionColumn,
+  createEditAction,
+  createDeleteAction
+} from "@/lib/utils/columnFactories.tsx";
 
 export default function BranchesManagement() {
   const { data, isLoading, error } = useBranches();
   const del = useDeleteBranch();
   const { toast } = useToast();
-  const [q, setQ] = useState("");
-
-  const filtered = useMemo(() => {
-    const list = data || [];
-    if (!q) return list;
-    const s = q.toLowerCase();
-    return list.filter((b) =>
-      [b.branch_name, b.branch_type, b.branch_address || "", b.contact_email || "", b.contact_phone || ""]
-        .join(" ")
-        .toLowerCase()
-        .includes(s)
-    );
-  }, [data, q]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedBranch, setSelectedBranch] = useState<any>(null);
 
   const onDelete = async (id: number) => {
     try {
       await del.mutateAsync(id);
       toast({ title: "Branch deleted" });
+      setDeleteDialogOpen(false);
+      setSelectedBranch(null);
     } catch (e: any) {
       toast({ title: "Failed to delete", description: e?.message || "", variant: "destructive" });
     }
   };
 
+  const handleDeleteClick = (branch: any) => {
+    setSelectedBranch(branch);
+    setDeleteDialogOpen(true);
+  };
+
+  // Define columns for the data table using column factories
+  const columns: ColumnDef<any>[] = useMemo(() => [
+    createIconTextColumn<any>("branch_name", { 
+      icon: Building2, 
+      header: "Branch Name" 
+    }),
+    createBadgeColumn<any>("branch_type", { 
+      header: "Type", 
+      variant: "outline" 
+    }),
+    createTruncatedTextColumn<any>("branch_address", { 
+      header: "Address", 
+      fallback: "No address" 
+    }),
+    createTextColumn<any>("contact_email", { 
+      header: "Email", 
+      fallback: "No email",
+      className: "text-sm text-muted-foreground"
+    }),
+    createTextColumn<any>("contact_phone", { 
+      header: "Phone", 
+      fallback: "No phone",
+      className: "text-sm text-muted-foreground"
+    }),
+    createActionColumn<any>([
+      createDeleteAction(handleDeleteClick)
+    ])
+  ], []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center text-red-600 p-8">
+        <p>Failed to load branches</p>
+      </div>
+    );
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Branches</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center gap-3 mb-4">
-          <Input placeholder="Search branches..." value={q} onChange={(e) => setQ(e.target.value)} />
-        </div>
-        {isLoading && <div>Loading...</div>}
-        {error && <div className="text-red-600">Failed to load branches</div>}
-        {!isLoading && !error && (
-          <div className="overflow-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left border-b">
-                  <th className="py-2 pr-3">Name</th>
-                  <th className="py-2 pr-3">Type</th>
-                  <th className="py-2 pr-3">Address</th>
-                  <th className="py-2 pr-3">Contact</th>
-                  <th className="py-2 pr-3">Active</th>
-                  <th className="py-2 pr-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((b) => (
-                  <tr key={b.branch_id} className="border-b hover:bg-muted/30">
-                    <td className="py-2 pr-3 font-medium">{b.branch_name}</td>
-                    <td className="py-2 pr-3">{b.branch_type}</td>
-                    <td className="py-2 pr-3">{b.branch_address || "-"}</td>
-                    <td className="py-2 pr-3">{b.contact_email || b.contact_phone || "-"}</td>
-                    <td className="py-2 pr-3">{b.is_active ? "Yes" : "No"}</td>
-                    <td className="py-2 pr-3">
-                      <div className="flex items-center gap-2 justify-end">
-                        {/* Placeholder for edit */}
-                        <Button variant="outline" size="sm" disabled>
-                          Edit
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => onDelete(b.branch_id)}
-                          disabled={del.isPending}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
-                  <tr>
-                    <td className="py-6 text-center text-muted-foreground" colSpan={6}>
-                      No branches found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <DataTableWithFilters
+        data={data || []}
+        columns={columns}
+        title="Branches"
+        description="Manage branch locations and information"
+        searchKey="branch_name"
+        exportable={true}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Branch"
+        description={`Are you sure you want to delete the branch "${selectedBranch?.branch_name}"? This action cannot be undone.`}
+        onConfirm={() => selectedBranch && onDelete(selectedBranch.branch_id)}
+        onCancel={() => {
+          setDeleteDialogOpen(false);
+          setSelectedBranch(null);
+        }}
+        confirmText="Delete"
+        variant="destructive"
+      />
+    </div>
   );
 }
-
-

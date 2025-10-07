@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Search, Download, Edit, Trash2, FileText, Calculator, Award, BarChart3, Target, ClipboardList } from 'lucide-react';
+import { Trophy, Search, Download, Edit, Trash2, FileText, Calculator, Award, BarChart3, Target, ClipboardList, Eye } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,8 +14,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { EnhancedDataTable } from '@/components/shared';
+import { useSearchFilters } from '@/lib/hooks/common';
 import { 
   useTestMarks,
+  useTestMark,
   useCreateTestMark,
   useUpdateTestMark,
   useDeleteTestMark
@@ -23,6 +25,17 @@ import {
 import { useClasses, useStudents, useSubjects } from '@/lib/hooks/useSchool';
 import { useAcademicData } from '@/lib/hooks/academic/useAcademicData';
 import type { TestMarkWithDetails } from '@/lib/types/test-marks';
+import {
+  createStudentColumn,
+  createSubjectColumn,
+  createMarksColumn,
+  createGradeColumn,
+  createTestDateColumn,
+  createActionColumn,
+  createViewAction,
+  createEditAction,
+  createDeleteAction
+} from "@/lib/utils/columnFactories.tsx";
 
 // Utility functions for grade calculation
 const calculateGrade = (percentage: number): string => {
@@ -52,14 +65,15 @@ const testMarkFormSchema = z.object({
 });
 
 const TestMarksManagement = () => {
-  // State
-  const [searchQuery, setSearchQuery] = useState('');
+  
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('all');
   
   // Dialog states
   const [showTestMarkDialog, setShowTestMarkDialog] = useState(false);
   const [editingTestMark, setEditingTestMark] = useState<TestMarkWithDetails | null>(null);
+  const [showViewTestMarkDialog, setShowViewTestMarkDialog] = useState(false);
+  const [viewingTestMarkId, setViewingTestMarkId] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   // API hooks
@@ -72,6 +86,12 @@ const TestMarksManagement = () => {
   const { data: students = [] } = useStudents();
   const { data: subjects = [] } = useSubjects();
   const { tests = [] } = useAcademicData();
+
+  // Single test mark view data (enabled only when an id is set)
+  const viewQuery = useTestMark(viewingTestMarkId || 0);
+  const viewedTestMark = viewingTestMarkId ? viewQuery.data : null;
+  const viewTestLoading = viewingTestMarkId ? viewQuery.isLoading : false;
+  const viewTestError = viewingTestMarkId ? viewQuery.error : null;
 
   // Test marks hooks - only fetch when class is selected
   const { data: testMarksData, isLoading: testMarksLoading, error: testMarksError } = useTestMarks(
@@ -151,16 +171,19 @@ const TestMarksManagement = () => {
     setConfirmDeleteId(markId);
   };
 
+  const handleViewTestMark = (markId: number) => {
+    setViewingTestMarkId(markId);
+    setShowViewTestMarkDialog(true);
+  };
+
   // Process and filter data - flatten grouped response from backend
-  const testMarks = useMemo(() => {
-    if (!testMarksData) return [];
-    
-    // Flatten the grouped response into individual marks
-    const flattenedMarks: TestMarkWithDetails[] = [];
+  const flattenedMarks = useMemo(() => {
+    if (!testMarksData) return [] as TestMarkWithDetails[];
+    const items: TestMarkWithDetails[] = [];
     testMarksData.forEach(group => {
       if (group.students) {
         group.students.forEach(student => {
-          flattenedMarks.push({
+          items.push({
             ...student,
             test_name: group.test_name,
             subject_name: group.subject_name,
@@ -171,16 +194,13 @@ const TestMarksManagement = () => {
         });
       }
     });
-    
-    return flattenedMarks.filter(mark => {
-      const matchesSearch = 
-        mark.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        mark.subject_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        mark.roll_number?.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      return matchesSearch;
-    });
-  }, [testMarksData, searchQuery]);
+    return items;
+  }, [testMarksData]);
+
+  const { searchTerm, setSearchTerm, filteredItems: testMarks } = useSearchFilters<TestMarkWithDetails>(
+    flattenedMarks,
+    { keys: ['student_name', 'subject_name', 'roll_number'] as any }
+  );
 
   // Statistics calculations
   const testStatistics = useMemo(() => {
@@ -212,110 +232,32 @@ const TestMarksManagement = () => {
     };
   }, [testMarks]);
 
-  const getGradeColor = (grade: string) => {
-    switch (grade) {
-      case 'A+': return 'bg-green-600';
-      case 'A': return 'bg-green-500';
-      case 'B+': return 'bg-blue-500';
-      case 'B': return 'bg-blue-400';
-      case 'C+': return 'bg-yellow-500';
-      case 'C': return 'bg-yellow-400';
-      case 'D': return 'bg-orange-500';
-      case 'F': return 'bg-red-500';
-      default: return 'bg-gray-500';
-    }
+
+  // Grade colors mapping
+  const gradeColors = {
+    'A+': 'bg-green-600',
+    'A': 'bg-green-500',
+    'B+': 'bg-blue-500',
+    'B': 'bg-blue-400',
+    'C+': 'bg-yellow-500',
+    'C': 'bg-yellow-400',
+    'D': 'bg-orange-500',
+    'F': 'bg-red-500',
   };
 
-  // Table columns for test marks
-  const testMarkColumns: ColumnDef<TestMarkWithDetails>[] = [
-    {
-      accessorKey: 'student_name',
-      header: 'Student',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
-            <span className="text-xs font-semibold text-white">
-              {row.original.student_name?.split(' ').map(n => n[0]).join('') || 'N/A'}
-            </span>
-          </div>
-          <div>
-            <div className="font-semibold text-slate-900">{row.original.student_name || 'N/A'}</div>
-            <div className="text-sm text-slate-500">{row.original.roll_number || 'N/A'} • {row.original.section_name || 'N/A'}</div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'subject_name',
-      header: 'Subject',
-      cell: ({ row }) => (
-        <div>
-          <div className="font-medium text-slate-900">{row.original.subject_name || 'N/A'}</div>
-          <div className="text-sm text-slate-500">{row.original.test_name || 'N/A'}</div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'marks_obtained',
-      header: 'Marks',
-      cell: ({ row }) => (
-        <div className="text-center">
-          <div className="font-bold text-lg text-slate-900">
-            {row.original.marks_obtained || 0}/{row.original.max_marks || 100}
-          </div>
-          <div className="text-sm text-slate-500">{row.original.percentage || 0}%</div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'grade',
-      header: 'Grade',
-      cell: ({ row }) => (
-        <div className={`inline-flex items-center justify-center px-2.5 py-1 rounded-md text-xs font-bold text-white ${getGradeColor(row.original.grade || 'F')}`}>
-          {row.original.grade || 'F'}
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'conducted_at',
-      header: 'Test Date',
-      cell: ({ row }) => (
-        <div className="text-sm font-medium">
-          {row.original.conducted_at ? new Date(row.original.conducted_at).toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
-          }) : 'N/A'}
-        </div>
-      ),
-    },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleEditTestMark(row.original)}
-            className="hover-elevate"
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleDeleteTestMark(row.original.test_mark_id)}
-            className="hover-elevate text-red-600 hover:text-red-700"
-            aria-label="Delete test mark"
-            title="Delete"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
-    },
-  ];
+  // Table columns for test marks using column factories
+  const testMarkColumns: ColumnDef<TestMarkWithDetails>[] = useMemo(() => [
+    createStudentColumn<TestMarkWithDetails>("student_name", "roll_number", "section_name", { header: "Student" }),
+    createSubjectColumn<TestMarkWithDetails>("subject_name", "test_name", { header: "Subject" }),
+    createMarksColumn<TestMarkWithDetails>("marks_obtained", "max_marks", "percentage", { header: "Marks" }),
+    createGradeColumn<TestMarkWithDetails>("grade", gradeColors, { header: "Grade" }),
+    createTestDateColumn<TestMarkWithDetails>("conducted_at", { header: "Test Date" }),
+    createActionColumn<TestMarkWithDetails>([
+      createViewAction((row) => handleViewTestMark(row.test_mark_id)),
+      createEditAction((row) => handleEditTestMark(row)),
+      createDeleteAction((row) => handleDeleteTestMark(row.test_mark_id))
+    ])
+  ], [handleViewTestMark, handleEditTestMark, handleDeleteTestMark]);
 
   return (
     <div className="flex flex-col h-full bg-slate-50/30">
@@ -629,8 +571,8 @@ const TestMarksManagement = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
                   placeholder="Search students, subjects..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
@@ -704,6 +646,68 @@ const TestMarksManagement = () => {
               exportable={true}
             />
             )}
+
+            {/* View Test Mark Dialog */}
+            <Dialog open={showViewTestMarkDialog} onOpenChange={setShowViewTestMarkDialog}>
+              <DialogContent className="sm:max-w-[520px]">
+                <DialogHeader>
+                  <DialogTitle>Test Mark Details</DialogTitle>
+                </DialogHeader>
+                {viewTestLoading ? (
+                  <div className="p-6 text-center">
+                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-slate-600">Loading mark...</p>
+                  </div>
+                ) : viewTestError ? (
+                  <div className="p-6 text-center text-red-600">Failed to load mark details.</div>
+                ) : viewedTestMark ? (
+                  <div className="space-y-4 p-2">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-xs text-slate-500">Student</div>
+                        <div className="font-medium text-slate-900">{viewedTestMark.student_name} ({viewedTestMark.roll_number})</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Section</div>
+                        <div className="font-medium text-slate-900">{viewedTestMark.section_name}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Test</div>
+                        <div className="font-medium text-slate-900">{viewedTestMark.test_name}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Subject</div>
+                        <div className="font-medium text-slate-900">{viewedTestMark.subject_name}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Marks</div>
+                        <div className="font-semibold text-slate-900">{viewedTestMark.marks_obtained ?? 0}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Grade</div>
+                        <div className="font-semibold text-slate-900">{viewedTestMark.grade ?? 'N/A'}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Percentage</div>
+                        <div className="font-semibold text-slate-900">{viewedTestMark.percentage ?? 0}%</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Date</div>
+                        <div className="font-medium text-slate-900">{viewedTestMark.conducted_at ? new Date(viewedTestMark.conducted_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}</div>
+                      </div>
+                    </div>
+                    {viewedTestMark.remarks && (
+                      <div>
+                        <div className="text-xs text-slate-500">Remarks</div>
+                        <div className="text-slate-800">{viewedTestMark.remarks}</div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-slate-600">No details found.</div>
+                )}
+              </DialogContent>
+            </Dialog>
           </motion.div>
         </div>
       </div>

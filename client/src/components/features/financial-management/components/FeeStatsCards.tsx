@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { AlertTriangle, CheckCircle, TrendingUp, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { formatCurrency } from "@/lib/utils";
 
 interface FeeStatsCardsProps {
   totalOutstanding: number;
@@ -9,14 +10,6 @@ interface FeeStatsCardsProps {
   collectionRate: number;
   currentBranch?: { branch_name: string };
 }
-
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
 
 export const FeeStatsCards = ({ 
   totalOutstanding, 

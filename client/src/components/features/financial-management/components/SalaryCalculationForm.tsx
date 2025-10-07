@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Calculator, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/dialog";
 import type { PayrollCreate, PayrollUpdate } from "@/lib/types/payrolls";
 import { PayrollStatusEnum, PaymentMethodEnum } from "@/lib/types/payrolls";
+import { formatCurrency } from "@/lib/utils";
+import { useFormState } from "@/lib/hooks/common";
 
 interface SalaryCalculationFormProps {
   isOpen: boolean;
@@ -29,7 +31,6 @@ interface SalaryCalculationFormProps {
   onSubmit: (data: PayrollCreate | PayrollUpdate) => void;
   employees: any[];
   selectedPayroll?: any;
-  formatCurrency: (amount: number) => string;
 }
 
 export const SalaryCalculationForm = ({
@@ -38,21 +39,31 @@ export const SalaryCalculationForm = ({
   onSubmit,
   employees,
   selectedPayroll,
-  formatCurrency,
 }: SalaryCalculationFormProps) => {
-  const [formData, setFormData] = useState({
-    employee_id: selectedPayroll?.employee_id || "",
-    payroll_month: selectedPayroll?.payroll_month || new Date().getMonth() + 1,
-    payroll_year: selectedPayroll?.payroll_year || new Date().getFullYear(),
-    previous_balance: selectedPayroll?.previous_balance || 0,
-    gross_pay: selectedPayroll?.gross_pay || 0,
-    lop: selectedPayroll?.lop || 0,
-    advance_deduction: selectedPayroll?.advance_deduction || 0,
-    other_deductions: selectedPayroll?.other_deductions || 0,
-    paid_amount: selectedPayroll?.paid_amount || 0,
-    payment_method: selectedPayroll?.payment_method || PaymentMethodEnum.BANK_TRANSFER,
-    payment_notes: selectedPayroll?.payment_notes || "",
-    status: selectedPayroll?.status || PayrollStatusEnum.PENDING,
+  // Using shared form state management
+  const {
+    formData,
+    setFormData,
+    updateField,
+    resetForm,
+    errors,
+    setFieldError,
+    clearFieldError,
+  } = useFormState({
+    initialData: {
+      employee_id: selectedPayroll?.employee_id || "",
+      payroll_month: selectedPayroll?.payroll_month || new Date().getMonth() + 1,
+      payroll_year: selectedPayroll?.payroll_year || new Date().getFullYear(),
+      previous_balance: selectedPayroll?.previous_balance || 0,
+      gross_pay: selectedPayroll?.gross_pay || 0,
+      lop: selectedPayroll?.lop || 0,
+      advance_deduction: selectedPayroll?.advance_deduction || 0,
+      other_deductions: selectedPayroll?.other_deductions || 0,
+      paid_amount: selectedPayroll?.paid_amount || 0,
+      payment_method: selectedPayroll?.payment_method || PaymentMethodEnum.BANK_TRANSFER,
+      payment_notes: selectedPayroll?.payment_notes || "",
+      status: selectedPayroll?.status || PayrollStatusEnum.PENDING,
+    }
   });
 
   const calculatedNet = useMemo(() => {
@@ -80,7 +91,7 @@ export const SalaryCalculationForm = ({
   };
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    updateField(field as keyof typeof formData, value);
   };
 
   return (

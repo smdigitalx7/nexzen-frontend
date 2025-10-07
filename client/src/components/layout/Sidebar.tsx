@@ -104,12 +104,6 @@ const Sidebar = () => {
         description: "Bus routes and stops",
       },
       {
-        title: "Academic",
-        href: "/academic",
-        icon: FileText,
-        description: "Academic structure & performance",
-      },
-      {
         title: "Financial Reports",
         href: "/financial-reports",
         icon: BarChart3,
@@ -158,12 +152,6 @@ const Sidebar = () => {
     // Academic: Dashboard and Academic in General
     publicModules = [
       ...baseGeneral,
-      {
-        title: "Academic",
-        href: "/academic",
-        icon: FileText,
-        description: "Academic structure & performance",
-      },
     ];
   } else {
     publicModules = [...baseGeneral];
@@ -173,10 +161,10 @@ const Sidebar = () => {
     if (currentBranch?.branch_type === "SCHOOL") {
       return [
         {
-          title: "Academic Years",
-          href: "/academic-years",
-          icon: Calendar,
-          description: "Academic year management",
+          title: "Academic",
+          href: "/academic",
+          icon: FileText,
+          description: "Academic structure & performance",
           roles: ["institute_admin", "academic"],
         },
         {

@@ -4,6 +4,7 @@ import { Calculator, CheckCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { formatCurrency } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -48,14 +49,6 @@ interface PaymentCollectionFormProps {
   selectedStudent: StudentFeeBalance | null;
   onCollectPayment: (amount: number, paymentMode: string) => void;
 }
-
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
 
 export const PaymentCollectionForm = ({
   isOpen,

@@ -188,7 +188,7 @@ export const FinancialReportsTemplate = () => {
         <TabsContent value="income" className="space-y-6">
           <IncomeTable
             incomeData={incomeData}
-            onExportCSV={() => console.log('Export income CSV')}
+            onExportCSV={() => {}}
             onAddIncome={() => setShowAddIncomeDialog(true)}
           />
         </TabsContent>
@@ -196,7 +196,7 @@ export const FinancialReportsTemplate = () => {
         <TabsContent value="expenditure" className="space-y-6">
           <ExpenditureTable
             expenditureData={expenditureData}
-            onExportCSV={() => console.log('Export expenditure CSV')}
+            onExportCSV={() => {}}
             onAddExpenditure={() => setShowAddExpenditureDialog(true)}
           />
         </TabsContent>
@@ -209,7 +209,6 @@ export const FinancialReportsTemplate = () => {
           <ProfitLossTable
             profitLossData={profitLossData}
             expenseBreakdown={expenseBreakdown}
-            formatCurrency={formatCurrency}
           />
         </TabsContent>
 
@@ -218,7 +217,6 @@ export const FinancialReportsTemplate = () => {
           <ProfitLossTable
             profitLossData={profitLossData}
             expenseBreakdown={[]}
-            formatCurrency={formatCurrency}
           />
         </TabsContent>
 
@@ -227,7 +225,6 @@ export const FinancialReportsTemplate = () => {
           <ProfitLossTable
             profitLossData={[]}
             expenseBreakdown={expenseBreakdown}
-            formatCurrency={formatCurrency}
           />
         </TabsContent>
 
@@ -235,7 +232,6 @@ export const FinancialReportsTemplate = () => {
           <ProfitLossTable
             profitLossData={profitLossData}
             expenseBreakdown={expenseBreakdown}
-            formatCurrency={formatCurrency}
           />
         </TabsContent>
 

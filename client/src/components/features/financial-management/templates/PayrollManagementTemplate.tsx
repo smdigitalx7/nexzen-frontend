@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
-import { CreditCard, Plus, Download } from "lucide-react";
+import { CreditCard, Plus, Download, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePayrollManagement } from "@/lib/hooks/usePayrollManagement";
+import { formatCurrency } from "@/lib/utils";
 import { 
   PayrollStatsCards, 
   EmployeePayrollTable, 
@@ -54,7 +55,6 @@ export const PayrollManagementTemplate = () => {
     handleFormSubmit,
     
     // Utilities
-    formatCurrency,
     getStatusColor,
     getStatusText,
     
@@ -96,7 +96,6 @@ export const PayrollManagementTemplate = () => {
         totalAmount={totalAmount}
         paidAmount={paidAmount}
         pendingAmount={pendingAmount}
-        formatCurrency={formatCurrency}
         currentBranch={currentBranch}
       />
 
@@ -115,7 +114,6 @@ export const PayrollManagementTemplate = () => {
             onEditPayroll={handleEditPayroll}
             onViewPayslip={handleViewPayslip}
             onUpdateStatus={handleUpdateStatus}
-            formatCurrency={formatCurrency}
             getStatusColor={getStatusColor}
             getStatusText={getStatusText}
           />
@@ -157,7 +155,6 @@ export const PayrollManagementTemplate = () => {
         onSubmit={handleFormSubmit}
         employees={employees}
         selectedPayroll={selectedPayroll}
-        formatCurrency={formatCurrency}
       />
 
       {/* Payslip Dialog */}
@@ -166,21 +163,34 @@ export const PayrollManagementTemplate = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={() => setShowPayslipDialog(false)}
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="bg-background rounded-lg p-6 max-w-2xl w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Payslip - Employee {selectedPayroll.employee_id}</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowPayslipDialog(false)}
-              >
-                <Download className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    // Add download functionality here
+                  }}
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowPayslipDialog(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             
             <div className="space-y-4">

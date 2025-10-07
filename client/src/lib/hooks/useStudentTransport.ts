@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { StudentTransportService } from "@/lib/services/student-transport.service";
+import { QUERY_STALE_TIME } from "@/lib/constants/query";
 import type {
   StudentTransportAssignmentCreate,
   StudentTransportAssignmentUpdate,
@@ -18,7 +19,7 @@ export function useStudentTransport(params: { class_id: number; section_id?: num
     queryKey,
     queryFn: async () => StudentTransportService.list(params),
     enabled: Number.isFinite(params.class_id) && params.class_id > 0,
-    staleTime: 1000 * 60 * 5,
+    staleTime: QUERY_STALE_TIME,
   });
 }
 

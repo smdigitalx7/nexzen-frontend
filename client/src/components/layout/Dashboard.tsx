@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { formatCurrency } from "@/lib/utils";
 import {
   BarChart,
   Bar,
@@ -258,14 +259,6 @@ const Dashboard = () => {
 
   const getTrendColor = (trend: string) => {
     return trend === "up" ? "text-green-600" : "text-red-600";
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(amount);
   };
 
   const getBranchTypeIcon = (type: string) => {

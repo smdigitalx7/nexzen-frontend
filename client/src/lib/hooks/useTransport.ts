@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ServiceLocator } from "@/core";
+import { QUERY_STALE_TIME } from "@/lib/constants/query";
 import type {
   BusRouteRead,
   BusRouteCreate,
@@ -61,7 +62,7 @@ export function useBusRoutes() {
         throw error;
       }
     }, 
-    staleTime: 1000 * 60 * 5 
+    staleTime: QUERY_STALE_TIME 
   });
 }
 export function useBusRoute(id: number) {
@@ -96,7 +97,7 @@ export function useBusRoute(id: number) {
       };
     }, 
     enabled: Number.isFinite(id) && id > 0,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: QUERY_STALE_TIME, // 5 minutes
   });
 }
 export function useCreateBusRoute() {
@@ -210,7 +211,7 @@ export function useBusRouteNames() {
         route_no: transport.routeNo,
       }));
     },
-    staleTime: 1000 * 60 * 5 
+    staleTime: QUERY_STALE_TIME 
   });
 }
 
@@ -231,7 +232,7 @@ export function useDistanceSlabs() {
         fee_amount: 10.00 + (index * 5), // Default calculation
       }));
     }, 
-    staleTime: 1000 * 60 * 5 
+    staleTime: QUERY_STALE_TIME 
   });
 }
 export function useCreateDistanceSlab() {

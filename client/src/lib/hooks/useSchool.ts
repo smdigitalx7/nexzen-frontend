@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ServiceLocator } from "@/core";
+import { QUERY_STALE_TIME } from "@/lib/constants/query";
 import type {
   ClassRead,
   ClassCreate,
@@ -62,7 +63,7 @@ export function useClasses() {
         updated_by: null,
       }));
     }, 
-    staleTime: 1000 * 60 * 5 
+    staleTime: QUERY_STALE_TIME 
   });
 }
 export function useClassesWithSubjects() {
@@ -79,7 +80,7 @@ export function useClassesWithSubjects() {
         subjects: [], // TODO: Add subjects support
       }));
     }, 
-    staleTime: 1000 * 60 * 5 
+    staleTime: QUERY_STALE_TIME 
   });
 }
 
@@ -92,7 +93,7 @@ export function useClassWithSubjects(classId: number) {
       return response.data as ClassWithSubjects;
     }, 
     enabled: Number.isFinite(classId) && classId > 0,
-    staleTime: 1000 * 60 * 5 
+    staleTime: QUERY_STALE_TIME 
   });
 }
 export function useClass(id: number) {
@@ -249,7 +250,7 @@ export function useSubjects() {
         updated_by: null,
       }));
     }, 
-    staleTime: 1000 * 60 * 5 
+    staleTime: QUERY_STALE_TIME 
   });
 }
 export function useCreateSubject() {
@@ -303,7 +304,7 @@ export function useUpdateSubject() {
 
 // Class Subjects
 export function useClassSubjects() {
-  return useQuery<ClassSubjectRead[]>({ queryKey: keys.classSubjects, queryFn: () => Promise.resolve([]), staleTime: 1000 * 60 * 5 }); // TODO: Implement class subjects functionality
+  return useQuery<ClassSubjectRead[]>({ queryKey: keys.classSubjects, queryFn: () => Promise.resolve([]), staleTime: QUERY_STALE_TIME }); // TODO: Implement class subjects functionality
 }
 export function useClassSubjectsByClass(classId: number) {
   return useQuery<ClassSubjectRead[]>({ queryKey: keys.classSubjectsByClass(classId), queryFn: () => Promise.resolve([]), enabled: Number.isFinite(classId) }); // TODO: Implement class subjects functionality
@@ -354,7 +355,7 @@ export function useTuitionFeeStructures() {
       const res = await api.get<TuitionFeeStructureRead[]>(`/school/tuition-fee-structures/`);
       return res.data as TuitionFeeStructureRead[];
     }, 
-    staleTime: 1000 * 60 * 5 
+    staleTime: QUERY_STALE_TIME 
   });
 }
 export function useTuitionFeeStructure(id: number) {
@@ -425,7 +426,7 @@ export function useStudents() {
       }
       return res.data || [];
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: QUERY_STALE_TIME,
   });
 }
 
@@ -438,7 +439,7 @@ export function useStudent(id: number) {
       return res.data;
     },
     enabled: !!id,
-    staleTime: 1000 * 60 * 5,
+    staleTime: QUERY_STALE_TIME,
   });
 }
 
@@ -452,7 +453,7 @@ export function useEnrollments(params: { class_id: number; section_id?: number; 
       return res.data || [];
     },
     enabled: Number.isFinite(params.class_id) && params.class_id > 0,
-    staleTime: 1000 * 60 * 5,
+    staleTime: QUERY_STALE_TIME,
   });
 }
 

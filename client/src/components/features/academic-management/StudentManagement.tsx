@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ColumnDef } from '@tanstack/react-table';
 import { Plus, Edit, Eye, Users, Calendar, Trophy, BookOpen, IdCard, Trash2, Save, X, User, Phone, MapPin, Calendar as CalendarIcon, FileText } from 'lucide-react';
@@ -17,6 +17,15 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { EnhancedDataTable } from '@/components/shared';
+import {
+  createAvatarColumn,
+  createTextColumn,
+  createBadgeColumn,
+  createActionColumn,
+  createViewAction,
+  createEditAction,
+  createDeleteAction
+} from "@/lib/utils/columnFactories.tsx";
 import { useAuthStore } from '@/store/authStore';
 import { useStudents, useDeleteStudent, useCreateStudent, useUpdateStudent, useStudent, useEnrollments, useCreateEnrollment, useUpdateEnrollment } from '@/lib/hooks/useSchool';
 import { useStudentTransport, useCreateStudentTransport } from '@/lib/hooks/useStudentTransport';
@@ -307,142 +316,20 @@ const StudentManagement = () => {
     }
   };
 
-  const columns: ColumnDef<any>[] = [
-    {
-      accessorKey: 'student_id',
-      header: 'Student ID',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-            <IdCard className="h-4 w-4 text-white" />
-          </div>
-          <div>
-            <div className="font-mono font-semibold text-slate-900">ID: {row.original.student_id}</div>
-            <div className="text-xs text-slate-500">{row.original.admission_no}</div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'student_name',
-      header: 'Student Details',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="text-xs">
-              {row.original.student_name.split(' ').map((n: string) => n[0]).join('')}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <span className="font-medium" title={row.original.student_name}>
-              {truncateText(row.original.student_name)}
-            </span>
-            <div className="text-xs text-slate-500">
-              {row.original.gender || 'N/A'}
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'admission_no',
-      header: 'Admission No.',
-      cell: ({ row }) => (
-        <span className="font-mono text-sm">{row.original.admission_no}</span>
-      ),
-    },
-    {
-      accessorKey: 'father_mobile',
-      header: 'Father Mobile',
-      cell: ({ row }) => (
-        <span title={row.original.father_mobile}>
-          {row.original.father_mobile || 'N/A'}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'mother_mobile',
-      header: 'Mother Mobile',
-      cell: ({ row }) => (
-        <span title={row.original.mother_mobile}>
-          {row.original.mother_mobile || 'N/A'}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'gender',
-      header: 'Gender',
-      cell: ({ row }) => (
-        <Badge className={getGenderColor(row.original.gender || 'Unknown')}>
-          {row.original.gender || 'N/A'}
-        </Badge>
-      ),
-    },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-      cell: ({ row }) => (
-        <Badge className={getFeeStatusColor(row.original.status || 'Unknown')}>
-          {row.original.status || 'N/A'}
-        </Badge>
-      ),
-    },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-8 w-8 p-0 hover-elevate"
-            onClick={() => handleViewStudent(row.original)}
-            title="View Student"
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-8 w-8 p-0 hover-elevate"
-            onClick={() => handleEditStudent(row.original)}
-            title="Edit Student"
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 w-8 p-0 hover-elevate text-red-600 hover:text-red-700"
-                title="Delete Student"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Student</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete {row.original.student_name}? This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => handleDeleteStudent(row.original.student_id)}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      ),
-    },
-  ];
+  const columns: ColumnDef<any>[] = useMemo(() => [
+    createTextColumn<any>('student_id', { header: 'Student ID', className: 'font-mono font-semibold text-slate-900' }),
+    createAvatarColumn<any>('student_name', 'gender', { header: 'Student Details' }),
+    createTextColumn<any>('admission_no', { header: 'Admission No.', className: 'font-mono text-sm' }),
+    createTextColumn<any>('father_mobile', { header: 'Father Mobile', fallback: 'N/A' }),
+    createTextColumn<any>('mother_mobile', { header: 'Mother Mobile', fallback: 'N/A' }),
+    createBadgeColumn<any>('gender', { header: 'Gender', variant: 'outline', fallback: 'N/A' }),
+    createBadgeColumn<any>('status', { header: 'Status', variant: 'outline', fallback: 'N/A' }),
+    createActionColumn<any>([
+      createViewAction((row) => handleViewStudent(row)),
+      createEditAction((row) => handleEditStudent(row)),
+      createDeleteAction((row) => handleDeleteStudent(row.student_id))
+    ])
+  ], [handleViewStudent, handleEditStudent, handleDeleteStudent]);
 
   const statsCards = [
     {

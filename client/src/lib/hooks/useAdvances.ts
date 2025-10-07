@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ServiceLocator } from "@/core";
+import { QUERY_STALE_TIME } from "@/lib/constants/query";
 import type { AdvanceRead, AdvanceCreate, AdvanceUpdate, AdvanceListResponse } from "@/lib/types/advances";
 
 const keys = {
@@ -18,7 +19,7 @@ export function useAdvancesAll() {
       // Clean architecture already returns the correct format
       return advanceListResponse;
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: QUERY_STALE_TIME, // 5 minutes
   });
 }
 
@@ -40,7 +41,7 @@ export function useAdvancesByBranch(branchId: number = 1) {
         throw error;
       }
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: QUERY_STALE_TIME, // 5 minutes
   });
 }
 
@@ -59,7 +60,7 @@ export function useAdvance(id: number) {
       return advance;
     }, 
     enabled: Number.isFinite(id),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: QUERY_STALE_TIME, // 5 minutes
   });
 }
 

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { formatCurrency } from '@/lib/utils';
 import { 
   GroupRead, 
   GroupCreate, 
@@ -351,15 +352,6 @@ export const useCollegeManagement = () => {
   
   const handleDeleteSection = async (id: number) => {
     setSections(sections.filter(section => section.id !== id));
-  };
-  
-  // Utility functions
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(amount);
   };
   
   return {

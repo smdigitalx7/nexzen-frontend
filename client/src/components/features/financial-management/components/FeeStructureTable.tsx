@@ -4,6 +4,8 @@ import { Edit, Trash2, Eye, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { formatCurrency } from "@/lib/utils";
+import { useTableState } from "@/lib/hooks/common/useTableState";
 import {
   Table,
   TableBody,
@@ -54,14 +56,6 @@ interface FeeStructureTableProps {
   onViewFeeStructure: (id: number) => void;
 }
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
-
 export const FeeStructureTable = ({
   feeStructures,
   onAddFeeStructure,
@@ -69,17 +63,33 @@ export const FeeStructureTable = ({
   onDeleteFeeStructure,
   onViewFeeStructure,
 }: FeeStructureTableProps) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedClass, setSelectedClass] = useState("all");
+  // Using shared table state management
+  const {
+    searchTerm,
+    setSearchTerm,
+    filters,
+    setFilters,
+    showAddDialog,
+    openAddDialog,
+    closeAddDialog,
+  } = useTableState({
+    initialFilters: { class: "all" }
+  });
+  
+  const selectedClass = filters.class || "all";
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  const handleClassFilterChange = (value: string) => {
+    setFilters(prev => ({ ...prev, class: value }));
+  };
 
   const filteredStructures = feeStructures.filter((structure) => {
     const searchMatch = searchTerm === "" || 
       structure.class_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       structure.academic_year.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const classMatch = selectedClass === "all" || structure.class_name === selectedClass;
-    
+
     return searchMatch && classMatch;
   });
 
@@ -162,7 +172,7 @@ export const FeeStructureTable = ({
             className="max-w-sm"
           />
         </div>
-        <Select value={selectedClass} onValueChange={setSelectedClass}>
+        <Select value={selectedClass} onValueChange={handleClassFilterChange}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Filter by class" />
           </SelectTrigger>

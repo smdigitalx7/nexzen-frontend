@@ -12,10 +12,23 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { EnhancedDataTable } from '@/components/shared';
+import { useSearchFilters, useTableFilters } from '@/lib/hooks/common';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useToast } from '@/hooks/use-toast';
 import { useClasses, useCreateClass, useUpdateClass } from '@/lib/hooks/useSchool';
 import { useAcademicYears } from '@/lib/hooks/useAcademicYear';
+import {
+  createClassNameColumn,
+  createTeacherColumn,
+  createRoomColumn,
+  createCapacityColumn,
+  createSubjectsColumn,
+  createBooleanStatusColumn,
+  createBadgeColumn,
+  createActionColumn,
+  createEditAction,
+  createDeleteAction
+} from "@/lib/utils/columnFactories.tsx";
 
 // UI row shape used by the table; we will map backend data into this shape
 type UIClassRow = {
@@ -46,19 +59,13 @@ const ClassesManagement = () => {
   const [classes, setClasses] = useState<UIClassRow[]>([]);
   // When backend classes load, map them into UI rows (fill non-backend fields with defaults)
   useEffect(() => {
-    console.log('🔍 ClassManagement: useEffect triggered');
-    console.log('🔍 ClassManagement: classesLoading:', classesLoading);
-    console.log('🔍 ClassManagement: academicYearsLoading:', academicYearsLoading);
-    console.log('🔍 ClassManagement: backendClasses:', backendClasses);
-    console.log('🔍 ClassManagement: academicYears:', academicYears);
     
     // Don't process if data is still loading
     if (classesLoading || academicYearsLoading) return;
     
     const mapped: UIClassRow[] = backendClasses.map((c) => {
       // Find the current active academic year or use the first available
-      const currentAcademicYear = academicYears?.find(ay => ay.is_active) || academicYears?.[0];
-      console.log('🔍 ClassManagement: currentAcademicYear:', currentAcademicYear);
+      const currentAcademicYear = academicYears?.find((ay: any) => ay.is_active) || academicYears?.[0];
       return {
         class_id: c.class_id,
         class_name: c.class_name,
@@ -75,11 +82,9 @@ const ClassesManagement = () => {
         created_at: new Date().toISOString().slice(0,10),
       };
     });
-    console.log('🔍 ClassManagement: mapped classes:', mapped);
     setClasses(mapped);
   }, [backendClasses, academicYears, classesLoading, academicYearsLoading]);
 
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedGrade, setSelectedGrade] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -93,179 +98,62 @@ const ClassesManagement = () => {
     },
   });
 
-  // Filtered data based on search and filters
-  const filteredData = useMemo(() => {
-    return classes.filter(classItem => {
-      const matchesSearch = 
-        classItem.class_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        classItem.class_teacher.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        classItem.room_number.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesGrade = selectedGrade === 'all' || classItem.grade === selectedGrade;
-      const matchesStatus = selectedStatus === 'all' || classItem.status === selectedStatus;
-      
-      return matchesSearch && matchesGrade && matchesStatus;
+  // Shared search over class fields
+  const { searchTerm, setSearchTerm, filteredItems: searchFiltered } = useSearchFilters<UIClassRow>(
+    classes,
+    { keys: ['class_name', 'class_teacher', 'room_number'] as any }
+  );
+
+  // Shared select filters for grade and status (grade optional UI field)
+  const { setFilter, filteredItems: filteredData } = useTableFilters<UIClassRow>(
+    searchFiltered,
+    [
+      { key: 'grade' as keyof UIClassRow, value: selectedGrade },
+      { key: 'status' as keyof UIClassRow, value: selectedStatus },
+    ]
+  );
+
+  
+  const handleDeleteClass = (classId: number) => {
+    setClasses(classes.filter(c => c.class_id !== classId));
+    toast({
+      title: "Class Deleted", 
+      description: "The class has been deleted successfully.",
+      variant: "destructive",
     });
-  }, [classes, searchQuery, selectedGrade, selectedStatus]);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-500';
-      case 'inactive': return 'bg-red-500';
-      default: return 'bg-gray-500';
-    }
   };
 
-  const getCapacityStatus = (current: number, capacity: number) => {
-    if (!capacity || capacity <= 0) return { color: 'text-gray-600', status: 'N/A' };
-    const percentage = (current / capacity) * 100;
-    if (percentage >= 90) return { color: 'text-red-600', status: 'Full' };
-    if (percentage >= 80) return { color: 'text-yellow-600', status: 'Near Full' };
-    return { color: 'text-green-600', status: 'Available' };
-  };
-
-  const columns: ColumnDef<UIClassRow>[] = [
-    {
-      accessorKey: 'class_name',
-      header: 'Class Name',
-      cell: ({ getValue, row }) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-            <GraduationCap className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <div className="font-semibold text-slate-900">{getValue<string>()}</div>
-            <div className="text-sm text-slate-500">Grade {row.original.grade} - Section {row.original.section}</div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'class_teacher',
-      header: 'Class Teacher',
-      cell: ({ getValue }) => {
-        const value = getValue<string>() || '-';
-        const initials = value.trim() ? value.split(' ').map(n => n[0]).join('') : '-';
-        return (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
-              <span className="text-xs font-semibold text-white">{initials}</span>
-            </div>
-            <span className="font-medium text-slate-700">{value}</span>
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: 'room_number',
-      header: 'Room',
-      cell: ({ getValue }) => (
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-slate-500" />
-          <Badge variant="outline" className="font-mono">{getValue<string>()}</Badge>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'current_strength',
-      header: 'Students',
-      cell: ({ getValue, row }) => {
-        const value = getValue<number>() || 0;
-        const capacity = row.original.capacity || 0;
-        const capacityStatus = getCapacityStatus(value, capacity);
-        return (
-          <div className="text-center">
-            <div className="font-semibold">{value}/{capacity}</div>
-            <div className={`text-xs ${capacityStatus.color}`}>{capacityStatus.status}</div>
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: 'subjects',
-      header: 'Subjects',
-      cell: ({ getValue }) => {
-        const value = (getValue<string[]>() || []);
-        return (
-          <div className="flex flex-wrap gap-1 max-w-[200px]">
-            {value.slice(0, 3).map((subject, idx) => (
-              <Badge key={idx} variant="secondary" className="text-xs">
-                {subject}
-              </Badge>
-            ))}
-            {value.length > 3 && (
-              <Badge variant="outline" className="text-xs">
-                +{value.length - 3}
-              </Badge>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: 'timetable_set',
-      header: 'Timetable',
-      cell: ({ getValue }) => {
-        const value = !!getValue<boolean>();
-        return (
-          <div className="flex items-center gap-2">
-            {value ? (
-              <>
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <span className="text-sm text-green-600">Set</span>
-              </>
-            ) : (
-              <>
-                <AlertCircle className="h-4 w-4 text-yellow-600" />
-                <span className="text-sm text-yellow-600">Pending</span>
-              </>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-      cell: ({ getValue }) => (
-        <Badge variant={getValue<string>() === 'active' ? 'default' : 'destructive'}>
-          {getValue<string>()}
-        </Badge>
-      ),
-    },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setEditingClass(row.original);
+  const columns: ColumnDef<UIClassRow>[] = useMemo(() => [
+    createClassNameColumn<UIClassRow>("class_name", "grade", "section", GraduationCap, { header: "Class Name" }),
+    createTeacherColumn<UIClassRow>("class_teacher", { header: "Class Teacher" }),
+    createRoomColumn<UIClassRow>("room_number", MapPin, { header: "Room" }),
+    createCapacityColumn<UIClassRow>("current_strength", "capacity", { header: "Students" }),
+    createSubjectsColumn<UIClassRow>("subjects", { header: "Subjects" }),
+    createBooleanStatusColumn<UIClassRow>(
+      "timetable_set",
+      CheckCircle2,
+      AlertCircle,
+      "Set",
+      "Pending",
+      "text-green-600",
+      "text-yellow-600",
+      { header: "Timetable" }
+    ),
+    createBadgeColumn<UIClassRow>("status", { 
+      header: "Status",
+      variant: "outline"
+    }),
+    createActionColumn<UIClassRow>([
+      createEditAction((row) => {
+        setEditingClass(row);
               form.reset({
-                class_name: row.original.class_name,
+          class_name: row.class_name,
               });
               setShowAddDialog(true);
-            }}
-            className="hover-elevate"
-            data-testid={`button-edit-class-${row.original.class_id}`}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleDeleteClass(row.original.class_id)}
-            className="hover-elevate text-red-600 hover:text-red-700"
-            data-testid={`button-delete-class-${row.original.class_id}`}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
-    },
-  ];
+      }),
+      createDeleteAction((row) => handleDeleteClass(row.class_id))
+    ])
+  ], [setEditingClass, form, setShowAddDialog, handleDeleteClass]);
 
   const handleSubmit = (values: any) => {
     if (editingClass) {
@@ -289,7 +177,7 @@ const ClassesManagement = () => {
           class_name: values.class_name,
           section: '-',
           grade: '-',
-          academic_year: academicYears?.find(ay => ay.is_active)?.year_name || academicYears?.[0]?.year_name || '2024-25',
+          academic_year: academicYears?.find((ay: any) => ay.is_active)?.year_name || academicYears?.[0]?.year_name || '2024-25',
           class_teacher: '-',
           room_number: '-',
           capacity: 0,
@@ -307,18 +195,9 @@ const ClassesManagement = () => {
     setShowAddDialog(false);
   };
 
-  const handleDeleteClass = (classId: number) => {
-    setClasses(classes.filter(c => c.class_id !== classId));
-    toast({
-      title: "Class Deleted", 
-      description: "The class has been deleted successfully.",
-      variant: "destructive",
-    });
-    console.log('Class deleted:', classId);
-  };
+  
 
   const handleExport = () => {
-    console.log('Exporting classes data');
     toast({
       title: "Export Started",
       description: "Classes data is being exported to CSV.",
@@ -513,13 +392,13 @@ const ClassesManagement = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Search classes, teachers, or rooms..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
                 data-testid="input-search-classes"
               />
             </div>
-            <Select value={selectedGrade} onValueChange={setSelectedGrade}>
+            <Select value={selectedGrade} onValueChange={(v) => { setSelectedGrade(v); setFilter('grade', v); }}>
               <SelectTrigger className="w-full sm:w-[150px]" data-testid="select-filter-grade">
                 <SelectValue placeholder="All Grades" />
               </SelectTrigger>
@@ -530,7 +409,7 @@ const ClassesManagement = () => {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <Select value={selectedStatus} onValueChange={(v) => { setSelectedStatus(v); setFilter('status', v); }}>
               <SelectTrigger className="w-full sm:w-[120px]" data-testid="select-filter-status">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>

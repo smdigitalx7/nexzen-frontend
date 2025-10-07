@@ -1,11 +1,32 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ServiceLocator } from "@/core";
+import { QUERY_STALE_TIME } from "@/lib/constants/query";
 import type { PayrollRead, PayrollCreate, PayrollUpdate, PayrollQuery, PayrollListResponse } from "@/lib/types/payrolls";
 import { useToast } from "@/hooks/use-toast";
 
 const keys = {
-  list: (query?: PayrollQuery) => ["payrolls", query || {}] as const,
-  branch: (branch_id: number, query?: PayrollQuery) => ["payrolls", "branch", branch_id, query || {}] as const,
+  list: (query?: PayrollQuery) => {
+    if (!query) return ["payrolls"] as const;
+    const stableQuery = {
+      limit: query.limit,
+      offset: query.offset,
+      month: query.month,
+      year: query.year,
+      status: query.status,
+    };
+    return ["payrolls", stableQuery] as const;
+  },
+  branch: (branch_id: number, query?: PayrollQuery) => {
+    if (!query) return ["payrolls", "branch", branch_id] as const;
+    const stableQuery = {
+      limit: query.limit,
+      offset: query.offset,
+      month: query.month,
+      year: query.year,
+      status: query.status,
+    };
+    return ["payrolls", "branch", branch_id, stableQuery] as const;
+  },
   detail: (id: number) => ["payrolls", id] as const,
 };
 
@@ -47,7 +68,7 @@ export function usePayrolls(query?: PayrollQuery) {
         pageSize: query?.limit || 10,
       };
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: QUERY_STALE_TIME, // 5 minutes
   });
 }
 
@@ -89,7 +110,7 @@ export function usePayrollsByBranch(branchId: number, query?: PayrollQuery) {
         pageSize: query?.limit || 10,
       };
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: QUERY_STALE_TIME, // 5 minutes
   });
 }
 
@@ -128,7 +149,7 @@ export function usePayroll(id: number) {
       };
     }, 
     enabled: Number.isFinite(id),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: QUERY_STALE_TIME, // 5 minutes
   });
 }
 
@@ -138,7 +159,6 @@ export function useCreatePayroll() {
   
   return useMutation({
     mutationFn: async (payload: PayrollCreate) => {
-      console.log("Creating payroll with clean architecture...");
       const payrollUseCases = ServiceLocator.getPayrollUseCases();
       const payroll = await payrollUseCases.createPayroll({
         employeeId: payload.employee_id,
@@ -181,7 +201,6 @@ export function useUpdatePayroll() {
   
   return useMutation({
     mutationFn: async ({ id, payload }: { id: number; payload: PayrollUpdate }) => {
-      console.log(`Updating payroll ${id} with clean architecture...`);
       const payrollUseCases = ServiceLocator.getPayrollUseCases();
       const payroll = await payrollUseCases.updatePayroll({
         id,
@@ -240,7 +259,6 @@ export function useUpdatePayrollStatus() {
   
   return useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      console.log(`Updating payroll status ${id} with clean architecture...`);
       const payrollUseCases = ServiceLocator.getPayrollUseCases();
       const payroll = await payrollUseCases.updatePayroll({ 
         id, 

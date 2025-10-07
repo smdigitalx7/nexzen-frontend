@@ -20,24 +20,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ExpenditureItem, useUpdateExpenditure, useDeleteExpenditure } from "@/lib/hooks/useIncomeExpenditure";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { FormDialog, ConfirmDialog } from "@/components/shared";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { useTableState } from "@/lib/hooks/common/useTableState";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -51,17 +36,6 @@ interface ExpenditureTableProps {
   showHeader?: boolean;
 }
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("en-IN");
-};
 
 export const ExpenditureTable = ({
   expenditureData,
@@ -72,11 +46,25 @@ export const ExpenditureTable = ({
   description = "Track all expenditure transactions and payments",
   showHeader = true,
 }: ExpenditureTableProps) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedPurpose, setSelectedPurpose] = useState("all");
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedExpenditure, setSelectedExpenditure] = useState<ExpenditureItem | null>(null);
+  // Using shared table state management
+  const {
+    searchTerm,
+    setSearchTerm,
+    filters,
+    setFilters,
+    showEditDialog,
+    showDeleteDialog,
+    openEditDialog,
+    closeEditDialog,
+    openDeleteDialog,
+    closeDeleteDialog,
+    selectedItem: selectedExpenditure,
+    setSelectedItem: setSelectedExpenditure,
+  } = useTableState({
+    initialFilters: { purpose: "all" }
+  });
+  
+  const selectedPurpose = filters.purpose || "all";
   const [editForm, setEditForm] = useState({
     expenditure_purpose: "",
     amount: "",
@@ -115,12 +103,16 @@ export const ExpenditureTable = ({
       payment_date: expenditure.payment_date || "",
       remarks: expenditure.remarks || "",
     });
-    setShowEditDialog(true);
+    openEditDialog(expenditure);
   };
 
   const handleDelete = (expenditure: ExpenditureItem) => {
     setSelectedExpenditure(expenditure);
-    setShowDeleteDialog(true);
+    openDeleteDialog(expenditure);
+  };
+
+  const handlePurposeFilterChange = (value: string) => {
+    setFilters(prev => ({ ...prev, purpose: value }));
   };
 
   const handleUpdateExpenditure = async () => {
@@ -138,8 +130,7 @@ export const ExpenditureTable = ({
           remarks: editForm.remarks,
         },
       });
-      setShowEditDialog(false);
-      setSelectedExpenditure(null);
+      closeEditDialog();
     } catch (error) {
       console.error("Failed to update expenditure:", error);
     }
@@ -150,8 +141,7 @@ export const ExpenditureTable = ({
     
     try {
       await deleteExpenditureMutation.mutateAsync(selectedExpenditure.expenditure_id);
-      setShowDeleteDialog(false);
-      setSelectedExpenditure(null);
+      closeDeleteDialog();
     } catch (error) {
       console.error("Failed to delete expenditure:", error);
     }
@@ -203,7 +193,7 @@ export const ExpenditureTable = ({
             />
           </div>
         </div>
-        <Select value={selectedPurpose} onValueChange={setSelectedPurpose}>
+        <Select value={selectedPurpose} onValueChange={handlePurposeFilterChange}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Filter by purpose" />
           </SelectTrigger>
@@ -300,14 +290,17 @@ export const ExpenditureTable = ({
       </div>
 
       {/* Edit Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Expenditure Record</DialogTitle>
-            <DialogDescription>
-              Update the expenditure record details below.
-            </DialogDescription>
-          </DialogHeader>
+      <FormDialog
+        open={showEditDialog}
+        onOpenChange={(open) => !open && closeEditDialog()}
+        title="Edit Expenditure Record"
+        description="Update the expenditure record details below."
+        size="MEDIUM"
+        isLoading={updateExpenditureMutation.isPending}
+        onSave={handleUpdateExpenditure}
+        onCancel={closeEditDialog}
+        saveText="Update"
+      >
           <div className="space-y-4">
             <div>
               <Label htmlFor="expenditure_purpose">Purpose</Label>
@@ -361,43 +354,20 @@ export const ExpenditureTable = ({
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleUpdateExpenditure}
-              disabled={updateExpenditureMutation.isPending}
-            >
-              {updateExpenditureMutation.isPending ? "Updating..." : "Update"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </FormDialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Expenditure Record</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this expenditure record? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowDeleteDialog(false)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteExpenditure}
-              disabled={deleteExpenditureMutation.isPending}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {deleteExpenditureMutation.isPending ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={(open) => !open && closeDeleteDialog()}
+        title="Delete Expenditure Record"
+        description="Are you sure you want to delete this expenditure record? This action cannot be undone."
+        confirmText="Delete"
+        variant="destructive"
+        isLoading={deleteExpenditureMutation.isPending}
+        onConfirm={handleDeleteExpenditure}
+        onCancel={closeDeleteDialog}
+      />
     </motion.div>
   );
 };
