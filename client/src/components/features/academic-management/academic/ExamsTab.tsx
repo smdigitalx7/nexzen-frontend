@@ -13,7 +13,6 @@ import {
   createIconTextColumn, 
   createDateColumn, 
   createBadgeColumn, 
-  createTruncatedTextColumn,
   createActionColumn,
   createEditAction,
   createDeleteAction
@@ -53,8 +52,8 @@ export const ExamsTab = ({
     initialData: { 
       exam_name: "", 
       exam_date: "", 
-      description: "",
-      total_marks: ""
+      pass_marks: "",
+      max_marks: ""
     }
   });
   
@@ -68,8 +67,8 @@ export const ExamsTab = ({
     initialData: { 
       exam_name: "", 
       exam_date: "", 
-      description: "",
-      total_marks: ""
+      pass_marks: "",
+      max_marks: ""
     }
   });
 
@@ -90,8 +89,8 @@ export const ExamsTab = ({
         id: Date.now(),
         exam_name: newExam.exam_name.trim(),
         exam_date: newExam.exam_date || "",
-        description: newExam.description?.trim() || "",
-        total_marks: parseInt(newExam.total_marks || "100") || 100,
+        pass_marks: parseInt(newExam.pass_marks || "35") || 35,
+        max_marks: parseInt(newExam.max_marks || "100") || 100,
         created_at: new Date().toISOString(),
       };
       
@@ -130,8 +129,8 @@ export const ExamsTab = ({
               ...exam,
               exam_name: editExam.exam_name?.trim() || "",
               exam_date: editExam.exam_date || "",
-              description: editExam.description?.trim() || "",
-              total_marks: parseInt(editExam.total_marks || "100") || 100,
+              pass_marks: parseInt(editExam.pass_marks || "35") || 35,
+              max_marks: parseInt(editExam.max_marks || "100") || 100,
             }
           : exam
       );
@@ -183,8 +182,8 @@ export const ExamsTab = ({
     setEditExam({ 
       exam_name: exam.exam_name,
       exam_date: exam.exam_date,
-      description: exam.description || "",
-      total_marks: exam.total_marks?.toString() || "100"
+      pass_marks: exam.pass_marks?.toString() || "35",
+      max_marks: exam.max_marks?.toString() || "100"
     });
     setIsEditExamOpen(true);
   };
@@ -204,14 +203,15 @@ export const ExamsTab = ({
       header: "Date", 
       fallback: "Not set" 
     }),
-    createBadgeColumn<any>("total_marks", { 
-      header: "Total Marks", 
+    createBadgeColumn<any>("pass_marks", { 
+      header: "Pass Marks", 
+      variant: "outline",
+      fallback: "35 marks"
+    }),
+    createBadgeColumn<any>("max_marks", { 
+      header: "Max Marks", 
       variant: "outline",
       fallback: "100 marks"
-    }),
-    createTruncatedTextColumn<any>("description", { 
-      header: "Description", 
-      fallback: "No description" 
     }),
     createActionColumn<any>([
       createEditAction(handleEditClick),
@@ -281,22 +281,22 @@ export const ExamsTab = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="total_marks">Total Marks</Label>
+            <Label htmlFor="pass_marks">Pass Marks</Label>
             <Input
               id="total_marks"
               type="number"
-              value={newExam.total_marks}
-              onChange={(e) => updateNewExamField('total_marks', e.target.value)}
+              value={newExam.pass_marks}
+              onChange={(e) => updateNewExamField('pass_marks', e.target.value)}
               placeholder="Enter total marks"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="max_marks">Max Marks</Label>
             <Input
-              id="description"
-              value={newExam.description}
-              onChange={(e) => updateNewExamField('description', e.target.value)}
-              placeholder="Enter description"
+              id="max_marks"
+              value={newExam.max_marks}
+              onChange={(e) => updateNewExamField('max_marks', e.target.value)}
+              placeholder="Enter max marks"
             />
           </div>
         </div>
@@ -337,22 +337,23 @@ export const ExamsTab = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit_total_marks">Total Marks</Label>
+            <Label htmlFor="edit_pass_marks">Pass Marks</Label>
             <Input
-              id="edit_total_marks"
+              id="edit_pass_marks"
               type="number"
-              value={editExam.total_marks}
-              onChange={(e) => updateEditExamField('total_marks', e.target.value)}
-              placeholder="Enter total marks"
+              value={editExam.pass_marks}
+              onChange={(e) => updateEditExamField('pass_marks', e.target.value)}
+              placeholder="Enter pass marks"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit_description">Description</Label>
+            <Label htmlFor="edit_max_marks">Max Marks</Label>
             <Input
-              id="edit_description"
-              value={editExam.description}
-              onChange={(e) => updateEditExamField('description', e.target.value)}
-              placeholder="Enter description"
+              id="edit_max_marks"
+              type="number"
+              value={editExam.max_marks}
+              onChange={(e) => updateEditExamField('max_marks', e.target.value)}
+              placeholder="Enter max marks"
             />
           </div>
         </div>

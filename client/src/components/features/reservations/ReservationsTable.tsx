@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export type Reservation = {
   id: string;
   studentName: string;
-  classAdmission: string;
   status: "Pending" | "Cancelled" | string;
   date: string;
   totalFee: number;
@@ -60,7 +59,6 @@ export default function ReservationsTable({ reservations, onView, onEdit, onDele
             <TableRow>
               <TableHead>Reservation No</TableHead>
               <TableHead>Student Name</TableHead>
-              <TableHead>Class</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Total Fee</TableHead>
@@ -72,7 +70,6 @@ export default function ReservationsTable({ reservations, onView, onEdit, onDele
               <TableRow key={reservation.id}>
                 <TableCell className="font-medium">{reservation.id}</TableCell>
                 <TableCell>{reservation.studentName}</TableCell>
-                <TableCell>{reservation.classAdmission}</TableCell>
                 <TableCell>
                   <Badge
                     variant={

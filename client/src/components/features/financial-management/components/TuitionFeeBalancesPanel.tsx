@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useClasses } from "@/lib/hooks/useSchool";
-import { useTuitionFeeBalances } from "@/lib/hooks/useFeeBalances";
+import { useTuitionFeeBalances, useTuitionFeeBalance } from "@/lib/hooks/useFeeBalances";
 import { StudentFeeBalancesTable } from "./StudentFeeBalancesTable";
 
 type StudentRow = React.ComponentProps<typeof StudentFeeBalancesTable>["studentBalances"][number];
@@ -19,6 +20,11 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
 
   const classIdNum = balanceClass ? parseInt(balanceClass) : undefined;
   const { data: tuitionResp } = useTuitionFeeBalances({ class_id: classIdNum, page: 1, page_size: 50 });
+
+  // Optional: when a row is clicked, fetch full details
+  const [selectedBalanceId, setSelectedBalanceId] = useState<number | undefined>();
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const { data: selectedBalance } = useTuitionFeeBalance(selectedBalanceId);
 
   const rows = useMemo<StudentRow[]>(() => {
     return (tuitionResp?.data || []).map((t) => {
@@ -77,10 +83,56 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
 
       <StudentFeeBalancesTable
         studentBalances={rows}
-        onViewStudent={onViewStudent as any}
+        onViewStudent={(student) => {
+          setSelectedBalanceId(student.id);
+          setDetailsOpen(true);
+          onViewStudent(student);
+        }}
         onExportCSV={onExportCSV}
         showHeader={false}
       />
+
+      {/* Details Dialog */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tuition Fee Balance Details</DialogTitle>
+          </DialogHeader>
+          {!selectedBalanceId ? (
+            <div className="p-2 text-sm text-muted-foreground">No balance selected.</div>
+          ) : !selectedBalance ? (
+            <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+          ) : (
+            <div className="space-y-2 text-sm">
+              <div><span className="text-muted-foreground">Balance ID:</span> {selectedBalance.balance_id}</div>
+              <div><span className="text-muted-foreground">Student:</span> {selectedBalance.student_name} ({selectedBalance.admission_no})</div>
+              <div><span className="text-muted-foreground">Roll No:</span> {selectedBalance.roll_number}</div>
+              <div><span className="text-muted-foreground">Section:</span> {selectedBalance.section_name || '-'}</div>
+              <div><span className="text-muted-foreground">Total Fee:</span> {selectedBalance.total_fee}</div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <div className="font-medium">Term 1</div>
+                  <div className="text-muted-foreground">Amount: {selectedBalance.term1_amount}</div>
+                  <div className="text-muted-foreground">Paid: {selectedBalance.term1_paid}</div>
+                  <div className="text-muted-foreground">Balance: {selectedBalance.term1_balance}</div>
+                </div>
+                <div>
+                  <div className="font-medium">Term 2</div>
+                  <div className="text-muted-foreground">Amount: {selectedBalance.term2_amount}</div>
+                  <div className="text-muted-foreground">Paid: {selectedBalance.term2_paid}</div>
+                  <div className="text-muted-foreground">Balance: {selectedBalance.term2_balance}</div>
+                </div>
+                <div>
+                  <div className="font-medium">Term 3</div>
+                  <div className="text-muted-foreground">Amount: {selectedBalance.term3_amount}</div>
+                  <div className="text-muted-foreground">Paid: {selectedBalance.term3_paid}</div>
+                  <div className="text-muted-foreground">Balance: {selectedBalance.term3_balance}</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }

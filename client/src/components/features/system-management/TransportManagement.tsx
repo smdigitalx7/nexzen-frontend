@@ -44,7 +44,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useAuthStore } from "@/store/authStore";
-import { useBusRoutes, useBusRoute, useDeleteBusRoute, useCreateBusRoute, useUpdateBusRoute, useDistanceSlabs, useCreateDistanceSlab, useUpdateDistanceSlab } from "@/lib/hooks/useTransport";
+import { useBusRoutes, useBusRoute, useDeleteBusRoute, useCreateBusRoute, useUpdateBusRoute, useCreateDistanceSlab, useUpdateDistanceSlab } from "@/lib/hooks/useTransport";
+import { useDistanceSlabs } from "@/lib/hooks/useFeeBalances";
 
 
 const TransportManagement = () => {
@@ -73,15 +74,20 @@ const TransportManagement = () => {
     fuel_cost: 0, // Not available in current schema
     maintenance_cost: 0, // Not available in current schema
   }));
-  const transportFeeStructures = slabsData.map((f) => ({
-    id: f.slab_id,
-    route_name: f.slab_name,
-    stop_name: `${f.min_distance}${f.max_distance ? `-${f.max_distance}` : "+"} km`,
-    distance_km: f.max_distance ?? 0,
-    total_fee: f.fee_amount,
-    active: true,
-    students_count: 0,
-  }));
+  const transportFeeStructures = slabsData.map((f) => {
+    const minDist = f.min_distance_km ?? f.min_distance ?? 0;
+    const maxDist = (f.max_distance_km ?? f.max_distance);
+    const monthlyFee = f.monthly_fee ?? f.fee_amount ?? f.amount ?? 0;
+    return {
+      id: f.slab_id ?? f.id,
+      route_name: f.slab_name ?? f.name ?? "-",
+      stop_name: `${minDist}${maxDist ? `-${maxDist}` : "+"} km`,
+      distance_km: maxDist ?? 0,
+      total_fee: monthlyFee,
+      active: f.is_active ?? true,
+      students_count: 0,
+    };
+  });
   const [activeTab, setActiveTab] = useState("routes");
   const [isAddRouteOpen, setIsAddRouteOpen] = useState(false);
   const [isAddFeeOpen, setIsAddFeeOpen] = useState(false);

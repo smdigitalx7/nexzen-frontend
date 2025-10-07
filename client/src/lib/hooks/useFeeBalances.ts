@@ -94,4 +94,45 @@ export function useTransportFeeBalances(params: { class_id?: number; section_id?
   });
 }
 
+// Fetch single tuition fee balance by ID
+export function useTuitionFeeBalance(balance_id?: number) {
+  return useQuery<any>({
+    queryKey: ["school", "tuition-fee-balances", balance_id],
+    enabled: !!balance_id,
+    queryFn: async () => {
+      const api = ServiceLocator.getApiClient();
+      const res = await api.get(`/school/tuition-fee-balances/${balance_id}`);
+      return res.data as any;
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function useTransportFeeBalance(balance_id?: number) {
+  return useQuery<any>({
+    queryKey: ["school", "transport-fee-balances", balance_id],
+    enabled: !!balance_id,
+    queryFn: async () => {
+      const api = ServiceLocator.getApiClient();
+      const res = await api.get(`/school/transport-fee-balances/${balance_id}`);
+      return res.data as any;
+    },
+    staleTime: 60_000,
+  });
+}
+
+// Distance slabs (transport fee structures) - public API
+export function useDistanceSlabs() {
+  return useQuery<any[]>({
+    queryKey: ["transport-fee-structures"],
+    queryFn: async () => {
+      const api = ServiceLocator.getApiClient();
+      const res = await api.get(`/transport-fee-structures/`);
+      const data = Array.isArray(res.data) ? res.data : [];
+      return data;
+    },
+    staleTime: 60_000,
+  });
+}
+
 

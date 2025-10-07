@@ -1,7 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, FileText, Edit, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DataTableWithFilters, FormDialog, ConfirmDialog } from "@/components/shared";
@@ -12,7 +10,6 @@ import {
   createIconTextColumn, 
   createTextColumn, 
   createBadgeColumn, 
-  createTruncatedTextColumn,
   createActionColumn,
   createEditAction,
   createDeleteAction
@@ -52,8 +49,8 @@ export const TestTab = ({
     initialData: { 
       test_name: "", 
       test_date: "", 
-      description: "",
-      total_marks: ""
+      pass_marks: "",
+      max_marks: ""
     }
   });
   
@@ -67,8 +64,8 @@ export const TestTab = ({
     initialData: { 
       test_name: "", 
       test_date: "", 
-      description: "",
-      total_marks: ""
+      pass_marks: "",
+      max_marks: ""
     }
   });
 
@@ -89,8 +86,8 @@ export const TestTab = ({
         id: Date.now(),
         test_name: newTest.test_name.trim(),
         test_date: newTest.test_date || "",
-        description: newTest.description?.trim() || "",
-        total_marks: parseInt(newTest.total_marks || "50") || 50,
+        pass_marks: parseInt(newTest.pass_marks || "50") || 50,
+        max_marks: parseInt(newTest.max_marks || "50") || 50,
         created_at: new Date().toISOString(),
       };
       
@@ -129,8 +126,8 @@ export const TestTab = ({
               ...test,
               test_name: editTest.test_name?.trim() || "",
               test_date: editTest.test_date || "",
-              description: editTest.description?.trim() || "",
-              total_marks: parseInt(editTest.total_marks || "50") || 50,
+              pass_marks: parseInt(editTest.pass_marks || "50") || 50,
+              max_marks: parseInt(editTest.max_marks || "50") || 50,
             }
           : test
       );
@@ -182,8 +179,8 @@ export const TestTab = ({
     setEditTest({ 
       test_name: test.test_name,
       test_date: test.test_date,
-      description: test.description || "",
-      total_marks: test.total_marks?.toString() || "50"
+      pass_marks: test.pass_marks?.toString() || "50",
+      max_marks: test.max_marks?.toString() || "50"
     });
     setIsEditTestOpen(true);
   };
@@ -203,14 +200,15 @@ export const TestTab = ({
       header: "Date", 
       fallback: "Not set" 
     }),
-    createBadgeColumn<any>("total_marks", { 
-      header: "Total Marks", 
+    createBadgeColumn<any>("pass_marks", { 
+      header: "Pass Marks", 
       variant: "outline",
       fallback: "50 marks"
     }),
-    createTruncatedTextColumn<any>("description", { 
-      header: "Description", 
-      fallback: "No description" 
+    createBadgeColumn<any>("max_marks", { 
+      header: "Max Marks", 
+      variant: "outline",
+      fallback: "50 marks" 
     }),
     createActionColumn<any>([
       createEditAction(handleEditClick),
@@ -280,22 +278,22 @@ export const TestTab = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="total_marks">Total Marks</Label>
+            <Label htmlFor="max_marks">Max Marks</Label>
             <Input
-              id="total_marks"
+              id="max_marks"
               type="number"
-              value={newTest.total_marks}
-              onChange={(e) => updateNewTestField('total_marks', e.target.value)}
+              value={newTest.max_marks}
+              onChange={(e) => updateNewTestField('max_marks', e.target.value)}
               placeholder="Enter total marks"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="pass_marks">Pass Marks</Label>
             <Input
-              id="description"
-              value={newTest.description}
-              onChange={(e) => updateNewTestField('description', e.target.value)}
-              placeholder="Enter description"
+              id="pass_marks"
+              value={newTest.pass_marks}
+              onChange={(e) => updateNewTestField('pass_marks', e.target.value)}
+              placeholder="Enter pass marks"
             />
           </div>
         </div>
@@ -336,22 +334,22 @@ export const TestTab = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit_total_marks">Total Marks</Label>
+            <Label htmlFor="edit_max_marks">Max Marks</Label>
             <Input
-              id="edit_total_marks"
+              id="edit_max_marks"
               type="number"
-              value={editTest.total_marks}
-              onChange={(e) => updateEditTestField('total_marks', e.target.value)}
+              value={editTest.max_marks}
+              onChange={(e) => updateEditTestField('max_marks', e.target.value)}
               placeholder="Enter total marks"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit_description">Description</Label>
+            <Label htmlFor="edit_pass_marks">Pass Marks</Label>
             <Input
-              id="edit_description"
-              value={editTest.description}
-              onChange={(e) => updateEditTestField('description', e.target.value)}
-              placeholder="Enter description"
+              id="edit_pass_marks"
+              value={editTest.pass_marks}
+              onChange={(e) => updateEditTestField('pass_marks', e.target.value)}
+              placeholder="Enter pass marks"
             />
           </div>
         </div>

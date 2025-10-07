@@ -653,13 +653,25 @@ const ExamMarksManagement = () => {
                   </div>
                 </div>
               </Card>
+            ) : (examMarks.length === 0 ? (
+              <Card className="p-8 text-center">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                    <GraduationCap className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">No Exam Marks Found</h3>
+                    <p className="text-slate-600 mt-1">Try changing filters or ensure marks are recorded for this class.</p>
+                  </div>
+                </div>
+              </Card>
             ) : (
               <EnhancedDataTable
                 data={examMarks}
                 columns={examMarkColumns}
                 exportable={true}
               />
-            )}
+            ))}
 
             {/* View Exam Mark Dialog */}
             <Dialog open={showViewExamMarkDialog} onOpenChange={setShowViewExamMarkDialog}>

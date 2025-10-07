@@ -1,7 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Edit, Trash2, BookOpen } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { BookOpen } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DataTableWithFilters, FormDialog, ConfirmDialog } from "@/components/shared";
@@ -10,9 +8,6 @@ import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
 import { 
   createIconTextColumn, 
-  createBadgeColumn, 
-  createTruncatedTextColumn,
-  createCountBadgeColumn,
   createActionColumn,
   createEditAction,
   createDeleteAction
@@ -43,13 +38,9 @@ export const SubjectsTab = ({
   const [selectedSubject, setSelectedSubject] = useState<any>(null);
   const [newSubject, setNewSubject] = useState({ 
     subject_name: "", 
-    subject_code: "", 
-    description: "" 
   });
   const [editSubject, setEditSubject] = useState({ 
     subject_name: "", 
-    subject_code: "", 
-    description: "" 
   });
 
   const { toast } = useToast();
@@ -76,7 +67,7 @@ export const SubjectsTab = ({
         description: "Subject created successfully",
       });
       
-      setNewSubject({ subject_name: "", subject_code: "", description: "" });
+      setNewSubject({ subject_name: "" });
       setIsAddSubjectOpen(false);
     } catch (error) {
       toast({
@@ -110,7 +101,7 @@ export const SubjectsTab = ({
         description: "Subject updated successfully",
       });
       
-      setEditSubject({ subject_name: "", subject_code: "", description: "" });
+      setEditSubject({ subject_name: "" });
       setSelectedSubject(null);
       setIsEditSubjectOpen(false);
     } catch (error) {
@@ -147,8 +138,6 @@ export const SubjectsTab = ({
     setSelectedSubject(subject);
     setEditSubject({ 
       subject_name: subject.subject_name,
-      subject_code: subject.subject_code || "",
-      description: subject.description || ""
     });
     setIsEditSubjectOpen(true);
   };
@@ -160,23 +149,10 @@ export const SubjectsTab = ({
 
   // Define columns for the data table using column factories
   const columns: ColumnDef<any>[] = useMemo(() => [
+    { accessorKey: "subject_id", header: "Subject ID" },
     createIconTextColumn<any>("subject_name", { 
       icon: BookOpen, 
       header: "Subject Name" 
-    }),
-    createBadgeColumn<any>("subject_code", { 
-      header: "Code", 
-      variant: "outline",
-      fallback: "N/A"
-    }),
-    createTruncatedTextColumn<any>("description", { 
-      header: "Description", 
-      fallback: "No description" 
-    }),
-    createCountBadgeColumn<any>("classes_count", { 
-      header: "Classes", 
-      variant: "secondary",
-      fallback: "classes"
     }),
     createActionColumn<any>([
       createEditAction(handleEditClick),
@@ -213,7 +189,7 @@ export const SubjectsTab = ({
         onSave={handleCreateSubject}
         onCancel={() => {
           setIsAddSubjectOpen(false);
-          setNewSubject({ subject_name: "", subject_code: "", description: "" });
+          setNewSubject({ subject_name: "" });
         }}
         saveText="Create Subject"
         cancelText="Cancel"
@@ -229,24 +205,6 @@ export const SubjectsTab = ({
               placeholder="Enter subject name"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="subject_code">Subject Code</Label>
-            <Input
-              id="subject_code"
-              value={newSubject.subject_code}
-              onChange={(e) => setNewSubject({ ...newSubject, subject_code: e.target.value })}
-              placeholder="Enter subject code"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Input
-              id="description"
-              value={newSubject.description}
-              onChange={(e) => setNewSubject({ ...newSubject, description: e.target.value })}
-              placeholder="Enter description"
-            />
-          </div>
         </div>
       </FormDialog>
 
@@ -259,7 +217,7 @@ export const SubjectsTab = ({
         onSave={handleUpdateSubject}
         onCancel={() => {
           setIsEditSubjectOpen(false);
-          setEditSubject({ subject_name: "", subject_code: "", description: "" });
+          setEditSubject({ subject_name: "" });
           setSelectedSubject(null);
         }}
         saveText="Update Subject"
@@ -274,24 +232,6 @@ export const SubjectsTab = ({
               value={editSubject.subject_name}
               onChange={(e) => setEditSubject({ ...editSubject, subject_name: e.target.value })}
               placeholder="Enter subject name"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit_subject_code">Subject Code</Label>
-            <Input
-              id="edit_subject_code"
-              value={editSubject.subject_code}
-              onChange={(e) => setEditSubject({ ...editSubject, subject_code: e.target.value })}
-              placeholder="Enter subject code"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit_description">Description</Label>
-            <Input
-              id="edit_description"
-              value={editSubject.description}
-              onChange={(e) => setEditSubject({ ...editSubject, description: e.target.value })}
-              placeholder="Enter description"
             />
           </div>
         </div>

@@ -10,7 +10,6 @@ import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createIconTextColumn,
-  createCountBadgeColumn,
   createActionColumn,
   createEditAction,
   createDeleteAction
@@ -144,8 +143,6 @@ export const ClassesTab = memo(({
   // Define columns for the data table
   const columns: ColumnDef<any>[] = useMemo(() => [
     createIconTextColumn<any>("class_name", { header: "Class Name", icon: BookOpen }),
-    createCountBadgeColumn<any>("subjects_count", { header: "Subjects", fallback: "subjects" }),
-    createCountBadgeColumn<any>("students_count", { header: "Students", fallback: "students", variant: "outline" }),
     createActionColumn<any>([
       createEditAction((classItem) => handleEditClick(classItem)),
       createDeleteAction((classItem) => handleDeleteClick(classItem))

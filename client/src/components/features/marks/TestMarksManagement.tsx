@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Search, Download, Edit, Trash2, FileText, Calculator, Award, BarChart3, Target, ClipboardList, Eye } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -78,11 +78,13 @@ const TestMarksManagement = () => {
 
   // API hooks
   const { data: classes = [] } = useClasses();
-
+  
   // Auto-select first class when available
-  if (!selectedClass && classes.length > 0) {
-    setSelectedClass(classes[0].class_id.toString());
-  }
+  useEffect(() => {
+    if (!selectedClass && classes.length > 0) {
+      setSelectedClass(classes[0].class_id.toString());
+    }
+  }, [selectedClass, classes]);
   const { data: students = [] } = useStudents();
   const { data: subjects = [] } = useSubjects();
   const { tests = [] } = useAcademicData();
@@ -639,13 +641,25 @@ const TestMarksManagement = () => {
                   </div>
                 </div>
               </Card>
+            ) : (testMarks.length === 0 ? (
+              <Card className="p-8 text-center">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                    <ClipboardList className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">No Test Marks Found</h3>
+                    <p className="text-slate-600 mt-1">Try changing filters or ensure marks are recorded for this class.</p>
+                  </div>
+                </div>
+              </Card>
             ) : (
-            <EnhancedDataTable
+              <EnhancedDataTable
                 data={testMarks}
                 columns={testMarkColumns}
-              exportable={true}
-            />
-            )}
+                exportable={true}
+              />
+            ))}
 
             {/* View Test Mark Dialog */}
             <Dialog open={showViewTestMarkDialog} onOpenChange={setShowViewTestMarkDialog}>
