@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useEmployeesByBranch, useEmployee, useCreateEmployee, useUpdateEmployee, useDeleteEmployee, useUpdateEmployeeStatus } from '@/lib/hooks/useEmployees';
-import { useAttendanceAll, useAttendanceByBranch, useAttendance, useCreateAttendance, useUpdateAttendance, useDeleteAttendance } from '@/lib/hooks/useAttendance';
+import { useAttendanceAll, useAttendance, useCreateAttendance, useUpdateAttendance, useDeleteAttendance } from '@/lib/hooks/useAttendance';
+import { useEmployeeAttendanceByBranch } from '@/lib/hooks/useEmployeeAttendance';
 import { useEmployeeLeaves, useEmployeeLeavesByBranch, useEmployeeLeaveById, useCreateEmployeeLeave, useUpdateEmployeeLeave, useApproveEmployeeLeave, useRejectEmployeeLeave, useDeleteEmployeeLeave } from '@/lib/hooks/useEmployeeLeave';
 import { useAdvancesAll, useAdvancesByBranch, useAdvance, useCreateAdvance, useUpdateAdvance, useUpdateAdvanceStatus, useUpdateAdvanceAmountPaid } from '@/lib/hooks/useAdvances';
 import { EmployeeCreate, EmployeeUpdate } from '@/lib/types/employees';
@@ -29,14 +30,17 @@ export interface EmployeeRead {
 export interface EmployeeAttendanceRead {
   attendance_id: number;
   employee_id: number;
-  branch_id: number;
-  date: string;
-  status: 'PRESENT' | 'ABSENT' | 'LATE' | 'HALF_DAY';
-  check_in_time?: string;
-  check_out_time?: string;
-  notes?: string;
-  created_at: string;
-  updated_at: string;
+  attendance_month: string; // YYYY-MM-DD
+  total_working_days: number;
+  days_present: number;
+  days_absent: number;
+  paid_leaves: number;
+  unpaid_leaves: number;
+  late_arrivals: number;
+  early_departures: number;
+  created_at?: string;
+  updated_at?: string;
+  employee_name?: string;
 }
 
 export interface EmployeeLeaveRead {
@@ -78,7 +82,7 @@ export const useEmployeeManagement = (viewMode: "branch" | "institute" = "branch
   
   // Data hooks
   const { data: employees = [], isLoading, error } = useEmployeesByBranch();
-  const { data: attendance = [], isLoading: attendanceLoading } = useAttendanceByBranch();
+  const { data: attendance = [], isLoading: attendanceLoading } = useEmployeeAttendanceByBranch(currentBranch?.branch_id || 0);
   const { data: leaves = [], isLoading: leavesLoading } = useEmployeeLeavesByBranch();
   const { data: advancesData, isLoading: advancesLoading } = useAdvancesByBranch();
   const advances = advancesData?.data || [];
@@ -143,10 +147,16 @@ export const useEmployeeManagement = (viewMode: "branch" | "institute" = "branch
   const [isEditingAttendance, setIsEditingAttendance] = useState(false);
   const [attendanceToDelete, setAttendanceToDelete] = useState<EmployeeAttendanceRead | null>(null);
   const [showAttendanceDeleteDialog, setShowAttendanceDeleteDialog] = useState(false);
-  const [attendanceFormData, setAttendanceFormData] = useState<EmployeeAttendanceCreate>({
+  const [attendanceFormData, setAttendanceFormData] = useState({
     employee_id: 0,
-    date: new Date().toISOString().split('T')[0],
-    status: 'PRESENT'
+    attendance_month: new Date().toISOString().split('T')[0],
+    total_working_days: 0,
+    days_present: 0,
+    days_absent: 0,
+    paid_leaves: 0,
+    unpaid_leaves: 0,
+    late_arrivals: 0,
+    early_departures: 0,
   });
   
   // Leave form state
@@ -184,21 +194,19 @@ export const useEmployeeManagement = (viewMode: "branch" | "institute" = "branch
   });
   
   // Enrich attendance data with employee names
-  const enrichedAttendance = attendance.map(attendanceRecord => {
+  const enrichedAttendance = attendance.map((attendanceRecord: any) => {
     const employee = employees.find(emp => emp.employee_id === attendanceRecord.employee_id);
     return {
       ...attendanceRecord,
       employee_name: employee?.employee_name || `Employee ${attendanceRecord.employee_id}`
-    };
+    } as EmployeeAttendanceRead;
   });
 
   // Computed values
   const totalEmployees = employees.length;
   const activeEmployees = employees.filter(emp => emp.status === 'ACTIVE').length;
   const totalAttendance = attendance.length;
-  const presentToday = attendance.filter(att => 
-    att.date === new Date().toISOString().split('T')[0] && att.status === 'PRESENT'
-  ).length;
+  const presentToday = 0; // Not applicable with monthly aggregates
   const pendingLeaves = leaves.filter(leave => leave.leave_status === 'PENDING').length;
   const totalAdvances = Array.isArray(advances) ? advances.length : 0;
   const pendingAdvances = Array.isArray(advances) ? advances.filter((adv: any) => adv.status === 'PENDING').length : 0;

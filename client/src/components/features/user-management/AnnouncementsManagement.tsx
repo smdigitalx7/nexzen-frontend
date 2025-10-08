@@ -12,6 +12,7 @@ import {
   Trash2,
   Eye,
   Send,
+  Loader2,
 } from "lucide-react";
 import {
   Card,
@@ -41,6 +42,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { FormDialog, ConfirmDialog } from "@/components/shared";
 import {
   Table,
   TableBody,
@@ -52,116 +54,31 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuthStore } from "@/store/authStore";
-
-// Mock data for announcements
-const mockAnnouncements = [
-  {
-    id: 1,
-    title: "Sports Day Celebration",
-    message:
-      "Annual Sports Day will be held on February 15, 2025. All students are required to participate. Parents are invited to attend.",
-    category: "holiday",
-    priority: "high",
-    target_audience: "all_classes",
-    target_transport: null,
-    created_date: "2025-01-15",
-    created_by: "Principal",
-    status: "active",
-    branch_id: 1,
-    branch_name: "Main Campus",
-  },
-  {
-    id: 2,
-    title: "Route Change Notice",
-    message:
-      "Bus Route R003 will have a temporary route change due to road construction. New pickup time is 7:30 AM instead of 7:15 AM.",
-    category: "transport",
-    priority: "medium",
-    target_audience: null,
-    target_transport: "R003",
-    created_date: "2025-01-14",
-    created_by: "Transport Manager",
-    status: "active",
-    branch_id: 1,
-    branch_name: "Main Campus",
-  },
-  {
-    id: 3,
-    title: "Parent-Teacher Meeting",
-    message:
-      "Parent-Teacher meetings for Classes 6-10 will be held on January 25, 2025 from 9:00 AM to 12:00 PM.",
-    category: "general",
-    priority: "medium",
-    target_audience: "classes_6_10",
-    target_transport: null,
-    created_date: "2025-01-12",
-    created_by: "Academic Head",
-    status: "active",
-    branch_id: 1,
-    branch_name: "Main Campus",
-  },
-  {
-    id: 4,
-    title: "Holiday Notice - Republic Day",
-    message:
-      "School will remain closed on January 26, 2025 on account of Republic Day. Classes will resume on January 27, 2025.",
-    category: "holiday",
-    priority: "high",
-    target_audience: "all_classes",
-    target_transport: null,
-    created_date: "2025-01-10",
-    created_by: "Principal",
-    status: "active",
-    branch_id: 1,
-    branch_name: "Main Campus",
-  },
-  {
-    id: 5,
-    title: "Fee Payment Reminder",
-    message:
-      "This is a reminder that the second term fee payment is due by January 31, 2025. Please ensure timely payment to avoid late fees.",
-    category: "general",
-    priority: "medium",
-    target_audience: "all_classes",
-    target_transport: null,
-    created_date: "2025-01-08",
-    created_by: "Accountant",
-    status: "active",
-    branch_id: 1,
-    branch_name: "Main Campus",
-  },
-];
-
-const mockClasses = [
-  "Nursery",
-  "J.K.G",
-  "S.K.G",
-  "1",
-  "2",
-  "3",
-  "4",
-  "5",
-  "6",
-  "7",
-  "8",
-  "9",
-  "10",
-];
-
-const mockTransportRoutes = [
-  "R001-City Center",
-  "R002-North District",
-  "R003-South Zone",
-  "R004-East Park",
-];
+import {
+  useAnnouncements,
+  useCreateAnnouncement,
+  useUpdateAnnouncement,
+  useDeleteAnnouncement,
+  type Announcement,
+  type AnnouncementCreate,
+  type AnnouncementUpdate,
+} from "@/lib/hooks/useAnnouncements";
+import { useToast } from "@/hooks/use-toast";
 
 const AnnouncementsManagement = () => {
   const { user, currentBranch } = useAuthStore();
-  const [announcements, setAnnouncements] = useState(mockAnnouncements);
-  const [isAddAnnouncementOpen, setIsAddAnnouncementOpen] = useState(false);
+  const { toast } = useToast();
+  
+  // State for UI
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedPriority, setSelectedPriority] = useState("all");
+  const [isAddAnnouncementOpen, setIsAddAnnouncementOpen] = useState(false);
+  const [isEditAnnouncementOpen, setIsEditAnnouncementOpen] = useState(false);
+  const [isViewAnnouncementOpen, setIsViewAnnouncementOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: "",
     message: "",
@@ -173,14 +90,34 @@ const AnnouncementsManagement = () => {
     selected_routes: [] as string[],
   });
 
+  // API Hooks - Fetch all announcements and filter on frontend
+  const { data: allAnnouncements = [], isLoading, error } = useAnnouncements({});
+  
+  // Frontend filtering based on current branch
+  const announcements = allAnnouncements.filter(announcement => {
+    if (!currentBranch) return true; // Show all if no branch selected
+    
+    // Filter by branch type and optionally by branch_id if it exists
+    const matchesBranchType = announcement.branch_type === currentBranch.branch_type;
+    const matchesBranchId = !currentBranch.branch_id || announcement.branch_id === currentBranch.branch_id;
+    
+    return matchesBranchType && matchesBranchId;
+  });
+  
+  const createAnnouncementMutation = useCreateAnnouncement();
+  const updateAnnouncementMutation = useUpdateAnnouncement();
+  const deleteAnnouncementMutation = useDeleteAnnouncement();
+
+  // Apply all frontend filters
   const filteredAnnouncements = announcements.filter((announcement) => {
     const matchesSearch =
       announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      announcement.message.toLowerCase().includes(searchTerm.toLowerCase());
+      announcement.content.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory =
-      selectedCategory === "all" || announcement.category === selectedCategory;
+      selectedCategory === "all" || announcement.announcement_type.toLowerCase() === selectedCategory;
     const matchesPriority =
-      selectedPriority === "all" || announcement.priority === selectedPriority;
+      selectedPriority === "all" || announcement.priority.toLowerCase() === selectedPriority;
+    
     return matchesSearch && matchesCategory && matchesPriority;
   });
 
@@ -223,35 +160,81 @@ const AnnouncementsManagement = () => {
     }
   };
 
-  const handleAddAnnouncement = () => {
-    const newId = Math.max(...announcements.map((a) => a.id)) + 1;
-    const announcement = {
-      id: newId,
-      ...newAnnouncement,
-      target_audience:
-        newAnnouncement.selected_classes.length > 0
-          ? newAnnouncement.selected_classes.join(",")
-          : newAnnouncement.target_audience,
-      // align to expected type where target_transport is null
-      target_transport: null,
-      created_date: new Date().toISOString().split("T")[0],
-      created_by: user?.full_name || "Admin",
-      status: "active",
-      branch_id: currentBranch?.branch_id || 1,
-      branch_name: currentBranch?.branch_name || "Main Campus",
+  const handleAddAnnouncement = async () => {
+    if (!currentBranch?.branch_id) {
+      toast({
+        title: "Error",
+        description: "No branch selected",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate required fields
+    if (!newAnnouncement.title.trim()) {
+      toast({
+        title: "Error",
+        description: "Title is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newAnnouncement.message.trim()) {
+      toast({
+        title: "Error",
+        description: "Message is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newAnnouncement.category) {
+      toast({
+        title: "Error",
+        description: "Category is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newAnnouncement.priority) {
+      toast({
+        title: "Error",
+        description: "Priority is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const announcementData: AnnouncementCreate = {
+      branch_id: currentBranch.branch_id,
+      branch_type: "SCHOOL",
+      title: newAnnouncement.title.trim(),
+      content: newAnnouncement.message.trim(),
+      target_audience: newAnnouncement.target_audience || "ALL",
+      class_id: newAnnouncement.selected_classes.length > 0 ? parseInt(newAnnouncement.selected_classes[0]) : undefined,
+      bus_route_id: newAnnouncement.selected_routes.length > 0 ? 1 : undefined,
+      announcement_type: newAnnouncement.category.toUpperCase(),
+      priority: newAnnouncement.priority.toUpperCase(),
     };
-    setAnnouncements([announcement, ...announcements]);
-    setNewAnnouncement({
-      title: "",
-      message: "",
-      category: "",
-      priority: "",
-      target_audience: "",
-      target_transport: "",
-      selected_classes: [],
-      selected_routes: [],
-    });
-    setIsAddAnnouncementOpen(false);
+
+    try {
+      await createAnnouncementMutation.mutateAsync(announcementData);
+      setNewAnnouncement({
+        title: "",
+        message: "",
+        category: "",
+        priority: "",
+        target_audience: "",
+        target_transport: "",
+        selected_classes: [],
+        selected_routes: [],
+      });
+      setIsAddAnnouncementOpen(false);
+    } catch (error) {
+      // Error handling is done in the mutation hook
+    }
   };
 
   const handleClassToggle = (className: string) => {
@@ -270,6 +253,79 @@ const AnnouncementsManagement = () => {
         ? prev.selected_routes.filter((r) => r !== route)
         : [...prev.selected_routes, route],
     }));
+  };
+
+  // Action button handlers
+  const handleViewAnnouncement = (announcement: Announcement) => {
+    setSelectedAnnouncement(announcement);
+    setIsViewAnnouncementOpen(true);
+  };
+
+  const handleEditAnnouncement = (announcement: Announcement) => {
+    setSelectedAnnouncement(announcement);
+    setNewAnnouncement({
+      title: announcement.title,
+      message: announcement.content,
+      category: announcement.announcement_type.toLowerCase(),
+      priority: announcement.priority.toLowerCase(),
+      target_audience: announcement.target_audience,
+      target_transport: announcement.bus_route_id ? "specific_routes" : "",
+      selected_classes: announcement.class_id ? [announcement.class_id.toString()] : [],
+      selected_routes: announcement.bus_route_id ? ["R001"] : [],
+    });
+    setIsEditAnnouncementOpen(true);
+  };
+
+  const handleDeleteAnnouncement = (announcement: Announcement) => {
+    setSelectedAnnouncement(announcement);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedAnnouncement) return;
+    
+    try {
+      await deleteAnnouncementMutation.mutateAsync(selectedAnnouncement.announcement_id);
+      setIsDeleteDialogOpen(false);
+      setSelectedAnnouncement(null);
+    } catch (error) {
+      // Error handling is done in the mutation hook
+    }
+  };
+
+  const handleUpdateAnnouncement = async () => {
+    if (!selectedAnnouncement || !currentBranch?.branch_id) return;
+
+    const updateData: AnnouncementUpdate = {
+      title: newAnnouncement.title,
+      content: newAnnouncement.message,
+      target_audience: newAnnouncement.target_audience || "ALL",
+      class_id: newAnnouncement.selected_classes.length > 0 ? parseInt(newAnnouncement.selected_classes[0]) : undefined,
+      bus_route_id: newAnnouncement.selected_routes.length > 0 ? 1 : undefined,
+      announcement_type: newAnnouncement.category.toUpperCase(),
+      priority: newAnnouncement.priority.toUpperCase(),
+    };
+
+    try {
+      await updateAnnouncementMutation.mutateAsync({
+        id: selectedAnnouncement.announcement_id,
+        data: updateData,
+      });
+      setIsEditAnnouncementOpen(false);
+      setSelectedAnnouncement(null);
+      setNewAnnouncement({
+        title: "",
+        message: "",
+        category: "",
+        priority: "",
+        target_audience: "",
+        target_transport: "",
+        selected_classes: [],
+        selected_routes: [],
+      });
+    } catch (error) {
+      // Error handling is done in the mutation hook
+    }
   };
 
   return (
@@ -413,7 +469,7 @@ const AnnouncementsManagement = () => {
                   </div>
                   {newAnnouncement.selected_classes.length > 0 && (
                     <div className="ml-6 grid grid-cols-3 gap-2">
-                      {mockClasses.map((className) => (
+                      {[].map((className) => (
                         <div
                           key={className}
                           className="flex items-center space-x-2"
@@ -472,7 +528,7 @@ const AnnouncementsManagement = () => {
                   </div>
                   {newAnnouncement.selected_routes.length > 0 && (
                     <div className="ml-6 grid grid-cols-2 gap-2">
-                      {mockTransportRoutes.map((route) => (
+                      {[].map((route) => (
                         <div
                           key={route}
                           className="flex items-center space-x-2"
@@ -501,8 +557,16 @@ const AnnouncementsManagement = () => {
               >
                 Cancel
               </Button>
-              <Button onClick={handleAddAnnouncement} className="gap-2">
-                <Send className="h-4 w-4" />
+              <Button 
+                onClick={handleAddAnnouncement} 
+                className="gap-2"
+                disabled={createAnnouncementMutation.isPending}
+              >
+                {createAnnouncementMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
                 Send Announcement
               </Button>
             </DialogFooter>
@@ -570,9 +634,42 @@ const AnnouncementsManagement = () => {
         transition={{ delay: 0.2 }}
         className="space-y-4"
       >
-        {filteredAnnouncements.map((announcement, index) => (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Loading announcements...</span>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-red-800 mb-2">Server Error</h3>
+              <p className="text-red-600 mb-4">{error.message}</p>
+              <p className="text-sm text-red-500 mb-4">
+                The backend is experiencing issues. Please try again later.
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </Button>
+            </div>
+          </div>
+        ) : filteredAnnouncements.length === 0 ? (
+          <div className="text-center py-8">
+            <Megaphone className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">No announcements found</p>
+          </div>
+        ) : (
+          filteredAnnouncements.map((announcement, index) => (
           <motion.div
-            key={announcement.id}
+            key={announcement.announcement_id}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.1 }}
@@ -589,7 +686,7 @@ const AnnouncementsManagement = () => {
                         {announcement.title}
                       </CardTitle>
                       <CardDescription className="mt-1">
-                        {announcement.message}
+                        {announcement.content}
                       </CardDescription>
                     </div>
                   </div>
@@ -602,9 +699,9 @@ const AnnouncementsManagement = () => {
                     </Badge>
                     <Badge
                       variant="outline"
-                      className={getCategoryColor(announcement.category)}
+                      className={getCategoryColor(announcement.announcement_type)}
                     >
-                      {announcement.category}
+                      {announcement.announcement_type}
                     </Badge>
                   </div>
                 </div>
@@ -614,11 +711,11 @@ const AnnouncementsManagement = () => {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {new Date(announcement.created_date).toLocaleDateString()}
+                      {new Date(announcement.created_at).toLocaleDateString()}
                     </div>
                     <div className="flex items-center gap-1">
                       <Users className="h-3 w-3" />
-                      {announcement.created_by}
+                      {announcement.created_by || "System"}
                     </div>
                     {announcement.target_audience && (
                       <div className="flex items-center gap-1">
@@ -630,28 +727,37 @@ const AnnouncementsManagement = () => {
                         </span>
                       </div>
                     )}
-                    {announcement.target_transport && (
+                    {announcement.bus_route_id && (
                       <div className="flex items-center gap-1">
                         <span>
-                          Routes:{" "}
-                          {announcement.target_transport === "all_routes"
-                            ? "All Routes"
-                            : announcement.target_transport}
+                          Route ID: {announcement.bus_route_id}
                         </span>
                       </div>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleViewAnnouncement(announcement)}
+                      title="View announcement"
+                    >
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleEditAnnouncement(announcement)}
+                      title="Edit announcement"
+                    >
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       className="text-red-600 hover:text-red-700"
+                      onClick={() => handleDeleteAnnouncement(announcement)}
+                      title="Delete announcement"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -660,7 +766,8 @@ const AnnouncementsManagement = () => {
               </CardContent>
             </Card>
           </motion.div>
-        ))}
+          ))
+        )}
       </motion.div>
 
       {/* Quick Stats */}
@@ -712,10 +819,163 @@ const AnnouncementsManagement = () => {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* View Announcement Dialog */}
+      <Dialog open={isViewAnnouncementOpen} onOpenChange={setIsViewAnnouncementOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Announcement Details</DialogTitle>
+          </DialogHeader>
+          {selectedAnnouncement && (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium">Title</Label>
+                <p className="text-lg font-semibold">{selectedAnnouncement.title}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Content</Label>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {selectedAnnouncement.content}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium">Type</Label>
+                  <Badge className={getCategoryColor(selectedAnnouncement.announcement_type)}>
+                    {selectedAnnouncement.announcement_type}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Priority</Label>
+                  <Badge className={getPriorityColor(selectedAnnouncement.priority)}>
+                    {selectedAnnouncement.priority}
+                  </Badge>
+                </div>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Target Audience</Label>
+                <p className="text-sm">{selectedAnnouncement.target_audience}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Created</Label>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(selectedAnnouncement.created_at).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Announcement Dialog */}
+      <FormDialog
+        open={isEditAnnouncementOpen}
+        onOpenChange={setIsEditAnnouncementOpen}
+        title="Edit Announcement"
+        description="Update the announcement details"
+        size="LARGE"
+        isLoading={updateAnnouncementMutation.isPending}
+        onSave={handleUpdateAnnouncement}
+        onCancel={() => setIsEditAnnouncementOpen(false)}
+        saveText="Update Announcement"
+        cancelText="Cancel"
+        disabled={updateAnnouncementMutation.isPending}
+      >
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="edit-title">Title</Label>
+            <Input
+              id="edit-title"
+              value={newAnnouncement.title}
+              onChange={(e) =>
+                setNewAnnouncement({
+                  ...newAnnouncement,
+                  title: e.target.value,
+                })
+              }
+              placeholder="Enter announcement title"
+            />
+          </div>
+          <div>
+            <Label htmlFor="edit-message">Message</Label>
+            <Textarea
+              id="edit-message"
+              value={newAnnouncement.message}
+              onChange={(e) =>
+                setNewAnnouncement({
+                  ...newAnnouncement,
+                  message: e.target.value,
+                })
+              }
+              placeholder="Enter announcement message"
+              rows={4}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="edit-category">Category</Label>
+              <Select
+                value={newAnnouncement.category}
+                onValueChange={(value) =>
+                  setNewAnnouncement({
+                    ...newAnnouncement,
+                    category: value,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General</SelectItem>
+                  <SelectItem value="holiday">Holiday</SelectItem>
+                  <SelectItem value="transport">Transport</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="edit-priority">Priority</Label>
+              <Select
+                value={newAnnouncement.priority}
+                onValueChange={(value) =>
+                  setNewAnnouncement({
+                    ...newAnnouncement,
+                    priority: value,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+      </FormDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Delete Announcement"
+        description={
+          selectedAnnouncement 
+            ? `Are you sure you want to delete "${selectedAnnouncement.title}"? This action cannot be undone.`
+            : "Are you sure you want to delete this announcement? This action cannot be undone."
+        }
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+        isLoading={deleteAnnouncementMutation.isPending}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 };
 
 export default AnnouncementsManagement;
-
-

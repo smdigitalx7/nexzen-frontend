@@ -151,13 +151,24 @@ export interface EnrollmentWithStudentDetails {
 }
 
 export interface EnrollmentsPaginatedResponse {
-  data: EnrollmentRead[] | null;
+  enrollments: EnrollmentClassGroup[];
   total_count: number;
+  current_page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface EnrollmentClassGroup {
+  class_id: number;
+  class_name: string;
+  students: EnrollmentRead[];
 }
 
 export interface EnrollmentFilterParams {
   section_id?: number;
   admission_no?: string;
+  page?: number;
+  page_size?: number;
 }
 
 // Student Transport Assignments
@@ -214,9 +225,15 @@ export interface StudentTransportAssignmentMinimal {
   is_active?: boolean | null;
 }
 
+export interface StudentTransportClassWiseResponse {
+  class_id: number;
+  class_name: string;
+  students: StudentTransportAssignmentMinimal[];
+}
+
 export interface StudentTransportRouteWiseResponse {
   bus_route_id: number;
   route_name: string;
-  students: StudentTransportAssignmentMinimal[];
+  classes: StudentTransportClassWiseResponse[];
 }
 

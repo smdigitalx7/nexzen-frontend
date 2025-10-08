@@ -16,38 +16,34 @@ export class EmployeeAttendanceApiRepository implements EmployeeAttendanceReposi
   }
 
   async findAll(): Promise<EmployeeAttendanceEntity[]> {
-    console.log('🔍 EmployeeAttendanceApiRepository.findAll: Starting to fetch attendance...');
     const response = await this.apiClient.get('/employee-attendances/');
-    console.log('🔍 EmployeeAttendanceApiRepository.findAll: Raw response:', response);
-    console.log('🔍 EmployeeAttendanceApiRepository.findAll: Response type:', typeof response);
-    console.log('🔍 EmployeeAttendanceApiRepository.findAll: Response.data:', response.data);
-    console.log('🔍 EmployeeAttendanceApiRepository.findAll: Response length:', Array.isArray(response) ? response.length : (response.data && Array.isArray(response.data) ? response.data.length : 0));
-    
-    const data = response.data || response;
-    console.log('🔍 EmployeeAttendanceApiRepository.findAll: Data type:', typeof data);
-    console.log('🔍 EmployeeAttendanceApiRepository.findAll: Is array:', Array.isArray(data));
-    console.log('🔍 EmployeeAttendanceApiRepository.findAll: Data value:', data);
-    
-    // Handle case where API returns non-array data
-    const dataArray = Array.isArray(data) ? data : [];
-    const mappedEntities = dataArray.map((item: any) => this.mapToEntity(item));
-    console.log('🔍 EmployeeAttendanceApiRepository.findAll: Mapped entities:', mappedEntities.length, 'entities');
-    return mappedEntities;
+    const wrapper = response.data as { data?: any[] } | any[];
+    const records = Array.isArray(wrapper) ? wrapper : (wrapper?.data ?? []);
+    return records.map((item: any) => this.mapToEntity(item));
   }
 
   async findByEmployeeId(employeeId: number): Promise<EmployeeAttendanceEntity[]> {
-    const response = await this.apiClient.get(`/employee-attendances?employee_id=${employeeId}`);
-    return (response.data as any[]).map((item: any) => this.mapToEntity(item));
+    // Backend does not support employee_id filter yet; fallback to all and client filter
+    const all = await this.findAll();
+    return all.filter(a => a.employeeId === employeeId);
   }
 
   async findByBranchId(branchId: number): Promise<EmployeeAttendanceEntity[]> {
-    const response = await this.apiClient.get(`/employee-attendances?branch_id=${branchId}`);
-    return (response.data as any[]).map((item: any) => this.mapToEntity(item));
+    const response = await this.apiClient.get(`/employee-attendances/branch`);
+    const wrapper = response.data as { data?: any[] } | any[];
+    const records = Array.isArray(wrapper) ? wrapper : (wrapper?.data ?? []);
+    return records.map((item: any) => this.mapToEntity(item));
   }
 
   async findByDateRange(startDate: Date, endDate: Date): Promise<EmployeeAttendanceEntity[]> {
-    const response = await this.apiClient.get(`/employee-attendances?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`);
-    return (response.data as any[]).map((item: any) => this.mapToEntity(item));
+    // Backend does not support date range; fallback to all and filter by month/year
+    const all = await this.findAll();
+    const start = startDate.getTime();
+    const end = endDate.getTime();
+    return all.filter(a => {
+      const t = a.attendanceDate.getTime();
+      return t >= start && t <= end;
+    });
   }
 
   async save(attendanceEntity: EmployeeAttendanceEntity): Promise<EmployeeAttendanceEntity> {
@@ -74,63 +70,73 @@ export class EmployeeAttendanceApiRepository implements EmployeeAttendanceReposi
   }
 
   async count(): Promise<number> {
-    const response = await this.apiClient.get('/employee-attendances/count');
-    return (response.data as any).count;
+    // Not supported in backend; derive from list
+    const all = await this.findAll();
+    return all.length;
   }
 
   private mapToEntity(apiData: any): EmployeeAttendanceEntity {
+    // Backend schema: attendance_month, total_working_days, days_present, days_absent, ...
+    const attendanceDate = new Date(apiData.attendance_month || apiData.attendanceDate || apiData.date);
+    const workingHours = apiData.total_working_days ?? apiData.working_hours ?? apiData.workingHours ?? 0;
     return new EmployeeAttendanceEntity(
       new EmployeeAttendanceId(apiData.attendance_id || apiData.id),
       apiData.employee_id || apiData.employeeId,
-      new Date(apiData.attendance_date || apiData.attendanceDate || apiData.date),
-      apiData.check_in_time ? new Date(apiData.check_in_time) : null,
-      apiData.check_out_time ? new Date(apiData.check_out_time) : null,
-      apiData.status || 'PRESENT' as AttendanceStatus,
-      apiData.working_hours || apiData.workingHours || 0,
-      apiData.overtime_hours || apiData.overtimeHours || 0,
-      apiData.notes || null,
+      attendanceDate,
+      null,
+      null,
+      (apiData.days_present ?? 0) >= 1 ? AttendanceStatus.PRESENT : AttendanceStatus.ABSENT,
+      workingHours,
+      0,
+      null,
       apiData.branch_id || apiData.branchId || 1,
-      new Date(apiData.created_at || apiData.createdAt),
-      new Date(apiData.updated_at || apiData.updatedAt)
+      new Date(apiData.created_at || apiData.createdAt || attendanceDate),
+      new Date(apiData.updated_at || apiData.updatedAt || attendanceDate)
     );
   }
 
   private mapToApiRequest(attendanceEntity: EmployeeAttendanceEntity): any {
+    // Map domain to backend expected fields
+    const isPresent = attendanceEntity.status === 'PRESENT';
     return {
       employee_id: attendanceEntity.employeeId,
-      branch_id: attendanceEntity.branchId,
-      attendance_date: attendanceEntity.attendanceDate.toISOString(),
-      status: attendanceEntity.status,
+      attendance_month: attendanceEntity.attendanceDate.toISOString().split('T')[0],
+      total_working_days: 1,
+      days_present: isPresent ? 1 : 0,
+      days_absent: isPresent ? 0 : 1,
+      paid_leaves: 0,
+      unpaid_leaves: 0,
+      late_arrivals: 0,
+      early_departures: 0,
     };
   }
 
   async findByEmployeeAndDate(employeeId: number, date: Date): Promise<EmployeeAttendanceEntity | null> {
-    try {
-      const response = await this.apiClient.get(`/employee-attendance/employee/${employeeId}/date/${date.toISOString().split('T')[0]}`);
-      return this.mapToEntity(response.data as any);
-    } catch (error) {
-      return null;
-    }
+    // Not supported; approximate via list
+    const all = await this.findAll();
+    const target = all.find(a => a.employeeId === employeeId && a.attendanceDate.toDateString() === date.toDateString()) || null;
+    return target;
   }
 
   async findByStatus(status: AttendanceStatus): Promise<EmployeeAttendanceEntity[]> {
-    const response = await this.apiClient.get(`/employee-attendance/status/${status}`);
-    return (response.data as any[]).map((item: any) => this.mapToEntity(item));
+    // Not supported; filter client-side
+    const all = await this.findAll();
+    return all.filter(a => a.status === status);
   }
 
   async countByEmployee(employeeId: number): Promise<number> {
-    const response = await this.apiClient.get(`/employee-attendance/employee/${employeeId}/count`);
-    return (response.data as any).count;
+    const list = await this.findByEmployeeId(employeeId);
+    return list.length;
   }
 
   async countByStatus(status: AttendanceStatus): Promise<number> {
-    const response = await this.apiClient.get(`/employee-attendance/status/${status}/count`);
-    return (response.data as any).count;
+    const list = await this.findByStatus(status);
+    return list.length;
   }
 
   async countByBranch(branchId: number): Promise<number> {
-    const response = await this.apiClient.get(`/employee-attendance/branch/${branchId}/count`);
-    return (response.data as any).count;
+    const list = await this.findByBranchId(branchId);
+    return list.length;
   }
 
   async getAttendanceSummary(employeeId: number, startDate: Date, endDate: Date): Promise<{
@@ -141,12 +147,22 @@ export class EmployeeAttendanceApiRepository implements EmployeeAttendanceReposi
     totalWorkingHours: number;
     totalOvertimeHours: number;
   }> {
-    const response = await this.apiClient.get(`/employee-attendance/employee/${employeeId}/summary?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`);
-    return response.data as any;
+    // Not supported; derive summary client-side
+    const list = await this.findByEmployeeId(employeeId);
+    const inRange = list.filter(a => a.attendanceDate >= new Date(startDate.toDateString()) && a.attendanceDate <= new Date(endDate.toDateString()));
+    const totalDays = inRange.length;
+    const presentDays = inRange.filter(a => a.status === 'PRESENT').length;
+    const absentDays = totalDays - presentDays;
+    const lateDays = 0;
+    const totalWorkingHours = inRange.reduce((s, a) => s + a.workingHours, 0);
+    const totalOvertimeHours = inRange.reduce((s, a) => s + a.overtimeHours, 0);
+    return { totalDays, presentDays, absentDays, lateDays, totalWorkingHours, totalOvertimeHours } as any;
   }
 
   async searchEmployeeAttendance(query: string): Promise<EmployeeAttendanceEntity[]> {
-    const response = await this.apiClient.get(`/employee-attendance/search?q=${encodeURIComponent(query)}`);
-    return (response.data as any[]).map((item: any) => this.mapToEntity(item));
+    // Not supported; filter client-side
+    const all = await this.findAll();
+    const q = query.toLowerCase();
+    return all.filter(a => `${a.employeeId}`.includes(q));
   }
 }

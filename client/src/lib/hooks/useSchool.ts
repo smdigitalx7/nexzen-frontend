@@ -444,15 +444,44 @@ export function useStudent(id: number) {
 }
 
 // Enrollments
-export function useEnrollments(params: { class_id: number; section_id?: number; admission_no?: string }) {
-  const queryKey = keys.enrollments(params.class_id, { section_id: params.section_id || null, admission_no: params.admission_no || null });
+export function useEnrollments(params: { class_id: number; section_id?: number; admission_no?: string; page?: number; page_size?: number }) {
+  const queryKey = keys.enrollments(params.class_id, { 
+    section_id: params.section_id || null, 
+    admission_no: params.admission_no || null,
+    page: params.page || null,
+    page_size: params.page_size || null
+  });
   return useQuery({
     queryKey,
     queryFn: async () => {
       const res = await EnrollmentsService.list(params);
-      return res.data || [];
+      return res;
     },
     enabled: Number.isFinite(params.class_id) && params.class_id > 0,
+    staleTime: QUERY_STALE_TIME,
+  });
+}
+
+// GET /api/v1/school/enrollments/{enrollment_id}
+export function useEnrollment(enrollment_id: number) {
+  return useQuery({
+    queryKey: keys.enrollment(enrollment_id),
+    queryFn: async () => {
+      return await EnrollmentsService.getById(enrollment_id);
+    },
+    enabled: Number.isFinite(enrollment_id) && enrollment_id > 0,
+    staleTime: QUERY_STALE_TIME,
+  });
+}
+
+// GET /api/v1/school/enrollments/by-admission/{admission_no}
+export function useEnrollmentByAdmission(admission_no: string) {
+  return useQuery({
+    queryKey: ["school", "enrollments", "by-admission", admission_no],
+    queryFn: async () => {
+      return await EnrollmentsService.getByAdmission(admission_no);
+    },
+    enabled: !!admission_no && admission_no.trim().length > 0,
     staleTime: QUERY_STALE_TIME,
   });
 }
@@ -463,6 +492,8 @@ export function useCreateEnrollment() {
   return useMutation({
     mutationFn: EnrollmentsService.create,
     onSuccess: (data) => {
+      // Invalidate all enrollment queries to refresh the data
+      qc.invalidateQueries({ queryKey: ["school", "enrollments"] });
       qc.invalidateQueries({ queryKey: keys.enrollments(data.class_id) });
       toast({ title: "Success", description: "Enrollment created." });
     },
@@ -473,11 +504,36 @@ export function useUpdateEnrollment() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: async ({ class_id, id, payload }: { class_id: number; id: number; payload: any }) => EnrollmentsService.update(class_id, id, payload),
-    onSuccess: (data, { class_id, id }) => {
+    mutationFn: async ({ id, payload }: { id: number; payload: any }) => EnrollmentsService.update(id, payload),
+    onSuccess: (data, { id }) => {
+      // Invalidate all enrollment queries to refresh the data
+      qc.invalidateQueries({ queryKey: ["school", "enrollments"] });
       qc.invalidateQueries({ queryKey: keys.enrollment(id) });
-      if (class_id) qc.invalidateQueries({ queryKey: keys.enrollments(class_id) });
+      if (data.class_id) qc.invalidateQueries({ queryKey: keys.enrollments(data.class_id) });
       toast({ title: "Success", description: "Enrollment updated." });
+    },
+  });
+}
+
+// DELETE /api/v1/school/enrollments/{enrollment_id}
+export function useDeleteEnrollment() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: EnrollmentsService.delete,
+    onSuccess: (data, enrollmentId) => {
+      // Invalidate all enrollment queries to refresh the data
+      qc.invalidateQueries({ queryKey: ["school", "enrollments"] });
+      qc.invalidateQueries({ queryKey: keys.enrollment(enrollmentId) });
+      toast({ title: "Success", description: "Enrollment deleted successfully." });
+    },
+    onError: (error: any, enrollmentId) => {
+      console.error("Error deleting enrollment:", error, "ID:", enrollmentId);
+      toast({
+        title: "Error",
+        description: error?.response?.data?.detail || error?.message || "Failed to delete enrollment",
+        variant: "destructive",
+      });
     },
   });
 }

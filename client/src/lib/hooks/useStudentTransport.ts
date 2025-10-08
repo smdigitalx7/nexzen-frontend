@@ -9,12 +9,12 @@ import type {
 import { useToast } from "@/hooks/use-toast";
 
 const keys = {
-  transportByClass: (classId: number, sectionId?: number) => ["school", "student-transport", classId, sectionId || null] as const,
+  transportByClass: (classId: number, sectionId?: number, busRouteId?: number) => ["school", "student-transport", classId, sectionId || null, busRouteId || null] as const,
   transportAssignment: (id: number) => ["school", "student-transport", id] as const,
 };
 
-export function useStudentTransport(params: { class_id: number; section_id?: number }) {
-  const queryKey = keys.transportByClass(params.class_id, params.section_id);
+export function useStudentTransport(params: { class_id: number; section_id?: number; bus_route_id?: number }) {
+  const queryKey = keys.transportByClass(params.class_id, params.section_id, params.bus_route_id);
   return useQuery<StudentTransportRouteWiseResponse[]>({
     queryKey,
     queryFn: async () => StudentTransportService.list(params),
@@ -29,6 +29,8 @@ export function useCreateStudentTransport() {
   return useMutation({
     mutationFn: (payload: StudentTransportAssignmentCreate) => StudentTransportService.create(payload),
     onSuccess: () => {
+      // Invalidate all transport queries to refresh the data
+      qc.invalidateQueries({ queryKey: ["school", "student-transport"] });
       toast({ title: "Success", description: "Student transport assigned." });
     },
   });
@@ -40,6 +42,8 @@ export function useUpdateStudentTransport() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: StudentTransportAssignmentUpdate }) => StudentTransportService.update(id, payload),
     onSuccess: (_data, { id }) => {
+      // Invalidate all transport queries to refresh the data
+      qc.invalidateQueries({ queryKey: ["school", "student-transport"] });
       qc.invalidateQueries({ queryKey: keys.transportAssignment(id) });
       toast({ title: "Success", description: "Student transport updated." });
     },

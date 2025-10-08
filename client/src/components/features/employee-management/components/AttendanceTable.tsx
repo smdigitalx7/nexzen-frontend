@@ -1,8 +1,4 @@
 import { useMemo } from "react";
-import { Edit, Trash2, Eye, Calendar } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/utils";
 import { DataTableWithFilters, ConfirmDialog } from "@/components/shared";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
@@ -18,12 +14,15 @@ import {
 interface EmployeeAttendanceRead {
   attendance_id: number;
   employee_id: number;
-  date: string;
-  status: string;
-  check_in_time?: string;
-  check_out_time?: string;
-  notes?: string;
   employee_name?: string;
+  attendance_month: string; // YYYY-MM-DD
+  total_working_days: number;
+  days_present: number;
+  days_absent: number;
+  paid_leaves: number;
+  unpaid_leaves: number;
+  late_arrivals: number;
+  early_departures: number;
 }
 
 interface AttendanceTableProps {
@@ -48,11 +47,12 @@ export const AttendanceTable = ({
   // Define columns for the data table using column factories
   const columns: ColumnDef<EmployeeAttendanceRead>[] = useMemo(() => [
     createTextColumn<EmployeeAttendanceRead>("employee_name", { header: "Employee", className: "font-medium", fallback: (undefined as unknown) as any }),
-    createDateColumn<EmployeeAttendanceRead>("date", { header: "Date" }),
-    createBadgeColumn<EmployeeAttendanceRead>("status", { header: "Status", variant: "outline" }),
-    createTextColumn<EmployeeAttendanceRead>("check_in_time", { header: "Check In", fallback: "-" }),
-    createTextColumn<EmployeeAttendanceRead>("check_out_time", { header: "Check Out", fallback: "-" }),
-    createTextColumn<EmployeeAttendanceRead>("notes", { header: "Notes", className: "max-w-xs truncate", fallback: "-" }),
+    createDateColumn<EmployeeAttendanceRead>("attendance_month", { header: "Month" }),
+    { accessorKey: "total_working_days", header: "Working Days", cell: ({ row }) => <span>{row.original.total_working_days ?? '-'}</span> },
+    { accessorKey: "days_present", header: "Present", cell: ({ row }) => <span>{row.original.days_present ?? '-'}</span> },
+    { accessorKey: "days_absent", header: "Absent", cell: ({ row }) => <span>{row.original.days_absent ?? '-'}</span> },
+    { accessorKey: "late_arrivals", header: "Late", cell: ({ row }) => <span>{row.original.late_arrivals ?? '-'}</span> },
+    { accessorKey: "early_departures", header: "Early", cell: ({ row }) => <span>{row.original.early_departures ?? '-'}</span> },
     createActionColumn<EmployeeAttendanceRead>([
       createViewAction((row) => onViewAttendance(row)),
       createEditAction((row) => onEditAttendance(row)),

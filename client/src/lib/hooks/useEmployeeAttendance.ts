@@ -24,27 +24,10 @@ export const useEmployeeAttendance = () => {
   return useQuery({
     queryKey: ATTENDANCE_KEYS.list(),
     queryFn: async () => {
-      const employeeAttendanceUseCases = ServiceLocator.getEmployeeAttendanceUseCases();
-      const attendance = await employeeAttendanceUseCases.getAllEmployeeAttendance();
-      
-      // Convert clean architecture entities to backend format
-      return attendance.map(attendanceEntity => ({
-        attendance_id: attendanceEntity.id,
-        institute_id: 1, // Default value
-        employee_id: attendanceEntity.employeeId,
-        attendance_month: attendanceEntity.attendanceDate, // Already in correct format
-        total_working_days: attendanceEntity.workingHours || 0, // Map working hours to working days
-        days_present: attendanceEntity.status === 'PRESENT' ? 1 : 0, // Simplified mapping
-        days_absent: attendanceEntity.status === 'ABSENT' ? 1 : 0, // Simplified mapping
-        paid_leaves: 0, // Default value
-        unpaid_leaves: 0, // Default value
-        late_arrivals: 0, // Default value
-        early_departures: 0, // Default value
-        created_at: attendanceEntity.createdAt,
-        updated_at: attendanceEntity.updatedAt,
-        created_by: null, // Not available in entity
-        updated_by: null, // Not available in entity
-      }));
+      const api = ServiceLocator.getApiClient();
+      const res = await api.get<any>('/employee-attendances/');
+      const wrapper = res.data as any;
+      return (wrapper?.data ?? []) as any[];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
@@ -54,32 +37,16 @@ export const useEmployeeAttendance = () => {
 /**
  * Hook to fetch attendance records by branch
  */
-export const useEmployeeAttendanceByBranch = () => {
+export const useEmployeeAttendanceByBranch = (branchId: number) => {
   return useQuery({
-    queryKey: ATTENDANCE_KEYS.listByBranch(),
+    queryKey: [...ATTENDANCE_KEYS.listByBranch(), branchId],
     queryFn: async () => {
-      const employeeAttendanceUseCases = ServiceLocator.getEmployeeAttendanceUseCases();
-      const attendance = await employeeAttendanceUseCases.getAllEmployeeAttendance();
-      
-      // Convert clean architecture entities to backend format
-      return attendance.map(attendanceEntity => ({
-        attendance_id: attendanceEntity.id,
-        institute_id: 1, // Default value
-        employee_id: attendanceEntity.employeeId,
-        attendance_month: attendanceEntity.attendanceDate, // Already in correct format
-        total_working_days: attendanceEntity.workingHours || 0, // Map working hours to working days
-        days_present: attendanceEntity.status === 'PRESENT' ? 1 : 0, // Simplified mapping
-        days_absent: attendanceEntity.status === 'ABSENT' ? 1 : 0, // Simplified mapping
-        paid_leaves: 0, // Default value
-        unpaid_leaves: 0, // Default value
-        late_arrivals: 0, // Default value
-        early_departures: 0, // Default value
-        created_at: attendanceEntity.createdAt,
-        updated_at: attendanceEntity.updatedAt,
-        created_by: null, // Not available in entity
-        updated_by: null, // Not available in entity
-      }));
+      const api = ServiceLocator.getApiClient();
+      const res = await api.get<any>('/employee-attendances/branch');
+      const wrapper = res.data as any;
+      return (wrapper?.data ?? []) as any[];
     },
+    enabled: !!branchId,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
   });
@@ -104,7 +71,7 @@ export const useEmployeeAttendanceById = (id: number) => {
         attendance_id: attendanceEntity.id,
         institute_id: 1, // Default value
         employee_id: attendanceEntity.employeeId,
-        attendance_month: attendanceEntity.attendanceDate, // Already in correct format
+        attendance_month: new Date(attendanceEntity.attendanceDate).toISOString().split('T')[0],
         total_working_days: attendanceEntity.workingHours || 0, // Map working hours to working days
         days_present: attendanceEntity.status === 'PRESENT' ? 1 : 0, // Simplified mapping
         days_absent: attendanceEntity.status === 'ABSENT' ? 1 : 0, // Simplified mapping
@@ -133,15 +100,16 @@ export const useCreateEmployeeAttendance = () => {
 
   return useMutation({
     mutationFn: async (data: EmployeeAttendanceCreate) => {
+      // Send data in backend schema shape via use case
       const employeeAttendanceUseCases = ServiceLocator.getEmployeeAttendanceUseCases();
-      const attendance = await employeeAttendanceUseCases.createEmployeeAttendance({
+      // Use case ultimately maps via repository to backend fields
+      const result = await employeeAttendanceUseCases.createEmployeeAttendance({
         employeeId: data.employee_id,
         attendanceDate: new Date(data.attendance_month),
-        status: 'PRESENT' as any,
+        status: (data.days_present ?? 0) > 0 ? 'PRESENT' as any : 'ABSENT',
         branchId: 1,
       });
-      
-      return attendance;
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ATTENDANCE_KEYS.lists() });
@@ -172,9 +140,8 @@ export const useUpdateEmployeeAttendance = () => {
       const employeeAttendanceUseCases = ServiceLocator.getEmployeeAttendanceUseCases();
       const attendance = await employeeAttendanceUseCases.updateEmployeeAttendance({
         id,
-        status: 'PRESENT' as any,
+        status: (data.days_present ?? 0) > 0 ? 'PRESENT' as any : (data.days_absent ?? 0) > 0 ? 'ABSENT' as any : undefined,
       });
-      
       return attendance;
     },
     onSuccess: (_, { id }) => {

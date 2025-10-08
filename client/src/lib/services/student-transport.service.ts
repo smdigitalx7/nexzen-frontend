@@ -7,11 +7,12 @@ import type {
 } from "@/lib/types/school";
 
 export const StudentTransportService = {
-  list(params: { class_id: number; section_id?: number }): Promise<StudentTransportRouteWiseResponse[]> {
-    const { class_id, section_id } = params;
+  list(params: { class_id: number; section_id?: number; bus_route_id?: number }): Promise<StudentTransportRouteWiseResponse[]> {
+    const { class_id, section_id, bus_route_id } = params;
     const qs = new URLSearchParams();
     qs.append("class_id", String(class_id));
     if (section_id != null) qs.append("section_id", String(section_id));
+    if (bus_route_id != null) qs.append("bus_route_id", String(bus_route_id));
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     return Api.get<StudentTransportRouteWiseResponse[]>(`/school/student-transport/${suffix}`);
   },

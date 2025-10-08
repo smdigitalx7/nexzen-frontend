@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ColumnDef } from '@tanstack/react-table';
-import { Plus, Edit, Eye, Users, Calendar, Trophy, BookOpen, IdCard, Trash2, Save, X, User, Phone, MapPin, Calendar as CalendarIcon, FileText } from 'lucide-react';
+import { Plus, Edit, Eye, Users, Calendar, Trophy, BookOpen, IdCard, Trash2, Save, X, User, Phone, MapPin, Calendar as CalendarIcon, FileText, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { EnhancedDataTable } from '@/components/shared';
+import { EnhancedDataTable, ConfirmDialog } from '@/components/shared';
 import {
   createAvatarColumn,
   createTextColumn,
@@ -27,8 +27,8 @@ import {
   createDeleteAction
 } from "@/lib/utils/columnFactories.tsx";
 import { useAuthStore } from '@/store/authStore';
-import { useStudents, useDeleteStudent, useCreateStudent, useUpdateStudent, useStudent, useEnrollments, useCreateEnrollment, useUpdateEnrollment } from '@/lib/hooks/useSchool';
-import { useStudentTransport, useCreateStudentTransport } from '@/lib/hooks/useStudentTransport';
+import { useStudents, useDeleteStudent, useCreateStudent, useUpdateStudent, useStudent, useEnrollments, useCreateEnrollment, useUpdateEnrollment, useDeleteEnrollment, useEnrollmentByAdmission, useEnrollment } from '@/lib/hooks/useSchool';
+import { useStudentTransport, useCreateStudentTransport, useUpdateStudentTransport } from '@/lib/hooks/useStudentTransport';
 import { toast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -65,17 +65,22 @@ const StudentManagement = () => {
   
   // Page-level tabs state & queries (Enrollments, Transport)
   const [pageEnrollmentQuery, setPageEnrollmentQuery] = useState<{ class_id: number | ''; section_id?: number | ''; admission_no?: string }>({ class_id: '', section_id: '', admission_no: '' });
-  const [pageTransportQuery, setPageTransportQuery] = useState<{ class_id: number | ''; section_id?: number | '' }>({ class_id: '', section_id: '' });
+  const [pageTransportQuery, setPageTransportQuery] = useState<{ class_id: number | ''; section_id?: number | ''; bus_route_id?: number | '' }>({ class_id: '', section_id: '', bus_route_id: '' });
   const pageEnrollmentsResult = useEnrollments(
     pageEnrollmentQuery.class_id ? { class_id: Number(pageEnrollmentQuery.class_id), section_id: pageEnrollmentQuery.section_id ? Number(pageEnrollmentQuery.section_id) : undefined, admission_no: pageEnrollmentQuery.admission_no || undefined } : { class_id: 0 }
   );
   const pageTransportResult = useStudentTransport(
-    pageTransportQuery.class_id ? { class_id: Number(pageTransportQuery.class_id), section_id: pageTransportQuery.section_id ? Number(pageTransportQuery.section_id) : undefined } : { class_id: 0 }
+    pageTransportQuery.class_id ? { 
+      class_id: Number(pageTransportQuery.class_id), 
+      section_id: pageTransportQuery.section_id ? Number(pageTransportQuery.section_id) : undefined,
+      bus_route_id: pageTransportQuery.bus_route_id ? Number(pageTransportQuery.bus_route_id) : undefined
+    } : { class_id: 0 }
   );
 
   // Create Enrollment form state
   const createEnrollment = useCreateEnrollment();
   const updateEnrollment = useUpdateEnrollment();
+  const deleteEnrollment = useDeleteEnrollment();
   const [newEnrollment, setNewEnrollment] = useState<{
     student_id: number | '';
     class_id: number | '';
@@ -115,9 +120,8 @@ const StudentManagement = () => {
     setIsEditEnrollmentOpen(true);
   };
   const handleUpdateEnrollment = async () => {
-    if (!selectedEnrollment || pageEnrollmentQuery.class_id === '' || selectedEnrollment.enrollment_id == null) return;
+    if (!selectedEnrollment || selectedEnrollment.enrollment_id == null) return;
     await updateEnrollment.mutateAsync({
-      class_id: Number(pageEnrollmentQuery.class_id),
       id: Number(selectedEnrollment.enrollment_id),
       payload: {
         section_id: editEnrollment.section_id === '' ? undefined : Number(editEnrollment.section_id),
@@ -128,6 +132,33 @@ const StudentManagement = () => {
     } as any);
     setSelectedEnrollment(null);
     setIsEditEnrollmentOpen(false);
+  };
+
+  const handleDeleteEnrollment = async (enrollmentId: number) => {
+    try {
+      await deleteEnrollment.mutateAsync(enrollmentId);
+    } catch (error) {
+      // Error handling is now done in the hook's onError callback
+      console.error('Delete enrollment error in component:', error);
+    }
+  };
+
+  const confirmDeleteEnrollment = (enrollmentId: number, studentName: string) => {
+    setEnrollmentToDelete({ id: enrollmentId, studentName });
+    setIsDeleteEnrollmentOpen(true);
+  };
+
+  const handleConfirmDeleteEnrollment = async () => {
+    if (enrollmentToDelete) {
+      await handleDeleteEnrollment(enrollmentToDelete.id);
+      setIsDeleteEnrollmentOpen(false);
+      setEnrollmentToDelete(null);
+    }
+  };
+
+  const handleViewEnrollment = (enrollmentId: number) => {
+    setSelectedEnrollmentId(enrollmentId);
+    setIsViewEnrollmentOpen(true);
   };
 
   // Dialog states
@@ -142,17 +173,22 @@ const StudentManagement = () => {
 
   // Local state for tabs data fetch (requires class_id per backend contract)
   const [enrollmentQuery, setEnrollmentQuery] = useState<{ class_id: number | ''; section_id?: number | ''; admission_no?: string }>({ class_id: '', section_id: '', admission_no: '' });
-  const [transportQuery, setTransportQuery] = useState<{ class_id: number | ''; section_id?: number | '' }>({ class_id: '', section_id: '' });
+  const [transportQuery, setTransportQuery] = useState<{ class_id: number | ''; section_id?: number | ''; bus_route_id?: number | '' }>({ class_id: '', section_id: '', bus_route_id: '' });
 
   const enrollmentsResult = useEnrollments(
     enrollmentQuery.class_id ? { class_id: Number(enrollmentQuery.class_id), section_id: enrollmentQuery.section_id ? Number(enrollmentQuery.section_id) : undefined, admission_no: enrollmentQuery.admission_no || undefined } : { class_id: 0 }
   );
   const transportResult = useStudentTransport(
-    transportQuery.class_id ? { class_id: Number(transportQuery.class_id), section_id: transportQuery.section_id ? Number(transportQuery.section_id) : undefined } : { class_id: 0 }
+    transportQuery.class_id ? { 
+      class_id: Number(transportQuery.class_id), 
+      section_id: transportQuery.section_id ? Number(transportQuery.section_id) : undefined,
+      bus_route_id: transportQuery.bus_route_id ? Number(transportQuery.bus_route_id) : undefined
+    } : { class_id: 0 }
   );
   
   // Create Transport Assignment state
   const createStudentTransport = useCreateStudentTransport();
+  const updateStudentTransport = useUpdateStudentTransport();
   const [isCreateTransportOpen, setIsCreateTransportOpen] = useState(false);
   const [newTransportAssignment, setNewTransportAssignment] = useState<{
     enrollment_id: number | '';
@@ -163,6 +199,29 @@ const StudentManagement = () => {
     end_date: string;
     is_active: boolean;
   }>({ enrollment_id: '', bus_route_id: '', slab_id: '', pickup_point: '', start_date: '', end_date: '', is_active: true });
+
+  // Edit Transport Assignment state
+  const [selectedTransportAssignment, setSelectedTransportAssignment] = useState<any | null>(null);
+  const [isEditTransportOpen, setIsEditTransportOpen] = useState(false);
+  const [editTransportAssignment, setEditTransportAssignment] = useState<{
+    bus_route_id: number | '';
+    slab_id: number | '';
+    pickup_point: string;
+    start_date: string;
+    end_date: string;
+    is_active: boolean;
+  }>({ bus_route_id: '', slab_id: '', pickup_point: '', start_date: '', end_date: '', is_active: true });
+
+  // Delete Enrollment Confirmation state
+  const [isDeleteEnrollmentOpen, setIsDeleteEnrollmentOpen] = useState(false);
+  const [enrollmentToDelete, setEnrollmentToDelete] = useState<{ id: number; studentName: string } | null>(null);
+
+  // View Enrollment Dialog state
+  const [isViewEnrollmentOpen, setIsViewEnrollmentOpen] = useState(false);
+  const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<number | null>(null);
+
+  // Fetch individual enrollment data
+  const { data: enrollmentDetails, isLoading: isEnrollmentLoading } = useEnrollment(selectedEnrollmentId || 0);
 
   const handleCreateTransport = async () => {
     if (
@@ -182,6 +241,36 @@ const StudentManagement = () => {
     } as any);
     setNewTransportAssignment({ enrollment_id: '', bus_route_id: '', slab_id: '', pickup_point: '', start_date: '', end_date: '', is_active: true });
     setIsCreateTransportOpen(false);
+  };
+
+  const startEditTransport = (transportAssignment: any) => {
+    setSelectedTransportAssignment(transportAssignment);
+    setEditTransportAssignment({
+      bus_route_id: transportAssignment.bus_route_id || '',
+      slab_id: transportAssignment.slab_id || '',
+      pickup_point: transportAssignment.pickup_point || '',
+      start_date: transportAssignment.start_date ? new Date(transportAssignment.start_date).toISOString().split('T')[0] : '',
+      end_date: transportAssignment.end_date ? new Date(transportAssignment.end_date).toISOString().split('T')[0] : '',
+      is_active: transportAssignment.is_active ?? true,
+    });
+    setIsEditTransportOpen(true);
+  };
+
+  const handleUpdateTransport = async () => {
+    if (!selectedTransportAssignment || !selectedTransportAssignment.transport_assignment_id) return;
+    await updateStudentTransport.mutateAsync({
+      id: Number(selectedTransportAssignment.transport_assignment_id),
+      payload: {
+        bus_route_id: editTransportAssignment.bus_route_id === '' ? undefined : Number(editTransportAssignment.bus_route_id),
+        slab_id: editTransportAssignment.slab_id === '' ? undefined : Number(editTransportAssignment.slab_id),
+        pickup_point: editTransportAssignment.pickup_point || null,
+        start_date: editTransportAssignment.start_date || null,
+        end_date: editTransportAssignment.end_date || null,
+        is_active: editTransportAssignment.is_active,
+      },
+    } as any);
+    setSelectedTransportAssignment(null);
+    setIsEditTransportOpen(false);
   };
   
   // Form setup
@@ -532,39 +621,90 @@ const StudentManagement = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Enrollments</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {Array.isArray(pageEnrollmentsResult.data) && pageEnrollmentsResult.data.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full text-sm">
-                        <thead>
-                          <tr className="text-left text-slate-600">
-                            <th className="py-2 pr-4">Enrollment ID</th>
-                            <th className="py-2 pr-4">Admission No</th>
-                            <th className="py-2 pr-4">Student</th>
-                            <th className="py-2 pr-4">Roll No</th>
-                            <th className="py-2 pr-4">Section</th>
-                            <th className="py-2 pr-4">Date</th>
-                            <th className="py-2 pr-4">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {pageEnrollmentsResult.data.map((en: any) => (
-                            <tr key={en.enrollment_id} className="border-t">
-                              <td className="py-2 pr-4 font-mono">{en.enrollment_id}</td>
-                              <td className="py-2 pr-4">{en.admission_no}</td>
-                              <td className="py-2 pr-4">{en.student_name}</td>
-                              <td className="py-2 pr-4">{en.roll_number}</td>
-                              <td className="py-2 pr-4">{en.section_name}</td>
-                              <td className="py-2 pr-4">{en.enrollment_date || '-'}</td>
-                              <td className="py-2 pr-4">
-                                <Button variant="outline" size="sm" onClick={() => startEditEnrollment(en)}>Edit</Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                  {pageEnrollmentsResult.data && (
+                    <div className="text-sm text-slate-600">
+                      Total: {pageEnrollmentsResult.data.total_count} students
+                      {pageEnrollmentsResult.data.total_pages > 1 && (
+                        <span> • Page {pageEnrollmentsResult.data.current_page} of {pageEnrollmentsResult.data.total_pages}</span>
+                      )}
                     </div>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {pageEnrollmentsResult.data && Array.isArray(pageEnrollmentsResult.data.enrollments) && pageEnrollmentsResult.data.enrollments.length > 0 ? (
+                    pageEnrollmentsResult.data.enrollments.map((classGroup: any) => (
+                      <div key={classGroup.class_id} className="border rounded-md">
+                        <div className="px-4 py-2 font-medium bg-slate-50">
+                          {classGroup.class_name} ({classGroup.students.length} students)
+                        </div>
+                        <div className="overflow-x-auto p-2">
+                          <table className="min-w-full text-sm">
+                            <thead>
+                              <tr className="text-left text-slate-600">
+                                <th className="py-2 pr-4">Enrollment ID</th>
+                                <th className="py-2 pr-4">Admission No</th>
+                                <th className="py-2 pr-4">Student</th>
+                                <th className="py-2 pr-4">Roll No</th>
+                                <th className="py-2 pr-4">Section</th>
+                                <th className="py-2 pr-4">Date</th>
+                                <th className="py-2 pr-4">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {classGroup.students && Array.isArray(classGroup.students) && classGroup.students.length > 0 ? (
+                                classGroup.students.map((en: any) => (
+                                  <tr key={en.enrollment_id} className="border-t">
+                                    <td className="py-2 pr-4 font-mono">{en.enrollment_id}</td>
+                                    <td className="py-2 pr-4">{en.admission_no}</td>
+                                    <td className="py-2 pr-4">{en.student_name}</td>
+                                    <td className="py-2 pr-4">{en.roll_number}</td>
+                                    <td className="py-2 pr-4">{en.section_name}</td>
+                                    <td className="py-2 pr-4">{en.enrollment_date || '-'}</td>
+                                    <td className="py-2 pr-4">
+                                      <div className="flex gap-2">
+                                        <Button variant="outline" size="sm" onClick={() => handleViewEnrollment(en.enrollment_id)}>
+                                          <Eye className="h-3 w-3 mr-1" />
+                                          {/* View */}
+                                        </Button>
+                                        <Button variant="outline" size="sm" onClick={() => startEditEnrollment(en)}>
+                                          <Edit className="h-3 w-3 mr-1" />
+                                          {/* Edit */}
+                                        </Button>
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm" 
+                                          onClick={() => confirmDeleteEnrollment(en.enrollment_id, en.student_name)}
+                                          className="text-red-600 hover:text-red-700"
+                                          disabled={deleteEnrollment.isPending}
+                                        >
+                                          {deleteEnrollment.isPending ? (
+                                            <>
+                                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600 mr-1"></div>
+                                              Deleting...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Trash2 className="h-3 w-3 mr-1" />
+                                              {/* Delete */}
+                                            </>
+                                          )}
+                                        </Button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan={7} className="py-2 pr-4 text-center text-slate-500">
+                                    No students enrolled in this class
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))
                   ) : (
                     <div className="text-sm text-slate-600">No enrollments found.</div>
                   )}
@@ -756,6 +896,15 @@ const StudentManagement = () => {
                   onChange={(e) => setPageTransportQuery((q) => ({ ...q, section_id: e.target.value === '' ? '' : Number(e.target.value) }))}
                 />
               </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700">Bus Route ID (optional)</label>
+                <Input
+                  type="number"
+                  placeholder="Enter bus route ID"
+                  value={pageTransportQuery.bus_route_id ?? ''}
+                  onChange={(e) => setPageTransportQuery((q) => ({ ...q, bus_route_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+                />
+              </div>
             </div>
 
             {pageTransportQuery.class_id === '' ? (
@@ -774,31 +923,71 @@ const StudentManagement = () => {
                     pageTransportResult.data.map((route) => (
                       <div key={route.bus_route_id} className="border rounded-md">
                         <div className="px-4 py-2 font-medium bg-slate-50">{route.route_name}</div>
-                        <div className="overflow-x-auto p-2">
-                          <table className="min-w-full text-sm">
-                            <thead>
-                              <tr className="text-left text-slate-600">
-                                <th className="py-2 pr-4">Admission No</th>
-                                <th className="py-2 pr-4">Student</th>
-                                <th className="py-2 pr-4">Roll No</th>
-                                <th className="py-2 pr-4">Section</th>
-                                <th className="py-2 pr-4">Slab</th>
-                                <th className="py-2 pr-4">Pickup</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {route.students.map((s) => (
-                                <tr key={s.transport_assignment_id} className="border-t">
-                                  <td className="py-2 pr-4">{s.admission_no}</td>
-                                  <td className="py-2 pr-4">{s.student_name}</td>
-                                  <td className="py-2 pr-4">{s.roll_number}</td>
-                                  <td className="py-2 pr-4">{s.section_name}</td>
-                                  <td className="py-2 pr-4">{s.slab_name || '-'}</td>
-                                  <td className="py-2 pr-4">{s.pickup_point || '-'}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                        <div className="space-y-4 p-2">
+                          {route.classes && Array.isArray(route.classes) && route.classes.length > 0 ? (
+                            route.classes.map((classItem) => (
+                              <div key={classItem.class_id} className="border rounded-md">
+                                <div className="px-3 py-2 text-sm font-medium bg-slate-100 text-slate-700">
+                                  {classItem.class_name}
+                                </div>
+                                <div className="overflow-x-auto p-2">
+                                  <table className="min-w-full text-sm">
+                                    <thead>
+                                      <tr className="text-left text-slate-600">
+                                        <th className="py-2 pr-4">Admission No</th>
+                                        <th className="py-2 pr-4">Student</th>
+                                        <th className="py-2 pr-4">Roll No</th>
+                                        <th className="py-2 pr-4">Section</th>
+                                        <th className="py-2 pr-4">Slab</th>
+                                        <th className="py-2 pr-4">Pickup</th>
+                                        <th className="py-2 pr-4">Status</th>
+                                        <th className="py-2 pr-4">Actions</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {classItem.students && Array.isArray(classItem.students) && classItem.students.length > 0 ? (
+                                        classItem.students.map((s) => (
+                                          <tr key={s.transport_assignment_id} className="border-t">
+                                            <td className="py-2 pr-4">{s.admission_no}</td>
+                                            <td className="py-2 pr-4">{s.student_name}</td>
+                                            <td className="py-2 pr-4">{s.roll_number}</td>
+                                            <td className="py-2 pr-4">{s.section_name}</td>
+                                            <td className="py-2 pr-4">{s.slab_name || '-'}</td>
+                                            <td className="py-2 pr-4">{s.pickup_point || '-'}</td>
+                                            <td className="py-2 pr-4">
+                                              <Badge variant={s.is_active ? "default" : "secondary"}>
+                                                {s.is_active ? "Active" : "Inactive"}
+                                              </Badge>
+                                            </td>
+                                            <td className="py-2 pr-4">
+                                              <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                onClick={() => startEditTransport(s)}
+                                              >
+                                                <Edit className="h-3 w-3 mr-1" />
+                                                Edit
+                                              </Button>
+                                            </td>
+                                          </tr>
+                                        ))
+                                      ) : (
+                                        <tr>
+                                          <td colSpan={8} className="py-2 pr-4 text-center text-slate-500">
+                                            No students assigned to this class
+                                          </td>
+                                        </tr>
+                                      )}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-center text-slate-500 py-4">
+                              No classes assigned to this route
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))
@@ -861,18 +1050,10 @@ const StudentManagement = () => {
               </div>
 
               <Tabs defaultValue="profile" className="space-y-4 w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-1">
                   <TabsTrigger value="profile">
                     <User className="w-4 h-4 mr-2" />
                     Profile
-                  </TabsTrigger>
-                  <TabsTrigger value="enrollments">
-                    <IdCard className="w-4 h-4 mr-2" />
-                    Enrollments
-                  </TabsTrigger>
-                  <TabsTrigger value="transport">
-                    <MapPin className="w-4 h-4 mr-2" />
-                    Transport
                   </TabsTrigger>
                 </TabsList>
 
@@ -1049,35 +1230,55 @@ const StudentManagement = () => {
                       <Card>
                         <CardHeader>
                           <CardTitle className="text-lg">Enrollments</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          {Array.isArray(enrollmentsResult.data) && enrollmentsResult.data.length > 0 ? (
-                            <div className="overflow-x-auto">
-                              <table className="min-w-full text-sm">
-                                <thead>
-                                  <tr className="text-left text-slate-600">
-                                    <th className="py-2 pr-4">Enrollment ID</th>
-                                    <th className="py-2 pr-4">Admission No</th>
-                                    <th className="py-2 pr-4">Student</th>
-                                    <th className="py-2 pr-4">Roll No</th>
-                                    <th className="py-2 pr-4">Section</th>
-                                    <th className="py-2 pr-4">Date</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {enrollmentsResult.data.map((en: any) => (
-                                    <tr key={en.enrollment_id} className="border-t">
-                                      <td className="py-2 pr-4 font-mono">{en.enrollment_id}</td>
-                                      <td className="py-2 pr-4">{en.admission_no}</td>
-                                      <td className="py-2 pr-4">{en.student_name}</td>
-                                      <td className="py-2 pr-4">{en.roll_number}</td>
-                                      <td className="py-2 pr-4">{en.section_name}</td>
-                                      <td className="py-2 pr-4">{en.enrollment_date || '-'}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                          {enrollmentsResult.data && (
+                            <div className="text-sm text-slate-600">
+                              Total: {enrollmentsResult.data.total_count} students
                             </div>
+                          )}
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {enrollmentsResult.data && Array.isArray(enrollmentsResult.data.enrollments) && enrollmentsResult.data.enrollments.length > 0 ? (
+                            enrollmentsResult.data.enrollments.map((classGroup: any) => (
+                              <div key={classGroup.class_id} className="border rounded-md">
+                                <div className="px-4 py-2 font-medium bg-slate-50">
+                                  {classGroup.class_name} ({classGroup.students.length} students)
+                                </div>
+                                <div className="overflow-x-auto p-2">
+                                  <table className="min-w-full text-sm">
+                                    <thead>
+                                      <tr className="text-left text-slate-600">
+                                        <th className="py-2 pr-4">Enrollment ID</th>
+                                        <th className="py-2 pr-4">Admission No</th>
+                                        <th className="py-2 pr-4">Student</th>
+                                        <th className="py-2 pr-4">Roll No</th>
+                                        <th className="py-2 pr-4">Section</th>
+                                        <th className="py-2 pr-4">Date</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {classGroup.students && Array.isArray(classGroup.students) && classGroup.students.length > 0 ? (
+                                        classGroup.students.map((en: any) => (
+                                          <tr key={en.enrollment_id} className="border-t">
+                                            <td className="py-2 pr-4 font-mono">{en.enrollment_id}</td>
+                                            <td className="py-2 pr-4">{en.admission_no}</td>
+                                            <td className="py-2 pr-4">{en.student_name}</td>
+                                            <td className="py-2 pr-4">{en.roll_number}</td>
+                                            <td className="py-2 pr-4">{en.section_name}</td>
+                                            <td className="py-2 pr-4">{en.enrollment_date || '-'}</td>
+                                          </tr>
+                                        ))
+                                      ) : (
+                                        <tr>
+                                          <td colSpan={6} className="py-2 pr-4 text-center text-slate-500">
+                                            No students enrolled in this class
+                                          </td>
+                                        </tr>
+                                      )}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            ))
                           ) : (
                             <div className="text-sm text-slate-600">No enrollments found.</div>
                           )}
@@ -1108,6 +1309,15 @@ const StudentManagement = () => {
                           onChange={(e) => setTransportQuery((q) => ({ ...q, section_id: e.target.value === '' ? '' : Number(e.target.value) }))}
                         />
                       </div>
+                      <div>
+                        <label className="text-sm font-medium text-slate-700">Bus Route ID (optional)</label>
+                        <Input
+                          type="number"
+                          placeholder="Enter bus route ID"
+                          value={transportQuery.bus_route_id ?? ''}
+                          onChange={(e) => setTransportQuery((q) => ({ ...q, bus_route_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+                        />
+                      </div>
                     </div>
 
                     {transportQuery.class_id === '' ? (
@@ -1126,31 +1336,60 @@ const StudentManagement = () => {
                             transportResult.data.map((route) => (
                               <div key={route.bus_route_id} className="border rounded-md">
                                 <div className="px-4 py-2 font-medium bg-slate-50">{route.route_name}</div>
-                                <div className="overflow-x-auto p-2">
-                                  <table className="min-w-full text-sm">
-                                    <thead>
-                                      <tr className="text-left text-slate-600">
-                                        <th className="py-2 pr-4">Admission No</th>
-                                        <th className="py-2 pr-4">Student</th>
-                                        <th className="py-2 pr-4">Roll No</th>
-                                        <th className="py-2 pr-4">Section</th>
-                                        <th className="py-2 pr-4">Slab</th>
-                                        <th className="py-2 pr-4">Pickup</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {route.students.map((s) => (
-                                        <tr key={s.transport_assignment_id} className="border-t">
-                                          <td className="py-2 pr-4">{s.admission_no}</td>
-                                          <td className="py-2 pr-4">{s.student_name}</td>
-                                          <td className="py-2 pr-4">{s.roll_number}</td>
-                                          <td className="py-2 pr-4">{s.section_name}</td>
-                                          <td className="py-2 pr-4">{s.slab_name || '-'}</td>
-                                          <td className="py-2 pr-4">{s.pickup_point || '-'}</td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
+                                <div className="space-y-4 p-2">
+                                  {route.classes && Array.isArray(route.classes) && route.classes.length > 0 ? (
+                                    route.classes.map((classItem) => (
+                                      <div key={classItem.class_id} className="border rounded-md">
+                                        <div className="px-3 py-2 text-sm font-medium bg-slate-100 text-slate-700">
+                                          {classItem.class_name}
+                                        </div>
+                                        <div className="overflow-x-auto p-2">
+                                          <table className="min-w-full text-sm">
+                                            <thead>
+                                              <tr className="text-left text-slate-600">
+                                                <th className="py-2 pr-4">Admission No</th>
+                                                <th className="py-2 pr-4">Student</th>
+                                                <th className="py-2 pr-4">Roll No</th>
+                                                <th className="py-2 pr-4">Section</th>
+                                                <th className="py-2 pr-4">Slab</th>
+                                                <th className="py-2 pr-4">Pickup</th>
+                                                <th className="py-2 pr-4">Status</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody>
+                                              {classItem.students && Array.isArray(classItem.students) && classItem.students.length > 0 ? (
+                                                classItem.students.map((s) => (
+                                                  <tr key={s.transport_assignment_id} className="border-t">
+                                                    <td className="py-2 pr-4">{s.admission_no}</td>
+                                                    <td className="py-2 pr-4">{s.student_name}</td>
+                                                    <td className="py-2 pr-4">{s.roll_number}</td>
+                                                    <td className="py-2 pr-4">{s.section_name}</td>
+                                                    <td className="py-2 pr-4">{s.slab_name || '-'}</td>
+                                                    <td className="py-2 pr-4">{s.pickup_point || '-'}</td>
+                                                    <td className="py-2 pr-4">
+                                                      <Badge variant={s.is_active ? "default" : "secondary"}>
+                                                        {s.is_active ? "Active" : "Inactive"}
+                                                      </Badge>
+                                                    </td>
+                                                  </tr>
+                                                ))
+                                              ) : (
+                                                <tr>
+                                                  <td colSpan={7} className="py-2 pr-4 text-center text-slate-500">
+                                                    No students assigned to this class
+                                                  </td>
+                                                </tr>
+                                              )}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="text-center text-slate-500 py-4">
+                                      No classes assigned to this route
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             ))
@@ -1264,6 +1503,91 @@ const StudentManagement = () => {
             <Button variant="outline" onClick={() => setIsCreateTransportOpen(false)}>Cancel</Button>
             <Button disabled={createStudentTransport.isPending} onClick={handleCreateTransport}>
               {createStudentTransport.isPending ? 'Creating...' : 'Create Transport'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Transport Dialog */}
+      <Dialog
+        open={isEditTransportOpen}
+        onOpenChange={(open) => {
+          setIsEditTransportOpen(open);
+          if (!open) {
+            setSelectedTransportAssignment(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Edit Student Transport</DialogTitle>
+            <DialogDescription>
+              Update transport assignment details for {selectedTransportAssignment?.student_name}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="edit-transport-route">Bus Route ID</Label>
+              <Input
+                id="edit-transport-route"
+                type="number"
+                placeholder="bus_route_id"
+                value={editTransportAssignment.bus_route_id}
+                onChange={(e) => setEditTransportAssignment((v) => ({ ...v, bus_route_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-transport-slab">Slab ID</Label>
+              <Input
+                id="edit-transport-slab"
+                type="number"
+                placeholder="slab_id"
+                value={editTransportAssignment.slab_id}
+                onChange={(e) => setEditTransportAssignment((v) => ({ ...v, slab_id: e.target.value === '' ? '' : Number(e.target.value) }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-transport-pickup">Pickup Point</Label>
+              <Input
+                id="edit-transport-pickup"
+                placeholder="pickup point (optional)"
+                value={editTransportAssignment.pickup_point}
+                onChange={(e) => setEditTransportAssignment((v) => ({ ...v, pickup_point: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-transport-start">Start Date</Label>
+              <Input
+                id="edit-transport-start"
+                type="date"
+                value={editTransportAssignment.start_date}
+                onChange={(e) => setEditTransportAssignment((v) => ({ ...v, start_date: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-transport-end">End Date</Label>
+              <Input
+                id="edit-transport-end"
+                type="date"
+                value={editTransportAssignment.end_date}
+                onChange={(e) => setEditTransportAssignment((v) => ({ ...v, end_date: e.target.value }))}
+              />
+            </div>
+            <div className="flex items-center gap-2 pt-6">
+              <Switch
+                id="edit-transport-active"
+                checked={editTransportAssignment.is_active}
+                onCheckedChange={(checked) => setEditTransportAssignment((v) => ({ ...v, is_active: Boolean(checked) }))}
+              />
+              <Label htmlFor="edit-transport-active">Active</Label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditTransportOpen(false)}>Cancel</Button>
+            <Button disabled={updateStudentTransport.isPending} onClick={handleUpdateTransport}>
+              {updateStudentTransport.isPending ? 'Updating...' : 'Update Transport'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1770,6 +2094,164 @@ const StudentManagement = () => {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* View Enrollment Dialog */}
+      <Dialog open={isViewEnrollmentOpen} onOpenChange={setIsViewEnrollmentOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Enrollment Details</DialogTitle>
+            <DialogDescription>
+              View detailed information about this enrollment.
+            </DialogDescription>
+          </DialogHeader>
+
+          {isEnrollmentLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span className="ml-2">Loading enrollment details...</span>
+            </div>
+          ) : enrollmentDetails ? (
+            <div className="space-y-6">
+              {/* Student Information */}
+              <div className="bg-slate-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-lg mb-3 flex items-center">
+                  <User className="h-5 w-5 mr-2" />
+                  Student Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-slate-600">Student ID</Label>
+                    <p className="text-sm">{enrollmentDetails.student_id}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-slate-600">Student Name</Label>
+                    <p className="text-sm font-medium">{enrollmentDetails.student_name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-slate-600">Admission Number</Label>
+                    <p className="text-sm font-mono">{enrollmentDetails.admission_no}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-slate-600">Roll Number</Label>
+                    <p className="text-sm">{enrollmentDetails.roll_number || 'Not assigned'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Enrollment Information */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-lg mb-3 flex items-center">
+                  <BookOpen className="h-5 w-5 mr-2" />
+                  Enrollment Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-slate-600">Enrollment ID</Label>
+                    <p className="text-sm font-mono">{enrollmentDetails.enrollment_id}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-slate-600">Enrollment Date</Label>
+                    <p className="text-sm">{enrollmentDetails.enrollment_date || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-slate-600">Class ID</Label>
+                    <p className="text-sm">{enrollmentDetails.class_id || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-slate-600">Section ID</Label>
+                    <p className="text-sm">{enrollmentDetails.section_id || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-slate-600">Status</Label>
+                    <div className="flex items-center">
+                      {enrollmentDetails.is_active ? (
+                        <Badge variant="default" className="bg-green-100 text-green-800">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="bg-red-100 text-red-800">
+                          <XCircle className="h-3 w-3 mr-1" />
+                          Inactive
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-slate-600">Promoted</Label>
+                    <div className="flex items-center">
+                      {enrollmentDetails.promoted ? (
+                        <Badge variant="default" className="bg-blue-100 text-blue-800">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Yes
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                          <XCircle className="h-3 w-3 mr-1" />
+                          No
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Details */}
+              {(enrollmentDetails.created_at || enrollmentDetails.updated_at) && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-semibold text-lg mb-3 flex items-center">
+                    <Calendar className="h-5 w-5 mr-2" />
+                    System Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {enrollmentDetails.created_at && (
+                      <div>
+                        <Label className="text-sm font-medium text-slate-600">Created At</Label>
+                        <p className="text-sm">{new Date(enrollmentDetails.created_at).toLocaleString()}</p>
+                      </div>
+                    )}
+                    {enrollmentDetails.updated_at && (
+                      <div>
+                        <Label className="text-sm font-medium text-slate-600">Updated At</Label>
+                        <p className="text-sm">{new Date(enrollmentDetails.updated_at).toLocaleString()}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <AlertCircle className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+              <p className="text-slate-600">Failed to load enrollment details</p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewEnrollmentOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Enrollment Confirmation Dialog */}
+      <ConfirmDialog
+        open={isDeleteEnrollmentOpen}
+        onOpenChange={setIsDeleteEnrollmentOpen}
+        title="Delete Enrollment"
+        description={`Are you sure you want to delete the enrollment for ${enrollmentToDelete?.studentName}? This action cannot be undone.`}
+        onConfirm={handleConfirmDeleteEnrollment}
+        onCancel={() => {
+          setIsDeleteEnrollmentOpen(false);
+          setEnrollmentToDelete(null);
+        }}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+        isLoading={deleteEnrollment.isPending}
+        loadingText="Deleting..."
+      />
     </motion.div>
   );
 };
