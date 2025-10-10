@@ -1,8 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { AuthService } from "@/lib/services/auth.service";
+import { AuthService } from "@/lib/services/general/auth.service";
 import { AuthTokenTimers } from "@/lib/api";
-import { ServiceLocator } from "@/core";
 
 export interface AuthUser {
   user_id: string;
@@ -137,7 +136,7 @@ export const useAuthStore = create<AuthState>()(
           if (response?.access_token) {
             // Update current branch first for UI immediacy
             set({ currentBranch: branch });
-            // Persist token and propagate to ServiceLocator
+            // Persist token
             const expireAtMs = response?.expiretime ? new Date(response.expiretime).getTime() : null;
             useAuthStore.getState().setTokenAndExpiry(response.access_token, expireAtMs);
             // Keep user object in sync with branch id if available
@@ -179,21 +178,9 @@ export const useAuthStore = create<AuthState>()(
       },
       setToken: (token) => {
         set({ token });
-        // Update ServiceLocator with new token
-        if (token) {
-          ServiceLocator.setAuthToken(token);
-        } else {
-          ServiceLocator.removeAuthToken();
-        }
       },
       setTokenAndExpiry: (token, expireAtMs) => {
         set({ token, tokenExpireAt: expireAtMs });
-        // Update ServiceLocator with new token
-        if (token) {
-          ServiceLocator.setAuthToken(token);
-        } else {
-          ServiceLocator.removeAuthToken();
-        }
       },
     }),
     {

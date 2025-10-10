@@ -2,19 +2,7 @@ import { Switch, Route, useLocation } from "wouter";
 import React, { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Header, Sidebar, Dashboard } from "@/components/layout";
-import Login from "@/components/pages/Login";
-import { UserManagement, AnnouncementsManagement, AuditLog } from "@/components/features/user-management";
-import { StudentManagement, ClassManagement, AcademicYearManagement } from "@/components/features/academic-management";
-import { MarksManagement } from "@/components/features/marks";
-import EmployeeManagement from "@/components/pages/EmployeeManagement";
-import AttendanceManagement from "@/components/pages/AttendanceManagement";
-import { FeesManagement, PayrollManagement, FinancialReports } from "@/components/features/financial-management";
-import { TransportManagement, BranchesManagement, InstituteManagement, CollegeManagement } from "@/components/features/system-management";
-import AcademicManagement from "@/components/pages/AcademicManagement";
-import NotFound from "@/components/pages/not-found";
-import ReservationNew from "@/components/pages/ReservationNew";
-import AdmissionNew from "@/components/pages/AdmissionNew";
+import { Header, Sidebar } from "@/components/layout";
 import { useAuthStore } from "@/store/authStore";
 import { useNavigationStore } from "@/store/navigationStore";
 import { cn } from "@/lib/utils";
@@ -29,6 +17,39 @@ import {
 import { AuthTokenTimers } from "@/lib/api";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query";
+
+// General
+import Login from "./components/pages/general/Login";
+import NotFound from "./components/pages/general/not-found";
+import Dashboard from "./components/pages/general/Dashboard";
+import UserManagement from "./components/pages/general/UserManagementPage";
+// import { BranchesManagement, InstituteManagement} from "@/components/features/general/system-management";
+import EmployeeManagement from "./components/pages/general/EmployeeManagementPage";
+import PayrollManagement from "./components/pages/general/PayrollManagementPage";
+import TransportManagement from "./components/pages/general/TransportManagementPage";
+import FinancialReports from "./components/pages/general/FinancialReportsPage";
+import AuditLog from "./components/pages/general/AuditLog";
+import AnnouncementsManagement from "./components/features/general/Announcemnts/AnnouncementsManagement";
+
+// School
+import SchoolAcademicManagement from "@/components/pages/school/SchoolAcademicPage";
+import SchoolReservationManagement from "@/components/pages/school/SchoolReservationPage";
+import SchoolClassesManagement from "./components/pages/school/SchoolClassesPage";
+import SchoolStudentsManagement from "./components/pages/school/SchoolStudentsPage";
+import SchoolAttendanceManagement from "./components/pages/school/SchoolAttendancePage";
+import SchoolFeesManagement from "./components/pages/school/SchoolFeesPage";
+import SchoolMarksManagement from "./components/pages/school/SchoolMarksPage";
+
+// College
+// import CollegeAcademicManagement from "@/components/pages/college/CollegeAcademicManagement";
+// import CollegeReservationManagement from "@/components/pages/college/CollegeReservationManagement";
+// import CollegeClassesManagement from "@/components/pages/college/CollegeClassesManagement";
+// import CollegeStudentsManagement from "@/components/pages/college/CollegeStudentsManagement";
+// import CollegeAttendanceManagement from "@/components/pages/college/CollegeAttendanceManagement";
+// import CollegeMarksManagement from "@/components/pages/college/CollegeMarksManagement";
+// import CollegeFeesManagement from "@/components/pages/college/CollegeFeesManagement";
+
+
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { sidebarOpen } = useNavigationStore();
@@ -93,72 +114,28 @@ function Router() {
   return (
     <AuthenticatedLayout>
       <Switch>
+        {/* General */}
         <Route path="/" component={Dashboard} />
         {/* Role-guarded routes per PRD and Sidebar roles */}
-        <ProtectedRoute
-          path="/institutes"
-          roles={["institute_admin"]}
-          component={InstituteManagement}
-        />
-        <ProtectedRoute
-          path="/branches"
-          roles={["institute_admin", "academic", "accountant"]}
-          component={BranchesManagement}
-        />
-        <ProtectedRoute
-          path="/reservations/new"
-          roles={["institute_admin", "accountant"]}
-          component={ReservationNew}
-        />
-        <ProtectedRoute
-          path="/admissions/new"
-          roles={["institute_admin", "accountant"]}
-          component={AdmissionNew}
-        />
         <ProtectedRoute
           path="/users"
           roles={["institute_admin"]}
           component={UserManagement}
         />
-        <ProtectedRoute
-          path="/students"
-          roles={["institute_admin", "academic"]}
-          component={StudentManagement}
-        />
+        {/* <ProtectedRoute
+          path="/institutes"
+          roles={["institute_admin"]}
+          component={InstituteManagement}
+        /> */}
+        {/* <ProtectedRoute
+          path="/branches"
+          roles={["institute_admin", "academic", "accountant"]}
+          component={BranchesManagement}
+        /> */}
         <ProtectedRoute
           path="/employees"
           roles={["institute_admin"]}
           component={EmployeeManagement}
-        />
-        <ProtectedRoute
-          path="/classes"
-          roles={["institute_admin", "academic"]}
-          component={ClassManagement}
-        />
-        <ProtectedRoute
-          path="/academic-years"
-          roles={["institute_admin", "academic"]}
-          component={AcademicYearManagement}
-        />
-        <ProtectedRoute
-          path="/attendance"
-          roles={["institute_admin", "academic"]}
-          component={AttendanceManagement}
-        />
-        <ProtectedRoute
-          path="/marks"
-          roles={["institute_admin", "academic"]}
-          component={MarksManagement}
-        />
-        <ProtectedRoute
-          path="/fees"
-          roles={["institute_admin", "accountant"]}
-          component={FeesManagement}
-        />
-        <ProtectedRoute
-          path="/transport"
-          roles={["institute_admin"]}
-          component={TransportManagement}
         />
         <ProtectedRoute
           path="/payroll"
@@ -166,12 +143,10 @@ function Router() {
           component={PayrollManagement}
         />
         <ProtectedRoute
-          path="/announcements"
-          roles={["institute_admin", "academic"]}
-          component={AnnouncementsManagement}
+          path="/transport"
+          roles={["institute_admin"]}
+          component={TransportManagement}
         />
-        <Route path="/college" component={CollegeManagement} />
-        <Route path="/academic" component={AcademicManagement} />
         <ProtectedRoute
           path="/financial-reports"
           roles={["institute_admin", "accountant"]}
@@ -181,7 +156,78 @@ function Router() {
           path="/audit-log"
           roles={["institute_admin"]}
           component={AuditLog}
+        />  
+        
+        {/* School */}
+        <ProtectedRoute
+          path="/school/academic"
+          roles={["institute_admin", "academic"]}
+          component={SchoolAcademicManagement}
         />
+        <ProtectedRoute
+          path="/school/reservations/new"
+          roles={["institute_admin", "accountant"]}
+          component={SchoolReservationManagement}
+        />
+        <ProtectedRoute
+          path="/school/classes"
+          roles={["institute_admin", "academic"]}
+          component={SchoolClassesManagement}
+        />
+        <ProtectedRoute
+          path="/school/students"
+          roles={["institute_admin", "academic"]}
+          component={SchoolStudentsManagement}
+        />
+        <ProtectedRoute
+          path="/school/attendance"
+          roles={["institute_admin", "academic"]}
+          component={SchoolAttendanceManagement}
+        />
+        <ProtectedRoute
+          path="/school/marks"
+          roles={["institute_admin", "academic"]}
+          component={SchoolMarksManagement}
+        />
+        <ProtectedRoute
+          path="/school/fees"
+          roles={["institute_admin", "accountant"]}
+          component={SchoolFeesManagement}
+        />                
+        <ProtectedRoute
+          path="/school/announcements"
+          roles={["institute_admin", "academic"]}
+          component={AnnouncementsManagement}
+        />
+
+        {/* College */}
+        {/* <Route path="/college" component={CollegeManagement} />
+        <ProtectedRoute
+          path="/college/academic"
+          roles={["institute_admin", "academic"]}
+          component={CollegeAcademicManagement}
+        />
+        <ProtectedRoute
+          path="/college/students"
+          roles={["institute_admin", "academic"]}
+          component={CollegeStudents}
+        />
+        <ProtectedRoute
+          path="/college/attendance"
+          roles={["institute_admin", "academic"]}
+          component={CollegeAttendanceManagement}
+        />
+        <ProtectedRoute
+          path="/college/marks"
+          roles={["institute_admin", "academic"]}
+          component={CollegeMarksManagement}
+        />
+        <ProtectedRoute
+          path="/college/fees"
+          roles={["institute_admin", "accountant"]}
+          component={CollegeFeesManagement}
+        /> */}
+        
         <Route component={NotFound} />
       </Switch>
     </AuthenticatedLayout>

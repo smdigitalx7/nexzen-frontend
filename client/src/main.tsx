@@ -1,9 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
-
-// Initialize Clean Architecture
-import { ServiceLocator } from "./core";
 import { useAuthStore } from "./store/authStore";
 
 // Initialize clean architecture services
@@ -26,15 +23,8 @@ if (apiBaseUrl.includes('nexzenapi.smdigitalx.com') || apiBaseUrl.includes('http
   apiClientBaseUrl = apiBaseUrl;
 }
 
-
 // Debug: Check auth store state
 const authState = useAuthStore.getState();
-
-// Initialize ServiceLocator with current auth state
-ServiceLocator.initialize({
-  apiBaseUrl: apiClientBaseUrl, // Use /api for ApiClient (it adds /v1 automatically)
-  authToken: authState.token || undefined
-});
 
 // Check if user is authenticated
 if (!authState.token || !authState.user) {
@@ -43,24 +33,6 @@ if (!authState.token || !authState.user) {
   // Check if token is expired
   if (authState.tokenExpireAt && Date.now() > authState.tokenExpireAt) {
   }
-}
-
-// Listen for auth store changes and update ServiceLocator
-useAuthStore.subscribe((state) => {
-  
-  if (state.token) {
-    ServiceLocator.setAuthToken(state.token);
-  } else {
-    ServiceLocator.removeAuthToken();
-  }
-});
-
-
-// Test ServiceLocator configuration
-try {
-  const apiClient = ServiceLocator.getApiClient();
-} catch (error) {
-  console.error('❌ ServiceLocator not properly initialized:', error);
 }
 
 createRoot(document.getElementById("root")!).render(<App />);

@@ -602,7 +602,7 @@ const Header = () => {
                         </div>
                         <div className="flex flex-col gap-2">
                           <Button size="sm" variant="outline" asChild>
-                            <a href="/fees" target="_blank">
+                            <a href="/school/fees" target="_blank">
                               View Details
                             </a>
                           </Button>

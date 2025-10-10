@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
-import { useAcademicYears } from "@/lib/hooks/useAcademicYear";
+import { useAcademicYears } from "@/lib/hooks/general/useAcademicYear";
 
 const AcademicYearSwitcher = () => {
   const { academicYear, academicYears, switchAcademicYear } = useAuthStore();
@@ -23,7 +23,7 @@ const AcademicYearSwitcher = () => {
 
     const { setAcademicYears, setAcademicYear } = useAuthStore.getState();
     setAcademicYears(academicYearsData);
-    const activeYear = academicYearsData.find((y) => y.is_active) || academicYearsData[0];
+    const activeYear = academicYearsData.find((y: any) => y.is_active) || academicYearsData[0];
     if (!academicYear && activeYear) {
       setAcademicYear(activeYear.year_name);
     }

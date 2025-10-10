@@ -1,0 +1,53 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { StudentTransportService } from "@/lib/services/school/student-transport.service";
+import type { SchoolStudentTransportAssignmentCreate, SchoolStudentTransportAssignmentUpdate, SchoolStudentTransportRouteWiseResponse, SchoolStudentTransportAssignmentRead } from "@/lib/types/school";
+
+const keys = {
+  root: ["school", "student-transport"] as const,
+  byClass: (classId: number, sectionId?: number, busRouteId?: number) => ["school", "student-transport", classId, sectionId ?? null, busRouteId ?? null] as const,
+  detail: (assignmentId: number) => ["school", "student-transport", assignmentId] as const,
+};
+
+export function useSchoolStudentTransport(params: { class_id: number; section_id?: number; bus_route_id?: number }) {
+  return useQuery({
+    queryKey: keys.byClass(params.class_id, params.section_id, params.bus_route_id),
+    queryFn: () => StudentTransportService.list(params) as Promise<SchoolStudentTransportRouteWiseResponse[]>,
+    enabled: Number.isFinite(params.class_id) && params.class_id > 0,
+  });
+}
+
+export function useCreateSchoolStudentTransport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: SchoolStudentTransportAssignmentCreate) => StudentTransportService.create(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.root });
+    },
+  });
+}
+
+export function useUpdateSchoolStudentTransport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: SchoolStudentTransportAssignmentUpdate }) => StudentTransportService.update(id, payload),
+    onSuccess: (_data, { id }) => {
+      qc.invalidateQueries({ queryKey: keys.root });
+      qc.invalidateQueries({ queryKey: keys.detail(id) });
+    },
+  });
+}
+
+export function useSchoolStudentTransportDashboard() {
+  return useQuery({
+    queryKey: [...keys.root, "dashboard"],
+    queryFn: () => StudentTransportService.getDashboard(),
+  });
+}
+
+export function useSchoolStudentTransportByAdmission(admissionNo: string | null | undefined) {
+  return useQuery({
+    queryKey: admissionNo ? [...keys.root, "by-admission", admissionNo] : [...keys.root, "by-admission", "nil"],
+    queryFn: () => StudentTransportService.getByAdmission(admissionNo as string) as Promise<SchoolStudentTransportAssignmentRead[]>,
+    enabled: typeof admissionNo === "string" && admissionNo.length > 0,
+  });
+}
