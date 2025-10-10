@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmployeeTable } from "./EmployeeTable";
 import { AttendanceTable } from "./AttendanceTable";
+import { LeavesTable } from "./LeavesTable";
 import { AttendanceStatsCards } from "./AttendanceStatsCards";
 import EmployeeLeavesList from "../employee/EmployeeLeavesList";
 import EmployeeAdvancesList from "../employee/EmployeeAdvancesList";
@@ -44,12 +45,15 @@ interface EmployeeManagementTabsProps {
   onViewAttendance: (record: any) => void;
   
   // Leave handlers
+  onAddLeave: () => void;
   onApproveLeave: (leave: any) => void;
   onRejectLeave: (leave: any) => void;
   onEditLeave: (leave: any) => void;
   onDeleteLeave: (leave: any) => void;
+  onViewLeave: (leave: any) => void;
   
   // Advance handlers
+  onAddAdvance: () => void;
   onApproveAdvance: (advance: any) => void;
   onEditAdvance: (advance: any) => void;
   onDeleteAdvance: (advance: any) => void;
@@ -83,10 +87,13 @@ export const EmployeeManagementTabs = ({
   onEditAttendance,
   onDeleteAttendance,
   onViewAttendance,
+  onAddLeave,
   onApproveLeave,
   onRejectLeave,
   onEditLeave,
   onDeleteLeave,
+  onViewLeave,
+  onAddAdvance,
   onApproveAdvance,
   onEditAdvance,
   onDeleteAdvance,
@@ -123,7 +130,7 @@ export const EmployeeManagementTabs = ({
         >
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold">Attendance Management</h2>
+              <h2 className="text-2xl font-bold">Employee Attendance Management</h2>
               <p className="text-muted-foreground">
                 Track employee attendance and working hours
               </p>
@@ -160,54 +167,16 @@ export const EmployeeManagementTabs = ({
           transition={{ delay: 0.1 }}
           className="space-y-4"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold">Leave Management</h2>
-              <p className="text-muted-foreground">
-                Manage employee leave requests and approvals
-              </p>
-            </div>
-          </div>
           
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex gap-2">
-              <Button onClick={() => {}}>
-                Add Leave Request
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              <select className="px-3 py-2 border rounded-md text-sm">
-                <option value="">All Status</option>
-                <option value="PENDING">Pending</option>
-                <option value="APPROVED">Approved</option>
-                <option value="REJECTED">Rejected</option>
-              </select>
-              <select className="px-3 py-2 border rounded-md text-sm">
-                <option value="">All Types</option>
-                <option value="sick">Sick Leave</option>
-                <option value="personal">Personal Leave</option>
-                <option value="vacation">Vacation</option>
-                <option value="emergency">Emergency</option>
-              </select>
-              <input 
-                type="text" 
-                placeholder="Search by employee name..." 
-                className="px-3 py-2 border rounded-md text-sm w-64"
-              />
-            </div>
-          </div>
-          
-          <EmployeeLeavesList
+          <LeavesTable
             leaves={leaves}
-            employees={employees}
-            onApprove={onApproveLeave}
-            onReject={onRejectLeave}
-            onEdit={onEditLeave}
-            onDelete={onDeleteLeave}
-            page={leavesPage}
-            pageSize={pageSize}
-            total={leaves.length}
-            setPage={setLeavesPage}
+            isLoading={leavesLoading}
+            onAddLeave={onAddLeave}
+            onEditLeave={onEditLeave}
+            onDeleteLeave={(id) => onDeleteLeave({ leave_id: id })}
+            onViewLeave={onViewLeave}
+            onApproveLeave={onApproveLeave}
+            onRejectLeave={onRejectLeave}
           />
         </motion.div>
       </TabsContent>
@@ -221,7 +190,7 @@ export const EmployeeManagementTabs = ({
         >
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold">Advance Management</h2>
+              <h2 className="text-2xl font-bold">Employee Advance Management</h2>
               <p className="text-muted-foreground">
                 Manage employee advance requests and payments
               </p>
@@ -230,7 +199,7 @@ export const EmployeeManagementTabs = ({
           
           <div className="flex justify-between items-center mb-4">
             <div className="flex gap-2">
-              <Button onClick={() => {}}>
+              <Button onClick={onAddAdvance}>
                 Add Advance
               </Button>
             </div>

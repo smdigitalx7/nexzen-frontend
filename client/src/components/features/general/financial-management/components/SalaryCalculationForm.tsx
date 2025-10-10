@@ -1,10 +1,12 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Calculator, Save, X } from "lucide-react";
+import { Calculator, Save, X, User, Calendar, DollarSign, CreditCard, AlertCircle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -96,187 +98,307 @@ export const SalaryCalculationForm = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
-            {selectedPayroll ? "Edit Payroll" : "Create New Payroll"}
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="pb-4">
+          <DialogTitle className="flex items-center gap-3 text-xl">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Calculator className="h-6 w-6 text-primary" />
+            </div>
+            {selectedPayroll ? "Edit Payroll Entry" : "Create New Payroll"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-base">
             {selectedPayroll 
               ? "Update employee payroll information and calculations."
-              : "Add a new payroll entry for an employee."
+              : "Add a new payroll entry for an employee with automatic calculations."
             }
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Employee Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="employee">Employee</Label>
-              <Select
-                value={formData.employee_id.toString()}
-                onValueChange={(value) => handleInputChange("employee_id", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select employee" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map((employee) => (
-                    <SelectItem key={employee.employee_id} value={employee.employee_id.toString()}>
-                      {employee.employee_name} (ID: {employee.employee_id})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Employee & Period Selection */}
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <User className="h-4 w-4" />
+              Employee & Period Information
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Employee Selection */}
+              <Card className="p-4">
+                <div className="space-y-3">
+                  <Label htmlFor="employee" className="text-sm font-medium flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Select Employee
+                  </Label>
+                  <Select
+                    value={formData.employee_id.toString()}
+                    onValueChange={(value) => handleInputChange("employee_id", value)}
+                  >
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="Choose an employee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employees.map((employee) => (
+                        <SelectItem key={employee.employee_id} value={employee.employee_id.toString()}>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{employee.employee_name}</span>
+                            <Badge variant="outline" className="text-xs">
+                              ID: {employee.employee_id}
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </Card>
+
+              {/* Pay Period */}
+              <Card className="p-4">
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Pay Period
+                  </Label>
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <Select
+                        value={formData.payroll_month.toString()}
+                        onValueChange={(value) => handleInputChange("payroll_month", value)}
+                      >
+                        <SelectTrigger className="h-11">
+                          <SelectValue placeholder="Month" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 12 }, (_, i) => (
+                            <SelectItem key={i + 1} value={(i + 1).toString()}>
+                              {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="w-24">
+                      <Input
+                        type="number"
+                        value={formData.payroll_year}
+                        onChange={(e) => handleInputChange("payroll_year", e.target.value)}
+                        placeholder="Year"
+                        className="h-11"
+                        min="2020"
+                        max="2030"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </motion.div>
+
+          <Separator />
+
+          {/* Salary Calculation Section */}
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="space-y-6"
+          >
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <DollarSign className="h-4 w-4" />
+              Salary Calculation
             </div>
 
-            {/* Pay Period */}
-            <div className="space-y-2">
-              <Label htmlFor="payroll_month">Pay Period</Label>
-              <div className="flex gap-2">
-                <Select
-                  value={formData.payroll_month.toString()}
-                  onValueChange={(value) => handleInputChange("payroll_month", value)}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="Month" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 12 }, (_, i) => (
-                      <SelectItem key={i + 1} value={(i + 1).toString()}>
-                        {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  type="number"
-                  value={formData.payroll_year}
-                  onChange={(e) => handleInputChange("payroll_year", e.target.value)}
-                  placeholder="Year"
-                  className="w-20"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Salary Calculation */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Salary Calculation</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="gross_pay">Gross Pay</Label>
-                  <Input
-                    type="number"
-                    value={formData.gross_pay}
-                    onChange={(e) => handleInputChange("gross_pay", Number(e.target.value))}
-                    placeholder="Enter gross salary"
-                  />
+            <Card className="border-2 border-dashed border-primary/20">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Calculator className="h-5 w-5 text-primary" />
+                  Salary Breakdown
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Gross Pay */}
+                <div className="space-y-3">
+                  <Label htmlFor="gross_pay" className="text-sm font-medium">Gross Salary</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="number"
+                      id="gross_pay"
+                      value={formData.gross_pay}
+                      onChange={(e) => handleInputChange("gross_pay", Number(e.target.value))}
+                      placeholder="Enter gross salary amount"
+                      className="pl-10 h-11 text-lg font-medium"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="lop">Loss of Pay (LOP)</Label>
-                  <Input
-                    type="number"
-                    value={formData.lop}
-                    onChange={(e) => handleInputChange("lop", Number(e.target.value))}
-                    placeholder="Enter LOP amount"
-                  />
+                {/* Deductions Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="lop" className="text-sm font-medium text-orange-600">Loss of Pay (LOP)</Label>
+                    <Input
+                      type="number"
+                      id="lop"
+                      value={formData.lop}
+                      onChange={(e) => handleInputChange("lop", Number(e.target.value))}
+                      placeholder="0"
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="advance_deduction" className="text-sm font-medium text-blue-600">Advance Deduction</Label>
+                    <Input
+                      type="number"
+                      id="advance_deduction"
+                      value={formData.advance_deduction}
+                      onChange={(e) => handleInputChange("advance_deduction", Number(e.target.value))}
+                      placeholder="0"
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="other_deductions" className="text-sm font-medium text-red-600">Other Deductions</Label>
+                    <Input
+                      type="number"
+                      id="other_deductions"
+                      value={formData.other_deductions}
+                      onChange={(e) => handleInputChange("other_deductions", Number(e.target.value))}
+                      placeholder="0"
+                      className="h-10"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="advance_deduction">Advance Deduction</Label>
-                  <Input
-                    type="number"
-                    value={formData.advance_deduction}
-                    onChange={(e) => handleInputChange("advance_deduction", Number(e.target.value))}
-                    placeholder="Enter advance deduction"
-                  />
+                {/* Net Salary Display */}
+                <div className="bg-gradient-to-r from-primary/5 to-primary/10 p-6 rounded-xl border-2 border-primary/20">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-primary" />
+                      <span className="text-lg font-semibold">Net Salary</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold text-primary">
+                        {formatCurrency(calculatedNet)}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        After all deductions
+                      </div>
+                    </div>
+                  </div>
                 </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="other_deductions">Other Deductions</Label>
-                  <Input
-                    type="number"
-                    value={formData.other_deductions}
-                    onChange={(e) => handleInputChange("other_deductions", Number(e.target.value))}
-                    placeholder="Enter other deductions"
-                  />
-                </div>
-              </div>
-
-              {/* Net Salary Display */}
-              <div className="bg-muted p-4 rounded-lg">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Net Salary:</span>
-                  <span className="text-lg font-bold">{formatCurrency(calculatedNet)}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Separator />
 
           {/* Payment Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="payment_method">Payment Method</Label>
-              <Select
-                value={formData.payment_method}
-                onValueChange={(value) => handleInputChange("payment_method", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select payment method" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={PaymentMethodEnum.BANK_TRANSFER}>Bank Transfer</SelectItem>
-                  <SelectItem value={PaymentMethodEnum.CASH}>Cash</SelectItem>
-                  <SelectItem value={PaymentMethodEnum.CHEQUE}>Cheque</SelectItem>
-                  <SelectItem value={PaymentMethodEnum.UPI}>UPI</SelectItem>
-                  <SelectItem value={PaymentMethodEnum.OTHER}>Other</SelectItem>
-                </SelectContent>
-              </Select>
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-6"
+          >
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <CreditCard className="h-4 w-4" />
+              Payment Information
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => handleInputChange("status", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={PayrollStatusEnum.PENDING}>Pending</SelectItem>
-                  <SelectItem value={PayrollStatusEnum.PAID}>Paid</SelectItem>
-                  <SelectItem value={PayrollStatusEnum.HOLD}>On Hold</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label htmlFor="payment_method" className="text-sm font-medium">Payment Method</Label>
+                <Select
+                  value={formData.payment_method}
+                  onValueChange={(value) => handleInputChange("payment_method", value)}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={PaymentMethodEnum.BANK_TRANSFER}>
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4" />
+                        Bank Transfer
+                      </div>
+                    </SelectItem>
+                    <SelectItem value={PaymentMethodEnum.CASH}>
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-4 w-4" />
+                        Cash
+                      </div>
+                    </SelectItem>
+                    <SelectItem value={PaymentMethodEnum.CHEQUE}>Cheque</SelectItem>
+                    <SelectItem value={PaymentMethodEnum.UPI}>UPI</SelectItem>
+                    <SelectItem value={PaymentMethodEnum.OTHER}>Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="status" className="text-sm font-medium">Status</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => handleInputChange("status", value)}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={PayrollStatusEnum.PENDING}>
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-yellow-500" />
+                        Pending
+                      </div>
+                    </SelectItem>
+                    <SelectItem value={PayrollStatusEnum.PAID}>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        Paid
+                      </div>
+                    </SelectItem>
+                    <SelectItem value={PayrollStatusEnum.HOLD}>
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-red-500" />
+                        On Hold
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="payment_notes">Payment Notes</Label>
-            <Input
-              value={formData.payment_notes}
-              onChange={(e) => handleInputChange("payment_notes", e.target.value)}
-              placeholder="Enter payment notes (optional)"
-            />
-          </div>
+            <div className="space-y-3">
+              <Label htmlFor="payment_notes" className="text-sm font-medium">Payment Notes</Label>
+              <Input
+                id="payment_notes"
+                value={formData.payment_notes}
+                onChange={(e) => handleInputChange("payment_notes", e.target.value)}
+                placeholder="Add any additional notes about this payment (optional)"
+                className="h-11"
+              />
+            </div>
+          </motion.div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              <X className="h-4 w-4 mr-2" />
-              Cancel
-            </Button>
-            <Button type="submit">
-              <Save className="h-4 w-4 mr-2" />
-              {selectedPayroll ? "Update Payroll" : "Create Payroll"}
-            </Button>
+          <Separator />
+
+          <DialogFooter className="pt-4">
+            <div className="flex gap-3 w-full">
+              <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+              <Button type="submit" className="flex-1">
+                <Save className="h-4 w-4 mr-2" />
+                {selectedPayroll ? "Update Payroll" : "Create Payroll"}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

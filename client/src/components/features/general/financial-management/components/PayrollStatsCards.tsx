@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, CreditCard, Clock, TrendingUp } from "lucide-react";
+import { DollarSign, CreditCard, Clock, TrendingUp, Users, AlertCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 interface PayrollStatsCardsProps {
@@ -9,6 +9,7 @@ interface PayrollStatsCardsProps {
   totalAmount: number;
   paidAmount: number;
   pendingAmount: number;
+  pendingCount?: number;
   currentBranch?: { branch_name: string } | null;
 }
 
@@ -17,6 +18,7 @@ export const PayrollStatsCards = ({
   totalAmount,
   paidAmount,
   pendingAmount,
+  pendingCount = 0,
   currentBranch,
 }: PayrollStatsCardsProps) => {
   const stats = [
@@ -56,10 +58,19 @@ export const PayrollStatsCards = ({
       trend: "-2.1%",
       trendColor: "text-red-600",
     },
+    {
+      title: "Pending Count",
+      value: pendingCount.toString(),
+      icon: AlertCircle,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      trend: "+3.2%",
+      trendColor: "text-orange-600",
+    },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       {stats.map((stat, index) => (
         <motion.div
           key={stat.title}

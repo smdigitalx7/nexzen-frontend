@@ -25,7 +25,7 @@ interface EmployeeRead {
   employee_name: string;
   employee_code: string;
   email?: string | null;
-  phone?: string;
+  mobile_no?: string | null;
   designation: string;
   department?: string;
   date_of_joining: string;
@@ -60,7 +60,7 @@ export const EmployeeTable = ({
   const columns: ColumnDef<EmployeeRead>[] = useMemo(() => [
     createAvatarColumn<EmployeeRead>("employee_name", "employee_code", { header: "Employee" }),
     createTextColumn<EmployeeRead>("designation", { header: "Designation", className: "font-medium" }),
-    createTextColumn<EmployeeRead>("department", { header: "Department", fallback: "-" }),
+    createTextColumn<EmployeeRead>("mobile_no", { header: "Mobile", fallback: "N/A" }),
     createCurrencyColumn<EmployeeRead>("salary", { header: "Salary" }),
     createDateColumn<EmployeeRead>("date_of_joining", { header: "Joining Date" }),
     createStatusColumn<EmployeeRead>("status", StatusColors.employee, StatusIcons.employee, { header: "Status" }),

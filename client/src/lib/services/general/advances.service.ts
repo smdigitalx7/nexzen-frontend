@@ -59,7 +59,7 @@ export const AdvancesService = {
     if (year) params.append('year', year.toString());
     if (status) params.append('status', status);
     
-    return Api.get<AdvanceListResponse>(`/advances/?${params.toString()}`);
+    return Api.get<AdvanceListResponse>(`/advances?${params.toString()}`);
   },
 
   /**

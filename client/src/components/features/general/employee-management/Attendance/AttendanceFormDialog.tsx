@@ -8,8 +8,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 
 interface AttendanceFormData {
-  employee_id: number;
-  attendance_month: string;
+  employee_id: number | null;
+  attendance_month: string | null;
   total_working_days: number;
   days_present: number;
   days_absent: number;
@@ -55,8 +55,8 @@ const AttendanceFormDialog = ({ open, onOpenChange, isEditing, employees, formDa
     const calculatedTotal = presentDays + paidLeaves + unpaidLeaves + (formData.days_absent || 0);
     
     return (
-      formData.employee_id > 0 &&
-      formData.attendance_month &&
+      formData.employee_id && formData.employee_id > 0 &&
+      formData.attendance_month && typeof formData.attendance_month === 'string' && formData.attendance_month.trim() !== "" &&
       totalDays > 0 &&
       calculatedTotal === totalDays &&
       presentDays >= 0 &&
@@ -100,7 +100,7 @@ const AttendanceFormDialog = ({ open, onOpenChange, isEditing, employees, formDa
             <div>
               <Label htmlFor="employee_id">Employee *</Label>
               <Select
-                value={formData.employee_id.toString()}
+                value={formData.employee_id ? formData.employee_id.toString() : ""}
                 onValueChange={(value) => onChange("employee_id", parseInt(value))}
               >
                 <SelectTrigger>
@@ -120,7 +120,7 @@ const AttendanceFormDialog = ({ open, onOpenChange, isEditing, employees, formDa
               <Input
                 id="attendance_month"
                 type="month"
-                value={formData.attendance_month.slice(0, 7)}
+                value={formData.attendance_month && typeof formData.attendance_month === 'string' ? formData.attendance_month.slice(0, 7) : ""}
                 onChange={(e) => onChange("attendance_month", e.target.value + "-01")}
                 required
               />

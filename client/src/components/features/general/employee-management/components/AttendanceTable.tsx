@@ -15,7 +15,8 @@ interface EmployeeAttendanceRead {
   attendance_id: number;
   employee_id: number;
   employee_name?: string;
-  attendance_month: string; // YYYY-MM-DD
+  attendance_month: number; // 1-12
+  attendance_year: number; // 1900-2100
   total_working_days: number;
   days_present: number;
   days_absent: number;
@@ -46,8 +47,20 @@ export const AttendanceTable = ({
 
   // Define columns for the data table using column factories
   const columns: ColumnDef<EmployeeAttendanceRead>[] = useMemo(() => [
-    createTextColumn<EmployeeAttendanceRead>("employee_name", { header: "Employee", className: "font-medium", fallback: (undefined as unknown) as any }),
-    createDateColumn<EmployeeAttendanceRead>("attendance_month", { header: "Month" }),
+    createTextColumn<EmployeeAttendanceRead>("employee_name", { header: "Employee", className: "font-medium", fallback: "N/A" }),
+    { 
+      accessorKey: "attendance_month", 
+      header: "Month", 
+      cell: ({ row }) => {
+        const month = row.original.attendance_month;
+        const year = row.original.attendance_year;
+        if (month && year && typeof month === 'number' && typeof year === 'number') {
+          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          return <span>{monthNames[month - 1]} {year}</span>;
+        }
+        return <span>-</span>;
+      }
+    },
     { accessorKey: "total_working_days", header: "Working Days", cell: ({ row }) => <span>{row.original.total_working_days ?? '-'}</span> },
     { accessorKey: "days_present", header: "Present", cell: ({ row }) => <span>{row.original.days_present ?? '-'}</span> },
     { accessorKey: "days_absent", header: "Absent", cell: ({ row }) => <span>{row.original.days_absent ?? '-'}</span> },

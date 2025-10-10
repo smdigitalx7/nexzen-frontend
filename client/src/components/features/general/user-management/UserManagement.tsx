@@ -98,7 +98,8 @@ const UserManagement = () => {
     // Set role and branch selections for editing
     setSelectedRole(user.roles && user.roles.length > 0 ? user.roles[0].role_id : null);
     setSelectedBranch(user.branches && user.branches.length > 0 ? user.branches[0].branch_id : null);
-    setSelectedDefaultBranch(user.branches && user.branches.length > 0 ? user.branches[0].branch_id : null);
+    // Don't set default branch for editing
+    setSelectedDefaultBranch(null);
     setShowUserForm(true);
   };
 
@@ -355,25 +356,27 @@ const UserManagement = () => {
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="default_branch">Default Branch</Label>
-                <Select value={selectedDefaultBranch?.toString() || ""} onValueChange={(value) => setSelectedDefaultBranch(parseInt(value))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select default branch" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {branchesLoading ? (
-                      <SelectItem value="" disabled>Loading branches...</SelectItem>
-                    ) : (
-                      branchesArray.map((branch: BranchRead) => (
-                        <SelectItem key={branch.branch_id} value={branch.branch_id.toString()}>
-                          {branch.branch_name} ({branch.branch_type})
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!isEditing && (
+                <div>
+                  <Label htmlFor="default_branch">Default Branch</Label>
+                  <Select value={selectedDefaultBranch?.toString() || ""} onValueChange={(value) => setSelectedDefaultBranch(parseInt(value))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select default branch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {branchesLoading ? (
+                        <SelectItem value="" disabled>Loading branches...</SelectItem>
+                      ) : (
+                        branchesArray.map((branch: BranchRead) => (
+                          <SelectItem key={branch.branch_id} value={branch.branch_id.toString()}>
+                            {branch.branch_name} ({branch.branch_type})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="is_active"

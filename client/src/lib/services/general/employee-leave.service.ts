@@ -17,10 +17,10 @@ import type {
  * Available endpoints:
  * - GET /employee-leave/dashboard - Get leave dashboard statistics
  * - GET /employee-leave/recent - Get recent leave requests
- * - GET /employee-leave/ - List all leaves (with filters)
+ * - GET /employee-leave - List all leaves (with filters)
  * - GET /employee-leave/branch - List leaves by branch
  * - GET /employee-leave/{id} - Get leave by ID
- * - POST /employee-leave/ - Create new leave request
+ * - POST /employee-leave - Create new leave request
  * - PUT /employee-leave/{id} - Update leave request
  * - PUT /employee-leave/{id}/approve - Approve leave request
  * - PUT /employee-leave/{id}/reject - Reject leave request
@@ -61,7 +61,7 @@ export const EmployeeLeaveService = {
     if (month) params.append('month', month.toString());
     if (year) params.append('year', year.toString());
     
-    return Api.get<EmployeeLeaveListResponse>(`/employee-leave/?${params.toString()}`);
+    return Api.get<EmployeeLeaveListResponse>(`/employee-leave?${params.toString()}`);
   },
 
   /**

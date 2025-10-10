@@ -82,31 +82,14 @@ export const useEmployeeManagement = (viewMode: "branch" | "institute" = "branch
   // Data hooks
   const { data: employees = [], isLoading, error } = useEmployeesByBranch();
   const { data: attendanceData, isLoading: attendanceLoading } = useAttendanceByBranch();
-  const { data: leavesData, isLoading: leavesLoading } = useEmployeeLeavesByBranch();
+  const { data: leavesData, isLoading: leavesLoading } = useEmployeeLeaves();
   
   // Extract data from response objects
   const attendance = attendanceData?.data || [];
   const leaves = leavesData?.data || [];
-  const { data: advancesData, isLoading: advancesLoading } = useAdvancesByBranch();
+  const { data: advancesData, isLoading: advancesLoading } = useAdvancesAll();
   const advances = advancesData?.data || [];
 
-  console.log('🔍 useEmployeeManagement: Data status:', {
-    employeesCount: employees?.length || 0,
-    attendanceCount: attendance?.length || 0,
-    leavesCount: leaves?.length || 0,
-    advancesCount: advances?.length || 0,
-    isLoading,
-    attendanceLoading,
-    leavesLoading,
-    advancesLoading
-  });
-
-  console.log('🔍 useEmployeeManagement: Raw data samples:', {
-    employees: employees?.slice(0, 2),
-    attendance: attendance?.slice(0, 2),
-    leaves: leaves?.slice(0, 2),
-    advances: advances?.slice(0, 2)
-  });
   
   // Mutation hooks
   const createEmployeeMutation = useCreateEmployee();
@@ -196,19 +179,23 @@ export const useEmployeeManagement = (viewMode: "branch" | "institute" = "branch
     request_reason: ''
   });
   
-  // Enrich attendance data with employee names
-  const enrichedAttendance = attendance.map((attendanceRecord: any) => {
+  // Flatten and enrich attendance data with employee names
+  const flattenedAttendance = attendance.flatMap((monthGroup: any) => 
+    monthGroup.attendances || []
+  );
+  
+  const enrichedAttendance = flattenedAttendance.map((attendanceRecord: any) => {
     const employee = employees.find(emp => emp.employee_id === attendanceRecord.employee_id);
     return {
       ...attendanceRecord,
-      employee_name: employee?.employee_name || `Employee ${attendanceRecord.employee_id}`
+      employee_name: employee?.employee_name || attendanceRecord.employee_name || `Employee ${attendanceRecord.employee_id}`
     } as EmployeeAttendanceRead;
   });
 
   // Computed values
   const totalEmployees = employees.length;
   const activeEmployees = employees.filter(emp => emp.status === 'ACTIVE').length;
-  const totalAttendance = attendance.length;
+  const totalAttendance = flattenedAttendance.length;
   const presentToday = 0; // Not applicable with monthly aggregates
   const pendingLeaves = leaves.filter((leave: any) => leave.leave_status === 'PENDING').length;
   const totalAdvances = Array.isArray(advances) ? advances.length : 0;

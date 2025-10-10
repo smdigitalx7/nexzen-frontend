@@ -31,7 +31,7 @@ export interface AdvanceListResponse {
   total: number;
   pages: number;
   current_page: number;
-  PageSize?: number;
+  pageSize?: number;
 }
 
 export interface AdvanceDashboardStats {

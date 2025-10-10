@@ -58,6 +58,7 @@ export interface PayrollUpdate {
 
 export interface PayrollQuery {
   limit?: number;
+  pageSize?: number;
   offset?: number;
   month?: number;
   year?: number;

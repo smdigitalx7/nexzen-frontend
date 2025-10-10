@@ -235,6 +235,19 @@ export const EmployeeManagementTemplate = () => {
                   early_departures: record.early_departures,
                 });
               }}
+        onAddLeave={() => {
+                setIsEditingLeave(false);
+                setShowLeaveForm(true);
+                setLeaveFormData({
+                  employee_id: 0,
+                  leave_type: 'CASUAL',
+                  from_date: new Date().toISOString().split('T')[0],
+                  to_date: new Date().toISOString().split('T')[0],
+                  reason: '',
+                  total_days: 1,
+                  applied_date: new Date().toISOString().split('T')[0]
+                });
+              }}
         onApproveLeave={(leave: any) => {
                 setLeaveToApprove(leave);
                 setShowLeaveApproveDialog(true);
@@ -260,6 +273,29 @@ export const EmployeeManagementTemplate = () => {
         onDeleteLeave={(leave: any) => {
                 setLeaveToDelete(leave);
                 setShowLeaveDeleteDialog(true);
+              }}
+        onViewLeave={(leave: any) => {
+                setIsEditingLeave(false);
+                setShowLeaveForm(true);
+                setLeaveFormData({
+                  employee_id: leave.employee_id,
+                  leave_type: leave.leave_type,
+                  from_date: leave.from_date,
+                  to_date: leave.to_date,
+                  reason: leave.reason,
+                  total_days: leave.total_days,
+                  applied_date: leave.applied_date
+                });
+              }}
+        onAddAdvance={() => {
+                setIsEditingAdvance(false);
+                setShowAdvanceForm(true);
+                setAdvanceFormData({
+                  employee_id: 0,
+                  advance_date: new Date().toISOString().split('T')[0],
+                  advance_amount: 0,
+                  request_reason: ''
+                });
               }}
         onApproveAdvance={(advance: any) => {
                 setAdvanceToUpdate(advance);

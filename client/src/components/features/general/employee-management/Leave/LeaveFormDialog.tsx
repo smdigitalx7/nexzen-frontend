@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 
 interface LeaveFormData {
-  employee_id: number;
+  employee_id: number | null;
   leave_type: string;
   from_date: string;
   to_date: string;
@@ -43,7 +43,7 @@ const LeaveFormDialog = ({ open, onOpenChange, isEditing, employees, formData, o
             <div>
               <Label htmlFor="leave_employee_id">Employee *</Label>
               <Select
-                value={formData.employee_id.toString()}
+                value={formData.employee_id ? formData.employee_id.toString() : ""}
                 onValueChange={(value) => onChange("employee_id", parseInt(value))}
               >
                 <SelectTrigger>
@@ -68,13 +68,13 @@ const LeaveFormDialog = ({ open, onOpenChange, isEditing, employees, formData, o
                   <SelectValue placeholder="Select leave type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sick">Sick Leave</SelectItem>
-                  <SelectItem value="personal">Personal Leave</SelectItem>
-                  <SelectItem value="vacation">Vacation</SelectItem>
-                  <SelectItem value="emergency">Emergency</SelectItem>
-                  <SelectItem value="maternity">Maternity</SelectItem>
-                  <SelectItem value="paternity">Paternity</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="PAID">Paid Leave</SelectItem>
+                  <SelectItem value="SICK">Sick Leave</SelectItem>
+                  <SelectItem value="CASUAL">Casual Leave</SelectItem>
+                  <SelectItem value="ANNUAL">Annual Leave</SelectItem>
+                  <SelectItem value="EMERGENCY">Emergency Leave</SelectItem>
+                  <SelectItem value="MATERNITY">Maternity Leave</SelectItem>
+                  <SelectItem value="PATERNITY">Paternity Leave</SelectItem>                  
                 </SelectContent>
               </Select>
             </div>

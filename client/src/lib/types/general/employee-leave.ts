@@ -18,20 +18,20 @@ export interface EmployeeLeaveUpdate {
 }
 
 export interface EmployeeLeaveRead {
-  leave_id?: number;
+  leave_id: number;
   employee_id: number;
-  employee_name?: string;
+  employee_name: string;
   leave_type: string;
   from_date: string;
   to_date: string;
   reason: string;
-  leave_status?: string;
+  leave_status: string;
   total_days: number;
-  applied_date?: string;
+  applied_date: string;
   approved_by?: number;
   approved_date?: string;
   rejection_reason?: string;
-  created_at?: string;
+  created_at: string;
   updated_at?: string;
   created_by?: number;
   updated_by?: number;
