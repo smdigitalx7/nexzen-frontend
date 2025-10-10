@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeExamMarksService } from "@/lib/services/college/exam-marks.service";
-import type { CollegeCreateExamMarkBulk, CollegeExamMarkBulkCreateResult, CollegeExamMarkFullReadResponse, CollegeExamMarksListParams } from "@/lib/types/college/index.ts";
+import type { CollegeCreateExamMarkBulk, CollegeExamMarkBulkCreateResult, CollegeExamMarkFullReadResponse, CollegeExamMarkMinimalRead, CollegeExamMarkUpdate, CollegeExamMarksListParams } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 
 export function useCollegeExamMarksList(params?: CollegeExamMarksListParams) {
   return useQuery({
-    queryKey: collegeKeys.examMarks.list(params as Record<string, unknown> | undefined),
-    queryFn: () => CollegeExamMarksService.list(params) as Promise<any>,
+    queryKey: collegeKeys.examMarks.list(params),
+    queryFn: () => CollegeExamMarksService.list(params) as Promise<CollegeExamMarkMinimalRead[]>,
   });
 }
 
@@ -21,7 +21,7 @@ export function useCollegeExamMark(markId: number | null | undefined) {
 export function useCreateCollegeExamMark() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: any) => CollegeExamMarksService.create(payload) as Promise<CollegeExamMarkFullReadResponse>,
+    mutationFn: (payload: CollegeExamMarkUpdate) => CollegeExamMarksService.create(payload) as Promise<CollegeExamMarkFullReadResponse>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
     },
@@ -31,7 +31,7 @@ export function useCreateCollegeExamMark() {
 export function useUpdateCollegeExamMark(markId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: any) => CollegeExamMarksService.update(markId, payload) as Promise<CollegeExamMarkFullReadResponse>,
+    mutationFn: (payload: CollegeExamMarkUpdate) => CollegeExamMarksService.update(markId, payload) as Promise<CollegeExamMarkFullReadResponse>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.examMarks.detail(markId) });
       qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });

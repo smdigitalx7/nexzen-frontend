@@ -41,15 +41,13 @@ import SchoolFeesManagement from "./components/pages/school/SchoolFeesPage";
 import SchoolMarksManagement from "./components/pages/school/SchoolMarksPage";
 
 // College
-// import CollegeAcademicManagement from "@/components/pages/college/CollegeAcademicManagement";
-// import CollegeReservationManagement from "@/components/pages/college/CollegeReservationManagement";
-// import CollegeClassesManagement from "@/components/pages/college/CollegeClassesManagement";
-// import CollegeStudentsManagement from "@/components/pages/college/CollegeStudentsManagement";
-// import CollegeAttendanceManagement from "@/components/pages/college/CollegeAttendanceManagement";
-// import CollegeMarksManagement from "@/components/pages/college/CollegeMarksManagement";
-// import CollegeFeesManagement from "@/components/pages/college/CollegeFeesManagement";
-
-
+import CollegeAcademicManagement from "@/components/pages/college/CollegeAcademicPage";
+import CollegeReservationManagement from "@/components/pages/college/CollegeReservationPage";
+import CollegeClassesManagement from "@/components/pages/college/CollegeClassesPage";
+import CollegeStudentsManagement from "@/components/pages/college/CollegeStudentsPage";
+import CollegeAttendanceManagement from "@/components/pages/college/CollegeAttendancePage";
+import CollegeMarksManagement from "@/components/pages/college/CollegeMarksPage";
+import CollegeFeesManagement from "@/components/pages/college/CollegeFeesPage";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { sidebarOpen } = useNavigationStore();
@@ -201,16 +199,26 @@ function Router() {
         />
 
         {/* College */}
-        {/* <Route path="/college" component={CollegeManagement} />
+        <Route path="/college" />
         <ProtectedRoute
           path="/college/academic"
           roles={["institute_admin", "academic"]}
           component={CollegeAcademicManagement}
         />
         <ProtectedRoute
+          path="/college/reservations/new"
+          roles={["institute_admin", "accountant"]}
+          component={CollegeReservationManagement}
+        />
+        <ProtectedRoute
+          path="/college/classes"
+          roles={["institute_admin", "academic"]}
+          component={CollegeClassesManagement}
+        />
+        <ProtectedRoute
           path="/college/students"
           roles={["institute_admin", "academic"]}
-          component={CollegeStudents}
+          component={CollegeStudentsManagement}
         />
         <ProtectedRoute
           path="/college/attendance"
@@ -226,8 +234,12 @@ function Router() {
           path="/college/fees"
           roles={["institute_admin", "accountant"]}
           component={CollegeFeesManagement}
-        /> */}
-        
+        />
+        <ProtectedRoute
+          path="/college/announcements"
+          roles={["institute_admin", "academic"]}
+          component={AnnouncementsManagement}
+        />
         <Route component={NotFound} />
       </Switch>
     </AuthenticatedLayout>

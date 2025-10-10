@@ -3,6 +3,7 @@ import { CollegeEnrollmentsService } from "@/lib/services/college/enrollments.se
 import type {
   CollegeEnrollmentCreate,
   CollegeEnrollmentFilterParams,
+  CollegeEnrollmentUpdate,
   CollegeEnrollmentWithStudentDetails,
   CollegeEnrollmentsPaginatedResponse,
 } from "@/lib/types/college/index.ts";
@@ -10,8 +11,8 @@ import { collegeKeys } from "./query-keys";
 
 export function useCollegeEnrollmentsList(params?: CollegeEnrollmentFilterParams) {
   return useQuery({
-    queryKey: collegeKeys.enrollments.list(params as Record<string, unknown> | undefined),
-    queryFn: () => CollegeEnrollmentsService.list(params as any) as Promise<CollegeEnrollmentsPaginatedResponse>,
+    queryKey: collegeKeys.enrollments.list(params),
+    queryFn: () => CollegeEnrollmentsService.list(params) as Promise<CollegeEnrollmentsPaginatedResponse>,
   });
 }
 
@@ -26,7 +27,7 @@ export function useCollegeEnrollment(enrollmentId: number | null | undefined) {
 export function useCollegeEnrollmentByAdmission(admissionNo: string | null | undefined) {
   return useQuery({
     queryKey: admissionNo ? collegeKeys.enrollments.byAdmission(admissionNo) : [...collegeKeys.enrollments.root(), "by-admission", "nil"],
-    queryFn: () => CollegeEnrollmentsService.getByAdmission(admissionNo as string) as Promise<CollegeEnrollmentWithStudentDetails[]>,
+    queryFn: () => CollegeEnrollmentsService.getByAdmission(admissionNo as string) as Promise<CollegeEnrollmentWithStudentDetails>,
     enabled: typeof admissionNo === "string" && admissionNo.length > 0,
   });
 }
@@ -44,7 +45,7 @@ export function useCreateCollegeEnrollment() {
 export function useUpdateCollegeEnrollment(enrollmentId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: Partial<CollegeEnrollmentCreate>) =>
+    mutationFn: (payload: CollegeEnrollmentUpdate) =>
       CollegeEnrollmentsService.update(enrollmentId, payload) as Promise<CollegeEnrollmentWithStudentDetails>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.enrollments.detail(enrollmentId) });

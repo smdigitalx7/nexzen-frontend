@@ -120,19 +120,14 @@ const Sidebar = () => {
     ];
   } else if (user?.role === "accountant") {
     // Accountant: Dashboard, Reservations & Admissions, Transport, Finance Reports (General). Fee Management remains under schema.
+    const branchPrefix = currentBranch?.branch_type === "SCHOOL" ? "/school" : "/college";
     publicModules = [
       ...baseGeneral,
       {
         title: "Reservations",
-        href: "/reservations/new",
+        href: `${branchPrefix}/reservations/new`,
         icon: GraduationCap,
         description: "Student reservations",
-      },
-      {
-        title: "Admissions",
-        href: "/admissions/new",
-        icon: UserPlus,
-        description: "Student admissions",
       },
       {
         title: "Transport",
@@ -222,17 +217,24 @@ const Sidebar = () => {
     } else if (currentBranch?.branch_type === "COLLEGE") {
       return [
         {
-          title: "College Management",
-          href: "/college",
-          icon: Building2,
-          description: "Groups, courses & combinations",
-          roles: ["institute_admin", "academic"],
-        },
-        {
           title: "Academic",
           href: "/college/academic",
           icon: FileText,
           description: "Academic structure & performance",
+          roles: ["institute_admin", "academic"],
+        },
+        {
+          title: "Reservations",
+          href: "/college/reservations/new",
+          icon: ClipboardList,
+          description: "Student reservations",
+          roles: ["institute_admin", "accountant"],
+        },
+        {
+          title: "Classes",
+          href: "/college/classes",
+          icon: BookOpen,
+          description: "Class management",
           roles: ["institute_admin", "academic"],
         },
         {
@@ -267,7 +269,7 @@ const Sidebar = () => {
         },
         {
           title: "Announcements",
-          href: "/announcements",
+          href: "/college/announcements",
           icon: Megaphone,
           description: "College communications",
           roles: ["institute_admin", "academic"],

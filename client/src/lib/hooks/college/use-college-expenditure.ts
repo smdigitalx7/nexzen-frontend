@@ -1,11 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeExpenditureService } from "@/lib/services/college/expenditure.service";
-import type { CollegeExpenditureRead } from "@/lib/types/college/index.ts";
+import type { CollegeExpenditureCreate, CollegeExpenditureRead, CollegeExpenditureUpdate } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 
 export function useCollegeExpenditureList(params?: { start_date?: string; end_date?: string }) {
   return useQuery({
-    queryKey: collegeKeys.expenditure.list(params as Record<string, unknown> | undefined),
+    queryKey: collegeKeys.expenditure.list(params),
     queryFn: () => CollegeExpenditureService.list(params) as Promise<CollegeExpenditureRead[]>,
   });
 }
@@ -18,4 +18,33 @@ export function useCollegeExpenditure(expenditureId: number | null | undefined) 
   });
 }
 
+export function useCreateCollegeExpenditure() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CollegeExpenditureCreate) => CollegeExpenditureService.create(payload) as Promise<CollegeExpenditureRead>,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
+    },
+  });
+}
 
+export function useUpdateCollegeExpenditure(expenditureId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CollegeExpenditureUpdate) => CollegeExpenditureService.update(expenditureId, payload) as Promise<CollegeExpenditureRead>,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: collegeKeys.expenditure.detail(expenditureId) });
+      qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
+    },
+  });
+}
+
+export function useDeleteCollegeExpenditure() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (expenditureId: number) => CollegeExpenditureService.delete(expenditureId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
+    },
+  });
+}

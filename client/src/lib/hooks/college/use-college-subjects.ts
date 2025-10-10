@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeSubjectsService } from "@/lib/services/college/subjects.service";
-import type { CollegeSubjectList, CollegeSubjectResponse } from "@/lib/types/college/index.ts";
+import type { CollegeCreateSubject, CollegeGroupSubjectCreate, CollegeGroupSubjectRead, CollegeGroupSubjectUpdate, CollegeSubjectList, CollegeSubjectResponse, CollegeUpdateSubject } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 
 export function useCollegeSubjects() {
@@ -14,6 +14,47 @@ export function useCollegeSubjectsSlim() {
   return useQuery({
     queryKey: collegeKeys.subjects.listSlim(),
     queryFn: () => CollegeSubjectsService.listSlim() as Promise<CollegeSubjectList[]>,
+  });
+}
+
+export function useCreateCollegeSubject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CollegeCreateSubject) => CollegeSubjectsService.create(payload) as Promise<CollegeSubjectResponse>,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: collegeKeys.subjects.root() });
+    },
+  });
+}
+
+export function useUpdateCollegeSubject(subjectId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CollegeUpdateSubject) => CollegeSubjectsService.update(subjectId, payload) as Promise<CollegeSubjectResponse>,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: collegeKeys.subjects.detail(subjectId) });
+      qc.invalidateQueries({ queryKey: collegeKeys.subjects.root() });
+    },
+  });
+}
+
+export function useAddSubjectToGroup(subjectId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CollegeGroupSubjectCreate) => CollegeSubjectsService.addToGroup(subjectId, payload) as Promise<CollegeGroupSubjectRead>,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...collegeKeys.subjects.detail(subjectId), "groups"] });
+    },
+  });
+}
+
+export function useUpdateSubjectGroupRelation(subjectId: number, groupId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CollegeGroupSubjectUpdate) => CollegeSubjectsService.updateGroupRelation(subjectId, groupId, payload) as Promise<CollegeGroupSubjectRead>,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...collegeKeys.subjects.detail(subjectId), "groups"] });
+    },
   });
 }
 

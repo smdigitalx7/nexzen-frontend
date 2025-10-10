@@ -94,7 +94,7 @@ Note: Dynamic segments are shown in `{curly}` braces.
 
 ## Tuition Fee Balances (`/api/v1/school/tuition-fee-balances`)
 - GET `/api/v1/school/tuition-fee-balances/dashboard` - Get Dashboard
-- GET `/api/v1/school/tuition-fee-balances/` — list (paginated)
+- GET `/api/v1/school/tuition-fee-balances` — list (paginated)
 - GET `/api/v1/school/tuition-fee-balances/{balance_id}` — get balance by id
 - PUT `/api/v1/school/tuition-fee-balances/{balance_id}/pay-term` — pay term
 - PUT `/api/v1/school/tuition-fee-balances/{balance_id}/pay-book-fee` — pay book fee

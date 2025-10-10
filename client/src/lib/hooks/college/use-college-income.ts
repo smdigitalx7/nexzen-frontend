@@ -5,7 +5,7 @@ import { collegeKeys } from "./query-keys";
 
 export function useCollegeIncomeList(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string }) {
   return useQuery({
-    queryKey: collegeKeys.income.list(params as Record<string, unknown> | undefined),
+    queryKey: collegeKeys.income.list(params),
     queryFn: () => CollegeIncomeService.list(params) as Promise<CollegeIncomeRead[]>,
   });
 }

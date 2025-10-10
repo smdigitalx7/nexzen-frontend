@@ -75,4 +75,11 @@ export interface CollegeExamMarkBulkCreateResult {
   total_requested: number;
 }
 
-
+export interface CollegeExamMarksListParams {
+  class_id?: number;
+  group_id?: number;
+  course_id?: number;
+  exam_id?: number;
+  page?: number;
+  pageSize?: number;
+}

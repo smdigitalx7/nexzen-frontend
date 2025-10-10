@@ -122,7 +122,7 @@ Note: Dynamic segments are shown in `{curly}` braces.
 - PUT `/api/v1/college/tuition-fee-balances/{balance_id}` — update balance by id
 - DELETE `/api/v1/college/tuition-fee-balances/{balance_id}` — delete balance by id
 - POST `/api/v1/college/tuition-fee-balances/bulk-create` — bulk create
-- GET `/api/v1/college/tuition-fee-balances/reports/unpaid-terms/` — unpaid terms report
+- GET `/api/v1/college/tuition-fee-balances/reports/unpaid-terms` — unpaid terms report
 - PUT `/api/v1/college/tuition-fee-balances/{balance_id}/term-payment` — Update term payment
 - PUT `/api/v1/college/tuition-fee-balances/{balance_id}/book-payment` — Update book payment
 

@@ -1,4 +1,5 @@
 import { Api } from "@/lib/api";
+import { CollegeTeacherGroupSubjectCreate, CollegeTeacherGroupSubjectRead } from "@/lib/types/college";
 
 export interface TeacherGroupSubjectsListParams {
   class_id?: number;
@@ -8,17 +9,17 @@ export interface TeacherGroupSubjectsListParams {
 export const CollegeTeacherGroupSubjectsService = {
   // GET /api/v1/college/teacher-group-subjects
   list(params?: TeacherGroupSubjectsListParams) {
-    return Api.get<unknown>(`/college/teacher-group-subjects`, params as Record<string, string | number | boolean | null | undefined> | undefined);
+    return Api.get<CollegeTeacherGroupSubjectRead[]>(`/college/teacher-group-subjects`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
 
   // GET /api/v1/college/teacher-group-subjects/teacher/{teacher_id}
   listByTeacher(teacher_id: number) {
-    return Api.get<unknown>(`/college/teacher-group-subjects/teacher/${teacher_id}`);
+    return Api.get<CollegeTeacherGroupSubjectRead[]>(`/college/teacher-group-subjects/teacher/${teacher_id}`);
   },
 
   // POST /api/v1/college/teacher-group-subjects
-  create(payload: unknown) {
-    return Api.post<unknown>(`/college/teacher-group-subjects`, payload);
+  create(payload: CollegeTeacherGroupSubjectCreate) {
+    return Api.post<CollegeTeacherGroupSubjectRead>(`/college/teacher-group-subjects`, payload);
   },
 
   // DELETE /api/v1/college/teacher-group-subjects/teacher/{teacher_id}

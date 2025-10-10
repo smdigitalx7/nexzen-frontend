@@ -5,7 +5,7 @@ import { collegeKeys } from "./query-keys";
 
 export function useCollegeTuitionBalancesList(params?: { page?: number; pageSize?: number }) {
   return useQuery({
-    queryKey: collegeKeys.tuition.list(params as Record<string, unknown> | undefined),
+    queryKey: collegeKeys.tuition.list(params),
     queryFn: () => CollegeTuitionBalancesService.list(params) as Promise<CollegeTuitionPaginatedResponse>,
   });
 }
@@ -21,14 +21,14 @@ export function useCollegeTuitionBalance(balanceId: number | null | undefined) {
 export function useCollegeTuitionBalanceByAdmission(admissionNo: string | null | undefined) {
   return useQuery({
     queryKey: admissionNo ? collegeKeys.tuition.byAdmission(admissionNo) : [...collegeKeys.tuition.root(), "by-admission", "nil"],
-    queryFn: () => CollegeTuitionBalancesService.getByAdmissionNo(admissionNo as string) as Promise<CollegeTuitionFeeBalanceFullRead>,
+    queryFn: () => CollegeTuitionBalancesService.getByAdmissionNo(admissionNo as string) as Promise<CollegeTuitionFeeBalanceRead[]>,
     enabled: typeof admissionNo === "string" && admissionNo.length > 0,
   });
 }
 
 export function useCollegeTuitionUnpaidTerms(params?: { page?: number; pageSize?: number }) {
   return useQuery({
-    queryKey: collegeKeys.tuition.unpaidTerms(params as Record<string, unknown> | undefined),
+    queryKey: collegeKeys.tuition.unpaidTerms(params),
     queryFn: () => CollegeTuitionBalancesService.getUnpaidTerms(params) as Promise<CollegeTuitionUnpaidTermsResponse>,
   });
 }
@@ -36,7 +36,8 @@ export function useCollegeTuitionUnpaidTerms(params?: { page?: number; pageSize?
 export function useCreateCollegeTuitionBalance() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: any) => CollegeTuitionBalancesService.create(payload) as Promise<CollegeTuitionFeeBalanceFullRead>,
+    mutationFn: (payload: CollegeTuitionFeeBalanceRead | Omit<CollegeTuitionFeeBalanceRead, "balance_id">) =>
+      CollegeTuitionBalancesService.create(payload as any) as Promise<CollegeTuitionFeeBalanceFullRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
     },
@@ -46,7 +47,8 @@ export function useCreateCollegeTuitionBalance() {
 export function useUpdateCollegeTuitionBalance(balanceId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: any) => CollegeTuitionBalancesService.update(balanceId, payload) as Promise<CollegeTuitionFeeBalanceFullRead>,
+    mutationFn: (payload: Partial<CollegeTuitionFeeBalanceRead>) =>
+      CollegeTuitionBalancesService.update(balanceId, payload as any) as Promise<CollegeTuitionFeeBalanceFullRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(balanceId) });
       qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
@@ -98,5 +100,3 @@ export function useUpdateBookFeePayment(balanceId: number) {
     },
   });
 }
-
-

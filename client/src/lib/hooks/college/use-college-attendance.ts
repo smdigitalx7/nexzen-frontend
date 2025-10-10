@@ -1,11 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeAttendanceService } from "@/lib/services/college/attendance.service";
-import type { CollegeStudentAttendancePaginatedResponse, CollegeStudentAttendanceRead } from "@/lib/types/college/index.ts";
+import type { CollegeStudentAttendanceBulkCreate, CollegeStudentAttendanceBulkCreateResult, CollegeStudentAttendancePaginatedResponse, CollegeStudentAttendanceRead } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 
 export function useCollegeAttendanceList(params?: { page?: number; pageSize?: number; admission_no?: string }) {
   return useQuery({
-    queryKey: collegeKeys.attendance.list(params as Record<string, unknown> | undefined),
+    queryKey: collegeKeys.attendance.list(params),
     queryFn: () => CollegeAttendanceService.list(params) as Promise<CollegeStudentAttendancePaginatedResponse>,
   });
 }
@@ -26,4 +26,22 @@ export function useCollegeAttendanceByAdmission(admissionNo: string | null | und
   });
 }
 
+export function useCreateCollegeAttendance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CollegeStudentAttendanceBulkCreate) => CollegeAttendanceService.create(payload) as Promise<CollegeStudentAttendanceRead>,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
+    },
+  });
+}
 
+export function useBulkCreateCollegeAttendance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CollegeStudentAttendanceBulkCreate) => CollegeAttendanceService.bulkCreate(payload) as Promise<CollegeStudentAttendanceBulkCreateResult>,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
+    },
+  });
+}

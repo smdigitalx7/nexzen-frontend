@@ -74,4 +74,13 @@ export interface CollegeTestMarkBulkCreateResult {
   total_requested: number;
 }
 
+export interface CollegeTestMarksListParams {
+  class_id?: number;
+  group_id?: number;
+  course_id?: number;
+  test_id?: number;
+  page?: number;
+  pageSize?: number;
+}
+
 
