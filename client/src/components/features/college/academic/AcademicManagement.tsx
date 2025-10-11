@@ -8,11 +8,15 @@ import { useCollegeClasses } from '@/lib/hooks/college/use-college-classes';
 import { useCollegeSubjects } from '@/lib/hooks/college/use-college-subjects';
 import { useCollegeExams } from '@/lib/hooks/college/use-college-exams';
 import { useCollegeTests } from '@/lib/hooks/college/use-college-tests';
+import { useCollegeGroups } from '@/lib/hooks/college/use-college-groups';
+import { useCollegeCourses } from '@/lib/hooks/college/use-college-courses';
 import AcademicYearManagement from "@/components/features/college/academic/academic-years/AcademicYearManagement";
 import { ClassesTab } from "@/components/features/college/academic/classes/ClassesTab";
 import { SubjectsTab } from "@/components/features/college/academic/subjects/SubjectsTab";
 import { ExamsTab } from "@/components/features/college/academic/exams/ExamsTab";
 import { TestTab } from "@/components/features/college/academic/tests/TestTab";
+import { GroupsTab } from "@/components/features/college/academic/groups/GroupsTab";
+import { CoursesTab } from "@/components/features/college/academic/courses/CoursesTab";
 import { AcademicOverviewCards } from "@/components/features/college/academic/AcademicOverviewCards";
 
 const AcademicManagement = () => {
@@ -23,6 +27,8 @@ const AcademicManagement = () => {
   const { data: backendSubjects = [], isLoading: subjectsLoading, isError: subjectsError, error: subjectsErrObj } = useCollegeSubjects();
   const { data: exams = [], isLoading: examsLoading, isError: examsError, error: examsErrObj } = useCollegeExams();
   const { data: tests = [], isLoading: testsLoading, isError: testsError, error: testsErrObj, refetch: refetchTests } = useCollegeTests();
+  const { data: groups = [], isLoading: groupsLoading, isError: groupsError, error: groupsErrObj } = useCollegeGroups();
+  const { data: courses = [], isLoading: coursesLoading, isError: coursesError, error: coursesErrObj } = useCollegeCourses();
 
   // Get effective classes
   const effectiveClasses = backendClasses;
@@ -30,6 +36,8 @@ const AcademicManagement = () => {
   // Calculate statistics
   const totalClasses = effectiveClasses.length;
   const totalSubjects = backendSubjects.length;
+  const totalGroups = groups.length;
+  const totalCourses = courses.length;
   const today = new Date();
   const toDate = (v: any) => { const d = new Date(v); return isNaN(d.getTime()) ? null : d; };
   const activeExams = exams.filter((exam: any) => {
@@ -42,13 +50,15 @@ const AcademicManagement = () => {
   }).length;
 
   // Loading states
-  const isLoading = classesLoading || subjectsLoading || examsLoading || testsLoading;
-  const hasError = classesError || subjectsError || examsError || testsError;
+  const isLoading = classesLoading || subjectsLoading || examsLoading || testsLoading || groupsLoading || coursesLoading;
+  const hasError = classesError || subjectsError || examsError || testsError || groupsError || coursesError;
   const errorMessage = (
     (classesErrObj as any)?.message ||
     (subjectsErrObj as any)?.message ||
     (examsErrObj as any)?.message ||
     (testsErrObj as any)?.message ||
+    (groupsErrObj as any)?.message ||
+    (coursesErrObj as any)?.message ||
     undefined
   );
 
@@ -99,6 +109,8 @@ const AcademicManagement = () => {
         totalSubjects={totalSubjects}
         activeExams={activeExams}
         completedExams={completedExams}
+        totalGroups={totalGroups}
+        totalCourses={totalCourses}
       />
 
       {/* Tabs */}
@@ -108,8 +120,10 @@ const AcademicManagement = () => {
         transition={{ delay: 0.2 }}
       >
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="classes">Classes</TabsTrigger>
+            <TabsTrigger value="groups">Groups</TabsTrigger>
+            <TabsTrigger value="courses">Courses</TabsTrigger>
             <TabsTrigger value="subjects">Subjects</TabsTrigger>
             <TabsTrigger value="exams">Exams</TabsTrigger>
             <TabsTrigger value="tests">Tests</TabsTrigger>
@@ -125,6 +139,30 @@ const AcademicManagement = () => {
               setSearchTerm={setSearchTerm}
               hasError={hasError}
               errorMessage={errorMessage}
+            />
+          </TabsContent>
+
+          {/* Groups Tab */}
+          <TabsContent value="groups" className="space-y-4">
+            <GroupsTab
+              groupsWithSubjects={groups}
+              groupsLoading={groupsLoading}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              hasError={groupsError}
+              errorMessage={(groupsErrObj as any)?.message}
+            />
+          </TabsContent>
+
+          {/* Courses Tab */}
+          <TabsContent value="courses" className="space-y-4">
+            <CoursesTab
+              coursesWithSubjects={courses}
+              coursesLoading={coursesLoading}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              hasError={coursesError}
+              errorMessage={(coursesErrObj as any)?.message}
             />
           </TabsContent>
 

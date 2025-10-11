@@ -210,43 +210,6 @@ export const TestTab = ({
     ])
   ], []);
 
-  if (hasError) {
-    return (
-      <div className="text-center text-red-600 p-8">
-        <p>{errorMessage || "Failed to load tests"}</p>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  // Show empty state if no tests
-  if (!tests || tests.length === 0) {
-    return (
-      <div className="text-center p-8">
-        <div className="space-y-4">
-          <div className="text-muted-foreground">
-            <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-medium">No Tests Found</h3>
-            <p className="text-sm">Get started by creating your first test.</p>
-          </div>
-          <button
-            onClick={() => setIsAddTestOpen(true)}
-            className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-          >
-            Create First Test
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       <DataTableWithFilters
@@ -306,6 +269,7 @@ export const TestTab = ({
             <Label htmlFor="pass_marks">Pass Marks</Label>
             <Input
               id="pass_marks"
+              type="number"
               value={newTest.pass_marks}
               onChange={(e) => updateNewTestField('pass_marks', e.target.value)}
               placeholder="Enter pass marks"
@@ -362,6 +326,7 @@ export const TestTab = ({
             <Label htmlFor="edit_pass_marks">Pass Marks</Label>
             <Input
               id="edit_pass_marks"
+              type="number"
               value={editTest.pass_marks}
               onChange={(e) => updateEditTestField('pass_marks', e.target.value)}
               placeholder="Enter pass marks"

@@ -84,12 +84,24 @@ export const ExamsTab = ({
       return;
     }
 
+    const maxMarks = parseInt(newExam.max_marks || "100") || 100;
+    const passMarks = parseInt(newExam.pass_marks || "35") || 35;
+
+    if (passMarks >= maxMarks) {
+      toast({
+        title: "Error",
+        description: "Pass marks must be less than max marks",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const payload: CollegeExamCreate = {
         exam_name: newExam.exam_name.trim(),
         exam_date: newExam.exam_date || "",
-        pass_marks: parseInt(newExam.pass_marks || "35") || 35,
-        max_marks: parseInt(newExam.max_marks || "100") || 100,
+        pass_marks: passMarks,
+        max_marks: maxMarks,
       };
       await createExam.mutateAsync(payload);
       
@@ -119,12 +131,24 @@ export const ExamsTab = ({
       return;
     }
 
+    const maxMarks = parseInt(editExam.max_marks || "100") || 100;
+    const passMarks = parseInt(editExam.pass_marks || "35") || 35;
+
+    if (passMarks >= maxMarks) {
+      toast({
+        title: "Error",
+        description: "Pass marks must be less than max marks",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const updatePayload: CollegeExamUpdate = {
         exam_name: editExam.exam_name?.trim() || undefined,
         exam_date: editExam.exam_date || undefined,
-        pass_marks: parseInt(editExam.pass_marks || "35") || 35,
-        max_marks: parseInt(editExam.max_marks || "100") || 100,
+        pass_marks: passMarks,
+        max_marks: maxMarks,
       };
       await updateExam.mutateAsync(updatePayload);
       
@@ -271,22 +295,23 @@ export const ExamsTab = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="pass_marks">Pass Marks</Label>
-            <Input
-              id="total_marks"
-              type="number"
-              value={newExam.pass_marks}
-              onChange={(e) => updateNewExamField('pass_marks', e.target.value)}
-              placeholder="Enter total marks"
-            />
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="max_marks">Max Marks</Label>
             <Input
               id="max_marks"
+              type="number"
               value={newExam.max_marks}
               onChange={(e) => updateNewExamField('max_marks', e.target.value)}
               placeholder="Enter max marks"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="pass_marks">Pass Marks</Label>
+            <Input
+              id="pass_marks"
+              type="number"
+              value={newExam.pass_marks}
+              onChange={(e) => updateNewExamField('pass_marks', e.target.value)}
+              placeholder="Enter pass marks"
             />
           </div>
         </div>
@@ -327,16 +352,6 @@ export const ExamsTab = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit_pass_marks">Pass Marks</Label>
-            <Input
-              id="edit_pass_marks"
-              type="number"
-              value={editExam.pass_marks}
-              onChange={(e) => updateEditExamField('pass_marks', e.target.value)}
-              placeholder="Enter pass marks"
-            />
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="edit_max_marks">Max Marks</Label>
             <Input
               id="edit_max_marks"
@@ -344,6 +359,16 @@ export const ExamsTab = ({
               value={editExam.max_marks}
               onChange={(e) => updateEditExamField('max_marks', e.target.value)}
               placeholder="Enter max marks"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit_pass_marks">Pass Marks</Label>
+            <Input
+              id="edit_pass_marks"
+              type="number"
+              value={editExam.pass_marks}
+              onChange={(e) => updateEditExamField('pass_marks', e.target.value)}
+              placeholder="Enter pass marks"
             />
           </div>
         </div>

@@ -38,4 +38,14 @@ export function useUpdateCollegeCourse(courseId: number) {
   });
 }
 
+export function useDeleteCollegeCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (courseId: number) => CollegeCoursesService.delete(courseId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: collegeKeys.courses.root() });
+    },
+  });
+}
+
 

@@ -38,6 +38,16 @@ export function useUpdateCollegeGroup(groupId: number) {
   });
 }
 
+export function useDeleteCollegeGroup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (groupId: number) => CollegeGroupsService.delete(groupId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: collegeKeys.groups.root() });
+    },
+  });
+}
+
 export function useCollegeGroupSubjects(groupId: number | null | undefined) {
   return useQuery({
     queryKey: typeof groupId === "number" ? [...collegeKeys.groups.detail(groupId), "subjects"] : [...collegeKeys.groups.root(), "subjects", "nil"],

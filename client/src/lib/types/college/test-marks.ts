@@ -75,10 +75,10 @@ export interface CollegeTestMarkBulkCreateResult {
 }
 
 export interface CollegeTestMarksListParams {
-  class_id?: number;
-  group_id?: number;
-  course_id?: number;
+  class_id: number;
+  group_id: number;
   test_id?: number;
+  subject_id?: number;
   page?: number;
   pageSize?: number;
 }

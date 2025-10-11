@@ -6,7 +6,22 @@ import { collegeKeys } from "./query-keys";
 export function useCollegeExams() {
   return useQuery({
     queryKey: collegeKeys.exams.list(),
-    queryFn: () => CollegeExamsService.list() as Promise<CollegeExamRead[]>,
+    queryFn: async () => {
+      try {
+        return await CollegeExamsService.list();
+      } catch (error: any) {
+        // Handle 404 errors by returning empty array
+        console.log('Exams API error:', error);
+        if (error?.message?.includes('404') || 
+            error?.message?.includes('Exams not found') ||
+            error?.message?.includes('Not Found') ||
+            error?.status === 404 ||
+            error?.message === 'Exams not found') {
+          return [];
+        }
+        throw error;
+      }
+    },
   });
 }
 

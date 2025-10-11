@@ -104,15 +104,35 @@ const TestMarksManagement = () => {
   const viewTestLoading = viewingTestMarkId ? viewQuery.isLoading : false;
   const viewTestError = viewingTestMarkId ? viewQuery.error : null;
 
-  // Test marks hooks - only fetch when class is selected
-  const { data: testMarksData, isLoading: testMarksLoading, error: testMarksError } = useCollegeTestMarksList(
-    selectedClass ? {
+  // Test marks hooks - only fetch when class is selected and groups are loaded
+  const testMarksQuery = useMemo(() => {
+    if (!selectedClass || isNaN(parseInt(selectedClass)) || groups.length === 0) {
+      return undefined;
+    }
+    
+    const query: any = {
       class_id: parseInt(selectedClass),
-      group_id: selectedGroup !== 'all' && !isNaN(parseInt(selectedGroup)) ? parseInt(selectedGroup) : undefined,
-      course_id: selectedCourse !== 'all' && !isNaN(parseInt(selectedCourse)) ? parseInt(selectedCourse) : undefined,
-      test_id: selectedTest !== 'all' && !isNaN(parseInt(selectedTest)) ? parseInt(selectedTest) : undefined,
-    } : undefined
-  );
+    };
+    
+    // Always include group_id - use first available group if 'all' is selected
+    if (selectedGroup !== 'all' && !isNaN(parseInt(selectedGroup))) {
+      query.group_id = parseInt(selectedGroup);
+    } else {
+      // Use the first group as default when 'all' is selected
+      query.group_id = groups[0].group_id;
+    }
+    
+    if (selectedTest !== 'all' && !isNaN(parseInt(selectedTest))) {
+      query.test_id = parseInt(selectedTest);
+    }
+    if (selectedSubject !== 'all' && !isNaN(parseInt(selectedSubject))) {
+      query.subject_id = parseInt(selectedSubject);
+    }
+    
+    return query;
+  }, [selectedClass, selectedGroup, selectedTest, selectedSubject, groups]);
+
+  const { data: testMarksData, isLoading: testMarksLoading, error: testMarksError } = useCollegeTestMarksList(testMarksQuery);
   const createTestMarkMutation = useCreateCollegeTestMark();
   const updateTestMarkMutation = useUpdateCollegeTestMark(editingTestMark?.test_mark_id || 0);
   const deleteTestMarkMutation = useDeleteCollegeTestMark();

@@ -76,10 +76,10 @@ export interface CollegeExamMarkBulkCreateResult {
 }
 
 export interface CollegeExamMarksListParams {
-  class_id?: number;
-  group_id?: number;
-  course_id?: number;
+  class_id: number;
+  group_id: number;
   exam_id?: number;
+  subject_id?: number;
   page?: number;
   pageSize?: number;
 }

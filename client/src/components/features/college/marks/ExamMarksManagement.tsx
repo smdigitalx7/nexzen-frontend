@@ -105,9 +105,9 @@ const ExamMarksManagement = () => {
   const viewExamLoading = viewingExamMarkId ? viewQuery.isLoading : false;
   const viewExamError = viewingExamMarkId ? viewQuery.error : null;
 
-  // Exam marks hooks - only fetch when class is selected
+  // Exam marks hooks - only fetch when class is selected and groups are loaded
   const examMarksQuery = useMemo(() => {
-    if (!selectedClass || isNaN(parseInt(selectedClass))) {
+    if (!selectedClass || isNaN(parseInt(selectedClass)) || groups.length === 0) {
       return undefined;
     }
     
@@ -115,11 +115,16 @@ const ExamMarksManagement = () => {
       class_id: parseInt(selectedClass),
     };
     
-    if (selectedSubject !== 'all' && !isNaN(parseInt(selectedSubject))) {
-      query.subject_id = parseInt(selectedSubject);
-    }
+    // Always include group_id - use first available group if 'all' is selected
     if (selectedGroup !== 'all' && !isNaN(parseInt(selectedGroup))) {
       query.group_id = parseInt(selectedGroup);
+    } else {
+      // Use the first group as default when 'all' is selected
+      query.group_id = groups[0].group_id;
+    }
+    
+    if (selectedSubject !== 'all' && !isNaN(parseInt(selectedSubject))) {
+      query.subject_id = parseInt(selectedSubject);
     }
     if (selectedCourse !== 'all' && !isNaN(parseInt(selectedCourse))) {
       query.course_id = parseInt(selectedCourse);
@@ -129,7 +134,7 @@ const ExamMarksManagement = () => {
     }
     
     return query;
-  }, [selectedClass, selectedSubject, selectedGroup, selectedCourse, selectedExam]);
+  }, [selectedClass, selectedSubject, selectedGroup, selectedCourse, selectedExam, groups]);
 
   const { data: examMarksData, isLoading: examMarksLoading, error: examMarksError } = useCollegeExamMarksList(examMarksQuery);
   const createExamMarkMutation = useCreateCollegeExamMark();

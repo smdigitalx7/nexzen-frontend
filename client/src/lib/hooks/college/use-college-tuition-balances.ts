@@ -3,7 +3,7 @@ import { CollegeTuitionBalancesService } from "@/lib/services/college/tuition-fe
 import type { CollegeBookFeePaymentUpdate, CollegeTermPaymentUpdate, CollegeTuitionBalanceBulkCreate, CollegeTuitionBalanceBulkCreateResult, CollegeTuitionFeeBalanceFullRead, CollegeTuitionFeeBalanceRead, CollegeTuitionPaginatedResponse, CollegeTuitionUnpaidTermsResponse } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 
-export function useCollegeTuitionBalancesList(params?: { page?: number; pageSize?: number }) {
+export function useCollegeTuitionBalancesList(params?: { page?: number; pageSize?: number; class_id?: number; group_id?: number; course_id?: number; admission_no?: string }) {
   return useQuery({
     queryKey: collegeKeys.tuition.list(params),
     queryFn: () => CollegeTuitionBalancesService.list(params) as Promise<CollegeTuitionPaginatedResponse>,

@@ -1,9 +1,8 @@
 import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useSchoolFeesManagement } from "@/lib/hooks/school/use-school-fees-management";
+import { useCollegeFeesManagement } from "@/lib/hooks/college/use-college-fees-management";
 import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalancesPanel";
-import { TuitionFeeStructuresPanel } from "./tution-fee-structure/TuitionFeeStructuresPanel";
 import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeBalancesPanel";
 import { FeeStatsCards } from "./FeeStatsCards";
 import { StudentFeeBalancesTable } from "./tution-fee-balance/StudentFeeBalancesTable";
@@ -17,7 +16,8 @@ export const FeesManagement = () => {
     collectionRate,
     activeTab,
     setActiveTab,
-  } = useSchoolFeesManagement();
+    tuitionBalances,
+  } = useCollegeFeesManagement();
 
   const totalCollected = totalIncome;
 
@@ -26,7 +26,6 @@ export const FeesManagement = () => {
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
 
   // Build rows for "Collect Fees" from tuition balances
-  const { tuitionBalances } = useSchoolFeesManagement();
   const filteredStudentBalances = useMemo(() => {
     return (tuitionBalances || []).map((t: any) => {
       const paidTotal = (t.term1_paid || 0) + (t.term2_paid || 0) + (t.term3_paid || 0) + (t.book_paid || 0);
@@ -36,7 +35,7 @@ export const FeesManagement = () => {
         id: t.balance_id,
         student_id: t.admission_no,
         student_name: t.student_name,
-        class_name: t.section_name || "",
+        class_name: t.class_name || "",
         academic_year: "",
         total_fee: t.total_fee,
         paid_amount: paidTotal,
@@ -88,9 +87,8 @@ export const FeesManagement = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="collect">Collect Fees</TabsTrigger>
-          <TabsTrigger value="tuition-structures">Tuition Fee Structures</TabsTrigger>
           <TabsTrigger value="tuition-balances">Tuition Fee Balances</TabsTrigger>
           <TabsTrigger value="transport-balances">Transport Fee Balances</TabsTrigger>          
         </TabsList>
@@ -123,10 +121,6 @@ export const FeesManagement = () => {
 
         <TabsContent value="transport-balances" className="space-y-4">
           <TransportFeeBalancesPanel onViewStudent={() => {}} onExportCSV={() => {}} />
-        </TabsContent>
-
-        <TabsContent value="tuition-structures" className="space-y-4">
-          <TuitionFeeStructuresPanel />
         </TabsContent>
 
       </Tabs>

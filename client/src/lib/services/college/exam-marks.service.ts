@@ -1,14 +1,5 @@
 import { Api } from "@/lib/api";
-import { CollegeCreateExamMarkBulk, CollegeExamMarkBulkCreateResult, CollegeExamMarkFullReadResponse, CollegeExamMarkMinimalRead, CollegeExamMarkUpdate } from "@/lib/types/college";
-
-export interface CollegeExamMarksListParams {
-  class_id?: number;
-  group_id?: number;
-  course_id?: number;
-  exam_id?: number;
-  page?: number;
-  pageSize?: number;
-}
+import { CollegeCreateExamMarkBulk, CollegeExamMarkBulkCreateResult, CollegeExamMarkFullReadResponse, CollegeExamMarkMinimalRead, CollegeExamMarkUpdate, CollegeExamMarksListParams } from "@/lib/types/college";
 
 export const CollegeExamMarksService = {
   // GET /api/v1/college/exam-marks

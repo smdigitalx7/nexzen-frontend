@@ -7,6 +7,7 @@ export function useCollegeTestMarksList(params?: CollegeTestMarksListParams) {
   return useQuery({
     queryKey: collegeKeys.testMarks.list(params),
     queryFn: () => CollegeTestMarksService.list(params) as Promise<CollegeTestMarkMinimalRead[]>,
+    enabled: !!params && !!params.class_id && !!params.group_id,
   });
 }
 

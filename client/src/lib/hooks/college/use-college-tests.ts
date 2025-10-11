@@ -6,7 +6,22 @@ import { collegeKeys } from "./query-keys";
 export function useCollegeTests() {
   return useQuery({
     queryKey: collegeKeys.tests.list(),
-    queryFn: () => CollegeTestsService.list() as Promise<CollegeTestRead[]>,
+    queryFn: async () => {
+      try {
+        return await CollegeTestsService.list();
+      } catch (error: any) {
+        // Handle 404 errors by returning empty array
+        console.log('Tests API error:', error);
+        if (error?.message?.includes('404') || 
+            error?.message?.includes('Tests not found') ||
+            error?.message?.includes('Not Found') ||
+            error?.status === 404 ||
+            error?.message === 'Tests not found') {
+          return [];
+        }
+        throw error;
+      }
+    },
   });
 }
 

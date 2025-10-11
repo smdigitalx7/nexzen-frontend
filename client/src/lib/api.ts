@@ -155,7 +155,9 @@ export async function api<T = unknown>({ method = "GET", path, body, query, head
 
 	if (!res.ok) {
 		const message = (isJson && (((data as any)?.detail) || ((data as any)?.message))) || res.statusText || "Request failed";
-		throw new Error(message as string);
+		const error = new Error(message as string);
+		(error as any).status = res.status;
+		throw error;
 	}
 
 	return data as T;
