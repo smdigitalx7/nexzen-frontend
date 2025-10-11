@@ -1,13 +1,11 @@
 import { motion } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCollegeFeesManagement } from "@/lib/hooks/college/use-college-fees-management";
 import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalancesPanel";
 import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeBalancesPanel";
 import { FeeStatsCards } from "./FeeStatsCards";
-import { StudentFeeBalancesTable } from "./tution-fee-balance/StudentFeeBalancesTable";
-import { PaymentCollectionForm } from "./fee-collection/PaymentCollectionForm";
-
+import { CollectFee } from "./collect-fee/CollectFee";
 
 export const FeesManagement = () => {
   const {
@@ -21,9 +19,6 @@ export const FeesManagement = () => {
 
   const totalCollected = totalIncome;
 
-  // Local state for collection flow
-  const [isCollectOpen, setIsCollectOpen] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
 
   // Build rows for "Collect Fees" from tuition balances
   const filteredStudentBalances = useMemo(() => {
@@ -51,11 +46,6 @@ export const FeesManagement = () => {
       };
     });
   }, [tuitionBalances]);
-
-  const handleViewStudent = (student: any) => {
-    setSelectedStudent(student);
-    setIsCollectOpen(true);
-  };
 
   const exportBalancesCSV = () => {
     // Placeholder export; integrate real export as needed
@@ -94,25 +84,7 @@ export const FeesManagement = () => {
         </TabsList>
 
         <TabsContent value="collect" className="space-y-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="space-y-4"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold">Fee Collection</h2>
-                <p className="text-muted-foreground">Collect payments from students</p>
-              </div>
-            </div>
-
-            <StudentFeeBalancesTable
-              studentBalances={filteredStudentBalances}
-              onViewStudent={handleViewStudent}
-              onExportCSV={exportBalancesCSV}
-            />
-          </motion.div>
+          <CollectFee />
         </TabsContent>
 
         <TabsContent value="tuition-balances" className="space-y-4">
@@ -125,14 +97,6 @@ export const FeesManagement = () => {
 
       </Tabs>
 
-      <PaymentCollectionForm
-        isOpen={isCollectOpen}
-        onClose={() => setIsCollectOpen(false)}
-        selectedStudent={selectedStudent}
-        onCollectPayment={() => {}}
-      />
-
-      {/* Payment collection dialog removed; feature not wired to current hooks */}
     </div>
   );
 };
