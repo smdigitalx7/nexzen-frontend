@@ -32,7 +32,7 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
       const paidTotal = (t.term1_paid || 0) + (t.term2_paid || 0) + (t.term3_paid || 0) + (t.book_paid || 0);
       const outstanding = Math.max(0, (t.total_fee || 0) - ((t.term1_paid || 0) + (t.term2_paid || 0) + (t.term3_paid || 0)));
       return {
-        id: t.balance_id,
+        id: t.enrollment_id,
         student_id: t.admission_no,
         student_name: t.student_name,
         class_name: t.section_name || "",
@@ -105,7 +105,7 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
             <div className="p-2 text-sm text-muted-foreground">Loading...</div>
           ) : (
             <div className="space-y-2 text-sm">
-              <div><span className="text-muted-foreground">Balance ID:</span> {selectedBalance.balance_id}</div>
+              <div><span className="text-muted-foreground">Enrollment ID:</span> {selectedBalance.enrollment_id}</div>
               <div><span className="text-muted-foreground">Student:</span> {selectedBalance.student_name} ({selectedBalance.admission_no})</div>
               <div><span className="text-muted-foreground">Roll No:</span> {selectedBalance.roll_number}</div>
               <div><span className="text-muted-foreground">Section:</span> {selectedBalance.section_name || '-'}</div>

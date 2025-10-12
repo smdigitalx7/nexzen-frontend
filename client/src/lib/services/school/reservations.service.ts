@@ -1,5 +1,12 @@
 import { Api } from "@/lib/api";
-import type { SchoolReservationListResponse, SchoolReservationRead, SchoolReservationStatusEnum } from "@/lib/types/school";
+import type { 
+  SchoolReservationListResponse, 
+  SchoolReservationRead, 
+  SchoolReservationStatusEnum,
+  SchoolReservationDashboardStats,
+  SchoolRecentReservation,
+  SchoolReservationConcessionUpdate
+} from "@/lib/types/school";
 
 export const SchoolReservationsService = {
   list(params?: { page?: number; page_size?: number; class_id?: number }) {
@@ -29,14 +36,14 @@ export const SchoolReservationsService = {
   },
 
   getDashboard() {
-    return Api.get<any>(`/school/reservations/dashboard`);
+    return Api.get<SchoolReservationDashboardStats>(`/school/reservations/dashboard`);
   },
 
-  getRecent() {
-    return Api.get<SchoolReservationRead[]>(`/school/reservations/recent`);
+  getRecent(limit?: number) {
+    return Api.get<SchoolRecentReservation[]>(`/school/reservations/recent${limit ? `?limit=${limit}` : ''}`);
   },
 
-  updateConcession(reservation_id: number, payload: any) {
+  updateConcession(reservation_id: number, payload: SchoolReservationConcessionUpdate) {
     return Api.put<SchoolReservationRead>(`/school/reservations/${reservation_id}/consession`, payload);
   },
 };

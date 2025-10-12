@@ -1,5 +1,5 @@
 import { Api } from "@/lib/api";
-import { CollegeBookFeePaymentUpdate, CollegeTermPaymentUpdate, CollegeTuitionBalanceBulkCreate, CollegeTuitionBalanceBulkCreateResult, CollegeTuitionFeeBalanceCreate, CollegeTuitionFeeBalanceFullRead, CollegeTuitionFeeBalanceRead, CollegeTuitionFeeBalanceUpdate, CollegeTuitionPaginatedResponse, CollegeTuitionUnpaidTermsResponse } from "@/lib/types/college";
+import { CollegeBookFeePaymentUpdate, CollegeTermPaymentUpdate, CollegeTuitionBalanceBulkCreate, CollegeTuitionBalanceBulkCreateResult, CollegeTuitionFeeBalanceCreate, CollegeTuitionFeeBalanceFullRead, CollegeTuitionFeeBalanceRead, CollegeTuitionFeeBalanceUpdate, CollegeTuitionPaginatedResponse, CollegeTuitionUnpaidTermsResponse, CollegeTuitionFeeBalanceDashboardStats } from "@/lib/types/college";
 
 export interface CollegeTuitionBalancesListParams {
   page?: number;
@@ -13,7 +13,7 @@ export interface CollegeTuitionBalancesListParams {
 export const CollegeTuitionBalancesService = {
   // GET /api/v1/college/tuition-fee-balances/dashboard
   dashboard() {
-    return Api.get<unknown>(`/college/tuition-fee-balances/dashboard`);
+    return Api.get<CollegeTuitionFeeBalanceDashboardStats>(`/college/tuition-fee-balances/dashboard`);
   },
   // GET /api/v1/college/tuition-fee-balances
   list(params?: CollegeTuitionBalancesListParams) {
@@ -25,9 +25,9 @@ export const CollegeTuitionBalancesService = {
     return Api.get<CollegeTuitionFeeBalanceRead[]>(`/college/tuition-fee-balances/by-admission-no/${admission_no}`);
   },
 
-  // GET /api/v1/college/tuition-fee-balances/{balance_id}
-  getById(balance_id: number) {
-    return Api.get<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances/${balance_id}`);
+  // GET /api/v1/college/tuition-fee-balances/{enrollment_id}
+  getById(enrollment_id: number) {
+    return Api.get<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances/${enrollment_id}`);
   },
 
   // POST /api/v1/college/tuition-fee-balances
@@ -35,14 +35,14 @@ export const CollegeTuitionBalancesService = {
     return Api.post<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances`, payload);
   },
 
-  // PUT /api/v1/college/tuition-fee-balances/{balance_id}
-  update(balance_id: number, payload: CollegeTuitionFeeBalanceUpdate) {
-    return Api.put<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances/${balance_id}`, payload);
+  // PUT /api/v1/college/tuition-fee-balances/{enrollment_id}
+  update(enrollment_id: number, payload: CollegeTuitionFeeBalanceUpdate) {
+    return Api.put<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances/${enrollment_id}`, payload);
   },
 
-  // DELETE /api/v1/college/tuition-fee-balances/{balance_id}
-  delete(balance_id: number) {
-    return Api.delete<void>(`/college/tuition-fee-balances/${balance_id}`);
+  // DELETE /api/v1/college/tuition-fee-balances/{enrollment_id}
+  delete(enrollment_id: number) {
+    return Api.delete<void>(`/college/tuition-fee-balances/${enrollment_id}`);
   },
 
   // POST /api/v1/college/tuition-fee-balances/bulk-create
@@ -55,14 +55,14 @@ export const CollegeTuitionBalancesService = {
     return Api.get<CollegeTuitionUnpaidTermsResponse>(`/college/tuition-fee-balances/reports/unpaid-terms`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
 
-  // PUT /api/v1/college/tuition-fee-balances/{balance_id}/term-payment
-  updateTermPayment(balance_id: number, payload: CollegeTermPaymentUpdate) {
-    return Api.put<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances/${balance_id}/term-payment`, payload);
+  // PUT /api/v1/college/tuition-fee-balances/{enrollment_id}/term-payment
+  updateTermPayment(enrollment_id: number, payload: CollegeTermPaymentUpdate) {
+    return Api.put<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances/${enrollment_id}/term-payment`, payload);
   },
 
-  // PUT /api/v1/college/tuition-fee-balances/{balance_id}/book-payment
-  updateBookPayment(balance_id: number, payload: CollegeBookFeePaymentUpdate) {
-    return Api.put<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances/${balance_id}/book-payment`, payload);
+  // PUT /api/v1/college/tuition-fee-balances/{enrollment_id}/book-payment
+  updateBookPayment(enrollment_id: number, payload: CollegeBookFeePaymentUpdate) {
+    return Api.put<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances/${enrollment_id}/book-payment`, payload);
   },
 };
 

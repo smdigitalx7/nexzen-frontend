@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from "@/store/authStore";
 import { PayrollsService } from '@/lib/services/general/payrolls.service';
 import { useEmployeesByBranch } from "@/lib/hooks/general/useEmployees";
-import type { PayrollRead, PayrollCreate, PayrollUpdate, PayrollQuery } from "@/lib/types/general/payrolls";
+import type { PayrollRead, PayrollCreate, PayrollUpdate, PayrollQuery, PayrollDashboardStats, RecentPayroll } from "@/lib/types/general/payrolls";
 import { PayrollStatusEnum, PaymentMethodEnum } from "@/lib/types/general/payrolls";
 import { formatCurrency } from "@/lib/utils";
 
@@ -23,6 +23,8 @@ const payrollKeys = {
   details: () => [...payrollKeys.all, 'detail'] as const,
   detail: (id: number) => [...payrollKeys.details(), id] as const,
   byBranch: () => [...payrollKeys.all, 'by-branch'] as const,
+  dashboard: () => [...payrollKeys.all, 'dashboard'] as const,
+  recent: (limit?: number) => [...payrollKeys.all, 'recent', { limit }] as const,
 };
 
 // Basic payroll hooks (moved from usePayrolls.ts)
@@ -95,6 +97,20 @@ export const useUpdatePayrollStatus = () => {
       queryClient.invalidateQueries({ queryKey: payrollKeys.byBranch() });
       queryClient.invalidateQueries({ queryKey: payrollKeys.detail(variables.id) });
     },
+  });
+};
+
+export const usePayrollDashboard = () => {
+  return useQuery({
+    queryKey: payrollKeys.dashboard(),
+    queryFn: () => PayrollsService.getDashboard(),
+  });
+};
+
+export const useRecentPayrolls = (limit: number = 5) => {
+  return useQuery({
+    queryKey: payrollKeys.recent(limit),
+    queryFn: () => PayrollsService.getRecent(limit),
   });
 };
 

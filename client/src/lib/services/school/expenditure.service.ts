@@ -1,5 +1,5 @@
 import { Api } from "@/lib/api";
-import type { SchoolExpenditureCreate, SchoolExpenditureRead, SchoolExpenditureUpdate } from "@/lib/types/school";
+import type { SchoolExpenditureCreate, SchoolExpenditureRead, SchoolExpenditureUpdate, SchoolExpenditureDashboardStats, SchoolRecentExpenditure } from "@/lib/types/school";
 
 export const SchoolExpenditureService = {
   list(params?: { start_date?: string; end_date?: string }) {
@@ -23,11 +23,11 @@ export const SchoolExpenditureService = {
   },
 
   getDashboard() {
-    return Api.get<any>(`/school/expenditure/dashboard`);
+    return Api.get<SchoolExpenditureDashboardStats>(`/school/expenditure/dashboard`);
   },
 
-  getRecent() {
-    return Api.get<SchoolExpenditureRead[]>(`/school/expenditure/recent`);
+  getRecent(limit?: number) {
+    return Api.get<SchoolRecentExpenditure[]>(`/school/expenditure/recent${limit ? `?limit=${limit}` : ''}`);
   },
 };
 

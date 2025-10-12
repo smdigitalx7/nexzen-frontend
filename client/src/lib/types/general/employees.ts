@@ -4,6 +4,8 @@ export interface EmployeeRead {
   employee_name: string;
   employee_type: string;
   employee_code: string;
+  gender?: string | null;
+  date_of_birth?: string | null;
   aadhar_no?: string | null;
   mobile_no?: string | null;
   email?: string | null;
@@ -14,6 +16,9 @@ export interface EmployeeRead {
   experience_years?: number | null;
   status: string;
   salary: number;
+  bank_account_number?: string | null;
+  bank_name?: string | null;
+  bank_ifsc_code?: string | null;
   created_at: string;
   updated_at?: string | null;
   created_by?: number | null;
@@ -24,32 +29,40 @@ export interface EmployeeCreate {
   employee_name: string;
   employee_type: string;
   employee_code: string;
+  gender?: string | null;
+  date_of_birth?: string | null;
   aadhar_no?: string | null;
   mobile_no?: string | null;
   email?: string | null;
   address?: string | null;
-  date_of_joining: string; // ISO date string
+  date_of_joining?: string | null; // ISO date string
   designation: string;
   qualification?: string | null;
   experience_years?: number | null;
-  status: string;
   salary: number;
+  bank_account_number?: string | null;
+  bank_name?: string | null;
+  bank_ifsc_code?: string | null;
 }
 
 export interface EmployeeUpdate {
   employee_name?: string;
   employee_type?: string;
   employee_code?: string;
+  gender?: string | null;
+  date_of_birth?: string | null;
   aadhar_no?: string | null;
   mobile_no?: string | null;
   email?: string | null;
   address?: string | null;
-  date_of_joining?: string; // ISO date string
+  date_of_joining?: string | null; // ISO date string
   designation?: string;
   qualification?: string | null;
   experience_years?: number | null;
-  status?: string;
   salary?: number;
+  bank_account_number?: string | null;
+  bank_name?: string | null;
+  bank_ifsc_code?: string | null;
 }
 
 // Additional employee interfaces for detailed information

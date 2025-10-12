@@ -30,4 +30,25 @@ export interface SchoolExpenditureRead {
   updated_by?: number | null;
 }
 
+export interface SchoolExpenditureDashboardStats {
+  total_expenditure_records: number;
+  total_expenditure_amount: number;
+  paid_expenditures: number;
+  unpaid_expenditures: number;
+  total_paid_amount: number;
+  total_unpaid_amount: number;
+  expenditure_this_month: number;
+  expenditure_this_year: number;
+  expenditure_records_this_month: number;
+  expenditure_records_this_year: number;
+}
+
+export interface SchoolRecentExpenditure {
+  expenditure_id: number;
+  expenditure_purpose: string;
+  bill_date: string;
+  amount: number;
+  payment_method?: string | null;
+  payment_date?: string | null;
+}
 

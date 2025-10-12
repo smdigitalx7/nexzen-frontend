@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { StudentTransportService } from "@/lib/services/school/student-transport.service";
 import type { SchoolStudentTransportAssignmentCreate, SchoolStudentTransportAssignmentUpdate, SchoolStudentTransportRouteWiseResponse, SchoolStudentTransportAssignmentRead } from "@/lib/types/school";
+import type { SchoolTransportDashboardStats } from "@/lib/types/school/student-transport-assignments";
 
 const keys = {
   root: ["school", "student-transport"] as const,

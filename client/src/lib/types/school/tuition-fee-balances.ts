@@ -44,7 +44,7 @@ export interface SchoolTuitionFeeBalanceUpdate {
 }
 
 export interface SchoolTuitionFeeBalanceRead {
-  balance_id: number;
+  enrollment_id: number;
   admission_no: string;
   roll_number: string;
   student_name: string;
@@ -79,8 +79,6 @@ export interface SchoolTuitionPaginatedResponse {
 }
 
 export interface SchoolTuitionFeeBalanceFullRead extends SchoolTuitionFeeBalanceRead {
-  balance_id: number;
-  enrollment_id: number;
   student_id: number;
   class_name: string;
   father_name: string;
@@ -137,6 +135,31 @@ export interface SchoolTuitionUnpaidTermsResponse {
   current_page?: number | null;
   page_size?: number | null;
   total_count?: number | null;
+}
+
+// Dashboard schemas
+export interface SchoolTuitionFeeBalanceDashboardStats {
+  total_balances: number;
+  total_actual_fee: number;
+  total_concession: number;
+  total_net_fee: number;
+  total_paid: number;
+  total_outstanding: number;
+  total_book_fee: number;
+  total_book_paid: number;
+  book_pending_count: number;
+  book_paid_count: number;
+  book_partial_count: number;
+  term1_pending_count: number;
+  term1_paid_count: number;
+  term1_partial_count: number;
+  term2_pending_count: number;
+  term2_paid_count: number;
+  term2_partial_count: number;
+  term3_pending_count: number;
+  term3_paid_count: number;
+  term3_partial_count: number;
+  average_payment_completion: number;
 }
 
 

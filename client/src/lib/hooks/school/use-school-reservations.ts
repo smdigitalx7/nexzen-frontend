@@ -67,10 +67,10 @@ export function useSchoolReservationsDashboard() {
   });
 }
 
-export function useSchoolReservationsRecent() {
+export function useSchoolReservationsRecent(limit?: number) {
   return useQuery({
-    queryKey: [...schoolKeys.reservations.root(), "recent"],
-    queryFn: () => SchoolReservationsService.getRecent() as Promise<SchoolReservationRead[]>,
+    queryKey: [...schoolKeys.reservations.root(), "recent", { limit }],
+    queryFn: () => SchoolReservationsService.getRecent(limit),
   });
 }
 

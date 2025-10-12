@@ -4,7 +4,8 @@ export interface CollegeIncomeCreate {
   amount: number;
   income_date: string; // YYYY-MM-DD
   term_number?: number | null;
-  description?: string | null;
+  payment_method?: string | null;
+  note?: string | null;
 }
 
 export interface CollegeIncomeCreateReservation {
@@ -12,7 +13,8 @@ export interface CollegeIncomeCreateReservation {
   purpose: string; // RESERVATION_FEE
   amount: number;
   income_date: string; // YYYY-MM-DD
-  description?: string | null;
+  payment_method?: string | null;
+  note?: string | null;
 }
 
 export interface CollegeIncomeUpdate {
@@ -20,7 +22,8 @@ export interface CollegeIncomeUpdate {
   amount?: number;
   income_date?: string; // YYYY-MM-DD
   term_number?: number | null;
-  description?: string | null;
+  payment_method?: string | null;
+  note?: string | null;
 }
 
 export interface CollegeIncomeRead {
@@ -34,11 +37,34 @@ export interface CollegeIncomeRead {
   amount: number;
   income_date: string; // YYYY-MM-DD
   term_number?: number | null;
-  description?: string | null;
+  payment_method?: string | null;
+  note?: string | null;
   created_at: string;
   updated_at?: string | null;
   created_by?: number | null;
   updated_by?: number | null;
 }
 
+export interface CollegeRecentIncome {
+  income_id: number;
+  student_name?: string | null;
+  admission_no?: string | null;
+  purpose: string;
+  amount: number;
+  income_date: string;
+}
+
+export interface CollegeIncomeDashboardStats {
+  total_income_records: number;
+  total_income_amount: number;
+  tuition_fee_income: number;
+  transport_fee_income: number;
+  book_fee_income: number;
+  reservation_fee_income: number;
+  other_income: number;
+  income_this_month: number;
+  income_this_year: number;
+  income_records_this_month: number;
+  income_records_this_year: number;
+}
 

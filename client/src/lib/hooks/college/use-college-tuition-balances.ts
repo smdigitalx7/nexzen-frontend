@@ -10,11 +10,11 @@ export function useCollegeTuitionBalancesList(params?: { page?: number; pageSize
   });
 }
 
-export function useCollegeTuitionBalance(balanceId: number | null | undefined) {
+export function useCollegeTuitionBalance(enrollmentId: number | null | undefined) {
   return useQuery({
-    queryKey: typeof balanceId === "number" ? collegeKeys.tuition.detail(balanceId) : [...collegeKeys.tuition.root(), "detail", "nil"],
-    queryFn: () => CollegeTuitionBalancesService.getById(balanceId as number) as Promise<CollegeTuitionFeeBalanceFullRead>,
-    enabled: typeof balanceId === "number" && balanceId > 0,
+    queryKey: typeof enrollmentId === "number" ? collegeKeys.tuition.detail(enrollmentId) : [...collegeKeys.tuition.root(), "detail", "nil"],
+    queryFn: () => CollegeTuitionBalancesService.getById(enrollmentId as number) as Promise<CollegeTuitionFeeBalanceFullRead>,
+    enabled: typeof enrollmentId === "number" && enrollmentId > 0,
   });
 }
 
@@ -36,7 +36,7 @@ export function useCollegeTuitionUnpaidTerms(params?: { page?: number; pageSize?
 export function useCreateCollegeTuitionBalance() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CollegeTuitionFeeBalanceRead | Omit<CollegeTuitionFeeBalanceRead, "balance_id">) =>
+    mutationFn: (payload: CollegeTuitionFeeBalanceRead) =>
       CollegeTuitionBalancesService.create(payload as any) as Promise<CollegeTuitionFeeBalanceFullRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
@@ -44,13 +44,13 @@ export function useCreateCollegeTuitionBalance() {
   });
 }
 
-export function useUpdateCollegeTuitionBalance(balanceId: number) {
+export function useUpdateCollegeTuitionBalance(enrollmentId: number) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: Partial<CollegeTuitionFeeBalanceRead>) =>
-      CollegeTuitionBalancesService.update(balanceId, payload as any) as Promise<CollegeTuitionFeeBalanceFullRead>,
+      CollegeTuitionBalancesService.update(enrollmentId, payload as any) as Promise<CollegeTuitionFeeBalanceFullRead>,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(balanceId) });
+      qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(enrollmentId) });
       qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
     },
   });
@@ -59,7 +59,7 @@ export function useUpdateCollegeTuitionBalance(balanceId: number) {
 export function useDeleteCollegeTuitionBalance() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (balanceId: number) => CollegeTuitionBalancesService.delete(balanceId),
+    mutationFn: (enrollmentId: number) => CollegeTuitionBalancesService.delete(enrollmentId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
     },
@@ -77,25 +77,25 @@ export function useBulkCreateCollegeTuitionBalances() {
   });
 }
 
-export function useUpdateTuitionTermPayment(balanceId: number) {
+export function useUpdateTuitionTermPayment(enrollmentId: number) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: CollegeTermPaymentUpdate) =>
-      CollegeTuitionBalancesService.updateTermPayment(balanceId, payload) as Promise<CollegeTuitionFeeBalanceFullRead>,
+      CollegeTuitionBalancesService.updateTermPayment(enrollmentId, payload) as Promise<CollegeTuitionFeeBalanceFullRead>,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(balanceId) });
+      qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(enrollmentId) });
       qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
     },
   });
 }
 
-export function useUpdateBookFeePayment(balanceId: number) {
+export function useUpdateBookFeePayment(enrollmentId: number) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: CollegeBookFeePaymentUpdate) =>
-      CollegeTuitionBalancesService.updateBookPayment(balanceId, payload) as Promise<CollegeTuitionFeeBalanceFullRead>,
+      CollegeTuitionBalancesService.updateBookPayment(enrollmentId, payload) as Promise<CollegeTuitionFeeBalanceFullRead>,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(balanceId) });
+      qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(enrollmentId) });
       qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
     },
   });

@@ -5,6 +5,7 @@ import type {
   StudentTransportRouteWiseResponse,
   StudentTransportAssignmentRead,
 } from "@/lib/types/school/school";
+import type { SchoolTransportDashboardStats } from "@/lib/types/school/student-transport-assignments";
 
 export const StudentTransportService = {
   list(params: { class_id: number; section_id?: number; bus_route_id?: number }): Promise<StudentTransportRouteWiseResponse[]> {
@@ -34,7 +35,7 @@ export const StudentTransportService = {
   },
 
   getDashboard() {
-    return Api.get<any>(`/school/student-transport-assignments/dashboard`);
+    return Api.get<SchoolTransportDashboardStats>(`/school/student-transport-assignments/dashboard`);
   },
 };
 

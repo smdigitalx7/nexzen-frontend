@@ -1,22 +1,22 @@
 import { Api } from "@/lib/api";
-import type { PayrollRead, PayrollCreate, PayrollUpdate, PayrollQuery, PayrollListResponse } from "@/lib/types/general/payrolls";
+import type { PayrollRead, PayrollCreate, PayrollUpdate, PayrollQuery, PayrollListResponse, PayrollDashboardStats, RecentPayroll } from "@/lib/types/general/payrolls";
 
 export const PayrollsService = {
   /**
    * Get payroll dashboard statistics
-   * @returns Promise<any> - Dashboard statistics
+   * @returns Promise<PayrollDashboardStats> - Dashboard statistics
    */
-  getDashboard(): Promise<any> {
-    return Api.get("/payrolls/dashboard");
+  getDashboard(): Promise<PayrollDashboardStats> {
+    return Api.get<PayrollDashboardStats>("/payrolls/dashboard");
   },
 
   /**
    * Get recent payrolls
    * @param limit - Number of recent records to return (default: 5)
-   * @returns Promise<PayrollRead[]> - List of recent payrolls
+   * @returns Promise<RecentPayroll[]> - List of recent payrolls
    */
-  getRecent(limit: number = 5): Promise<PayrollRead[]> {
-    return Api.get(`/payrolls/recent?limit=${limit}`);
+  getRecent(limit: number = 5): Promise<RecentPayroll[]> {
+    return Api.get<RecentPayroll[]>(`/payrolls/recent?limit=${limit}`);
   },
 
   /**

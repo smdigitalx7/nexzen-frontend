@@ -39,4 +39,13 @@ export interface CollegeTransportAssignmentListResponse {
   current_page: number;
 }
 
+export interface CollegeStudentTransportDashboardStats {
+  total_assignments: number;
+  active_assignments: number;
+  inactive_assignments: number;
+  total_routes: number;
+  total_students_by_route: Record<string, number>;
+  assignments_this_month: number;
+  assignments_this_year: number;
+}
 

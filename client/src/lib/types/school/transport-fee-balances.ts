@@ -33,7 +33,6 @@ export interface SchoolTransportFeeBalanceUpdate {
 }
 
 export interface SchoolTransportFeeBalanceListRead {
-  balance_id: number;
   enrollment_id: number;
   admission_no: string;
   roll_number: string;
@@ -85,6 +84,23 @@ export interface SchoolTransportBalanceBulkCreateResult {
   created_count: number;
   skipped_enrollment_ids: number[];
   total_requested: number;
+}
+
+// Dashboard schemas
+export interface SchoolTransportFeeBalanceDashboardStats {
+  total_balances: number;
+  total_actual_fee: number;
+  total_concession: number;
+  total_net_fee: number;
+  total_paid: number;
+  total_outstanding: number;
+  term1_pending_count: number;
+  term1_paid_count: number;
+  term1_partial_count: number;
+  term2_pending_count: number;
+  term2_paid_count: number;
+  term2_partial_count: number;
+  average_payment_completion: number;
 }
 
 

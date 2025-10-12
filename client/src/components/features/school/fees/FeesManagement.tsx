@@ -29,7 +29,7 @@ export const FeesManagement = () => {
       const outstanding = Math.max(0, (t.total_fee || 0) - ((t.term1_paid || 0) + (t.term2_paid || 0) + (t.term3_paid || 0)));
       const status: 'PAID' | 'PARTIAL' | 'OUTSTANDING' = outstanding <= 0 ? 'PAID' : paidTotal > 0 ? 'PARTIAL' : 'OUTSTANDING';
       return {
-        id: t.balance_id,
+        id: t.enrollment_id,
         student_id: t.admission_no,
         student_name: t.student_name,
         class_name: t.section_name || "",

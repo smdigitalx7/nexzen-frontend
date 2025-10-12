@@ -30,7 +30,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
       const paidTotal = (t.term1_paid || 0) + (t.term2_paid || 0);
       const outstanding = t.overall_balance_fee || 0;
       return {
-        id: t.balance_id,
+        id: t.enrollment_id,
         student_id: t.admission_no,
         student_name: t.student_name,
         class_name: t.section_name || "",
@@ -103,7 +103,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
             <div className="p-2 text-sm text-muted-foreground">Loading...</div>
           ) : (
             <div className="space-y-2 text-sm">
-              <div><span className="text-muted-foreground">Balance ID:</span> {selectedBalance.balance_id}</div>
+              <div><span className="text-muted-foreground">Enrollment ID:</span> {selectedBalance.enrollment_id}</div>
               <div><span className="text-muted-foreground">Student:</span> {selectedBalance.student_name} ({selectedBalance.admission_no})</div>
               <div><span className="text-muted-foreground">Roll No:</span> {selectedBalance.roll_number}</div>
               <div><span className="text-muted-foreground">Section:</span> {selectedBalance.section_name || '-'}</div>

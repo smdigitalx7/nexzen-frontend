@@ -13,11 +13,11 @@ export function useSchoolTuitionBalancesList(params?: { page?: number; page_size
   });
 }
 
-export function useSchoolTuitionBalance(balanceId: number | null | undefined) {
+export function useSchoolTuitionBalance(enrollmentId: number | null | undefined) {
   return useQuery({
-    queryKey: typeof balanceId === "number" ? schoolKeys.tuition.detail(balanceId) : [...schoolKeys.tuition.root(), "detail", "nil"],
-    queryFn: () => SchoolTuitionFeeBalancesService.getById(balanceId as number) as Promise<SchoolTuitionFeeBalanceFullRead>,
-    enabled: typeof balanceId === "number" && balanceId > 0,
+    queryKey: typeof enrollmentId === "number" ? schoolKeys.tuition.detail(enrollmentId) : [...schoolKeys.tuition.root(), "detail", "nil"],
+    queryFn: () => SchoolTuitionFeeBalancesService.getById(enrollmentId as number) as Promise<SchoolTuitionFeeBalanceFullRead>,
+    enabled: typeof enrollmentId === "number" && enrollmentId > 0,
   });
 }
 
@@ -68,12 +68,12 @@ export function useCreateSchoolTuitionBalance() {
   });
 }
 
-export function useUpdateSchoolTuitionBalance(balanceId: number) {
+export function useUpdateSchoolTuitionBalance(enrollmentId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: any) => SchoolTuitionFeeBalancesService.update(balanceId, payload) as Promise<SchoolTuitionFeeBalanceFullRead>,
+    mutationFn: (payload: any) => SchoolTuitionFeeBalancesService.update(enrollmentId, payload) as Promise<SchoolTuitionFeeBalanceFullRead>,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(balanceId) });
+      qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
       qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
     },
   });
@@ -82,7 +82,7 @@ export function useUpdateSchoolTuitionBalance(balanceId: number) {
 export function useDeleteSchoolTuitionBalance() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (balanceId: number) => SchoolTuitionFeeBalancesService.delete(balanceId),
+    mutationFn: (enrollmentId: number) => SchoolTuitionFeeBalancesService.delete(enrollmentId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
     },
@@ -99,23 +99,23 @@ export function useBulkCreateSchoolTuitionBalances() {
   });
 }
 
-export function useUpdateSchoolTuitionTermPayment(balanceId: number) {
+export function useUpdateSchoolTuitionTermPayment(enrollmentId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: SchoolTermPaymentUpdate) => SchoolTuitionFeeBalancesService.updateTermPayment(balanceId, payload) as Promise<SchoolTuitionFeeBalanceFullRead>,
+    mutationFn: (payload: SchoolTermPaymentUpdate) => SchoolTuitionFeeBalancesService.updateTermPayment(enrollmentId, payload) as Promise<SchoolTuitionFeeBalanceFullRead>,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(balanceId) });
+      qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
       qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
     },
   });
 }
 
-export function useUpdateSchoolBookFeePayment(balanceId: number) {
+export function useUpdateSchoolBookFeePayment(enrollmentId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: SchoolBookFeePaymentUpdate) => SchoolTuitionFeeBalancesService.updateBookPayment(balanceId, payload) as Promise<SchoolTuitionFeeBalanceFullRead>,
+    mutationFn: (payload: SchoolBookFeePaymentUpdate) => SchoolTuitionFeeBalancesService.updateBookPayment(enrollmentId, payload) as Promise<SchoolTuitionFeeBalanceFullRead>,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(balanceId) });
+      qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
       qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
     },
   });
@@ -130,11 +130,11 @@ export function useSchoolTransportBalancesList(params?: { page?: number; page_si
   });
 }
 
-export function useSchoolTransportBalance(balanceId: number | null | undefined) {
+export function useSchoolTransportBalance(enrollmentId: number | null | undefined) {
   return useQuery({
-    queryKey: typeof balanceId === "number" ? schoolKeys.transport.detail(balanceId) : [...schoolKeys.transport.root(), "detail", "nil"],
-    queryFn: () => SchoolTransportFeeBalancesService.getById(balanceId as number) as Promise<SchoolTransportFeeBalanceFullRead>,
-    enabled: typeof balanceId === "number" && balanceId > 0,
+    queryKey: typeof enrollmentId === "number" ? schoolKeys.transport.detail(enrollmentId) : [...schoolKeys.transport.root(), "detail", "nil"],
+    queryFn: () => SchoolTransportFeeBalancesService.getById(enrollmentId as number) as Promise<SchoolTransportFeeBalanceFullRead>,
+    enabled: typeof enrollmentId === "number" && enrollmentId > 0,
   });
 }
 
@@ -148,12 +148,12 @@ export function useCreateSchoolTransportBalance() {
   });
 }
 
-export function useUpdateSchoolTransportBalance(balanceId: number) {
+export function useUpdateSchoolTransportBalance(enrollmentId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: any) => SchoolTransportFeeBalancesService.update(balanceId, payload) as Promise<SchoolTransportFeeBalanceFullRead>,
+    mutationFn: (payload: any) => SchoolTransportFeeBalancesService.update(enrollmentId, payload) as Promise<SchoolTransportFeeBalanceFullRead>,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.transport.detail(balanceId) });
+      qc.invalidateQueries({ queryKey: schoolKeys.transport.detail(enrollmentId) });
       qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
     },
   });
@@ -162,7 +162,7 @@ export function useUpdateSchoolTransportBalance(balanceId: number) {
 export function useDeleteSchoolTransportBalance() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (balanceId: number) => SchoolTransportFeeBalancesService.delete(balanceId),
+    mutationFn: (enrollmentId: number) => SchoolTransportFeeBalancesService.delete(enrollmentId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
     },
@@ -179,12 +179,12 @@ export function useBulkCreateSchoolTransportBalances() {
   });
 }
 
-export function useUpdateSchoolTransportTermPayment(balanceId: number) {
+export function useUpdateSchoolTransportTermPayment(enrollmentId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: SchoolTransportTermPaymentUpdate) => SchoolTransportFeeBalancesService.updateTermPayment(balanceId, payload) as Promise<SchoolTransportFeeBalanceFullRead>,
+    mutationFn: (payload: SchoolTransportTermPaymentUpdate) => SchoolTransportFeeBalancesService.updateTermPayment(enrollmentId, payload) as Promise<SchoolTransportFeeBalanceFullRead>,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.transport.detail(balanceId) });
+      qc.invalidateQueries({ queryKey: schoolKeys.transport.detail(enrollmentId) });
       qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
     },
   });

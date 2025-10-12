@@ -63,4 +63,13 @@ export interface SchoolStudentTransportRouteWiseResponse {
   classes: SchoolStudentTransportClassWiseResponse[];
 }
 
+export interface SchoolTransportDashboardStats {
+  total_assignments: number;
+  active_assignments: number;
+  inactive_assignments: number;
+  total_routes: number;
+  total_students_on_transport: number;
+  assignments_this_month: number;
+  assignments_this_year: number;
+}
 

@@ -64,9 +64,9 @@ export const CollectFeeForm = ({
   const { toast } = useToast();
   
   // Use mutation hooks for payment updates
-  const updateBookPayment = useUpdateSchoolBookFeePayment(selectedStudent?.tuitionBalance?.balance_id || 0);
-  const updateTuitionTermPayment = useUpdateSchoolTuitionTermPayment(selectedStudent?.tuitionBalance?.balance_id || 0);
-  const updateTransportTermPayment = useUpdateSchoolTransportTermPayment(selectedStudent?.transportBalance?.balance_id || 0);
+  const updateBookPayment = useUpdateSchoolBookFeePayment(selectedStudent?.tuitionBalance?.enrollment_id || 0);
+  const updateTuitionTermPayment = useUpdateSchoolTuitionTermPayment(selectedStudent?.tuitionBalance?.enrollment_id || 0);
+  const updateTransportTermPayment = useUpdateSchoolTransportTermPayment(selectedStudent?.transportBalance?.enrollment_id || 0);
 
   const isSelectionValid = () => {
     return Object.values(collectSelection).some(Boolean) || customAmount !== "";

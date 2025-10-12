@@ -1,5 +1,12 @@
 import { Api } from "@/lib/api";
-import type { SchoolIncomeCreate, SchoolIncomeCreateReservation, SchoolIncomeRead, SchoolIncomeUpdate } from "@/lib/types/school";
+import type { 
+  SchoolIncomeCreate, 
+  SchoolIncomeCreateReservation, 
+  SchoolIncomeRead, 
+  SchoolIncomeUpdate,
+  SchoolIncomeDashboardStats,
+  SchoolRecentIncome
+} from "@/lib/types/school";
 
 export const SchoolIncomeService = {
   list(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string }) {
@@ -27,11 +34,11 @@ export const SchoolIncomeService = {
   },
 
   getDashboard() {
-    return Api.get<any>(`/school/income/dashboard`);
+    return Api.get<SchoolIncomeDashboardStats>(`/school/income/dashboard`);
   },
 
-  getRecent() {
-    return Api.get<SchoolIncomeRead[]>(`/school/income/recent`);
+  getRecent(limit?: number) {
+    return Api.get<SchoolRecentIncome[]>(`/school/income/recent${limit ? `?limit=${limit}` : ''}`);
   },
 };
 

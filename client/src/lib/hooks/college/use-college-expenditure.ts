@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeExpenditureService } from "@/lib/services/college/expenditure.service";
-import type { CollegeExpenditureCreate, CollegeExpenditureRead, CollegeExpenditureUpdate } from "@/lib/types/college/index.ts";
+import type { CollegeExpenditureCreate, CollegeExpenditureRead, CollegeExpenditureUpdate, CollegeExpenditureDashboardStats, CollegeRecentExpenditure } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 
 export function useCollegeExpenditureList(params?: { start_date?: string; end_date?: string }) {
@@ -46,5 +46,19 @@ export function useDeleteCollegeExpenditure() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
     },
+  });
+}
+
+export function useCollegeExpenditureDashboard() {
+  return useQuery({
+    queryKey: [...collegeKeys.expenditure.root(), "dashboard"],
+    queryFn: () => CollegeExpenditureService.dashboard(),
+  });
+}
+
+export function useCollegeExpenditureRecent(limit?: number) {
+  return useQuery({
+    queryKey: [...collegeKeys.expenditure.root(), "recent", { limit }],
+    queryFn: () => CollegeExpenditureService.recent(limit),
   });
 }

@@ -1,5 +1,5 @@
 import { Api } from "@/lib/api";
-import { CollegeExpenditureCreate, CollegeExpenditureRead, CollegeExpenditureUpdate } from "@/lib/types/college";
+import { CollegeExpenditureCreate, CollegeExpenditureRead, CollegeExpenditureUpdate, CollegeExpenditureDashboardStats, CollegeRecentExpenditure } from "@/lib/types/college";
 
 export interface CollegeExpenditureListParams {
   start_date?: string; // YYYY-MM-DD
@@ -9,12 +9,12 @@ export interface CollegeExpenditureListParams {
 export const CollegeExpenditureService = {
   // GET /api/v1/college/expenditure/dashboard
   dashboard() {
-    return Api.get<unknown>(`/college/expenditure/dashboard`);
+    return Api.get<CollegeExpenditureDashboardStats>(`/college/expenditure/dashboard`);
   },
 
   // GET /api/v1/college/expenditure/recent
-  recent() {
-    return Api.get<unknown>(`/college/expenditure/recent`);
+  recent(limit?: number) {
+    return Api.get<CollegeRecentExpenditure[]>(`/college/expenditure/recent${limit ? `?limit=${limit}` : ''}`);
   },
 
   // GET /api/v1/college/expenditure

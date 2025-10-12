@@ -1,5 +1,5 @@
 import { Api } from "@/lib/api";
-import { CollegeTransportBalanceBulkCreate, CollegeTransportBalanceBulkCreateResult, CollegeTransportFeeBalanceCreate, CollegeTransportFeeBalanceFullRead, CollegeTransportFeeBalanceListRead, CollegeTransportFeeBalanceUpdate, CollegeTransportPaginatedResponse, CollegeTransportTermPaymentUpdate } from "@/lib/types/college";
+import { CollegeTransportBalanceBulkCreate, CollegeTransportBalanceBulkCreateResult, CollegeTransportFeeBalanceCreate, CollegeTransportFeeBalanceFullRead, CollegeTransportFeeBalanceListRead, CollegeTransportFeeBalanceUpdate, CollegeTransportPaginatedResponse, CollegeTransportTermPaymentUpdate, CollegeTransportFeeBalanceDashboardStats } from "@/lib/types/college";
 
 export interface CollegeTransportBalancesListParams {
   page?: number;
@@ -9,7 +9,7 @@ export interface CollegeTransportBalancesListParams {
 export const CollegeTransportBalancesService = {
   // GET /api/v1/college/transport-fee-balances/dashboard
   dashboard() {
-    return Api.get<unknown>(`/college/transport-fee-balances/dashboard`);
+    return Api.get<CollegeTransportFeeBalanceDashboardStats>(`/college/transport-fee-balances/dashboard`);
   },
 
   // GET /api/v1/college/transport-fee-balances
@@ -17,9 +17,9 @@ export const CollegeTransportBalancesService = {
     return Api.get<CollegeTransportPaginatedResponse>(`/college/transport-fee-balances`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
 
-  // GET /api/v1/college/transport-fee-balances/{balance_id}
-  getById(balance_id: number) {
-    return Api.get<CollegeTransportFeeBalanceFullRead>(`/college/transport-fee-balances/${balance_id}`);
+  // GET /api/v1/college/transport-fee-balances/{enrollment_id}
+  getById(enrollment_id: number) {
+    return Api.get<CollegeTransportFeeBalanceFullRead>(`/college/transport-fee-balances/${enrollment_id}`);
   },
 
   // POST /api/v1/college/transport-fee-balances
@@ -27,14 +27,14 @@ export const CollegeTransportBalancesService = {
     return Api.post<CollegeTransportFeeBalanceFullRead>(`/college/transport-fee-balances`, payload);
   },
 
-  // PUT /api/v1/college/transport-fee-balances/{balance_id}
-  update(balance_id: number, payload: CollegeTransportFeeBalanceUpdate) {
-    return Api.put<CollegeTransportFeeBalanceFullRead>(`/college/transport-fee-balances/${balance_id}`, payload);
+  // PUT /api/v1/college/transport-fee-balances/{enrollment_id}
+  update(enrollment_id: number, payload: CollegeTransportFeeBalanceUpdate) {
+    return Api.put<CollegeTransportFeeBalanceFullRead>(`/college/transport-fee-balances/${enrollment_id}`, payload);
   },
 
-  // DELETE /api/v1/college/transport-fee-balances/{balance_id}
-  delete(balance_id: number) {
-    return Api.delete<void>(`/college/transport-fee-balances/${balance_id}`);
+  // DELETE /api/v1/college/transport-fee-balances/{enrollment_id}
+  delete(enrollment_id: number) {
+    return Api.delete<void>(`/college/transport-fee-balances/${enrollment_id}`);
   },
 
   // POST /api/v1/college/transport-fee-balances/bulk-create
@@ -42,9 +42,9 @@ export const CollegeTransportBalancesService = {
     return Api.post<CollegeTransportBalanceBulkCreateResult>(`/college/transport-fee-balances/bulk-create`, payload);
   },
 
-  // PUT /api/v1/college/transport-fee-balances/{balance_id}/term-payment
-  updateTermPayment(balance_id: number, payload: CollegeTransportTermPaymentUpdate) {
-    return Api.put<CollegeTransportFeeBalanceFullRead>(`/college/transport-fee-balances/${balance_id}/term-payment`, payload);
+  // PUT /api/v1/college/transport-fee-balances/{enrollment_id}/term-payment
+  updateTermPayment(enrollment_id: number, payload: CollegeTransportTermPaymentUpdate) {
+    return Api.put<CollegeTransportFeeBalanceFullRead>(`/college/transport-fee-balances/${enrollment_id}/term-payment`, payload);
   },
 };
 

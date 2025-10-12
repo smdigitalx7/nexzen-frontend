@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeStudentTransportAssignmentsService } from "@/lib/services/college/student-transport-assignments.service";
-import type { CollegeTransportAssignmentCreate, CollegeTransportAssignmentRead, CollegeTransportAssignmentUpdate } from "@/lib/types/college/index.ts";
+import type { CollegeTransportAssignmentCreate, CollegeTransportAssignmentRead, CollegeTransportAssignmentUpdate, CollegeStudentTransportDashboardStats } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 
 export function useCollegeStudentTransportAssignments() {
@@ -46,5 +46,12 @@ export function useDeleteCollegeStudentTransportAssignment() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.root() });
     },
+  });
+}
+
+export function useCollegeStudentTransportDashboard() {
+  return useQuery({
+    queryKey: [...collegeKeys.studentTransport.root(), "dashboard"],
+    queryFn: () => CollegeStudentTransportAssignmentsService.dashboard(),
   });
 }

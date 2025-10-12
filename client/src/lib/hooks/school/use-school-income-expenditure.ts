@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolIncomeService } from "@/lib/services/school/income.service";
 import { SchoolExpenditureService } from "@/lib/services/school/expenditure.service";
-import type { SchoolExpenditureCreate, SchoolExpenditureRead, SchoolExpenditureUpdate, SchoolIncomeCreate, SchoolIncomeCreateReservation, SchoolIncomeRead, SchoolIncomeUpdate } from "@/lib/types/school";
+import type { SchoolExpenditureCreate, SchoolExpenditureRead, SchoolExpenditureUpdate, SchoolIncomeCreate, SchoolIncomeCreateReservation, SchoolIncomeRead, SchoolIncomeUpdate, SchoolExpenditureDashboardStats, SchoolRecentExpenditure } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
 
 export function useSchoolIncomeList(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string }) {
@@ -26,10 +26,10 @@ export function useSchoolIncomeDashboard() {
   });
 }
 
-export function useSchoolIncomeRecent() {
+export function useSchoolIncomeRecent(limit?: number) {
   return useQuery({
-    queryKey: [...schoolKeys.income.root(), "recent"],
-    queryFn: () => SchoolIncomeService.getRecent() as Promise<SchoolIncomeRead[]>,
+    queryKey: [...schoolKeys.income.root(), "recent", { limit }],
+    queryFn: () => SchoolIncomeService.getRecent(limit),
   });
 }
 
@@ -40,10 +40,10 @@ export function useSchoolExpenditureDashboard() {
   });
 }
 
-export function useSchoolExpenditureRecent() {
+export function useSchoolExpenditureRecent(limit?: number) {
   return useQuery({
-    queryKey: [...schoolKeys.expenditure.root(), "recent"],
-    queryFn: () => SchoolExpenditureService.getRecent() as Promise<SchoolExpenditureRead[]>,
+    queryKey: [...schoolKeys.expenditure.root(), "recent", { limit }],
+    queryFn: () => SchoolExpenditureService.getRecent(limit) as Promise<SchoolRecentExpenditure[]>,
   });
 }
 
