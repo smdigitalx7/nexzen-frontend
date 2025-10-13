@@ -10,6 +10,7 @@ import { useSchoolExams, useSchoolTests } from '@/lib/hooks/school/use-school-ex
 import AcademicYearManagement from "@/components/features/school/academic/academic-years/AcademicYearManagement";
 import { ClassesTab } from "@/components/features/school/academic/classes/ClassesTab";
 import { SubjectsTab } from "@/components/features/school/academic/subjects/SubjectsTab";
+import { SectionsTab } from "@/components/features/school/academic/sections/SectionsTab";
 import { ExamsTab } from "@/components/features/school/academic/exams/ExamsTab";
 import { TestTab } from "@/components/features/school/academic/tests/TestTab";
 import { AcademicOverviewCards } from "@/components/features/school/academic/AcademicOverviewCards";
@@ -107,9 +108,10 @@ const AcademicManagement = () => {
         transition={{ delay: 0.2 }}
       >
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="classes">Classes</TabsTrigger>
             <TabsTrigger value="subjects">Subjects</TabsTrigger>
+            <TabsTrigger value="sections">Sections</TabsTrigger>
             <TabsTrigger value="exams">Exams</TabsTrigger>
             <TabsTrigger value="tests">Tests</TabsTrigger>
             <TabsTrigger value="academic-years">Academic Years</TabsTrigger>
@@ -138,6 +140,11 @@ const AcademicManagement = () => {
               selectedBranchType={selectedBranchType}
               setSelectedBranchType={setSelectedBranchType}
             />
+          </TabsContent>
+
+          {/* Sections Tab */}
+          <TabsContent value="sections" className="space-y-4">
+            <SectionsTab />
           </TabsContent>
 
           {/* Exams Tab */}

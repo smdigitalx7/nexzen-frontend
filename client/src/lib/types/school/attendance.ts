@@ -16,7 +16,8 @@ export interface SchoolStudentAttendanceUpdate {
 export interface SchoolStudentAttendanceRead {
   attendance_id: number;
   enrollment_id: number;
-  attendance_month?: string | null;
+  attendance_month?: number | null; // month number per backend response
+  attendance_year?: number | null;  // year per backend response
   admission_no: string;
   roll_number: string;
   student_name: string;

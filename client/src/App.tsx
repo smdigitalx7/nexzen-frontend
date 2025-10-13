@@ -34,7 +34,6 @@ import AnnouncementsManagement from "./components/features/general/Announcemnts/
 // School
 import SchoolAcademicManagement from "@/components/pages/school/SchoolAcademicPage";
 import SchoolReservationManagement from "@/components/pages/school/SchoolReservationPage";
-import SchoolClassesManagement from "./components/pages/school/SchoolClassesPage";
 import SchoolStudentsManagement from "./components/pages/school/SchoolStudentsPage";
 import SchoolAttendanceManagement from "./components/pages/school/SchoolAttendancePage";
 import SchoolFeesManagement from "./components/pages/school/SchoolFeesPage";
@@ -166,11 +165,6 @@ function Router() {
           path="/school/reservations/new"
           roles={["institute_admin", "accountant"]}
           component={SchoolReservationManagement}
-        />
-        <ProtectedRoute
-          path="/school/classes"
-          roles={["institute_admin", "academic"]}
-          component={SchoolClassesManagement}
         />
         <ProtectedRoute
           path="/school/students"

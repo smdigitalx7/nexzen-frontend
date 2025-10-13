@@ -1,5 +1,5 @@
 import { Api } from "@/lib/api";
-import type { SchoolBulkCreateAttendanceResult, SchoolBulkStudentAttendanceCreate, SchoolStudentAttendanceCreate, SchoolStudentAttendancePaginatedResponse, SchoolStudentAttendanceRead, SchoolStudentAttendanceUpdate } from "@/lib/types/school";
+import type { SchoolBulkCreateAttendanceResult, SchoolBulkStudentAttendanceCreate, SchoolStudentAttendanceCreate, SchoolStudentAttendanceMonthlyGroupedResponse, SchoolStudentAttendancePaginatedResponse, SchoolStudentAttendanceRead, SchoolStudentAttendanceUpdate } from "@/lib/types/school";
 
 export interface SchoolAttendanceListParams {
   page?: number;
@@ -36,8 +36,8 @@ export const SchoolStudentAttendanceService = {
     return Api.delete<void>(`/school/student-attendance/${attendance_id}`);
   },
 
-  getAllStudents() {
-    return Api.get<any[]>(`/school/student-attendance/students`);
+  getAllStudents(params: { class_id: number; section_id?: number | null; month?: number | null; year?: number | null; }) {
+    return Api.get<SchoolStudentAttendanceMonthlyGroupedResponse>(`/school/student-attendance/students`, params as any);
   },
 
   bulkUpdate(payload: any) {

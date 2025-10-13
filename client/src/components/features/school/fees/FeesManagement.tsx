@@ -3,7 +3,6 @@ import { useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSchoolFeesManagement } from "@/lib/hooks/school/use-school-fees-management";
 import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalancesPanel";
-import { TuitionFeeStructuresPanel } from "./tution-fee-structure/TuitionFeeStructuresPanel";
 import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeBalancesPanel";
 import { FeeStatsCards } from "./FeeStatsCards";
 import { CollectFee } from "./collect-fee/CollectFee";
@@ -80,9 +79,8 @@ export const FeesManagement = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="collect">Collect Fees</TabsTrigger>
-          <TabsTrigger value="tuition-structures">Tuition Fee Structures</TabsTrigger>
           <TabsTrigger value="tuition-balances">Tuition Fee Balances</TabsTrigger>
           <TabsTrigger value="transport-balances">Transport Fee Balances</TabsTrigger>          
         </TabsList>
@@ -99,9 +97,7 @@ export const FeesManagement = () => {
           <TransportFeeBalancesPanel onViewStudent={() => {}} onExportCSV={() => {}} />
         </TabsContent>
 
-        <TabsContent value="tuition-structures" className="space-y-4">
-          <TuitionFeeStructuresPanel />
-        </TabsContent>
+        
 
       </Tabs>
 

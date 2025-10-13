@@ -1,5 +1,5 @@
 import { Api } from "@/lib/api";
-import { CollegeStudentAttendanceBulkCreate, CollegeStudentAttendanceBulkCreateResult, CollegeStudentAttendancePaginatedResponse, CollegeStudentAttendanceRead, CollegeStudentAttendanceWithClassGroup } from "@/lib/types/college";
+import { CollegeStudentAttendanceBulkCreate, CollegeStudentAttendanceBulkCreateResult, CollegeStudentAttendancePaginatedResponse, CollegeStudentAttendanceRead, CollegeStudentAttendanceWithClassGroup, CollegeStudentAttendanceUpdate } from "@/lib/types/college";
 
 export interface CollegeAttendanceListParams {
   page?: number;
@@ -11,6 +11,11 @@ export const CollegeAttendanceService = {
   // GET /api/v1/college/student-attendance
   list(params?: CollegeAttendanceListParams) {
     return Api.get<CollegeStudentAttendancePaginatedResponse>(`/college/student-attendance`, params as Record<string, string | number | boolean | null | undefined> | undefined);
+  },
+
+  // GET /api/v1/college/student-attendance (grouped by class/group with nested students)
+  getAll(params: { class_id: number; group_id: number; year?: number | null; month?: number | null }) {
+    return Api.get<CollegeStudentAttendanceWithClassGroup[]>(`/college/student-attendance`, params as Record<string, string | number | boolean | null | undefined>);
   },
 
   // GET /api/v1/college/student-attendance/students
@@ -39,7 +44,7 @@ export const CollegeAttendanceService = {
   },
 
   // PUT /api/v1/college/student-attendance/{attendance_id}
-  update(attendance_id: number, payload: Partial<CollegeStudentAttendanceBulkCreate>) {
+  update(attendance_id: number, payload: CollegeStudentAttendanceUpdate) {
     return Api.put<CollegeStudentAttendanceRead>(`/college/student-attendance/${attendance_id}`, payload);
   },
 
