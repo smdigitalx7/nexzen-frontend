@@ -2,16 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useSchoolClasses } from "@/lib/hooks/school/use-school-classes";
-import { useSchoolTuitionBalancesList, useSchoolTuitionBalance } from "@/lib/hooks/school/use-school-fee-balances";
-import type { SchoolTuitionFeeBalanceRead } from "@/lib/types/school";
+import { useCollegeClasses } from "@/lib/hooks/college/use-college-classes";
+import { useCollegeGroups } from "@/lib/hooks/college/use-college-groups";
+import { useCollegeTuitionBalancesList, useCollegeTuitionBalance } from "@/lib/hooks/college/use-college-tuition-balances";
+import type { CollegeTuitionFeeBalanceRead, CollegeTuitionFeeBalanceFullRead } from "@/lib/types/college";
 import { StudentFeeBalancesTable } from "./StudentFeeBalancesTable";
 
 type StudentRow = React.ComponentProps<typeof StudentFeeBalancesTable>["studentBalances"][number];
 
 export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onViewStudent: (s: StudentRow) => void; onExportCSV: () => void; }) {
-  const { data: classes = [] } = useSchoolClasses();
+  const { data: classes = [] } = useCollegeClasses();
+  const { data: groups = [] } = useCollegeGroups();
   const [balanceClass, setBalanceClass] = useState<string>(classes[0]?.class_id?.toString() || "");
+  const [balanceGroup, setBalanceGroup] = useState<string>(groups[0]?.group_id?.toString() || "");
 
   useEffect(() => {
     if (!balanceClass && classes.length > 0) {
@@ -19,23 +22,35 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
     }
   }, [classes, balanceClass]);
 
+  useEffect(() => {
+    if (!balanceGroup && groups.length > 0) {
+      setBalanceGroup(groups[0].group_id.toString());
+    }
+  }, [groups, balanceGroup]);
+
   const classIdNum = balanceClass ? parseInt(balanceClass) : undefined;
-  const { data: tuitionResp } = useSchoolTuitionBalancesList({ class_id: classIdNum, page: 1, page_size: 50 });
+  const groupIdNum = balanceGroup ? parseInt(balanceGroup) : undefined;
+  const { data: tuitionResp } = useCollegeTuitionBalancesList({ 
+    class_id: classIdNum, 
+    group_id: groupIdNum,
+    page: 1, 
+    pageSize: 50 
+  });
 
   // Optional: when a row is clicked, fetch full details
   const [selectedBalanceId, setSelectedBalanceId] = useState<number | undefined>();
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const { data: selectedBalance } = useSchoolTuitionBalance(selectedBalanceId);
+  const { data: selectedBalance } = useCollegeTuitionBalance(selectedBalanceId);
 
   const rows = useMemo<StudentRow[]>(() => {
-    return (tuitionResp?.data || []).map((t: SchoolTuitionFeeBalanceRead) => {
+    return (tuitionResp?.data || []).map((t: CollegeTuitionFeeBalanceRead, index: number) => {
       const paidTotal = (t.term1_paid || 0) + (t.term2_paid || 0) + (t.term3_paid || 0) + (t.book_paid || 0);
       const outstanding = Math.max(0, (t.total_fee || 0) - ((t.term1_paid || 0) + (t.term2_paid || 0) + (t.term3_paid || 0)));
       return {
-        id: t.enrollment_id,
+        id: index + 1, // Use index as ID since enrollment_id is not available in list response
         student_id: t.admission_no,
         student_name: t.student_name,
-        class_name: t.section_name || "",
+        class_name: t.course_name || "", // Use course_name as class_name since class_name is not available
         academic_year: "",
         total_fee: t.total_fee,
         paid_amount: paidTotal,
@@ -79,6 +94,18 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
               ))}
             </SelectContent>
           </Select>
+          <Select value={balanceGroup} onValueChange={setBalanceGroup}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Select Group" />
+            </SelectTrigger>
+            <SelectContent>
+              {groups.map((group: any) => (
+                <SelectItem key={group.group_id} value={group.group_id.toString()}>
+                  {group.group_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -108,7 +135,7 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
               <div><span className="text-muted-foreground">Enrollment ID:</span> {selectedBalance.enrollment_id}</div>
               <div><span className="text-muted-foreground">Student:</span> {selectedBalance.student_name} ({selectedBalance.admission_no})</div>
               <div><span className="text-muted-foreground">Roll No:</span> {selectedBalance.roll_number}</div>
-              <div><span className="text-muted-foreground">Section:</span> {selectedBalance.section_name || '-'}</div>
+              <div><span className="text-muted-foreground">Group:</span> {selectedBalance.group_name || '-'}</div>
               <div><span className="text-muted-foreground">Total Fee:</span> {selectedBalance.total_fee}</div>
               <div className="grid grid-cols-3 gap-2">
                 <div>

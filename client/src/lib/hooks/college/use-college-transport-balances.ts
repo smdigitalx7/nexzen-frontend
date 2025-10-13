@@ -3,10 +3,11 @@ import { CollegeTransportBalancesService } from "@/lib/services/college/transpor
 import type { CollegeTransportBalanceBulkCreate, CollegeTransportBalanceBulkCreateResult, CollegeTransportFeeBalanceFullRead, CollegeTransportFeeBalanceListRead, CollegeTransportFeeBalanceUpdate, CollegeTransportPaginatedResponse, CollegeTransportTermPaymentUpdate } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 
-export function useCollegeTransportBalancesList(params?: { page?: number; pageSize?: number }) {
+export function useCollegeTransportBalancesList(params?: { page?: number; pageSize?: number; class_id?: number; group_id?: number }) {
   return useQuery({
     queryKey: collegeKeys.transport.list(params),
     queryFn: () => CollegeTransportBalancesService.list(params) as Promise<CollegeTransportPaginatedResponse>,
+    enabled: !!(params?.class_id && params?.group_id), // Only run query when required params are provided
   });
 }
 

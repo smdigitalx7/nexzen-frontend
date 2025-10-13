@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useSchoolClasses } from "@/lib/hooks/school/use-school-classes";
-import { useSchoolTransportBalancesList, useSchoolTransportBalance } from "@/lib/hooks/school/use-school-fee-balances";
-import type { SchoolTransportFeeBalanceListRead } from "@/lib/types/school";
+import { useCollegeClasses } from "@/lib/hooks/college/use-college-classes";
+import { useCollegeGroups } from "@/lib/hooks/college/use-college-groups";
+import { useCollegeTransportBalancesList, useCollegeTransportBalance } from "@/lib/hooks/college/use-college-transport-balances";
+import type { CollegeTransportFeeBalanceListRead } from "@/lib/types/college";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import StudentFeeBalancesTable from "../tution-fee-balance/StudentFeeBalancesTable";
 
 type StudentRow = React.ComponentProps<typeof StudentFeeBalancesTable>["studentBalances"][number];
 
 export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onViewStudent: (s: StudentRow) => void; onExportCSV: () => void; }) {
-  const { data: classes = [] } = useSchoolClasses();
+  const { data: classes = [] } = useCollegeClasses();
+  const { data: groups = [] } = useCollegeGroups();
   const [balanceClass, setBalanceClass] = useState<string>(classes[0]?.class_id?.toString() || "");
+  const [balanceGroup, setBalanceGroup] = useState<string>(groups[0]?.group_id?.toString() || "");
 
   useEffect(() => {
     if (!balanceClass && classes.length > 0) {
@@ -19,21 +22,33 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
     }
   }, [classes, balanceClass]);
 
+  useEffect(() => {
+    if (!balanceGroup && groups.length > 0) {
+      setBalanceGroup(groups[0].group_id.toString());
+    }
+  }, [groups, balanceGroup]);
+
   const classIdNum = balanceClass ? parseInt(balanceClass) : undefined;
-  const { data: transportResp } = useSchoolTransportBalancesList({ class_id: classIdNum, page: 1, page_size: 50 });
+  const groupIdNum = balanceGroup ? parseInt(balanceGroup) : undefined;
+  const { data: transportResp } = useCollegeTransportBalancesList({ 
+    class_id: classIdNum, 
+    group_id: groupIdNum,
+    page: 1, 
+    pageSize: 50 
+  });
   const [selectedBalanceId, setSelectedBalanceId] = useState<number | undefined>();
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const { data: selectedBalance } = useSchoolTransportBalance(selectedBalanceId);
+  const { data: selectedBalance } = useCollegeTransportBalance(selectedBalanceId);
 
   const rows = useMemo<StudentRow[]>(() => {
-    return (transportResp?.data || []).map((t: SchoolTransportFeeBalanceListRead) => {
+    return (transportResp?.data || []).map((t: CollegeTransportFeeBalanceListRead) => {
       const paidTotal = (t.term1_paid || 0) + (t.term2_paid || 0);
       const outstanding = t.overall_balance_fee || 0;
       return {
         id: t.enrollment_id,
         student_id: t.admission_no,
         student_name: t.student_name,
-        class_name: t.section_name || "",
+        class_name: t.class_name || "",
         academic_year: "",
         total_fee: t.total_fee,
         paid_amount: paidTotal,
@@ -73,6 +88,18 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
               {classes.map((cls: any) => (
                 <SelectItem key={cls.class_id} value={cls.class_id.toString()}>
                   {cls.class_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={balanceGroup} onValueChange={setBalanceGroup}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Select Group" />
+            </SelectTrigger>
+            <SelectContent>
+              {groups.map((group: any) => (
+                <SelectItem key={group.group_id} value={group.group_id.toString()}>
+                  {group.group_name}
                 </SelectItem>
               ))}
             </SelectContent>

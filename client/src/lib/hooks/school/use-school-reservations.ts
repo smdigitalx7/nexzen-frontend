@@ -52,7 +52,8 @@ export function useDeleteSchoolReservation() {
 export function useUpdateSchoolReservationStatus(reservationId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (status: SchoolReservationStatusEnum) => SchoolReservationsService.updateStatus(reservationId, status),
+    mutationFn: ({ status, remarks }: { status: SchoolReservationStatusEnum; remarks?: string }) => 
+      SchoolReservationsService.updateStatus(reservationId, status, remarks),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.reservations.detail(reservationId) });
       qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });

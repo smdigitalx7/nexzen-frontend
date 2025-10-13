@@ -328,7 +328,7 @@ const ExamMarksManagement = () => {
                               </FormControl>
                               <SelectContent>
                                 {students.map((student: any) => (
-                                  <SelectItem key={student.student_id} value={student.student_id.toString()}>
+                                  <SelectItem key={student.student_id} value={student.student_id?.toString() || ''}>
                                     {student.student_name} ({student.admission_no})
                                   </SelectItem>
                                 ))}
@@ -353,7 +353,7 @@ const ExamMarksManagement = () => {
                                 </FormControl>
                                 <SelectContent>
                                   {exams.map((exam: any) => (
-                                    <SelectItem key={exam.id} value={exam.id.toString()}>
+                                    <SelectItem key={exam.exam_id || exam.id} value={(exam.exam_id || exam.id)?.toString() || ''}>
                                       {exam.exam_name}
                                     </SelectItem>
                                   ))}
@@ -377,7 +377,7 @@ const ExamMarksManagement = () => {
                                 </FormControl>
                                 <SelectContent>
                                   {subjects.map((subject: any) => (
-                                    <SelectItem key={subject.subject_id} value={subject.subject_id.toString()}>
+                                    <SelectItem key={subject.subject_id} value={subject.subject_id?.toString() || ''}>
                                       {subject.subject_name}
                                     </SelectItem>
                                   ))}
@@ -595,7 +595,7 @@ const ExamMarksManagement = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {classes.map((cls: any) => (
-                    <SelectItem key={cls.class_id} value={cls.class_id.toString()}>
+                    <SelectItem key={cls.class_id} value={cls.class_id?.toString() || ''}>
                       {cls.class_name}
                     </SelectItem>
                   ))}
@@ -608,7 +608,7 @@ const ExamMarksManagement = () => {
                 <SelectContent>
                   <SelectItem value="all">All Subjects</SelectItem>
                   {subjects.map((subject: any) => (
-                    <SelectItem key={subject.subject_id} value={subject.subject_id.toString()}>
+                    <SelectItem key={subject.subject_id} value={subject.subject_id?.toString() || ''}>
                       {subject.subject_name}
                     </SelectItem>
                   ))}

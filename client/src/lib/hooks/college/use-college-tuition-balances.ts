@@ -7,6 +7,7 @@ export function useCollegeTuitionBalancesList(params?: { page?: number; pageSize
   return useQuery({
     queryKey: collegeKeys.tuition.list(params),
     queryFn: () => CollegeTuitionBalancesService.list(params) as Promise<CollegeTuitionPaginatedResponse>,
+    enabled: !!(params?.class_id && params?.group_id), // Only run query when required params are provided
   });
 }
 

@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSchoolReservationsList } from "@/lib/hooks/school/use-school-reservations";
+import { useSchoolReservationsList, useDeleteSchoolReservation } from "@/lib/hooks/school/use-school-reservations";
 import { motion } from "framer-motion";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -69,7 +69,8 @@ export default function ReservationNew() {
   const [editForm, setEditForm] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [reservationToDelete, setReservationToDelete] = useState<any>(null);
-  const [statusChanges, setStatusChanges] = useState<Record<string, 'PENDING' | 'ADMITTED' | 'CANCELLED'>>({});
+  const [statusChanges, setStatusChanges] = useState<Record<string, 'PENDING' | 'CONFIRMED' | 'CANCELLED'>>({});
+  const [statusRemarks, setStatusRemarks] = useState<Record<string, string>>({});
   
   // Use React Query hook for reservations
   const { 
@@ -79,6 +80,9 @@ export default function ReservationNew() {
     error: reservationsErrObj,
     refetch: refetchReservations 
   } = useSchoolReservationsList({ page: 1, page_size: 20 });
+
+  // Delete reservation hook
+  const deleteReservation = useDeleteSchoolReservation();
   
   // Process reservations data
   const allReservations = useMemo(() => {
@@ -410,7 +414,7 @@ export default function ReservationNew() {
               classFee={classFee}
               transportFee={transportFee}
               routes={routeNames.map((route: { bus_route_id: number; route_no?: string; route_name: string }) => ({
-                id: route.bus_route_id.toString(),
+                id: route.bus_route_id?.toString() || '',
                 name: `${route.route_no || 'Route'} - ${route.route_name}`,
                 fee: 5000 // Default fee, would need to be enhanced
               }))}
@@ -469,14 +473,6 @@ export default function ReservationNew() {
                     </Badge>
                   )}
                   <Button variant="outline" size="sm" onClick={() => refetchReservations()} disabled={isLoadingReservations}>Refresh</Button>
-                  <Button variant="outline" size="sm" onClick={async () => {
-                    try {
-                      const response = await SchoolReservationsService.list({ page: 1, page_size: 20 });
-                      alert(`API Response: ${JSON.stringify(response, null, 2)}`);
-                    } catch (error) {
-                      alert(`API Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                    }
-                  }}>Test API</Button>
                 </div>
               </CardHeader>
               <CardContent>
@@ -505,13 +501,14 @@ export default function ReservationNew() {
                         <TableHead>Student</TableHead>
                         <TableHead>Current Status</TableHead>
                         <TableHead>Change To</TableHead>
+                        <TableHead>Remarks</TableHead>
                         <TableHead>Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {allReservations.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="h-24 text-center text-sm text-muted-foreground">
+                          <TableCell colSpan={6} className="h-24 text-center text-sm text-muted-foreground">
                             <div className="space-y-2">
                               <p>No reservations found</p>
                               <p className="text-xs">Create your first reservation using the "New Reservations" tab</p>
@@ -528,7 +525,7 @@ export default function ReservationNew() {
                         <TableCell>{r.studentName}</TableCell>
                         <TableCell>
                           <Badge
-                            variant={current === 'PENDING' ? 'default' : current === 'CANCELLED' ? 'destructive' : 'secondary'}
+                            variant={current === 'PENDING' ? 'default' : current === 'CANCELLED' ? 'destructive' : current === 'CONFIRMED' ? 'secondary' : 'outline'}
                           >
                             {current}
                           </Badge>
@@ -544,10 +541,21 @@ export default function ReservationNew() {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="PENDING">Pending</SelectItem>
-                                <SelectItem value="ADMITTED">Admitted</SelectItem>
+                                <SelectItem value="CONFIRMED">Confirmed</SelectItem>
                                 <SelectItem value="CANCELLED">Cancelled</SelectItem>
                               </SelectContent>
                             </Select>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="w-48">
+                            <Textarea
+                              placeholder="Enter remarks..."
+                              value={statusRemarks[r.id] || ''}
+                              onChange={(e) => setStatusRemarks((prev) => ({ ...prev, [r.id]: e.target.value }))}
+                              rows={2}
+                              className="text-sm"
+                            />
                           </div>
                         </TableCell>
                         <TableCell>
@@ -556,10 +564,13 @@ export default function ReservationNew() {
                             variant={same ? "outline" : "default"}
                             disabled={same}
                             onClick={async () => {
-                              const to = (statusChanges[r.id] || current) as 'PENDING' | 'ADMITTED' | 'CANCELLED';
+                              const to = (statusChanges[r.id] || current) as 'PENDING' | 'CONFIRMED' | 'CANCELLED';
+                              const remarks = statusRemarks[r.id] || '';
                               try {
-                                await SchoolReservationsService.updateStatus(Number(r.id), to);
+                                await SchoolReservationsService.updateStatus(Number(r.id), to, remarks || undefined);
                                 refetchReservations();
+                                // Clear the remarks after successful update
+                                setStatusRemarks((prev) => ({ ...prev, [r.id]: '' }));
                               } catch (e: any) {
                                 alert(e?.message || 'Failed to update status');
                               }
@@ -813,17 +824,22 @@ export default function ReservationNew() {
               onClick={async () => {
                 if (!reservationToDelete?.id) return;
                 try {
-                  await SchoolReservationsService.delete(Number(reservationToDelete.id));
-                  refetchReservations();
+                  await deleteReservation.mutateAsync(Number(reservationToDelete.id));
+                  // Success - dialog will close automatically due to onSuccess in hook
                 } catch (e: any) {
-                  alert(e?.message || 'Failed to delete');
+                  if (e?.response?.status === 409) {
+                    alert('Cannot delete this reservation because it has associated income records. Please remove the income records first or change the reservation status to CANCELLED instead.');
+                  } else {
+                    alert(e?.response?.data?.detail || e?.message || 'Failed to delete reservation');
+                  }
                 } finally {
                   setShowDeleteDialog(false);
                   setReservationToDelete(null);
                 }
               }}
+              disabled={deleteReservation.isPending}
             >
-              Delete
+              {deleteReservation.isPending ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -46,7 +46,7 @@ export default function ReservationsTable({ reservations, onView, onEdit, onDele
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="admitted">Admitted</SelectItem>
+                <SelectItem value="confirmed">Confirmed</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
@@ -87,7 +87,9 @@ export default function ReservationsTable({ reservations, onView, onEdit, onDele
                           ? "default"
                           : reservation.status === "Cancelled"
                           ? "destructive"
-                          : "secondary"
+                          : reservation.status === "Confirmed"
+                          ? "secondary"
+                          : "outline"
                       }
                     >
                       {reservation.status}

@@ -29,9 +29,12 @@ export const SchoolReservationsService = {
     return Api.delete<void>(`/school/reservations/${reservation_id}`);
   },
 
-  updateStatus(reservation_id: number, status: SchoolReservationStatusEnum) {
+  updateStatus(reservation_id: number, status: SchoolReservationStatusEnum, remarks?: string) {
     const fd = new FormData();
     fd.append("status", status);
+    if (remarks) {
+      fd.append("remarks", remarks);
+    }
     return Api.putForm<SchoolReservationRead>(`/school/reservations/${reservation_id}/status`, fd);
   },
 

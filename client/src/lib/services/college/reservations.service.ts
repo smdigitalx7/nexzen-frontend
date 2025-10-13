@@ -1,5 +1,5 @@
 import { Api } from "@/lib/api";
-import { CollegeReservationCreate, CollegeReservationRead, CollegeReservationUpdate, CollegePaginatedReservationRead } from "@/lib/types/college";
+import { CollegeReservationCreate, CollegeReservationRead, CollegeReservationUpdate, CollegePaginatedReservationRead, CollegeReservationDashboardStats, CollegeRecentReservation, ReservationStatusEnum } from "@/lib/types/college";
 
 export interface CollegeReservationsListParams {
   group_id?: number;
@@ -21,12 +21,12 @@ export const CollegeReservationsService = {
 
   // GET /api/v1/college/reservations/dashboard
   dashboard() {
-    return Api.get<unknown>(`/college/reservations/dashboard`);
+    return Api.get<CollegeReservationDashboardStats>(`/college/reservations/dashboard`);
   },
 
   // GET /api/v1/college/reservations/recent
-  recent() {
-    return Api.get<unknown>(`/college/reservations/recent`);
+  recent(limit?: number) {
+    return Api.get<CollegeRecentReservation[]>(`/college/reservations/recent${limit ? `?limit=${limit}` : ''}`);
   },
 
   // POST /api/v1/college/reservations
@@ -45,12 +45,12 @@ export const CollegeReservationsService = {
   },
 
   // PUT /api/v1/college/reservations/{reservation_id}/status
-  updateStatus(reservation_id: number, payload: Pick<CollegeReservationUpdate, "status">) {
+  updateStatus(reservation_id: number, payload: { status: ReservationStatusEnum; remarks?: string | null }) {
     return Api.put<CollegeReservationRead>(`/college/reservations/${reservation_id}/status`, payload);
   },
 
   // PUT /api/v1/college/reservations/{reservation_id}/concessions
-  updateConcessions(reservation_id: number, payload: { tuition_concession?: number | null; transport_concession?: number | null }) {
+  updateConcessions(reservation_id: number, payload: { tuition_concession?: number | null; transport_concession?: number | null; remarks?: string | null }) {
     return Api.put<CollegeReservationRead>(`/college/reservations/${reservation_id}/concessions`, payload);
   },
 };

@@ -8,14 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EnhancedDataTable } from '@/components/shared';
 import { 
-  createAvatarColumn,
+  createAvatarColumn, 
   createTextColumn,
-  createBadgeColumn,
+  createBadgeColumn, 
   createActionColumn,
-  createEditAction,
-  createDeleteAction
+  createEditAction
 } from '@/lib/utils/columnFactories';
-import { useSchoolStudentsList, useDeleteSchoolStudent, useCreateSchoolStudent, useUpdateSchoolStudent } from '@/lib/hooks/school/use-school-students';
+import { useSchoolStudentsList, useCreateSchoolStudent, useUpdateSchoolStudent } from '@/lib/hooks/school/use-school-students';
 import { useAuthStore } from '@/store/authStore';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -47,7 +46,6 @@ export const StudentsTab = () => {
   const { currentBranch } = useAuthStore();
   const { data: studentsResp, isLoading, error } = useSchoolStudentsList({ page: 1, page_size: 50 });
   const students = (studentsResp as any)?.data ?? [];
-  const deleteStudentMutation = useDeleteSchoolStudent();
   const createStudentMutation = useCreateSchoolStudent();
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const updateStudentMutation = useUpdateSchoolStudent(selectedStudent?.student_id || 0);
@@ -106,9 +104,6 @@ export const StudentsTab = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleDeleteStudent = async (studentId: number) => {
-    await deleteStudentMutation.mutateAsync(studentId);
-  };
 
   const onSubmit = async (data: StudentFormData) => {
     if (selectedStudent) {
@@ -130,8 +125,7 @@ export const StudentsTab = () => {
     createBadgeColumn<any>('gender', { header: 'Gender', variant: 'outline', fallback: 'N/A' }),
     createBadgeColumn<any>('status', { header: 'Status', variant: 'outline', fallback: 'N/A' }),
     createActionColumn<any>([
-      createEditAction((row) => handleEditStudent(row)),
-      createDeleteAction((row) => handleDeleteStudent(row.student_id))
+      createEditAction((row) => handleEditStudent(row))
     ])
   ], []);
 
@@ -241,6 +235,128 @@ export const StudentsTab = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">Parent Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="father_name" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Father Name</FormLabel>
+                        <FormControl><Input placeholder="Enter father's name" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="father_aadhar_no" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Father Aadhar Number</FormLabel>
+                        <FormControl><Input placeholder="12-digit Aadhar number" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="father_mobile" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Father Mobile</FormLabel>
+                        <FormControl><Input placeholder="Enter mobile number" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="father_occupation" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Father Occupation</FormLabel>
+                        <FormControl><Input placeholder="Enter occupation" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="mother_name" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mother Name</FormLabel>
+                        <FormControl><Input placeholder="Enter mother's name" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="mother_aadhar_no" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mother Aadhar Number</FormLabel>
+                        <FormControl><Input placeholder="12-digit Aadhar number" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="mother_mobile" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mother Mobile</FormLabel>
+                        <FormControl><Input placeholder="Enter mobile number" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="mother_occupation" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mother Occupation</FormLabel>
+                        <FormControl><Input placeholder="Enter occupation" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">Address Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4">
+                    <FormField control={form.control} name="present_address" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Present Address</FormLabel>
+                        <FormControl><Input placeholder="Enter present address" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="permanent_address" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Permanent Address</FormLabel>
+                        <FormControl><Input placeholder="Enter permanent address" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">Admission Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="admission_date" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Admission Date</FormLabel>
+                        <FormControl><Input type="date" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="status" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="ACTIVE">Active</SelectItem>
+                            <SelectItem value="INACTIVE">Inactive</SelectItem>
+                            <SelectItem value="DROPPED_OUT">Dropped Out</SelectItem>
+                            <SelectItem value="ABSCONDED">Absconded</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                </CardContent>
+              </Card>
               <div className="flex justify-end gap-3 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                   <X className="h-4 w-4 mr-2" />Cancel
@@ -280,6 +396,149 @@ export const StudentsTab = () => {
                       <FormItem>
                         <FormLabel>Aadhar Number</FormLabel>
                         <FormControl><Input placeholder="12-digit Aadhar number" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="gender" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Gender</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="MALE">Male</SelectItem>
+                            <SelectItem value="FEMALE">Female</SelectItem>
+                            <SelectItem value="OTHER">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="dob" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date of Birth</FormLabel>
+                        <FormControl><Input type="date" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">Parent Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="father_name" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Father Name</FormLabel>
+                        <FormControl><Input placeholder="Enter father's name" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="father_aadhar_no" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Father Aadhar Number</FormLabel>
+                        <FormControl><Input placeholder="12-digit Aadhar number" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="father_mobile" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Father Mobile</FormLabel>
+                        <FormControl><Input placeholder="Enter mobile number" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="father_occupation" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Father Occupation</FormLabel>
+                        <FormControl><Input placeholder="Enter occupation" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="mother_name" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mother Name</FormLabel>
+                        <FormControl><Input placeholder="Enter mother's name" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="mother_aadhar_no" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mother Aadhar Number</FormLabel>
+                        <FormControl><Input placeholder="12-digit Aadhar number" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="mother_mobile" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mother Mobile</FormLabel>
+                        <FormControl><Input placeholder="Enter mobile number" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="mother_occupation" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mother Occupation</FormLabel>
+                        <FormControl><Input placeholder="Enter occupation" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">Address Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4">
+                    <FormField control={form.control} name="present_address" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Present Address</FormLabel>
+                        <FormControl><Input placeholder="Enter present address" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="permanent_address" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Permanent Address</FormLabel>
+                        <FormControl><Input placeholder="Enter permanent address" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">Admission Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="admission_date" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Admission Date</FormLabel>
+                        <FormControl><Input type="date" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="status" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="ACTIVE">Active</SelectItem>
+                            <SelectItem value="INACTIVE">Inactive</SelectItem>
+                            <SelectItem value="DROPPED_OUT">Dropped Out</SelectItem>
+                            <SelectItem value="ABSCONDED">Absconded</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )} />

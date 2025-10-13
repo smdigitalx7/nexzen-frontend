@@ -4,6 +4,8 @@ import { CollegeTransportBalanceBulkCreate, CollegeTransportBalanceBulkCreateRes
 export interface CollegeTransportBalancesListParams {
   page?: number;
   pageSize?: number;
+  class_id?: number;
+  group_id?: number;
 }
 
 export const CollegeTransportBalancesService = {

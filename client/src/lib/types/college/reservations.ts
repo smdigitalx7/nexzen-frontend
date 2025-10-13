@@ -1,5 +1,5 @@
-export type GenderEnum = "MALE" | "FEMALE" | "OTHER" | string;
-export type ReservationStatusEnum = "PENDING" | "CONFIRMED" | "CANCELLED" | string;
+export type GenderEnum = "MALE" | "FEMALE" | "OTHER";
+export type ReservationStatusEnum = "PENDING" | "CONFIRMED" | "CANCELLED";
 
 export interface CollegeReservationSibling {
   name?: string | null;
@@ -100,8 +100,8 @@ export interface CollegeReservationMinimalRead {
   father_mobile?: string | null;
   group_id: number;
   course_id: number;
-  group_name: string;
-  course_name: string;
+  group_name?: string | null;
+  course_name?: string | null;
   status: ReservationStatusEnum;
   created_at: string;
   remarks?: string | null;
@@ -115,4 +115,30 @@ export interface CollegePaginatedReservationRead {
   total_pages: number;
 }
 
+// Dashboard and Recent schemas
+export interface CollegeRecentReservation {
+  reservation_id: number;
+  student_name: string;
+  aadhar_no?: string | null;
+  group_name?: string | null;
+  course_name?: string | null;
+  reservation_fee?: number | null;
+  status: ReservationStatusEnum;
+  reservation_date?: string | null;
+}
 
+export interface CollegeReservationDashboardStats {
+  total_reservations: number;
+  pending_reservations: number;
+  confirmed_reservations: number;
+  cancelled_reservations: number;
+  total_reservation_fees: number;
+  total_tuition_fees: number;
+  total_transport_fees: number;
+  total_tuition_concessions: number;
+  total_transport_concessions: number;
+  reservations_this_month: number;
+  reservations_this_year: number;
+  male_students: number;
+  female_students: number;
+}
