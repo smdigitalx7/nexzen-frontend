@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/lib/utils";
 import { useTableState } from "@/lib/hooks/common/useTableState";
 import { useToast } from "@/hooks/use-toast";
-import { useUpdateCollegeTuitionBalance, useDeleteCollegeTuitionBalance } from "@/lib/hooks/college/use-college-tuition-balances";
+import { useUpdateCollegeTransportBalance, useDeleteCollegeTransportBalance } from "@/lib/hooks/college/use-college-transport-balances";
 import {
   Dialog,
   DialogContent,
@@ -43,7 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface StudentFeeBalance {
+interface TransportFeeBalance {
   id: number;
   student_id: string;
   student_name: string;
@@ -52,19 +52,15 @@ interface StudentFeeBalance {
   total_fee: number;
   paid_amount: number;
   outstanding_amount: number;
-  admission_paid: boolean;
-  books_paid: boolean;
   term_1_paid: boolean;
   term_2_paid: boolean;
-  term_3_paid: boolean;
-  transport_paid: boolean;
   last_payment_date: string;
   status: 'PAID' | 'PARTIAL' | 'OUTSTANDING';
 }
 
-interface StudentFeeBalancesTableProps {
-  studentBalances: StudentFeeBalance[];
-  onViewStudent: (student: StudentFeeBalance) => void;
+interface TransportFeeBalancesTableProps {
+  studentBalances: TransportFeeBalance[];
+  onViewStudent: (student: TransportFeeBalance) => void;
   onExportCSV: () => void;
   title?: string;
   description?: string;
@@ -84,27 +80,35 @@ const getStatusColor = (status: string) => {
   }
 };
 
-export const StudentFeeBalancesTable = ({
+export const TransportFeeBalancesTable = ({
   studentBalances,
   onViewStudent,
   onExportCSV,
-  title = "Student Fee Balances",
-  description = "Track individual student fee payments and outstanding amounts",
+  title = "Transport Fee Balances",
+  description = "Track individual student transport fee payments and outstanding amounts",
   showHeader = true,
-}: StudentFeeBalancesTableProps) => {
+}: TransportFeeBalancesTableProps) => {
   const { toast } = useToast();
-  const deleteMutation = useDeleteCollegeTuitionBalance();
+  const deleteMutation = useDeleteCollegeTransportBalance();
   
   // State for edit and delete dialogs
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<StudentFeeBalance | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<TransportFeeBalance | null>(null);
   const [editForm, setEditForm] = useState({
+    actual_fee: 0,
+    concession_amount: 0,
     total_fee: 0,
+    term1_amount: 0,
     term1_paid: 0,
+    term1_balance: 0,
+    term2_amount: 0,
     term2_paid: 0,
-    term3_paid: 0,
-    book_paid: 0,
+    term2_balance: 0,
+    overall_balance_fee: 0,
+    overpayment_balance: 0,
+    term1_status: "PENDING",
+    term2_status: "PENDING",
   });
 
   // Using shared table state management
@@ -128,24 +132,32 @@ export const StudentFeeBalancesTable = ({
     setFilters(prev => ({ ...prev, status: value }));
   };
 
-  const handleEdit = (student: StudentFeeBalance) => {
+  const handleEdit = (student: TransportFeeBalance) => {
     setSelectedStudent(student);
     setEditForm({
+      actual_fee: student.total_fee,
+      concession_amount: 0,
       total_fee: student.total_fee,
-      term1_paid: 0, // These would need to be fetched from the actual balance data
+      term1_amount: 0, // These would need to be fetched from the actual balance data
+      term1_paid: 0,
+      term1_balance: 0,
+      term2_amount: 0,
       term2_paid: 0,
-      term3_paid: 0,
-      book_paid: 0,
+      term2_balance: 0,
+      overall_balance_fee: student.outstanding_amount,
+      overpayment_balance: 0,
+      term1_status: "PENDING",
+      term2_status: "PENDING",
     });
     setEditOpen(true);
   };
 
-  const handleDelete = (student: StudentFeeBalance) => {
+  const handleDelete = (student: TransportFeeBalance) => {
     setSelectedStudent(student);
     setDeleteOpen(true);
   };
 
-  const updateMutation = useUpdateCollegeTuitionBalance(selectedStudent?.id || 0);
+  const updateMutation = useUpdateCollegeTransportBalance(selectedStudent?.id || 0);
 
   const handleUpdate = async () => {
     if (!selectedStudent) return;
@@ -154,13 +166,13 @@ export const StudentFeeBalancesTable = ({
       await updateMutation.mutateAsync(editForm);
       toast({
         title: "Success",
-        description: "Tuition fee balance updated successfully.",
+        description: "Transport fee balance updated successfully.",
       });
       setEditOpen(false);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update tuition fee balance.",
+        description: "Failed to update transport fee balance.",
         variant: "destructive",
       });
     }
@@ -173,14 +185,14 @@ export const StudentFeeBalancesTable = ({
       await deleteMutation.mutateAsync(selectedStudent.id);
       toast({
         title: "Success",
-        description: "Tuition fee balance deleted successfully.",
+        description: "Transport fee balance deleted successfully.",
       });
       setDeleteOpen(false);
       setSelectedStudent(null);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete tuition fee balance.",
+        description: "Failed to delete transport fee balance.",
         variant: "destructive",
       });
     }
@@ -367,12 +379,33 @@ export const StudentFeeBalancesTable = ({
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Tuition Fee Balance</DialogTitle>
+            <DialogTitle>Edit Transport Fee Balance</DialogTitle>
             <DialogDescription>
-              Update the tuition fee balance for {selectedStudent?.student_name}
+              Update the transport fee balance for {selectedStudent?.student_name}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="actual_fee">Actual Fee</Label>
+                <Input
+                  id="actual_fee"
+                  type="number"
+                  value={editForm.actual_fee}
+                  onChange={(e) => setEditForm({ ...editForm, actual_fee: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="concession_amount">Concession Amount</Label>
+                <Input
+                  id="concession_amount"
+                  type="number"
+                  value={editForm.concession_amount}
+                  onChange={(e) => setEditForm({ ...editForm, concession_amount: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+            
             <div>
               <Label htmlFor="total_fee">Total Fee</Label>
               <Input
@@ -382,41 +415,118 @@ export const StudentFeeBalancesTable = ({
                 onChange={(e) => setEditForm({ ...editForm, total_fee: parseFloat(e.target.value) || 0 })}
               />
             </div>
-            <div>
-              <Label htmlFor="term1_paid">Term 1 Paid</Label>
-              <Input
-                id="term1_paid"
-                type="number"
-                value={editForm.term1_paid}
-                onChange={(e) => setEditForm({ ...editForm, term1_paid: parseFloat(e.target.value) || 0 })}
-              />
+
+            <div className="border rounded-lg p-4">
+              <h4 className="font-medium mb-3">Term 1 Details</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="term1_amount">Term 1 Amount</Label>
+                  <Input
+                    id="term1_amount"
+                    type="number"
+                    value={editForm.term1_amount}
+                    onChange={(e) => setEditForm({ ...editForm, term1_amount: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="term1_paid">Term 1 Paid</Label>
+                  <Input
+                    id="term1_paid"
+                    type="number"
+                    value={editForm.term1_paid}
+                    onChange={(e) => setEditForm({ ...editForm, term1_paid: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="term1_balance">Term 1 Balance</Label>
+                  <Input
+                    id="term1_balance"
+                    type="number"
+                    value={editForm.term1_balance}
+                    onChange={(e) => setEditForm({ ...editForm, term1_balance: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="term1_status">Term 1 Status</Label>
+                  <Select value={editForm.term1_status} onValueChange={(value) => setEditForm({ ...editForm, term1_status: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                      <SelectItem value="PAID">Paid</SelectItem>
+                      <SelectItem value="PARTIAL">Partial</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="term2_paid">Term 2 Paid</Label>
-              <Input
-                id="term2_paid"
-                type="number"
-                value={editForm.term2_paid}
-                onChange={(e) => setEditForm({ ...editForm, term2_paid: parseFloat(e.target.value) || 0 })}
-              />
+
+            <div className="border rounded-lg p-4">
+              <h4 className="font-medium mb-3">Term 2 Details</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="term2_amount">Term 2 Amount</Label>
+                  <Input
+                    id="term2_amount"
+                    type="number"
+                    value={editForm.term2_amount}
+                    onChange={(e) => setEditForm({ ...editForm, term2_amount: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="term2_paid">Term 2 Paid</Label>
+                  <Input
+                    id="term2_paid"
+                    type="number"
+                    value={editForm.term2_paid}
+                    onChange={(e) => setEditForm({ ...editForm, term2_paid: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="term2_balance">Term 2 Balance</Label>
+                  <Input
+                    id="term2_balance"
+                    type="number"
+                    value={editForm.term2_balance}
+                    onChange={(e) => setEditForm({ ...editForm, term2_balance: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="term2_status">Term 2 Status</Label>
+                  <Select value={editForm.term2_status} onValueChange={(value) => setEditForm({ ...editForm, term2_status: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                      <SelectItem value="PAID">Paid</SelectItem>
+                      <SelectItem value="PARTIAL">Partial</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="term3_paid">Term 3 Paid</Label>
-              <Input
-                id="term3_paid"
-                type="number"
-                value={editForm.term3_paid}
-                onChange={(e) => setEditForm({ ...editForm, term3_paid: parseFloat(e.target.value) || 0 })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="book_paid">Book Fee Paid</Label>
-              <Input
-                id="book_paid"
-                type="number"
-                value={editForm.book_paid}
-                onChange={(e) => setEditForm({ ...editForm, book_paid: parseFloat(e.target.value) || 0 })}
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="overall_balance_fee">Overall Balance Fee</Label>
+                <Input
+                  id="overall_balance_fee"
+                  type="number"
+                  value={editForm.overall_balance_fee}
+                  onChange={(e) => setEditForm({ ...editForm, overall_balance_fee: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="overpayment_balance">Overpayment Balance</Label>
+                <Input
+                  id="overpayment_balance"
+                  type="number"
+                  value={editForm.overpayment_balance}
+                  onChange={(e) => setEditForm({ ...editForm, overpayment_balance: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -434,9 +544,9 @@ export const StudentFeeBalancesTable = ({
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Tuition Fee Balance</AlertDialogTitle>
+            <AlertDialogTitle>Delete Transport Fee Balance</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this tuition fee balance? This action cannot be undone.
+              Are you sure you want to delete this transport fee balance? This action cannot be undone.
               {selectedStudent && (
                 <span className="block mt-2 p-2 bg-red-50 rounded">
                   <strong>Student:</strong> {selectedStudent.student_name} ({selectedStudent.student_id})
@@ -460,4 +570,4 @@ export const StudentFeeBalancesTable = ({
   );
 };
 
-export default StudentFeeBalancesTable;
+export default TransportFeeBalancesTable;

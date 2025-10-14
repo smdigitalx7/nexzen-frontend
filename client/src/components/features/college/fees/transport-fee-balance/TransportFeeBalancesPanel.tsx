@@ -6,9 +6,9 @@ import { useCollegeGroups } from "@/lib/hooks/college/use-college-groups";
 import { useCollegeTransportBalancesList, useCollegeTransportBalance } from "@/lib/hooks/college/use-college-transport-balances";
 import type { CollegeTransportFeeBalanceListRead } from "@/lib/types/college";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import StudentFeeBalancesTable from "../tution-fee-balance/StudentFeeBalancesTable";
+import TransportFeeBalancesTable from "./TransportFeeBalancesTable";
 
-type StudentRow = React.ComponentProps<typeof StudentFeeBalancesTable>["studentBalances"][number];
+type StudentRow = React.ComponentProps<typeof TransportFeeBalancesTable>["studentBalances"][number];
 
 export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onViewStudent: (s: StudentRow) => void; onExportCSV: () => void; }) {
   const { data: classes = [] } = useCollegeClasses();
@@ -107,7 +107,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
         </div>
       </div>
 
-      <StudentFeeBalancesTable
+      <TransportFeeBalancesTable
         studentBalances={rows}
         onViewStudent={(student) => {
           setSelectedBalanceId(student.id);
@@ -133,7 +133,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
               <div><span className="text-muted-foreground">Enrollment ID:</span> {selectedBalance.enrollment_id}</div>
               <div><span className="text-muted-foreground">Student:</span> {selectedBalance.student_name} ({selectedBalance.admission_no})</div>
               <div><span className="text-muted-foreground">Roll No:</span> {selectedBalance.roll_number}</div>
-              <div><span className="text-muted-foreground">Section:</span> {selectedBalance.section_name || '-'}</div>
+              <div><span className="text-muted-foreground">Class:</span> {selectedBalance.class_name || '-'}</div>
               <div><span className="text-muted-foreground">Total Fee:</span> {selectedBalance.total_fee}</div>
               <div className="grid grid-cols-2 gap-2">
                 <div>

@@ -1,5 +1,5 @@
 import { Api } from "@/lib/api";
-import { CollegeTransportAssignmentCreate, CollegeTransportAssignmentRead, CollegeTransportAssignmentUpdate, CollegeStudentTransportDashboardStats } from "@/lib/types/college";
+import { CollegeTransportAssignmentCreate, CollegeTransportAssignmentRead, CollegeTransportAssignmentUpdate, CollegeStudentTransportDashboardStats, CollegeTransportRoute } from "@/lib/types/college";
 
 export const CollegeStudentTransportAssignmentsService = {
   // GET /api/v1/college/student-transport-assignments/dashboard
@@ -9,7 +9,7 @@ export const CollegeStudentTransportAssignmentsService = {
 
   // GET /api/v1/college/student-transport-assignments
   list() {
-    return Api.get<CollegeTransportAssignmentRead[]>(`/college/student-transport-assignments`);
+    return Api.get<CollegeTransportRoute[]>(`/college/student-transport-assignments`);
   },
 
   // GET /api/v1/college/student-transport-assignments/{assignment_id}

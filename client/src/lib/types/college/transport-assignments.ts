@@ -49,3 +49,32 @@ export interface CollegeStudentTransportDashboardStats {
   assignments_this_year: number;
 }
 
+// Types for the hierarchical API response
+export interface CollegeTransportStudent {
+  transport_assignment_id: number;
+  enrollment_id: number;
+  slab_id: number;
+  slab_name: string;
+  admission_no: string;
+  student_name: string;
+  roll_number: string;
+  pickup_point: string;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+}
+
+export interface CollegeTransportGroup {
+  class_id: number;
+  class_name: string;
+  group_id: number;
+  group_name: string;
+  students: CollegeTransportStudent[];
+}
+
+export interface CollegeTransportRoute {
+  bus_route_id: number;
+  route_name: string;
+  groups: CollegeTransportGroup[];
+}
+

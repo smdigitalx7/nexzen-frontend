@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Check, X, Clock, Pencil, Trash2, Eye } from 'lucide-react';
+import { Pencil, Trash2, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -53,26 +53,6 @@ export default function AttendanceView() {
   const hasError = classesQuery.isError || studentsQuery.isError;
   const errorMessage = ((classesQuery.error as any)?.message) || ((studentsQuery.error as any)?.message) || undefined;
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'present': return 'text-green-600 bg-green-50';
-      case 'absent': return 'text-red-600 bg-red-50';
-      case 'late': return 'text-yellow-600 bg-yellow-50';
-      default: return 'text-gray-600 bg-gray-50';
-    }
-  };
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'present': return <Check className="h-4 w-4" />;
-      case 'absent': return <X className="h-4 w-4" />;
-      case 'late': return <Clock className="h-4 w-4" />;
-      default: return <Clock className="h-4 w-4" />;
-    }
-  };
-  const getStudentAttendanceStatus = (studentId: number) => {
-    const record = attendanceRecords.find(r => r.student_id === studentId && r.date === selectedDate?.toISOString().split('T')[0]);
-    return record?.status || 'unmarked';
-  };
   const markAttendance = async (studentId: number, status: string) => {
     if (!selectedClassId) {
       toast({ title: 'Error', description: 'Please select a class first', variant: 'destructive' });
@@ -103,7 +83,6 @@ export default function AttendanceView() {
     { accessorKey: 'total_working_days', header: 'Working Days', cell: ({ getValue }) => (getValue<number>() ?? 0) },
     { accessorKey: 'present_days', header: 'Present', cell: ({ getValue }) => (getValue<number>() ?? 0) },
     { accessorKey: 'absent_days', header: 'Absent', cell: ({ getValue }) => (getValue<number>() ?? 0) },
-    { id: 'status', header: 'Status', cell: ({ row }) => { const s = getStudentAttendanceStatus(row.original.student_id); return (<div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(s)}`}>{getStatusIcon(s)}<span className="capitalize">{s}</span></div>);} },
     { id: 'actions', header: 'Actions', cell: ({ row }) => {
         const student = row.original;
         return (

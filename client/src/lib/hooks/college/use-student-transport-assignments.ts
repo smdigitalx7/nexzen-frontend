@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeStudentTransportAssignmentsService } from "@/lib/services/college/student-transport-assignments.service";
-import type { CollegeTransportAssignmentCreate, CollegeTransportAssignmentRead, CollegeTransportAssignmentUpdate, CollegeStudentTransportDashboardStats } from "@/lib/types/college/index.ts";
+import type { CollegeTransportAssignmentCreate, CollegeTransportAssignmentRead, CollegeTransportAssignmentUpdate, CollegeStudentTransportDashboardStats, CollegeTransportRoute } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 
 export function useCollegeStudentTransportAssignments() {
   return useQuery({
     queryKey: collegeKeys.studentTransport.list(),
-    queryFn: () => CollegeStudentTransportAssignmentsService.list() as Promise<CollegeTransportAssignmentRead[]>,
+    queryFn: () => CollegeStudentTransportAssignmentsService.list() as Promise<CollegeTransportRoute[]>,
   });
 }
 
