@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard,
@@ -7,31 +7,20 @@ import {
   UserCheck,
   CreditCard,
   Bus,
-  BookOpen,
   GraduationCap,
-  UserPlus,
   Calendar,
   ClipboardList,
   Trophy,
   DollarSign,
   Megaphone,
-  ChevronRight,
-  ChevronDown,
   Menu,
   School,
-  Building2,
   FileText,
   BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { useAuthStore } from "@/store/authStore";
 import { useNavigationStore } from "@/store/navigationStore";
 
@@ -104,13 +93,6 @@ const Sidebar = () => {
         description: "Bus routes and stops",
       },
       {
-        title: "Financial Reports",
-        href: "/financial-reports",
-        icon: BarChart3,
-        description: "Financial analytics & reporting",
-        roles: ["institute_admin", "accountant"],
-      },
-      {
         title: "Audit Log",
         href: "/audit-log",
         icon: FileText,
@@ -134,13 +116,6 @@ const Sidebar = () => {
         href: "/transport",
         icon: Bus,
         description: "Bus routes and stops",
-      },
-      {
-        title: "Financial Reports",
-        href: "/financial-reports",
-        icon: BarChart3,
-        description: "Financial analytics & reporting",
-        roles: ["institute_admin", "accountant"],
       },
     ];
   } else if (user?.role === "academic") {
@@ -201,6 +176,13 @@ const Sidebar = () => {
           roles: ["institute_admin", "accountant"],
         },
         {
+          title: "Financial Reports",
+          href: "/school/financial-reports",
+          icon: BarChart3,
+          description: "School financial analytics",
+          roles: ["institute_admin", "accountant"],
+        },
+        {
           title: "Announcements",
           href: "/school/announcements",
           icon: Megaphone,
@@ -253,6 +235,13 @@ const Sidebar = () => {
           icon: DollarSign,
           badge: 8,
           description: "Fee management",
+          roles: ["institute_admin", "accountant"],
+        },
+        {
+          title: "Financial Reports",
+          href: "/college/financial-reports",
+          icon: BarChart3,
+          description: "College financial analytics",
           roles: ["institute_admin", "accountant"],
         },
         {

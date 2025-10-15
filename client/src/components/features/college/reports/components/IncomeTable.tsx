@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Eye, Download, Search, Filter, Plus, Edit, Trash2 } from "lucide-react";
+import { Eye, Download, Search, Filter, Plus, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,9 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useUpdateSchoolIncome } from "@/lib/hooks/school/use-school-income-expenditure";
-import type { SchoolIncomeRead } from "@/lib/types/school";
-import { FormDialog, ConfirmDialog } from "@/components/shared";
+import { useUpdateCollegeIncome } from "@/lib/hooks/college/use-college-income";
+import type { CollegeIncomeRead } from "@/lib/types/college";
+import { FormDialog } from "@/components/shared";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useTableState } from "@/lib/hooks/common/useTableState";
 import { useSearchFilters, useTableFilters } from "@/lib/hooks/common";
@@ -28,8 +28,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 interface IncomeTableProps {
-  incomeData: SchoolIncomeRead[];
-  onViewIncome?: (income: SchoolIncomeRead) => void;
+  incomeData: CollegeIncomeRead[];
+  onViewIncome?: (income: CollegeIncomeRead) => void;
   onExportCSV?: () => void;
   onAddIncome?: () => void;
   title?: string;
@@ -50,11 +50,8 @@ export const IncomeTable = ({
   const {
     // keep dialog and selection state from shared table state
     showEditDialog,
-    showDeleteDialog,
     openEditDialog,
     closeEditDialog,
-    openDeleteDialog,
-    closeDeleteDialog,
     selectedItem: selectedIncome,
     setSelectedItem: setSelectedIncome,
   } = useTableState();
@@ -64,22 +61,22 @@ export const IncomeTable = ({
     amount: "",
     income_date: "",
     term_number: "",
-    description: "",
+    note: "",
   });
 
   const [updateId, setUpdateId] = useState<number | null>(null);
-  const updateIncomeMutation = useUpdateSchoolIncome(updateId ?? 0);
+  const updateIncomeMutation = useUpdateCollegeIncome(updateId ?? 0);
 
   // Apply shared search + select filters
-  const { searchTerm, setSearchTerm, filteredItems: searchFiltered } = useSearchFilters<SchoolIncomeRead>(
+  const { searchTerm, setSearchTerm, filteredItems: searchFiltered } = useSearchFilters<CollegeIncomeRead>(
     incomeData,
     { keys: ["purpose", "student_name", "admission_no"] as any }
   );
 
-  const { filters, setFilter, filteredItems: filteredIncome } = useTableFilters<SchoolIncomeRead>(
+  const { filters, setFilter, filteredItems: filteredIncome } = useTableFilters<CollegeIncomeRead>(
     searchFiltered,
     [
-      { key: "purpose" as keyof SchoolIncomeRead, value: "all" },
+      { key: "purpose" as keyof CollegeIncomeRead, value: "all" },
     ]
   );
 
@@ -87,7 +84,7 @@ export const IncomeTable = ({
 
   const totalAmount = filteredIncome.reduce((sum, income) => sum + income.amount, 0);
 
-  const handleEdit = (income: SchoolIncomeRead) => {
+  const handleEdit = (income: CollegeIncomeRead) => {
     setSelectedIncome(income);
     setUpdateId(income.income_id);
     setEditForm({
@@ -95,15 +92,11 @@ export const IncomeTable = ({
       amount: income.amount.toString(),
       income_date: income.income_date,
       term_number: income.term_number?.toString() || "",
-      description: income.description || "",
+      note: income.note || "",
     });
     openEditDialog(income);
   };
 
-  const handleDelete = (income: SchoolIncomeRead) => {
-    setSelectedIncome(income);
-    openDeleteDialog(income);
-  };
 
   const handlePurposeFilterChange = (value: string) => {
     setFilter("purpose", value);
@@ -118,7 +111,7 @@ export const IncomeTable = ({
         amount: parseFloat(editForm.amount),
         income_date: editForm.income_date,
         term_number: editForm.term_number ? parseInt(editForm.term_number) : null,
-        description: editForm.description && editForm.description.trim() !== "" ? editForm.description : null,
+        note: editForm.note && editForm.note.trim() !== "" ? editForm.note : null,
       });
       closeEditDialog();
     } catch (error) {
@@ -203,61 +196,67 @@ export const IncomeTable = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredIncome.map((income) => (
-              <TableRow key={income.income_id}>
-                <TableCell className="text-sm">
-                  {formatDate(income.income_date)}
-                </TableCell>
-                <TableCell className="font-medium">
-                  {income.purpose}
-                </TableCell>
-                <TableCell>
-                  {income.student_name || "-"}
-                </TableCell>
-                <TableCell className="font-mono text-sm">
-                  {income.admission_no || "-"}
-                </TableCell>
-                <TableCell className="text-green-600 font-bold">
-                  {formatCurrency(income.amount)}
-                </TableCell>
-                <TableCell>
-                  {income.term_number ? `Term ${income.term_number}` : "-"}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {income.description || "-"}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    {onViewIncome && (
+            {filteredIncome.map((income) => {
+              // Debug logging for each income record
+              console.log("Income record:", {
+                income_id: income.income_id,
+                admission_no: income.admission_no,
+                term_number: income.term_number,
+                student_name: income.student_name,
+                enrollment_id: income.enrollment_id,
+                reservation_id: income.reservation_id
+              });
+              
+              return (
+                <TableRow key={income.income_id}>
+                  <TableCell className="text-sm">
+                    {formatDate(income.income_date)}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {income.purpose}
+                  </TableCell>
+                  <TableCell>
+                    {income.student_name || "-"}
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {income.admission_no || "No Enrollment"}
+                  </TableCell>
+                  <TableCell className="text-green-600 font-bold">
+                    {formatCurrency(income.amount)}
+                  </TableCell>
+                  <TableCell>
+                    {income.term_number ? `Term ${income.term_number}` : 
+                     (income.purpose === "TUITION_FEE" ? "Not Set" : 
+                      (income.purpose === "ADMISSION_FEE" || income.purpose === "APPLICATION_FEE" ? "-" : "-"))}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {income.note || "-"}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {onViewIncome && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onViewIncome(income)}
+                          title="View Income"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onViewIncome(income)}
-                        title="View Income"
+                        onClick={() => handleEdit(income)}
+                        title="Edit Income"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Edit className="h-4 w-4" />
                       </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(income)}
-                      title="Edit Income"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(income)}
-                      title="Delete Income"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
@@ -321,30 +320,15 @@ export const IncomeTable = ({
               />
             </div>
             <div>
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="note">Note</Label>
               <Textarea
-                id="description"
-                value={editForm.description}
-                onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                id="note"
+                value={editForm.note}
+                onChange={(e) => setEditForm(prev => ({ ...prev, note: e.target.value }))}
               />
             </div>
           </div>
       </FormDialog>
-
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        open={showDeleteDialog}
-        onOpenChange={(open) => !open && closeDeleteDialog()}
-        title="Delete Income Record"
-        description="Are you sure you want to delete this income record? This action cannot be undone."
-        confirmText="Delete"
-        variant="destructive"
-        onConfirm={() => {
-          // Note: Income deletion not implemented in backend
-          closeDeleteDialog();
-        }}
-        onCancel={closeDeleteDialog}
-      />
     </motion.div>
   );
 };

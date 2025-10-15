@@ -10,6 +10,14 @@ interface FinancialStatsCardsProps {
   profitMargin: number;
   formatCurrency: (amount: number) => string;
   formatCompactCurrency: (amount: number) => string;
+  incomeDashboard?: {
+    income_this_month?: number;
+    income_this_year?: number;
+  };
+  expenditureDashboard?: {
+    expenditure_this_month?: number;
+    expenditure_this_year?: number;
+  };
 }
 
 export const FinancialStatsCards = ({
@@ -19,9 +27,19 @@ export const FinancialStatsCards = ({
   profitMargin,
   formatCurrency,
   formatCompactCurrency,
+  incomeDashboard,
+  expenditureDashboard,
 }: FinancialStatsCardsProps) => {
   // Safe handling of potentially NaN values
   const safeProfitMargin = typeof profitMargin === 'number' && !isNaN(profitMargin) ? profitMargin : 0;
+  
+  // Calculate trends from dashboard data
+  const revenueTrend = incomeDashboard?.income_this_month 
+    ? formatCompactCurrency(incomeDashboard.income_this_month)
+    : "₹0";
+  const expenseTrend = expenditureDashboard?.expenditure_this_month
+    ? formatCompactCurrency(expenditureDashboard.expenditure_this_month)
+    : "₹0";
   
   const stats = [
     {
@@ -31,7 +49,7 @@ export const FinancialStatsCards = ({
       icon: DollarSign,
       color: "text-green-600",
       bgColor: "bg-green-50",
-      trend: "+12.5%",
+      trend: `This Month: ${revenueTrend}`,
       trendColor: "text-green-600",
     },
     {
@@ -41,7 +59,7 @@ export const FinancialStatsCards = ({
       icon: TrendingDown,
       color: "text-red-600",
       bgColor: "bg-red-50",
-      trend: "+8.2%",
+      trend: `This Month: ${expenseTrend}`,
       trendColor: "text-red-600",
     },
     {

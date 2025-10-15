@@ -21,14 +21,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useCreateSchoolIncome } from "@/lib/hooks/school/use-school-income-expenditure";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useCreateCollegeIncomeByAdmission } from "@/lib/hooks/college/use-college-income";
 
 const incomeSchema = z.object({
   purpose: z.string().min(1, "Purpose is required"),
   amount: z.number().min(0.01, "Amount must be greater than 0"),
   income_date: z.string().min(1, "Date is required"),
   term_number: z.number().optional(),
-  description: z.string().optional(),
+  note: z.string().optional(),
 });
 
 type IncomeFormData = z.infer<typeof incomeSchema>;
@@ -40,7 +47,7 @@ interface AddIncomeDialogProps {
 
 export const AddIncomeDialog = ({ open, onOpenChange }: AddIncomeDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const createIncomeMutation = useCreateSchoolIncome();
+  const createIncomeMutation = useCreateCollegeIncomeByAdmission();
 
   const form = useForm<IncomeFormData>({
     resolver: zodResolver(incomeSchema),
@@ -49,7 +56,7 @@ export const AddIncomeDialog = ({ open, onOpenChange }: AddIncomeDialogProps) =>
       amount: 0.01,
       income_date: new Date().toISOString().split('T')[0],
       term_number: undefined,
-      description: "",
+      note: "",
     },
   });
 
@@ -61,9 +68,9 @@ export const AddIncomeDialog = ({ open, onOpenChange }: AddIncomeDialogProps) =>
         amount: data.amount,
         income_date: data.income_date,
         term_number: typeof data.term_number === "number" ? data.term_number : null,
-        description: data.description && data.description.trim() !== "" ? data.description : null,
+        note: data.note && data.note.trim() !== "" ? data.note : null,
       };
-      await createIncomeMutation.mutateAsync(payload);
+      await createIncomeMutation.mutateAsync({ admission_no: "", payload });
       form.reset();
       onOpenChange(false);
     } catch (error) {
@@ -90,9 +97,22 @@ export const AddIncomeDialog = ({ open, onOpenChange }: AddIncomeDialogProps) =>
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Purpose</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Tuition Fee, Admission Fee" {...field} />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select purpose" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="TUITION_FEE">Tuition Fee</SelectItem>
+                      <SelectItem value="TRANSPORT_FEE">Transport Fee</SelectItem>
+                      <SelectItem value="BOOK_FEE">Book Fee</SelectItem>
+                      <SelectItem value="ADMISSION_FEE">Admission Fee</SelectItem>
+                      <SelectItem value="APPLICATION_FEE">Application Fee</SelectItem>
+                      <SelectItem value="RESERVATION_FEE">Reservation Fee</SelectItem>
+                      <SelectItem value="OTHER">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -149,10 +169,10 @@ export const AddIncomeDialog = ({ open, onOpenChange }: AddIncomeDialogProps) =>
             />
             <FormField
               control={form.control}
-              name="description"
+              name="note"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormLabel>Note (Optional)</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Additional details about this income"

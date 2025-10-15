@@ -19,9 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useUpdateSchoolExpenditure, useDeleteSchoolExpenditure } from "@/lib/hooks/school/use-school-income-expenditure";
+import { useUpdateSchoolExpenditure, useDeleteSchoolExpenditure, useSchoolExpenditure } from "@/lib/hooks/school/use-school-income-expenditure";
 import type { SchoolExpenditureRead } from "@/lib/types/school";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
+import { ViewExpenditureDialog } from "./ViewExpenditureDialog";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useTableState } from "@/lib/hooks/common/useTableState";
 import { Label } from "@/components/ui/label";
@@ -29,7 +30,6 @@ import { Textarea } from "@/components/ui/textarea";
 
 interface ExpenditureTableProps {
   expenditureData: SchoolExpenditureRead[];
-  onViewExpenditure?: (expenditure: SchoolExpenditureRead) => void;
   onExportCSV?: () => void;
   onAddExpenditure?: () => void;
   title?: string;
@@ -40,7 +40,6 @@ interface ExpenditureTableProps {
 
 export const ExpenditureTable = ({
   expenditureData,
-  onViewExpenditure,
   onExportCSV,
   onAddExpenditure,
   title = "Expenditure Records",
@@ -64,6 +63,13 @@ export const ExpenditureTable = ({
   } = useTableState({
     initialFilters: { purpose: "all" }
   });
+
+  // View dialog state
+  const [showViewDialog, setShowViewDialog] = useState(false);
+  const [viewExpenditureId, setViewExpenditureId] = useState<number | null>(null);
+  
+  // Fetch expenditure details for viewing
+  const { data: viewExpenditure, isLoading: isViewLoading, error: viewError } = useSchoolExpenditure(viewExpenditureId);
   
   const selectedPurpose = filters.purpose || "all";
   const [editForm, setEditForm] = useState({
@@ -112,6 +118,11 @@ export const ExpenditureTable = ({
   const handleDelete = (expenditure: SchoolExpenditureRead) => {
     setSelectedExpenditure(expenditure);
     openDeleteDialog(expenditure);
+  };
+
+  const handleView = (expenditure: SchoolExpenditureRead) => {
+    setViewExpenditureId(expenditure.expenditure_id);
+    setShowViewDialog(true);
   };
 
   const handlePurposeFilterChange = (value: string) => {
@@ -245,16 +256,14 @@ export const ExpenditureTable = ({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    {onViewExpenditure && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onViewExpenditure(expenditure)}
-                        title="View Expenditure"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleView(expenditure)}
+                      title="View Expenditure"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -367,6 +376,15 @@ export const ExpenditureTable = ({
         isLoading={deleteExpenditureMutation.isPending}
         onConfirm={handleDeleteExpenditure}
         onCancel={closeDeleteDialog}
+      />
+
+      {/* View Expenditure Dialog */}
+      <ViewExpenditureDialog
+        open={showViewDialog}
+        onOpenChange={setShowViewDialog}
+        expenditure={viewExpenditure || null}
+        isLoading={isViewLoading}
+        error={viewError}
       />
     </motion.div>
   );

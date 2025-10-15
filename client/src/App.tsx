@@ -27,7 +27,6 @@ import UserManagement from "./components/pages/general/UserManagementPage";
 import EmployeeManagement from "./components/pages/general/EmployeeManagementPage";
 import PayrollManagement from "./components/pages/general/PayrollManagementPage";
 import TransportManagement from "./components/pages/general/TransportManagementPage";
-import FinancialReports from "./components/pages/general/FinancialReportsPage";
 import AuditLog from "./components/pages/general/AuditLog";
 import AnnouncementsManagement from "./components/features/general/Announcemnts/AnnouncementsManagement";
 
@@ -38,6 +37,7 @@ import SchoolStudentsManagement from "./components/pages/school/SchoolStudentsPa
 import SchoolAttendanceManagement from "./components/pages/school/SchoolAttendancePage";
 import SchoolFeesManagement from "./components/pages/school/SchoolFeesPage";
 import SchoolMarksManagement from "./components/pages/school/SchoolMarksPage";
+import SchoolReportsPage from "./components/pages/school/SchoolReportsPage";
 
 // College
 import CollegeAcademicManagement from "@/components/pages/college/CollegeAcademicPage";
@@ -47,6 +47,7 @@ import CollegeStudentsManagement from "@/components/pages/college/CollegeStudent
 import CollegeAttendanceManagement from "@/components/pages/college/CollegeAttendancePage";
 import CollegeMarksManagement from "@/components/pages/college/CollegeMarksPage";
 import CollegeFeesManagement from "@/components/pages/college/CollegeFeesPage";
+import CollegeReportsPage from "./components/pages/college/CollegeReportsPage";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { sidebarOpen } = useNavigationStore();
@@ -145,11 +146,6 @@ function Router() {
           component={TransportManagement}
         />
         <ProtectedRoute
-          path="/financial-reports"
-          roles={["institute_admin", "accountant"]}
-          component={FinancialReports}
-        />
-        <ProtectedRoute
           path="/audit-log"
           roles={["institute_admin"]}
           component={AuditLog}
@@ -185,7 +181,12 @@ function Router() {
           path="/school/fees"
           roles={["institute_admin", "accountant"]}
           component={SchoolFeesManagement}
-        />                
+        />
+         <ProtectedRoute
+          path="/school/financial-reports"
+          roles={["institute_admin", "accountant"]}
+          component={SchoolReportsPage}
+        />           
         <ProtectedRoute
           path="/school/announcements"
           roles={["institute_admin", "academic"]}
@@ -228,6 +229,11 @@ function Router() {
           path="/college/fees"
           roles={["institute_admin", "accountant"]}
           component={CollegeFeesManagement}
+        />
+        <ProtectedRoute
+          path="/college/financial-reports"
+          roles={["institute_admin", "accountant"]}
+          component={CollegeReportsPage}
         />
         <ProtectedRoute
           path="/college/announcements"
