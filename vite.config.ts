@@ -156,7 +156,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'https://nexzenapi.smdigitalx.com',
+        target: 'https://erpapi.velonex.in',
         changeOrigin: true,
         secure: true,
         rewrite: (path) => {
