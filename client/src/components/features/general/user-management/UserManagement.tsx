@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { FormDialog, ConfirmDialog } from '@/components/shared';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -63,7 +62,6 @@ const UserManagement = () => {
   // Role and branch selections
   const [selectedRole, setSelectedRole] = useState<number | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
-  const [selectedDefaultBranch, setSelectedDefaultBranch] = useState<number | null>(null);
 
 
   const handleAddUser = () => {
@@ -79,7 +77,6 @@ const UserManagement = () => {
     });
     setSelectedRole(null);
     setSelectedBranch(null);
-    setSelectedDefaultBranch(null);
     setShowUserForm(true);
   };
 
@@ -98,8 +95,6 @@ const UserManagement = () => {
     // Set role and branch selections for editing
     setSelectedRole(user.roles && user.roles.length > 0 ? user.roles[0].role_id : null);
     setSelectedBranch(user.branches && user.branches.length > 0 ? user.branches[0].branch_id : null);
-    // Don't set default branch for editing
-    setSelectedDefaultBranch(null);
     setShowUserForm(true);
   };
 
@@ -147,6 +142,13 @@ const UserManagement = () => {
     setShowUserForm(false);
   };
 
+  const handleSave = () => {
+    const form = document.getElementById('user-form') as HTMLFormElement;
+    if (form) {
+      form.requestSubmit();
+    }
+  };
+
   const handleFormChange = (field: keyof UserCreate, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -179,12 +181,12 @@ const UserManagement = () => {
       icon: <UserCheck className="h-4 w-4" />,
       description: 'Currently active',
     },
-    {
-      title: 'Institute Admins',
-      value: users.filter(u => u.is_institute_admin).length,
-      icon: <ShieldCheck className="h-4 w-4" />,
-      description: 'Admin privileges',
-    },
+    // {
+    //   title: 'Institute Admins',
+    //   value: users.filter(u => u.is_institute_admin).length,
+    //   icon: <ShieldCheck className="h-4 w-4" />,
+    //   description: 'Admin privileges',
+    // },
     {
       title: 'Inactive Users',
       value: users.filter(u => !u.is_active).length,
@@ -247,26 +249,28 @@ const UserManagement = () => {
           columns={columns}
           title={isLoading ? "Users (Loading...)" : "Users"}
           searchKey="full_name"
-          exportable={true}
+          searchPlaceholder="Search users..."
         />
       )}
 
       {/* Add/Edit User Form Dialog */}
-      <Dialog open={showUserForm} onOpenChange={setShowUserForm}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{isEditing ? "Edit User" : "Add New User"}</DialogTitle>
-            <DialogDescription>
-              {isEditing ? "Update user information" : "Create a new user account for your institute"}
-            </DialogDescription>
-            {!isEditing && (
-              <div className="text-sm text-green-600 bg-green-50 p-3 rounded-md">
-                <strong>Complete Setup:</strong> The user will be created with the selected role and branch assignment. 
-                The default branch will be set if specified.
-              </div>
-            )}
-          </DialogHeader>
-          <form onSubmit={handleFormSubmit} className="space-y-4">
+      <FormDialog
+        open={showUserForm}
+        onOpenChange={setShowUserForm}
+        title={isEditing ? "Edit User" : "Add New User"}
+        description={isEditing ? "Update user information" : "Create a new user account for your institute"}
+        size="LARGE"
+        isLoading={createUserMutation.isPending || updateUserMutation.isPending}
+        onSave={handleSave}
+        saveText={isEditing ? "Update" : "Add"}
+        cancelText="Cancel"
+      >
+        {!isEditing && (
+          <div className="text-sm text-green-600 bg-green-50 p-3 rounded-md mb-4">
+            <strong>Complete Setup:</strong> The user will be created with the selected role and branch assignment.
+          </div>
+        )}
+        <form id="user-form" onSubmit={handleFormSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="full_name">Full Name *</Label>
@@ -303,14 +307,7 @@ const UserManagement = () => {
                   data-testid="input-mobile"
                 />
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="is_institute_admin"
-                  checked={formData.is_institute_admin}
-                  onCheckedChange={(checked) => handleFormChange('is_institute_admin', checked as boolean)}
-                />
-                <Label htmlFor="is_institute_admin">Institute Admin</Label>
-              </div>
+              <div></div>
             </div>
             
             {/* Role and Branch Selection */}
@@ -356,27 +353,6 @@ const UserManagement = () => {
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-              {!isEditing && (
-                <div>
-                  <Label htmlFor="default_branch">Default Branch</Label>
-                  <Select value={selectedDefaultBranch?.toString() || ""} onValueChange={(value) => setSelectedDefaultBranch(parseInt(value))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select default branch" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {branchesLoading ? (
-                        <SelectItem value="" disabled>Loading branches...</SelectItem>
-                      ) : (
-                        branchesArray.map((branch: BranchRead) => (
-                          <SelectItem key={branch.branch_id} value={branch.branch_id.toString()}>
-                            {branch.branch_name} ({branch.branch_type})
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="is_active"
@@ -385,6 +361,7 @@ const UserManagement = () => {
                 />
                 <Label htmlFor="is_active">Active</Label>
               </div>
+              <div></div>
             </div>
             {!isEditing && (
               <div className="grid grid-cols-2 gap-4">
@@ -416,87 +393,67 @@ const UserManagement = () => {
                 </div>
               </div>
             )}
-            <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => setShowUserForm(false)}>
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={createUserMutation.isPending || updateUserMutation.isPending}
-                data-testid="button-submit-user"
-              >
-                {createUserMutation.isPending || updateUserMutation.isPending ? "Saving..." : isEditing ? "Update User" : "Add User"}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+        </form>
+      </FormDialog>
 
       {/* User Detail Dialog */}
-      <Dialog open={showDetail} onOpenChange={setShowDetail}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>User Details</DialogTitle>
-          </DialogHeader>
-          {selectedUser && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12">
-                  <AvatarFallback className="text-lg">
-                    {selectedUser.full_name.split(' ').map((n: string) => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="font-semibold">{selectedUser.full_name}</h3>
-                  <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <Label className="text-muted-foreground">Mobile</Label>
-                  <p>{selectedUser.mobile_no || 'N/A'}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Role</Label>
-                  <p>{selectedUser.is_institute_admin ? 'Institute Admin' : 'User'}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Status</Label>
-                  <Badge className={selectedUser.is_active ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'}>
-                    {selectedUser.is_active ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Created</Label>
-                  <p>{new Date(selectedUser.created_at).toLocaleDateString()}</p>
-                </div>
+      <FormDialog
+        open={showDetail}
+        onOpenChange={setShowDetail}
+        title="User Details"
+        description="View user information and account details"
+        size="MEDIUM"
+        showFooter={false}
+      >
+        {selectedUser && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-12 w-12">
+                <AvatarFallback className="text-lg">
+                  {selectedUser.full_name.split(' ').map((n: string) => n[0]).join('')}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 className="font-semibold">{selectedUser.full_name}</h3>
+                <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
               </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <Label className="text-muted-foreground">Mobile</Label>
+                <p>{selectedUser.mobile_no || 'N/A'}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Role</Label>
+                <p>{selectedUser.is_institute_admin ? 'Institute Admin' : 'User'}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Status</Label>
+                <Badge className={selectedUser.is_active ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'}>
+                  {selectedUser.is_active ? 'Active' : 'Inactive'}
+                </Badge>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Created</Label>
+                <p>{new Date(selectedUser.created_at).toLocaleDateString()}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </FormDialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete User</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{userToDelete?.full_name}"? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700"
-              disabled={deleteUserMutation.isPending}
-            >
-              {deleteUserMutation.isPending ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete User"
+        description={`Are you sure you want to delete "${userToDelete?.full_name}"? This action cannot be undone.`}
+        confirmText={deleteUserMutation.isPending ? "Deleting..." : "Delete"}
+        cancelText="Cancel"
+        variant="destructive"
+        onConfirm={confirmDelete}
+        disabled={deleteUserMutation.isPending}
+      />
     </motion.div>
   );
 };

@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { Megaphone, AlertTriangle, Loader2 } from "lucide-react";
+import { Megaphone, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoadingStates } from "@/components/ui/loading";
 import AnnouncementCard from "./AnnouncementCard";
 import type { Announcement } from "@/lib/hooks/general/useAnnouncements";
 
@@ -29,9 +30,8 @@ const AnnouncementsList = ({
 }: AnnouncementsListProps) => {
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading announcements...</span>
+      <div className="py-8">
+        <LoadingStates.Data message="Loading announcements..." />
       </div>
     );
   }

@@ -31,7 +31,7 @@ const EmployeesTable = ({ data, columns, title, isError, errorMessage, isLoading
       columns={columns}
       title={isLoading ? `${title} (Loading...)` : title}
       searchKey="employee_name"
-      exportable={true}
+      searchPlaceholder="Search employees..."
     />
   );
 };

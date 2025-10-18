@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { GraduationCap, ClipboardList } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TabSwitcher } from '@/components/shared';
+import type { TabItem } from '@/components/shared/TabSwitcher';
 import ExamMarksManagement from './ExamMarksManagement';
 import TestMarksManagement from './TestMarksManagement';
 
@@ -25,34 +26,25 @@ const MarksManagement = () => {
           </motion.div>
 
           {/* Main Content */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="exam-marks" >
-                  <GraduationCap className="w-4 h-4 mr-2" />
-                  Exam Marks
-                </TabsTrigger>
-                <TabsTrigger value="test-marks" >
-                  <ClipboardList className="w-4 h-4 mr-2" />
-                  Test Marks
-                </TabsTrigger>
-              </TabsList>
-
-              {/* Exam Marks Tab */}
-              <TabsContent value="exam-marks" className="space-y-6">
-                <ExamMarksManagement />
-              </TabsContent>
-
-              {/* Test Marks Tab */}
-              <TabsContent value="test-marks" className="space-y-6">
-                <TestMarksManagement />
-              </TabsContent>
-            </Tabs>
-          </motion.div>
+          <TabSwitcher
+            tabs={[
+              {
+                value: "exam-marks",
+                label: "Exam Marks",
+                icon: GraduationCap,
+                content: <ExamMarksManagement />,
+              },
+              {
+                value: "test-marks",
+                label: "Test Marks",
+                icon: ClipboardList,
+                content: <TestMarksManagement />,
+              },
+            ]}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            gridCols="grid-cols-2"
+          />
         </div>
       </div>
     </div>

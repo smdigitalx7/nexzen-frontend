@@ -122,7 +122,6 @@ export const featureFlags = {
   enableDarkMode: true,
   enableAnimations: true,
   enableAccessibility: true,
-  enableMobileOptimization: true,
   
   // Development features
   enableHotReload: isDevelopment,

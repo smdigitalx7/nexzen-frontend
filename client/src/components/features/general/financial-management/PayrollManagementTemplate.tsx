@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
-import { CreditCard, Plus, Download, X } from "lucide-react";
+import { CreditCard, Plus, Download, X, Users, Calculator } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabSwitcher } from "@/components/shared";
 import { usePayrollManagement } from "@/lib/hooks/general/usePayrollManagement";
 import { formatCurrency } from "@/lib/utils";
 import { PayrollStatsCards } from "./components/PayrollStatsCards";
@@ -105,165 +105,176 @@ export const PayrollManagementTemplate = () => {
       />
 
       {/* Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="payrolls">Payrolls</TabsTrigger>
-          <TabsTrigger value="bulk">Bulk Operations</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="payrolls" className="space-y-4">
-          {/* Filter Controls */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white p-4 rounded-lg border shadow-sm"
-          >
-            <div className="flex flex-wrap gap-4 items-end">
-              {/* Month Filter */}
-              <div className="flex-1 min-w-[120px]">
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Month</label>
-                <select
-                  value={selectedMonth || ""}
-                  onChange={(e) => {
-                    const month = e.target.value ? parseInt(e.target.value) : undefined;
-                    setSelectedMonth(month);
-                    // Clear year if month is cleared, or set current year if month is selected
-                    if (!month) {
-                      setSelectedYear(undefined);
-                    } else if (!selectedYear) {
-                      setSelectedYear(new Date().getFullYear());
-                    }
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+      <TabSwitcher
+        tabs={[
+          {
+            value: "payrolls",
+            label: "Payrolls",
+            icon: Users,
+            content: (
+              <div className="space-y-4">
+                {/* Filter Controls */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white p-4 rounded-lg border shadow-sm"
                 >
-                  <option value="">All Months</option>
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <option key={i + 1} value={i + 1}>
-                      {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <div className="flex flex-wrap gap-4 items-end">
+                    {/* Month Filter */}
+                    <div className="flex-1 min-w-[120px]">
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">Month</label>
+                      <select
+                        value={selectedMonth || ""}
+                        onChange={(e) => {
+                          const month = e.target.value ? parseInt(e.target.value) : undefined;
+                          setSelectedMonth(month);
+                          // Clear year if month is cleared, or set current year if month is selected
+                          if (!month) {
+                            setSelectedYear(undefined);
+                          } else if (!selectedYear) {
+                            setSelectedYear(new Date().getFullYear());
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      >
+                        <option value="">All Months</option>
+                        {Array.from({ length: 12 }, (_, i) => (
+                          <option key={i + 1} value={i + 1}>
+                            {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-              {/* Year Filter */}
-              <div className="flex-1 min-w-[100px]">
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Year</label>
-                <select
-                  value={selectedYear || ""}
-                  onChange={(e) => {
-                    const year = e.target.value ? parseInt(e.target.value) : undefined;
-                    setSelectedYear(year);
-                    // Clear month if year is cleared, or set current month if year is selected
-                    if (!year) {
-                      setSelectedMonth(undefined);
-                    } else if (!selectedMonth) {
-                      setSelectedMonth(new Date().getMonth() + 1);
-                    }
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option value="">All Years</option>
-                  {Array.from({ length: 10 }, (_, i) => {
-                    const year = new Date().getFullYear() - 5 + i;
-                    return (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
+                    {/* Year Filter */}
+                    <div className="flex-1 min-w-[100px]">
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">Year</label>
+                      <select
+                        value={selectedYear || ""}
+                        onChange={(e) => {
+                          const year = e.target.value ? parseInt(e.target.value) : undefined;
+                          setSelectedYear(year);
+                          // Clear month if year is cleared, or set current month if year is selected
+                          if (!year) {
+                            setSelectedMonth(undefined);
+                          } else if (!selectedMonth) {
+                            setSelectedMonth(new Date().getMonth() + 1);
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      >
+                        <option value="">All Years</option>
+                        {Array.from({ length: 10 }, (_, i) => {
+                          const year = new Date().getFullYear() - 5 + i;
+                          return (
+                            <option key={year} value={year}>
+                              {year}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
 
-              {/* Status Filter */}
-              <div className="flex-1 min-w-[120px]">
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Status</label>
-                <select
-                  value={selectedStatus || ""}
-                  onChange={(e) => setSelectedStatus(e.target.value || undefined)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option value="">All Status</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="PAID">Paid</option>
-                  <option value="HOLD">On Hold</option>
-                </select>
-              </div>
+                    {/* Status Filter */}
+                    <div className="flex-1 min-w-[120px]">
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">Status</label>
+                      <select
+                        value={selectedStatus || ""}
+                        onChange={(e) => setSelectedStatus(e.target.value || undefined)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      >
+                        <option value="">All Status</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="PAID">Paid</option>
+                        <option value="HOLD">On Hold</option>
+                      </select>
+                    </div>
 
-              {/* Clear Filters Button */}
-              <button
-                onClick={() => {
-                  setSelectedMonth(undefined);
-                  setSelectedYear(undefined);
-                  setSelectedStatus(undefined);
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    {/* Clear Filters Button */}
+                    <button
+                      onClick={() => {
+                        setSelectedMonth(undefined);
+                        setSelectedYear(undefined);
+                        setSelectedStatus(undefined);
+                      }}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                      Clear Filters
+                    </button>
+                  </div>
+
+                  {/* Help Text */}
+                  <div className="mt-3 text-xs text-gray-500">
+                    💡 <strong>Tip:</strong> Month and year filters work together. Selecting a month will automatically set the current year, and selecting a year will set the current month.
+                  </div>
+
+                  {/* Filter Summary */}
+                  {(selectedMonth || selectedYear || selectedStatus) && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="text-sm text-gray-600">Active filters:</span>
+                      {selectedMonth && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Month: {new Date(0, selectedMonth - 1).toLocaleString('default', { month: 'long' })}
+                        </span>
+                      )}
+                      {selectedYear && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Year: {selectedYear}
+                        </span>
+                      )}
+                      {selectedStatus && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          Status: {selectedStatus}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </motion.div>
+
+                <EmployeePayrollTable
+                  payrolls={payrolls}
+                  isLoading={isLoading}
+                  onEditPayroll={handleEditPayroll}
+                  onViewPayslip={handleViewPayslip}
+                  onUpdateStatus={handleUpdateStatus}
+                  getStatusColor={getStatusColor}
+                  getStatusText={getStatusText}
+                />
+              </div>
+            ),
+          },
+          {
+            value: "bulk",
+            label: "Bulk Operations",
+            icon: Calculator,
+            content: (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="space-y-4"
               >
-                Clear Filters
-              </button>
-            </div>
-
-            {/* Help Text */}
-            <div className="mt-3 text-xs text-gray-500">
-              💡 <strong>Tip:</strong> Month and year filters work together. Selecting a month will automatically set the current year, and selecting a year will set the current month.
-            </div>
-
-            {/* Filter Summary */}
-            {(selectedMonth || selectedYear || selectedStatus) && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                <span className="text-sm text-gray-600">Active filters:</span>
-                {selectedMonth && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Month: {new Date(0, selectedMonth - 1).toLocaleString('default', { month: 'long' })}
-                  </span>
-                )}
-                {selectedYear && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Year: {selectedYear}
-                  </span>
-                )}
-                {selectedStatus && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                    Status: {selectedStatus}
-                  </span>
-                )}
-              </div>
-            )}
-          </motion.div>
-
-          <EmployeePayrollTable
-            payrolls={payrolls}
-            isLoading={isLoading}
-            onEditPayroll={handleEditPayroll}
-            onViewPayslip={handleViewPayslip}
-            onUpdateStatus={handleUpdateStatus}
-            getStatusColor={getStatusColor}
-            getStatusText={getStatusText}
-          />
-        </TabsContent>
-
-        <TabsContent value="bulk" className="space-y-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="space-y-4"
-          >
-            <div>
-              <h2 className="text-2xl font-bold">Bulk Operations</h2>
-              <p className="text-muted-foreground">
-                Process multiple payrolls efficiently with bulk operations
-              </p>
-            </div>
-            
-            <BulkPayrollOperations
-              employees={employees}
-              onBulkCreate={handleBulkCreate}
-              onBulkExport={handleBulkExport}
-              isLoading={isLoading}
-            />
-          </motion.div>
-        </TabsContent>
-      </Tabs>
+                <div>
+                  <h2 className="text-2xl font-bold">Bulk Operations</h2>
+                  <p className="text-muted-foreground">
+                    Process multiple payrolls efficiently with bulk operations
+                  </p>
+                </div>
+                
+                <BulkPayrollOperations
+                  employees={employees}
+                  onBulkCreate={handleBulkCreate}
+                  onBulkExport={handleBulkExport}
+                  isLoading={isLoading}
+                />
+              </motion.div>
+            ),
+          },
+        ]}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        gridCols="grid-cols-2"
+      />
 
       {/* Salary Calculation Form Dialog */}
       <SalaryCalculationForm

@@ -12,6 +12,7 @@ import {
   Eye,
   School,
   GraduationCap,
+  Calendar,
 } from "lucide-react";
 import {
   Card,
@@ -49,7 +50,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabSwitcher } from "@/components/shared";
+import type { TabItem } from "@/components/shared/TabSwitcher";
 import { useAuthStore } from "@/store/authStore";
 
 // Mock data for institutes and branches
@@ -581,76 +583,103 @@ const InstituteManagement = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="fees">
-              <TabsList className="grid grid-cols-4 w-full">
-                <TabsTrigger value="fees">Fee Templates</TabsTrigger>
-                <TabsTrigger value="years">Academic Years</TabsTrigger>
-                <TabsTrigger value="holidays">Holiday Calendar</TabsTrigger>
-                <TabsTrigger value="roles">Users & Roles</TabsTrigger>
-              </TabsList>
-              <TabsContent value="fees" className="space-y-3">
-                <div className="text-sm text-muted-foreground">
-                  Class-wise, term-wise, and book fee templates
-                </div>
-                <div className="grid gap-3 md:grid-cols-3">
-                  <div className="p-3 border rounded-lg">
-                    <div className="font-medium">Class 8</div>
-                    <div className="text-sm">
-                      Books: ₹4500 • Term1: ₹7800 • Term2: ₹7800 • Term3: ₹7900
+            <TabSwitcher
+              tabs={[
+                {
+                  value: "fees",
+                  label: "Fee Templates",
+                  icon: Building2,
+                  content: (
+                    <div className="space-y-3">
+                      <div className="text-sm text-muted-foreground">
+                        Class-wise, term-wise, and book fee templates
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-3">
+                        <div className="p-3 border rounded-lg">
+                          <div className="font-medium">Class 8</div>
+                          <div className="text-sm">
+                            Books: ₹4500 • Term1: ₹7800 • Term2: ₹7800 • Term3: ₹7900
+                          </div>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <div className="font-medium">Class 9</div>
+                          <div className="text-sm">
+                            Books: ₹4000 • Term1: ₹8700 • Term2: ₹8700 • Term3: ₹8600
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="p-3 border rounded-lg">
-                    <div className="font-medium">Class 9</div>
-                    <div className="text-sm">
-                      Books: ₹4000 • Term1: ₹8700 • Term2: ₹8700 • Term3: ₹8600
+                  ),
+                },
+                {
+                  value: "years",
+                  label: "Academic Years",
+                  icon: GraduationCap,
+                  content: (
+                    <div className="space-y-3">
+                      <div className="text-sm text-muted-foreground">
+                        Manage academic years
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">2024-2025</Badge>
+                        <Badge>2025-2026</Badge>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </TabsContent>
-              <TabsContent value="years" className="space-y-3">
-                <div className="text-sm text-muted-foreground">
-                  Manage academic years
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">2024-2025</Badge>
-                  <Badge>2025-2026</Badge>
-                </div>
-              </TabsContent>
-              <TabsContent value="holidays" className="space-y-3">
-                <div className="text-sm text-muted-foreground">
-                  Holiday list
-                </div>
-                <ul className="list-disc ml-6 text-sm">
-                  <li>15 Aug - Independence Day</li>
-                  <li>02 Oct - Gandhi Jayanti</li>
-                </ul>
-              </TabsContent>
-              <TabsContent value="roles" className="space-y-3">
-                <div className="text-sm text-muted-foreground">
-                  Assign users and roles; enforce unique credentials per role
-                </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="p-3 border rounded-lg">
-                    <div className="font-medium">Admin</div>
-                    <div className="text-xs text-muted-foreground">
-                      Full access
+                  ),
+                },
+                {
+                  value: "holidays",
+                  label: "Holiday Calendar",
+                  icon: Calendar,
+                  content: (
+                    <div className="space-y-3">
+                      <div className="text-sm text-muted-foreground">
+                        Holiday list
+                      </div>
+                      <ul className="list-disc ml-6 text-sm">
+                        <li>15 Aug - Independence Day</li>
+                        <li>02 Oct - Gandhi Jayanti</li>
+                      </ul>
                     </div>
-                  </div>
-                  <div className="p-3 border rounded-lg">
-                    <div className="font-medium">Accountant</div>
-                    <div className="text-xs text-muted-foreground">
-                      Finance & Admissions
+                  ),
+                },
+                {
+                  value: "roles",
+                  label: "Users & Roles",
+                  icon: Users,
+                  content: (
+                    <div className="space-y-3">
+                      <div className="text-sm text-muted-foreground">
+                        Assign users and roles; enforce unique credentials per role
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="p-3 border rounded-lg">
+                          <div className="font-medium">Admin</div>
+                          <div className="text-xs text-muted-foreground">
+                            Full access
+                          </div>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <div className="font-medium">Accountant</div>
+                          <div className="text-xs text-muted-foreground">
+                            Finance & Admissions
+                          </div>
+                        </div>
+                        <div className="p-3 border rounded-lg">
+                          <div className="font-medium">Academic</div>
+                          <div className="text-xs text-muted-foreground">
+                            Academic Records
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="p-3 border rounded-lg">
-                    <div className="font-medium">Academic</div>
-                    <div className="text-xs text-muted-foreground">
-                      Academic Records
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+                  ),
+                },
+              ]}
+              activeTab="fees"
+              onTabChange={() => {}}
+              gridCols="grid-cols-4"
+            />
           </CardContent>
         </Card>
       </motion.div>

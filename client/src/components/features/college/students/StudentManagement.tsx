@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Users, IdCard, MapPin, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TabSwitcher } from '@/components/shared';
 import { Button } from '@/components/ui/button';
+import type { TabItem } from '@/components/shared/TabSwitcher';
 import { useAuthStore } from '@/store/authStore';
 import { StudentsTab } from './StudentsTab';
 import { EnrollmentsTab } from './EnrollmentsTab';
@@ -35,31 +36,31 @@ const StudentManagement = () => {
         )}
       </div>
 
-      <Tabs value={activePageTab} onValueChange={setActivePageTab} className="space-y-4 w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="students">
-            <Users className="w-4 h-4 mr-2" /> Students
-          </TabsTrigger>
-          <TabsTrigger value="enrollments">
-            <IdCard className="w-4 h-4 mr-2" /> Enrollments
-          </TabsTrigger>
-          <TabsTrigger value="transport">
-            <MapPin className="w-4 h-4 mr-2" /> Transport
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="students">
-          <StudentsTab />
-        </TabsContent>
-
-        <TabsContent value="enrollments">
-          <EnrollmentsTab />
-        </TabsContent>
-
-        <TabsContent value="transport">
-          <TransportTab />
-        </TabsContent>
-      </Tabs>
+      <TabSwitcher
+        tabs={[
+          {
+            value: "students",
+            label: "Students",
+            icon: Users,
+            content: <StudentsTab />,
+          },
+          {
+            value: "enrollments",
+            label: "Enrollments",
+            icon: IdCard,
+            content: <EnrollmentsTab />,
+          },
+          {
+            value: "transport",
+            label: "Transport",
+            icon: MapPin,
+            content: <TransportTab />,
+          },
+        ]}
+        activeTab={activePageTab}
+        onTabChange={setActivePageTab}
+        gridCols="grid-cols-3"
+      />
     </motion.div>
   );
 };

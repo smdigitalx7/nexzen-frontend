@@ -1,9 +1,8 @@
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FormDialog } from "@/components/shared";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 interface AdvanceFormData {
@@ -26,15 +25,28 @@ interface AdvanceFormDialogProps {
 }
 
 const AdvanceFormDialog = ({ open, onOpenChange, isEditing, employees, formData, onChange, onSubmit, isCreatePending, isUpdatePending }: AdvanceFormDialogProps) => {
+  const isLoading = isCreatePending || isUpdatePending;
+  
+  const handleSave = () => {
+    const form = document.getElementById('advance-form') as HTMLFormElement;
+    if (form) {
+      form.requestSubmit();
+    }
+  };
+  
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Edit Advance" : "Add Advance"}
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={onSubmit} className="space-y-4">
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={isEditing ? "Edit Advance" : "Add Advance"}
+      description={isEditing ? "Update advance request details" : "Create a new advance request"}
+      size="LARGE"
+      isLoading={isLoading}
+      onSave={handleSave}
+      saveText={isEditing ? "Update" : "Create"}
+      cancelText="Cancel"
+    >
+      <form id="advance-form" onSubmit={onSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="employee_id">Employee</Label>
@@ -90,22 +102,8 @@ const AdvanceFormDialog = ({ open, onOpenChange, isEditing, employees, formData,
               rows={3}
             />
           </div>
-
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isCreatePending || isUpdatePending}>
-              {isCreatePending || isUpdatePending
-                ? "Saving..."
-                : isEditing
-                ? "Update Advance"
-                : "Add Advance"}
-            </Button>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 };
 

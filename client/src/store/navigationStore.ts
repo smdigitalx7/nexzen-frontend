@@ -20,7 +20,6 @@ interface NavigationState {
   // Core navigation state
   sidebarOpen: boolean;
   activeModule: string;
-  isMobile: boolean;
   
   // Navigation history
   history: NavigationHistory[];
@@ -39,7 +38,6 @@ interface NavigationState {
   // Actions
   setSidebarOpen: (open: boolean) => void;
   setActiveModule: (module: string, path?: string) => void;
-  setIsMobile: (mobile: boolean) => void;
   toggleSidebar: () => void;
   
   // History management
@@ -66,7 +64,6 @@ export const useNavigationStore = create<NavigationState>()(
         // Initial state
         sidebarOpen: true,
         activeModule: 'dashboard',
-        isMobile: false,
         history: [],
         maxHistorySize: 50,
         preferences: {
@@ -101,8 +98,8 @@ export const useNavigationStore = create<NavigationState>()(
         },
 
         isSidebarCollapsed: () => {
-          const { preferences, isMobile } = get();
-          return isMobile ? true : preferences.sidebarCollapsed;
+          const { preferences } = get();
+          return preferences.sidebarCollapsed;
         },
 
         // Actions
@@ -121,15 +118,6 @@ export const useNavigationStore = create<NavigationState>()(
           get().addToHistory(module, path);
         },
 
-        setIsMobile: (mobile) => {
-          set((state) => {
-            state.isMobile = mobile;
-            // Auto-collapse sidebar on mobile
-            if (mobile) {
-              state.sidebarOpen = false;
-            }
-          });
-        },
 
         toggleSidebar: () => {
           set((state) => {
@@ -269,15 +257,13 @@ export const useNavigationStore = create<NavigationState>()(
 export const useNavigationSelectors = () => {
   const sidebarOpen = useNavigationStore((state) => state.sidebarOpen);
   const activeModule = useNavigationStore((state) => state.activeModule);
-  const isMobile = useNavigationStore((state) => state.isMobile);
   const canGoBack = useNavigationStore((state) => state.canGoBack());
   const getCurrentPath = useNavigationStore((state) => state.getCurrentPath);
   const preferences = useNavigationStore((state) => state.preferences);
-  
+
   return {
     sidebarOpen,
     activeModule,
-    isMobile,
     canGoBack,
     getCurrentPath,
     preferences,

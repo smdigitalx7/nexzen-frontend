@@ -87,7 +87,7 @@ export const IncomeTable = ({
     ]
   );
 
-  const uniquePurposes = Array.from(new Set(incomeData.map(i => i.purpose)));
+  const uniquePurposes = Array.from(new Set(incomeData.map(i => i.purpose))).filter(Boolean);
 
   const totalAmount = filteredIncome.reduce((sum, income) => sum + income.amount, 0);
 
@@ -184,8 +184,8 @@ export const IncomeTable = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Purposes</SelectItem>
-            {uniquePurposes.map((purpose) => (
-              <SelectItem key={purpose} value={purpose}>
+            {uniquePurposes.map((purpose, index) => (
+              <SelectItem key={`purpose-${purpose}-${index}`} value={purpose}>
                 {purpose}
               </SelectItem>
             ))}

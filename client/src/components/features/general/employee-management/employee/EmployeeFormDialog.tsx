@@ -1,10 +1,9 @@
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FormDialog } from "@/components/shared";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 
 interface EmployeeFormData {
   employee_name: string;
@@ -34,16 +33,28 @@ interface EmployeeFormDialogProps {
 }
 
 const EmployeeFormDialog = ({ open, onOpenChange, isEditing, formData, onChange, onSubmit, isCreatePending, isUpdatePending }: EmployeeFormDialogProps) => {
+  const isLoading = isCreatePending || isUpdatePending;
+  
+  const handleSave = () => {
+    const form = document.getElementById('employee-form') as HTMLFormElement;
+    if (form) {
+      form.requestSubmit();
+    }
+  };
+  
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Edit Employee" : "Add New Employee"}
-          </DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={onSubmit} className="space-y-4">
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={isEditing ? "Edit Employee" : "Add New Employee"}
+      description={isEditing ? "Update employee information" : "Create a new employee record"}
+      size="LARGE"
+      isLoading={isLoading}
+      onSave={handleSave}
+      saveText={isEditing ? "Update" : "Create"}
+      cancelText="Cancel"
+    >
+      <form id="employee-form" onSubmit={onSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="employee_name">Employee Name *</Label>
@@ -197,28 +208,8 @@ const EmployeeFormDialog = ({ open, onOpenChange, isEditing, formData, onChange,
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isCreatePending || isUpdatePending}
-            >
-              {isCreatePending || isUpdatePending
-                ? "Saving..."
-                : isEditing
-                ? "Update Employee"
-                : "Add Employee"}
-            </Button>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 };
 

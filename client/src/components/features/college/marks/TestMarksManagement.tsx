@@ -13,6 +13,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { EnhancedDataTable } from '@/components/shared';
+import { LoadingStates } from '@/components/ui/loading';
 import { useSearchFilters } from '@/lib/hooks/common';
 import { 
   useCollegeTestMarksList,
@@ -674,10 +675,7 @@ const TestMarksManagement = () => {
               </Card>
             ) : testMarksLoading ? (
               <Card className="p-8 text-center">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-slate-600">Loading test marks...</p>
-                </div>
+                <LoadingStates.Data message="Loading test marks..." />
               </Card>
             ) : testMarksError ? (
               <Card className="p-8 text-center">

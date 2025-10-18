@@ -3,7 +3,7 @@ import { CollegeReservationsService } from "@/lib/services/college/reservations.
 import type { CollegePaginatedReservationRead, CollegeReservationCreate, CollegeReservationRead, CollegeReservationUpdate, CollegeReservationDashboardStats, CollegeRecentReservation, ReservationStatusEnum } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 
-export function useCollegeReservationsList(params?: { group_id?: number; course_id?: number; page?: number; pageSize?: number }) {
+export function useCollegeReservationsList(params?: { group_id?: number; course_id?: number; page?: number; page_size?: number }) {
   return useQuery({
     queryKey: collegeKeys.reservations.list(params),
     queryFn: () => CollegeReservationsService.list(params),

@@ -32,7 +32,9 @@ import ReservationForm from "../reservations/ReservationForm";
 import ReservationsTable from "../reservations/ReservationsTable";
 import { TransportService } from "@/lib/services/school/transport.service";
 import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, List, BarChart3 } from "lucide-react";
+import { TabSwitcher } from "@/components/shared";
+import type { TabItem } from "@/components/shared/TabSwitcher";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const classFeeMap: Record<string, number> = {
@@ -397,87 +399,38 @@ export default function ReservationNew() {
         </div>
       </motion.div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="w-full">
-          <TabsList className="w-full">
-            <TabsTrigger value="new" className="flex-1">New Reservations</TabsTrigger>
-            <TabsTrigger value="all" className="flex-1">All Reservations</TabsTrigger>
-            <TabsTrigger value="status" className="flex-1">Status</TabsTrigger>
-          </TabsList>
-        </div>
-
-        <TabsContent value="new">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            <ReservationForm
-              form={form as any}
-              setForm={(next) => setForm(next as any)}
-              classFee={classFee}
-              transportFee={transportFee}
-              routes={routeNames.map((route: { bus_route_id: number; route_no?: string; route_name: string }) => ({
-                id: route.bus_route_id?.toString() || '',
-                name: `${route.route_no || 'Route'} - ${route.route_name}`,
-                fee: 5000 // Default fee, would need to be enhanced
-              }))}
-              classFeeMapKeys={Object.keys(classFeeMap)}
-              onSave={handleSave}
-            />
-          </motion.div>
-        </TabsContent>
-
-        <TabsContent value="all">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            {isLoadingReservations ? (
-              <div className="p-6 text-sm text-muted-foreground text-center">Loading reservations…</div>
-            ) : reservationsError ? (
-              <div className="p-6 text-center">
-                <div className="text-red-600 mb-2">
-                  <h3 className="font-medium">Connection Error</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {reservationsErrObj?.message?.includes('Bad Gateway') 
-                      ? 'Backend server is not responding (502 Bad Gateway)'
-                      : 'Failed to load reservations'
-                    }
-                  </p>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => refetchReservations()}>
-                  Try Again
-                </Button>
-              </div>
-            ) : (
-              <ReservationsTable
-                reservations={allReservations as any}
-                onView={handleView as any}
-                onEdit={handleEdit as any}
-                onDelete={(r: any) => {
-                  setReservationToDelete(r);
-                  setShowDeleteDialog(true);
-                }}
-              />
-            )}
-          </motion.div>
-        </TabsContent>
-
-        <TabsContent value="status">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <div>
-                  <CardTitle>Update Status</CardTitle>
-                  <CardDescription>Modify reservation statuses quickly</CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">{allReservations.length} items</Badge>
-                  {reservationsData && (
-                    <Badge variant="secondary">
-                      Total: {reservationsData.total_count || 0}
-                    </Badge>
-                  )}
-                  <Button variant="outline" size="sm" onClick={() => refetchReservations()} disabled={isLoadingReservations}>Refresh</Button>
-                </div>
-              </CardHeader>
-              <CardContent>
+      <TabSwitcher
+        tabs={[
+          {
+            value: "new",
+            label: "New Reservations",
+            icon: Plus,
+            content: (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                <ReservationForm
+                  form={form as any}
+                  setForm={(next) => setForm(next as any)}
+                  classFee={classFee}
+                  transportFee={transportFee}
+                  routes={routeNames.map((route: { bus_route_id: number; route_no?: string; route_name: string }) => ({
+                    id: route.bus_route_id?.toString() || '',
+                    name: `${route.route_no || 'Route'} - ${route.route_name}`,
+                    fee: 5000 // Default fee, would need to be enhanced
+                  }))}
+                  classFeeMapKeys={Object.keys(classFeeMap)}
+                  onSave={handleSave}
+                />
+              </motion.div>
+            ),
+          },
+          {
+            value: "all",
+            label: "All Reservations",
+            icon: List,
+            content: (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
                 {isLoadingReservations ? (
-                  <div className="p-6 text-sm text-muted-foreground">Loading reservations…</div>
+                  <div className="p-6 text-sm text-muted-foreground text-center">Loading reservations…</div>
                 ) : reservationsError ? (
                   <div className="p-6 text-center">
                     <div className="text-red-600 mb-2">
@@ -494,102 +447,164 @@ export default function ReservationNew() {
                     </Button>
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Reservation No</TableHead>
-                        <TableHead>Student</TableHead>
-                        <TableHead>Current Status</TableHead>
-                        <TableHead>Change To</TableHead>
-                        <TableHead>Remarks</TableHead>
-                        <TableHead>Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {allReservations.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="h-24 text-center text-sm text-muted-foreground">
-                            <div className="space-y-2">
-                              <p>No reservations found</p>
-                              <p className="text-xs">Create your first reservation using the "New Reservations" tab</p>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ) : allReservations.map((r) => {
-                    const current = (r.status || '').toUpperCase();
-                    const selected = (statusChanges[r.id] || current) as 'PENDING' | 'CONFIRMED' | 'CANCELLED';
-                    const same = selected === current;
-                    return (
-                      <TableRow key={r.id}>
-                        <TableCell className="font-medium">{r.id}</TableCell>
-                        <TableCell>{r.studentName}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={current === 'PENDING' ? 'default' : current === 'CANCELLED' ? 'destructive' : current === 'CONFIRMED' ? 'secondary' : 'outline'}
-                          >
-                            {current}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="w-48">
-                            <Select
-                              value={selected}
-                              onValueChange={(v) => setStatusChanges((prev) => ({ ...prev, [r.id]: v as any }))}
-                            >
-                              <SelectTrigger aria-label="Select status">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="PENDING">Pending</SelectItem>
-                                <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                                <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="w-48">
-                            <Textarea
-                              placeholder="Enter remarks..."
-                              value={statusRemarks[r.id] || ''}
-                              onChange={(e) => setStatusRemarks((prev) => ({ ...prev, [r.id]: e.target.value }))}
-                              rows={2}
-                              className="text-sm"
-                            />
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant={same ? "outline" : "default"}
-                            disabled={same}
-                            onClick={async () => {
-                              const to = (statusChanges[r.id] || current) as 'PENDING' | 'CONFIRMED' | 'CANCELLED';
-                              const remarks = statusRemarks[r.id] || '';
-                              try {
-                                await SchoolReservationsService.updateStatus(Number(r.id), to, remarks || undefined);
-                                refetchReservations();
-                                // Clear the remarks after successful update
-                                setStatusRemarks((prev) => ({ ...prev, [r.id]: '' }));
-                              } catch (e: any) {
-                                alert(e?.message || 'Failed to update status');
-                              }
-                            }}
-                          >
-                            Update
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                    </TableBody>
-                  </Table>
+                  <ReservationsTable
+                    reservations={allReservations as any}
+                    onView={handleView as any}
+                    onEdit={handleEdit as any}
+                    onDelete={(r: any) => {
+                      setReservationToDelete(r);
+                      setShowDeleteDialog(true);
+                    }}
+                  />
                 )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        </TabsContent>
-      </Tabs>
+              </motion.div>
+            ),
+          },
+          {
+            value: "status",
+            label: "Status",
+            icon: BarChart3,
+            content: (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                    <div>
+                      <CardTitle>Update Status</CardTitle>
+                      <CardDescription>Modify reservation statuses quickly</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">{allReservations.length} items</Badge>
+                      {reservationsData && (
+                        <Badge variant="secondary">
+                          Total: {reservationsData.total_count || 0}
+                        </Badge>
+                      )}
+                      <Button variant="outline" size="sm" onClick={() => refetchReservations()} disabled={isLoadingReservations}>Refresh</Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingReservations ? (
+                      <div className="p-6 text-sm text-muted-foreground">Loading reservations…</div>
+                    ) : reservationsError ? (
+                      <div className="p-6 text-center">
+                        <div className="text-red-600 mb-2">
+                          <h3 className="font-medium">Connection Error</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {reservationsErrObj?.message?.includes('Bad Gateway') 
+                              ? 'Backend server is not responding (502 Bad Gateway)'
+                              : 'Failed to load reservations'
+                            }
+                          </p>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => refetchReservations()}>
+                          Try Again
+                        </Button>
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Reservation No</TableHead>
+                            <TableHead>Student</TableHead>
+                            <TableHead>Current Status</TableHead>
+                            <TableHead>Change To</TableHead>
+                            <TableHead>Remarks</TableHead>
+                            <TableHead>Action</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {allReservations.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={6} className="h-24 text-center text-sm text-muted-foreground">
+                                <div className="space-y-2">
+                                  <p>No reservations found</p>
+                                  <p className="text-xs">Create your first reservation using the "New Reservations" tab</p>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ) : allReservations.map((r) => {
+                        const current = (r.status || '').toUpperCase();
+                        const selected = (statusChanges[r.id] || current) as 'PENDING' | 'CONFIRMED' | 'CANCELLED';
+                        const same = selected === current;
+                        return (
+                          <TableRow key={r.id}>
+                            <TableCell className="font-medium">{r.id}</TableCell>
+                            <TableCell>{r.studentName}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={current === 'PENDING' ? 'default' : current === 'CANCELLED' ? 'destructive' : current === 'CONFIRMED' ? 'secondary' : 'outline'}
+                              >
+                                {current}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="w-48">
+                                <Select
+                                  value={selected}
+                                  onValueChange={(v) => setStatusChanges((prev) => ({ ...prev, [r.id]: v as any }))}
+                                >
+                                  <SelectTrigger aria-label="Select status">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="PENDING">Pending</SelectItem>
+                                    <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="w-48">
+                                <Textarea
+                                  placeholder="Enter remarks..."
+                                  value={statusRemarks[r.id] || ''}
+                                  onChange={(e) => setStatusRemarks((prev) => ({ ...prev, [r.id]: e.target.value }))}
+                                  rows={2}
+                                  className="text-sm"
+                                />
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                size="sm"
+                                variant={same ? "outline" : "default"}
+                                disabled={same}
+                                onClick={async () => {
+                                  const to = (statusChanges[r.id] || current) as 'PENDING' | 'CONFIRMED' | 'CANCELLED';
+                                  const remarks = statusRemarks[r.id] || '';
+                                  try {
+                                    await SchoolReservationsService.updateStatus(Number(r.id), to, remarks || undefined);
+                                    refetchReservations();
+                                    // Clear the remarks after successful update
+                                    setStatusRemarks((prev) => ({ ...prev, [r.id]: '' }));
+                                  } catch (e: any) {
+                                    alert(e?.message || 'Failed to update status');
+                                  }
+                                }}
+                              >
+                                Update
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ),
+          },
+        ]}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        gridCols="grid-cols-3"
+      />
+
+
+
 
       {/* Receipt Dialog */}
       <Dialog open={showReceipt} onOpenChange={setShowReceipt}>

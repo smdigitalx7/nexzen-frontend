@@ -8,6 +8,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import { DIALOG_SIZES } from '@/lib/constants/ui';
 
@@ -30,6 +32,15 @@ interface FormDialogProps {
   showErrors?: boolean;
   validateOnChange?: boolean;
   onValidate?: () => boolean;
+  
+  // Status update functionality
+  showStatusUpdate?: boolean;
+  currentStatus?: string;
+  newStatus?: string;
+  onStatusChange?: (value: string) => void;
+  statusOptions?: Array<{ value: string; label: string; color?: string }>;
+  getStatusColor?: (status: string) => string;
+  statusUpdateText?: string;
 }
 
 export const FormDialog: React.FC<FormDialogProps> = ({
@@ -51,6 +62,22 @@ export const FormDialog: React.FC<FormDialogProps> = ({
   showErrors = true,
   validateOnChange = false,
   onValidate,
+  
+  // Status update functionality
+  showStatusUpdate = false,
+  currentStatus,
+  newStatus,
+  onStatusChange,
+  statusOptions = [
+    { value: 'ACTIVE', label: 'ACTIVE', color: 'bg-green-100 text-green-800 border-green-200' },
+    { value: 'INACTIVE', label: 'INACTIVE', color: 'bg-red-100 text-red-800 border-red-200' },
+    { value: 'ON_LEAVE', label: 'ON_LEAVE', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  ],
+  getStatusColor = (status: string) => {
+    const option = statusOptions.find(opt => opt.value === status);
+    return option?.color || 'bg-gray-100 text-gray-800 border-gray-200';
+  },
+  statusUpdateText = 'Update Status',
 }) => {
   const handleCancel = () => {
     if (onCancel) {
@@ -72,6 +99,38 @@ export const FormDialog: React.FC<FormDialogProps> = ({
         
         <div className="max-h-[70vh] overflow-y-auto">
           {children}
+          
+          {/* Status Update Section */}
+          {showStatusUpdate && currentStatus && (
+            <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <h3 className="font-semibold text-lg mb-3">Status Update</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Current Status</label>
+                  <p className="text-lg font-semibold">
+                    <Badge className={getStatusColor(currentStatus)}>
+                      {currentStatus}
+                    </Badge>
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-600 dark:text-slate-400">New Status</label>
+                  <Select value={newStatus || currentStatus} onValueChange={onStatusChange}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Select new status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Error Display */}
           {showErrors && Object.keys(errors).length > 0 && (
@@ -103,10 +162,10 @@ export const FormDialog: React.FC<FormDialogProps> = ({
                 type="button"
                 variant={saveVariant}
                 onClick={onSave}
-                disabled={disabled || isLoading}
+                disabled={disabled || isLoading || (showStatusUpdate && newStatus === currentStatus)}
               >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {saveText}
+                {showStatusUpdate ? statusUpdateText : saveText}
               </Button>
             )}
           </DialogFooter>

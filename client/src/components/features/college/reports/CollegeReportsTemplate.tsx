@@ -20,7 +20,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DollarSign, TrendingUp } from "lucide-react";
+import { TabSwitcher } from "@/components/shared";
+import type { TabItem } from "@/components/shared/TabSwitcher";
 import { useCollegeIncomeList, useCollegeIncomeDashboard, useCollegeIncome } from "@/lib/hooks/college/use-college-income";
 import { useCollegeExpenditureList, useCollegeExpenditureDashboard } from "@/lib/hooks/college/use-college-expenditure";
 import { FinancialStatsCards } from "./components/FinancialStatsCards";
@@ -221,49 +223,54 @@ export const CollegeReportsTemplate = () => {
       )}
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="income" className="w-full">Income</TabsTrigger>
-          <TabsTrigger value="expenditure" className="w-full">Expenditure</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="income" className="space-y-6">
-          {incomeLoading ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : incomeError ? (
-            <div className="text-center py-8">
-              <p className="text-red-600">Error loading income data: {incomeError.message}</p>
-            </div>
-          ) : (
-            <IncomeTable
-              incomeData={incomeData}
-              onViewIncome={handleViewIncome}
-              onExportCSV={() => {}}
-              onAddIncome={() => setShowAddIncomeDialog(true)}
-            />
-          )}
-        </TabsContent>
-
-        <TabsContent value="expenditure" className="space-y-6">
-          {expenditureLoading ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : expenditureError ? (
-            <div className="text-center py-8">
-              <p className="text-red-600">Error loading expenditure data: {expenditureError.message}</p>
-            </div>
-          ) : (
-            <ExpenditureTable
-              expenditureData={expenditureData}
-              onExportCSV={() => {}}
-              onAddExpenditure={() => setShowAddExpenditureDialog(true)}
-            />
-          )}
-        </TabsContent>
-      </Tabs>
+      <TabSwitcher
+        tabs={[
+          {
+            value: "income",
+            label: "Income",
+            icon: DollarSign,
+            content: incomeLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : incomeError ? (
+              <div className="text-center py-8">
+                <p className="text-red-600">Error loading income data: {incomeError.message}</p>
+              </div>
+            ) : (
+              <IncomeTable
+                incomeData={incomeData}
+                onViewIncome={handleViewIncome}
+                onExportCSV={() => {}}
+                onAddIncome={() => setShowAddIncomeDialog(true)}
+              />
+            ),
+          },
+          {
+            value: "expenditure",
+            label: "Expenditure",
+            icon: TrendingUp,
+            content: expenditureLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : expenditureError ? (
+              <div className="text-center py-8">
+                <p className="text-red-600">Error loading expenditure data: {expenditureError.message}</p>
+              </div>
+            ) : (
+              <ExpenditureTable
+                expenditureData={expenditureData}
+                onExportCSV={() => {}}
+                onAddExpenditure={() => setShowAddExpenditureDialog(true)}
+              />
+            ),
+          },
+        ]}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        gridCols="grid-cols-2"
+      />
 
       {/* Export Dialog */}
       <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
@@ -282,9 +289,9 @@ export const CollegeReportsTemplate = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pdf">PDF Document</SelectItem>
-                  <SelectItem value="excel">Excel Spreadsheet</SelectItem>
-                  <SelectItem value="csv">CSV File</SelectItem>
+                  <SelectItem key="pdf" value="pdf">PDF Document</SelectItem>
+                  <SelectItem key="excel" value="excel">Excel Spreadsheet</SelectItem>
+                  <SelectItem key="csv" value="csv">CSV File</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -295,9 +302,9 @@ export const CollegeReportsTemplate = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="3months">Last 3 Months</SelectItem>
-                  <SelectItem value="6months">Last 6 Months</SelectItem>
-                  <SelectItem value="1year">Last Year</SelectItem>
+                  <SelectItem key="3months" value="3months">Last 3 Months</SelectItem>
+                  <SelectItem key="6months" value="6months">Last 6 Months</SelectItem>
+                  <SelectItem key="1year" value="1year">Last Year</SelectItem>
                 </SelectContent>
               </Select>
             </div>

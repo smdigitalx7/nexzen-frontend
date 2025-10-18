@@ -49,7 +49,7 @@ export const collegeKeys = {
   },
   reservations: {
     root: () => [...collegeKeys.root, "reservations"] as const,
-    list: (params?: { group_id?: number; course_id?: number; page?: number; pageSize?: number }) => [...collegeKeys.reservations.root(), "list", params ?? {}] as const,
+    list: (params?: { group_id?: number; course_id?: number; page?: number; page_size?: number }) => [...collegeKeys.reservations.root(), "list", params ?? {}] as const,
     detail: (id: number) => [...collegeKeys.reservations.root(), "detail", id] as const,
   },
   attendance: {

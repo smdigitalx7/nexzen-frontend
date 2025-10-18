@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Bus } from "lucide-react";
+import { Bus, Route, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabSwitcher } from "@/components/shared";
 import { useAuthStore } from "@/store/authStore";
 import { useBusRoutes, useDeleteBusRoute, useCreateBusRoute, useUpdateBusRoute } from "@/lib/hooks/general/useTransport";
 import { useDistanceSlabs } from "@/lib/hooks/general/useDistanceSlabs";
 import type { BusRouteRead } from "@/lib/types/general/transport";
-import type { DistanceSlabRead } from "@/lib/types/general/distance-slabs";
 import TransportOverview from "./TransportOverview";
 import BusRoutesTab from "./BusRoutesTab";
 import DistanceSlabsTab from "./DistanceSlabsTab";
@@ -40,6 +39,14 @@ const TransportManagement = () => {
 
   const [activeTab, setActiveTab] = useState("routes");
   const [searchTerm, setSearchTerm] = useState("");
+  const [isTabSwitching, setIsTabSwitching] = useState(false);
+
+  const handleTabChange = (value: string) => {
+    setIsTabSwitching(true);
+    setActiveTab(value);
+    // Reset switching state after animation
+    setTimeout(() => setIsTabSwitching(false), 300);
+  };
 
   // Calculate overview metrics
   const totalStudents = busRoutes.reduce((sum, route) => sum + route.students_count, 0);
@@ -82,49 +89,52 @@ const TransportManagement = () => {
       />
 
       {/* Tabs */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="routes">Bus Routes</TabsTrigger>
-            <TabsTrigger value="fees">Distance Slabs</TabsTrigger>
-          </TabsList>
-
-          {/* Bus Routes Tab */}
-          <TabsContent value="routes" className="space-y-4">
-            <BusRoutesTab
-              routesData={routesData}
-              busRoutes={busRoutes}
-              isLoading={routesLoading}
-              error={routesError}
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              onCreateRoute={(data) => createRouteMutation.mutate(data)}
-              onUpdateRoute={(data) => updateRouteMutation.mutate(data)}
-              onDeleteRoute={(id) => deleteRouteMutation.mutate(id)}
-              createRouteMutation={createRouteMutation}
-              updateRouteMutation={updateRouteMutation}
-              deleteRouteMutation={deleteRouteMutation}
-            />
-          </TabsContent>
-
-          {/* Distance Slabs Tab */}
-          <TabsContent value="fees" className="space-y-4">
-            <DistanceSlabsTab
-              slabsData={slabsData}
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              onCreateSlab={(data) => createFeeMutation.mutate(data)}
-              onUpdateSlab={(data) => updateFeeMutation.mutate(data)}
-              createFeeMutation={createFeeMutation}
-              updateFeeMutation={updateFeeMutation}
-            />
-          </TabsContent>
-        </Tabs>
-      </motion.div>
+      <TabSwitcher
+        tabs={[
+          {
+            value: "routes",
+            label: "Bus Routes",
+            icon: Route,
+            badge: busRoutes.length,
+            content: (
+              <BusRoutesTab
+                routesData={routesData}
+                busRoutes={busRoutes}
+                isLoading={routesLoading}
+                error={routesError}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                onCreateRoute={(data) => createRouteMutation.mutate(data)}
+                onUpdateRoute={(data) => updateRouteMutation.mutate(data)}
+                onDeleteRoute={(id) => deleteRouteMutation.mutate(id)}
+                createRouteMutation={createRouteMutation}
+                updateRouteMutation={updateRouteMutation}
+                deleteRouteMutation={deleteRouteMutation}
+              />
+            ),
+          },
+          {
+            value: "fees",
+            label: "Distance Slabs",
+            icon: DollarSign,
+            badge: slabsData.length,
+            content: (
+              <DistanceSlabsTab
+                slabsData={slabsData}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                onCreateSlab={(data) => createFeeMutation(data)}
+                onUpdateSlab={(data) => updateFeeMutation(data)}
+                createFeeMutation={createFeeMutation}
+                updateFeeMutation={updateFeeMutation}
+              />
+            ),
+          },
+        ]}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        gridCols="grid-cols-2"
+      />
     </div>
   );
 };

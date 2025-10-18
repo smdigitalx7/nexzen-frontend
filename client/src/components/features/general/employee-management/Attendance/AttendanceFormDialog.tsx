@@ -1,9 +1,8 @@
 import React, { useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FormDialog } from "@/components/shared";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 
@@ -81,15 +80,28 @@ const AttendanceFormDialog = ({ open, onOpenChange, isEditing, employees, formDa
 
   const validationMessage = getValidationMessage();
 
+  const isLoading = isCreatePending || isUpdatePending;
+  
+  const handleSave = () => {
+    const form = document.getElementById('attendance-form') as HTMLFormElement;
+    if (form) {
+      form.requestSubmit();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Edit Attendance Record" : "Add Attendance Record"}
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={onSubmit} className="space-y-4">
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={isEditing ? "Edit Attendance Record" : "Add Attendance Record"}
+      description={isEditing ? "Update attendance information" : "Create a new attendance record"}
+      size="LARGE"
+      isLoading={isLoading}
+      onSave={handleSave}
+      saveText={isEditing ? "Update" : "Create"}
+      cancelText="Cancel"
+    >
+      <form id="attendance-form" onSubmit={onSubmit} className="space-y-4">
           {validationMessage && (
             <Alert variant="destructive">
               <Info className="h-4 w-4" />
@@ -212,27 +224,9 @@ const AttendanceFormDialog = ({ open, onOpenChange, isEditing, employees, formDa
             <div></div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={isCreatePending || isUpdatePending || !isFormValid()}
-            >
-              {isCreatePending || isUpdatePending
-                ? "Saving..."
-                : isEditing
-                ? "Update Attendance"
-                : "Add Attendance"}
-            </Button>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 };
 
 export default React.memo(AttendanceFormDialog);
-
-

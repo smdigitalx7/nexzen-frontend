@@ -1,14 +1,5 @@
 import React from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/shared";
 
 interface AdvanceStatusDialogProps {
   open: boolean;
@@ -18,22 +9,16 @@ interface AdvanceStatusDialogProps {
 
 const AdvanceStatusDialog = ({ open, onOpenChange, onApprove }: AdvanceStatusDialogProps) => {
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Update Advance Status</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to update the status of this advance?
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onApprove} className="bg-green-600 hover:bg-green-700">
-            Approve
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Update Advance Status"
+      description="Are you sure you want to update the status of this advance?"
+      confirmText="Approve"
+      cancelText="Cancel"
+      variant="default"
+      onConfirm={onApprove}
+    />
   );
 };
 

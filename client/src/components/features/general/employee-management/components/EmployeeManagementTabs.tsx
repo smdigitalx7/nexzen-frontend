@@ -1,12 +1,12 @@
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabSwitcher } from "@/components/shared";
 import { EmployeeTable } from "./EmployeeTable";
 import { AttendanceTable } from "./AttendanceTable";
 import { LeavesTable } from "./LeavesTable";
-import { AttendanceStatsCards } from "./AttendanceStatsCards";
+import { AdvancesTable } from "../Advance/AdvancesTable";
 import EmployeeLeavesList from "../employee/EmployeeLeavesList";
-import EmployeeAdvancesList from "../employee/EmployeeAdvancesList";
+import { Users, Calendar, FileText, DollarSign } from "lucide-react";
+import type { TabItem } from "@/components/shared/TabSwitcher";
 
 interface EmployeeManagementTabsProps {
   // Data
@@ -57,6 +57,7 @@ interface EmployeeManagementTabsProps {
   onApproveAdvance: (advance: any) => void;
   onEditAdvance: (advance: any) => void;
   onDeleteAdvance: (advance: any) => void;
+  onViewAdvance: (advance: any) => void;
   onUpdateAmount: (advance: any) => void;
   onRejectAdvance: (advance: any) => void;
 }
@@ -97,19 +98,16 @@ export const EmployeeManagementTabs = ({
   onApproveAdvance,
   onEditAdvance,
   onDeleteAdvance,
+  onViewAdvance,
   onUpdateAmount,
   onRejectAdvance,
 }: EmployeeManagementTabsProps) => {
-  return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-      <TabsList className="grid w-full grid-cols-4">
-        <TabsTrigger value="employees">Employees</TabsTrigger>
-        <TabsTrigger value="attendance">Attendance</TabsTrigger>
-        <TabsTrigger value="leaves">Leaves</TabsTrigger>
-        <TabsTrigger value="advances">Advances</TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="employees" className="space-y-4">
+  const tabs: TabItem[] = [
+    {
+      value: "employees",
+      label: "Employees",
+      icon: Users,
+      content: (
         <EmployeeTable
           employees={employees}
           isLoading={false}
@@ -119,120 +117,66 @@ export const EmployeeManagementTabs = ({
           onViewEmployee={onViewEmployee}
           onUpdateStatus={onUpdateStatus}
         />
-      </TabsContent>
+      ),
+    },
+    {
+      value: "attendance",
+      label: "Attendance",
+      icon: Calendar,
+      content: (
+        <AttendanceTable
+          attendance={attendance}
+          isLoading={attendanceLoading}
+          onAddAttendance={onAddAttendance}
+          onEditAttendance={onEditAttendance}
+          onDeleteAttendance={onDeleteAttendance}
+          onViewAttendance={onViewAttendance}
+        />
+      ),
+    },
+    {
+      value: "leaves",
+      label: "Leaves",
+      icon: FileText,
+      content: (
+        <LeavesTable
+          leaves={leaves}
+          isLoading={leavesLoading}
+          onAddLeave={onAddLeave}
+          onEditLeave={onEditLeave}
+          onDeleteLeave={(id) => onDeleteLeave({ leave_id: id })}
+          onViewLeave={onViewLeave}
+          onApproveLeave={onApproveLeave}
+          onRejectLeave={onRejectLeave}
+        />
+      ),
+    },
+    {
+      value: "advances",
+      label: "Advances",
+      icon: DollarSign,
+      content: (
+        <AdvancesTable
+          advances={advances}
+          isLoading={advancesLoading}
+          onAddAdvance={onAddAdvance}
+          onEditAdvance={onEditAdvance}
+          onDeleteAdvance={onDeleteAdvance}
+          onViewAdvance={onViewAdvance}
+          onApproveAdvance={onApproveAdvance}
+          onRejectAdvance={onRejectAdvance}
+          onUpdateAmount={onUpdateAmount}
+        />
+      ),
+    },
+  ];
 
-      <TabsContent value="attendance" className="space-y-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="space-y-4"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold">Employee Attendance Management</h2>
-              <p className="text-muted-foreground">
-                Track employee attendance and working hours
-              </p>
-            </div>
-          </div>
-
-          {/* Attendance Statistics Cards */}
-          <AttendanceStatsCards
-            totalRecords={attendance.length}
-            averageAttendance={attendance.length > 0 ? 
-              (attendance.reduce((sum, record) => sum + (record.days_present / record.total_working_days * 100), 0) / attendance.length) : 0
-            }
-            totalLateArrivals={attendance.reduce((sum, record) => sum + record.late_arrivals, 0)}
-            totalEarlyDepartures={attendance.reduce((sum, record) => sum + record.early_departures, 0)}
-            totalPaidLeaves={attendance.reduce((sum, record) => sum + record.paid_leaves, 0)}
-            totalUnpaidLeaves={attendance.reduce((sum, record) => sum + record.unpaid_leaves, 0)}
-          />
-          
-          <AttendanceTable
-            attendance={attendance}
-            isLoading={attendanceLoading}
-            onAddAttendance={onAddAttendance}
-            onEditAttendance={onEditAttendance}
-            onDeleteAttendance={onDeleteAttendance}
-            onViewAttendance={onViewAttendance}
-          />
-        </motion.div>
-      </TabsContent>
-
-      <TabsContent value="leaves" className="space-y-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="space-y-4"
-        >
-          
-          <LeavesTable
-            leaves={leaves}
-            isLoading={leavesLoading}
-            onAddLeave={onAddLeave}
-            onEditLeave={onEditLeave}
-            onDeleteLeave={(id) => onDeleteLeave({ leave_id: id })}
-            onViewLeave={onViewLeave}
-            onApproveLeave={onApproveLeave}
-            onRejectLeave={onRejectLeave}
-          />
-        </motion.div>
-      </TabsContent>
-
-      <TabsContent value="advances" className="space-y-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="space-y-4"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold">Employee Advance Management</h2>
-              <p className="text-muted-foreground">
-                Manage employee advance requests and payments
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex gap-2">
-              <Button onClick={onAddAdvance}>
-                Add Advance
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              <select className="px-3 py-2 border rounded-md text-sm">
-                <option value="">All Status</option>
-                <option value="PENDING">Pending</option>
-                <option value="APPROVED">Approved</option>
-                <option value="REJECTED">Rejected</option>
-              </select>
-              <input 
-                type="text" 
-                placeholder="Search by employee name..." 
-                className="px-3 py-2 border rounded-md text-sm w-64"
-              />
-            </div>
-          </div>
-          
-          <EmployeeAdvancesList
-            advances={advances}
-            employees={employees}
-            onApprove={onApproveAdvance}
-            onEdit={onEditAdvance}
-            onDelete={onDeleteAdvance}
-            onUpdateAmount={onUpdateAmount}
-            onReject={onRejectAdvance}
-            page={advancesPage}
-            pageSize={pageSize}
-            total={advances.length}
-            setPage={setAdvancesPage}
-          />
-        </motion.div>
-      </TabsContent>
-    </Tabs>
+  return (
+    <TabSwitcher
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      gridCols="grid-cols-4"
+    />
   );
 };

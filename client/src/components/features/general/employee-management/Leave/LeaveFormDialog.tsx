@@ -1,10 +1,9 @@
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FormDialog } from "@/components/shared";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 
 interface LeaveFormData {
   employee_id: number | null;
@@ -30,15 +29,28 @@ interface LeaveFormDialogProps {
 }
 
 const LeaveFormDialog = ({ open, onOpenChange, isEditing, employees, formData, onChange, onSubmit, isCreatePending, isUpdatePending, calculateLeaveDays }: LeaveFormDialogProps) => {
+  const isLoading = isCreatePending || isUpdatePending;
+  
+  const handleSave = () => {
+    const form = document.getElementById('leave-form') as HTMLFormElement;
+    if (form) {
+      form.requestSubmit();
+    }
+  };
+  
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Edit Leave Request" : "Add Leave Request"}
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={onSubmit} className="space-y-4">
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={isEditing ? "Edit Leave Request" : "Add Leave Request"}
+      description={isEditing ? "Update leave request details" : "Create a new leave request"}
+      size="LARGE"
+      isLoading={isLoading}
+      onSave={handleSave}
+      saveText={isEditing ? "Update" : "Create"}
+      cancelText="Cancel"
+    >
+      <form id="leave-form" onSubmit={onSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="leave_employee_id">Employee *</Label>
@@ -151,22 +163,8 @@ const LeaveFormDialog = ({ open, onOpenChange, isEditing, employees, formData, o
               required
             />
           </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isCreatePending || isUpdatePending}>
-              {isCreatePending || isUpdatePending
-                ? "Saving..."
-                : isEditing
-                ? "Update Leave"
-                : "Add Leave"}
-            </Button>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 };
 

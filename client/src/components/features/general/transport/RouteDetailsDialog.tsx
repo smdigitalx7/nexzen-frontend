@@ -1,15 +1,7 @@
 import { Bus, Route } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { FormDialog } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 interface RouteDetailsDialogProps {
   isOpen: boolean;
@@ -21,17 +13,14 @@ interface RouteDetailsDialogProps {
 
 const RouteDetailsDialog = ({ isOpen, onClose, routeData, isLoading, error }: RouteDetailsDialogProps) => {
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Bus className="h-5 w-5" />
-            Route Details
-          </DialogTitle>
-          <DialogDescription>
-            Complete information for {routeData?.route_name || 'this route'}
-          </DialogDescription>
-        </DialogHeader>
+    <FormDialog
+      open={isOpen}
+      onOpenChange={onClose}
+      title="Route Details"
+      description={`Complete information for ${routeData?.route_name || 'this route'}`}
+      size="LARGE"
+      showFooter={false}
+    >
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
@@ -143,13 +132,7 @@ const RouteDetailsDialog = ({ isOpen, onClose, routeData, isLoading, error }: Ro
             </Card>
           </div>
         ) : null}
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 };
 

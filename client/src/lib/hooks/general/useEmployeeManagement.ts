@@ -130,6 +130,8 @@ export const useEmployeeManagement = (viewMode: "branch" | "institute" = "branch
   
   // Attendance form state
   const [showAttendanceForm, setShowAttendanceForm] = useState(false);
+  const [showAttendanceViewDialog, setShowAttendanceViewDialog] = useState(false);
+  const [attendanceToView, setAttendanceToView] = useState<EmployeeAttendanceRead | null>(null);
   const [isEditingAttendance, setIsEditingAttendance] = useState(false);
   const [attendanceToDelete, setAttendanceToDelete] = useState<EmployeeAttendanceRead | null>(null);
   const [showAttendanceDeleteDialog, setShowAttendanceDeleteDialog] = useState(false);
@@ -147,6 +149,8 @@ export const useEmployeeManagement = (viewMode: "branch" | "institute" = "branch
   
   // Leave form state
   const [showLeaveForm, setShowLeaveForm] = useState(false);
+  const [showLeaveViewDialog, setShowLeaveViewDialog] = useState(false);
+  const [leaveToView, setLeaveToView] = useState<EmployeeLeaveRead | null>(null);
   const [isEditingLeave, setIsEditingLeave] = useState(false);
   const [leaveToDelete, setLeaveToDelete] = useState<EmployeeLeaveRead | null>(null);
   const [showLeaveDeleteDialog, setShowLeaveDeleteDialog] = useState(false);
@@ -166,6 +170,8 @@ export const useEmployeeManagement = (viewMode: "branch" | "institute" = "branch
   
   // Advance form state
   const [showAdvanceForm, setShowAdvanceForm] = useState(false);
+  const [showAdvanceViewDialog, setShowAdvanceViewDialog] = useState(false);
+  const [advanceToView, setAdvanceToView] = useState<AdvanceRead | null>(null);
   const [isEditingAdvance, setIsEditingAdvance] = useState(false);
   const [advanceToDelete, setAdvanceToDelete] = useState<AdvanceRead | null>(null);
   const [showAdvanceDeleteDialog, setShowAdvanceDeleteDialog] = useState(false);
@@ -281,6 +287,11 @@ export const useEmployeeManagement = (viewMode: "branch" | "institute" = "branch
       console.error('Error deleting attendance:', error);
     }
   };
+
+  const handleViewAttendance = (attendance: EmployeeAttendanceRead) => {
+    setAttendanceToView(attendance);
+    setShowAttendanceViewDialog(true);
+  };
   
   const handleCreateLeave = async (data: EmployeeLeaveCreate) => {
     try {
@@ -326,6 +337,11 @@ export const useEmployeeManagement = (viewMode: "branch" | "institute" = "branch
     } catch (error) {
       console.error('Error rejecting leave:', error);
     }
+  };
+
+  const handleViewLeave = (leave: EmployeeLeaveRead) => {
+    setLeaveToView(leave);
+    setShowLeaveViewDialog(true);
   };
   
   const handleCreateAdvance = async (data: AdvanceCreate) => {
@@ -418,6 +434,10 @@ export const useEmployeeManagement = (viewMode: "branch" | "institute" = "branch
     // Attendance state
     showAttendanceForm,
     setShowAttendanceForm,
+    showAttendanceViewDialog,
+    setShowAttendanceViewDialog,
+    attendanceToView,
+    setAttendanceToView,
     isEditingAttendance,
     setIsEditingAttendance,
     attendanceToDelete,
@@ -430,6 +450,10 @@ export const useEmployeeManagement = (viewMode: "branch" | "institute" = "branch
     // Leave state
     showLeaveForm,
     setShowLeaveForm,
+    showLeaveViewDialog,
+    setShowLeaveViewDialog,
+    leaveToView,
+    setLeaveToView,
     isEditingLeave,
     setIsEditingLeave,
     leaveToDelete,
@@ -450,6 +474,10 @@ export const useEmployeeManagement = (viewMode: "branch" | "institute" = "branch
     // Advance state
     showAdvanceForm,
     setShowAdvanceForm,
+    showAdvanceViewDialog,
+    setShowAdvanceViewDialog,
+    advanceToView,
+    setAdvanceToView,
     isEditingAdvance,
     setIsEditingAdvance,
     advanceToDelete,
@@ -473,11 +501,13 @@ export const useEmployeeManagement = (viewMode: "branch" | "institute" = "branch
     handleCreateAttendance,
     handleUpdateAttendance,
     handleDeleteAttendance,
+    handleViewAttendance,
     handleCreateLeave,
     handleUpdateLeave,
     handleDeleteLeave,
     handleApproveLeave,
     handleRejectLeave,
+    handleViewLeave,
     handleCreateAdvance,
     handleUpdateAdvance,
     handleUpdateAdvanceStatus,

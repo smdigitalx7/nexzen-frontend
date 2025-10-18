@@ -3,10 +3,13 @@ import EmployeeFormDialog from "../employee/EmployeeFormDialog";
 import EmployeeDetailDialog from "../employee/EmployeeDetailDialog";
 import EmployeeDeleteDialog from "../employee/EmployeeDeleteDialog";
 import AttendanceFormDialog from "../Attendance/AttendanceFormDialog";
+import { AttendanceViewDialog } from "../Attendance/AttendanceViewDialog";
 import LeaveFormDialog from "../Leave/LeaveFormDialog";
+import { LeaveViewDialog } from "../Leave/LeaveViewDialog";
 import LeaveApproveDialog from "../Leave/LeaveApproveDialog";
 import LeaveRejectDialog from "../Leave/LeaveRejectDialog";
 import AdvanceFormDialog from "../Advance/AdvanceFormDialog";
+import { AdvanceViewDialog } from "../Advance/AdvanceViewDialog";
 import AdvanceStatusDialog from "../Advance/AdvanceStatusDialog";
 import AdvanceAmountDialog from "../Advance/AdvanceAmountDialog";
 import AdvanceDeleteDialog from "../Advance/AdvanceDeleteDialog";
@@ -30,6 +33,10 @@ interface EmployeeManagementDialogsProps {
   // Attendance dialogs
   showAttendanceForm: boolean;
   setShowAttendanceForm: (show: boolean) => void;
+  showAttendanceViewDialog: boolean;
+  setShowAttendanceViewDialog: (show: boolean) => void;
+  attendanceToView: any;
+  setAttendanceToView: (attendance: any) => void;
   isEditingAttendance: boolean;
   attendanceToDelete: any;
   setAttendanceToDelete: (attendance: any) => void;
@@ -41,6 +48,10 @@ interface EmployeeManagementDialogsProps {
   // Leave dialogs
   showLeaveForm: boolean;
   setShowLeaveForm: (show: boolean) => void;
+  showLeaveViewDialog: boolean;
+  setShowLeaveViewDialog: (show: boolean) => void;
+  leaveToView: any;
+  setLeaveToView: (leave: any) => void;
   isEditingLeave: boolean;
   leaveToDelete: any;
   setLeaveToDelete: (leave: any) => void;
@@ -60,6 +71,10 @@ interface EmployeeManagementDialogsProps {
   // Advance dialogs
   showAdvanceForm: boolean;
   setShowAdvanceForm: (show: boolean) => void;
+  showAdvanceViewDialog: boolean;
+  setShowAdvanceViewDialog: (show: boolean) => void;
+  advanceToView: any;
+  setAdvanceToView: (advance: any) => void;
   isEditingAdvance: boolean;
   advanceToDelete: any;
   setAdvanceToDelete: (advance: any) => void;
@@ -115,6 +130,10 @@ export const EmployeeManagementDialogs = ({
   // Attendance dialogs
   showAttendanceForm,
   setShowAttendanceForm,
+  showAttendanceViewDialog,
+  setShowAttendanceViewDialog,
+  attendanceToView,
+  setAttendanceToView,
   isEditingAttendance,
   attendanceToDelete,
   setAttendanceToDelete,
@@ -126,6 +145,10 @@ export const EmployeeManagementDialogs = ({
   // Leave dialogs
   showLeaveForm,
   setShowLeaveForm,
+  showLeaveViewDialog,
+  setShowLeaveViewDialog,
+  leaveToView,
+  setLeaveToView,
   isEditingLeave,
   leaveToDelete,
   setLeaveToDelete,
@@ -145,6 +168,10 @@ export const EmployeeManagementDialogs = ({
   // Advance dialogs
   showAdvanceForm,
   setShowAdvanceForm,
+  showAdvanceViewDialog,
+  setShowAdvanceViewDialog,
+  advanceToView,
+  setAdvanceToView,
   isEditingAdvance,
   advanceToDelete,
   setAdvanceToDelete,
@@ -182,6 +209,14 @@ export const EmployeeManagementDialogs = ({
 }: EmployeeManagementDialogsProps) => {
   return (
     <>
+      {/* Attendance View Dialog */}
+      <AttendanceViewDialog
+        open={showAttendanceViewDialog}
+        onOpenChange={setShowAttendanceViewDialog}
+        attendance={attendanceToView}
+        employee={attendanceToView ? employees.find((e: any) => e.employee_id === attendanceToView.employee_id) : null}
+      />
+      
       {/* Attendance Delete Confirm Dialog */}
       <ConfirmDialog
         open={showAttendanceDeleteDialog}
@@ -195,6 +230,14 @@ export const EmployeeManagementDialogs = ({
           setShowAttendanceDeleteDialog(false);
           setAttendanceToDelete(null as any);
         }}
+      />
+      
+      {/* Leave View Dialog */}
+      <LeaveViewDialog
+        open={showLeaveViewDialog}
+        onOpenChange={setShowLeaveViewDialog}
+        leave={leaveToView}
+        employee={leaveToView ? employees.find((e: any) => e.employee_id === leaveToView.employee_id) : null}
       />
       
       {/* Leave Form Dialog */}
@@ -267,6 +310,14 @@ export const EmployeeManagementDialogs = ({
         }}
         isCreatePending={false}
         isUpdatePending={false}
+      />
+      
+      {/* Advance View Dialog */}
+      <AdvanceViewDialog
+        open={showAdvanceViewDialog}
+        onOpenChange={setShowAdvanceViewDialog}
+        advance={advanceToView}
+        employee={advanceToView ? employees.find((e: any) => e.employee_id === advanceToView.employee_id) : null}
       />
       
       {/* Advance Status Dialog */}

@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { useMemo } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CreditCard, DollarSign, Truck } from "lucide-react";
+import { TabSwitcher } from "@/components/shared";
+import type { TabItem } from "@/components/shared/TabSwitcher";
 import { useSchoolFeesManagement } from "@/lib/hooks/school/use-school-fees-management";
 import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalancesPanel";
 import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeBalancesPanel";
@@ -78,28 +80,31 @@ export const FeesManagement = () => {
       />
 
       {/* Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="collect">Collect Fees</TabsTrigger>
-          <TabsTrigger value="tuition-balances">Tuition Fee Balances</TabsTrigger>
-          <TabsTrigger value="transport-balances">Transport Fee Balances</TabsTrigger>          
-        </TabsList>
-
-        <TabsContent value="collect" className="space-y-4">
-          <CollectFee />
-        </TabsContent>
-
-        <TabsContent value="tuition-balances" className="space-y-4">
-          <TuitionFeeBalancesPanel onViewStudent={() => {}} onExportCSV={() => {}} />
-        </TabsContent>
-
-        <TabsContent value="transport-balances" className="space-y-4">
-          <TransportFeeBalancesPanel onViewStudent={() => {}} onExportCSV={() => {}} />
-        </TabsContent>
-
-        
-
-      </Tabs>
+      <TabSwitcher
+        tabs={[
+          {
+            value: "collect",
+            label: "Collect Fees",
+            icon: CreditCard,
+            content: <CollectFee />,
+          },
+          {
+            value: "tuition-balances",
+            label: "Tuition Fee Balances",
+            icon: DollarSign,
+            content: <TuitionFeeBalancesPanel onViewStudent={() => {}} onExportCSV={() => {}} />,
+          },
+          {
+            value: "transport-balances",
+            label: "Transport Fee Balances",
+            icon: Truck,
+            content: <TransportFeeBalancesPanel onViewStudent={() => {}} onExportCSV={() => {}} />,
+          },
+        ]}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        gridCols="grid-cols-3"
+      />
 
     </div>
   );

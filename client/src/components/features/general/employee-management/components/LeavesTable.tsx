@@ -4,13 +4,10 @@ import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn,
   createDateColumn,
-  createBadgeColumn,
   createActionColumn,
   createViewAction,
   createEditAction,
-  createDeleteAction,
-  StatusColors,
-  StatusIcons
+  createDeleteAction
 } from "@/lib/utils/columnFactories.tsx";
 import { EmployeeLeaveRead } from "@/lib/types/general/employee-leave";
 
@@ -42,11 +39,7 @@ export const LeavesTable = ({
     createTextColumn<EmployeeLeaveRead>("leave_type", { header: "Leave Type", className: "capitalize" }),
     createDateColumn<EmployeeLeaveRead>("from_date", { header: "From Date" }),
     createDateColumn<EmployeeLeaveRead>("to_date", { header: "To Date" }),
-    { 
-      accessorKey: "total_days", 
-      header: "Days", 
-      cell: ({ row }) => <span className="font-medium">{row.original.total_days}</span>
-    },
+    createTextColumn<EmployeeLeaveRead>("total_days", { header: "Days", className: "font-medium" }),
     { 
       accessorKey: "leave_status", 
       header: "Status", 
@@ -90,10 +83,11 @@ export const LeavesTable = ({
   return (
     <DataTableWithFilters
       data={leaves}
-      columns={columns}
+      columns={columns as any}
       title="Employee Leaves"
       description="Manage employee leave requests and approvals"
-      searchKey="employee_name"
+      searchKey={false as any}
+      showSearch={false}
       exportable={true}
       onAdd={onAddLeave}
     />

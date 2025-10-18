@@ -1,15 +1,7 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { FormDialog } from "@/components/shared";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 interface DistanceSlabFormDialogProps {
   isOpen: boolean;
@@ -54,7 +46,7 @@ const DistanceSlabFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingS
   const handleSubmit = () => {
     if (isEditing && editingSlab) {
       onSubmit({
-        id: editingSlab.slab_id,
+        id: editingSlab.id,
         data: {
           slab_name: formData.slab_name || undefined,
           min_distance: formData.min_distance ? parseFloat(formData.min_distance) : undefined,
@@ -74,16 +66,22 @@ const DistanceSlabFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingS
     onClose();
   };
 
+  const handleSave = () => {
+    handleSubmit();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Distance Slab" : "Add Distance Slab"}</DialogTitle>
-          <DialogDescription>
-            {isEditing ? "Update distance slab details" : "Define fee by distance range"}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
+    <FormDialog
+      open={isOpen}
+      onOpenChange={onClose}
+      title={isEditing ? "Edit Distance Slab" : "Add Distance Slab"}
+      description={isEditing ? "Update distance slab details" : "Define fee by distance range"}
+      size="MEDIUM"
+      onSave={handleSave}
+      saveText={isEditing ? "Update Slab" : "Add Slab"}
+      cancelText="Cancel"
+    >
+      <div className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
             <div>
               <Label htmlFor="slab_name">Slab Name</Label>
@@ -128,16 +126,7 @@ const DistanceSlabFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingS
             </div>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit}>
-            {isEditing ? "Update Slab" : "Add Slab"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 };
 

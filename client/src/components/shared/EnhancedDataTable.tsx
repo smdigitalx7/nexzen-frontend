@@ -11,10 +11,11 @@ import {
   useReactTable,
   ColumnFiltersState,
 } from '@tanstack/react-table';
-import { ArrowUpDown, Search, Download, Filter, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ArrowUpDown, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LoadingStates } from '@/components/ui/loading';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -25,13 +26,12 @@ interface EnhancedDataTableProps<TData> {
   columns: ColumnDef<TData>[];
   title?: string;
   searchKey?: keyof TData;
-  exportable?: boolean;
+  searchPlaceholder?: string;
   selectable?: boolean;
   className?: string;
   // New performance props
   enableVirtualization?: boolean;
   virtualThreshold?: number;
-  isMobile?: boolean;
   loading?: boolean;
 }
 
@@ -40,12 +40,11 @@ function EnhancedDataTableComponent<TData>({
   columns,
   title,
   searchKey,
-  exportable = false,
+  searchPlaceholder = "Search...",
   selectable = false,
   className,
   enableVirtualization = false,
   virtualThreshold = 100,
-  isMobile = false,
   loading = false,
 }: EnhancedDataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -84,85 +83,18 @@ function EnhancedDataTableComponent<TData>({
     },
   });
 
-  const handleExport = useCallback(() => {
-    const csvContent = [
-      columns.map(col => (col as any).header || (col as any).accessorKey).join(','),
-      ...data.map(row => 
-        columns.map(col => {
-          const key = (col as any).accessorKey;
-          return key ? (row as any)[key] : '';
-        }).join(',')
-      )
-    ].join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${title || 'data'}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, [data, columns, title]);
 
   const truncateText = useCallback((text: string, maxLength: number = 20) => {
     if (!text || text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
   }, []);
 
-  // Mobile card view component
-  const MobileCardView = useCallback(() => {
-    if (!isMobile) return null;
-
-    return (
-      <div className="space-y-4">
-        {table.getRowModel().rows?.length ? (
-          table.getRowModel().rows.map((row, index) => (
-            <motion.div
-              key={row.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, delay: index * 0.05 }}
-            >
-              <Card className="p-4 hover-elevate">
-                <div className="space-y-3">
-                  {row.getVisibleCells().map((cell, cellIndex) => {
-                    const column = cell.column.columnDef;
-                    const header = typeof column.header === 'string' ? column.header : column.id;
-                    const value = flexRender(column.cell, cell.getContext());
-                    
-                    return (
-                      <div key={cell.id} className="flex justify-between items-start">
-                        <span className="text-sm font-medium text-muted-foreground min-w-0 flex-1">
-                          {header}:
-                        </span>
-                        <span className="text-sm text-right min-w-0 flex-1 ml-2">
-                          {value}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-            </motion.div>
-          ))
-        ) : (
-          <div className="text-center py-8">
-            <Filter className="h-8 w-8 mx-auto mb-2 opacity-20" />
-            <p className="text-muted-foreground">No results found.</p>
-          </div>
-        )}
-      </div>
-    );
-  }, [isMobile, table]);
 
   // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2 text-muted-foreground">Loading data...</span>
+      <div className="py-8">
+        <LoadingStates.Data message="Loading data..." />
       </div>
     );
   }
@@ -174,115 +106,82 @@ function EnhancedDataTableComponent<TData>({
       transition={{ duration: 0.3 }}
       className={cn('space-y-4', className)}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          {title && <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>}
-          <p className="text-sm text-muted-foreground mt-1">
-            {table.getFilteredRowModel().rows.length} of {data.length} entries
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {exportable && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              className="hover-elevate"
-              data-testid="button-export"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-          )}
-        </div>
-      </div>
+       {/* Header */}
+       <div className="flex items-center justify-between bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-700">
+         <div className="flex items-center gap-6">
+           <div className="space-y-1">
+             {title && (
+               <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                 {title}
+               </h2>
+             )}
+           </div>
+           <div className="relative">
+             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 dark:text-slate-300 h-4 w-4 z-10 pointer-events-none" />
+             <Input
+               placeholder={searchPlaceholder}
+               value={globalFilter ?? ''}
+               onChange={(e) => setGlobalFilter(e.target.value)}
+               className="pl-10 w-80 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-slate-400 dark:hover:border-slate-500"
+               data-testid="input-search"
+             />
+           </div>
+         </div>
+         <div className="flex items-center gap-2">
+         </div>
+       </div>
 
-      {/* Filters */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-1">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search..."
-              value={globalFilter ?? ''}
-              onChange={(e) => setGlobalFilter(e.target.value)}
-              className="pl-10"
-              data-testid="input-search"
-            />
-          </div>
-          <Select 
-            value={pagination.pageSize.toString()} 
-            onValueChange={(value) => {
-              const newPageSize = Number(value);
-              setPagination(prev => ({ ...prev, pageSize: newPageSize, pageIndex: 0 }));
-            }}
-          >
-            <SelectTrigger className="w-24" data-testid="select-page-size">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="10">10</SelectItem>
-              <SelectItem value="25">25</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Table - Mobile or Desktop */}
-      {isMobile ? (
-        <MobileCardView />
-      ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="hover:bg-transparent">
-                  {headerGroup.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      className={cn(
-                        'sticky top-0 z-10 bg-muted/50 font-semibold',
-                        header.column.getCanSort() && 'cursor-pointer hover:bg-muted/70'
-                      )}
-                      onClick={header.column.getToggleSortingHandler()}
-                      style={{ minWidth: '120px', maxWidth: '300px' }}
-                      data-testid={`header-${header.id}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getCanSort() && (
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.15 }}
-                          >
-                            <ArrowUpDown className="h-3 w-3" />
-                          </motion.div>
-                        )}
-                      </div>
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
+       {/* Table */}
+         <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-lg bg-white dark:bg-slate-900">
+           <Table>
+             <TableHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
+               {table.getHeaderGroups().map((headerGroup) => (
+                 <TableRow key={headerGroup.id} className="hover:bg-transparent border-b border-slate-200 dark:border-slate-700">
+                   {headerGroup.headers.map((header) => (
+                     <TableHead
+                       key={header.id}
+                       className={cn(
+                         'sticky top-0 z-10 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 font-bold text-slate-700 dark:text-slate-300 py-4 px-6',
+                         header.column.getCanSort() && 'cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors duration-200'
+                       )}
+                       onClick={header.column.getToggleSortingHandler()}
+                       style={{ minWidth: '120px', maxWidth: '300px' }}
+                       data-testid={`header-${header.id}`}
+                     >
+                       <div className="flex items-center gap-2">
+                         {header.isPlaceholder
+                           ? null
+                           : flexRender(header.column.columnDef.header, header.getContext())}
+                         {header.column.getCanSort() && (
+                           <motion.div
+                             initial={{ opacity: 0 }}
+                             animate={{ opacity: 1 }}
+                             transition={{ duration: 0.15 }}
+                             className="text-slate-500 dark:text-slate-400"
+                           >
+                             <ArrowUpDown className="h-4 w-4" />
+                           </motion.div>
+                         )}
+                       </div>
+                     </TableHead>
+                   ))}
+                 </TableRow>
+               ))}
+             </TableHeader>
+            <TableBody className="bg-white dark:bg-slate-900">
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row, index) => (
                   <motion.tr
                     key={row.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2, delay: index * 0.02 }}
-                    className="hover:bg-muted/50 hover-elevate"
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 border-b border-slate-100 dark:border-slate-800 group"
                     data-state={row.getIsSelected() && 'selected'}
                     data-testid={`row-${row.id}`}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="truncate max-w-[200px]">
+                      <TableCell key={cell.id} className="truncate max-w-[200px] py-4 px-6 text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-200">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
@@ -290,10 +189,17 @@ function EnhancedDataTableComponent<TData>({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
-                    <div className="text-muted-foreground">
-                      <Filter className="h-8 w-8 mx-auto mb-2 opacity-20" />
-                      No results found.
+                  <TableCell colSpan={columns.length} className="h-32 text-center bg-slate-50 dark:bg-slate-800">
+                    <div className="flex flex-col items-center justify-center space-y-3">
+                      <div className="w-16 h-16 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center">
+                        <Filter className="h-8 w-8 text-slate-400 dark:text-slate-500" />
+                      </div>
+                      <div className="text-slate-500 dark:text-slate-400 font-medium">
+                        No results found
+                      </div>
+                      <div className="text-sm text-slate-400 dark:text-slate-500">
+                        Try adjusting your filters or search criteria
+                      </div>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -301,71 +207,64 @@ function EnhancedDataTableComponent<TData>({
             </TableBody>
           </Table>
         </div>
-      )}
 
-      {/* Pagination - Only show on desktop or when not in mobile card view */}
-      {!isMobile && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            {table.getFilteredSelectedRowModel().rows.length} of{' '}
-            {table.getFilteredRowModel().rows.length} row(s) selected.
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="hover-elevate"
-              data-testid="button-previous-page"
-            >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Previous
-            </Button>
-            <div className="text-sm text-muted-foreground px-2">
-              Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="hover-elevate"
-              data-testid="button-next-page"
-            >
-              Next
-              <ChevronRight className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
-        </div>
-      )}
+       {/* Pagination */}
+         <div className="flex items-center justify-between bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+           <div className="text-sm font-medium text-slate-600 dark:text-slate-400">
+             Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
+             {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)} of{' '}
+             {table.getFilteredRowModel().rows.length} entries
+           </div>
+           <div className="flex items-center gap-3">
+             <Button
+               variant="outline"
+               size="sm"
+               onClick={() => table.previousPage()}
+               disabled={!table.getCanPreviousPage()}
+               className="hover:bg-slate-200 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+               data-testid="button-previous-page"
+             >
+               <ChevronLeft className="h-4 w-4 mr-2" />
+               Previous
+             </Button>
+             <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-600">
+               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                 Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+               </span>
+             </div>
+             <Button
+               variant="outline"
+               size="sm"
+               onClick={() => table.nextPage()}
+               disabled={!table.getCanNextPage()}
+               className="hover:bg-slate-200 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+               data-testid="button-next-page"
+             >
+               Next
+               <ChevronRight className="h-4 w-4 ml-2" />
+             </Button>
+             <div className="flex items-center gap-2">
+               <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Show:</span>
+               <Select 
+                 value={pagination.pageSize.toString()} 
+                 onValueChange={(value) => {
+                   const newPageSize = Number(value);
+                   setPagination(prev => ({ ...prev, pageSize: newPageSize, pageIndex: 0 }));
+                 }}
+               >
+                 <SelectTrigger className="w-20 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" data-testid="select-page-size">
+                   <SelectValue />
+                 </SelectTrigger>
+                 <SelectContent className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600">
+                   <SelectItem key="10" value="10" className="hover:bg-slate-100 dark:hover:bg-slate-700">10</SelectItem>
+                   <SelectItem key="25" value="25" className="hover:bg-slate-100 dark:hover:bg-slate-700">25</SelectItem>
+                   <SelectItem key="50" value="50" className="hover:bg-slate-100 dark:hover:bg-slate-700">50</SelectItem>
+                 </SelectContent>
+               </Select>
+             </div>
+           </div>
+         </div>
 
-      {/* Mobile pagination */}
-      {isMobile && table.getPageCount() > 1 && (
-        <div className="flex items-center justify-center gap-2 py-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            className="hover-elevate"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <div className="text-sm text-muted-foreground px-2">
-            {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className="hover-elevate"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
     </motion.div>
   );
 }

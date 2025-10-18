@@ -1,7 +1,7 @@
 import { useEmployeeManagement } from "@/lib/hooks/general/useEmployeeManagement";
-import { EmployeeStatsCards } from "../components/EmployeeStatsCards";
 import { EmployeeManagementHeader } from "../components/EmployeeManagementHeader";
 import { EmployeeManagementTabs } from "../components/EmployeeManagementTabs";
+import { AttendanceStatsCards } from "../components/AttendanceStatsCards";
 import { EmployeeManagementDialogs } from "../components/EmployeeManagementDialogs";
 
 export const EmployeeManagementTemplate = () => {
@@ -60,6 +60,7 @@ export const EmployeeManagementTemplate = () => {
     handleDeleteLeave,
     handleApproveLeave,
     handleRejectLeave,
+    handleViewLeave,
     handleCreateAdvance,
     handleUpdateAdvance,
     handleUpdateAdvanceStatus,
@@ -67,10 +68,15 @@ export const EmployeeManagementTemplate = () => {
     handleCreateAttendance,
     handleUpdateAttendance,
     handleDeleteAttendance,
+    handleViewAttendance,
     
     // Leave state
     showLeaveForm,
     setShowLeaveForm,
+    showLeaveViewDialog,
+    setShowLeaveViewDialog,
+    leaveToView,
+    setLeaveToView,
     isEditingLeave,
     setIsEditingLeave,
     leaveToDelete,
@@ -91,6 +97,10 @@ export const EmployeeManagementTemplate = () => {
     // Attendance state
     showAttendanceForm,
     setShowAttendanceForm,
+    showAttendanceViewDialog,
+    setShowAttendanceViewDialog,
+    attendanceToView,
+    setAttendanceToView,
     isEditingAttendance,
     setIsEditingAttendance,
     attendanceToDelete,
@@ -103,6 +113,10 @@ export const EmployeeManagementTemplate = () => {
     // Advance state
     showAdvanceForm,
     setShowAdvanceForm,
+    showAdvanceViewDialog,
+    setShowAdvanceViewDialog,
+    advanceToView,
+    setAdvanceToView,
     isEditingAdvance,
     setIsEditingAdvance,
     advanceToDelete,
@@ -161,15 +175,19 @@ export const EmployeeManagementTemplate = () => {
       {/* Header */}
       <EmployeeManagementHeader currentBranch={currentBranch ? { branch_name: currentBranch.branch_name } : undefined} />
 
-      {/* Employee Overview Cards */}
-      <EmployeeStatsCards
-        totalEmployees={totalEmployees}
-        activeEmployees={activeEmployees}
-        presentToday={presentToday}
-        pendingLeaves={pendingLeaves}
-        pendingAdvances={pendingAdvances}
-        currentBranch={currentBranch ? { branch_name: currentBranch.branch_name } : undefined}
-      />
+      {/* Attendance Statistics Cards - Only show when attendance tab is active */}
+      {activeTab === 'attendance' && (
+          <AttendanceStatsCards
+            totalRecords={attendance.length}
+            averageAttendance={attendance.length > 0 ? 
+              (attendance.reduce((sum, record) => sum + (record.days_present / record.total_working_days * 100), 0) / attendance.length) : 0
+            }
+            totalLateArrivals={attendance.reduce((sum, record) => sum + record.late_arrivals, 0)}
+            totalEarlyDepartures={attendance.reduce((sum, record) => sum + record.early_departures, 0)}
+            totalPaidLeaves={attendance.reduce((sum, record) => sum + record.paid_leaves, 0)}
+            totalUnpaidLeaves={attendance.reduce((sum, record) => sum + record.unpaid_leaves, 0)}
+          />
+      )}
 
       {/* Main Content Tabs */}
       <EmployeeManagementTabs
@@ -220,21 +238,7 @@ export const EmployeeManagementTemplate = () => {
                   setShowAttendanceDeleteDialog(true);
                 }
               }}
-              onViewAttendance={(record: any) => {
-                setIsEditingAttendance(false);
-                setShowAttendanceForm(true);
-                setAttendanceFormData({
-                  employee_id: record.employee_id,
-                  attendance_month: record.attendance_month,
-                  total_working_days: record.total_working_days,
-                  days_present: record.days_present,
-                  days_absent: record.days_absent,
-                  paid_leaves: record.paid_leaves,
-                  unpaid_leaves: record.unpaid_leaves,
-                  late_arrivals: record.late_arrivals,
-                  early_departures: record.early_departures,
-                });
-              }}
+              onViewAttendance={handleViewAttendance}
         onAddLeave={() => {
                 setIsEditingLeave(false);
                 setShowLeaveForm(true);
@@ -274,19 +278,7 @@ export const EmployeeManagementTemplate = () => {
                 setLeaveToDelete(leave);
                 setShowLeaveDeleteDialog(true);
               }}
-        onViewLeave={(leave: any) => {
-                setIsEditingLeave(false);
-                setShowLeaveForm(true);
-                setLeaveFormData({
-                  employee_id: leave.employee_id,
-                  leave_type: leave.leave_type,
-                  from_date: leave.from_date,
-                  to_date: leave.to_date,
-                  reason: leave.reason,
-                  total_days: leave.total_days,
-                  applied_date: leave.applied_date
-                });
-              }}
+        onViewLeave={handleViewLeave}
         onAddAdvance={() => {
                 setIsEditingAdvance(false);
                 setShowAdvanceForm(true);
@@ -315,6 +307,10 @@ export const EmployeeManagementTemplate = () => {
         onDeleteAdvance={(advance: any) => {
                 setAdvanceToDelete(advance);
                 setShowAdvanceDeleteDialog(true);
+              }}
+        onViewAdvance={(advance: any) => {
+                setAdvanceToView(advance);
+                setShowAdvanceViewDialog(true);
               }}
               onUpdateAmount={(advance: any) => {
                 setAdvanceToUpdate(advance);
@@ -346,6 +342,10 @@ export const EmployeeManagementTemplate = () => {
         // Attendance dialogs
         showAttendanceForm={showAttendanceForm}
         setShowAttendanceForm={setShowAttendanceForm}
+        showAttendanceViewDialog={showAttendanceViewDialog}
+        setShowAttendanceViewDialog={setShowAttendanceViewDialog}
+        attendanceToView={attendanceToView}
+        setAttendanceToView={setAttendanceToView}
         isEditingAttendance={isEditingAttendance}
         attendanceToDelete={attendanceToDelete}
         setAttendanceToDelete={setAttendanceToDelete}
@@ -357,6 +357,10 @@ export const EmployeeManagementTemplate = () => {
         // Leave dialogs
         showLeaveForm={showLeaveForm}
         setShowLeaveForm={setShowLeaveForm}
+        showLeaveViewDialog={showLeaveViewDialog}
+        setShowLeaveViewDialog={setShowLeaveViewDialog}
+        leaveToView={leaveToView}
+        setLeaveToView={setLeaveToView}
         isEditingLeave={isEditingLeave}
         leaveToDelete={leaveToDelete}
         setLeaveToDelete={setLeaveToDelete}
@@ -376,6 +380,10 @@ export const EmployeeManagementTemplate = () => {
         // Advance dialogs
         showAdvanceForm={showAdvanceForm}
         setShowAdvanceForm={setShowAdvanceForm}
+        showAdvanceViewDialog={showAdvanceViewDialog}
+        setShowAdvanceViewDialog={setShowAdvanceViewDialog}
+        advanceToView={advanceToView}
+        setAdvanceToView={setAdvanceToView}
         isEditingAdvance={isEditingAdvance}
         advanceToDelete={advanceToDelete}
         setAdvanceToDelete={setAdvanceToDelete}

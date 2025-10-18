@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, Download, Clock, TrendingUp } from 'lucide-react';
+import { Check, X, Download, Clock, TrendingUp, Eye, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { TabSwitcher } from '@/components/shared';
+import type { TabItem } from '@/components/shared/TabSwitcher';
 import AttendanceView from './AttendanceView';
 import AttendanceCreate from './AttendanceCreate';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
  
 
 const AttendanceManagement = () => {
@@ -104,28 +105,25 @@ const AttendanceManagement = () => {
           </motion.div>
 
           {/* Main Content */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="view" data-testid="tab-view-attendance">View Attendance</TabsTrigger>
-              <TabsTrigger value="create" data-testid="tab-create-attendance">Create Attendance</TabsTrigger>
-            </TabsList>
-
-              {/* View Attendance Tab */}
-              <TabsContent value="view" className="space-y-6">
-                <AttendanceView />
-              </TabsContent>
-
-              {/* Create Attendance Tab */}
-              <TabsContent value="create" className="space-y-6">
-                <AttendanceCreate />
-              </TabsContent>
-            </Tabs>
-          </motion.div>
+          <TabSwitcher
+            tabs={[
+              {
+                value: "view",
+                label: "View Attendance",
+                icon: Eye,
+                content: <AttendanceView />,
+              },
+              {
+                value: "create",
+                label: "Create Attendance",
+                icon: Plus,
+                content: <AttendanceCreate />,
+              },
+            ]}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            gridCols="grid-cols-2"
+          />
         </div>
       </div>
     </div>

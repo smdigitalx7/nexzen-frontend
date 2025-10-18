@@ -289,18 +289,8 @@ function NotAuthorized() {
 }
 
 function App() {
-  const { setIsMobile } = useNavigationStore();
   const { token, tokenExpireAt, user } = useAuthStore();
 
-  useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkIfMobile();
-    window.addEventListener("resize", checkIfMobile);
-    return () => window.removeEventListener("resize", checkIfMobile);
-  }, [setIsMobile]);
 
   useEffect(() => {
     if (token && tokenExpireAt) {

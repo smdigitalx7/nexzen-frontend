@@ -15,7 +15,6 @@ import { EnhancedDataTable } from './EnhancedDataTable';
 import { useTableState } from '@/lib/hooks/common/useTableState';
 import { TABLE_CONFIG } from '@/lib/constants/ui';
 import type { ColumnDef } from '@tanstack/react-table';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 interface FilterOption {
   value: string;
@@ -46,6 +45,7 @@ interface DataTableWithFiltersProps<TData> {
     showQuickJumper?: boolean;
   };
   loading?: boolean;
+  showSearch?: boolean;
   // New performance props
   enableVirtualization?: boolean;
   virtualThreshold?: number;
@@ -67,6 +67,7 @@ export const DataTableWithFilters = memo(<TData,>({
   sortable = true,
   pagination = { pageSize: 10, showSizeChanger: true, showQuickJumper: true },
   loading = false,
+  showSearch = true,
   // New performance props with defaults
   enableVirtualization = true,
   virtualThreshold = 100,
@@ -81,7 +82,6 @@ export const DataTableWithFilters = memo(<TData,>({
   } = useTableState();
 
   // Performance optimizations
-  const isMobile = useIsMobile();
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -226,15 +226,17 @@ export const DataTableWithFilters = memo(<TData,>({
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-1">
           {/* Search */}
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+          {showSearch && (
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          )}
 
           {/* Additional Filters */}
           {filters.map((filter) => (
@@ -247,7 +249,7 @@ export const DataTableWithFilters = memo(<TData,>({
                 <SelectValue placeholder={filter.label} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All {filter.label}</SelectItem>
+                <SelectItem key="all" value="all">All {filter.label}</SelectItem>
                 {filter.options.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -275,7 +277,6 @@ export const DataTableWithFilters = memo(<TData,>({
         exportable={exportable}
         enableVirtualization={shouldUseVirtualization}
         virtualThreshold={virtualThreshold}
-        isMobile={isMobile}
         loading={loading}
       />
     </motion.div>

@@ -19,7 +19,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DollarSign, TrendingUp } from "lucide-react";
+import { TabSwitcher } from "@/components/shared";
+import type { TabItem } from "@/components/shared/TabSwitcher";
 import { useSchoolIncomeList, useSchoolIncomeDashboard } from "@/lib/hooks/school/use-school-income-expenditure";
 import { useSchoolExpenditureList, useSchoolExpenditureDashboard } from "@/lib/hooks/school/use-school-income-expenditure";
 import { FinancialStatsCards } from "@/components/features/school/reports/components/FinancialStatsCards";
@@ -136,28 +138,37 @@ export const SchoolReportsTemplate = () => {
       )}
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="income" className="w-full">Income</TabsTrigger>
-          <TabsTrigger value="expenditure" className="w-full">Expenditure</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="income" className="space-y-6">
-          <IncomeTable
-            incomeData={incomeData}
-            onExportCSV={() => {}}
-            onAddIncome={() => setShowAddIncomeDialog(true)}
-          />
-        </TabsContent>
-
-        <TabsContent value="expenditure" className="space-y-6">
-          <ExpenditureTable
-            expenditureData={expenditureData}
-            onExportCSV={() => {}}
-            onAddExpenditure={() => setShowAddExpenditureDialog(true)}
-          />
-        </TabsContent>
-      </Tabs>
+      <TabSwitcher
+        tabs={[
+          {
+            value: "income",
+            label: "Income",
+            icon: DollarSign,
+            content: (
+              <IncomeTable
+                incomeData={incomeData}
+                onExportCSV={() => {}}
+                onAddIncome={() => setShowAddIncomeDialog(true)}
+              />
+            ),
+          },
+          {
+            value: "expenditure",
+            label: "Expenditure",
+            icon: TrendingUp,
+            content: (
+              <ExpenditureTable
+                expenditureData={expenditureData}
+                onExportCSV={() => {}}
+                onAddExpenditure={() => setShowAddExpenditureDialog(true)}
+              />
+            ),
+          },
+        ]}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        gridCols="grid-cols-2"
+      />
 
       {/* Export Dialog */}
       <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
@@ -176,9 +187,9 @@ export const SchoolReportsTemplate = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pdf">PDF Document</SelectItem>
-                  <SelectItem value="excel">Excel Spreadsheet</SelectItem>
-                  <SelectItem value="csv">CSV File</SelectItem>
+                  <SelectItem key="pdf" value="pdf">PDF Document</SelectItem>
+                  <SelectItem key="excel" value="excel">Excel Spreadsheet</SelectItem>
+                  <SelectItem key="csv" value="csv">CSV File</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -189,9 +200,9 @@ export const SchoolReportsTemplate = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="3months">Last 3 Months</SelectItem>
-                  <SelectItem value="6months">Last 6 Months</SelectItem>
-                  <SelectItem value="1year">Last Year</SelectItem>
+                  <SelectItem key="3months" value="3months">Last 3 Months</SelectItem>
+                  <SelectItem key="6months" value="6months">Last 6 Months</SelectItem>
+                  <SelectItem key="1year" value="1year">Last Year</SelectItem>
                 </SelectContent>
               </Select>
             </div>

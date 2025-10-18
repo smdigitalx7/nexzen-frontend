@@ -1,10 +1,8 @@
 import { useMemo } from "react";
-import { DataTableWithFilters, ConfirmDialog } from "@/components/shared";
+import { DataTableWithFilters } from "@/components/shared";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn,
-  createDateColumn,
-  createBadgeColumn,
   createActionColumn,
   createViewAction,
   createEditAction,
@@ -43,8 +41,6 @@ export const AttendanceTable = ({
   onDeleteAttendance,
   onViewAttendance,
 }: AttendanceTableProps) => {
-  // Helper function for styling moved into static mapping if needed; using outline badge here
-
   // Define columns for the data table using column factories
   const columns: ColumnDef<EmployeeAttendanceRead>[] = useMemo(() => [
     createTextColumn<EmployeeAttendanceRead>("employee_name", { header: "Employee", className: "font-medium", fallback: "N/A" }),
@@ -54,18 +50,18 @@ export const AttendanceTable = ({
       cell: ({ row }) => {
         const month = row.original.attendance_month;
         const year = row.original.attendance_year;
-        if (month && year && typeof month === 'number' && typeof year === 'number') {
+        if (month && year && typeof month === 'number' && typeof year === 'number' && month >= 1 && month <= 12) {
           const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
           return <span>{monthNames[month - 1]} {year}</span>;
         }
         return <span>-</span>;
       }
     },
-    { accessorKey: "total_working_days", header: "Working Days", cell: ({ row }) => <span>{row.original.total_working_days ?? '-'}</span> },
-    { accessorKey: "days_present", header: "Present", cell: ({ row }) => <span>{row.original.days_present ?? '-'}</span> },
-    { accessorKey: "days_absent", header: "Absent", cell: ({ row }) => <span>{row.original.days_absent ?? '-'}</span> },
-    { accessorKey: "late_arrivals", header: "Late", cell: ({ row }) => <span>{row.original.late_arrivals ?? '-'}</span> },
-    { accessorKey: "early_departures", header: "Early", cell: ({ row }) => <span>{row.original.early_departures ?? '-'}</span> },
+    createTextColumn<EmployeeAttendanceRead>("total_working_days", { header: "Working Days", fallback: "-" }),
+    createTextColumn<EmployeeAttendanceRead>("days_present", { header: "Present", fallback: "-" }),
+    createTextColumn<EmployeeAttendanceRead>("days_absent", { header: "Absent", fallback: "-" }),
+    createTextColumn<EmployeeAttendanceRead>("late_arrivals", { header: "Late", fallback: "-" }),
+    createTextColumn<EmployeeAttendanceRead>("early_departures", { header: "Early", fallback: "-" }),
     createActionColumn<EmployeeAttendanceRead>([
       createViewAction((row) => onViewAttendance(row)),
       createEditAction((row) => onEditAttendance(row)),
@@ -84,10 +80,11 @@ export const AttendanceTable = ({
   return (
     <DataTableWithFilters
       data={attendance}
-      columns={columns}
+      columns={columns as any}
       title="Employee Attendance"
       description="Manage employee attendance records"
-      searchKey="employee_name"
+      searchKey={false as any}
+      showSearch={false}
       exportable={true}
       onAdd={onAddAttendance}
     />

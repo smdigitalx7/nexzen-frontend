@@ -5,13 +5,22 @@ import { Toaster } from '@/components/ui/toaster';
 import ProductionErrorBoundary from './ProductionErrorBoundary';
 import { config, configUtils } from '@/lib/config/production';
 import { productionUtils } from '@/lib/utils/production-optimizations';
+import { LoadingStates } from '@/components/ui/loading';
 
 // Loading component
 const LoadingFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-      <p className="text-sm text-muted-foreground">Loading application...</p>
+    <div className="flex flex-col items-center space-y-4">
+      {/* Simple circle spinner */}
+      <div className="relative">
+        <div className="w-12 h-12 border-4 border-primary/20 rounded-full"></div>
+        <div className="absolute top-0 left-0 w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+      
+      {/* Message */}
+      <p className="text-sm font-medium text-muted-foreground">
+        Loading application...
+      </p>
     </div>
   </div>
 );
@@ -82,7 +91,7 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
     }
 
     // Setup resource hints
-    if (config.optimization.enablePreloading) {
+    if (config.optimization.enableImageOptimization) {
       const criticalResources = [
         '/fonts/inter.woff2',
         '/css/critical.css',
@@ -109,7 +118,7 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
     defaultOptions: {
       queries: {
         staleTime: config.api.cacheStaleTime,
-        cacheTime: config.api.defaultCacheTTL,
+        gcTime: config.api.defaultCacheTTL,
         retry: config.api.retryAttempts,
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
         refetchOnWindowFocus: false,
@@ -124,7 +133,6 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
 
   return (
     <ProductionErrorBoundary
-      fallback={<ErrorFallback />}
       onError={(error, errorInfo) => {
         // Log error for debugging
         console.error('Production Error Boundary caught error:', error, errorInfo);
@@ -163,10 +171,15 @@ export const withProductionOptimizations = <P extends object>(
   
   // Add performance monitoring if enabled
   if (config.monitoring.enablePerformanceMonitoring) {
-    return productionUtils.performance.withPerformanceMonitoring(
-      OptimizedComponent,
-      Component.displayName || Component.name
-    );
+    // Wrap component with performance monitoring
+    const WrappedComponent = React.forwardRef<any, P>((props, ref) => {
+      const startTime = performance.now();
+      const result = React.createElement(OptimizedComponent, { ...props, ref });
+      productionUtils.performance.measureRender(Component.displayName || Component.name, startTime);
+      return result;
+    });
+    WrappedComponent.displayName = `withPerformanceMonitoring(${Component.displayName || Component.name})`;
+    return WrappedComponent;
   }
   
   return OptimizedComponent;

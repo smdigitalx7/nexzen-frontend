@@ -1,7 +1,8 @@
 import React, { Suspense, Component, ErrorInfo, ReactNode } from 'react';
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loading, LoadingStates } from '@/components/ui/loading';
 
 interface LazyLoadingWrapperProps {
   children: ReactNode;
@@ -49,22 +50,13 @@ const EnhancedLoadingSpinner = ({ message = "Loading..." }: { message?: string }
     <Card className="w-80">
       <CardHeader className="text-center">
         <div className="flex justify-center mb-4">
-          <div className="relative">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <div className="absolute inset-0 rounded-full border-2 border-primary/20"></div>
-          </div>
+          <Loading variant="spinner" size="lg" showMessage={false} />
         </div>
         <CardTitle className="text-lg">Loading Component</CardTitle>
         <CardDescription>{message}</CardDescription>
       </CardHeader>
       <CardContent className="text-center">
-        <div className="space-y-2">
-          <div className="flex justify-center space-x-1">
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-          </div>
-        </div>
+        <Loading variant="dots" size="sm" showMessage={false} />
       </CardContent>
     </Card>
   </div>

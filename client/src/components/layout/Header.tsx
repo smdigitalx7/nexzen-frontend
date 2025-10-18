@@ -29,7 +29,6 @@ import AcademicYearSwitcher from "./AcademicYearSwitcher";
 const Header = () => {
   const { user, currentBranch, branches, switchBranch, logoutAsync, academicYear, academicYears, switchAcademicYear, isBranchSwitching } =
     useAuthStore();
-  const { isMobile } = useNavigationStore();
   const queryClient = useQueryClient();
   const [notifications] = useState(3); // Mock notification count
   const [openSearch, setOpenSearch] = useState(false);

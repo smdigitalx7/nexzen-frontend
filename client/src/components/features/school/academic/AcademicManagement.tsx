@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { School, Building2 } from "lucide-react";
+import { School, Building2, Users, GraduationCap, Layers, Calendar, FileText, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabSwitcher } from "@/components/shared";
+import type { TabItem } from "@/components/shared/TabSwitcher";
 import { useAuthStore } from "@/store/authStore";
 import { useSchoolClasses } from '@/lib/hooks/school/use-school-classes';
 import { useSchoolSubjects } from '@/lib/hooks/school/use-school-subjects';
@@ -102,82 +103,86 @@ const AcademicManagement = () => {
       />
 
       {/* Tabs */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="classes">Classes</TabsTrigger>
-            <TabsTrigger value="subjects">Subjects</TabsTrigger>
-            <TabsTrigger value="sections">Sections</TabsTrigger>
-            <TabsTrigger value="exams">Exams</TabsTrigger>
-            <TabsTrigger value="tests">Tests</TabsTrigger>
-            <TabsTrigger value="academic-years">Academic Years</TabsTrigger>
-          </TabsList>
-
-          {/* Classes Tab */}
-          <TabsContent value="classes" className="space-y-4">
-            <ClassesTab
-              classesWithSubjects={backendClasses}
-              classesLoading={isLoading}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              hasError={hasError}
-              errorMessage={errorMessage}
-            />
-          </TabsContent>
-
-          {/* Subjects Tab */}
-          <TabsContent value="subjects" className="space-y-4">
-            <SubjectsTab
-              backendSubjects={backendSubjects}
-              subjectsLoading={isLoading}
-              currentBranch={currentBranch}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              selectedBranchType={selectedBranchType}
-              setSelectedBranchType={setSelectedBranchType}
-            />
-          </TabsContent>
-
-          {/* Sections Tab */}
-          <TabsContent value="sections" className="space-y-4">
-            <SectionsTab />
-          </TabsContent>
-
-          {/* Exams Tab */}
-          <TabsContent value="exams" className="space-y-4">
-            <ExamsTab
-              exams={exams}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              isLoading={isLoading}
-              hasError={hasError}
-              errorMessage={errorMessage}
-            />
-          </TabsContent>
-
-          {/* Tests Tab */}
-          <TabsContent value="tests" className="space-y-4">
-            <TestTab
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              tests={tests}
-              isLoading={testsLoading}
-              hasError={testsError}
-              errorMessage={(testsErrObj as any)?.message}
-            />
-          </TabsContent>
-
-          {/* Academic Years Tab */}
-          <TabsContent value="academic-years" className="space-y-4">
-            <AcademicYearManagement />
-          </TabsContent>
-
-        </Tabs>
-      </motion.div>
+      <TabSwitcher
+        tabs={[
+          {
+            value: "classes",
+            label: "Classes",
+            icon: Users,
+            content: (
+              <ClassesTab
+                classesWithSubjects={backendClasses}
+                classesLoading={isLoading}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                hasError={hasError}
+                errorMessage={errorMessage}
+              />
+            ),
+          },
+          {
+            value: "subjects",
+            label: "Subjects",
+            icon: GraduationCap,
+            content: (
+              <SubjectsTab
+                backendSubjects={backendSubjects}
+                subjectsLoading={isLoading}
+                currentBranch={currentBranch}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                selectedBranchType={selectedBranchType}
+                setSelectedBranchType={setSelectedBranchType}
+              />
+            ),
+          },
+          {
+            value: "sections",
+            label: "Sections",
+            icon: Layers,
+            content: <SectionsTab />,
+          },
+          {
+            value: "exams",
+            label: "Exams",
+            icon: Calendar,
+            content: (
+              <ExamsTab
+                exams={exams}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                isLoading={isLoading}
+                hasError={hasError}
+                errorMessage={errorMessage}
+              />
+            ),
+          },
+          {
+            value: "tests",
+            label: "Tests",
+            icon: FileText,
+            content: (
+              <TestTab
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                tests={tests}
+                isLoading={testsLoading}
+                hasError={testsError}
+                errorMessage={(testsErrObj as any)?.message}
+              />
+            ),
+          },
+          {
+            value: "academic-years",
+            label: "Academic Years",
+            icon: Settings,
+            content: <AcademicYearManagement />,
+          },
+        ]}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        gridCols="grid-cols-6"
+      />
     </div>
   );
 };

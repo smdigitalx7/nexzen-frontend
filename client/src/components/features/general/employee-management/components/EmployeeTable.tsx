@@ -1,10 +1,5 @@
 import { useMemo } from "react";
-import { Edit, Trash2, Eye, UserCheck, UserX } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "@/lib/utils";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { DataTableWithFilters, ConfirmDialog } from "@/components/shared";
+import { DataTableWithFilters } from "@/components/shared";
 import type { ColumnDef } from "@tanstack/react-table";
 import { 
   createAvatarColumn, 
@@ -57,7 +52,7 @@ export const EmployeeTable = ({
 }: EmployeeTableProps) => {
 
   // Define columns for the data table using column factories
-  const columns: ColumnDef<EmployeeRead>[] = useMemo(() => [
+  const columns = useMemo((): ColumnDef<EmployeeRead>[] => [
     createAvatarColumn<EmployeeRead>("employee_name", "employee_code", { header: "Employee" }),
     createTextColumn<EmployeeRead>("designation", { header: "Designation", className: "font-medium" }),
     createTextColumn<EmployeeRead>("mobile_no", { header: "Mobile", fallback: "N/A" }),
@@ -82,11 +77,12 @@ export const EmployeeTable = ({
   return (
     <DataTableWithFilters
       data={employees}
-      columns={columns}
+      columns={columns as any}
       title="Employees"
       description="Manage employee information and details"
-      searchKey="employee_name"
+      searchKey={"employee_name" as any}
       exportable={true}
+      showSearch={false}
       onAdd={onAddEmployee}
     />
   );

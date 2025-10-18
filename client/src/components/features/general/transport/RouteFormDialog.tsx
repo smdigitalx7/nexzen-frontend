@@ -1,15 +1,7 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { FormDialog } from "@/components/shared";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 interface RouteFormDialogProps {
   isOpen: boolean;
@@ -118,16 +110,22 @@ const RouteFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingRoute }:
     onClose();
   };
 
+  const handleSave = () => {
+    handleSubmit();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Bus Route" : "Add New Bus Route"}</DialogTitle>
-          <DialogDescription>
-            {isEditing ? "Update route details" : "Create a new transport route with vehicle and driver details"}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
+    <FormDialog
+      open={isOpen}
+      onOpenChange={onClose}
+      title={isEditing ? "Edit Bus Route" : "Add New Bus Route"}
+      description={isEditing ? "Update route details" : "Create a new transport route with vehicle and driver details"}
+      size="LARGE"
+      onSave={handleSave}
+      saveText={isEditing ? "Update Route" : "Add Route"}
+      cancelText="Cancel"
+    >
+      <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="route_no">Route Number</Label>
@@ -231,16 +229,7 @@ const RouteFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingRoute }:
             </div>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit}>
-            {isEditing ? "Update Route" : "Add Route"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormDialog>
   );
 };
 

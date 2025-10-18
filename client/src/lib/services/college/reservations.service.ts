@@ -5,7 +5,7 @@ export interface CollegeReservationsListParams {
   group_id?: number;
   course_id?: number;
   page?: number;
-  pageSize?: number;
+  page_size?: number;
 }
 
 export const CollegeReservationsService = {

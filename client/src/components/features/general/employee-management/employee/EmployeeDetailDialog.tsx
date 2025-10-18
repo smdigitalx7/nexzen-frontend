@@ -1,8 +1,7 @@
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FormDialog } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { User, Mail, Phone, MapPin, Calendar, DollarSign, Briefcase } from "lucide-react";
 
 interface EmployeeDetailDialogProps {
   open: boolean;
@@ -17,82 +16,133 @@ interface EmployeeDetailDialogProps {
 }
 
 const EmployeeDetailDialog = ({ open, onOpenChange, employee, newStatus, onStatusChange, onUpdateStatus, isUpdating, getStatusColor, formatCurrency }: EmployeeDetailDialogProps) => {
+  const handleSave = () => {
+    onUpdateStatus();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px]">
-        <DialogHeader>
-          <DialogTitle>Employee Details</DialogTitle>
-        </DialogHeader>
-        {employee && (
-          <div className="space-y-6">
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Employee Details"
+      description="View employee information and update status"
+      size="LARGE"
+      isLoading={isUpdating}
+      onSave={handleSave}
+      saveText="Update Status"
+      cancelText="Close"
+      disabled={newStatus === employee?.status}
+      showStatusUpdate={true}
+      currentStatus={employee?.status}
+      newStatus={newStatus}
+      onStatusChange={onStatusChange}
+      getStatusColor={getStatusColor}
+      statusUpdateText="Update Status"
+    >
+      {employee && (
+        <div className="space-y-6">
+          {/* Employee Header */}
+          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xl font-semibold">
+                <h3 className="text-xl font-semibold flex items-center gap-2">
+                  <User className="h-5 w-5" />
                   {employee.employee_name}
-                </div>
-                <div className="text-sm text-muted-foreground">
+                </h3>
+                <p className="text-sm text-muted-foreground">
                   {employee.employee_code || "EMP"} • {employee.designation || "-"}
-                </div>
+                </p>
               </div>
               <Badge className={getStatusColor(employee.status)}>
                 {employee.status}
               </Badge>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <strong>Employee Code:</strong> {employee.employee_code}
-              </div>
-              <div>
-                <strong>Type:</strong> {employee.employee_type}
-              </div>
-              <div>
-                <strong>Experience:</strong> {employee.experience_years ?? "-"} years
-              </div>
-              <div>
-                <strong>Qualification:</strong> {employee.qualification || "-"}
-              </div>
-              <div>
-                <strong>Mobile:</strong> {employee.mobile_no || "-"}
-              </div>
-              <div>
-                <strong>Email:</strong> {employee.email || "-"}
-              </div>
-              <div>
-                <strong>Joined:</strong> {new Date(employee.date_of_joining).toLocaleDateString()}
-              </div>
-              <div>
-                <strong>Salary:</strong> {formatCurrency(employee.salary)}
-              </div>
-              <div className="col-span-2">
-                <strong>Address:</strong> {employee.address || "-"}
-              </div>
-            </div>
+          </div>
 
-            <div className="space-y-2">
-              <div className="font-medium">Update Status</div>
-              <div className="flex items-center gap-3">
-                <Select value={newStatus} onValueChange={onStatusChange}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ACTIVE">ACTIVE</SelectItem>
-                    <SelectItem value="ON_LEAVE">ON_LEAVE</SelectItem>
-                    <SelectItem value="INACTIVE">INACTIVE</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button onClick={onUpdateStatus} disabled={isUpdating || newStatus === employee.status}>
-                  {isUpdating ? "Updating..." : "Update Status"}
-                </Button>
-                <Button variant="outline" onClick={() => onOpenChange(false)}>
-                  Close
-                </Button>
+          {/* Basic Information */}
+          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
+            <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              Basic Information
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Employee Code</label>
+                <p className="text-lg font-semibold">{employee.employee_code || "N/A"}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Employee Type</label>
+                <p className="text-lg font-semibold">{employee.employee_type || "N/A"}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Experience</label>
+                <p className="text-lg font-semibold">{employee.experience_years ?? "0"} years</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Qualification</label>
+                <p className="text-lg font-semibold">{employee.qualification || "N/A"}</p>
               </div>
             </div>
           </div>
-        )}
-      </DialogContent>
-    </Dialog>
+
+          {/* Contact Information */}
+          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
+            <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+              <Phone className="h-4 w-4" />
+              Contact Information
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Mobile Number</label>
+                <p className="text-lg font-semibold flex items-center gap-1">
+                  <Phone className="h-4 w-4" />
+                  {employee.mobile_no || "N/A"}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Email Address</label>
+                <p className="text-lg font-semibold flex items-center gap-1">
+                  <Mail className="h-4 w-4" />
+                  {employee.email || "N/A"}
+                </p>
+              </div>
+              <div className="col-span-2">
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Address</label>
+                <p className="text-lg font-semibold flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  {employee.address || "N/A"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Employment Information */}
+          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
+            <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Employment Information
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Date of Joining</label>
+                <p className="text-lg font-semibold flex items-center gap-1">
+                  <Calendar className="h-4 w-4" />
+                  {new Date(employee.date_of_joining).toLocaleDateString()}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Salary</label>
+                <p className="text-lg font-semibold flex items-center gap-1 text-green-600">
+                  <DollarSign className="h-4 w-4" />
+                  {formatCurrency(employee.salary)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      )}
+    </FormDialog>
   );
 };
 
