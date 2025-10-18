@@ -80,29 +80,21 @@ export default defineConfig({
       output: {
         // Manual chunk splitting for better caching
         manualChunks: (id) => {
-          // Vendor chunks - React must be loaded first
+          // Vendor chunks - React ecosystem must be in one chunk to avoid loading issues
           if (id.includes('node_modules')) {
-            // Put React in a separate chunk that loads first
-            if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
-              return 'react-vendor';
-            }
-            if (id.includes('wouter')) {
-              return 'router-vendor';
-            }
-            if (id.includes('@radix-ui')) {
-              return 'ui-vendor';
-            }
-            if (id.includes('@tanstack') || id.includes('zustand')) {
-              return 'data-vendor';
-            }
-            if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('date-fns') || id.includes('framer-motion') || id.includes('lucide-react') || id.includes('recharts')) {
+            // Pure utility libraries ONLY (absolutely no React dependency)
+            // These are the ONLY packages that can be separate from React
+            if (id.includes('clsx') || id.includes('tailwind-merge') || 
+                id.includes('date-fns') || id.includes('zod') || 
+                id.includes('immer') || id.includes('class-variance-authority') ||
+                id.includes('tailwindcss-animate')) {
               return 'utils-vendor';
             }
-            if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('zod')) {
-              return 'forms-vendor';
-            }
-            // Default vendor chunk for other node_modules
-            return 'vendor';
+            
+            // EVERYTHING ELSE goes into react-vendor (safer approach)
+            // This ensures no package can execute before React is ready
+            // Includes: React core, all UI libs, data libs, state management, etc.
+            return 'react-vendor';
           }
           
           // Feature-based chunks
@@ -124,8 +116,9 @@ export default defineConfig({
         },
         // Optimize chunk naming and ensure proper loading order
         chunkFileNames: (chunkInfo) => {
+          // Prefix React vendor with '0-' to ensure it loads first (alphabetically)
           if (chunkInfo.name === 'react-vendor') {
-            return 'js/react-vendor-[hash].js';
+            return 'js/0-react-vendor-[hash].js';
           }
           return `js/[name]-[hash].js`;
         },
