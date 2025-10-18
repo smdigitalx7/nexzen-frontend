@@ -4,6 +4,7 @@ import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { visualizer } from "rollup-plugin-visualizer";
 
+
 export default defineConfig({
   plugins: [
     react({
@@ -80,11 +81,11 @@ export default defineConfig({
       output: {
         // Manual chunk splitting for better caching
         manualChunks: (id) => {
-          // Vendor chunks - React must be loaded first
+          // Vendor chunks - Keep React in main bundle to avoid loading order issues
           if (id.includes('node_modules')) {
-            // Put React in a separate chunk that loads first
+            // Keep React in main bundle to avoid circular dependencies and loading order issues
             if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
-              return 'react-vendor';
+              return undefined; // Don't split React - keep it in main bundle
             }
             if (id.includes('wouter')) {
               return 'router-vendor';
@@ -96,7 +97,7 @@ export default defineConfig({
               return 'data-vendor';
             }
             if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('date-fns') || id.includes('framer-motion') || id.includes('lucide-react') || id.includes('recharts')) {
-              return 'utils-vendor';
+              return undefined; // Don't split utils-vendor - keep it with components to avoid React dependency issues
             }
             if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('zod')) {
               return 'forms-vendor';
