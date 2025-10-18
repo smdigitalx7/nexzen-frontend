@@ -4,7 +4,6 @@ import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { visualizer } from "rollup-plugin-visualizer";
 
-
 export default defineConfig({
   plugins: [
     react({
@@ -12,18 +11,24 @@ export default defineConfig({
       babel: {
         plugins: [
           // Remove console.log in production
-          ...(process.env.NODE_ENV === "production" ? [["transform-remove-console", { exclude: ["error", "warn"] }]] : []),
+          ...(process.env.NODE_ENV === "production"
+            ? [["transform-remove-console", { exclude: ["error", "warn"] }]]
+            : []),
         ],
       },
     }),
     runtimeErrorOverlay(),
     // Bundle analyzer for development
-    ...(process.env.ANALYZE === "true" ? [visualizer({
-      filename: "dist/bundle-analysis.html",
-      open: true,
-      gzipSize: true,
-      brotliSize: true,
-    })] : []),
+    ...(process.env.ANALYZE === "true"
+      ? [
+          visualizer({
+            filename: "dist/bundle-analysis.html",
+            open: true,
+            gzipSize: true,
+            brotliSize: true,
+          }),
+        ]
+      : []),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
@@ -37,24 +42,27 @@ export default defineConfig({
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
     },
+    // Ensure proper module resolution for React
+    dedupe: ["react", "react-dom"],
   },
   // Optimize dependencies
   optimizeDeps: {
     include: [
-      'react',
-      'react-dom',
-      'scheduler',
-      'wouter',
-      'zustand',
-      '@tanstack/react-query',
-      '@tanstack/react-table',
-      'framer-motion',
-      'lucide-react',
-      'clsx',
-      'tailwind-merge',
-      'date-fns',
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "scheduler",
+      "wouter",
+      "zustand",
+      "@tanstack/react-query",
+      "@tanstack/react-table",
+      "framer-motion",
+      "lucide-react",
+      "clsx",
+      "tailwind-merge",
+      "date-fns",
     ],
-    exclude: ['@replit/vite-plugin-cartographer'],
+    exclude: ["@replit/vite-plugin-cartographer"],
     // Force React to be pre-bundled and available
     force: true,
   },
@@ -81,60 +89,84 @@ export default defineConfig({
       output: {
         // Manual chunk splitting for better caching
         manualChunks: (id) => {
-          // Vendor chunks - Keep React in main bundle to avoid loading order issues
-          if (id.includes('node_modules')) {
-            // Keep React in main bundle to avoid circular dependencies and loading order issues
-            if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
-              return undefined; // Don't split React - keep it in main bundle
+          // Vendor chunks - Keep React and core dependencies in main bundle
+          if (id.includes("node_modules")) {
+            // Keep React and core dependencies in main bundle to avoid loading order issues
+            if (
+              id.includes("react") ||
+              id.includes("react-dom") ||
+              id.includes("scheduler") ||
+              id.includes("clsx") ||
+              id.includes("tailwind-merge") ||
+              id.includes("date-fns") ||
+              id.includes("framer-motion") ||
+              id.includes("lucide-react") ||
+              id.includes("recharts")
+            ) {
+              return undefined; // Don't split - keep in main bundle
             }
-            if (id.includes('wouter')) {
-              return 'router-vendor';
+            if (id.includes("wouter")) {
+              return "router-vendor";
             }
-            if (id.includes('@radix-ui')) {
-              return 'ui-vendor';
+            if (id.includes("@radix-ui")) {
+              return "ui-vendor";
             }
-            if (id.includes('@tanstack') || id.includes('zustand')) {
-              return 'data-vendor';
+            if (id.includes("@tanstack") || id.includes("zustand")) {
+              return "data-vendor";
             }
-            if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('date-fns') || id.includes('framer-motion') || id.includes('lucide-react') || id.includes('recharts')) {
-              return undefined; // Don't split utils-vendor - keep it with components to avoid React dependency issues
-            }
-            if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('zod')) {
-              return 'forms-vendor';
+            if (
+              id.includes("react-hook-form") ||
+              id.includes("@hookform") ||
+              id.includes("zod")
+            ) {
+              return "forms-vendor";
             }
             // Default vendor chunk for other node_modules
-            return 'vendor';
+            return "vendor";
           }
-          
+
           // Feature-based chunks
-          if (id.includes('components/pages/general') || id.includes('components/features/general')) {
-            return 'general-components';
+          if (
+            id.includes("components/pages/general") ||
+            id.includes("components/features/general")
+          ) {
+            return "general-components";
           }
-          if (id.includes('components/pages/school') || id.includes('components/features/school')) {
-            return 'school-components';
+          if (
+            id.includes("components/pages/school") ||
+            id.includes("components/features/school")
+          ) {
+            return "school-components";
           }
-          if (id.includes('components/pages/college') || id.includes('components/features/college')) {
-            return 'college-components';
+          if (
+            id.includes("components/pages/college") ||
+            id.includes("components/features/college")
+          ) {
+            return "college-components";
           }
-          if (id.includes('components/shared') || id.includes('components/ui') || id.includes('components/layout')) {
-            return 'shared-components';
+          if (
+            id.includes("components/shared") ||
+            id.includes("components/ui") ||
+            id.includes("components/layout")
+          ) {
+            return "shared-components";
           }
-          if (id.includes('lib/') || id.includes('store/')) {
-            return 'lib-utils';
+          if (id.includes("lib/") || id.includes("store/")) {
+            return "lib-utils";
           }
         },
         // Optimize chunk naming and ensure proper loading order
         chunkFileNames: (chunkInfo) => {
-          if (chunkInfo.name === 'react-vendor') {
-            return 'js/react-vendor-[hash].js';
+          if (chunkInfo.name === "react-vendor") {
+            return "js/react-vendor-[hash].js";
           }
           return `js/[name]-[hash].js`;
         },
         // Ensure proper chunk loading order
-        entryFileNames: 'js/[name]-[hash].js',
+        entryFileNames: "js/[name]-[hash].js",
         assetFileNames: (assetInfo) => {
-          if (!assetInfo.name) return 'assets/[name]-[hash].[ext]';
-          const info = assetInfo.name.split('.');
+          if (!assetInfo.name) return "assets/[name]-[hash].[ext]";
+          const info = assetInfo.name.split(".");
           const ext = info[info.length - 1];
           if (/\.(css)$/.test(assetInfo.name)) {
             return `css/[name]-[hash].${ext}`;
@@ -145,14 +177,17 @@ export default defineConfig({
       // External dependencies (if using CDN)
       external: [],
       // Ensure React is not externalized and is bundled
-      preserveEntrySignatures: 'strict',
+      preserveEntrySignatures: "strict",
     },
     // Terser options for better minification
     terserOptions: {
       compress: {
         drop_console: process.env.NODE_ENV === "production",
         drop_debugger: true,
-        pure_funcs: process.env.NODE_ENV === "production" ? ['console.log', 'console.info'] : [],
+        pure_funcs:
+          process.env.NODE_ENV === "production"
+            ? ["console.log", "console.info"]
+            : [],
       },
       mangle: {
         safari10: true,
@@ -169,31 +204,41 @@ export default defineConfig({
       deny: ["**/.*"],
     },
     proxy: {
-      '/api': {
-        target: 'https://erpapi.velonex.in',
+      "/api": {
+        target: "https://erpapi.velonex.in",
         changeOrigin: true,
         secure: true,
         rewrite: (path) => {
           // The external API expects /api/v1 paths, so we need to ensure they're preserved
-          console.log('🔄 Proxy rewrite:', path);
+          console.log("🔄 Proxy rewrite:", path);
           return path;
         },
         configure: (proxy, _options) => {
-          proxy.on('error', (err, req, res) => {
-            console.log('❌ Proxy error:', err);
-            console.log('Request URL:', req.url);
+          proxy.on("error", (err, req, res) => {
+            console.log("❌ Proxy error:", err);
+            console.log("Request URL:", req.url);
           });
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
-            const targetUrl = `${proxyReq.protocol}//${proxyReq.getHeader('host')}${proxyReq.path}`;
-            console.log('🔄 Proxying request:', req.method, req.url, '→', targetUrl);
+          proxy.on("proxyReq", (proxyReq, req, _res) => {
+            const targetUrl = `${proxyReq.protocol}//${proxyReq.getHeader(
+              "host"
+            )}${proxyReq.path}`;
+            console.log(
+              "🔄 Proxying request:",
+              req.method,
+              req.url,
+              "→",
+              targetUrl
+            );
           });
-          proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('✅ Proxy response:', proxyRes.statusCode, req.url);
+          proxy.on("proxyRes", (proxyRes, req, _res) => {
+            console.log("✅ Proxy response:", proxyRes.statusCode, req.url);
             // Add CORS headers to the response
-            proxyRes.headers['Access-Control-Allow-Origin'] = '*';
-            proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
-            proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
-            proxyRes.headers['Access-Control-Allow-Credentials'] = 'true';
+            proxyRes.headers["Access-Control-Allow-Origin"] = "*";
+            proxyRes.headers["Access-Control-Allow-Methods"] =
+              "GET, POST, PUT, DELETE, OPTIONS";
+            proxyRes.headers["Access-Control-Allow-Headers"] =
+              "Content-Type, Authorization";
+            proxyRes.headers["Access-Control-Allow-Credentials"] = "true";
           });
         },
       },
