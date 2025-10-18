@@ -3,9 +3,6 @@ import type {
   BusRouteRead,
   BusRouteCreate,
   BusRouteUpdate,
-  DistanceSlabRead,
-  DistanceSlabCreate,
-  DistanceSlabUpdate,
   TransportDashboardStats,
   RecentRoute,
 } from "@/lib/types/general/transport";
@@ -23,11 +20,6 @@ import type {
  * - POST /bus-routes/ - Create new route
  * - PUT /bus-routes/{id} - Update route
  * - DELETE /bus-routes/{id} - Delete route
- * - GET /transport-fee-structures/ - List distance slabs
- * - GET /transport-fee-structures/{id} - Get distance slab by ID
- * - POST /transport-fee-structures/ - Create new distance slab
- * - PUT /transport-fee-structures/{id} - Update distance slab
- * - DELETE /transport-fee-structures/{id} - Delete distance slab
  */
 export const TransportService = {
   /**
@@ -100,48 +92,4 @@ export const TransportService = {
     return Api.delete<void>(`/bus-routes/${id}`);
   },
 
-  /**
-   * Get all distance slabs
-   * @returns Promise<DistanceSlabRead[]> - List of all distance slabs
-   */
-  listDistanceSlabs(): Promise<DistanceSlabRead[]> {
-    return Api.get<DistanceSlabRead[]>("/transport-fee-structures");
-  },
-
-  /**
-   * Get a specific distance slab by ID
-   * @param id - Distance slab ID
-   * @returns Promise<DistanceSlabRead> - Distance slab details
-   */
-  getDistanceSlab(id: number): Promise<DistanceSlabRead> {
-    return Api.get<DistanceSlabRead>(`/transport-fee-structures/${id}`);
-  },
-
-  /**
-   * Create a new distance slab
-   * @param payload - Distance slab creation data
-   * @returns Promise<DistanceSlabRead> - Created distance slab details
-   */
-  createDistanceSlab(payload: DistanceSlabCreate): Promise<DistanceSlabRead> {
-    return Api.post<DistanceSlabRead>("/transport-fee-structures", payload);
-  },
-
-  /**
-   * Update an existing distance slab
-   * @param id - Distance slab ID
-   * @param payload - Distance slab update data
-   * @returns Promise<DistanceSlabRead> - Updated distance slab details
-   */
-  updateDistanceSlab(id: number, payload: DistanceSlabUpdate): Promise<DistanceSlabRead> {
-    return Api.put<DistanceSlabRead>(`/transport-fee-structures/${id}`, payload);
-  },
-
-  /**
-   * Delete a distance slab
-   * @param id - Distance slab ID
-   * @returns Promise<void> - Success status
-   */
-  deleteDistanceSlab(id: number): Promise<void> {
-    return Api.delete<void>(`/transport-fee-structures/${id}`);
-  },
 };

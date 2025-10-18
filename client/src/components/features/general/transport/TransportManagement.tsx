@@ -4,8 +4,10 @@ import { Bus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthStore } from "@/store/authStore";
-import { useBusRoutes, useDeleteBusRoute, useCreateBusRoute, useUpdateBusRoute, useCreateDistanceSlab, useUpdateDistanceSlab, useDistanceSlabs } from "@/lib/hooks/general/useTransport";
-import type { BusRouteRead, DistanceSlabRead } from "@/lib/types/general/transport";
+import { useBusRoutes, useDeleteBusRoute, useCreateBusRoute, useUpdateBusRoute } from "@/lib/hooks/general/useTransport";
+import { useDistanceSlabs } from "@/lib/hooks/general/useDistanceSlabs";
+import type { BusRouteRead } from "@/lib/types/general/transport";
+import type { DistanceSlabRead } from "@/lib/types/general/distance-slabs";
 import TransportOverview from "./TransportOverview";
 import BusRoutesTab from "./BusRoutesTab";
 import DistanceSlabsTab from "./DistanceSlabsTab";
@@ -13,12 +15,10 @@ import DistanceSlabsTab from "./DistanceSlabsTab";
 const TransportManagement = () => {
   const { user, currentBranch } = useAuthStore();
   const { data: routesData = [], isLoading: routesLoading, error: routesError } = useBusRoutes();
-  const { data: slabsData = [], isLoading: feesLoading, error: feesError } = useDistanceSlabs();
+  const { distanceSlabs: slabsData = [], isLoadingDistanceSlabs: feesLoading, distanceSlabsError: feesError, createDistanceSlab: createFeeMutation, updateDistanceSlab: updateFeeMutation } = useDistanceSlabs();
   const deleteRouteMutation = useDeleteBusRoute();
   const createRouteMutation = useCreateBusRoute();
   const updateRouteMutation = useUpdateBusRoute();
-  const updateFeeMutation = useUpdateDistanceSlab();
-  const createFeeMutation = useCreateDistanceSlab();
   
   const busRoutes = routesData.map((r: BusRouteRead) => ({
     id: r.bus_route_id,

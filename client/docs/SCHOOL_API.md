@@ -95,7 +95,7 @@ Note: Dynamic segments are shown in `{curly}` braces.
 ## Tuition Fee Balances (`/api/v1/school/tuition-fee-balances`)
 - GET `/api/v1/school/tuition-fee-balances/dashboard` - Get Dashboard
 - GET `/api/v1/school/tuition-fee-balances` — list (paginated)
-- GET `/api/v1/school/tuition-fee-balances/{balance_id}` — get balance by id
+- GET `/api/v1/school/tuition-fee-balances/{enrollment_id}` — get balance by enrollment id
 - PUT `/api/v1/school/tuition-fee-balances/{balance_id}/pay-term` — pay term
 - PUT `/api/v1/school/tuition-fee-balances/{balance_id}/pay-book-fee` — pay book fee
 - POST `/api/v1/school/tuition-fee-balances/bulk-create` — bulk create
@@ -124,8 +124,10 @@ Note: Dynamic segments are shown in `{curly}` braces.
 - GET `/api/v1/school/income` — list income entries
 - GET `/api/v1/school/income/{income_id}` — get by income id
 - PUT `/api/v1/school/income/{income_id}` — update by income id
-- POST `/api/v1/school/income/by-admission/{admission_no}` — create by admission
-- POST `/api/v1/school/income/by-reservation` — create by reservation
+- POST `/api/v1/school/income/pay-fee/{admission_no}` — pay fee by admission
+- POST `/api/v1/school/income/pay-fee-by-reservation` — pay fee by reservation
+- GET `/api/v1/school/income/{income_id}/details` — get income with details
+- GET `/api/v1/school/income/{income_id}/receipt` — get income receipt format
 
 ## Expenditure (`/api/v1/school/expenditure`)
 - GET `/api/v1/school/expenditure/dashboard` - Get Dashboard
@@ -151,3 +153,6 @@ Note: Dynamic segments are shown in `{curly}` braces.
 - PUT `/api/v1/school/test-marks/{test_mark_id}` — update by test mark id
 - DELETE `/api/v1/school/test-marks/{test_mark_id}` — delete by test mark id
 - POST `/api/v1/school/test-marks/bulk-create` — bulk create
+
+## School Dropdowns (`/api/v1/school/dropdowns`)
+- GET `/api/v1/school/dropdowns/enums` — get school-specific dropdown enums

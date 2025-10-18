@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, memo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   ColumnDef,
@@ -11,12 +11,13 @@ import {
   useReactTable,
   ColumnFiltersState,
 } from '@tanstack/react-table';
-import { ArrowUpDown, Search, Download, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowUpDown, Search, Download, Filter, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface EnhancedDataTableProps<TData> {
@@ -27,16 +28,25 @@ interface EnhancedDataTableProps<TData> {
   exportable?: boolean;
   selectable?: boolean;
   className?: string;
+  // New performance props
+  enableVirtualization?: boolean;
+  virtualThreshold?: number;
+  isMobile?: boolean;
+  loading?: boolean;
 }
 
-export function EnhancedDataTable<TData>({
+function EnhancedDataTableComponent<TData>({
   data,
   columns,
   title,
   searchKey,
   exportable = false,
   selectable = false,
-  className
+  className,
+  enableVirtualization = false,
+  virtualThreshold = 100,
+  isMobile = false,
+  loading = false,
 }: EnhancedDataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -74,7 +84,7 @@ export function EnhancedDataTable<TData>({
     },
   });
 
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     const csvContent = [
       columns.map(col => (col as any).header || (col as any).accessorKey).join(','),
       ...data.map(row => 
@@ -94,13 +104,68 @@ export function EnhancedDataTable<TData>({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    
-  };
+  }, [data, columns, title]);
 
-  const truncateText = (text: string, maxLength: number = 20) => {
+  const truncateText = useCallback((text: string, maxLength: number = 20) => {
     if (!text || text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
-  };
+  }, []);
+
+  // Mobile card view component
+  const MobileCardView = useCallback(() => {
+    if (!isMobile) return null;
+
+    return (
+      <div className="space-y-4">
+        {table.getRowModel().rows?.length ? (
+          table.getRowModel().rows.map((row, index) => (
+            <motion.div
+              key={row.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, delay: index * 0.05 }}
+            >
+              <Card className="p-4 hover-elevate">
+                <div className="space-y-3">
+                  {row.getVisibleCells().map((cell, cellIndex) => {
+                    const column = cell.column.columnDef;
+                    const header = typeof column.header === 'string' ? column.header : column.id;
+                    const value = flexRender(column.cell, cell.getContext());
+                    
+                    return (
+                      <div key={cell.id} className="flex justify-between items-start">
+                        <span className="text-sm font-medium text-muted-foreground min-w-0 flex-1">
+                          {header}:
+                        </span>
+                        <span className="text-sm text-right min-w-0 flex-1 ml-2">
+                          {value}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            </motion.div>
+          ))
+        ) : (
+          <div className="text-center py-8">
+            <Filter className="h-8 w-8 mx-auto mb-2 opacity-20" />
+            <p className="text-muted-foreground">No results found.</p>
+          </div>
+        )}
+      </div>
+    );
+  }, [isMobile, table]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2 text-muted-foreground">Loading data...</span>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -165,95 +230,130 @@ export function EnhancedDataTable<TData>({
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader className="bg-muted/50">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="hover:bg-transparent">
-                {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    className={cn(
-                      'sticky top-0 z-10 bg-muted/50 font-semibold',
-                      header.column.getCanSort() && 'cursor-pointer hover:bg-muted/70'
-                    )}
-                    onClick={header.column.getToggleSortingHandler()}
-                    style={{ minWidth: '120px', maxWidth: '300px' }}
-                    data-testid={`header-${header.id}`}
-                  >
-                    <div className="flex items-center gap-2">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                      {header.column.getCanSort() && (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ duration: 0.15 }}
-                        >
-                          <ArrowUpDown className="h-3 w-3" />
-                        </motion.div>
+      {/* Table - Mobile or Desktop */}
+      {isMobile ? (
+        <MobileCardView />
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader className="bg-muted/50">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id} className="hover:bg-transparent">
+                  {headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      className={cn(
+                        'sticky top-0 z-10 bg-muted/50 font-semibold',
+                        header.column.getCanSort() && 'cursor-pointer hover:bg-muted/70'
                       )}
-                    </div>
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <motion.tr
-                  key={row.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.2 }}
-                  className="hover:bg-muted/50 hover-elevate"
-                  data-state={row.getIsSelected() && 'selected'}
-                  data-testid={`row-${row.id}`}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="truncate max-w-[200px]">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
+                      onClick={header.column.getToggleSortingHandler()}
+                      style={{ minWidth: '120px', maxWidth: '300px' }}
+                      data-testid={`header-${header.id}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                        {header.column.getCanSort() && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.15 }}
+                          >
+                            <ArrowUpDown className="h-3 w-3" />
+                          </motion.div>
+                        )}
+                      </div>
+                    </TableHead>
                   ))}
-                </motion.tr>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  <div className="text-muted-foreground">
-                    <Filter className="h-8 w-8 mx-auto mb-2 opacity-20" />
-                    No results found.
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of{' '}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row, index) => (
+                  <motion.tr
+                    key={row.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2, delay: index * 0.02 }}
+                    className="hover:bg-muted/50 hover-elevate"
+                    data-state={row.getIsSelected() && 'selected'}
+                    data-testid={`row-${row.id}`}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="truncate max-w-[200px]">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </motion.tr>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    <div className="text-muted-foreground">
+                      <Filter className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                      No results found.
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
-        <div className="flex items-center gap-2">
+      )}
+
+      {/* Pagination - Only show on desktop or when not in mobile card view */}
+      {!isMobile && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            {table.getFilteredSelectedRowModel().rows.length} of{' '}
+            {table.getFilteredRowModel().rows.length} row(s) selected.
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className="hover-elevate"
+              data-testid="button-previous-page"
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Previous
+            </Button>
+            <div className="text-sm text-muted-foreground px-2">
+              Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="hover-elevate"
+              data-testid="button-next-page"
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile pagination */}
+      {isMobile && table.getPageCount() > 1 && (
+        <div className="flex items-center justify-center gap-2 py-4">
           <Button
             variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
             className="hover-elevate"
-            data-testid="button-previous-page"
           >
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Previous
+            <ChevronLeft className="h-4 w-4" />
           </Button>
           <div className="text-sm text-muted-foreground px-2">
-            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+            {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
           </div>
           <Button
             variant="outline"
@@ -261,13 +361,13 @@ export function EnhancedDataTable<TData>({
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
             className="hover-elevate"
-            data-testid="button-next-page"
           >
-            Next
-            <ChevronRight className="h-4 w-4 ml-2" />
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-      </div>
+      )}
     </motion.div>
   );
 }
+
+export const EnhancedDataTable = memo(EnhancedDataTableComponent) as typeof EnhancedDataTableComponent;

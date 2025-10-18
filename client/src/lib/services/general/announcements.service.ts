@@ -1,41 +1,108 @@
 import { Api } from "@/lib/api";
-import type { Announcement, AnnouncementCreate, AnnouncementUpdate } from "@/lib/hooks/general/useAnnouncements";
+
+/**
+ * AnnouncementsService - Handles all announcement-related API operations
+ * 
+ * Required roles for most operations: ADMIN, INSTITUTE_ADMIN, ACADEMIC, ACCOUNTANT
+ * 
+ * Available endpoints:
+ * - GET /announcements - List all announcements
+ * - GET /announcements/{id} - Get announcement by ID
+ * - POST /announcements - Create new announcement
+ * - PUT /announcements/{id} - Update announcement
+ * - DELETE /announcements/{id} - Delete announcement
+ */
+
+export interface Announcement {
+  announcement_id: number;
+  branch_id: number;
+  branch_type: string;
+  title: string;
+  content: string;
+  target_audience: string;
+  class_id?: number;
+  bus_route_id?: number;
+  announcement_type: string;
+  priority: string;
+  created_at: string;
+  updated_at?: string;
+  created_by?: number;
+  updated_by?: number;
+}
+
+export interface AnnouncementCreate {
+  branch_id: number;
+  branch_type: string;
+  title: string;
+  content: string;
+  target_audience: string;
+  class_id?: number;
+  bus_route_id?: number;
+  announcement_type: string;
+  priority?: string;
+}
+
+export interface AnnouncementUpdate {
+  title?: string;
+  content?: string;
+  target_audience?: string;
+  class_id?: number;
+  bus_route_id?: number;
+  announcement_type?: string;
+  priority?: string;
+}
+
+export interface AnnouncementQuery {
+  branch_id?: number;
+  branch_type?: string;
+  class_id?: number;
+  announcement_type?: string;
+}
 
 export const AnnouncementsService = {
-  // GET /api/v1/announcements/
-  list(params: { 
-    branch_id?: number; 
-    branch_type?: string; 
-    class_id?: number; 
-    announcement_type?: string; 
-  }): Promise<Announcement[]> {
-    const qs = new URLSearchParams();
-    if (params.branch_id) qs.append('branch_id', params.branch_id.toString());
-    if (params.branch_type) qs.append('branch_type', params.branch_type);
-    if (params.class_id) qs.append('class_id', params.class_id.toString());
-    if (params.announcement_type) qs.append('announcement_type', params.announcement_type);
-    
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return Api.get<Announcement[]>(`/announcements${suffix}`);
+  /**
+   * Get all announcements with optional filtering
+   * @param query - Optional query parameters
+   * @returns Promise<Announcement[]> - List of announcements
+   */
+  list(query: AnnouncementQuery = {}): Promise<Announcement[]> {
+    return Api.get<Announcement[]>("/announcements", query as Record<string, string | number | boolean | null | undefined>);
   },
 
-  // GET /api/v1/announcements/{id}
+  /**
+   * Get a specific announcement by ID
+   * @param id - Announcement ID
+   * @returns Promise<Announcement> - Announcement details
+   */
   getById(id: number): Promise<Announcement> {
     return Api.get<Announcement>(`/announcements/${id}`);
   },
 
-  // POST /api/v1/announcements/
-  create(payload: AnnouncementCreate): Promise<Announcement> {
-    return Api.post<Announcement>('/announcements/', payload);
+  /**
+   * Create a new announcement
+   * @param data - Announcement creation data
+   * @returns Promise<Announcement> - Created announcement
+   */
+  create(data: AnnouncementCreate): Promise<Announcement> {
+    return Api.post<Announcement>("/announcements", data);
   },
 
-  // PUT /api/v1/announcements/{id}
-  update(id: number, payload: AnnouncementUpdate): Promise<Announcement> {
-    return Api.put<Announcement>(`/announcements/${id}`, payload);
+  /**
+   * Update an existing announcement
+   * @param id - Announcement ID
+   * @param data - Announcement update data
+   * @returns Promise<Announcement> - Updated announcement
+   */
+  update(id: number, data: AnnouncementUpdate): Promise<Announcement> {
+    return Api.put<Announcement>(`/announcements/${id}`, data);
   },
 
-  // DELETE /api/v1/announcements/{id}
+  /**
+   * Delete an announcement
+   * @param id - Announcement ID
+   * @returns Promise<void>
+   */
   delete(id: number): Promise<void> {
-    return Api.delete(`/announcements/${id}`);
+    return Api.delete<void>(`/announcements/${id}`);
   },
 };

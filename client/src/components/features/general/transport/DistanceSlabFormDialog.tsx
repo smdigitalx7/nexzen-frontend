@@ -54,18 +54,20 @@ const DistanceSlabFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingS
   const handleSubmit = () => {
     if (isEditing && editingSlab) {
       onSubmit({
-        id: editingSlab.id,
-        slab_name: formData.slab_name || undefined,
-        min_distance: formData.min_distance ? parseFloat(formData.min_distance) : undefined,
-        max_distance: formData.max_distance ? parseFloat(formData.max_distance) : undefined,
-        fee_amount: formData.fee_amount ? parseFloat(formData.fee_amount) : undefined,
+        id: editingSlab.slab_id,
+        data: {
+          slab_name: formData.slab_name || undefined,
+          min_distance: formData.min_distance ? parseFloat(formData.min_distance) : undefined,
+          max_distance: formData.max_distance ? parseFloat(formData.max_distance) : undefined,
+          fee_amount: formData.fee_amount ? parseFloat(formData.fee_amount) : undefined,
+        }
       });
     } else {
       if (!formData.slab_name || !formData.min_distance || !formData.fee_amount) return;
       onSubmit({
         slab_name: formData.slab_name,
         min_distance: parseFloat(formData.min_distance),
-        max_distance: formData.max_distance ? parseFloat(formData.max_distance) : null,
+        max_distance: formData.max_distance ? parseFloat(formData.max_distance) : undefined,
         fee_amount: parseFloat(formData.fee_amount),
       });
     }

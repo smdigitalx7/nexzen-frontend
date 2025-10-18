@@ -2,18 +2,31 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-const Table = React.forwardRef<
-  HTMLTableElement,
-  React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
-    <table
-      ref={ref}
-      className={cn("w-full caption-bottom text-sm", className)}
-      {...props}
-    />
-  </div>
-))
+export interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
+  striped?: boolean
+  hoverable?: boolean
+  bordered?: boolean
+  responsive?: boolean
+}
+
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({ className, striped = false, hoverable = true, bordered = false, responsive = true, ...props }, ref) => (
+    <div className={cn("relative w-full", responsive && "overflow-auto")}>
+      <table
+        ref={ref}
+        className={cn(
+          "w-full caption-bottom text-sm",
+          striped && "[&_tbody_tr:nth-child(even)]:bg-muted/30",
+          hoverable && "[&_tbody_tr:hover]:bg-muted/50",
+          bordered && "border border-border",
+          className
+        )}
+        role="table"
+        {...props}
+      />
+    </div>
+  )
+)
 Table.displayName = "Table"
 
 const TableHeader = React.forwardRef<
@@ -73,9 +86,10 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      "h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0",
+      "h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
       className
     )}
+    scope="col"
     {...props}
   />
 ))

@@ -1,4 +1,4 @@
-# School API Endpoints
+# College API Endpoints
 
 Base prefix: `/api/v1/college`
 
@@ -118,11 +118,11 @@ Note: Dynamic segments are shown in `{curly}` braces.
 - GET `/api/v1/college/tuition-fee-balances` — list (paginated)
 - POST `/api/v1/college/tuition-fee-balances` — Create
 - GET `/api/v1/college/tuition-fee-balances/by-admission-no/{admission_no}` — by admission no
-- GET `/api/v1/college/tuition-fee-balances/{balance_id}` — get balance by id
+- GET `/api/v1/college/tuition-fee-balances/{enrollment_id}` — get balance by enrollment id
 - PUT `/api/v1/college/tuition-fee-balances/{balance_id}` — update balance by id
 - DELETE `/api/v1/college/tuition-fee-balances/{balance_id}` — delete balance by id
 - POST `/api/v1/college/tuition-fee-balances/bulk-create` — bulk create
-- GET `/api/v1/college/tuition-fee-balances/reports/unpaid-terms` — unpaid terms report
+- GET `/api/v1/college/tuition-fee-balances/unpaid-terms` — unpaid terms report
 - PUT `/api/v1/college/tuition-fee-balances/{balance_id}/term-payment` — Update term payment
 - PUT `/api/v1/college/tuition-fee-balances/{balance_id}/book-payment` — Update book payment
 
@@ -143,8 +143,10 @@ Note: Dynamic segments are shown in `{curly}` braces.
 - GET `/api/v1/college/income` — list income entries
 - GET `/api/v1/college/income/{income_id}` — get by income id
 - PUT `/api/v1/college/income/{income_id}` — update by income id
-- POST `/api/v1/college/income/by-admission/{admission_no}` — create by admission
-- POST `/api/v1/college/income/by-reservation` — create by reservation
+- POST `/api/v1/college/income/pay-by-admission/{admission_no}` — pay fee by admission
+- POST `/api/v1/college/income/pay-by-reservation/{reservation_id}` — pay fee by reservation
+- GET `/api/v1/college/income/{income_id}/details` — get income with details
+- GET `/api/v1/college/income/{income_id}/receipt` — get income receipt format
 
 ## Expenditure (`/api/v1/college/expenditure`)
 - GET `/api/v1/college/expenditure/dashboard` - Get Dashboard
@@ -170,3 +172,6 @@ Note: Dynamic segments are shown in `{curly}` braces.
 - PUT `/api/v1/college/test-marks/{test_mark_id}` — update by test mark id
 - DELETE `/api/v1/college/test-marks/{test_mark_id}` — delete by test mark id
 - POST `/api/v1/college/test-marks/bulk-create` — bulk create
+
+## College Dropdowns (`/api/v1/college/dropdowns`)
+- GET `/api/v1/college/dropdowns/enums` — get college-specific dropdown enums

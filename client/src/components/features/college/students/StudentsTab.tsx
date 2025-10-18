@@ -30,11 +30,11 @@ const studentFormSchema = z.object({
   dob: z.string().optional(),
   father_name: z.string().optional(),
   father_aadhar_no: z.string().optional(),
-  father_mobile: z.string().optional(),
+  father_or_guardian_mobile: z.string().optional(),
   father_occupation: z.string().optional(),
   mother_name: z.string().optional(),
   mother_aadhar_no: z.string().optional(),
-  mother_mobile: z.string().optional(),
+  mother_or_guardian_mobile: z.string().optional(),
   mother_occupation: z.string().optional(),
   present_address: z.string().optional(),
   permanent_address: z.string().optional(),
@@ -47,7 +47,7 @@ type StudentFormData = z.infer<typeof studentFormSchema>;
 export const StudentsTab = () => {
   const { currentBranch } = useAuthStore();
   const { data: studentsResp, isLoading, error } = useCollegeStudentsList({ page: 1, pageSize: 50 });
-  const students: CollegeStudentRead[] = (studentsResp?.data ?? []) as CollegeStudentRead[];
+  const students: CollegeStudentRead[] = studentsResp?.data ?? [];
   const deleteStudentMutation = useDeleteCollegeStudent();
   const createStudentMutation = useCreateCollegeStudent();
   const [selectedStudent, setSelectedStudent] = useState<CollegeStudentFullDetails | null>(null);
@@ -65,11 +65,11 @@ export const StudentsTab = () => {
       dob: '',
       father_name: '',
       father_aadhar_no: '',
-      father_mobile: '',
+      father_or_guardian_mobile: '',
       father_occupation: '',
       mother_name: '',
       mother_aadhar_no: '',
-      mother_mobile: '',
+      mother_or_guardian_mobile: '',
       mother_occupation: '',
       present_address: '',
       permanent_address: '',
@@ -96,9 +96,9 @@ export const StudentsTab = () => {
       gender: genderValue,
       dob: student.dob ? new Date(student.dob).toISOString().split('T')[0] : '',
       father_name: student.father_name || '',
-      father_mobile: student.father_mobile || '',
+      father_or_guardian_mobile: student.father_or_guardian_mobile || '',
       mother_name: student.mother_name || '',
-      mother_mobile: student.mother_mobile || '',
+      mother_or_guardian_mobile: student.mother_or_guardian_mobile || '',
       present_address: student.present_address || '',
       admission_date: student.admission_date ? new Date(student.admission_date).toISOString().split('T')[0] : '',
       status: statusValue,
@@ -122,11 +122,10 @@ export const StudentsTab = () => {
   };
 
   const columns = useMemo(() => [
-    createTextColumn<CollegeStudentRead>('student_id', { header: 'Student ID', className: 'font-mono font-semibold text-slate-900' }),
+    createTextColumn<CollegeStudentRead>('admission_no', { header: 'Admission No.', className: 'font-mono font-semibold text-slate-900' }),
     createAvatarColumn<CollegeStudentRead>('student_name', 'gender', { header: 'Student Details' }),
-    createTextColumn<CollegeStudentRead>('admission_no', { header: 'Admission No.', className: 'font-mono text-sm' }),
-    createTextColumn<CollegeStudentRead>('father_mobile', { header: 'Father Mobile', fallback: 'N/A' }),
-    createTextColumn<CollegeStudentRead>('mother_mobile', { header: 'Mother Mobile', fallback: 'N/A' }),
+    createTextColumn<CollegeStudentRead>('father_or_guardian_mobile', { header: 'Father/Guardian Mobile', fallback: 'N/A' }),
+    createTextColumn<CollegeStudentRead>('mother_or_guardian_mobile', { header: 'Mother/Guardian Mobile', fallback: 'N/A' }),
     createBadgeColumn<CollegeStudentRead>('gender', { header: 'Gender', variant: 'outline', fallback: 'N/A' }),
     createBadgeColumn<CollegeStudentRead>('status', { header: 'Status', variant: 'outline', fallback: 'N/A' }),
     createActionColumn<CollegeStudentRead>([
@@ -137,7 +136,7 @@ export const StudentsTab = () => {
 
   const statsCards = [
     { title: 'Total Students', value: students.length.toString(), icon: Users, color: 'text-blue-600' },
-    { title: 'Active Students', value: students.filter((s: any) => s.status === 'ACTIVE').length.toString(), icon: Users, color: 'text-green-600' },
+    { title: 'Active Students', value: students.filter((s: CollegeStudentRead) => s.status === 'ACTIVE').length.toString(), icon: Users, color: 'text-green-600' },
   ];
 
   return (

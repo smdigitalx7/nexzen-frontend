@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo, useCallback, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Filter, Download, Plus } from 'lucide-react';
+import { Search, Filter, Download, Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ import { EnhancedDataTable } from './EnhancedDataTable';
 import { useTableState } from '@/lib/hooks/common/useTableState';
 import { TABLE_CONFIG } from '@/lib/constants/ui';
 import type { ColumnDef } from '@tanstack/react-table';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface FilterOption {
   value: string;
@@ -45,9 +46,14 @@ interface DataTableWithFiltersProps<TData> {
     showQuickJumper?: boolean;
   };
   loading?: boolean;
+  // New performance props
+  enableVirtualization?: boolean;
+  virtualThreshold?: number;
+  enableDebounce?: boolean;
+  debounceDelay?: number;
 }
 
-export function DataTableWithFilters<TData>({
+export const DataTableWithFilters = memo(<TData,>({
   data,
   columns,
   title,
@@ -61,7 +67,12 @@ export function DataTableWithFilters<TData>({
   sortable = true,
   pagination = { pageSize: 10, showSizeChanger: true, showQuickJumper: true },
   loading = false,
-}: DataTableWithFiltersProps<TData>) {
+  // New performance props with defaults
+  enableVirtualization = true,
+  virtualThreshold = 100,
+  enableDebounce = true,
+  debounceDelay = 300,
+}: DataTableWithFiltersProps<TData>) => {
   const {
     searchTerm,
     setSearchTerm,
@@ -69,15 +80,35 @@ export function DataTableWithFilters<TData>({
     resetFilters,
   } = useTableState();
 
-  // Filter data based on search term and filters
+  // Performance optimizations
+  const isMobile = useIsMobile();
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Debounce search term for better performance
+  useEffect(() => {
+    if (!enableDebounce) {
+      setDebouncedSearchTerm(searchTerm);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, debounceDelay);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, enableDebounce, debounceDelay]);
+
+  // Optimized filtering with memoization
   const filteredData = useMemo(() => {
     let result = data;
 
-    // Apply search filter
-    if (searchTerm && searchKey) {
+    // Apply search filter with debounced term
+    const searchValue = enableDebounce ? debouncedSearchTerm : searchTerm;
+    if (searchValue && searchKey) {
       result = result.filter((item) => {
         const value = (item as any)[searchKey];
-        return value?.toString().toLowerCase().includes(searchTerm.toLowerCase());
+        return value?.toString().toLowerCase().includes(searchValue.toLowerCase());
       });
     }
 
@@ -92,34 +123,63 @@ export function DataTableWithFilters<TData>({
     });
 
     return result;
-  }, [data, searchTerm, searchKey, filters]);
+  }, [data, debouncedSearchTerm, searchTerm, searchKey, filters, enableDebounce]);
 
-  const handleExport = () => {
+  // Determine if virtualization should be used
+  const shouldUseVirtualization = useMemo(() => {
+    return enableVirtualization && filteredData.length > virtualThreshold;
+  }, [enableVirtualization, filteredData.length, virtualThreshold]);
+
+  // Optimized export with loading state
+  const handleExport = useCallback(async () => {
     if (onExport) {
       onExport();
-    } else {
-      // Default CSV export
-      const csvContent = [
-        columns.map(col => (col as any).header || (col as any).accessorKey).join(','),
-        ...filteredData.map(row => 
-          columns.map(col => {
-            const key = (col as any).accessorKey;
-            return key ? (row as any)[key] : '';
-          }).join(',')
-        )
-      ].join('\n');
-      
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${title || 'data'}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      return;
     }
-  };
+
+    setIsExporting(true);
+    
+    try {
+      // Use requestIdleCallback for non-blocking export
+      await new Promise<void>((resolve) => {
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(() => {
+            performExport();
+            resolve();
+          });
+        } else {
+          setTimeout(() => {
+            performExport();
+            resolve();
+          }, 0);
+        }
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [onExport, filteredData, columns, title]);
+
+  const performExport = useCallback(() => {
+    const csvContent = [
+      columns.map(col => (col as any).header || (col as any).accessorKey).join(','),
+      ...filteredData.map(row => 
+        columns.map(col => {
+          const key = (col as any).accessorKey;
+          return key ? (row as any)[key] : '';
+        }).join(',')
+      )
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${title || 'data'}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [filteredData, columns, title]);
 
   return (
     <motion.div
@@ -142,10 +202,15 @@ export function DataTableWithFilters<TData>({
               variant="outline"
               size="sm"
               onClick={handleExport}
+              disabled={isExporting}
               className="hover-elevate"
             >
-              <Download className="h-4 w-4 mr-2" />
-              Export
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              {isExporting ? 'Exporting...' : 'Export'}
             </Button>
           )}
           {onAdd && (
@@ -208,7 +273,11 @@ export function DataTableWithFilters<TData>({
         columns={columns}
         searchKey={searchKey}
         exportable={exportable}
+        enableVirtualization={shouldUseVirtualization}
+        virtualThreshold={virtualThreshold}
+        isMobile={isMobile}
+        loading={loading}
       />
     </motion.div>
   );
-}
+});

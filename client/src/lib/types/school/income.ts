@@ -68,5 +68,3 @@ export interface SchoolIncomeDashboardStats {
   income_records_this_month: number;
   income_records_this_year: number;
 }
-
-

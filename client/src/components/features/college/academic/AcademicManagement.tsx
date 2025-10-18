@@ -22,7 +22,7 @@ import { AcademicOverviewCards } from "@/components/features/college/academic/Ac
 const AcademicManagement = () => {
   const { currentBranch } = useAuthStore();
   
-  // New modular school hooks
+  // New modular college hooks
   const { data: backendClasses = [], isLoading: classesLoading, isError: classesError, error: classesErrObj } = useCollegeClasses();
   const { data: backendSubjects = [], isLoading: subjectsLoading, isError: subjectsError, error: subjectsErrObj } = useCollegeSubjects();
   const { data: exams = [], isLoading: examsLoading, isError: examsError, error: examsErrObj } = useCollegeExams();

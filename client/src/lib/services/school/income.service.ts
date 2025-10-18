@@ -40,6 +40,22 @@ export const SchoolIncomeService = {
   getRecent(limit?: number) {
     return Api.get<SchoolRecentIncome[]>(`/school/income/recent${limit ? `?limit=${limit}` : ''}`);
   },
+
+  payFeeByAdmission(admission_no: string, payload: SchoolIncomeCreate) {
+    return Api.post<SchoolIncomeRead>(`/school/income/pay-fee/${admission_no}`, payload);
+  },
+
+  payFeeByReservation(payload: SchoolIncomeCreateReservation) {
+    return Api.post<SchoolIncomeRead>(`/school/income/pay-fee-by-reservation`, payload);
+  },
+
+  getIncomeWithDetails(income_id: number) {
+    return Api.get<SchoolIncomeRead>(`/school/income/${income_id}/details`);
+  },
+
+  getIncomeReceipt(income_id: number) {
+    return Api.get<any>(`/school/income/${income_id}/receipt`);
+  },
 };
 
 

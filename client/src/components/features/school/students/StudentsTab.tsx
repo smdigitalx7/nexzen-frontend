@@ -15,6 +15,7 @@ import {
   createEditAction
 } from '@/lib/utils/columnFactories';
 import { useSchoolStudentsList, useCreateSchoolStudent, useUpdateSchoolStudent } from '@/lib/hooks/school/use-school-students';
+import type { SchoolStudentRead, SchoolStudentFullDetails } from '@/lib/types/school';
 import { useAuthStore } from '@/store/authStore';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -28,11 +29,11 @@ const studentFormSchema = z.object({
   dob: z.string().optional(),
   father_name: z.string().optional(),
   father_aadhar_no: z.string().optional(),
-  father_mobile: z.string().optional(),
+  father_or_guardian_mobile: z.string().optional(),
   father_occupation: z.string().optional(),
   mother_name: z.string().optional(),
   mother_aadhar_no: z.string().optional(),
-  mother_mobile: z.string().optional(),
+  mother_or_guardian_mobile: z.string().optional(),
   mother_occupation: z.string().optional(),
   present_address: z.string().optional(),
   permanent_address: z.string().optional(),
@@ -45,7 +46,7 @@ type StudentFormData = z.infer<typeof studentFormSchema>;
 export const StudentsTab = () => {
   const { currentBranch } = useAuthStore();
   const { data: studentsResp, isLoading, error } = useSchoolStudentsList({ page: 1, page_size: 50 });
-  const students = (studentsResp as any)?.data ?? [];
+  const students = studentsResp?.data ?? [];
   const createStudentMutation = useCreateSchoolStudent();
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const updateStudentMutation = useUpdateSchoolStudent(selectedStudent?.student_id || 0);
@@ -62,11 +63,11 @@ export const StudentsTab = () => {
       dob: '',
       father_name: '',
       father_aadhar_no: '',
-      father_mobile: '',
+      father_or_guardian_mobile: '',
       father_occupation: '',
       mother_name: '',
       mother_aadhar_no: '',
-      mother_mobile: '',
+      mother_or_guardian_mobile: '',
       mother_occupation: '',
       present_address: '',
       permanent_address: '',
@@ -81,25 +82,29 @@ export const StudentsTab = () => {
     setIsAddDialogOpen(true);
   };
 
-  const handleEditStudent = (student: any) => {
+  const handleEditStudent = (student: SchoolStudentFullDetails) => {
     setSelectedStudent(student);
+    const gender = student.gender;
+    const genderValue = gender === 'MALE' || gender === 'FEMALE' || gender === 'OTHER' ? gender : undefined;
+    const status = student.status;
+    const statusValue = status === 'ACTIVE' || status === 'INACTIVE' || status === 'DROPPED_OUT' || status === 'ABSCONDED' ? status : 'ACTIVE';
     form.reset({
       student_name: student.student_name || '',
       aadhar_no: student.aadhar_no || '',
-      gender: student.gender || undefined,
+      gender: genderValue,
       dob: student.dob ? new Date(student.dob).toISOString().split('T')[0] : '',
       father_name: student.father_name || '',
       father_aadhar_no: student.father_aadhar_no || '',
-      father_mobile: student.father_mobile || '',
+      father_or_guardian_mobile: student.father_or_guardian_mobile || '',
       father_occupation: student.father_occupation || '',
       mother_name: student.mother_name || '',
       mother_aadhar_no: student.mother_aadhar_no || '',
-      mother_mobile: student.mother_mobile || '',
+      mother_or_guardian_mobile: student.mother_or_guardian_mobile || '',
       mother_occupation: student.mother_occupation || '',
       present_address: student.present_address || '',
       permanent_address: student.permanent_address || '',
       admission_date: student.admission_date ? new Date(student.admission_date).toISOString().split('T')[0] : '',
-      status: student.status || 'ACTIVE',
+      status: statusValue,
     });
     setIsEditDialogOpen(true);
   };
@@ -117,21 +122,20 @@ export const StudentsTab = () => {
   };
 
   const columns = useMemo(() => [
-    createTextColumn<any>('student_id', { header: 'Student ID', className: 'font-mono font-semibold text-slate-900' }),
-    createAvatarColumn<any>('student_name', 'gender', { header: 'Student Details' }),
-    createTextColumn<any>('admission_no', { header: 'Admission No.', className: 'font-mono text-sm' }),
-    createTextColumn<any>('father_mobile', { header: 'Father Mobile', fallback: 'N/A' }),
-    createTextColumn<any>('mother_mobile', { header: 'Mother Mobile', fallback: 'N/A' }),
-    createBadgeColumn<any>('gender', { header: 'Gender', variant: 'outline', fallback: 'N/A' }),
-    createBadgeColumn<any>('status', { header: 'Status', variant: 'outline', fallback: 'N/A' }),
-    createActionColumn<any>([
+    createTextColumn<SchoolStudentRead>('admission_no', { header: 'Admission No.', className: 'font-mono font-semibold text-slate-900' }),
+    createAvatarColumn<SchoolStudentRead>('student_name', 'gender', { header: 'Student Details' }),
+    createTextColumn<SchoolStudentRead>('father_or_guardian_mobile', { header: 'Father/Guardian Mobile', fallback: 'N/A' }),
+    createTextColumn<SchoolStudentRead>('mother_or_guardian_mobile', { header: 'Mother/Guardian Mobile', fallback: 'N/A' }),
+    createBadgeColumn<SchoolStudentRead>('gender', { header: 'Gender', variant: 'outline', fallback: 'N/A' }),
+    createBadgeColumn<SchoolStudentRead>('status', { header: 'Status', variant: 'outline', fallback: 'N/A' }),
+    createActionColumn<SchoolStudentRead>([
       createEditAction((row) => handleEditStudent(row))
     ])
   ], []);
 
   const statsCards = [
     { title: 'Total Students', value: students.length.toString(), icon: Users, color: 'text-blue-600' },
-    { title: 'Active Students', value: students.filter((s: any) => s.status === 'ACTIVE').length.toString(), icon: Users, color: 'text-green-600' },
+    { title: 'Active Students', value: students.filter((s: SchoolStudentRead) => s.status === 'ACTIVE').length.toString(), icon: Users, color: 'text-green-600' },
   ];
 
   return (
@@ -256,9 +260,9 @@ export const StudentsTab = () => {
                         <FormMessage />
                       </FormItem>
                     )} />
-                    <FormField control={form.control} name="father_mobile" render={({ field }) => (
+                    <FormField control={form.control} name="father_or_guardian_mobile" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Father Mobile</FormLabel>
+                        <FormLabel>Father/Guardian Mobile</FormLabel>
                         <FormControl><Input placeholder="Enter mobile number" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
@@ -284,9 +288,9 @@ export const StudentsTab = () => {
                         <FormMessage />
                       </FormItem>
                     )} />
-                    <FormField control={form.control} name="mother_mobile" render={({ field }) => (
+                    <FormField control={form.control} name="mother_or_guardian_mobile" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Mother Mobile</FormLabel>
+                        <FormLabel>Mother/Guardian Mobile</FormLabel>
                         <FormControl><Input placeholder="Enter mobile number" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
@@ -444,9 +448,9 @@ export const StudentsTab = () => {
                         <FormMessage />
                       </FormItem>
                     )} />
-                    <FormField control={form.control} name="father_mobile" render={({ field }) => (
+                    <FormField control={form.control} name="father_or_guardian_mobile" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Father Mobile</FormLabel>
+                        <FormLabel>Father/Guardian Mobile</FormLabel>
                         <FormControl><Input placeholder="Enter mobile number" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
@@ -472,9 +476,9 @@ export const StudentsTab = () => {
                         <FormMessage />
                       </FormItem>
                     )} />
-                    <FormField control={form.control} name="mother_mobile" render={({ field }) => (
+                    <FormField control={form.control} name="mother_or_guardian_mobile" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Mother Mobile</FormLabel>
+                        <FormLabel>Mother/Guardian Mobile</FormLabel>
                         <FormControl><Input placeholder="Enter mobile number" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>

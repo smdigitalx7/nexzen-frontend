@@ -43,6 +43,26 @@ export const CollegeIncomeService = {
   createByReservation(payload: CollegeIncomeCreateReservation) {
     return Api.post<CollegeIncomeRead>(`/college/income/by-reservation`, payload);
   },
+
+  // POST /api/v1/college/income/pay-by-admission/{admission_no}
+  payByAdmission(admission_no: string, payload: CollegeIncomeCreate) {
+    return Api.post<CollegeIncomeRead>(`/college/income/pay-by-admission/${admission_no}`, payload);
+  },
+
+  // POST /api/v1/college/income/pay-by-reservation/{reservation_id}
+  payByReservation(reservation_id: number, payload: CollegeIncomeCreateReservation) {
+    return Api.post<CollegeIncomeRead>(`/college/income/pay-by-reservation/${reservation_id}`, payload);
+  },
+
+  // GET /api/v1/college/income/{income_id}/details
+  getIncomeWithDetails(income_id: number) {
+    return Api.get<CollegeIncomeRead>(`/college/income/${income_id}/details`);
+  },
+
+  // GET /api/v1/college/income/{income_id}/receipt
+  getIncomeReceipt(income_id: number) {
+    return Api.get<any>(`/college/income/${income_id}/receipt`);
+  },
 };
 
 

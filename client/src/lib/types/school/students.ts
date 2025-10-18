@@ -7,11 +7,11 @@ export interface SchoolStudentCreate {
   dob?: string | null;
   father_name?: string | null;
   father_aadhar_no?: string | null;
-  father_mobile?: string | null;
+  father_or_guardian_mobile?: string | null;
   father_occupation?: string | null;
   mother_name?: string | null;
   mother_aadhar_no?: string | null;
-  mother_mobile?: string | null;
+  mother_or_guardian_mobile?: string | null;
   mother_occupation?: string | null;
   present_address?: string | null;
   permanent_address?: string | null;
@@ -30,8 +30,8 @@ export interface SchoolStudentRead {
   dob?: string | null;
   present_address?: string | null;
   admission_date?: string | null;
-  father_mobile?: string | null;
-  mother_mobile?: string | null;
+  father_or_guardian_mobile?: string | null;
+  mother_or_guardian_mobile?: string | null;
   status?: string | null;
   created_at: string;
   updated_at?: string | null;
@@ -46,7 +46,7 @@ export interface SchoolStudentFullDetails extends SchoolStudentRead {
   father_occupation?: string | null;
   mother_name?: string | null;
   mother_aadhar_no?: string | null;
-  mother_mobile?: string | null;
+  mother_or_guardian_mobile?: string | null;
   mother_occupation?: string | null;
 }
 

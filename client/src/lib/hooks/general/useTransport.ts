@@ -4,9 +4,6 @@ import type {
   BusRouteRead,
   BusRouteCreate,
   BusRouteUpdate,
-  DistanceSlabRead,
-  DistanceSlabCreate,
-  DistanceSlabUpdate,
   TransportDashboardStats,
   RecentRoute,
 } from '@/lib/types/general/transport';
@@ -17,8 +14,6 @@ export const transportKeys = {
   routes: () => [...transportKeys.all, 'routes'] as const,
   route: (id: number) => [...transportKeys.routes(), id] as const,
   routeNames: () => [...transportKeys.routes(), 'names'] as const,
-  distanceSlabs: () => [...transportKeys.all, 'distance-slabs'] as const,
-  distanceSlab: (id: number) => [...transportKeys.distanceSlabs(), id] as const,
   dashboard: () => [...transportKeys.all, 'dashboard'] as const,
   recent: (limit?: number) => [...transportKeys.all, 'recent', { limit }] as const,
 };
@@ -60,21 +55,6 @@ export const useRecentRoutes = (limit: number = 5) => {
   });
 };
 
-// Distance slab hooks
-export const useDistanceSlabs = () => {
-  return useQuery({
-    queryKey: transportKeys.distanceSlabs(),
-    queryFn: () => TransportService.listDistanceSlabs(),
-  });
-};
-
-export const useDistanceSlab = (id: number) => {
-  return useQuery({
-    queryKey: transportKeys.distanceSlab(id),
-    queryFn: () => TransportService.getDistanceSlab(id),
-    enabled: !!id,
-  });
-};
 
 // Route mutations
 export const useCreateBusRoute = () => {
@@ -121,38 +101,3 @@ export const useDeleteBusRoute = () => {
   });
 };
 
-// Distance slab mutations
-export const useCreateDistanceSlab = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: (data: DistanceSlabCreate) => TransportService.createDistanceSlab(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: transportKeys.distanceSlabs() });
-    },
-  });
-};
-
-export const useUpdateDistanceSlab = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: DistanceSlabUpdate }) =>
-      TransportService.updateDistanceSlab(id, payload),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: transportKeys.distanceSlabs() });
-      queryClient.invalidateQueries({ queryKey: transportKeys.distanceSlab(id) });
-    },
-  });
-};
-
-export const useDeleteDistanceSlab = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: (id: number) => TransportService.deleteDistanceSlab(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: transportKeys.distanceSlabs() });
-    },
-  });
-};
