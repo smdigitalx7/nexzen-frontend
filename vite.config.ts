@@ -9,6 +9,7 @@ export default defineConfig({
   plugins: [
     react({
       // Optimize React for production
+      jsxRuntime: 'automatic',
       babel: {
         plugins: [
           // Remove console.log in production
