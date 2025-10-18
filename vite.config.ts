@@ -42,6 +42,7 @@ export default defineConfig({
     include: [
       'react',
       'react-dom',
+      'scheduler',
       'wouter',
       'zustand',
       '@tanstack/react-query',
@@ -53,6 +54,8 @@ export default defineConfig({
       'date-fns',
     ],
     exclude: ['@replit/vite-plugin-cartographer'],
+    // Force React to be pre-bundled and available
+    force: true,
   },
   // CSS optimization
   css: {
@@ -68,14 +71,19 @@ export default defineConfig({
     sourcemap: process.env.NODE_ENV === "development",
     // Chunk size warnings
     chunkSizeWarningLimit: 1000,
+    // Ensure proper module resolution
+    commonjsOptions: {
+      include: [/node_modules/],
+    },
     // Rollup options for advanced bundling
     rollupOptions: {
       output: {
         // Manual chunk splitting for better caching
         manualChunks: (id) => {
-          // Vendor chunks
+          // Vendor chunks - React must be loaded first
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom')) {
+            // Put React in a separate chunk that loads first
+            if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
               return 'react-vendor';
             }
             if (id.includes('wouter')) {
@@ -114,11 +122,14 @@ export default defineConfig({
             return 'lib-utils';
           }
         },
-        // Optimize chunk naming
+        // Optimize chunk naming and ensure proper loading order
         chunkFileNames: (chunkInfo) => {
-          const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop() : 'chunk';
+          if (chunkInfo.name === 'react-vendor') {
+            return 'js/react-vendor-[hash].js';
+          }
           return `js/[name]-[hash].js`;
         },
+        // Ensure proper chunk loading order
         entryFileNames: 'js/[name]-[hash].js',
         assetFileNames: (assetInfo) => {
           if (!assetInfo.name) return 'assets/[name]-[hash].[ext]';
@@ -132,6 +143,8 @@ export default defineConfig({
       },
       // External dependencies (if using CDN)
       external: [],
+      // Ensure React is not externalized and is bundled
+      preserveEntrySignatures: 'strict',
     },
     // Terser options for better minification
     terserOptions: {
