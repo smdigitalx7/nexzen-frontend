@@ -2,7 +2,8 @@ import { useState, useMemo } from "react";
 import { BookOpen } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DataTableWithFilters, FormDialog, ConfirmDialog } from "@/components/shared";
+import { FormDialog, ConfirmDialog } from "@/components/shared";
+import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { useCreateSchoolSubject, useUpdateSchoolSubject } from '@/lib/hooks/school/use-school-subjects';
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
@@ -167,7 +168,7 @@ export const SubjectsTab = ({
 
   return (
     <div className="space-y-4">
-      <DataTableWithFilters
+      <EnhancedDataTable
         data={backendSubjects}
         columns={columns}
         title="Subjects"
@@ -175,6 +176,7 @@ export const SubjectsTab = ({
         searchKey="subject_name"
         exportable={true}
         onAdd={() => setIsAddSubjectOpen(true)}
+        addButtonText="Add Subject"
       />
 
       {/* Add Subject Dialog */}

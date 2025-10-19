@@ -2,7 +2,8 @@ import { useState, memo, useMemo } from "react";
 import { BookOpen } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DataTableWithFilters, FormDialog, ConfirmDialog } from "@/components/shared";
+import { FormDialog, ConfirmDialog } from "@/components/shared";
+import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { useCollegeClasses, useUpdateCollegeClass, useCreateCollegeClass } from '@/lib/hooks/college/use-college-classes';
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
@@ -162,7 +163,7 @@ export const ClassesTab = memo(({
 
   return (
     <div className="space-y-4">
-      <DataTableWithFilters
+      <EnhancedDataTable
         data={classesWithSubjects}
         columns={columns}
         title="Classes"
@@ -170,6 +171,7 @@ export const ClassesTab = memo(({
         searchKey="class_name"
         exportable={true}
         onAdd={() => setIsAddClassOpen(true)}
+        addButtonText="Add Class"
       />
 
       {/* Add Class Dialog */}

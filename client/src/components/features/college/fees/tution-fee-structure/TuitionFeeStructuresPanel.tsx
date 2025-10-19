@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFormState } from "@/lib/hooks/common/useFormState";
-import { DataTableWithFilters } from "@/components/shared";
+import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn,
@@ -111,7 +111,7 @@ export const TuitionFeeStructuresPanel = () => {
 
   return (
     <div className="space-y-4">
-      <DataTableWithFilters
+      <EnhancedDataTable
         data={structures}
         columns={columns}
         title="Tuition Fee Structures"
@@ -119,6 +119,7 @@ export const TuitionFeeStructuresPanel = () => {
         searchKey="class_name"
         exportable={true}
         onAdd={startCreate}
+        addButtonText="Add Fee Structure"
       />
 
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>

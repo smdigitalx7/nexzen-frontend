@@ -152,10 +152,6 @@ export const StudentsTab = () => {
             </div>
           )}
         </div>
-        <Button className="hover-elevate" onClick={handleAddStudent}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Student
-        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -181,9 +177,12 @@ export const StudentsTab = () => {
           data={students}
           columns={columns}
           title="Students"
+          description="Manage student information and enrollments"
           searchKey="student_name"
           exportable={true}
           selectable={true}
+          onAdd={handleAddStudent}
+          addButtonText="Add Student"
         />
       )}
 

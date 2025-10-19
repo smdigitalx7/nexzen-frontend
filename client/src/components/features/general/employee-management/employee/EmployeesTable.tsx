@@ -7,12 +7,29 @@ interface EmployeesTableProps {
   data: any[];
   columns: ColumnDef<any, any>[];
   title: string;
+  searchKey: string;
+  exportable?: boolean;
+  showSearch?: boolean;
+  onAdd?: () => void;
+  addButtonText?: string;
   isError: boolean;
   errorMessage?: string;
   isLoading: boolean;
 }
 
-const EmployeesTable = ({ data, columns, title, isError, errorMessage, isLoading }: EmployeesTableProps) => {
+const EmployeesTable = ({ 
+  data, 
+  columns, 
+  title, 
+  searchKey,
+  exportable = false,
+  showSearch = true,
+  onAdd,
+  addButtonText,
+  isError, 
+  errorMessage, 
+  isLoading 
+}: EmployeesTableProps) => {
   if (isError) {
     return (
       <Card>
@@ -30,8 +47,12 @@ const EmployeesTable = ({ data, columns, title, isError, errorMessage, isLoading
       data={data}
       columns={columns}
       title={isLoading ? `${title} (Loading...)` : title}
-      searchKey="employee_name"
+      searchKey={searchKey}
       searchPlaceholder="Search employees..."
+      exportable={exportable}
+      showSearch={showSearch}
+      onAdd={onAdd}
+      addButtonText={addButtonText}
     />
   );
 };

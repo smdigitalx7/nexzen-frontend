@@ -26,6 +26,7 @@ const EmployeesTab = ({ stats, data, columns, isLoading, error }: EmployeesTabPr
         data={data}
         columns={columns}
         title="Employees"
+        searchKey={null as any}
         isError={Boolean(error)}
         errorMessage={error?.message}
         isLoading={isLoading}

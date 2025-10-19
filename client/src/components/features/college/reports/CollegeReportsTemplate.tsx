@@ -31,6 +31,8 @@ import { ExpenditureTable } from "./components/ExpenditureTable";
 import { AddIncomeDialog } from "./components/AddIncomeDialog";
 import { AddExpenditureDialog } from "./components/AddExpenditureDialog";
 import { ViewIncomeDialog } from "./components/ViewIncomeDialog";
+import { CollegeIncomeStatsCards } from "../income/CollegeIncomeStatsCards";
+import { CollegeExpenditureStatsCards } from "../expenditure/CollegeExpenditureStatsCards";
 
 export const CollegeReportsTemplate = () => {
   const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
@@ -219,6 +221,22 @@ export const CollegeReportsTemplate = () => {
           formatCompactCurrency={formatCompactCurrency}
           incomeDashboard={incomeDashboard}
           expenditureDashboard={expenditureDashboard}
+        />
+      )}
+
+      {/* Detailed Income Stats Cards - Only show when income tab is active */}
+      {activeTab === 'income' && incomeDashboard && (
+        <CollegeIncomeStatsCards
+          stats={incomeDashboard}
+          loading={incomeDashboardLoading}
+        />
+      )}
+
+      {/* Detailed Expenditure Stats Cards - Only show when expenditure tab is active */}
+      {activeTab === 'expenditure' && expenditureDashboard && (
+        <CollegeExpenditureStatsCards
+          stats={expenditureDashboard}
+          loading={expenditureDashboardLoading}
         />
       )}
 

@@ -2,7 +2,8 @@ import { useMemo, useState, useEffect } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DataTableWithFilters, FormDialog } from "@/components/shared";
+import { FormDialog } from "@/components/shared";
+import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { createActionColumn, createEditAction } from "@/lib/utils/columnFactories";
 import { useSchoolClasses } from "@/lib/hooks/school/use-school-classes";
 import { useSchoolSectionsByClass, useCreateSchoolSection, useUpdateSchoolSection } from "@/lib/hooks/school/use-school-sections";
@@ -65,7 +66,7 @@ export const SectionsTab = () => {
         </select>
       </div>
 
-      <DataTableWithFilters
+      <EnhancedDataTable
         data={sections}
         columns={columns}
         title="Sections"
@@ -73,6 +74,7 @@ export const SectionsTab = () => {
         searchKey="section_name"
         exportable={true}
         onAdd={() => setIsAddOpen(true)}
+        addButtonText="Add Section"
       />
 
       <FormDialog

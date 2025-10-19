@@ -1,10 +1,24 @@
 import { useEmployeeManagement } from "@/lib/hooks/general/useEmployeeManagement";
+import { useEmployeeDashboard } from "@/lib/hooks/general/useEmployees";
+import { useAttendanceDashboard } from "@/lib/hooks/general/useEmployeeAttendance";
+import { useLeaveDashboard } from "@/lib/hooks/general/useEmployeeLeave";
+import { useAdvanceDashboard } from "@/lib/hooks/general/useAdvances";
 import { EmployeeManagementHeader } from "../components/EmployeeManagementHeader";
 import { EmployeeManagementTabs } from "../components/EmployeeManagementTabs";
-import { AttendanceStatsCards } from "../components/AttendanceStatsCards";
+import { AttendanceStatsCards as OldAttendanceStatsCards } from "../components/AttendanceStatsCards";
 import { EmployeeManagementDialogs } from "../components/EmployeeManagementDialogs";
+import { EmployeeStatsCards } from "../EmployeeStatsCards";
+import { AttendanceStatsCards } from "../AttendanceStatsCards";
+import { LeaveStatsCards } from "../LeaveStatsCards";
+import { AdvanceStatsCards } from "../AdvanceStatsCards";
 
 export const EmployeeManagementTemplate = () => {
+  // Dashboard stats hooks
+  const { data: dashboardStats, isLoading: dashboardLoading } = useEmployeeDashboard();
+  const { data: attendanceDashboardStats, isLoading: attendanceDashboardLoading } = useAttendanceDashboard();
+  const { data: leaveDashboardStats, isLoading: leaveDashboardLoading } = useLeaveDashboard();
+  const { data: advanceDashboardStats, isLoading: advanceDashboardLoading } = useAdvanceDashboard();
+  
   const {
     // Data
     employees,
@@ -175,9 +189,34 @@ export const EmployeeManagementTemplate = () => {
       {/* Header */}
       <EmployeeManagementHeader currentBranch={currentBranch ? { branch_name: currentBranch.branch_name } : undefined} />
 
+      {/* Employee Dashboard Stats - Only show on employees tab */}
+      {activeTab === 'employees' && (
+        <EmployeeStatsCards 
+          stats={dashboardStats || {
+            total_employees: totalEmployees,
+            active_employees: activeEmployees,
+            terminated_employees: totalEmployees - activeEmployees,
+            teaching_staff: employees.filter(emp => emp.employee_type === 'teaching').length,
+            non_teaching_staff: employees.filter(emp => emp.employee_type === 'non_teaching').length,
+            office_staff: employees.filter(emp => emp.employee_type === 'office').length,
+            drivers: employees.filter(emp => emp.employee_type === 'driver').length,
+            employees_joined_this_month: 0,
+            employees_joined_this_year: 0,
+            total_salary_expense: employees.reduce((sum, emp) => sum + emp.salary, 0),
+          }}
+          loading={dashboardLoading}
+        />
+      )}
+
       {/* Attendance Statistics Cards - Only show when attendance tab is active */}
       {activeTab === 'attendance' && (
+        attendanceDashboardStats ? (
           <AttendanceStatsCards
+            stats={attendanceDashboardStats}
+            loading={attendanceDashboardLoading}
+          />
+        ) : (
+          <OldAttendanceStatsCards
             totalRecords={attendance.length}
             averageAttendance={attendance.length > 0 ? 
               (attendance.reduce((sum, record) => sum + (record.days_present / record.total_working_days * 100), 0) / attendance.length) : 0
@@ -187,6 +226,35 @@ export const EmployeeManagementTemplate = () => {
             totalPaidLeaves={attendance.reduce((sum, record) => sum + record.paid_leaves, 0)}
             totalUnpaidLeaves={attendance.reduce((sum, record) => sum + record.unpaid_leaves, 0)}
           />
+        )
+      )}
+
+      {/* Leave Statistics Cards - Only show when leaves tab is active */}
+      {activeTab === 'leaves' && (
+        leaveDashboardStats ? (
+          <LeaveStatsCards
+            stats={leaveDashboardStats}
+            loading={leaveDashboardLoading}
+          />
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <p>Leave dashboard data not available. Using table view.</p>
+          </div>
+        )
+      )}
+
+      {/* Advance Statistics Cards - Only show when advances tab is active */}
+      {activeTab === 'advances' && (
+        advanceDashboardStats ? (
+          <AdvanceStatsCards
+            stats={advanceDashboardStats}
+            loading={advanceDashboardLoading}
+          />
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <p>Advance dashboard data not available. Using table view.</p>
+          </div>
+        )
       )}
 
       {/* Main Content Tabs */}

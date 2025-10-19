@@ -321,7 +321,6 @@ const AcademicYearManagement = () => {
               <EnhancedDataTable
                 data={filteredData}
                 columns={columns as any}
-                exportable={true}
                 title="Academic Years"
               />
             )}

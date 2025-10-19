@@ -1,10 +1,10 @@
 import { useState, memo, useMemo } from "react";
-import { Plus, BookOpen, Edit, Trash2 } from "lucide-react";
+import { BookOpen, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DataTableWithFilters, FormDialog, ConfirmDialog } from "@/components/shared";
+import { FormDialog, ConfirmDialog } from "@/components/shared";
+import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { useCreateSchoolClass, useUpdateSchoolClass } from '@/lib/hooks/school/use-school-classes';
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
@@ -18,8 +18,6 @@ import {
 interface ClassesTabProps {
   classesWithSubjects: any[];
   classesLoading: boolean;
-  searchTerm: string;
-  setSearchTerm: (term: string) => void;
   hasError?: boolean;
   errorMessage?: string;
 }
@@ -27,8 +25,6 @@ interface ClassesTabProps {
 export const ClassesTab = memo(({
   classesWithSubjects,
   classesLoading,
-  searchTerm,
-  setSearchTerm,
   hasError = false,
   errorMessage,
 }: ClassesTabProps) => {
@@ -132,15 +128,15 @@ export const ClassesTab = memo(({
     setIsEditClassOpen(true);
   };
 
-  const handleDeleteClick = (classItem: any) => {
+  const handleDeleteClick = (classItem: import("@/lib/types/school").SchoolClassRead) => {
     setSelectedClass(classItem);
     setIsDeleteDialogOpen(true);
   };
 
   // Define columns for the data table
-  const columns: ColumnDef<any>[] = useMemo(() => [
-    createIconTextColumn<any>("class_name", { header: "Class Name", icon: BookOpen }),
-    createActionColumn<any>([
+  const columns: ColumnDef<import("@/lib/types/school").SchoolClassRead>[] = useMemo(() => [
+    createIconTextColumn<import("@/lib/types/school").SchoolClassRead>("class_name", { header: "Class Name", icon: BookOpen }),
+    createActionColumn<import("@/lib/types/school").SchoolClassRead>([
       createEditAction((classItem) => handleEditClick(classItem)),
       createDeleteAction((classItem) => handleDeleteClick(classItem))
     ])
@@ -164,14 +160,17 @@ export const ClassesTab = memo(({
 
   return (
     <div className="space-y-4">
-      <DataTableWithFilters
+      {/* Table */}
+      <EnhancedDataTable
         data={classesWithSubjects}
-        columns={columns}
+        columns={columns as any}
         title="Classes"
         description="Manage academic classes and their subjects"
         searchKey="class_name"
+        searchPlaceholder="Search classes..."
         exportable={true}
         onAdd={() => setIsAddClassOpen(true)}
+        addButtonText="Add Class"
       />
 
       {/* Add Class Dialog */}

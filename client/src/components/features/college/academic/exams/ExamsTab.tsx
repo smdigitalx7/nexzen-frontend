@@ -2,7 +2,8 @@ import { useState, useMemo } from "react";
 import { Award } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DataTableWithFilters, FormDialog, ConfirmDialog } from "@/components/shared";
+import { FormDialog, ConfirmDialog } from "@/components/shared";
+import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { useToast } from '@/hooks/use-toast';
 import { useFormState } from "@/lib/hooks/common";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -251,7 +252,7 @@ export const ExamsTab = ({
 
   return (
     <div className="space-y-4">
-      <DataTableWithFilters
+      <EnhancedDataTable
         data={exams}
         columns={columns}
         title="Exams"
@@ -259,6 +260,7 @@ export const ExamsTab = ({
         searchKey="exam_name"
         exportable={true}
         onAdd={() => setIsAddExamOpen(true)}
+        addButtonText="Add Exam"
       />
 
       {/* Add Exam Dialog */}

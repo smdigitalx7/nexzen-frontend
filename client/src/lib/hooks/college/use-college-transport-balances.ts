@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeTransportBalancesService } from "@/lib/services/college/transport-fee-balances.service";
-import type { CollegeTransportBalanceBulkCreate, CollegeTransportBalanceBulkCreateResult, CollegeTransportFeeBalanceFullRead, CollegeTransportFeeBalanceListRead, CollegeTransportFeeBalanceUpdate, CollegeTransportPaginatedResponse, CollegeTransportTermPaymentUpdate } from "@/lib/types/college/index.ts";
+import type { CollegeTransportBalanceBulkCreate, CollegeTransportBalanceBulkCreateResult, CollegeTransportFeeBalanceFullRead, CollegeTransportFeeBalanceListRead, CollegeTransportFeeBalanceUpdate, CollegeTransportPaginatedResponse, CollegeTransportTermPaymentUpdate, CollegeTransportFeeBalanceDashboardStats } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 
 export function useCollegeTransportBalancesList(params?: { page?: number; pageSize?: number; class_id?: number; group_id?: number }) {
@@ -71,5 +71,12 @@ export function useUpdateTransportTermPayment(enrollmentId: number) {
       qc.invalidateQueries({ queryKey: collegeKeys.transport.detail(enrollmentId) });
       qc.invalidateQueries({ queryKey: collegeKeys.transport.root() });
     },
+  });
+}
+
+export function useCollegeTransportFeeBalancesDashboard() {
+  return useQuery({
+    queryKey: [...collegeKeys.transport.root(), "dashboard"],
+    queryFn: () => CollegeTransportBalancesService.dashboard(),
   });
 }

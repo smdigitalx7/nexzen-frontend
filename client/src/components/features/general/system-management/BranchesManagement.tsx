@@ -3,7 +3,8 @@ import { useBranches, useDeleteBranch } from "@/lib/hooks/useBranches";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { DataTableWithFilters, ConfirmDialog } from "@/components/shared";
+import { ConfirmDialog } from "@/components/shared";
+import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { Edit, Trash2, Eye, Building2 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { 
@@ -86,7 +87,7 @@ export default function BranchesManagement() {
 
   return (
     <div className="space-y-4">
-      <DataTableWithFilters
+      <EnhancedDataTable
         data={data || []}
         columns={columns}
         title="Branches"

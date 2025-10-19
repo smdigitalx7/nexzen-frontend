@@ -4,13 +4,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TabSwitcher } from "@/components/shared";
 import { usePayrollManagement } from "@/lib/hooks/general/usePayrollManagement";
+import { usePayrollDashboard } from "@/lib/hooks/general/usePayrollManagement";
 import { formatCurrency } from "@/lib/utils";
-import { PayrollStatsCards } from "./components/PayrollStatsCards";
+import { PayrollStatsCards as OldPayrollStatsCards } from "./components/PayrollStatsCards";
+import { PayrollStatsCards } from "./PayrollStatsCards";
 import { EmployeePayrollTable } from "./components/EmployeePayrollTable";
 import { SalaryCalculationForm } from "./components/SalaryCalculationForm";
 import { BulkPayrollOperations } from "./components/BulkPayrollOperations";
 
 export const PayrollManagementTemplate = () => {
+  // Dashboard stats hook
+  const { data: dashboardStats, isLoading: dashboardLoading } = usePayrollDashboard();
+  
   const {
     // Data
     payrolls,
@@ -95,14 +100,21 @@ export const PayrollManagementTemplate = () => {
 
 
       {/* Payroll Overview Cards */}
-      <PayrollStatsCards
-        totalPayrolls={totalPayrolls}
-        totalAmount={totalAmount}
-        paidAmount={paidAmount}
-        pendingAmount={pendingAmount}
-        pendingCount={pendingCount}
-        currentBranch={currentBranch}
-      />
+      {dashboardStats ? (
+        <PayrollStatsCards
+          stats={dashboardStats}
+          loading={dashboardLoading}
+        />
+      ) : (
+        <OldPayrollStatsCards
+          totalPayrolls={totalPayrolls}
+          totalAmount={totalAmount}
+          paidAmount={paidAmount}
+          pendingAmount={pendingAmount}
+          pendingCount={pendingCount}
+          currentBranch={currentBranch}
+        />
+      )}
 
       {/* Main Content Tabs */}
       <TabSwitcher

@@ -2,6 +2,8 @@
 export { EnhancedDataTable } from './EnhancedDataTable';
 export { FormDialog } from './FormDialog';
 export { ConfirmDialog } from './ConfirmDialog';
-export { DataTableWithFilters } from './DataTableWithFilters';
 export { TabSwitcher } from './TabSwitcher';
+
+// Dashboard Components
+export * from './dashboard';
 

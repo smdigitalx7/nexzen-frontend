@@ -116,6 +116,7 @@ export const EmployeeManagementTabs = ({
           onDeleteEmployee={onDeleteEmployee}
           onViewEmployee={onViewEmployee}
           onUpdateStatus={onUpdateStatus}
+          showSearch={true}
         />
       ),
     },
@@ -131,6 +132,7 @@ export const EmployeeManagementTabs = ({
           onEditAttendance={onEditAttendance}
           onDeleteAttendance={onDeleteAttendance}
           onViewAttendance={onViewAttendance}
+          showSearch={true}
         />
       ),
     },
@@ -148,6 +150,7 @@ export const EmployeeManagementTabs = ({
           onViewLeave={onViewLeave}
           onApproveLeave={onApproveLeave}
           onRejectLeave={onRejectLeave}
+          showSearch={true}
         />
       ),
     },
@@ -166,6 +169,7 @@ export const EmployeeManagementTabs = ({
           onApproveAdvance={onApproveAdvance}
           onRejectAdvance={onRejectAdvance}
           onUpdateAmount={onUpdateAmount}
+          showSearch={true}
         />
       ),
     },

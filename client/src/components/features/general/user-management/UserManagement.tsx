@@ -23,18 +23,19 @@ import {
   createEditAction,
   createDeleteAction
 } from "@/lib/utils/columnFactories.tsx";
-import { useUsersWithRolesAndBranches, useCreateUser, useUpdateUser, useDeleteUser } from '@/lib/hooks/general/useUsers';
+import { useUsersWithRolesAndBranches, useCreateUser, useUpdateUser, useDeleteUser, useUserDashboard } from '@/lib/hooks/general/useUsers';
 import { useRoles } from '@/lib/hooks/general/useRoles';
 import { useBranches } from '@/lib/hooks/general/useBranches';
 import { UserWithRolesAndBranches, UserCreate, UserUpdate } from '@/lib/types/general/users';
-import { RoleRead } from '@/lib/types/general/roles';
 import { BranchRead } from '@/lib/types/general/branches';
+import { UserStatsCards } from './UserStatsCards';
 
 const UserManagement = () => {
   // API hooks - Now using clean architecture directly
   const { data: users = [], isLoading, error } = useUsersWithRolesAndBranches();
   const { data: roles = [], isLoading: rolesLoading } = useRoles();
   const { data: branches = [], isLoading: branchesLoading } = useBranches();
+  const { data: dashboardStats, isLoading: dashboardLoading } = useUserDashboard();
   const branchesArray = branches as BranchRead[];
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
@@ -167,33 +168,16 @@ const UserManagement = () => {
     ])
   ]), [handleEditUser, handleDeleteUser]);
 
-  // Stats cards
-  const statsCards = useMemo(() => [
-    {
-      title: 'Total Users',
-      value: users.length,
-      icon: <Shield className="h-4 w-4" />,
-      description: 'All users in institute',
-    },
-    {
-      title: 'Active Users',
-      value: users.filter(u => u.is_active).length,
-      icon: <UserCheck className="h-4 w-4" />,
-      description: 'Currently active',
-    },
-    // {
-    //   title: 'Institute Admins',
-    //   value: users.filter(u => u.is_institute_admin).length,
-    //   icon: <ShieldCheck className="h-4 w-4" />,
-    //   description: 'Admin privileges',
-    // },
-    {
-      title: 'Inactive Users',
-      value: users.filter(u => !u.is_active).length,
-      icon: <UserX className="h-4 w-4" />,
-      description: 'Deactivated accounts',
-    },
-  ], [users]);
+  // Use dashboard stats if available, otherwise fallback to calculated stats
+  const displayStats = dashboardStats || {
+    total_users: users.length,
+    active_users: users.filter(u => u.is_active).length,
+    inactive_users: users.filter(u => !u.is_active).length,
+    institute_admins: users.filter(u => u.is_institute_admin).length,
+    regular_users: users.filter(u => !u.is_institute_admin).length,
+    users_created_this_month: 0,
+    users_created_this_year: 0,
+  };
 
   return (
     <motion.div
@@ -212,27 +196,13 @@ const UserManagement = () => {
             Showing {users.length} users
           </div>
         </div>
-        <Button onClick={handleAddUser} className="hover-elevate" data-testid="button-add-user">
-          <Plus className="h-4 w-4 mr-2" />
-          Add User
-        </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statsCards.map((stat, index) => (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              {stat.icon}
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">{stat.description}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <UserStatsCards 
+        stats={displayStats} 
+        loading={dashboardLoading}
+      />
 
       {/* Users Table */}
       {error ? (
@@ -248,8 +218,12 @@ const UserManagement = () => {
           data={users}
           columns={columns}
           title={isLoading ? "Users (Loading...)" : "Users"}
+          description="Manage user accounts and permissions"
           searchKey="full_name"
           searchPlaceholder="Search users..."
+          exportable={true}
+          onAdd={handleAddUser}
+          addButtonText="Add User"
         />
       )}
 

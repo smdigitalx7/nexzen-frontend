@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSchoolReservationsList, useDeleteSchoolReservation } from "@/lib/hooks/school/use-school-reservations";
+import { useSchoolReservationsList, useDeleteSchoolReservation, useSchoolReservationsDashboard } from "@/lib/hooks/school/use-school-reservations";
 import { motion } from "framer-motion";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ import { Plus, List, BarChart3 } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import type { TabItem } from "@/components/shared/TabSwitcher";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SchoolReservationStatsCards } from "./SchoolReservationStatsCards";
 
 const classFeeMap: Record<string, number> = {
   I: 12000,
@@ -59,6 +60,10 @@ const classFeeMap: Record<string, number> = {
 export default function ReservationNew() {
   const { academicYear } = useAuthStore();
   const { data: routeNames = [] } = useQuery({ queryKey: ["public","bus-routes","names"], queryFn: () => TransportService.getRouteNames() });
+  
+  // Dashboard stats hook
+  const { data: dashboardStats, isLoading: dashboardLoading } = useSchoolReservationsDashboard();
+  
   const [activeTab, setActiveTab] = useState("new");
   const [reservationNo, setReservationNo] = useState<string>("");
   const [showReceipt, setShowReceipt] = useState(false);
@@ -398,6 +403,14 @@ export default function ReservationNew() {
           )}
         </div>
       </motion.div>
+
+      {/* Reservation Dashboard Stats */}
+      {dashboardStats && (
+        <SchoolReservationStatsCards
+          stats={dashboardStats}
+          loading={dashboardLoading}
+        />
+      )}
 
       <TabSwitcher
         tabs={[

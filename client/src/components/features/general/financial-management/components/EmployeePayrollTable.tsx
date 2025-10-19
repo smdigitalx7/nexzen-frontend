@@ -3,7 +3,7 @@ import { Edit, Eye, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
-import { DataTableWithFilters } from "@/components/shared";
+import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { PayrollRead } from "@/lib/types/general/payrolls";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
@@ -125,7 +125,7 @@ export const EmployeePayrollTable = ({
   }
 
   return (
-    <DataTableWithFilters
+    <EnhancedDataTable
       data={payrolls}
       columns={columns}
       title="Employee Payrolls"
@@ -138,7 +138,7 @@ export const EmployeePayrollTable = ({
           label: "Status",
           options: statusFilterOptions,
           value: "all",
-          onChange: () => {}, // This will be handled by the DataTableWithFilters component
+          onChange: () => {}, // This will be handled by the EnhancedDataTable component
         },
       ]}
     />

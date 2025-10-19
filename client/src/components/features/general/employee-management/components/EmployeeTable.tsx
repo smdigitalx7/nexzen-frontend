@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { DataTableWithFilters } from "@/components/shared";
+import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import { 
   createAvatarColumn, 
@@ -39,6 +39,7 @@ interface EmployeeTableProps {
   onDeleteEmployee: (id: number) => void;
   onViewEmployee: (employee: EmployeeRead) => void;
   onUpdateStatus?: (id: number, status: string) => void;
+  showSearch?: boolean;
 }
 
 export const EmployeeTable = ({
@@ -49,6 +50,7 @@ export const EmployeeTable = ({
   onDeleteEmployee,
   onViewEmployee,
   onUpdateStatus,
+  showSearch = true,
 }: EmployeeTableProps) => {
 
   // Define columns for the data table using column factories
@@ -75,15 +77,16 @@ export const EmployeeTable = ({
   }
 
   return (
-    <DataTableWithFilters
+    <EnhancedDataTable
       data={employees}
       columns={columns as any}
       title="Employees"
       description="Manage employee information and details"
-      searchKey={"employee_name" as any}
+      searchKey="employee_name"
       exportable={true}
-      showSearch={false}
+      showSearch={showSearch}
       onAdd={onAddEmployee}
+      addButtonText="Add Employee"
     />
   );
 };

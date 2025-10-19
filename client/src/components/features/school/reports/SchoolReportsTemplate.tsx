@@ -29,6 +29,8 @@ import { IncomeTable } from "@/components/features/school/reports/components/Inc
 import { ExpenditureTable } from "@/components/features/school/reports/components/ExpenditureTable";
 import { AddIncomeDialog } from "@/components/features/school/reports/components/AddIncomeDialog";
 import { AddExpenditureDialog } from "@/components/features/school/reports/components/AddExpenditureDialog";
+import { SchoolIncomeStatsCards } from "../income/SchoolIncomeStatsCards";
+import { SchoolExpenditureStatsCards } from "../expenditure/SchoolExpenditureStatsCards";
 
 
 export const SchoolReportsTemplate = () => {
@@ -134,6 +136,22 @@ export const SchoolReportsTemplate = () => {
           formatCompactCurrency={formatCompactCurrency}
           incomeDashboard={incomeDashboard}
           expenditureDashboard={expenditureDashboard}
+        />
+      )}
+
+      {/* Detailed Income Stats Cards - Only show when income tab is active */}
+      {activeTab === 'income' && incomeDashboard && (
+        <SchoolIncomeStatsCards
+          stats={incomeDashboard}
+          loading={incomeDashboardLoading}
+        />
+      )}
+
+      {/* Detailed Expenditure Stats Cards - Only show when expenditure tab is active */}
+      {activeTab === 'expenditure' && expenditureDashboard && (
+        <SchoolExpenditureStatsCards
+          stats={expenditureDashboard}
+          loading={expenditureDashboardLoading}
         />
       )}
 

@@ -4,22 +4,24 @@ import { CreditCard, DollarSign, Truck } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import type { TabItem } from "@/components/shared/TabSwitcher";
 import { useCollegeFeesManagement } from "@/lib/hooks/college/use-college-fees-management";
+import { useCollegeTuitionFeeBalancesDashboard } from "@/lib/hooks/college/use-college-tuition-balances";
+import { useCollegeTransportFeeBalancesDashboard } from "@/lib/hooks/college/use-college-transport-balances";
 import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalancesPanel";
 import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeBalancesPanel";
-import { FeeStatsCards } from "./FeeStatsCards";
 import { CollectFee } from "./collect-fee/CollectFee";
+import { CollegeTuitionFeeBalanceStatsCards } from "../tuition-fee-balances/CollegeTuitionFeeBalanceStatsCards";
+import { CollegeTransportFeeBalanceStatsCards } from "../transport-fee-balances/CollegeTransportFeeBalanceStatsCards";
 
 export const FeesManagement = () => {
+  // Dashboard stats hooks
+  const { data: tuitionDashboardStats, isLoading: tuitionDashboardLoading } = useCollegeTuitionFeeBalancesDashboard();
+  const { data: transportDashboardStats, isLoading: transportDashboardLoading } = useCollegeTransportFeeBalancesDashboard();
+  
   const {
-    totalOutstanding,
-    totalIncome,
-    collectionRate,
     activeTab,
     setActiveTab,
     tuitionBalances,
   } = useCollegeFeesManagement();
-
-  const totalCollected = totalIncome;
 
 
   // Build rows for "Collect Fees" from tuition balances
@@ -70,12 +72,21 @@ export const FeesManagement = () => {
         </div>
       </motion.div>
 
-      {/* Fee Overview Cards */}
-      <FeeStatsCards
-        totalOutstanding={totalOutstanding}
-        totalCollected={totalCollected}
-        collectionRate={collectionRate}
-      />
+      {/* College Tuition Fee Balance Dashboard Stats - Only show when tuition-balances tab is active */}
+      {activeTab === 'tuition-balances' && tuitionDashboardStats && (
+        <CollegeTuitionFeeBalanceStatsCards
+          stats={tuitionDashboardStats}
+          loading={tuitionDashboardLoading}
+        />
+      )}
+
+      {/* College Transport Fee Balance Dashboard Stats - Only show when transport-balances tab is active */}
+      {activeTab === 'transport-balances' && transportDashboardStats && (
+        <CollegeTransportFeeBalanceStatsCards
+          stats={transportDashboardStats}
+          loading={transportDashboardLoading}
+        />
+      )}
 
       {/* Main Content Tabs */}
       <TabSwitcher

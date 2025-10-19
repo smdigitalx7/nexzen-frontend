@@ -2,7 +2,8 @@ import { useState, memo, useMemo } from "react";
 import { GraduationCap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DataTableWithFilters, FormDialog, ConfirmDialog } from "@/components/shared";
+import { FormDialog, ConfirmDialog } from "@/components/shared";
+import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { useCollegeCourses, useUpdateCollegeCourse, useCreateCollegeCourse, useDeleteCollegeCourse } from '@/lib/hooks/college/use-college-courses';
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
@@ -205,7 +206,7 @@ export const CoursesTab = memo(({
 
   return (
     <div className="space-y-4">
-      <DataTableWithFilters
+      <EnhancedDataTable
         data={coursesWithSubjects}
         columns={columns}
         title="Courses"
@@ -213,6 +214,7 @@ export const CoursesTab = memo(({
         searchKey="course_name"
         exportable={true}
         onAdd={() => setIsAddCourseOpen(true)}
+        addButtonText="Add Course"
       />
 
       {/* Add Course Dialog */}

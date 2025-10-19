@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { DataTableWithFilters } from "@/components/shared";
+import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn,
@@ -32,6 +32,7 @@ interface AdvancesTableProps {
   onApproveAdvance?: (advance: EmployeeAdvanceRead) => void;
   onRejectAdvance?: (advance: EmployeeAdvanceRead) => void;
   onUpdateAmount?: (advance: EmployeeAdvanceRead) => void;
+  showSearch?: boolean;
 }
 
 export const AdvancesTable = ({
@@ -44,6 +45,7 @@ export const AdvancesTable = ({
   onApproveAdvance,
   onRejectAdvance,
   onUpdateAmount,
+  showSearch = true,
 }: AdvancesTableProps) => {
 
   // Define columns for the data table using column factories
@@ -129,15 +131,16 @@ export const AdvancesTable = ({
   }
 
   return (
-    <DataTableWithFilters
+    <EnhancedDataTable
       data={advances}
       columns={columns as any}
       title="Employee Advances"
       description="Manage employee advances"
-      searchKey={false as any}
-      showSearch={false}
+      searchKey="employee_name"
+      showSearch={showSearch}
       exportable={true}
       onAdd={onAddAdvance}
+      addButtonText="Add Advance"
     />
   );
 };

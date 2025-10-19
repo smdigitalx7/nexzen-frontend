@@ -21,7 +21,6 @@ This document lists general-purpose, school-related, and college-related compone
   - `src/components/shared/ConfirmDialog.tsx`
   - `src/components/shared/FormDialog.tsx`
   - `src/components/shared/EnhancedDataTable.tsx`
-  - `src/components/shared/DataTableWithFilters.tsx`
   - `src/components/shared/index.ts`
 
 - **General pages**

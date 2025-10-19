@@ -12,7 +12,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
-import { useNavigationStore } from "@/store/navigationStore";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -21,7 +20,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import BranchSwitcher from "./BranchSwitcher";
 import AcademicYearSwitcher from "./AcademicYearSwitcher";
@@ -30,115 +28,19 @@ const Header = () => {
   const { user, currentBranch, branches, switchBranch, logoutAsync, academicYear, academicYears, switchAcademicYear, isBranchSwitching } =
     useAuthStore();
   const queryClient = useQueryClient();
-  const [notifications] = useState(3); // Mock notification count
+  const [notifications] = useState(0);
   const [openSearch, setOpenSearch] = useState(false);
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Mock global results with complete details
-  const students = useMemo(
-    () =>
-      [
-        {
-          id: "NZN24250001",
-          name: "Aarav Sharma",
-          class: "Class V",
-          fatherName: "Rajesh Sharma",
-          mobile: "9876543210",
-          admissionDate: "2024-01-15",
-          totalFee: 24000,
-          paidAmount: 15000,
-          balance: 9000,
-          transport: "Yes - City Center",
-          status: "Active",
-        },
-        {
-          id: "NZN24250002",
-          name: "Divya Mehta",
-          class: "Class IX",
-          fatherName: "Suresh Mehta",
-          mobile: "9876543212",
-          admissionDate: "2024-01-16",
-          totalFee: 20000,
-          paidAmount: 20000,
-          balance: 0,
-          transport: "No",
-          status: "Active",
-        },
-      ].filter(
-        (s) =>
-          s.name.toLowerCase().includes(query.toLowerCase()) ||
-          s.id.toLowerCase().includes(query.toLowerCase()) ||
-          s.fatherName.toLowerCase().includes(query.toLowerCase()) ||
-          s.mobile.includes(query)
-      ),
-    [query]
-  );
-  const employees = useMemo(
-    () =>
-      [
-        {
-          id: "EMP001",
-          name: "Dr. Rajesh Kumar",
-          role: "Principal",
-          department: "Administration",
-          joinDate: "2020-01-15",
-          salary: 75000,
-          mobile: "9876543210",
-          email: "rajesh@school.com",
-          status: "Active",
-        },
-        {
-          id: "EMP002",
-          name: "Ms. Sunita Singh",
-          role: "Mathematics Teacher",
-          department: "Academic",
-          joinDate: "2021-06-01",
-          salary: 45000,
-          mobile: "9876543211",
-          email: "sunita@school.com",
-          status: "Active",
-        },
-      ].filter(
-        (e) =>
-          e.name.toLowerCase().includes(query.toLowerCase()) ||
-          e.id.toLowerCase().includes(query.toLowerCase()) ||
-          e.role.toLowerCase().includes(query.toLowerCase()) ||
-          e.mobile.includes(query)
-      ),
-    [query]
-  );
-  const transactions = useMemo(
-    () =>
-      [
-        {
-          id: "TXN001",
-          type: "Fee Payment",
-          amount: "₹15,000",
-          student: "Aarav Sharma",
-          date: "2024-01-15",
-          mode: "Cash",
-          status: "Completed",
-        },
-        {
-          id: "TXN002",
-          type: "Salary Payment",
-          amount: "₹25,000",
-          employee: "Dr. Rajesh Kumar",
-          date: "2024-01-31",
-          mode: "Bank Transfer",
-          status: "Completed",
-        },
-      ].filter(
-        (t) =>
-          t.type.toLowerCase().includes(query.toLowerCase()) ||
-          t.id.toLowerCase().includes(query.toLowerCase()) ||
-          (t.student &&
-            t.student.toLowerCase().includes(query.toLowerCase())) ||
-          (t.employee && t.employee.toLowerCase().includes(query.toLowerCase()))
-      ),
-    [query]
-  );
+  // Get time-based greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
+  };
+
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -208,8 +110,34 @@ const Header = () => {
           <AcademicYearSwitcher />
         </div>
 
-        {/* Center: Branch Switcher */}
-        <div className="flex-1 flex justify-center"></div>
+        {/* Center: Welcome Message */}
+        <div className="flex-1 flex justify-center">
+          <div className="text-center hidden md:block">
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <h2 className="text-lg font-semibold text-slate-700 mb-1">
+                {getGreeting()}, <span className="text-blue-600">
+                  {user?.full_name || 
+                   user?.email?.split('@')[0] || 
+                   (user ? 'User' : 'Guest')}
+                </span>!
+              </h2>
+              <div className="flex items-center justify-center gap-2">
+                <p className="text-sm text-slate-500">
+                  {currentBranch?.branch_name || 'Nexzen'} Management System
+                </p>
+                {currentBranch?.branch_type && (
+                  <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-full font-medium">
+                    {currentBranch.branch_type}
+                  </span>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        </div>
 
         {/* Right: Search, Year Badge, Notifications and User Menu */}
         <div className="flex items-center gap-4">
@@ -357,12 +285,11 @@ const Header = () => {
         </div>
       </div>
       <Dialog open={openSearch} onOpenChange={setOpenSearch}>
-        <DialogContent className="sm:max-w-[900px] max-h-[80vh]">
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Global Search</DialogTitle>
             <DialogDescription>
-              Search across students, employees, and transactions with complete
-              details
+              Search functionality will be implemented soon
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -370,253 +297,17 @@ const Header = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 ref={inputRef}
-                placeholder="Search by name, ID, mobile, or any detail..."
+                placeholder="Search functionality coming soon..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="pl-9"
+                disabled
               />
             </div>
-            <Tabs defaultValue="students">
-              <TabsList className="grid grid-cols-3">
-                <TabsTrigger value="students">
-                  Students ({students.length})
-                </TabsTrigger>
-                <TabsTrigger value="employees">
-                  Employees ({employees.length})
-                </TabsTrigger>
-                <TabsTrigger value="transactions">
-                  Transactions ({transactions.length})
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="students">
-                <div className="max-h-96 overflow-auto space-y-3">
-                  {students.map((s) => (
-                    <div
-                      key={s.id}
-                      className="border rounded-lg p-4 hover:bg-slate-50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3">
-                          <Users className="h-5 w-5 text-blue-600 mt-1" />
-                          <div className="space-y-2">
-                            <div>
-                              <div className="font-semibold text-lg">
-                                {s.name}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                {s.id} • {s.class} • Father: {s.fatherName}
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <span className="font-medium">Mobile:</span>{" "}
-                                {s.mobile}
-                              </div>
-                              <div>
-                                <span className="font-medium">Admission:</span>{" "}
-                                {s.admissionDate}
-                              </div>
-                              <div>
-                                <span className="font-medium">Transport:</span>{" "}
-                                {s.transport}
-                              </div>
-                              <div>
-                                <span className="font-medium">Status:</span>
-                                <Badge
-                                  variant={
-                                    s.status === "Active"
-                                      ? "default"
-                                      : "secondary"
-                                  }
-                                  className="ml-1"
-                                >
-                                  {s.status}
-                                </Badge>
-                              </div>
-                            </div>
-                            <div className="flex gap-4 pt-2">
-                              <div className="text-sm">
-                                <span className="font-medium text-green-600">
-                                  Paid: ₹{s.paidAmount.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="text-sm">
-                                <span className="font-medium text-red-600">
-                                  Balance: ₹{s.balance.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="text-sm">
-                                <span className="font-medium">
-                                  Total: ₹{s.totalFee.toLocaleString()}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <Button size="sm" variant="outline" asChild>
-                            <a
-                              href="/reservations/new?tab=collect"
-                              target="_blank"
-                            >
-                              Collect Fee
-                            </a>
-                          </Button>
-                          <Button size="sm" variant="outline" asChild>
-                            <a href="/admissions/new" target="_blank">
-                              View Details
-                            </a>
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-              <TabsContent value="employees">
-                <div className="max-h-96 overflow-auto space-y-3">
-                  {employees.map((e) => (
-                    <div
-                      key={e.id}
-                      className="border rounded-lg p-4 hover:bg-slate-50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3">
-                          <Users className="h-5 w-5 text-green-600 mt-1" />
-                          <div className="space-y-2">
-                            <div>
-                              <div className="font-semibold text-lg">
-                                {e.name}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                {e.id} • {e.role} • {e.department}
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <span className="font-medium">Mobile:</span>{" "}
-                                {e.mobile}
-                              </div>
-                              <div>
-                                <span className="font-medium">Email:</span>{" "}
-                                {e.email}
-                              </div>
-                              <div>
-                                <span className="font-medium">Join Date:</span>{" "}
-                                {e.joinDate}
-                              </div>
-                              <div>
-                                <span className="font-medium">Status:</span>
-                                <Badge
-                                  variant={
-                                    e.status === "Active"
-                                      ? "default"
-                                      : "secondary"
-                                  }
-                                  className="ml-1"
-                                >
-                                  {e.status}
-                                </Badge>
-                              </div>
-                            </div>
-                            <div className="pt-2">
-                              <span className="font-medium text-blue-600">
-                                Salary: ₹{e.salary.toLocaleString()}/month
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <Button size="sm" variant="outline" asChild>
-                            <a href="/employees" target="_blank">
-                              View Profile
-                            </a>
-                          </Button>
-                          <Button size="sm" variant="outline" asChild>
-                            <a href="/payroll" target="_blank">
-                              Payroll
-                            </a>
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-              <TabsContent value="transactions">
-                <div className="max-h-96 overflow-auto space-y-3">
-                  {transactions.map((t) => (
-                    <div
-                      key={t.id}
-                      className="border rounded-lg p-4 hover:bg-slate-50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3">
-                          <Users className="h-5 w-5 text-purple-600 mt-1" />
-                          <div className="space-y-2">
-                            <div>
-                              <div className="font-semibold text-lg">
-                                {t.type}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                {t.id} • {t.date}
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <span className="font-medium">Amount:</span>{" "}
-                                {t.amount}
-                              </div>
-                              <div>
-                                <span className="font-medium">Mode:</span>{" "}
-                                {t.mode}
-                              </div>
-                              {t.student && (
-                                <div>
-                                  <span className="font-medium">Student:</span>{" "}
-                                  {t.student}
-                                </div>
-                              )}
-                              {t.employee && (
-                                <div>
-                                  <span className="font-medium">Employee:</span>{" "}
-                                  {t.employee}
-                                </div>
-                              )}
-                              <div>
-                                <span className="font-medium">Status:</span>
-                                <Badge
-                                  variant={
-                                    t.status === "Completed"
-                                      ? "default"
-                                      : "secondary"
-                                  }
-                                  className="ml-1"
-                                >
-                                  {t.status}
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <Button size="sm" variant="outline" asChild>
-                            <a href="/school/fees" target="_blank">
-                              View Details
-                            </a>
-                          </Button>
-                          <Button size="sm" variant="outline" asChild>
-                            <a href="/financial-reports" target="_blank">
-                              Reports
-                            </a>
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
+            <div className="text-center py-8">
+              <Search className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+              <p className="text-slate-500">Search functionality will be implemented soon</p>
+            </div>
             <div className="text-xs text-muted-foreground">
               Tip: Press Ctrl/Cmd + K to open search • Esc to close
             </div>

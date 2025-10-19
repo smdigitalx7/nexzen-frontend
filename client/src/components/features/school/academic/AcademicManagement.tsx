@@ -31,15 +31,18 @@ const AcademicManagement = () => {
   // Calculate statistics
   const totalClasses = effectiveClasses.length;
   const totalSubjects = backendSubjects.length;
+  const totalTests = tests.length;
+  
+  // Calculate total sections from classes (assuming each class has sections)
+  const totalSections = effectiveClasses.reduce((total: number, classItem: any) => {
+    return total + (classItem.sections?.length || 0);
+  }, 0);
+  
   const today = new Date();
   const toDate = (v: any) => { const d = new Date(v); return isNaN(d.getTime()) ? null : d; };
   const activeExams = exams.filter((exam: any) => {
     const d = toDate(exam.exam_date);
     return d ? d >= new Date(today.toDateString()) : false;
-  }).length;
-  const completedExams = exams.filter((exam: any) => {
-    const d = toDate(exam.exam_date);
-    return d ? d < new Date(today.toDateString()) : false;
   }).length;
 
   // Loading states
@@ -98,8 +101,10 @@ const AcademicManagement = () => {
       <AcademicOverviewCards
         totalClasses={totalClasses}
         totalSubjects={totalSubjects}
+        totalSections={totalSections}
         activeExams={activeExams}
-        completedExams={completedExams}
+        totalTests={totalTests}
+        loading={isLoading}
       />
 
       {/* Tabs */}
@@ -113,8 +118,6 @@ const AcademicManagement = () => {
               <ClassesTab
                 classesWithSubjects={backendClasses}
                 classesLoading={isLoading}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
                 hasError={hasError}
                 errorMessage={errorMessage}
               />

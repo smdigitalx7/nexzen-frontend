@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { DataTableWithFilters } from "@/components/shared";
+import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn,
@@ -20,6 +20,7 @@ interface LeavesTableProps {
   onViewLeave: (leave: EmployeeLeaveRead) => void;
   onApproveLeave?: (leave: EmployeeLeaveRead) => void;
   onRejectLeave?: (leave: EmployeeLeaveRead) => void;
+  showSearch?: boolean;
 }
 
 export const LeavesTable = ({
@@ -31,6 +32,7 @@ export const LeavesTable = ({
   onViewLeave,
   onApproveLeave,
   onRejectLeave,
+  showSearch = true,
 }: LeavesTableProps) => {
 
   // Define columns for the data table using column factories
@@ -81,15 +83,16 @@ export const LeavesTable = ({
   }
 
   return (
-    <DataTableWithFilters
+    <EnhancedDataTable
       data={leaves}
       columns={columns as any}
       title="Employee Leaves"
       description="Manage employee leave requests and approvals"
-      searchKey={false as any}
-      showSearch={false}
+      searchKey="employee_name"
+      showSearch={showSearch}
       exportable={true}
       onAdd={onAddLeave}
+      addButtonText="Add Leave"
     />
   );
 };

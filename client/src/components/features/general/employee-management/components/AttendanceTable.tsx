@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { DataTableWithFilters } from "@/components/shared";
+import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn,
@@ -31,6 +31,7 @@ interface AttendanceTableProps {
   onEditAttendance: (attendance: EmployeeAttendanceRead) => void;
   onDeleteAttendance: (id: number) => void;
   onViewAttendance: (attendance: EmployeeAttendanceRead) => void;
+  showSearch?: boolean;
 }
 
 export const AttendanceTable = ({
@@ -40,6 +41,7 @@ export const AttendanceTable = ({
   onEditAttendance,
   onDeleteAttendance,
   onViewAttendance,
+  showSearch = true,
 }: AttendanceTableProps) => {
   // Define columns for the data table using column factories
   const columns: ColumnDef<EmployeeAttendanceRead>[] = useMemo(() => [
@@ -78,15 +80,16 @@ export const AttendanceTable = ({
   }
 
   return (
-    <DataTableWithFilters
+    <EnhancedDataTable
       data={attendance}
       columns={columns as any}
       title="Employee Attendance"
       description="Manage employee attendance records"
-      searchKey={false as any}
-      showSearch={false}
+      searchKey="employee_name"
+      showSearch={showSearch}
       exportable={true}
       onAdd={onAddAttendance}
+      addButtonText="Add Attendance"
     />
   );
 };

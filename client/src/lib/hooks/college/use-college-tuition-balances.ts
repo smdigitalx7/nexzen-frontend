@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeTuitionBalancesService } from "@/lib/services/college/tuition-fee-balances.service";
-import type { CollegeBookFeePaymentUpdate, CollegeTermPaymentUpdate, CollegeTuitionBalanceBulkCreate, CollegeTuitionBalanceBulkCreateResult, CollegeTuitionFeeBalanceFullRead, CollegeTuitionFeeBalanceRead, CollegeTuitionPaginatedResponse, CollegeTuitionUnpaidTermsResponse } from "@/lib/types/college/index.ts";
+import type { CollegeBookFeePaymentUpdate, CollegeTermPaymentUpdate, CollegeTuitionBalanceBulkCreate, CollegeTuitionBalanceBulkCreateResult, CollegeTuitionFeeBalanceFullRead, CollegeTuitionFeeBalanceRead, CollegeTuitionPaginatedResponse, CollegeTuitionUnpaidTermsResponse, CollegeTuitionFeeBalanceDashboardStats } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 
 export function useCollegeTuitionBalancesList(params?: { page?: number; pageSize?: number; class_id?: number; group_id?: number; course_id?: number; admission_no?: string }) {
@@ -99,5 +99,12 @@ export function useUpdateBookFeePayment(enrollmentId: number) {
       qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(enrollmentId) });
       qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
     },
+  });
+}
+
+export function useCollegeTuitionFeeBalancesDashboard() {
+  return useQuery({
+    queryKey: [...collegeKeys.tuition.root(), "dashboard"],
+    queryFn: () => CollegeTuitionBalancesService.dashboard(),
   });
 }

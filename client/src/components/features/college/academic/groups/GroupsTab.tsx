@@ -2,7 +2,8 @@ import { useState, memo, useMemo } from "react";
 import { Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DataTableWithFilters, FormDialog, ConfirmDialog } from "@/components/shared";
+import { FormDialog, ConfirmDialog } from "@/components/shared";
+import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { useCollegeGroups, useUpdateCollegeGroup, useCreateCollegeGroup, useDeleteCollegeGroup } from '@/lib/hooks/college/use-college-groups';
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
@@ -202,7 +203,7 @@ export const GroupsTab = memo(({
 
   return (
     <div className="space-y-4">
-      <DataTableWithFilters
+      <EnhancedDataTable
         data={groupsWithSubjects}
         columns={columns}
         title="Groups"
@@ -210,6 +211,7 @@ export const GroupsTab = memo(({
         searchKey="group_name"
         exportable={true}
         onAdd={() => setIsAddGroupOpen(true)}
+        addButtonText="Add Group"
       />
 
       {/* Add Group Dialog */}
