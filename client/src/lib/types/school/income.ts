@@ -33,12 +33,9 @@ export interface SchoolIncomeRead {
   admission_no?: string | null;
   roll_number?: string | null;
   student_name?: string | null;
-  purpose: string;
-  amount: number;
-  income_date: string; // YYYY-MM-DD
-  term_number?: number | null;
-  payment_method?: string | null;
-  note?: string | null;
+  total_amount: number;
+  receipt_no?: string | null;
+  remarks?: string | null;
   created_at: string;
   updated_at?: string | null;
   created_by?: number | null;
@@ -67,4 +64,22 @@ export interface SchoolIncomeDashboardStats {
   income_this_year: number;
   income_records_this_month: number;
   income_records_this_year: number;
+}
+
+export interface SchoolIncomeReceipt {
+  academic_year: string;
+  admission_no: string;
+  reservation_no: string;
+  student_name: string;
+  father_or_guardian_name: string;
+  receipt_no: string;
+  father_or_guardian_mobile: string;
+  payment_mode: string;
+  date: string;
+  particulars: Array<{
+    desc: string;
+    amount: number;
+  }>;
+  total_amount: number;
+  receipt_type: string;
 }

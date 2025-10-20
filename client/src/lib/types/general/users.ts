@@ -1,3 +1,9 @@
+export interface UserAccess {
+  access_id: number;
+  role_name: string;
+  branch_name: string;
+}
+
 export interface UserRead {
   user_id: number;
   full_name: string;
@@ -10,6 +16,14 @@ export interface UserRead {
   updated_at?: string | null; // ISO date string
   created_by?: number | null;
   updated_by?: number | null;
+  accesses?: UserAccess[];
+}
+
+export interface BranchRoleAssignment {
+  branch_id: number;
+  role_id: number;
+  is_default?: boolean;
+  access_notes?: string;
 }
 
 export interface UserCreate {
@@ -20,6 +34,7 @@ export interface UserCreate {
   confirm_password: string;
   is_institute_admin?: boolean;
   is_active?: boolean;
+  branch_role_assignments: BranchRoleAssignment[];
 }
 
 export interface UserUpdate {
@@ -46,6 +61,11 @@ export interface BranchInfo {
 export interface UserWithRolesAndBranches extends UserRead {
   roles: RoleInfo[];
   branches: BranchInfo[];
+}
+
+// New interface that matches the API response structure
+export interface UserWithAccesses extends UserRead {
+  accesses: UserAccess[];
 }
 
 // Dashboard schemas

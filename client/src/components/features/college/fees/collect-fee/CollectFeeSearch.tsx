@@ -8,12 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
 import { CollegeStudentsService } from "@/lib/services/college/students.service";
 import { CollegeTuitionBalancesService } from "@/lib/services/college/tuition-fee-balances.service";
-import { CollegeTransportBalancesService } from "@/lib/services/college/transport-fee-balances.service";
 
 interface StudentFeeDetails {
   student: any;
   tuitionBalance: any;
-  transportBalance: any;
 }
 
 interface CollectFeeSearchProps {
@@ -53,14 +51,10 @@ export const CollectFeeSearch = ({ onStudentSelected }: CollectFeeSearchProps) =
             // If multiple matches, show all and let user select
             const studentDetailsList = await Promise.all(
               matchingStudents.map(async (s: any) => {
-                const [tuitionBalance, transportBalance] = await Promise.all([
-                  CollegeTuitionBalancesService.getByAdmissionNo(s.admission_no).catch(() => null),
-                  Promise.resolve(null)
-                ]);
+                const tuitionBalance = await CollegeTuitionBalancesService.getByAdmissionNo(s.admission_no).catch(() => null);
                 return {
                   student: s,
-                  tuitionBalance,
-                  transportBalance
+                  tuitionBalance
                 };
               })
             );
@@ -73,17 +67,11 @@ export const CollectFeeSearch = ({ onStudentSelected }: CollectFeeSearchProps) =
       
       if (student) {
         // Get fee balances for this student
-        const [tuitionBalance, transportBalance] = await Promise.all([
-          CollegeTuitionBalancesService.getByAdmissionNo(student.admission_no).catch(() => null),
-          // Note: College transport service doesn't have getByAdmissionNo method
-          // We'll need to implement this or use a different approach
-          Promise.resolve(null)
-        ]);
+        const tuitionBalance = await CollegeTuitionBalancesService.getByAdmissionNo(student.admission_no).catch(() => null);
 
         const studentDetails: StudentFeeDetails = {
           student,
-          tuitionBalance,
-          transportBalance
+          tuitionBalance
         };
 
         setSearchResults([studentDetails]);
@@ -116,12 +104,6 @@ export const CollectFeeSearch = ({ onStudentSelected }: CollectFeeSearchProps) =
                Math.max(0, (tuition.term1_amount || 0) - (tuition.term1_paid || 0)) +
                Math.max(0, (tuition.term2_amount || 0) - (tuition.term2_paid || 0)) +
                Math.max(0, (tuition.term3_amount || 0) - (tuition.term3_paid || 0));
-    }
-    
-    if (studentDetails.transportBalance) {
-      const transport = studentDetails.transportBalance;
-      total += Math.max(0, (transport.term1_amount || 0) - (transport.term1_paid || 0)) +
-               Math.max(0, (transport.term2_amount || 0) - (transport.term2_paid || 0));
     }
     
     return total;
@@ -209,20 +191,6 @@ export const CollectFeeSearch = ({ onStudentSelected }: CollectFeeSearchProps) =
                             <p>Term 2: {formatCurrency(Math.max(0, (studentDetails.tuitionBalance.term2_amount || 0) - (studentDetails.tuitionBalance.term2_paid || 0)))}</p>
                             <p>Term 3: {formatCurrency(Math.max(0, (studentDetails.tuitionBalance.term3_amount || 0) - (studentDetails.tuitionBalance.term3_paid || 0)))}</p>
                           </div>
-                        </div>
-                      )}
-                      {studentDetails.transportBalance ? (
-                        <div className="space-y-1">
-                          <p className="font-medium text-sm">Transport Fees:</p>
-                          <div className="pl-2 space-y-1 text-sm">
-                            <p>Term 1: {formatCurrency(Math.max(0, (studentDetails.transportBalance.term1_amount || 0) - (studentDetails.transportBalance.term1_paid || 0)))}</p>
-                            <p>Term 2: {formatCurrency(Math.max(0, (studentDetails.transportBalance.term2_amount || 0) - (studentDetails.transportBalance.term2_paid || 0)))}</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
-                          <p className="font-medium text-sm text-muted-foreground">Transport Fees:</p>
-                          <p className="text-sm text-muted-foreground">No transport fees assigned</p>
                         </div>
                       )}
                     </div>

@@ -4,7 +4,6 @@ export interface SchoolExpenditureCreate {
   amount: number;
   remarks?: string | null;
   payment_method?: string | null;
-  payment_date?: string | null; // YYYY-MM-DD
 }
 
 export interface SchoolExpenditureUpdate {
@@ -13,7 +12,6 @@ export interface SchoolExpenditureUpdate {
   amount?: number;
   remarks?: string | null;
   payment_method?: string | null;
-  payment_date?: string | null; // YYYY-MM-DD
 }
 
 export interface SchoolExpenditureRead {
@@ -23,7 +21,8 @@ export interface SchoolExpenditureRead {
   amount: number;
   remarks?: string | null;
   payment_method?: string | null;
-  payment_date?: string | null; // YYYY-MM-DD
+  purpose?: string | null;
+  voucher_no?: string | null;
   created_at: string;
   updated_at?: string | null;
   created_by?: number | null;

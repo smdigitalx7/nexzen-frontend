@@ -8,8 +8,6 @@ import {
   Clock, 
   AlertTriangle,
   CreditCard,
-  Wallet,
-  Users,
   BarChart3,
   Receipt
 } from 'lucide-react';
@@ -36,7 +34,7 @@ export const SchoolExpenditureStatsCards: React.FC<SchoolExpenditureStatsCardsPr
       color: "blue" as const,
       description: "All expenditure transactions",
       variant: "elevated" as const,
-      size: "lg" as const,
+      size: "sm" as const,
     },
     {
       title: "Total Expenditure Amount",
@@ -45,7 +43,7 @@ export const SchoolExpenditureStatsCards: React.FC<SchoolExpenditureStatsCardsPr
       color: "red" as const,
       description: "Total expenses incurred",
       variant: "gradient" as const,
-      size: "lg" as const,
+      size: "sm" as const,
     },
     {
       title: "Paid Expenditures",
@@ -54,13 +52,7 @@ export const SchoolExpenditureStatsCards: React.FC<SchoolExpenditureStatsCardsPr
       color: "green" as const,
       description: "Successfully paid bills",
       variant: "bordered" as const,
-      size: "lg" as const,
-      trend: {
-        value: stats.total_expenditure_records > 0 ? 
-          Math.round((stats.paid_expenditures / stats.total_expenditure_records) * 100) : 0,
-        label: "payment rate",
-        isPositive: true,
-      },
+      size: "sm" as const,
     },
     {
       title: "Unpaid Expenditures",
@@ -69,13 +61,7 @@ export const SchoolExpenditureStatsCards: React.FC<SchoolExpenditureStatsCardsPr
       color: "orange" as const,
       description: "Pending payments",
       variant: "bordered" as const,
-      size: "lg" as const,
-      trend: {
-        value: stats.total_expenditure_records > 0 ? 
-          Math.round((stats.unpaid_expenditures / stats.total_expenditure_records) * 100) : 0,
-        label: "pending rate",
-        isPositive: false,
-      },
+      size: "sm" as const,
     },
     {
       title: "Total Paid Amount",
@@ -84,13 +70,7 @@ export const SchoolExpenditureStatsCards: React.FC<SchoolExpenditureStatsCardsPr
       color: "emerald" as const,
       description: "Amount already paid",
       variant: "elevated" as const,
-      size: "lg" as const,
-      trend: {
-        value: stats.total_expenditure_amount > 0 ? 
-          Math.round((stats.total_paid_amount / stats.total_expenditure_amount) * 100) : 0,
-        label: "payment completion",
-        isPositive: true,
-      },
+      size: "sm" as const,
     },
     {
       title: "Total Unpaid Amount",
@@ -99,7 +79,7 @@ export const SchoolExpenditureStatsCards: React.FC<SchoolExpenditureStatsCardsPr
       color: "rose" as const,
       description: "Outstanding payments",
       variant: "elevated" as const,
-      size: "lg" as const,
+      size: "sm" as const,
       trend: {
         value: stats.total_expenditure_amount > 0 ? 
           Math.round((stats.total_unpaid_amount / stats.total_expenditure_amount) * 100) : 0,
@@ -114,13 +94,7 @@ export const SchoolExpenditureStatsCards: React.FC<SchoolExpenditureStatsCardsPr
       color: "cyan" as const,
       description: "Current month's expenses",
       variant: "default" as const,
-      size: "md" as const,
-      trend: {
-        value: stats.total_expenditure_amount > 0 ? 
-          Math.round((stats.expenditure_this_month / stats.total_expenditure_amount) * 100) : 0,
-        label: "of total expenses",
-        isPositive: false,
-      },
+      size: "sm" as const,
     },
     {
       title: "Expenditure This Year",
@@ -129,13 +103,7 @@ export const SchoolExpenditureStatsCards: React.FC<SchoolExpenditureStatsCardsPr
       color: "violet" as const,
       description: "Current year's expenses",
       variant: "gradient" as const,
-      size: "lg" as const,
-      trend: {
-        value: stats.total_expenditure_amount > 0 ? 
-          Math.round((stats.expenditure_this_year / stats.total_expenditure_amount) * 100) : 0,
-        label: "of total expenses",
-        isPositive: false,
-      },
+      size: "sm" as const,
     },
     {
       title: "Records This Month",
@@ -144,13 +112,7 @@ export const SchoolExpenditureStatsCards: React.FC<SchoolExpenditureStatsCardsPr
       color: "yellow" as const,
       description: "Transactions this month",
       variant: "bordered" as const,
-      size: "md" as const,
-      trend: {
-        value: stats.total_expenditure_records > 0 ? 
-          Math.round((stats.expenditure_records_this_month / stats.total_expenditure_records) * 100) : 0,
-        label: "of total records",
-        isPositive: true,
-      },
+      size: "sm" as const,
     },
     {
       title: "Records This Year",
@@ -159,13 +121,7 @@ export const SchoolExpenditureStatsCards: React.FC<SchoolExpenditureStatsCardsPr
       color: "indigo" as const,
       description: "Transactions this year",
       variant: "bordered" as const,
-      size: "md" as const,
-      trend: {
-        value: stats.total_expenditure_records > 0 ? 
-          Math.round((stats.expenditure_records_this_year / stats.total_expenditure_records) * 100) : 0,
-        label: "of total records",
-        isPositive: true,
-      },
+      size: "sm" as const,
     },
   ];
 

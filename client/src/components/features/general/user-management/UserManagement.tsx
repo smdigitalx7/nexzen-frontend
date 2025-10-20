@@ -2,16 +2,15 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ColumnDef } from '@tanstack/react-table';
 import { Plus, Edit, Trash2, Eye, MoreHorizontal, Shield, ShieldCheck, ShieldX, UserCheck, UserX } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 import { FormDialog, ConfirmDialog } from '@/components/shared';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
 import {
   createAvatarColumn,
@@ -23,10 +22,10 @@ import {
   createEditAction,
   createDeleteAction
 } from "@/lib/utils/columnFactories.tsx";
-import { useUsersWithRolesAndBranches, useCreateUser, useUpdateUser, useDeleteUser, useUserDashboard } from '@/lib/hooks/general/useUsers';
+import { useUsersWithRolesAndBranches, useCreateUser, useUpdateUser, useDeleteUser, useUserDashboard, useRevokeUserAccess, useUser } from '@/lib/hooks/general/useUsers';
 import { useRoles } from '@/lib/hooks/general/useRoles';
 import { useBranches } from '@/lib/hooks/general/useBranches';
-import { UserWithRolesAndBranches, UserCreate, UserUpdate } from '@/lib/types/general/users';
+import { UserWithRolesAndBranches, UserCreate, UserUpdate, BranchRoleAssignment, UserWithAccesses } from '@/lib/types/general/users';
 import { BranchRead } from '@/lib/types/general/branches';
 import { UserStatsCards } from './UserStatsCards';
 
@@ -40,6 +39,28 @@ const UserManagement = () => {
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
+  const revokeAccessMutation = useRevokeUserAccess();
+
+  // Helper function to extract role and branch info from accesses
+  const getRoleAndBranchFromAccesses = (user: UserWithRolesAndBranches | UserWithAccesses) => {
+    if ('accesses' in user && user.accesses && user.accesses.length > 0) {
+      const firstAccess = user.accesses[0];
+      return {
+        roleId: roles.find(r => r.role_name === firstAccess.role_name)?.role_id || null,
+        branchId: branchesArray.find(b => b.branch_name === firstAccess.branch_name)?.branch_id || null,
+        roleName: firstAccess.role_name,
+        branchName: firstAccess.branch_name
+      };
+    } else if ('roles' in user && user.roles && user.roles.length > 0) {
+      return {
+        roleId: user.roles[0].role_id,
+        branchId: user.branches && user.branches.length > 0 ? user.branches[0].branch_id : null,
+        roleName: user.roles[0].role_name,
+        branchName: user.branches && user.branches.length > 0 ? user.branches[0].branch_name : ''
+      };
+    }
+    return { roleId: null, branchId: null, roleName: '', branchName: '' };
+  };
 
   // Component state
   const [selectedUser, setSelectedUser] = useState<UserWithRolesAndBranches | null>(null);
@@ -48,6 +69,13 @@ const UserManagement = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserWithRolesAndBranches | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [showRevokeDialog, setShowRevokeDialog] = useState(false);
+  const [accessToRevoke, setAccessToRevoke] = useState<{ accessId: number; userId: number; roleName: string; branchName: string } | null>(null);
+  const [revokeNotes, setRevokeNotes] = useState<string>('');
+  
+  // Fetch detailed user data when viewing user details (includes accesses array)
+  const { data: detailedUser, isLoading: detailedUserLoading } = useUser(selectedUser?.user_id || 0);
 
   // Form data
   const [formData, setFormData] = useState<UserCreate>({
@@ -58,11 +86,16 @@ const UserManagement = () => {
     confirm_password: '',
     is_institute_admin: false,
     is_active: true,
+    branch_role_assignments: [],
   });
 
-  // Role and branch selections
+  // Role and branch selections for the assignment
   const [selectedRole, setSelectedRole] = useState<number | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
+  const [accessNotes, setAccessNotes] = useState<string>('');
+  
+  // Password validation state
+  const [passwordsMatch, setPasswordsMatch] = useState<boolean | null>(null);
 
 
   const handleAddUser = () => {
@@ -75,9 +108,13 @@ const UserManagement = () => {
       confirm_password: '',
       is_institute_admin: false,
       is_active: true,
+      branch_role_assignments: [],
     });
     setSelectedRole(null);
     setSelectedBranch(null);
+    setAccessNotes('');
+    setFormError(null);
+    setPasswordsMatch(null);
     setShowUserForm(true);
   };
 
@@ -92,10 +129,15 @@ const UserManagement = () => {
       confirm_password: '',
       is_institute_admin: user.is_institute_admin,
       is_active: user.is_active,
+      branch_role_assignments: [],
     });
-    // Set role and branch selections for editing
-    setSelectedRole(user.roles && user.roles.length > 0 ? user.roles[0].role_id : null);
-    setSelectedBranch(user.branches && user.branches.length > 0 ? user.branches[0].branch_id : null);
+    // Set role and branch selections for editing using helper function
+    const { roleId, branchId } = getRoleAndBranchFromAccesses(user);
+    setSelectedRole(roleId);
+    setSelectedBranch(branchId);
+    setAccessNotes('');
+    setFormError(null);
+    setPasswordsMatch(null);
     setShowUserForm(true);
   };
 
@@ -112,17 +154,62 @@ const UserManagement = () => {
     }
   };
 
+  const handleRevokeAccess = (accessId: number, userId: number, roleName: string, branchName: string) => {
+    setAccessToRevoke({ accessId, userId, roleName, branchName });
+    setRevokeNotes('');
+    setShowRevokeDialog(true);
+  };
+
+  const confirmRevokeAccess = () => {
+    if (accessToRevoke) {
+      revokeAccessMutation.mutate({
+        accessId: accessToRevoke.accessId,
+        payload: {
+          user_id: accessToRevoke.userId,
+          access_notes: revokeNotes || undefined,
+        }
+      });
+      setShowRevokeDialog(false);
+      setAccessToRevoke(null);
+      setRevokeNotes('');
+    }
+  };
+
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null); // Clear any previous errors
     
     // Validate role and branch selection for new users
     if (!isEditing) {
       if (!selectedRole) {
-        alert('Please select a role for the user.');
+        setFormError('Please select a role for the user.');
         return;
       }
       if (!selectedBranch) {
-        alert('Please select a branch for the user.');
+        setFormError('Please select a branch for the user.');
+        return;
+      }
+    }
+    
+    // Check for duplicate mobile number (only for new users)
+    if (!isEditing && formData.mobile_no) {
+      const existingUser = users.find(user => 
+        user.mobile_no === formData.mobile_no && user.user_id !== selectedUser?.user_id
+      );
+      if (existingUser) {
+        setFormError(`A user with mobile number ${formData.mobile_no} already exists. Please use a different mobile number.`);
+        return;
+      }
+    }
+    
+    // Validate password confirmation (only for new users)
+    if (!isEditing) {
+      if (formData.password !== formData.confirm_password) {
+        setFormError('Passwords do not match. Please ensure both password fields contain the same value.');
+        return;
+      }
+      if (formData.password.length < 8) {
+        setFormError('Password must be at least 8 characters long.');
         return;
       }
     }
@@ -135,12 +222,38 @@ const UserManagement = () => {
         is_institute_admin: formData.is_institute_admin,
         is_active: formData.is_active,
       };
-      updateUserMutation.mutate({ id: selectedUser.user_id, payload: updateData });
+      updateUserMutation.mutate({ id: selectedUser.user_id, payload: updateData }, {
+        onSuccess: () => {
+          setShowUserForm(false);
+        },
+        onError: (error: any) => {
+          const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred while updating the user.';
+          setFormError(errorMessage);
+        }
+      });
     } else {
-      // Create user
-      createUserMutation.mutate(formData);
+      // Create user with branch_role_assignments
+      const userData: UserCreate = {
+        ...formData,
+        branch_role_assignments: [
+          {
+            branch_id: selectedBranch!,
+            role_id: selectedRole!,
+            is_default: true,
+            access_notes: accessNotes || undefined,
+          }
+        ]
+      };
+      createUserMutation.mutate(userData, {
+        onSuccess: () => {
+          setShowUserForm(false);
+        },
+        onError: (error: any) => {
+          const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred while creating the user.';
+          setFormError(errorMessage);
+        }
+      });
     }
-    setShowUserForm(false);
   };
 
   const handleSave = () => {
@@ -151,7 +264,25 @@ const UserManagement = () => {
   };
 
   const handleFormChange = (field: keyof UserCreate, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      
+      // Check password matching in real-time
+      if (field === 'password' || field === 'confirm_password') {
+        if (newData.password && newData.confirm_password) {
+          const match = newData.password === newData.confirm_password;
+          setPasswordsMatch(match);
+          // Clear form error if passwords now match
+          if (match && formError?.includes('Passwords do not match')) {
+            setFormError(null);
+          }
+        } else {
+          setPasswordsMatch(null);
+        }
+      }
+      
+      return newData;
+    });
   };
 
 
@@ -236,9 +367,14 @@ const UserManagement = () => {
         saveText={isEditing ? "Update" : "Add"}
         cancelText="Cancel"
       >
-        {!isEditing && (
+        {formError && (
+          <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md mb-4">
+            <strong>Error:</strong> {formError}
+          </div>
+        )}
+        {!isEditing && !formError && (
           <div className="text-sm text-green-600 bg-green-50 p-3 rounded-md mb-4">
-            <strong>Complete Setup:</strong> The user will be created with the selected role and branch assignment.
+            <strong>Complete Setup:</strong> The user will be created with the selected role and branch assignment. You can add optional access notes to provide additional context about the user's permissions.
           </div>
         )}
         <form id="user-form" onSubmit={handleFormSubmit} className="space-y-4">
@@ -274,9 +410,12 @@ const UserManagement = () => {
                   id="mobile_no"
                   value={formData.mobile_no || ""}
                   onChange={(e) => handleFormChange('mobile_no', e.target.value)}
-                  placeholder="Enter mobile number"
+                  placeholder="Enter mobile number (e.g., +919876543210)"
                   data-testid="input-mobile"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Include country code (e.g., +91 for India). Each mobile number must be unique within your institute.
+                </p>
               </div>
               <div></div>
             </div>
@@ -323,6 +462,18 @@ const UserManagement = () => {
               </div>
             </div>
             
+            {/* Access Notes */}
+            <div>
+              <Label htmlFor="access_notes">Access Notes</Label>
+              <Input
+                id="access_notes"
+                value={accessNotes}
+                onChange={(e) => setAccessNotes(e.target.value)}
+                placeholder="Optional notes about user access"
+                data-testid="input-access-notes"
+              />
+            </div>
+            
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -343,11 +494,14 @@ const UserManagement = () => {
                     type="password"
                     value={formData.password}
                     onChange={(e) => handleFormChange('password', e.target.value)}
-                    placeholder="Enter password"
+                    placeholder="Enter password (min 8 characters)"
                     required
                     minLength={8}
                     data-testid="input-password"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Password must be at least 8 characters long
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="confirm_password">Confirm Password *</Label>
@@ -360,7 +514,18 @@ const UserManagement = () => {
                     required
                     minLength={8}
                     data-testid="input-confirm-password"
+                    className={passwordsMatch === false ? 'border-red-500' : passwordsMatch === true ? 'border-green-500' : ''}
                   />
+                  {passwordsMatch === false && (
+                    <p className="text-xs text-red-600 mt-1">
+                      Passwords do not match
+                    </p>
+                  )}
+                  {passwordsMatch === true && (
+                    <p className="text-xs text-green-600 mt-1">
+                      Passwords match ✓
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -409,6 +574,52 @@ const UserManagement = () => {
                 <p>{new Date(selectedUser.created_at).toLocaleDateString()}</p>
               </div>
             </div>
+            
+            {/* Access Information */}
+            {detailedUser && ('accesses' in detailedUser && detailedUser.accesses && detailedUser.accesses.length > 0) && (
+              <div className="mt-4">
+                <Label className="text-muted-foreground">Access Permissions</Label>
+                <div className="mt-2 space-y-2">
+                  {detailedUser.accesses.map((access, index) => (
+                    <div key={access.access_id || index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                      <div>
+                        <span className="font-medium">{access.role_name}</span>
+                        <span className="text-muted-foreground ml-2">at {access.branch_name}</span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRevokeAccess(access.access_id, detailedUser.user_id, access.role_name, access.branch_name)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        disabled={revokeAccessMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        {revokeAccessMutation.isPending ? "Revoking..." : "Revoke"}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Legacy roles and branches display for backward compatibility */}
+            {('roles' in selectedUser && selectedUser.roles && selectedUser.roles.length > 0) && (
+              <div className="mt-4">
+                <Label className="text-muted-foreground">Roles & Branches</Label>
+                <div className="mt-2 space-y-2">
+                  {selectedUser.roles.map((role, index) => (
+                    <div key={role.role_id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                      <div>
+                        <span className="font-medium">{role.role_name}</span>
+                        {selectedUser.branches && selectedUser.branches[index] && (
+                          <span className="text-muted-foreground ml-2">at {selectedUser.branches[index].branch_name}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </FormDialog>
@@ -425,8 +636,51 @@ const UserManagement = () => {
         onConfirm={confirmDelete}
         disabled={deleteUserMutation.isPending}
       />
+
+      {/* Revoke Access Confirmation Dialog */}
+      <FormDialog
+        open={showRevokeDialog}
+        onOpenChange={setShowRevokeDialog}
+        title="Revoke Access"
+        description={`Are you sure you want to revoke ${accessToRevoke?.roleName} access at ${accessToRevoke?.branchName}? This action cannot be undone.`}
+        size="MEDIUM"
+        isLoading={revokeAccessMutation.isPending}
+        onSave={confirmRevokeAccess}
+        saveText={revokeAccessMutation.isPending ? "Revoking..." : "Revoke Access"}
+        cancelText="Cancel"
+        saveVariant="destructive"
+      >
+        <div className="space-y-4">
+          <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-center">
+              <ShieldX className="h-5 w-5 text-red-600 mr-2" />
+              <div>
+                <p className="text-sm font-medium text-red-800">Revoke Access Permission</p>
+                <p className="text-sm text-red-700">
+                  This will remove the user's {accessToRevoke?.roleName} role at {accessToRevoke?.branchName}.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="revoke-notes">Reason for Revocation (Optional)</Label>
+            <Input
+              id="revoke-notes"
+              value={revokeNotes}
+              onChange={(e) => setRevokeNotes(e.target.value)}
+              placeholder="Enter reason for revoking access..."
+              className="mt-1"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              This information will be recorded for audit purposes.
+            </p>
+          </div>
+        </div>
+      </FormDialog>
     </motion.div>
   );
 };
 
 export default UserManagement;
+
