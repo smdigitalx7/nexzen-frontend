@@ -8,11 +8,20 @@ import type {
   SchoolRecentIncome
 } from "@/lib/types/school";
 
-export const SchoolIncomeService = {
+export const SchoolIncomeService = {  
+
+  getDashboard() {
+    return Api.get<SchoolIncomeDashboardStats>(`/school/income/dashboard`);
+  },
+
+  getRecent(limit?: number) {
+    return Api.get<SchoolRecentIncome[]>(`/school/income/recent${limit ? `?limit=${limit}` : ''}`);
+  },
+
   list(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string }) {
     return Api.get<SchoolIncomeRead[]>(`/school/income`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
-
+  
   getById(income_id: number) {
     return Api.get<SchoolIncomeRead>(`/school/income/${income_id}`);
   },
@@ -33,20 +42,16 @@ export const SchoolIncomeService = {
     return Api.post<SchoolIncomeRead>(`/school/income/by-reservation`, payload);
   },
 
-  getDashboard() {
-    return Api.get<SchoolIncomeDashboardStats>(`/school/income/dashboard`);
-  },
 
-  getRecent(limit?: number) {
-    return Api.get<SchoolRecentIncome[]>(`/school/income/recent${limit ? `?limit=${limit}` : ''}`);
-  },
+
+  
 
   payFeeByAdmission(admission_no: string, payload: SchoolIncomeCreate) {
     return Api.post<SchoolIncomeRead>(`/school/income/pay-fee/${admission_no}`, payload);
   },
 
-  payFeeByReservation(payload: SchoolIncomeCreateReservation) {
-    return Api.post<SchoolIncomeRead>(`/school/income/pay-fee-by-reservation`, payload);
+  payFeeByReservation(reservation_no: string, payload: { details: Array<{ purpose: string; custom_purpose_name?: string; term_number?: number; paid_amount: number; payment_method: string }>; remarks?: string }) {
+    return Api.post<any>(`/school/income/pay-fee-by-reservation/${reservation_no}`, payload);
   },
 
   getIncomeWithDetails(income_id: number) {

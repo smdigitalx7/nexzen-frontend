@@ -192,9 +192,6 @@ const UserManagement = () => {
           <p className="text-muted-foreground mt-1">
             Manage user accounts and permissions across your institute
           </p>
-          <div className="text-sm text-muted-foreground mt-1">
-            Showing {users.length} users
-          </div>
         </div>
       </div>
 

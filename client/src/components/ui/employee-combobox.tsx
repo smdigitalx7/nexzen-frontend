@@ -38,6 +38,9 @@ export function EmployeeCombobox({
     employee.employee_id.toString() === value
   )
 
+  // Handle empty or invalid values
+  const hasValidValue = value && value !== "" && value !== "0"
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -47,7 +50,7 @@ export function EmployeeCombobox({
           aria-expanded={open}
           className={cn("w-full justify-between", className)}
         >
-          {selectedEmployee ? (
+          {hasValidValue && selectedEmployee ? (
             <div className="flex flex-col items-start">
               <span className="font-medium">{selectedEmployee.employee_name}</span>
               <span className="text-xs text-muted-foreground">
@@ -68,6 +71,18 @@ export function EmployeeCombobox({
               {isLoading ? "Loading employees..." : "No employee found."}
             </CommandEmpty>
             <CommandGroup>
+              {hasValidValue && (
+                <CommandItem
+                  value="clear-selection"
+                  onSelect={() => {
+                    onValueChange("")
+                    setOpen(false)
+                  }}
+                >
+                  <Check className="mr-2 h-4 w-4 opacity-0" />
+                  <span className="text-muted-foreground">Clear selection</span>
+                </CommandItem>
+              )}
               {employees.map((employee) => (
                 <CommandItem
                   key={employee.employee_id}
@@ -80,7 +95,7 @@ export function EmployeeCombobox({
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === employee.employee_id.toString() ? "opacity-100" : "opacity-0"
+                      hasValidValue && value === employee.employee_id.toString() ? "opacity-100" : "opacity-0"
                     )}
                   />
                   <div className="flex flex-col">

@@ -17,12 +17,12 @@ export const SchoolReservationsService = {
     return Api.get<SchoolReservationRead>(`/school/reservations/${reservation_id}`);
   },
 
-  create(form: FormData) {
-    return Api.postForm<SchoolReservationRead>(`/school/reservations`, form);
+  create(data: any) {
+    return Api.post<SchoolReservationRead>(`/school/reservations`, data);
   },
 
-  update(reservation_id: number, form: FormData) {
-    return Api.putForm<SchoolReservationRead>(`/school/reservations/${reservation_id}`, form);
+  update(reservation_id: number, data: any) {
+    return Api.put<SchoolReservationRead>(`/school/reservations/${reservation_id}`, data);
   },
 
   delete(reservation_id: number) {

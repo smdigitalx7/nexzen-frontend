@@ -39,6 +39,15 @@ export const UserStatsCards: React.FC<UserStatsCardsProps> = ({
       // },
     },
     {
+      title: "Inactive Users",
+      value: stats.inactive_users,
+      icon: UserX,
+      color: "red" as const,
+      description: "Currently inactive",
+      variant: "elevated" as const,
+      size: "md" as const,
+    },
+    {
       title: "Regular Users",
       value: stats.regular_users,
       icon: Users,

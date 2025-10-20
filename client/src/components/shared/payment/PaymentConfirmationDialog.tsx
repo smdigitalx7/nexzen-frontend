@@ -6,9 +6,7 @@ import {
   AlertTriangle, 
   CheckCircle,
   X,
-  Lock,
-  Eye,
-  EyeOff
+  Lock
 } from 'lucide-react';
 import { 
   Dialog, 
@@ -39,8 +37,6 @@ const PaymentConfirmationDialog: React.FC<PaymentConfirmationDialogProps> = ({
   onConfirm,
   onCancel
 }) => {
-  const [showCardDetails, setShowCardDetails] = React.useState(false);
-
   const handleConfirm = () => {
     onConfirm();
     onOpenChange(false);
@@ -49,10 +45,6 @@ const PaymentConfirmationDialog: React.FC<PaymentConfirmationDialogProps> = ({
   const handleCancel = () => {
     onCancel();
     onOpenChange(false);
-  };
-
-  const formatCardNumber = (cardNumber: string) => {
-    return cardNumber.replace(/(\d{4})(?=\d)/g, '$1 ');
   };
 
   const getPaymentMethodIcon = (method: string) => {
@@ -146,46 +138,36 @@ const PaymentConfirmationDialog: React.FC<PaymentConfirmationDialogProps> = ({
             </div>
           </motion.div>
 
-          {/* Card Details (if applicable) */}
-          {paymentData.paymentMethod === 'card' && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.3 }}
-              className="space-y-2"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Card Details</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowCardDetails(!showCardDetails)}
-                  className="h-6 px-2"
-                >
-                  {showCardDetails ? (
-                    <EyeOff className="w-3 h-3" />
-                  ) : (
-                    <Eye className="w-3 h-3" />
-                  )}
-                </Button>
-              </div>
-              
-              <div className="p-3 bg-gray-50 border rounded-lg">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-mono text-sm">
-                    {showCardDetails 
-                      ? formatCardNumber('1234567890123456')
-                      : '•••• •••• •••• 3456'
-                    }
-                  </span>
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Expires 12/25
-                </div>
-              </div>
-            </motion.div>
-          )}
+          {/* Payment Method Info */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
+            className="p-3 bg-blue-50 border border-blue-200 rounded-lg"
+          >
+            <div className="flex items-center gap-2">
+              {typeof PaymentMethodIcon === 'string' ? (
+                <span className="text-lg">{PaymentMethodIcon}</span>
+              ) : (
+                <PaymentMethodIcon className="w-4 h-4 text-blue-600" />
+              )}
+              <span className="text-sm font-medium text-blue-800 capitalize">
+                {paymentData.paymentMethod} Payment
+              </span>
+            </div>
+            <p className="text-xs text-blue-700 mt-1">
+              {paymentData.paymentMethod === 'card' 
+                ? 'Your card details will be securely processed by our payment partner.'
+                : paymentData.paymentMethod === 'upi'
+                ? 'You will be redirected to your UPI app to complete the payment.'
+                : paymentData.paymentMethod === 'netbanking'
+                ? 'You will be redirected to your bank\'s secure portal.'
+                : paymentData.paymentMethod === 'wallet'
+                ? 'You will be redirected to your digital wallet to complete the payment.'
+                : 'Your payment will be securely processed.'
+              }
+            </p>
+          </motion.div>
 
           {/* Warning Notice */}
           <motion.div

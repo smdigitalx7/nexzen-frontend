@@ -61,14 +61,14 @@ export default function ReservationsTable({ reservations, onView, onEdit, onDele
               <TableHead>Student Name</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead>Total Fee</TableHead>
+              
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredReservations.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={5} className="h-24 text-center text-sm text-muted-foreground">
                   <div className="space-y-2">
                     <p>No reservations found</p>
                     <p className="text-xs">Create your first reservation using the "New Reservations" tab</p>
@@ -94,7 +94,6 @@ export default function ReservationsTable({ reservations, onView, onEdit, onDele
                     </Badge>
                   </TableCell>
                   <TableCell>{reservation.date}</TableCell>
-                  <TableCell>₹{reservation.totalFee.toLocaleString()}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <Button

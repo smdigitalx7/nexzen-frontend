@@ -32,6 +32,7 @@ import {
 import { useAuthStore } from "@/store/authStore";
 import { Printer } from "lucide-react";
 import ReservationForm from "../reservations/ReservationForm";
+import SchoolReservationEdit from "../reservations/SchoolReservationEdit";
 import ReservationsTable from "../reservations/ReservationsTable";
 import { TransportService } from "@/lib/services/school/transport.service";
 import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
@@ -40,6 +41,8 @@ import { TabSwitcher } from "@/components/shared";
 import type { TabItem } from "@/components/shared/TabSwitcher";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SchoolReservationStatsCards } from "./SchoolReservationStatsCards";
+import { ReservationPaymentProcessor, ReservationPaymentData } from "@/components/shared/payment";
+import type { SchoolIncomeRead } from "@/lib/types/school";
 
 export default function ReservationNew() {
   const { academicYear } = useAuthStore();
@@ -60,6 +63,12 @@ export default function ReservationNew() {
   const [statusChanges, setStatusChanges] = useState<Record<string, 'PENDING' | 'CONFIRMED' | 'CANCELLED'>>({});
   const [statusRemarks, setStatusRemarks] = useState<Record<string, string>>({});
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+  const [editSelectedClassId, setEditSelectedClassId] = useState<number | null>(null);
+  
+  // Payment related state
+  const [showPaymentProcessor, setShowPaymentProcessor] = useState(false);
+  const [paymentData, setPaymentData] = useState<ReservationPaymentData | null>(null);
+  const [paymentIncomeRecord, setPaymentIncomeRecord] = useState<SchoolIncomeRead | null>(null);
 
   // Classes dropdown from API
   const { data: classesData, isLoading: classesLoading } = useSchoolClasses();
@@ -70,6 +79,7 @@ export default function ReservationNew() {
   
   // Fetch selected class details with fees
   const { classData: selectedClassData, isLoading: isLoadingClassData } = useSchoolClass(selectedClassId);
+  const { classData: editSelectedClassData, isLoading: isLoadingEditClassData } = useSchoolClass(editSelectedClassId);
   
   // Dashboard stats hook
   const { data: dashboardStats, isLoading: dashboardLoading } = useSchoolReservationsDashboard();
@@ -94,6 +104,7 @@ export default function ReservationNew() {
     
     return reservationsData.reservations.map((r: any) => ({
       id: String(r.reservation_id),
+      reservation_id: r.reservation_id, // Keep the original reservation_id as number
       studentName: r.student_name,
       classAdmission: r.admit_into || '',
       status: r.status || 'PENDING',
@@ -167,15 +178,38 @@ export default function ReservationNew() {
     }
   };
 
+  // Edit mode handlers
+  const handleEditClassChange = (classId: string) => {
+    const selectedClass = classes.find(c => c.class_id.toString() === classId);
+    if (selectedClass) {
+      setEditSelectedClassId(selectedClass.class_id);
+      setEditForm((prev: any) => ({
+        ...prev,
+        class_name: selectedClass.class_name,
+        preferred_class_id: selectedClass.class_id.toString()
+      }));
+    }
+  };
+
+  const handleEditDistanceSlabChange = (slabId: string) => {
+    const selectedSlab = distanceSlabs?.find(s => s.slab_id.toString() === slabId);
+    if (selectedSlab) {
+      setEditForm((prev: any) => ({
+        ...prev,
+        preferred_distance_slab_id: selectedSlab.slab_id.toString()
+      }));
+    }
+  };
+
   // Get preferred_class_id from form (for API submission)
-  const getPreferredClassId = () => {
-    const selectedClass = classes.find(c => c.class_name === form.class_name);
+  const getPreferredClassId = (formState = form) => {
+    const selectedClass = classes.find(c => c.class_name === formState.class_name);
     return selectedClass ? selectedClass.class_id : 0;
   };
 
   // Get preferred_distance_slab_id from form (for API submission)
-  const getPreferredDistanceSlabId = () => {
-    const selectedSlab = distanceSlabs?.find(s => s.slab_id.toString() === form.preferred_distance_slab_id);
+  const getPreferredDistanceSlabId = (formState = form) => {
+    const selectedSlab = distanceSlabs?.find(s => s.slab_id.toString() === formState.preferred_distance_slab_id);
     return selectedSlab ? selectedSlab.slab_id : 0;
   };
 
@@ -190,10 +224,26 @@ export default function ReservationNew() {
     }
   }, [selectedClassData]);
 
+  // Update edit form with fees when edit class data is fetched
+  useEffect(() => {
+    if (editSelectedClassData && editForm) {
+      setEditForm((prev: any) => ({
+        ...prev,
+        tuition_fee: editSelectedClassData.tuition_fee.toString(),
+        book_fee: editSelectedClassData.book_fee.toString()
+      }));
+    }
+  }, [editSelectedClassData, editForm]);
+
   const classFee = useMemo(() => {
     // Use the fetched class data or fallback to default
     return selectedClassData?.tuition_fee || 15000;
   }, [selectedClassData]);
+
+  const editClassFee = useMemo(() => {
+    // Use the fetched edit class data or fallback to default
+    return editSelectedClassData?.tuition_fee || 15000;
+  }, [editSelectedClassData]);
 
   const transportFee = useMemo(() => {
     if (form.transport_required && form.preferred_distance_slab_id) {
@@ -203,52 +253,77 @@ export default function ReservationNew() {
     return 0;
   }, [form.transport_required, form.preferred_distance_slab_id, distanceSlabs]);
 
+  const editTransportFee = useMemo(() => {
+    if (editForm?.transport_required && editForm?.preferred_distance_slab_id) {
+      const selectedSlab = distanceSlabs?.find(s => s.slab_id.toString() === editForm.preferred_distance_slab_id);
+      return selectedSlab ? selectedSlab.fee_amount : 0;
+    }
+    return 0;
+  }, [editForm?.transport_required, editForm?.preferred_distance_slab_id, distanceSlabs]);
+
   const handleSave = async (withPayment: boolean) => {
-    const fd = new FormData();
-    // Map form fields to backend schema
-    fd.append("student_name", form.student_name);
-    fd.append("aadhar_no", form.aadhar_no || "");
-    fd.append("gender", (form.gender || "OTHER").toUpperCase());
-    if (form.dob) fd.append("dob", form.dob);
-    fd.append("father_or_guardian_name", form.father_or_guardian_name || "");
-    fd.append("father_or_guardian_aadhar_no", form.father_or_guardian_aadhar_no || "");
-    fd.append("father_or_guardian_mobile", form.father_or_guardian_mobile || "");
-    fd.append("father_or_guardian_occupation", form.father_or_guardian_occupation || "");
-    fd.append("mother_or_guardian_name", form.mother_or_guardian_name || "");
-    fd.append("mother_or_guardian_aadhar_no", form.mother_or_guardian_aadhar_no || "");
-    fd.append("mother_or_guardian_mobile", form.mother_or_guardian_mobile || "");
-    fd.append("mother_or_guardian_occupation", form.mother_or_guardian_occupation || "");
-    // siblings as JSON array
-    if (form.siblings.length > 0) {
-      fd.append("siblings", JSON.stringify(form.siblings));
-    }
-    if (form.previous_class) fd.append("previous_class", form.previous_class);
-    if (form.previous_school_details) fd.append("previous_school_details", form.previous_school_details);
-    fd.append("present_address", form.present_address || "");
-    fd.append("permanent_address", form.permanent_address || "");
-    fd.append("application_fee", String(Number(form.application_fee || 0)));
-    fd.append("application_fee_paid", String(form.application_fee_paid));
-    fd.append("preferred_class_id", String(getPreferredClassId()));
-    fd.append("class_name", form.class_name || "");
-    fd.append("tuition_fee", String(Number(form.tuition_fee || 0)));
-    fd.append("book_fee", String(Number(form.book_fee || 0)));
-    // Transport preference
-    if (form.transport_required) {
-      if (form.preferred_transport_id) fd.append("preferred_transport_id", String(Number(form.preferred_transport_id)));
-      if (form.preferred_distance_slab_id) fd.append("preferred_distance_slab_id", String(getPreferredDistanceSlabId()));
-      if (form.pickup_point) fd.append("pickup_point", form.pickup_point);
-      fd.append("transport_fee", String(Number(transportFee || 0)));
-    }
-    fd.append("status", "PENDING");
-    if (form.referred_by) fd.append("referred_by", String(Number(form.referred_by)));
-    if (form.remarks) fd.append("remarks", form.remarks);
-    if (form.reservation_date) fd.append("reservation_date", form.reservation_date);
+    // Map form fields to backend schema as JSON object
+    const payload = {
+      student_name: form.student_name,
+      aadhar_no: form.aadhar_no || "",
+      gender: (form.gender || "OTHER").toUpperCase(),
+      dob: form.dob || "",
+      father_or_guardian_name: form.father_or_guardian_name || "",
+      father_or_guardian_aadhar_no: form.father_or_guardian_aadhar_no || "",
+      father_or_guardian_mobile: form.father_or_guardian_mobile || "",
+      father_or_guardian_occupation: form.father_or_guardian_occupation || "",
+      mother_or_guardian_name: form.mother_or_guardian_name || "",
+      mother_or_guardian_aadhar_no: form.mother_or_guardian_aadhar_no || "",
+      mother_or_guardian_mobile: form.mother_or_guardian_mobile || "",
+      mother_or_guardian_occupation: form.mother_or_guardian_occupation || "",
+      siblings: form.siblings.length > 0 ? form.siblings : [],
+      previous_class: form.previous_class || "",
+      previous_school_details: form.previous_school_details || "",
+      present_address: form.present_address || "",
+      permanent_address: form.permanent_address || "",
+      application_fee: Number(form.application_fee || 0),
+      application_fee_paid: form.application_fee_paid,
+      preferred_class_id: getPreferredClassId(),
+      class_name: form.class_name || "",
+      tuition_fee: Number(form.tuition_fee || 0),
+      book_fee: Number(form.book_fee || 0),
+      transport_required: form.transport_required,
+      preferred_transport_id: form.transport_required && form.preferred_transport_id ? Number(form.preferred_transport_id) : 0,
+      preferred_distance_slab_id: form.transport_required && form.preferred_distance_slab_id ? getPreferredDistanceSlabId() : 0,
+      pickup_point: form.transport_required ? (form.pickup_point || "") : "",
+      transport_fee: form.transport_required ? Number(transportFee || 0) : 0,
+      status: "PENDING",
+      referred_by: form.referred_by ? Number(form.referred_by) : 0,
+      remarks: form.remarks || "",
+      reservation_date: form.reservation_date || ""
+    };
 
     try {
-      const res: any = await SchoolReservationsService.create(fd);
+      const res: any = await SchoolReservationsService.create(payload);
+      console.log('Reservation creation response:', res);
       // Use backend reservation_id to display receipt number
       setReservationNo(String(res?.reservation_id || ""));
-      if (withPayment) setShowReceipt(true);
+      
+      if (withPayment) {
+        // Prepare payment data for the payment processor
+        const paymentData: ReservationPaymentData = {
+          reservationId: res.reservation_id,
+          reservationNo: res.reservation_no || String(res.reservation_id), // Try reservation_no first, fallback to reservation_id
+          studentName: form.student_name,
+          className: form.class_name,
+          reservationFee: Number(form.application_fee || 0), // Only reservation/application fee
+          totalAmount: Number(form.application_fee || 0), // Only reservation/application fee
+          paymentMethod: 'CASH', // Default payment method
+          purpose: 'Reservation Fee Payment',
+          note: `Payment for reservation ${res.reservation_id}`
+        };
+        
+        setPaymentData(paymentData);
+        setShowPaymentProcessor(true);
+      } else {
+        setShowReceipt(true);
+      }
+      
       // Refresh list after creating
       if (activeTab === 'all') {
         refetchReservations();
@@ -258,44 +333,6 @@ export default function ReservationNew() {
     }
   };
 
-  const buildFormDataFromForm = (f: any) => {
-    const fd = new FormData();
-    fd.append("student_name", f.student_name);
-    fd.append("aadhar_no", f.aadhar_no || "");
-    fd.append("gender", (f.gender || "OTHER").toUpperCase());
-    if (f.dob) fd.append("dob", f.dob);
-    fd.append("father_or_guardian_name", f.father_or_guardian_name || "");
-    fd.append("father_or_guardian_aadhar_no", f.father_or_guardian_aadhar_no || "");
-    fd.append("father_or_guardian_mobile", f.father_or_guardian_mobile || "");
-    fd.append("father_or_guardian_occupation", f.father_or_guardian_occupation || "");
-    fd.append("mother_or_guardian_name", f.mother_or_guardian_name || "");
-    fd.append("mother_or_guardian_aadhar_no", f.mother_or_guardian_aadhar_no || "");
-    fd.append("mother_or_guardian_mobile", f.mother_or_guardian_mobile || "");
-    fd.append("mother_or_guardian_occupation", f.mother_or_guardian_occupation || "");
-    if (f.siblings && f.siblings.length > 0) {
-      fd.append("siblings", JSON.stringify(f.siblings));
-    }
-    if (f.previous_class) fd.append("previous_class", f.previous_class);
-    if (f.previous_school_details) fd.append("previous_school_details", f.previous_school_details);
-    fd.append("present_address", f.present_address || "");
-    fd.append("permanent_address", f.permanent_address || "");
-    fd.append("application_fee", String(Number(f.application_fee || 0)));
-    fd.append("application_fee_paid", String(f.application_fee_paid));
-    fd.append("preferred_class_id", String(getPreferredClassId()));
-    fd.append("class_name", f.class_name || "");
-    fd.append("tuition_fee", String(Number(f.tuition_fee || 0)));
-    fd.append("book_fee", String(Number(f.book_fee || 0)));
-    if (f.transport_required) {
-      if (f.preferred_transport_id) fd.append("preferred_transport_id", String(Number(f.preferred_transport_id)));
-      if (f.preferred_distance_slab_id) fd.append("preferred_distance_slab_id", String(getPreferredDistanceSlabId()));
-      if (f.pickup_point) fd.append("pickup_point", f.pickup_point);
-      fd.append("transport_fee", String(Number(transportFee || 0)));
-    }
-    if (f.reservation_date) fd.append("reservation_date", f.reservation_date);
-    if (f.referred_by) fd.append("referred_by", String(Number(f.referred_by)));
-    if (f.remarks) fd.append("remarks", f.remarks);
-    return fd;
-  };
 
   const mapApiToForm = (r: any) => ({
     student_name: r.student_name || "",
@@ -333,7 +370,7 @@ export default function ReservationNew() {
 
   const handleView = async (r: any) => {
     try {
-      const data = await SchoolReservationsService.getById(Number(r.id));
+      const data = await SchoolReservationsService.getById(r.reservation_id);
       setViewReservation(data);
       setShowViewDialog(true);
     } catch (e: any) {
@@ -343,9 +380,19 @@ export default function ReservationNew() {
 
   const handleEdit = async (r: any) => {
     try {
-      const data: any = await SchoolReservationsService.getById(Number(r.id));
-      setEditForm(mapApiToForm(data));
-      setSelectedReservation({ id: r.id });
+      const data: any = await SchoolReservationsService.getById(r.reservation_id);
+      const mappedForm = mapApiToForm(data);
+      setEditForm(mappedForm);
+      
+      // Set the edit selected class ID to fetch class details
+      if (mappedForm.class_name) {
+        const selectedClass = classes.find(c => c.class_name === mappedForm.class_name);
+        if (selectedClass) {
+          setEditSelectedClassId(selectedClass.class_id);
+        }
+      }
+      
+      setSelectedReservation({ id: r.reservation_id });
       setShowEditDialog(true);
     } catch (e: any) {
       alert(e?.message || 'Failed to load reservation');
@@ -355,8 +402,40 @@ export default function ReservationNew() {
   const submitEdit = async () => {
     if (!selectedReservation?.id || !editForm) return;
     try {
-      const fd = buildFormDataFromForm(editForm);
-      await SchoolReservationsService.update(Number(selectedReservation.id), fd);
+      // Convert editForm to JSON payload
+      const payload = {
+        student_name: editForm.student_name,
+        aadhar_no: editForm.aadhar_no || "",
+        gender: (editForm.gender || "OTHER").toUpperCase(),
+        dob: editForm.dob || "",
+        father_or_guardian_name: editForm.father_or_guardian_name || "",
+        father_or_guardian_aadhar_no: editForm.father_or_guardian_aadhar_no || "",
+        father_or_guardian_mobile: editForm.father_or_guardian_mobile || "",
+        father_or_guardian_occupation: editForm.father_or_guardian_occupation || "",
+        mother_or_guardian_name: editForm.mother_or_guardian_name || "",
+        mother_or_guardian_aadhar_no: editForm.mother_or_guardian_aadhar_no || "",
+        mother_or_guardian_mobile: editForm.mother_or_guardian_mobile || "",
+        mother_or_guardian_occupation: editForm.mother_or_guardian_occupation || "",
+        siblings: editForm.siblings.length > 0 ? editForm.siblings : [],
+        previous_class: editForm.previous_class || "",
+        previous_school_details: editForm.previous_school_details || "",
+        present_address: editForm.present_address || "",
+        permanent_address: editForm.permanent_address || "",
+        application_fee: Number(editForm.application_fee || 0),
+        application_fee_paid: editForm.application_fee_paid,
+        preferred_class_id: getPreferredClassId(editForm),
+        transport_required: editForm.transport_required,
+        preferred_transport_id: editForm.transport_required && editForm.preferred_transport_id ? Number(editForm.preferred_transport_id) : 0,
+        preferred_distance_slab_id: editForm.transport_required && editForm.preferred_distance_slab_id ? getPreferredDistanceSlabId(editForm) : 0,
+        pickup_point: editForm.transport_required ? (editForm.pickup_point || "") : "",
+        transport_fee: editForm.transport_required ? Number(editTransportFee || 0) : 0,
+        status: editForm.status || "PENDING",
+        referred_by: editForm.referred_by ? Number(editForm.referred_by) : 0,
+        remarks: editForm.remarks || "",
+        reservation_date: editForm.reservation_date || ""
+      };
+      
+      await SchoolReservationsService.update(Number(selectedReservation.id), payload);
       setShowEditDialog(false);
       refetchReservations();
     } catch (e: any) {
@@ -610,7 +689,7 @@ export default function ReservationNew() {
                                   const to = (statusChanges[r.id] || current) as 'PENDING' | 'CONFIRMED' | 'CANCELLED';
                                   const remarks = statusRemarks[r.id] || '';
                                   try {
-                                    await SchoolReservationsService.updateStatus(Number(r.id), to, remarks || undefined);
+                                    await SchoolReservationsService.updateStatus(r.reservation_id, to, remarks || undefined);
                                     refetchReservations();
                                     // Clear the remarks after successful update
                                     setStatusRemarks((prev) => ({ ...prev, [r.id]: '' }));
@@ -671,21 +750,44 @@ export default function ReservationNew() {
                 <strong>Mobile:</strong> {form.father_or_guardian_mobile}
               </div>
             </div>
+            
+            {/* Payment Information */}
+            {paymentIncomeRecord && (
+              <div className="border-t pt-4">
+                <h4 className="font-semibold text-green-600 mb-2">Payment Information</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <strong>Payment ID:</strong> {paymentIncomeRecord.income_id}
+                  </div>
+                  <div>
+                    <strong>Payment Date:</strong> {new Date(paymentIncomeRecord.income_date).toLocaleDateString()}
+                  </div>
+                  <div>
+                    <strong>Payment Method:</strong> {paymentIncomeRecord.payment_method}
+                  </div>
+                  <div>
+                    <strong>Status:</strong> <span className="text-green-600 font-semibold">PAID</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div className="border-t pt-4">
               <div className="flex justify-between">
-                <span>Class Fee:</span>
-                <span>₹{classFee.toLocaleString()}</span>
+                <span>Reservation Fee:</span>
+                <span>₹{Number(form.application_fee || 0).toLocaleString()}</span>
               </div>
-              {form.transport_required && (
-                <div className="flex justify-between">
-                  <span>Transport Fee:</span>
-                  <span>₹{transportFee.toLocaleString()}</span>
-                </div>
-              )}
               <div className="flex justify-between font-bold text-lg border-t pt-2">
                 <span>Total:</span>
-                <span>₹{(classFee + transportFee).toLocaleString()}</span>
+                <span className={paymentIncomeRecord ? "text-green-600" : ""}>
+                  ₹{Number(form.application_fee || 0).toLocaleString()}
+                </span>
               </div>
+              {paymentIncomeRecord && (
+                <div className="text-center text-green-600 font-semibold mt-2">
+                  ✓ Payment Completed Successfully
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
@@ -713,7 +815,7 @@ export default function ReservationNew() {
                 <div><strong>Reservation No:</strong> {viewReservation.reservation_id}</div>
                 <div><strong>Date:</strong> {viewReservation.reservation_date || "-"}</div>
                 <div><strong>Status:</strong> {viewReservation.status || "-"}</div>
-                <div><strong>Referred By:</strong> {viewReservation.referred_by ?? "-"}</div>
+                <div><strong>Referred By (ID):</strong> {viewReservation.referred_by ?? "-"}</div>
               </div>
 
               <div className="border-t pt-4">
@@ -729,22 +831,21 @@ export default function ReservationNew() {
               <div className="border-t pt-4">
                 <div className="font-medium mb-2">Parent Details</div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div><strong>Father Name:</strong> {viewReservation.father_name || "-"}</div>
-                  <div><strong>Father Aadhar:</strong> {viewReservation.father_aadhar_no || "-"}</div>
-                  <div><strong>Father Mobile:</strong> {viewReservation.father_mobile || "-"}</div>
-                  <div><strong>Father Occupation:</strong> {viewReservation.father_occupation || "-"}</div>
-                  <div><strong>Mother Name:</strong> {viewReservation.mother_name || "-"}</div>
-                  <div><strong>Mother Aadhar:</strong> {viewReservation.mother_aadhar_no || "-"}</div>
-                  <div><strong>Mother Mobile:</strong> {viewReservation.mother_mobile || "-"}</div>
-                  <div><strong>Mother Occupation:</strong> {viewReservation.mother_occupation || "-"}</div>
+                  <div><strong>Father/Guardian Name:</strong> {viewReservation.father_or_guardian_name || "-"}</div>
+                  <div><strong>Father/Guardian Aadhar:</strong> {viewReservation.father_or_guardian_aadhar_no || "-"}</div>
+                  <div><strong>Father/Guardian Mobile:</strong> {viewReservation.father_or_guardian_mobile || "-"}</div>
+                  <div><strong>Father/Guardian Occupation:</strong> {viewReservation.father_or_guardian_occupation || "-"}</div>
+                  <div><strong>Mother/Guardian Name:</strong> {viewReservation.mother_or_guardian_name || "-"}</div>
+                  <div><strong>Mother/Guardian Aadhar:</strong> {viewReservation.mother_or_guardian_aadhar_no || "-"}</div>
+                  <div><strong>Mother/Guardian Mobile:</strong> {viewReservation.mother_or_guardian_mobile || "-"}</div>
+                  <div><strong>Mother/Guardian Occupation:</strong> {viewReservation.mother_or_guardian_occupation || "-"}</div>
                 </div>
               </div>
 
               <div className="border-t pt-4">
                 <div className="font-medium mb-2">Academic Details</div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div><strong>Admit Into:</strong> {viewReservation.admit_into || "-"}</div>
-                  <div><strong>Group:</strong> {viewReservation.admission_group || "-"}</div>
+                  <div><strong>Preferred Class:</strong> {viewReservation.class_name || viewReservation.preferred_class_id || "-"}</div>
                   <div><strong>Previous Class:</strong> {viewReservation.previous_class || "-"}</div>
                   <div><strong>Previous School:</strong> {viewReservation.previous_school_details || "-"}</div>
                 </div>
@@ -761,13 +862,11 @@ export default function ReservationNew() {
               <div className="border-t pt-4">
                 <div className="font-medium mb-2">Fees</div>
                 <div className="space-y-1">
-                  <div className="flex justify-between"><span>Reservation Fee:</span><span>₹{Number(viewReservation.reservation_fee || 0).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span>Application Fee:</span><span>₹{Number(viewReservation.application_fee || 0).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span>Application Fee Paid:</span><span>{viewReservation.application_fee_paid ? "Yes" : "No"}</span></div>
                   <div className="flex justify-between"><span>Tuition Fee:</span><span>₹{Number(viewReservation.tuition_fee || 0).toLocaleString()}</span></div>
                   {viewReservation.book_fee != null && (
                     <div className="flex justify-between"><span>Book Fee:</span><span>₹{Number(viewReservation.book_fee || 0).toLocaleString()}</span></div>
-                  )}
-                  {viewReservation.tuition_concession != null && (
-                    <div className="flex justify-between"><span>Tuition Concession:</span><span>₹{Number(viewReservation.tuition_concession || 0).toLocaleString()}</span></div>
                   )}
                   {viewReservation.transport_fee != null && (
                     <div className="flex justify-between"><span>Transport Fee:</span><span>₹{Number(viewReservation.transport_fee || 0).toLocaleString()}</span></div>
@@ -784,6 +883,8 @@ export default function ReservationNew() {
                   <div><strong>Preferred Class ID:</strong> {viewReservation.preferred_class_id ?? "-"}</div>
                   <div><strong>Preferred Transport ID:</strong> {viewReservation.preferred_transport_id ?? "-"}</div>
                   <div><strong>Preferred Distance Slab ID:</strong> {viewReservation.preferred_distance_slab_id ?? "-"}</div>
+                  <div><strong>Pickup Point:</strong> {viewReservation.pickup_point || "-"}</div>
+                  <div><strong>Remarks:</strong> {viewReservation.remarks || "-"}</div>
                 </div>
               </div>
 
@@ -804,16 +905,16 @@ export default function ReservationNew() {
           </DialogHeader>
           {editForm ? (
             <div className="flex-1 overflow-y-auto pr-1">
-              <ReservationForm
+              <SchoolReservationEdit
                 form={editForm}
                 setForm={setEditForm}
-                classFee={classFee}
-                transportFee={transportFee}
-                routes={routeNames.map((route: { bus_route_id: number; route_no?: string; route_name: string }) => ({ id: route.bus_route_id.toString(), name: `${route.route_no || 'Route'} - ${route.route_name}`, fee: 0 }))}
+                classFee={editClassFee}
+                transportFee={editTransportFee}
+                routes={routeNames.map((route: { bus_route_id: number; route_no?: string; route_name: string }) => ({ id: route.bus_route_id?.toString?.() || '', name: `${route.route_no || 'Route'} - ${route.route_name}`, fee: 0 }))}
                 classes={classes}
                 distanceSlabs={distanceSlabs || []}
-                onClassChange={handleClassChange}
-                onDistanceSlabChange={handleDistanceSlabChange}
+                onClassChange={handleEditClassChange}
+                onDistanceSlabChange={handleEditDistanceSlabChange}
                 onSave={async () => { await submitEdit(); }}
               />
             </div>
@@ -867,7 +968,7 @@ export default function ReservationNew() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Reservation</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete reservation {reservationToDelete?.id}? This action cannot be undone.
+              Are you sure you want to delete reservation {reservationToDelete?.reservation_id}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -875,19 +976,23 @@ export default function ReservationNew() {
             <AlertDialogAction
               className="bg-red-600 hover:bg-red-700"
               onClick={async () => {
-                if (!reservationToDelete?.id) return;
+                if (!reservationToDelete?.reservation_id || deleteReservation.isPending) return;
+                
                 try {
-                  await deleteReservation.mutateAsync(Number(reservationToDelete.id));
+                  await deleteReservation.mutateAsync(reservationToDelete.reservation_id);
                   // Success - dialog will close automatically due to onSuccess in hook
+                  setShowDeleteDialog(false);
+                  setReservationToDelete(null);
                 } catch (e: any) {
                   if (e?.response?.status === 409) {
                     alert('Cannot delete this reservation because it has associated income records. Please remove the income records first or change the reservation status to CANCELLED instead.');
+                  } else if (e?.response?.status === 404) {
+                    alert('Reservation not found. It may have already been deleted.');
+                    setShowDeleteDialog(false);
+                    setReservationToDelete(null);
                   } else {
                     alert(e?.response?.data?.detail || e?.message || 'Failed to delete reservation');
                   }
-                } finally {
-                  setShowDeleteDialog(false);
-                  setReservationToDelete(null);
                 }
               }}
               disabled={deleteReservation.isPending}
@@ -897,6 +1002,38 @@ export default function ReservationNew() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Payment Processor Dialog */}
+      {paymentData && (
+        <Dialog open={showPaymentProcessor} onOpenChange={setShowPaymentProcessor}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Complete Payment</DialogTitle>
+              <DialogDescription>
+                Process payment for reservation {paymentData.reservationNo}
+              </DialogDescription>
+            </DialogHeader>
+            <ReservationPaymentProcessor
+              reservationData={paymentData}
+              onPaymentComplete={(incomeRecord: SchoolIncomeRead) => {
+                setPaymentIncomeRecord(incomeRecord);
+                setShowPaymentProcessor(false);
+                setShowReceipt(true);
+                // Refresh reservations list to show updated status
+                refetchReservations();
+              }}
+              onPaymentFailed={(error: string) => {
+                alert(`Payment failed: ${error}`);
+                setShowPaymentProcessor(false);
+              }}
+              onPaymentCancel={() => {
+                setShowPaymentProcessor(false);
+                setPaymentData(null);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

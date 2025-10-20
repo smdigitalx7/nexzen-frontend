@@ -313,7 +313,7 @@ function EnhancedDataTableComponent<TData>({
       className={cn('space-y-4', className)}
     >
        {/* Header */}
-       <div className="flex items-center justify-between bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-700">
+       <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-700">
          <div className="flex items-center gap-6">
            <div className="space-y-1">
              {title && (
@@ -328,7 +328,7 @@ function EnhancedDataTableComponent<TData>({
            {showSearch && (
              <div className="relative group w-full max-w-md">
                {/* Search Container with Compact Design */}
-               <div className="relative bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 focus-within:border-blue-500 dark:focus-within:border-blue-400 focus-within:shadow-md focus-within:shadow-blue-500/10">
+               <div className="relative bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 transition-all duration-200 focus-within:border-blue-500 dark:focus-within:border-blue-400">
                  <div className="flex items-center px-3 py-2">
                    {/* Search Icon */}
                    <div className="flex-shrink-0 mr-2">
@@ -365,7 +365,7 @@ function EnhancedDataTableComponent<TData>({
                  
                  {/* Search Results Badge */}
                  {globalFilter && (
-                   <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded-full shadow-md">
+                   <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded-full">
                      {table.getFilteredRowModel().rows.length}
                    </div>
                  )}
@@ -373,7 +373,7 @@ function EnhancedDataTableComponent<TData>({
                
                {/* Search Suggestions Dropdown */}
                {showSuggestions && (searchSuggestions.length > 0 || searchHistory.length > 0) && !globalFilter && (
-                 <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden">
+                 <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg z-50 overflow-hidden">
                    <div className="p-1.5">
                      {/* Search History */}
                      {searchHistory.length > 0 && (
@@ -464,7 +464,7 @@ function EnhancedDataTableComponent<TData>({
                size="sm"
                onClick={handleExport}
                disabled={isExporting}
-               className="hover-elevate"
+               className=""
              >
                {isExporting ? (
                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -479,7 +479,7 @@ function EnhancedDataTableComponent<TData>({
                onClick={onAdd} 
                variant={addButtonVariant}
                size="sm"
-               className="hover-elevate"
+               className=""
              >
                <Plus className="h-4 w-4 mr-2" />
                {addButtonText}
@@ -490,7 +490,7 @@ function EnhancedDataTableComponent<TData>({
 
        {/* Additional Filters */}
        {filters.length > 0 && (
-         <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+         <div className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
            {filters.map((filter) => (
              <Select
                key={filter.key}
@@ -514,17 +514,17 @@ function EnhancedDataTableComponent<TData>({
        )}
 
        {/* Table */}
-         <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-lg bg-white dark:bg-slate-900">
+         <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900">
            <Table>
-             <TableHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
+             <TableHeader className="bg-white dark:bg-slate-900">
                {table.getHeaderGroups().map((headerGroup) => (
                  <TableRow key={headerGroup.id} className="hover:bg-transparent border-b border-slate-200 dark:border-slate-700">
                    {headerGroup.headers.map((header) => (
                      <TableHead
                        key={header.id}
                        className={cn(
-                         'sticky top-0 z-10 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 font-bold text-slate-700 dark:text-slate-300 py-4 px-6',
-                         header.column.getCanSort() && 'cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors duration-200'
+                         'sticky top-0 z-10 bg-white dark:bg-slate-900 font-bold text-slate-700 dark:text-slate-300 py-4 px-6',
+                         header.column.getCanSort() && 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200'
                        )}
                        onClick={header.column.getToggleSortingHandler()}
                        style={{ minWidth: '120px', maxWidth: '300px' }}
@@ -571,7 +571,7 @@ function EnhancedDataTableComponent<TData>({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-32 text-center bg-slate-50 dark:bg-slate-800">
+                  <TableCell colSpan={columns.length} className="h-32 text-center bg-white dark:bg-slate-900">
                     <div className="flex flex-col items-center justify-center space-y-3">
                       <div className="w-16 h-16 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center">
                         <Filter className="h-8 w-8 text-slate-400 dark:text-slate-500" />
@@ -591,7 +591,7 @@ function EnhancedDataTableComponent<TData>({
         </div>
 
        {/* Pagination */}
-         <div className="flex items-center justify-between bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+         <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
            <div className="flex items-center space-x-3">
              <div className="text-sm font-medium text-slate-600 dark:text-slate-400">
                {globalFilter ? (

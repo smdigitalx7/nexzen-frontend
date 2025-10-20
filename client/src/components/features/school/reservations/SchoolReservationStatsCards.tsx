@@ -36,7 +36,7 @@ export const SchoolReservationStatsCards: React.FC<SchoolReservationStatsCardsPr
       color: "blue" as const,
       description: "All reservation requests",
       variant: "elevated" as const,
-      size: "lg" as const,
+      size: "sm" as const,
     },
     {
       title: "Pending Reservations",
@@ -45,13 +45,7 @@ export const SchoolReservationStatsCards: React.FC<SchoolReservationStatsCardsPr
       color: "yellow" as const,
       description: "Awaiting confirmation",
       variant: "bordered" as const,
-      size: "lg" as const,
-      trend: {
-        value: stats.total_reservations > 0 ? 
-          Math.round((stats.pending_reservations / stats.total_reservations) * 100) : 0,
-        label: "of total reservations",
-        isPositive: false,
-      },
+      size: "sm" as const,
     },
     {
       title: "Confirmed Reservations",
@@ -60,13 +54,7 @@ export const SchoolReservationStatsCards: React.FC<SchoolReservationStatsCardsPr
       color: "green" as const,
       description: "Successfully confirmed",
       variant: "gradient" as const,
-      size: "lg" as const,
-      trend: {
-        value: stats.total_reservations > 0 ? 
-          Math.round((stats.confirmed_reservations / stats.total_reservations) * 100) : 0,
-        label: "confirmation rate",
-        isPositive: true,
-      },
+      size: "sm" as const,
     },
     {
       title: "Cancelled Reservations",
@@ -75,7 +63,7 @@ export const SchoolReservationStatsCards: React.FC<SchoolReservationStatsCardsPr
       color: "red" as const,
       description: "Cancelled requests",
       variant: "default" as const,
-      size: "md" as const,
+      size: "sm" as const,
     },
     {
       title: "Male Students",
@@ -84,7 +72,7 @@ export const SchoolReservationStatsCards: React.FC<SchoolReservationStatsCardsPr
       color: "purple" as const,
       description: "Male reservations",
       variant: "default" as const,
-      size: "md" as const,
+      size: "sm" as const,
     },
     {
       title: "Female Students",
@@ -93,77 +81,8 @@ export const SchoolReservationStatsCards: React.FC<SchoolReservationStatsCardsPr
       color: "pink" as const,
       description: "Female reservations",
       variant: "default" as const,
-      size: "md" as const,
-    },
-    {
-      title: "Reservation Fees",
-      value: formatCurrency(stats.total_reservation_fees),
-      icon: DollarSign,
-      color: "indigo" as const,
-      description: "Total reservation fees",
-      variant: "bordered" as const,
-      size: "lg" as const,
-    },
-    {
-      title: "Tuition Fees",
-      value: formatCurrency(stats.total_tuition_fees),
-      icon: BookOpen,
-      color: "emerald" as const,
-      description: "Total tuition fees",
-      variant: "bordered" as const,
-      size: "lg" as const,
-    },
-    {
-      title: "Transport Fees",
-      value: formatCurrency(stats.total_transport_fees),
-      icon: Car,
-      color: "orange" as const,
-      description: "Total transport fees",
-      variant: "default" as const,
-      size: "md" as const,
-    },
-    {
-      title: "Tuition Concessions",
-      value: formatCurrency(stats.total_tuition_concessions),
-      icon: Percent,
-      color: "teal" as const,
-      description: "Total tuition concessions",
-      variant: "elevated" as const,
-      size: "md" as const,
-    },
-    {
-      title: "Transport Concessions",
-      value: formatCurrency(stats.total_transport_concessions),
-      icon: Percent,
-      color: "cyan" as const,
-      description: "Total transport concessions",
-      variant: "elevated" as const,
-      size: "md" as const,
-    },
-    {
-      title: "This Month",
-      value: stats.reservations_this_month,
-      icon: Calendar,
-      color: "rose" as const,
-      description: "Reservations this month",
-      variant: "elevated" as const,
-      size: "lg" as const,
-      trend: {
-        value: stats.reservations_this_year > 0 ? 
-          Math.round((stats.reservations_this_month / stats.reservations_this_year) * 100) : 0,
-        label: "of yearly total",
-        isPositive: true,
-      },
-    },
-    {
-      title: "This Year",
-      value: stats.reservations_this_year,
-      icon: TrendingUp,
-      color: "violet" as const,
-      description: "Total reservations this year",
-      variant: "gradient" as const,
-      size: "lg" as const,
-    },
+      size: "sm" as const,
+    }
   ];
 
   return (

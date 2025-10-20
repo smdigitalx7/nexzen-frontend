@@ -10,7 +10,8 @@ import {
   X,
   AlertCircle,
   Eye,
-  Printer
+  Printer,
+  Receipt
 } from 'lucide-react';
 import { 
   Dialog, 

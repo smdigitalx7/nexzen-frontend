@@ -5,7 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { EmployeeCombobox } from "@/components/ui/employee-combobox";
-import { useMemo } from "react";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { useMemo, useState } from "react";
 
 type ReservationFormState = {
   student_name: string;
@@ -61,10 +62,148 @@ export type ReservationFormProps = {
   onClassChange: (classId: string) => void;
   onDistanceSlabChange: (slabId: string) => void;
   onSave: (withPayment: boolean) => void;
+  isEdit?: boolean;
 };
 
-export default function ReservationForm({ form, setForm, classFee, transportFee, routes, classes, distanceSlabs, onClassChange, onDistanceSlabChange, onSave }: ReservationFormProps) {
+export default function ReservationForm({ form, setForm, classFee, transportFee, routes, classes, distanceSlabs, onClassChange, onDistanceSlabChange, onSave, isEdit = false }: ReservationFormProps) {
   const isSaveDisabled = useMemo(() => !form.student_name || !form.class_name, [form.student_name, form.class_name]);
+  
+  // Confirmation dialog states
+  const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
+  const [showSaveAndPayConfirmation, setShowSaveAndPayConfirmation] = useState(false);
+  const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSaveClick = () => {
+    setShowSaveConfirmation(true);
+  };
+
+  const handleSaveAndPayClick = () => {
+    setShowSaveAndPayConfirmation(true);
+  };
+
+  const handleConfirmSave = async () => {
+    setIsLoading(true);
+    try {
+      await onSave(false);
+      setShowSaveConfirmation(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirmSaveAndPay = async () => {
+    setIsLoading(true);
+    try {
+      await onSave(true);
+      setShowSaveAndPayConfirmation(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateClick = () => {
+    setShowUpdateConfirmation(true);
+  };
+
+  const handleConfirmUpdate = async () => {
+    setIsLoading(true);
+    try {
+      await onSave(false); // For update, we don't need payment option
+      setShowUpdateConfirmation(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAutofill = () => {
+    setForm({
+      student_name: "John Doe",
+      aadhar_no: "123456789012",
+      gender: "MALE",
+      dob: "2010-05-15",
+      father_or_guardian_name: "Robert Doe",
+      father_or_guardian_aadhar_no: "987654321098",
+      father_or_guardian_mobile: "9876543210",
+      father_or_guardian_occupation: "Engineer",
+      mother_or_guardian_name: "Jane Doe",
+      mother_or_guardian_aadhar_no: "112233445566",
+      mother_or_guardian_mobile: "9876543211",
+      mother_or_guardian_occupation: "Teacher",
+      siblings: [
+        {
+          name: "Alice Doe",
+          class_name: "8th Grade",
+          where: "Same School",
+          gender: "FEMALE"
+        }
+      ],
+      previous_class: "7th Grade",
+      previous_school_details: "ABC Public School, City Center",
+      present_address: "123 Main Street, Downtown Area, City - 123456",
+      permanent_address: "123 Main Street, Downtown Area, City - 123456",
+      application_fee: "500",
+      application_fee_paid: true,
+      class_name: classes.length > 0 ? classes[0].class_name : "",
+      tuition_fee: "15000",
+      book_fee: "3000",
+      transport_required: true,
+      preferred_transport_id: routes.length > 0 ? routes[0].id : "0",
+      preferred_distance_slab_id: distanceSlabs.length > 0 ? distanceSlabs[0].slab_id.toString() : "0",
+      pickup_point: "Near City Mall",
+      transport_fee: "2000",
+      status: "PENDING",
+      referred_by: "",
+      remarks: "Student is interested in science subjects and extracurricular activities.",
+      reservation_date: new Date().toISOString().split('T')[0]
+    });
+
+    // Trigger class change to populate fees
+    if (classes.length > 0) {
+      onClassChange(classes[0].class_id.toString());
+    }
+
+    // Trigger distance slab change to populate transport fee
+    if (distanceSlabs.length > 0) {
+      onDistanceSlabChange(distanceSlabs[0].slab_id.toString());
+    }
+  };
+
+  const handleClearForm = () => {
+    setForm({
+      student_name: "",
+      aadhar_no: "",
+      gender: "",
+      dob: "",
+      father_or_guardian_name: "",
+      father_or_guardian_aadhar_no: "",
+      father_or_guardian_mobile: "",
+      father_or_guardian_occupation: "",
+      mother_or_guardian_name: "",
+      mother_or_guardian_aadhar_no: "",
+      mother_or_guardian_mobile: "",
+      mother_or_guardian_occupation: "",
+      siblings: [],
+      previous_class: "",
+      previous_school_details: "",
+      present_address: "",
+      permanent_address: "",
+      application_fee: "",
+      application_fee_paid: false,
+      class_name: "",
+      tuition_fee: "",
+      book_fee: "",
+      transport_required: false,
+      preferred_transport_id: "0",
+      preferred_distance_slab_id: "0",
+      pickup_point: "",
+      transport_fee: "",
+      status: "PENDING",
+      referred_by: "",
+      remarks: "",
+      reservation_date: ""
+    });
+  };
 
   const addSibling = () => {
     const next = [...form.siblings, { name: "", class_name: "", where: "", gender: "MALE" }];
@@ -85,10 +224,37 @@ export default function ReservationForm({ form, setForm, classFee, transportFee,
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Student Reservation Form</CardTitle>
-          <CardDescription>
-            Fill in all the required details for the new student reservation
-          </CardDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>{isEdit ? "Edit Student Reservation" : "Student Reservation Form"}</CardTitle>
+              <CardDescription>
+                {isEdit 
+                  ? "Update the student reservation details below"
+                  : "Fill in all the required details for the new student reservation"
+                }
+              </CardDescription>
+            </div>
+            {!isEdit && (
+              <div className="flex gap-2 ml-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleAutofill}
+                >
+                  🧪 Autofill Test Data
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleClearForm}
+                >
+                  🗑️ Clear Form
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
          <CardContent className="space-y-8">
            {/* Student Information Section */}
@@ -374,7 +540,10 @@ export default function ReservationForm({ form, setForm, classFee, transportFee,
                  <Label htmlFor="referred_by">Referred By</Label>
                  <EmployeeCombobox
                    value={form.referred_by}
-                   onValueChange={(value) => setForm({ ...form, referred_by: value })}
+                   onValueChange={(value) => {
+                     console.log('EmployeeCombobox value changed:', value);
+                     setForm({ ...form, referred_by: value });
+                   }}
                    placeholder="Select referring employee..."
                  />
                </div>
@@ -395,14 +564,62 @@ export default function ReservationForm({ form, setForm, classFee, transportFee,
       {/* Sticky Footer for New Reservation */}
       <div className="sticky bottom-0 bg-background border-t p-4">
         <div className="flex justify-end gap-4">
-          <Button variant="outline" onClick={() => onSave(false)} disabled={isSaveDisabled}>
-            Save
-          </Button>
-          <Button onClick={() => onSave(true)} disabled={isSaveDisabled}>
-            Save & Pay
-          </Button>
+          {isEdit ? (
+            <Button onClick={handleUpdateClick} disabled={isSaveDisabled}>
+              Update Reservation
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={handleSaveClick} disabled={isSaveDisabled}>
+                Save
+              </Button>
+              <Button onClick={handleSaveAndPayClick} disabled={isSaveDisabled}>
+                Save & Pay
+              </Button>
+            </>
+          )}
         </div>
-      </div>      
+      </div>
+
+      {/* Confirmation Dialogs */}
+      <ConfirmDialog
+        open={showSaveConfirmation}
+        onOpenChange={setShowSaveConfirmation}
+        title="Confirm Reservation Creation"
+        description={`Are you sure you want to create a reservation for ${form.student_name}? This will save the reservation with PENDING status.`}
+        confirmText="Create Reservation"
+        cancelText="Cancel"
+        onConfirm={handleConfirmSave}
+        isLoading={isLoading}
+        loadingText="Creating reservation..."
+        disabled={isLoading}
+      />
+
+      <ConfirmDialog
+        open={showSaveAndPayConfirmation}
+        onOpenChange={setShowSaveAndPayConfirmation}
+        title="Confirm Reservation & Payment"
+        description={`Are you sure you want to create a reservation for ${form.student_name} and proceed with payment? This will save the reservation and show the payment receipt.`}
+        confirmText="Create & Show Receipt"
+        cancelText="Cancel"
+        onConfirm={handleConfirmSaveAndPay}
+        isLoading={isLoading}
+        loadingText="Creating reservation..."
+        disabled={isLoading}
+      />
+
+      <ConfirmDialog
+        open={showUpdateConfirmation}
+        onOpenChange={setShowUpdateConfirmation}
+        title="Confirm Reservation Update"
+        description={`Are you sure you want to update the reservation for ${form.student_name}? This will save all the changes made to the reservation.`}
+        confirmText="Update Reservation"
+        cancelText="Cancel"
+        onConfirm={handleConfirmUpdate}
+        isLoading={isLoading}
+        loadingText="Updating reservation..."
+        disabled={isLoading}
+      />      
     </>
   );
 }

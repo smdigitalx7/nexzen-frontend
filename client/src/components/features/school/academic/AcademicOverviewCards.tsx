@@ -29,7 +29,7 @@ export const AcademicOverviewCards = ({
       color: "blue" as const,
       description: "Active classes",
       variant: "elevated" as const,
-      size: "lg" as const,
+      size: "sm" as const,
     },
     {
       title: "Total Subjects",
@@ -38,7 +38,7 @@ export const AcademicOverviewCards = ({
       color: "green" as const,
       description: "Available subjects",
       variant: "bordered" as const,
-      size: "lg" as const,
+      size: "sm" as const,
     },
     {
       title: "Total Sections",
@@ -47,7 +47,7 @@ export const AcademicOverviewCards = ({
       color: "purple" as const,
       description: "Available sections",
       variant: "bordered" as const,
-      size: "lg" as const,
+      size: "sm" as const,
     },
     {
       title: "Active Exams",
@@ -56,7 +56,7 @@ export const AcademicOverviewCards = ({
       color: "orange" as const,
       description: "Scheduled/Ongoing",
       variant: "elevated" as const,
-      size: "lg" as const,
+      size: "sm" as const,
     },
     {
       title: "Total Tests",
@@ -65,7 +65,7 @@ export const AcademicOverviewCards = ({
       color: "yellow" as const,
       description: "Total tests",
       variant: "default" as const,
-      size: "lg" as const,
+      size: "sm" as const,
     },
   ];
 
