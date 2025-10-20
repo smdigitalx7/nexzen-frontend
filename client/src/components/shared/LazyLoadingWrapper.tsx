@@ -1,8 +1,7 @@
-import React, { Suspense, Component, ErrorInfo, ReactNode } from 'react';
-import { AlertCircle, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loading, LoadingStates } from '@/components/ui/loading';
+import React, { Suspense, Component, ErrorInfo, ReactNode } from "react";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loading, LoadingStates } from "@/components/ui/loading";
 
 interface LazyLoadingWrapperProps {
   children: ReactNode;
@@ -18,10 +17,18 @@ interface ErrorBoundaryState {
 
 // Simple Error Boundary Component
 class SimpleErrorBoundary extends Component<
-  { children: ReactNode; fallback?: ReactNode; onError?: (error: Error, errorInfo: ErrorInfo) => void },
+  {
+    children: ReactNode;
+    fallback?: ReactNode;
+    onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  },
   ErrorBoundaryState
 > {
-  constructor(props: { children: ReactNode; fallback?: ReactNode; onError?: (error: Error, errorInfo: ErrorInfo) => void }) {
+  constructor(props: {
+    children: ReactNode;
+    fallback?: ReactNode;
+    onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  }) {
     super(props);
     this.state = { hasError: false };
   }
@@ -31,78 +38,57 @@ class SimpleErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
     this.props.onError?.(error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
-      return this.props.fallback || <ErrorFallback error={this.state.error!} resetError={() => this.setState({ hasError: false })} />;
+      return (
+        this.props.fallback || (
+          <ErrorFallback
+            error={this.state.error!}
+            resetError={() => this.setState({ hasError: false })}
+          />
+        )
+      );
     }
 
     return this.props.children;
   }
 }
 
-// Enhanced Loading Spinner with better UX
-const EnhancedLoadingSpinner = ({ message = "Loading..." }: { message?: string }) => (
-  <div className="flex items-center justify-center h-64">
-    <Card className="w-80">
-      <CardHeader className="text-center">
-        <div className="flex justify-center mb-4">
-          <Loading variant="spinner" size="lg" showMessage={false} />
-        </div>
-        <CardTitle className="text-lg">Loading Component</CardTitle>
-        <CardDescription>{message}</CardDescription>
-      </CardHeader>
-      <CardContent className="text-center">
-        <Loading variant="dots" size="sm" showMessage={false} />
-      </CardContent>
-    </Card>
+// Simple Loading Spinner
+const SimpleLoadingSpinner = ({
+  message = "Loading...",
+}: {
+  message?: string;
+}) => (
+  <div className="flex items-center justify-center h-32">
+    <div className="flex items-center space-x-2">
+      <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+      <span className="text-sm text-muted-foreground">{message}</span>
+    </div>
   </div>
 );
 
-// Error Fallback Component
-const ErrorFallback = ({ 
-  error, 
-  resetError 
-}: { 
-  error: Error; 
-  resetError: () => void; 
+// Simple Error Fallback Component
+const ErrorFallback = ({
+  error,
+  resetError,
+}: {
+  error: Error;
+  resetError: () => void;
 }) => (
-  <div className="flex items-center justify-center h-64">
-    <Card className="w-80">
-      <CardHeader className="text-center">
-        <div className="flex justify-center mb-4">
-          <AlertCircle className="h-8 w-8 text-destructive" />
-        </div>
-        <CardTitle className="text-lg text-destructive">Failed to Load</CardTitle>
-        <CardDescription>
-          Something went wrong while loading this component.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="text-center space-y-4">
-        <div className="text-sm text-muted-foreground">
-          <details className="text-left">
-            <summary className="cursor-pointer hover:text-foreground">
-              Error Details
-            </summary>
-            <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-auto">
-              {error.message}
-            </pre>
-          </details>
-        </div>
-        <Button 
-          onClick={resetError}
-          variant="outline"
-          size="sm"
-          className="hover-elevate"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Try Again
-        </Button>
-      </CardContent>
-    </Card>
+  <div className="flex items-center justify-center h-32">
+    <div className="text-center space-y-3">
+      <AlertCircle className="h-6 w-6 text-destructive mx-auto" />
+      <p className="text-sm text-destructive">Failed to load component</p>
+      <Button onClick={resetError} variant="outline" size="sm">
+        <RefreshCw className="h-4 w-4 mr-2" />
+        Try Again
+      </Button>
+    </div>
   </div>
 );
 
@@ -111,14 +97,11 @@ export const LazyLoadingWrapper: React.FC<LazyLoadingWrapperProps> = ({
   children,
   fallback,
   errorFallback,
-  onError
+  onError,
 }) => {
   return (
-    <SimpleErrorBoundary
-      fallback={errorFallback}
-      onError={onError}
-    >
-      <Suspense fallback={fallback || <EnhancedLoadingSpinner />}>
+    <SimpleErrorBoundary fallback={errorFallback} onError={onError}>
+      <Suspense fallback={fallback || <SimpleLoadingSpinner />}>
         {children}
       </Suspense>
     </SimpleErrorBoundary>
@@ -132,8 +115,8 @@ export const useLazyRetry = () => {
 
   const retry = React.useCallback(() => {
     setIsRetrying(true);
-    setRetryCount(prev => prev + 1);
-    
+    setRetryCount((prev) => prev + 1);
+
     // Reset retry state after a short delay
     setTimeout(() => {
       setIsRetrying(false);
@@ -147,8 +130,8 @@ export const useLazyRetry = () => {
 export const preloadComponent = (importFn: () => Promise<any>) => {
   return () => {
     const componentPromise = importFn();
-    componentPromise.catch(error => {
-      console.warn('Preload failed:', error);
+    componentPromise.catch((error) => {
+      console.warn("Preload failed:", error);
     });
     return componentPromise;
   };
@@ -164,7 +147,7 @@ export const createLazyComponent = <T extends React.ComponentType<any>>(
   }
 ) => {
   const LazyComponent = React.lazy(importFn);
-  
+
   if (options?.preload) {
     // Preload the component
     preloadComponent(importFn)();
@@ -173,9 +156,13 @@ export const createLazyComponent = <T extends React.ComponentType<any>>(
   const WrappedComponent = (props: React.ComponentProps<T>) => (
     <LazyLoadingWrapper
       fallback={options?.fallback}
-      onError={options?.retryable ? undefined : (error) => {
-        console.error('Lazy component error:', error);
-      }}
+      onError={
+        options?.retryable
+          ? undefined
+          : (error) => {
+              console.error("Lazy component error:", error);
+            }
+      }
     >
       <LazyComponent {...props} />
     </LazyLoadingWrapper>

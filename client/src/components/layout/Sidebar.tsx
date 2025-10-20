@@ -102,7 +102,8 @@ const Sidebar = () => {
     ];
   } else if (user?.role === "accountant") {
     // Accountant: Dashboard, Reservations & Admissions, Transport, Finance Reports (General). Fee Management remains under schema.
-    const branchPrefix = currentBranch?.branch_type === "SCHOOL" ? "/school" : "/college";
+    const branchPrefix =
+      currentBranch?.branch_type === "SCHOOL" ? "/school" : "/college";
     publicModules = [
       ...baseGeneral,
       {
@@ -120,9 +121,7 @@ const Sidebar = () => {
     ];
   } else if (user?.role === "academic") {
     // Academic: Dashboard and Academic in General
-    publicModules = [
-      ...baseGeneral,
-    ];
+    publicModules = [...baseGeneral];
   } else {
     publicModules = [...baseGeneral];
   }
@@ -144,7 +143,7 @@ const Sidebar = () => {
           description: "Student reservations",
           roles: ["institute_admin", "accountant"],
         },
-        
+
         {
           title: "Students",
           href: "/school/students",
@@ -206,7 +205,7 @@ const Sidebar = () => {
           description: "Student reservations",
           roles: ["institute_admin", "accountant"],
         },
-        
+
         {
           title: "Students",
           href: "/college/students",
@@ -320,7 +319,8 @@ const Sidebar = () => {
       transition={{ duration: 0.3, ease: "easeInOut" }}
       className={cn(
         "fixed left-0 top-0 z-40 h-screen bg-sidebar border-r border-sidebar-border",
-        "flex flex-col overflow-hidden"
+        "flex flex-col overflow-hidden overflow-y-auto",
+        "scrollbar-none scrollbar-track-transparent scrollbar-thumb-transparent"
       )}
     >
       {/* Logo Section */}
@@ -371,7 +371,7 @@ const Sidebar = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto scrollbar-none scrollbar-track-transparent scrollbar-thumb-transparent">
         <div className="p-4 space-y-4">
           {/* Public Modules */}
           <div>
