@@ -1,6 +1,9 @@
 import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSchoolReservationsList, useDeleteSchoolReservation, useSchoolReservationsDashboard } from "@/lib/hooks/school/use-school-reservations";
+import { useSchoolClasses } from "@/lib/hooks/school/use-school-dropdowns";
+import { useSchoolClass } from "@/lib/hooks/school/use-school-class";
+import { useDistanceSlabs } from "@/lib/hooks/general/useDistanceSlabs";
 import { motion } from "framer-motion";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -38,31 +41,9 @@ import type { TabItem } from "@/components/shared/TabSwitcher";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SchoolReservationStatsCards } from "./SchoolReservationStatsCards";
 
-const classFeeMap: Record<string, number> = {
-  I: 12000,
-  II: 13000,
-  III: 14000,
-  IV: 15000,
-  V: 16000,
-  VI: 17000,
-  VII: 18000,
-  VIII: 19000,
-  IX: 20000,
-  X: 21000,
-  "XI-MPC": 45000,
-  "XI-BiPC": 45000,
-  "XII-MPC": 48000,
-  "XII-BiPC": 48000,
-};
-
-// Reservations are loaded from backend
-
 export default function ReservationNew() {
   const { academicYear } = useAuthStore();
   const { data: routeNames = [] } = useQuery({ queryKey: ["public","bus-routes","names"], queryFn: () => TransportService.getRouteNames() });
-  
-  // Dashboard stats hook
-  const { data: dashboardStats, isLoading: dashboardLoading } = useSchoolReservationsDashboard();
   
   const [activeTab, setActiveTab] = useState("new");
   const [reservationNo, setReservationNo] = useState<string>("");
@@ -78,6 +59,20 @@ export default function ReservationNew() {
   const [reservationToDelete, setReservationToDelete] = useState<any>(null);
   const [statusChanges, setStatusChanges] = useState<Record<string, 'PENDING' | 'CONFIRMED' | 'CANCELLED'>>({});
   const [statusRemarks, setStatusRemarks] = useState<Record<string, string>>({});
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+
+  // Classes dropdown from API
+  const { data: classesData, isLoading: classesLoading } = useSchoolClasses();
+  const classes = classesData?.items || [];
+  
+  // Distance slabs dropdown from API
+  const { distanceSlabs, isLoadingDistanceSlabs } = useDistanceSlabs();
+  
+  // Fetch selected class details with fees
+  const { classData: selectedClassData, isLoading: isLoadingClassData } = useSchoolClass(selectedClassId);
+  
+  // Dashboard stats hook
+  const { data: dashboardStats, isLoading: dashboardLoading } = useSchoolReservationsDashboard();
   
   // Use React Query hook for reservations
   const { 
@@ -109,116 +104,145 @@ export default function ReservationNew() {
 
   const [form, setForm] = useState({
     // Personal Details
-    studentName: "",
-    studentAadhar: "",
-    fatherName: "",
-    fatherAadhar: "",
-    motherName: "",
-    motherAadhar: "",
-    fatherOccupation: "",
-    motherOccupation: "",
+    student_name: "",
+    aadhar_no: "",
     gender: "",
     dob: "",
-
-    // Previous School Details
-    previousSchool: "",
-    village: "",
-    lastClass: "",
-
-    // Contact Details
-    presentAddress: "",
-    permanentAddress: "",
-    fatherMobile: "",
-    motherMobile: "",
-
-    // Academic Details
-    classAdmission: "",
-    group: "N/A",
-    course: "N/A",
-
-    // Fee Setup
-    transport: "No",
-    busRoute: "",
-
-    // Payments
-    applicationFee: "",
-    reservationFee: "",
-
-    // Advanced (new fields)
-    preferredClassId: "0",
-    preferredDistanceSlabId: "0",
-    bookFee: "0",
-    tuitionConcession: "0",
-    transportConcession: "0",
-    referredBy: "",
-    reservationDate: "",
-    siblingsJson: "",
-
-    // Remarks
+    father_or_guardian_name: "",
+    father_or_guardian_aadhar_no: "",
+    father_or_guardian_mobile: "",
+    father_or_guardian_occupation: "",
+    mother_or_guardian_name: "",
+    mother_or_guardian_aadhar_no: "",
+    mother_or_guardian_mobile: "",
+    mother_or_guardian_occupation: "",
+    siblings: [] as Array<{
+      name: string;
+      class_name: string;
+      where: string;
+      gender: string;
+    }>,
+    previous_class: "",
+    previous_school_details: "",
+    present_address: "",
+    permanent_address: "",
+    application_fee: "0",
+    application_fee_paid: false,
+    class_name: "",
+    tuition_fee: "0",
+    book_fee: "0",
+    transport_required: false,
+    preferred_transport_id: "0",
+    preferred_distance_slab_id: "0",
+    pickup_point: "",
+    transport_fee: "0",
+    status: "PENDING",
+    referred_by: "",
     remarks: "",
+    reservation_date: "",
   });
 
+  // Auto-set preferred_class_id when class_name changes
+  const handleClassChange = (classId: string) => {
+    const selectedClass = classes.find(c => c.class_id.toString() === classId);
+    if (selectedClass) {
+      setSelectedClassId(selectedClass.class_id);
+      setForm(prev => ({
+        ...prev,
+        class_name: selectedClass.class_name,
+        // Auto-set preferred_class_id based on selected class
+        preferred_class_id: selectedClass.class_id.toString()
+      }));
+    }
+  };
+
+  // Auto-set preferred_distance_slab_id when distance slab is selected
+  const handleDistanceSlabChange = (slabId: string) => {
+    const selectedSlab = distanceSlabs?.find(s => s.slab_id.toString() === slabId);
+    if (selectedSlab) {
+      setForm(prev => ({
+        ...prev,
+        preferred_distance_slab_id: selectedSlab.slab_id.toString()
+      }));
+    }
+  };
+
+  // Get preferred_class_id from form (for API submission)
+  const getPreferredClassId = () => {
+    const selectedClass = classes.find(c => c.class_name === form.class_name);
+    return selectedClass ? selectedClass.class_id : 0;
+  };
+
+  // Get preferred_distance_slab_id from form (for API submission)
+  const getPreferredDistanceSlabId = () => {
+    const selectedSlab = distanceSlabs?.find(s => s.slab_id.toString() === form.preferred_distance_slab_id);
+    return selectedSlab ? selectedSlab.slab_id : 0;
+  };
+
+  // Update form with fees when class data is fetched
+  useEffect(() => {
+    if (selectedClassData) {
+      setForm(prev => ({
+        ...prev,
+        tuition_fee: selectedClassData.tuition_fee.toString(),
+        book_fee: selectedClassData.book_fee.toString()
+      }));
+    }
+  }, [selectedClassData]);
+
   const classFee = useMemo(() => {
-    return classFeeMap[form.classAdmission] || 0;
-  }, [form.classAdmission]);
+    // Use the fetched class data or fallback to default
+    return selectedClassData?.tuition_fee || 15000;
+  }, [selectedClassData]);
 
   const transportFee = useMemo(() => {
-    if (form.transport === "Yes") {
-      // For now, return a default fee since we don't have fee data in the route names
-      // This would need to be enhanced to include fee information
-      return 5000; // Default transport fee
+    if (form.transport_required && form.preferred_distance_slab_id) {
+      const selectedSlab = distanceSlabs?.find(s => s.slab_id.toString() === form.preferred_distance_slab_id);
+      return selectedSlab ? selectedSlab.fee_amount : 0;
     }
     return 0;
-  }, [form.transport, form.busRoute]);
+  }, [form.transport_required, form.preferred_distance_slab_id, distanceSlabs]);
 
   const handleSave = async (withPayment: boolean) => {
     const fd = new FormData();
     // Map form fields to backend schema
-    fd.append("student_name", form.studentName);
-    fd.append("aadhar_no", form.studentAadhar || "");
+    fd.append("student_name", form.student_name);
+    fd.append("aadhar_no", form.aadhar_no || "");
     fd.append("gender", (form.gender || "OTHER").toUpperCase());
     if (form.dob) fd.append("dob", form.dob);
-    fd.append("father_name", form.fatherName || "");
-    fd.append("father_aadhar_no", form.fatherAadhar || "");
-    fd.append("father_mobile", form.fatherMobile || "");
-    fd.append("father_occupation", form.fatherOccupation || "");
-    fd.append("mother_name", form.motherName || "");
-    fd.append("mother_aadhar_no", form.motherAadhar || "");
-    fd.append("mother_mobile", form.motherMobile || "");
-    fd.append("mother_occupation", form.motherOccupation || "");
-    // siblings optional as JSON string if needed (skipped for now)
-    if (form.lastClass) fd.append("previous_class", form.lastClass);
-    if (form.previousSchool) fd.append("previous_school_details", form.previousSchool);
-    fd.append("present_address", form.presentAddress || "");
-    fd.append("permanent_address", form.permanentAddress || "");
-    fd.append("admit_into", form.classAdmission || "");
-    fd.append("admission_group", form.group || "");
-    // Reservation financials
-    fd.append("reservation_fee", String(Number(form.reservationFee || 0)));
-    // preferred_class_id
-    fd.append("preferred_class_id", String(Number(form.preferredClassId || 0)));
-    fd.append("tuition_fee", String(Number(classFee || 0)));
-    fd.append("book_fee", String(Number(form.bookFee || 0)));
-    fd.append("tuition_concession", String(Number(form.tuitionConcession || 0)));
-    // Transport preference
-    if (form.transport === "Yes") {
-      if (form.busRoute) fd.append("preferred_transport_id", String(Number(form.busRoute)));
-      fd.append("transport_fee", String(Number(transportFee || 0)));
-      fd.append("transport_concession", String(Number(form.transportConcession || 0)));
+    fd.append("father_or_guardian_name", form.father_or_guardian_name || "");
+    fd.append("father_or_guardian_aadhar_no", form.father_or_guardian_aadhar_no || "");
+    fd.append("father_or_guardian_mobile", form.father_or_guardian_mobile || "");
+    fd.append("father_or_guardian_occupation", form.father_or_guardian_occupation || "");
+    fd.append("mother_or_guardian_name", form.mother_or_guardian_name || "");
+    fd.append("mother_or_guardian_aadhar_no", form.mother_or_guardian_aadhar_no || "");
+    fd.append("mother_or_guardian_mobile", form.mother_or_guardian_mobile || "");
+    fd.append("mother_or_guardian_occupation", form.mother_or_guardian_occupation || "");
+    // siblings as JSON array
+    if (form.siblings.length > 0) {
+      fd.append("siblings", JSON.stringify(form.siblings));
     }
-    // Optional distance slab
-    if (form.preferredDistanceSlabId) {
-      fd.append("preferred_distance_slab_id", String(Number(form.preferredDistanceSlabId)));
+    if (form.previous_class) fd.append("previous_class", form.previous_class);
+    if (form.previous_school_details) fd.append("previous_school_details", form.previous_school_details);
+    fd.append("present_address", form.present_address || "");
+    fd.append("permanent_address", form.permanent_address || "");
+    fd.append("application_fee", String(Number(form.application_fee || 0)));
+    fd.append("application_fee_paid", String(form.application_fee_paid));
+    fd.append("preferred_class_id", String(getPreferredClassId()));
+    fd.append("class_name", form.class_name || "");
+    fd.append("tuition_fee", String(Number(form.tuition_fee || 0)));
+    fd.append("book_fee", String(Number(form.book_fee || 0)));
+    // Transport preference
+    if (form.transport_required) {
+      if (form.preferred_transport_id) fd.append("preferred_transport_id", String(Number(form.preferred_transport_id)));
+      if (form.preferred_distance_slab_id) fd.append("preferred_distance_slab_id", String(getPreferredDistanceSlabId()));
+      if (form.pickup_point) fd.append("pickup_point", form.pickup_point);
+      fd.append("transport_fee", String(Number(transportFee || 0)));
     }
     fd.append("status", "PENDING");
-    // reservation_date optional
-    if (form.reservationDate) fd.append("reservation_date", form.reservationDate);
-    if (form.referredBy) fd.append("referred_by", String(Number(form.referredBy)));
-    // siblings as JSON if provided
-    if ((form.siblingsJson || '').trim()) {
-      // backend expects list[Siblings]; when using Form(...), sending JSON string field may be parsed per server config; include it for compatibility
-      fd.append("siblings", form.siblingsJson);
-    }
+    if (form.referred_by) fd.append("referred_by", String(Number(form.referred_by)));
+    if (form.remarks) fd.append("remarks", form.remarks);
+    if (form.reservation_date) fd.append("reservation_date", form.reservation_date);
 
     try {
       const res: any = await SchoolReservationsService.create(fd);
@@ -236,79 +260,75 @@ export default function ReservationNew() {
 
   const buildFormDataFromForm = (f: any) => {
     const fd = new FormData();
-    fd.append("student_name", f.studentName);
-    fd.append("aadhar_no", f.studentAadhar || "");
+    fd.append("student_name", f.student_name);
+    fd.append("aadhar_no", f.aadhar_no || "");
     fd.append("gender", (f.gender || "OTHER").toUpperCase());
     if (f.dob) fd.append("dob", f.dob);
-    fd.append("father_name", f.fatherName || "");
-    fd.append("father_aadhar_no", f.fatherAadhar || "");
-    fd.append("father_mobile", f.fatherMobile || "");
-    fd.append("father_occupation", f.fatherOccupation || "");
-    fd.append("mother_name", f.motherName || "");
-    fd.append("mother_aadhar_no", f.motherAadhar || "");
-    fd.append("mother_mobile", f.motherMobile || "");
-    fd.append("mother_occupation", f.motherOccupation || "");
-    if (f.lastClass) fd.append("previous_class", f.lastClass);
-    if (f.previousSchool) fd.append("previous_school_details", f.previousSchool);
-    fd.append("present_address", f.presentAddress || "");
-    fd.append("permanent_address", f.permanentAddress || "");
-    fd.append("admit_into", f.classAdmission || "");
-    fd.append("admission_group", f.group || "");
-    fd.append("reservation_fee", String(Number(f.reservationFee || 0)));
-    fd.append("preferred_class_id", String(Number(f.preferredClassId || 0)));
-    fd.append("tuition_fee", String(Number(classFee || 0)));
-    fd.append("book_fee", String(Number(f.bookFee || 0)));
-    fd.append("tuition_concession", String(Number(f.tuitionConcession || 0)));
-    if (f.transport === "Yes") {
-      if (f.busRoute) fd.append("preferred_transport_id", String(Number(f.busRoute)));
+    fd.append("father_or_guardian_name", f.father_or_guardian_name || "");
+    fd.append("father_or_guardian_aadhar_no", f.father_or_guardian_aadhar_no || "");
+    fd.append("father_or_guardian_mobile", f.father_or_guardian_mobile || "");
+    fd.append("father_or_guardian_occupation", f.father_or_guardian_occupation || "");
+    fd.append("mother_or_guardian_name", f.mother_or_guardian_name || "");
+    fd.append("mother_or_guardian_aadhar_no", f.mother_or_guardian_aadhar_no || "");
+    fd.append("mother_or_guardian_mobile", f.mother_or_guardian_mobile || "");
+    fd.append("mother_or_guardian_occupation", f.mother_or_guardian_occupation || "");
+    if (f.siblings && f.siblings.length > 0) {
+      fd.append("siblings", JSON.stringify(f.siblings));
+    }
+    if (f.previous_class) fd.append("previous_class", f.previous_class);
+    if (f.previous_school_details) fd.append("previous_school_details", f.previous_school_details);
+    fd.append("present_address", f.present_address || "");
+    fd.append("permanent_address", f.permanent_address || "");
+    fd.append("application_fee", String(Number(f.application_fee || 0)));
+    fd.append("application_fee_paid", String(f.application_fee_paid));
+    fd.append("preferred_class_id", String(getPreferredClassId()));
+    fd.append("class_name", f.class_name || "");
+    fd.append("tuition_fee", String(Number(f.tuition_fee || 0)));
+    fd.append("book_fee", String(Number(f.book_fee || 0)));
+    if (f.transport_required) {
+      if (f.preferred_transport_id) fd.append("preferred_transport_id", String(Number(f.preferred_transport_id)));
+      if (f.preferred_distance_slab_id) fd.append("preferred_distance_slab_id", String(getPreferredDistanceSlabId()));
+      if (f.pickup_point) fd.append("pickup_point", f.pickup_point);
       fd.append("transport_fee", String(Number(transportFee || 0)));
-      fd.append("transport_concession", String(Number(f.transportConcession || 0)));
     }
-    if (f.preferredDistanceSlabId) {
-      fd.append("preferred_distance_slab_id", String(Number(f.preferredDistanceSlabId)));
-    }
-    if (f.reservationDate) fd.append("reservation_date", f.reservationDate);
-    if (f.referredBy) fd.append("referred_by", String(Number(f.referredBy)));
-    if ((f.siblingsJson || '').trim()) {
-      fd.append("siblings", f.siblingsJson);
-    }
+    if (f.reservation_date) fd.append("reservation_date", f.reservation_date);
+    if (f.referred_by) fd.append("referred_by", String(Number(f.referred_by)));
+    if (f.remarks) fd.append("remarks", f.remarks);
     return fd;
   };
 
   const mapApiToForm = (r: any) => ({
-    studentName: r.student_name || "",
-    studentAadhar: r.aadhar_no || "",
-    fatherName: r.father_name || "",
-    fatherAadhar: r.father_aadhar_no || "",
-    motherName: r.mother_name || "",
-    motherAadhar: r.mother_aadhar_no || "",
-    fatherOccupation: r.father_occupation || "",
-    motherOccupation: r.mother_occupation || "",
+    student_name: r.student_name || "",
+    aadhar_no: r.aadhar_no || "",
     gender: (r.gender || "").toString(),
     dob: r.dob || "",
-    previousSchool: r.previous_school_details || "",
-    village: "",
-    lastClass: r.previous_class || "",
-    presentAddress: r.present_address || "",
-    permanentAddress: r.permanent_address || "",
-    fatherMobile: r.father_mobile || "",
-    motherMobile: r.mother_mobile || "",
-    classAdmission: r.admit_into || "",
-    group: r.admission_group || "",
-    course: "N/A",
-    transport: r.preferred_transport_id ? "Yes" : "No",
-    busRoute: r.preferred_transport_id ? String(r.preferred_transport_id) : "",
-    applicationFee: "",
-    reservationFee: r.reservation_fee != null ? String(r.reservation_fee) : "",
-    remarks: "",
-    preferredClassId: r.preferred_class_id != null ? String(r.preferred_class_id) : "0",
-    preferredDistanceSlabId: r.preferred_distance_slab_id != null ? String(r.preferred_distance_slab_id) : "0",
-    bookFee: r.book_fee != null ? String(r.book_fee) : "0",
-    tuitionConcession: r.tuition_concession != null ? String(r.tuition_concession) : "0",
-    transportConcession: r.transport_concession != null ? String(r.transport_concession) : "0",
-    referredBy: r.referred_by != null ? String(r.referred_by) : "",
-    reservationDate: r.reservation_date || "",
-    siblingsJson: JSON.stringify(r.siblings || []),
+    father_or_guardian_name: r.father_or_guardian_name || "",
+    father_or_guardian_aadhar_no: r.father_or_guardian_aadhar_no || "",
+    father_or_guardian_mobile: r.father_or_guardian_mobile || "",
+    father_or_guardian_occupation: r.father_or_guardian_occupation || "",
+    mother_or_guardian_name: r.mother_or_guardian_name || "",
+    mother_or_guardian_aadhar_no: r.mother_or_guardian_aadhar_no || "",
+    mother_or_guardian_mobile: r.mother_or_guardian_mobile || "",
+    mother_or_guardian_occupation: r.mother_or_guardian_occupation || "",
+    siblings: r.siblings || [],
+    previous_class: r.previous_class || "",
+    previous_school_details: r.previous_school_details || "",
+    present_address: r.present_address || "",
+    permanent_address: r.permanent_address || "",
+    application_fee: r.application_fee != null ? String(r.application_fee) : "0",
+    application_fee_paid: r.application_fee_paid || false,
+    class_name: r.class_name || "",
+    tuition_fee: r.tuition_fee != null ? String(r.tuition_fee) : "0",
+    book_fee: r.book_fee != null ? String(r.book_fee) : "0",
+    transport_required: r.preferred_transport_id ? true : false,
+    preferred_transport_id: r.preferred_transport_id ? String(r.preferred_transport_id) : "0",
+    preferred_distance_slab_id: r.preferred_distance_slab_id != null ? String(r.preferred_distance_slab_id) : "0",
+    pickup_point: r.pickup_point || "",
+    transport_fee: r.transport_fee != null ? String(r.transport_fee) : "0",
+    status: r.status || "PENDING",
+    referred_by: r.referred_by != null ? String(r.referred_by) : "",
+    remarks: r.remarks || "",
+    reservation_date: r.reservation_date || "",
   });
 
   const handleView = async (r: any) => {
@@ -428,9 +448,12 @@ export default function ReservationNew() {
                   routes={routeNames.map((route: { bus_route_id: number; route_no?: string; route_name: string }) => ({
                     id: route.bus_route_id?.toString() || '',
                     name: `${route.route_no || 'Route'} - ${route.route_name}`,
-                    fee: 5000 // Default fee, would need to be enhanced
+                    fee: 0
                   }))}
-                  classFeeMapKeys={Object.keys(classFeeMap)}
+                  classes={classes}
+                  distanceSlabs={distanceSlabs || []}
+                  onClassChange={handleClassChange}
+                  onDistanceSlabChange={handleDistanceSlabChange}
                   onSave={handleSave}
                 />
               </motion.div>
@@ -613,7 +636,6 @@ export default function ReservationNew() {
         ]}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        gridCols="grid-cols-3"
       />
 
 
@@ -637,16 +659,16 @@ export default function ReservationNew() {
                 <strong>Date:</strong> {new Date().toLocaleDateString()}
               </div>
               <div>
-                <strong>Student Name:</strong> {form.studentName}
+                <strong>Student Name:</strong> {form.student_name}
               </div>
               <div>
-                <strong>Class:</strong> {form.classAdmission}
+                <strong>Class:</strong> {form.class_name}
               </div>
               <div>
-                <strong>Father Name:</strong> {form.fatherName}
+                <strong>Father Name:</strong> {form.father_or_guardian_name}
               </div>
               <div>
-                <strong>Mobile:</strong> {form.fatherMobile}
+                <strong>Mobile:</strong> {form.father_or_guardian_mobile}
               </div>
             </div>
             <div className="border-t pt-4">
@@ -654,7 +676,7 @@ export default function ReservationNew() {
                 <span>Class Fee:</span>
                 <span>₹{classFee.toLocaleString()}</span>
               </div>
-              {form.transport === "Yes" && (
+              {form.transport_required && (
                 <div className="flex justify-between">
                   <span>Transport Fee:</span>
                   <span>₹{transportFee.toLocaleString()}</span>
@@ -787,8 +809,11 @@ export default function ReservationNew() {
                 setForm={setEditForm}
                 classFee={classFee}
                 transportFee={transportFee}
-                routes={routeNames.map((route: { bus_route_id: number; route_no?: string; route_name: string }) => ({ id: route.bus_route_id.toString(), name: `${route.route_no || 'Route'} - ${route.route_name}`, fee: 5000 }))}
-                classFeeMapKeys={Object.keys(classFeeMap)}
+                routes={routeNames.map((route: { bus_route_id: number; route_no?: string; route_name: string }) => ({ id: route.bus_route_id.toString(), name: `${route.route_no || 'Route'} - ${route.route_name}`, fee: 0 }))}
+                classes={classes}
+                distanceSlabs={distanceSlabs || []}
+                onClassChange={handleClassChange}
+                onDistanceSlabChange={handleDistanceSlabChange}
                 onSave={async () => { await submitEdit(); }}
               />
             </div>

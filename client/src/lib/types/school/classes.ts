@@ -9,6 +9,8 @@ export interface SchoolClassUpdate {
 export interface SchoolClassRead {
   class_id: number;
   class_name: string;
+  book_fee: number;
+  tuition_fee: number;
   created_by?: number | null;
   updated_by?: number | null;
 }

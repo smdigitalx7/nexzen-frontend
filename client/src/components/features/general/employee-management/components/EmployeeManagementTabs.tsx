@@ -180,7 +180,7 @@ export const EmployeeManagementTabs = ({
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={setActiveTab}
-      gridCols="grid-cols-4"
+      size="md"
     />
   );
 };
