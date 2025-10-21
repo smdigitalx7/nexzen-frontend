@@ -91,50 +91,11 @@ export default defineConfig({
     // Rollup options for advanced bundling
     rollupOptions: {
       output: {
-        // Simplified chunk splitting to avoid React loading issues
+        // Simple chunk splitting - just vendor and app
         manualChunks: (id) => {
-          // Put ALL node_modules in one vendor chunk to avoid loading order issues
           if (id.includes("node_modules")) {
             return "vendor";
           }
-
-          // Feature-based chunks for application code only
-          if (
-            id.includes("components/pages/general") ||
-            id.includes("components/features/general")
-          ) {
-            return "general-components";
-          }
-          if (
-            id.includes("components/pages/school") ||
-            id.includes("components/features/school")
-          ) {
-            return "school-components";
-          }
-          if (
-            id.includes("components/pages/college") ||
-            id.includes("components/features/college")
-          ) {
-            return "college-components";
-          }
-          if (
-            id.includes("components/shared") ||
-            id.includes("components/ui") ||
-            id.includes("components/layout")
-          ) {
-            return "shared-components";
-          }
-          if (id.includes("lib/") || id.includes("store/")) {
-            return "lib-utils";
-          }
-        },
-        // Optimize chunk naming and ensure proper loading order
-        chunkFileNames: (chunkInfo) => {
-          // Vendor chunk loads first
-          if (chunkInfo.name === "vendor") {
-            return "js/0-vendor-[hash].js";
-          }
-          return `js/[name]-[hash].js`;
         },
         // Ensure proper chunk loading order
         entryFileNames: "js/[name]-[hash].js",
