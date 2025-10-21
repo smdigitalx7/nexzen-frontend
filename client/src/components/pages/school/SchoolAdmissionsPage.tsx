@@ -407,91 +407,95 @@ const SchoolAdmissionsPage = () => {
 
           {/* Reservations Table */}
           <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5" />
-            Confirmed Reservations ({filteredReservations.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Reservation No</TableHead>
-                <TableHead>Student Name</TableHead>
-                <TableHead>Class</TableHead>
-                <TableHead>Application Fee</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredReservations.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    <div className="flex flex-col items-center gap-2">
-                      <UserCheck className="h-8 w-8 text-muted-foreground" />
-                      <p className="text-muted-foreground">
-                        No confirmed reservations found
-                      </p>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredReservations.map((reservation: any, index: number) => (
-                  <TableRow
-                    key={`${reservation.reservation_id}-${reservation.reservation_no}-${index}`}
-                  >
-                    <TableCell className="font-medium">
-                      {reservation.reservation_no}
-                    </TableCell>
-                    <TableCell>{reservation.student_name}</TableCell>
-                    <TableCell>{reservation.class_name}</TableCell>
-                    <TableCell>₹{reservation.application_fee}</TableCell>
-                    <TableCell>{reservation.reservation_date}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          reservation.status === "CONFIRMED"
-                            ? "secondary"
-                            : reservation.status === "PENDING"
-                            ? "default"
-                            : "destructive"
-                        }
-                      >
-                        {reservation.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {reservation.is_enrolled ? (
-                        <Badge
-                          variant="secondary"
-                          className="flex items-center gap-1 w-fit"
-                        >
-                          <CheckCircle className="h-3 w-3" />
-                          Enrolled
-                        </Badge>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={() =>
-                            handleEnrollStudent(reservation.reservation_id)
-                          }
-                          className="flex items-center gap-2"
-                        >
-                          <UserCheck className="h-4 w-4" />
-                          Enroll Student
-                        </Button>
-                      )}
-                    </TableCell>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5" />
+                Confirmed Reservations ({filteredReservations.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Reservation No</TableHead>
+                    <TableHead>Student Name</TableHead>
+                    <TableHead>Class</TableHead>
+                    <TableHead>Application Fee</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {filteredReservations.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex flex-col items-center gap-2">
+                          <UserCheck className="h-8 w-8 text-muted-foreground" />
+                          <p className="text-muted-foreground">
+                            No confirmed reservations found
+                          </p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredReservations.map(
+                      (reservation: any, index: number) => (
+                        <TableRow
+                          key={`${reservation.reservation_id}-${reservation.reservation_no}-${index}`}
+                        >
+                          <TableCell className="font-medium">
+                            {reservation.reservation_no}
+                          </TableCell>
+                          <TableCell>{reservation.student_name}</TableCell>
+                          <TableCell>{reservation.class_name}</TableCell>
+                          <TableCell>₹{reservation.application_fee}</TableCell>
+                          <TableCell>{reservation.reservation_date}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                reservation.status === "CONFIRMED"
+                                  ? "secondary"
+                                  : reservation.status === "PENDING"
+                                  ? "default"
+                                  : "destructive"
+                              }
+                            >
+                              {reservation.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {reservation.is_enrolled ? (
+                              <Badge
+                                variant="secondary"
+                                className="flex items-center gap-1 w-fit"
+                              >
+                                <CheckCircle className="h-3 w-3" />
+                                Enrolled
+                              </Badge>
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() =>
+                                  handleEnrollStudent(
+                                    reservation.reservation_id
+                                  )
+                                }
+                                className="flex items-center gap-2"
+                              >
+                                <UserCheck className="h-4 w-4" />
+                                Enroll Student
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    )
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </div>
       ),
     },
