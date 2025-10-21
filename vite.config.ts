@@ -91,46 +91,14 @@ export default defineConfig({
     // Rollup options for advanced bundling
     rollupOptions: {
       output: {
-        // Manual chunk splitting for better caching
+        // Simplified chunk splitting to avoid React loading issues
         manualChunks: (id) => {
-          // Vendor chunks - React ecosystem must be in one chunk to avoid loading issues
+          // Put ALL node_modules in one vendor chunk to avoid loading order issues
           if (id.includes("node_modules")) {
-            // React core - MUST be separate and load first
-            if (
-              id.includes("react") ||
-              id.includes("react-dom") ||
-              id.includes("scheduler") ||
-              id.includes("react/jsx-runtime")
-            ) {
-              return "react-core";
-            }
-
-            // Pure utility libraries ONLY (absolutely no React dependency)
-            // These are the ONLY packages that can be separate from React
-            if (
-              id.includes("clsx") ||
-              id.includes("tailwind-merge") ||
-              id.includes("date-fns") ||
-              id.includes("zod") ||
-              id.includes("immer") ||
-              id.includes("class-variance-authority") ||
-              id.includes("tailwindcss-animate")
-            ) {
-              return "utils-vendor";
-            }
-
-            // Excel and PDF libraries
-            if (id.includes("exceljs") || id.includes("jspdf")) {
-              return "export-vendor";
-            }
-
-            // EVERYTHING ELSE goes into react-vendor (safer approach)
-            // This ensures no package can execute before React is ready
-            // Includes: all UI libs, data libs, state management, etc.
-            return "react-vendor";
+            return "vendor";
           }
 
-          // Feature-based chunks
+          // Feature-based chunks for application code only
           if (
             id.includes("components/pages/general") ||
             id.includes("components/features/general")
@@ -162,18 +130,12 @@ export default defineConfig({
         },
         // Optimize chunk naming and ensure proper loading order
         chunkFileNames: (chunkInfo) => {
-          // Prefix React core with '0-' to ensure it loads FIRST
-          if (chunkInfo.name === "react-core") {
-            return "js/0-react-core-[hash].js";
-          }
-          // React vendor loads second
-          if (chunkInfo.name === "react-vendor") {
-            return "js/1-react-vendor-[hash].js";
+          // Vendor chunk loads first
+          if (chunkInfo.name === "vendor") {
+            return "js/0-vendor-[hash].js";
           }
           return `js/[name]-[hash].js`;
         },
-        // Ensure proper chunk loading order with dependencies
-        chunkLoadingGlobal: "nexzenChunkLoader",
         // Ensure proper chunk loading order
         entryFileNames: "js/[name]-[hash].js",
         assetFileNames: (assetInfo) => {
