@@ -99,7 +99,8 @@ export default defineConfig({
             if (
               id.includes("react") ||
               id.includes("react-dom") ||
-              id.includes("scheduler")
+              id.includes("scheduler") ||
+              id.includes("react/jsx-runtime")
             ) {
               return "react-core";
             }
@@ -171,6 +172,8 @@ export default defineConfig({
           }
           return `js/[name]-[hash].js`;
         },
+        // Ensure proper chunk loading order with dependencies
+        chunkLoadingGlobal: "nexzenChunkLoader",
         // Ensure proper chunk loading order
         entryFileNames: "js/[name]-[hash].js",
         assetFileNames: (assetInfo) => {
@@ -187,6 +190,12 @@ export default defineConfig({
       external: [],
       // Ensure React is not externalized and is bundled
       preserveEntrySignatures: "strict",
+      // Ensure proper module resolution
+      treeshake: {
+        moduleSideEffects: false,
+        propertyReadSideEffects: false,
+        unknownGlobalSideEffects: false,
+      },
     },
     // Terser options for better minification
     terserOptions: {
