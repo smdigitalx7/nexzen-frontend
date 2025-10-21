@@ -48,6 +48,8 @@ export default defineConfig({
     include: [
       "react",
       "react-dom",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
       "scheduler",
       "wouter",
       "zustand",
@@ -62,6 +64,10 @@ export default defineConfig({
     exclude: ["@replit/vite-plugin-cartographer"],
     // Force React to be pre-bundled and available
     force: true,
+    // Ensure React is properly resolved
+    esbuildOptions: {
+      jsx: "automatic",
+    },
   },
   // CSS optimization
   css: {
@@ -88,6 +94,17 @@ export default defineConfig({
         manualChunks: (id) => {
           // Vendor chunks - React ecosystem must be in one chunk to avoid loading issues
           if (id.includes("node_modules")) {
+            // React core must be in its own chunk and load first
+            if (
+              id.includes("react") ||
+              id.includes("react-dom") ||
+              id.includes("scheduler") ||
+              id.includes("react/jsx-runtime") ||
+              id.includes("react/jsx-dev-runtime")
+            ) {
+              return "react-core";
+            }
+
             // Pure utility libraries ONLY (absolutely no React dependency)
             // These are the ONLY packages that can be separate from React
             if (
@@ -104,7 +121,7 @@ export default defineConfig({
 
             // EVERYTHING ELSE goes into react-vendor (safer approach)
             // This ensures no package can execute before React is ready
-            // Includes: React core, all UI libs, data libs, state management, etc.
+            // Includes: all UI libs, data libs, state management, etc.
             return "react-vendor";
           }
 
@@ -140,9 +157,13 @@ export default defineConfig({
         },
         // Optimize chunk naming and ensure proper loading order
         chunkFileNames: (chunkInfo) => {
-          // Prefix React vendor with '0-' to ensure it loads first (alphabetically)
+          // Prefix React core with '0-' to ensure it loads first (alphabetically)
+          if (chunkInfo.name === "react-core") {
+            return "js/0-react-core-[hash].js";
+          }
+          // Prefix React vendor with '1-' to ensure it loads second
           if (chunkInfo.name === "react-vendor") {
-            return "js/0-react-vendor-[hash].js";
+            return "js/1-react-vendor-[hash].js";
           }
           return `js/[name]-[hash].js`;
         },
@@ -162,6 +183,12 @@ export default defineConfig({
       external: [],
       // Ensure React is not externalized and is bundled
       preserveEntrySignatures: "strict",
+      // Ensure proper module resolution for React
+      treeshake: {
+        moduleSideEffects: false,
+        propertyReadSideEffects: false,
+        unknownGlobalSideEffects: false,
+      },
     },
     // Terser options for better minification
     terserOptions: {
