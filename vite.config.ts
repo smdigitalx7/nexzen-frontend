@@ -91,12 +91,7 @@ export default defineConfig({
     // Rollup options for advanced bundling
     rollupOptions: {
       output: {
-        // Simple chunk splitting - just vendor and app
-        manualChunks: (id) => {
-          if (id.includes("node_modules")) {
-            return "vendor";
-          }
-        },
+        // No chunk splitting to avoid empty chunks
         // Ensure proper chunk loading order
         entryFileNames: "js/[name]-[hash].js",
         assetFileNames: (assetInfo) => {
