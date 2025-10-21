@@ -76,8 +76,12 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
 
   return (
     <div className={cn("space-y-6", className)}>
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList 
+      <Tabs
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="w-full"
+      >
+        <TabsList
           className={cn(
             "flex w-full h-auto bg-transparent p-0 justify-start border-b-2 border-gray-300 dark:border-gray-600 shadow-sm",
             tabListClassName
@@ -103,11 +107,13 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
                   tabTriggerClassName
                 )}
               >
-                <IconComponent className={cn("flex-shrink-0", sizeClasses.icon)} />
+                <IconComponent
+                  className={cn("flex-shrink-0", sizeClasses.icon)}
+                />
                 <span className="truncate">{tab.label}</span>
                 {showBadges && tab.badge !== undefined && (
-                  <Badge 
-                    variant={tab.badgeVariant || "secondary"} 
+                  <Badge
+                    variant={tab.badgeVariant || "secondary"}
                     className={cn(
                       "flex-shrink-0 font-medium",
                       sizeClasses.badge
@@ -130,7 +136,7 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
               contentClassName
             )}
           >
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-8 shadow-lg">
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-8 ">
               {tab.content}
             </div>
           </TabsContent>

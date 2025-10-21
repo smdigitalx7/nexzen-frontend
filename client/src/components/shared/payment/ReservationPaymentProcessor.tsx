@@ -1,29 +1,44 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { 
-  CreditCard, 
-  CheckCircle, 
-  XCircle, 
-  Loader2, 
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import {
+  CreditCard,
+  CheckCircle,
+  XCircle,
+  Loader2,
   AlertCircle,
   Receipt,
   User,
   GraduationCap,
-  MapPin
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { PaymentData } from './PaymentProcessor';
-import { PaymentSuccess } from './PaymentSuccess';
-import { ReceiptDownload } from './ReceiptDownload';
-import { SchoolIncomeService } from '@/lib/services/school/income.service';
-import type { SchoolIncomeCreateReservation, SchoolIncomeRead } from '@/lib/types/school';
-import { cn } from '@/lib/utils';
+  MapPin,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { PaymentData } from "./PaymentProcessor";
+import { PaymentSuccess } from "./PaymentSuccess";
+import { ReceiptPreviewModal } from "@/components/shared/ReceiptPreviewModal";
+import { handlePayByReservation } from "@/lib/api";
+import type {
+  SchoolIncomeCreateReservation,
+  SchoolIncomeRead,
+} from "@/lib/types/school";
+import { cn } from "@/lib/utils";
 
 export interface ReservationPaymentData {
   reservationId: number;
@@ -32,7 +47,7 @@ export interface ReservationPaymentData {
   className: string;
   reservationFee: number; // Only reservation fee, not tuition/transport
   totalAmount: number;
-  paymentMethod: 'CASH' | 'ONLINE';
+  paymentMethod: "CASH" | "ONLINE";
   purpose: string;
   note?: string;
 }
@@ -45,24 +60,33 @@ export interface ReservationPaymentProcessorProps {
   className?: string;
 }
 
-const ReservationPaymentProcessor: React.FC<ReservationPaymentProcessorProps> = ({
+const ReservationPaymentProcessor: React.FC<
+  ReservationPaymentProcessorProps
+> = ({
   reservationData,
   onPaymentComplete,
   onPaymentFailed,
   onPaymentCancel,
-  className
+  className,
 }) => {
-  const [currentStep, setCurrentStep] = useState<'confirm' | 'processing' | 'success' | 'failed'>('confirm');
+  const [currentStep, setCurrentStep] = useState<
+    "confirm" | "processing" | "success" | "failed"
+  >("confirm");
   const [showPaymentProcessor, setShowPaymentProcessor] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [incomeRecord, setIncomeRecord] = useState<SchoolIncomeRead | null>(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'CASH' | 'ONLINE'>('CASH');
+  const [incomeRecord, setIncomeRecord] = useState<SchoolIncomeRead | null>(
+    null
+  );
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
+    "CASH" | "ONLINE"
+  >("CASH");
 
   const handleConfirmPayment = async () => {
     try {
-      setCurrentStep('processing');
+      setCurrentStep("processing");
 
       // Prepare the payload for the API
       const payload = {
@@ -70,16 +94,18 @@ const ReservationPaymentProcessor: React.FC<ReservationPaymentProcessorProps> = 
           {
             purpose: "APPLICATION_FEE", // Reservation fee purpose
             paid_amount: reservationData.totalAmount,
-            payment_method: selectedPaymentMethod
-          }
+            payment_method: selectedPaymentMethod,
+          },
         ],
-        remarks: reservationData.note || `Payment for reservation ${reservationData.reservationNo}`
+        remarks:
+          reservationData.note ||
+          `Payment for reservation ${reservationData.reservationNo}`,
       };
 
-      // Call the API to record the payment method
-      const response = await SchoolIncomeService.payFeeByReservation(
-        reservationData.reservationNo, 
-        payload
+      // Call the API that returns a PDF receipt as blob (StreamingResponse)
+      const blobUrl = await handlePayByReservation(
+        reservationData.reservationNo,
+        payload as any
       );
 
       // Create income record for UI (API returns PDF, so we create the record for display)
@@ -88,26 +114,28 @@ const ReservationPaymentProcessor: React.FC<ReservationPaymentProcessorProps> = 
         reservation_id: reservationData.reservationId,
         purpose: "APPLICATION_FEE",
         amount: reservationData.totalAmount,
-        income_date: new Date().toISOString().split('T')[0],
+        income_date: new Date().toISOString().split("T")[0],
         payment_method: selectedPaymentMethod,
         note: reservationData.note,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
 
       setIncomeRecord(incomeRecord as any);
-      setCurrentStep('success');
+      setCurrentStep("success");
       setShowSuccess(true);
+      // Open receipt modal with the returned PDF blob URL
+      setReceiptBlobUrl(blobUrl);
+      setShowReceipt(true);
       onPaymentComplete?.(incomeRecord as any);
     } catch (err: any) {
-      setCurrentStep('failed');
-      setError(err?.message || 'Failed to record payment method');
-      onPaymentFailed?.(err?.message || 'Failed to record payment method');
+      setCurrentStep("failed");
+      setError(err?.message || "Failed to record payment method");
+      onPaymentFailed?.(err?.message || "Failed to record payment method");
     }
   };
 
-
   const handleRetry = () => {
-    setCurrentStep('confirm');
+    setCurrentStep("confirm");
     setError(null);
   };
 
@@ -117,19 +145,27 @@ const ReservationPaymentProcessor: React.FC<ReservationPaymentProcessorProps> = 
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'success': return 'text-green-600 bg-green-50 border-green-200';
-      case 'failed': return 'text-red-600 bg-red-50 border-red-200';
-      case 'processing': return 'text-blue-600 bg-blue-50 border-blue-200';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+      case "success":
+        return "text-green-600 bg-green-50 border-green-200";
+      case "failed":
+        return "text-red-600 bg-red-50 border-red-200";
+      case "processing":
+        return "text-blue-600 bg-blue-50 border-blue-200";
+      default:
+        return "text-gray-600 bg-gray-50 border-gray-200";
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'success': return CheckCircle;
-      case 'failed': return XCircle;
-      case 'processing': return Loader2;
-      default: return CreditCard;
+      case "success":
+        return CheckCircle;
+      case "failed":
+        return XCircle;
+      case "processing":
+        return Loader2;
+      default:
+        return CreditCard;
     }
   };
 
@@ -139,15 +175,20 @@ const ReservationPaymentProcessor: React.FC<ReservationPaymentProcessorProps> = 
   const paymentData: PaymentData = {
     id: reservationData.reservationNo,
     amount: reservationData.totalAmount,
-    currency: 'INR',
+    currency: "INR",
     description: `Reservation payment for ${reservationData.studentName}`,
-    merchant: 'School Management System',
+    merchant: "School Management System",
     paymentMethod: selectedPaymentMethod.toLowerCase() as any,
-    status: currentStep === 'success' ? 'success' : currentStep === 'failed' ? 'failed' : 'pending',
+    status:
+      currentStep === "success"
+        ? "success"
+        : currentStep === "failed"
+        ? "failed"
+        : "pending",
     transactionId: incomeRecord?.income_id?.toString(),
     timestamp: incomeRecord ? new Date(incomeRecord.created_at) : new Date(),
     fees: 0, // No processing fees for school payments
-    totalAmount: reservationData.totalAmount
+    totalAmount: reservationData.totalAmount,
   };
 
   return (
@@ -155,12 +196,22 @@ const ReservationPaymentProcessor: React.FC<ReservationPaymentProcessorProps> = 
       <Card className="overflow-hidden">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold">Reservation Payment</CardTitle>
-            <Badge 
-              variant="outline" 
-              className={cn("flex items-center gap-1", getStatusColor(currentStep))}
+            <CardTitle className="text-lg font-semibold">
+              Reservation Payment
+            </CardTitle>
+            <Badge
+              variant="outline"
+              className={cn(
+                "flex items-center gap-1",
+                getStatusColor(currentStep)
+              )}
             >
-              <StatusIcon className={cn("w-3 h-3", currentStep === 'processing' && "animate-spin")} />
+              <StatusIcon
+                className={cn(
+                  "w-3 h-3",
+                  currentStep === "processing" && "animate-spin"
+                )}
+              />
               {currentStep.charAt(0).toUpperCase() + currentStep.slice(1)}
             </Badge>
           </div>
@@ -184,7 +235,9 @@ const ReservationPaymentProcessor: React.FC<ReservationPaymentProcessorProps> = 
               </div>
               <div>
                 <span className="text-muted-foreground">Reservation No</span>
-                <p className="font-mono text-xs">{reservationData.reservationNo}</p>
+                <p className="font-mono text-xs">
+                  {reservationData.reservationNo}
+                </p>
               </div>
               <div>
                 <span className="text-muted-foreground">Payment Method</span>
@@ -205,7 +258,10 @@ const ReservationPaymentProcessor: React.FC<ReservationPaymentProcessorProps> = 
             </h3>
             <div className="space-y-2">
               <Label htmlFor="payment-method">Select Payment Method</Label>
-              <Select value={selectedPaymentMethod} onValueChange={(value: any) => setSelectedPaymentMethod(value)}>
+              <Select
+                value={selectedPaymentMethod}
+                onValueChange={(value: any) => setSelectedPaymentMethod(value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select payment method" />
                 </SelectTrigger>
@@ -233,7 +289,9 @@ const ReservationPaymentProcessor: React.FC<ReservationPaymentProcessorProps> = 
               <Separator />
               <div className="flex justify-between text-lg font-semibold">
                 <span>Total Amount</span>
-                <span className="text-green-600">₹{reservationData.totalAmount.toLocaleString()}</span>
+                <span className="text-green-600">
+                  ₹{reservationData.totalAmount.toLocaleString()}
+                </span>
               </div>
             </div>
           </div>
@@ -252,27 +310,39 @@ const ReservationPaymentProcessor: React.FC<ReservationPaymentProcessorProps> = 
 
           {/* Action Buttons */}
           <div className="space-y-3">
-            {currentStep === 'confirm' && (
-              <Button 
-                onClick={handleConfirmPayment}
+            {currentStep === "confirm" && (
+              <Button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleConfirmPayment();
+                }}
                 className="w-full"
                 size="lg"
               >
                 <CreditCard className="w-4 h-4 mr-2" />
-                Record Payment Method ₹{reservationData.totalAmount.toLocaleString()}
+                Record Payment Method ₹
+                {reservationData.totalAmount.toLocaleString()}
               </Button>
             )}
 
-            {currentStep === 'failed' && (
+            {currentStep === "failed" && (
               <div className="space-y-2">
-                <Button 
-                  onClick={handleRetry}
+                <Button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleRetry();
+                  }}
                   className="w-full"
                   size="lg"
                 >
                   Try Again
                 </Button>
-                <Button 
+                <Button
+                  type="button"
                   onClick={onPaymentCancel}
                   variant="outline"
                   className="w-full"
@@ -282,24 +352,30 @@ const ReservationPaymentProcessor: React.FC<ReservationPaymentProcessorProps> = 
               </div>
             )}
 
-            {currentStep === 'processing' && (
+            {currentStep === "processing" && (
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span>Recording payment method...</span>
               </div>
             )}
 
-            {currentStep === 'success' && (
+            {currentStep === "success" && (
               <div className="space-y-2">
-                <Button 
-                  onClick={handleDownloadReceipt}
+                <Button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDownloadReceipt();
+                  }}
                   className="w-full"
                   size="lg"
                 >
                   <Receipt className="w-4 h-4 mr-2" />
                   Download Receipt
                 </Button>
-                <Button 
+                <Button
+                  type="button"
                   onClick={onPaymentCancel}
                   variant="outline"
                   className="w-full"
@@ -312,7 +388,6 @@ const ReservationPaymentProcessor: React.FC<ReservationPaymentProcessorProps> = 
         </CardContent>
       </Card>
 
-
       {/* Success Dialog */}
       <PaymentSuccess
         open={showSuccess}
@@ -321,11 +396,17 @@ const ReservationPaymentProcessor: React.FC<ReservationPaymentProcessorProps> = 
         onClose={() => setShowSuccess(false)}
       />
 
-      {/* Receipt Download Dialog */}
-      <ReceiptDownload
-        open={showReceipt}
-        onOpenChange={setShowReceipt}
-        paymentData={paymentData}
+      {/* Receipt Preview Modal (PDF from blob URL) */}
+      <ReceiptPreviewModal
+        isOpen={showReceipt}
+        onClose={() => {
+          setShowReceipt(false);
+          if (receiptBlobUrl) {
+            URL.revokeObjectURL(receiptBlobUrl);
+            setReceiptBlobUrl(null);
+          }
+        }}
+        blobUrl={receiptBlobUrl}
       />
     </div>
   );

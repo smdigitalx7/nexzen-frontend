@@ -26,31 +26,78 @@ import { config } from "@/lib/config/production";
 const Login = lazy(() => import("./components/pages/general/Login"));
 const NotFound = lazy(() => import("./components/pages/general/not-found"));
 const Dashboard = lazy(() => import("./components/pages/general/Dashboard"));
-const UserManagement = lazy(() => import("./components/pages/general/UserManagementPage"));
-const EmployeeManagement = lazy(() => import("./components/pages/general/EmployeeManagementPage"));
-const PayrollManagement = lazy(() => import("./components/pages/general/PayrollManagementPage"));
-const TransportManagement = lazy(() => import("./components/pages/general/TransportManagementPage"));
+const UserManagement = lazy(
+  () => import("./components/pages/general/UserManagementPage")
+);
+const EmployeeManagement = lazy(
+  () => import("./components/pages/general/EmployeeManagementPage")
+);
+const PayrollManagement = lazy(
+  () => import("./components/pages/general/PayrollManagementPage")
+);
+const TransportManagement = lazy(
+  () => import("./components/pages/general/TransportManagementPage")
+);
 const AuditLog = lazy(() => import("./components/pages/general/AuditLog"));
-const AnnouncementsManagement = lazy(() => import("./components/features/general/Announcemnts/AnnouncementsManagement"));
+const AnnouncementsManagement = lazy(
+  () =>
+    import("./components/features/general/Announcemnts/AnnouncementsManagement")
+);
 
 // Lazy-loaded School Components
-const SchoolAcademicManagement = lazy(() => import("@/components/pages/school/SchoolAcademicPage"));
-const SchoolReservationManagement = lazy(() => import("@/components/pages/school/SchoolReservationPage"));
-const SchoolStudentsManagement = lazy(() => import("./components/pages/school/SchoolStudentsPage"));
-const SchoolAttendanceManagement = lazy(() => import("./components/pages/school/SchoolAttendancePage"));
-const SchoolFeesManagement = lazy(() => import("./components/pages/school/SchoolFeesPage"));
-const SchoolMarksManagement = lazy(() => import("./components/pages/school/SchoolMarksPage"));
-const SchoolReportsPage = lazy(() => import("./components/pages/school/SchoolReportsPage"));
+const SchoolAcademicManagement = lazy(
+  () => import("@/components/pages/school/SchoolAcademicPage")
+);
+const SchoolReservationManagement = lazy(
+  () => import("@/components/pages/school/SchoolReservationPage")
+);
+const SchoolAdmissionsManagement = lazy(
+  () => import("@/components/pages/school/SchoolAdmissionsPage")
+);
+const SchoolStudentsManagement = lazy(
+  () => import("./components/pages/school/SchoolStudentsPage")
+);
+const SchoolAttendanceManagement = lazy(
+  () => import("./components/pages/school/SchoolAttendancePage")
+);
+const SchoolFeesManagement = lazy(
+  () => import("./components/pages/school/SchoolFeesPage")
+);
+const SchoolMarksManagement = lazy(
+  () => import("./components/pages/school/SchoolMarksPage")
+);
+const SchoolReportsPage = lazy(
+  () => import("./components/pages/school/SchoolReportsPage")
+);
 
 // Lazy-loaded College Components
-const CollegeAcademicManagement = lazy(() => import("@/components/pages/college/CollegeAcademicPage"));
-const CollegeReservationManagement = lazy(() => import("@/components/pages/college/CollegeReservationPage"));
-const CollegeClassesManagement = lazy(() => import("@/components/pages/college/CollegeClassesPage"));
-const CollegeStudentsManagement = lazy(() => import("@/components/pages/college/CollegeStudentsPage"));
-const CollegeAttendanceManagement = lazy(() => import("@/components/pages/college/CollegeAttendancePage"));
-const CollegeMarksManagement = lazy(() => import("@/components/pages/college/CollegeMarksPage"));
-const CollegeFeesManagement = lazy(() => import("@/components/pages/college/CollegeFeesPage"));
-const CollegeReportsPage = lazy(() => import("./components/pages/college/CollegeReportsPage"));
+const CollegeAcademicManagement = lazy(
+  () => import("@/components/pages/college/CollegeAcademicPage")
+);
+const CollegeReservationManagement = lazy(
+  () => import("@/components/pages/college/CollegeReservationPage")
+);
+const CollegeAdmissionsManagement = lazy(
+  () => import("@/components/pages/college/CollegeAdmissionsPage")
+);
+const CollegeClassesManagement = lazy(
+  () => import("@/components/pages/college/CollegeClassesPage")
+);
+const CollegeStudentsManagement = lazy(
+  () => import("@/components/pages/college/CollegeStudentsPage")
+);
+const CollegeAttendanceManagement = lazy(
+  () => import("@/components/pages/college/CollegeAttendancePage")
+);
+const CollegeMarksManagement = lazy(
+  () => import("@/components/pages/college/CollegeMarksPage")
+);
+const CollegeFeesManagement = lazy(
+  () => import("@/components/pages/college/CollegeFeesPage")
+);
+const CollegeReportsPage = lazy(
+  () => import("./components/pages/college/CollegeReportsPage")
+);
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { sidebarOpen } = useNavigationStore();
@@ -157,8 +204,8 @@ function Router() {
             path="/audit-log"
             roles={["institute_admin"]}
             component={AuditLog}
-          />  
-          
+          />
+
           {/* School */}
           <ProtectedRoute
             path="/school/academic"
@@ -169,6 +216,11 @@ function Router() {
             path="/school/reservations/new"
             roles={["institute_admin", "accountant"]}
             component={SchoolReservationManagement}
+          />
+          <ProtectedRoute
+            path="/school/admissions"
+            roles={["institute_admin", "accountant"]}
+            component={SchoolAdmissionsManagement}
           />
           <ProtectedRoute
             path="/school/students"
@@ -190,11 +242,11 @@ function Router() {
             roles={["institute_admin", "accountant"]}
             component={SchoolFeesManagement}
           />
-           <ProtectedRoute
+          <ProtectedRoute
             path="/school/financial-reports"
             roles={["institute_admin", "accountant"]}
             component={SchoolReportsPage}
-          />           
+          />
           <ProtectedRoute
             path="/school/announcements"
             roles={["institute_admin", "academic"]}
@@ -212,6 +264,11 @@ function Router() {
             path="/college/reservations/new"
             roles={["institute_admin", "accountant"]}
             component={CollegeReservationManagement}
+          />
+          <ProtectedRoute
+            path="/college/admissions"
+            roles={["institute_admin", "accountant"]}
+            component={CollegeAdmissionsManagement}
           />
           <ProtectedRoute
             path="/college/classes"
@@ -291,7 +348,6 @@ function NotAuthorized() {
 function App() {
   const { token, tokenExpireAt, user } = useAuthStore();
 
-
   useEffect(() => {
     if (token && tokenExpireAt) {
       AuthTokenTimers.scheduleProactiveRefresh();
@@ -306,7 +362,7 @@ function App() {
     if (user?.role) {
       // Preload critical components immediately
       componentPreloader.preloadCritical();
-      
+
       // Preload role-specific components in background
       componentPreloader.preloadByRole(user.role);
     }

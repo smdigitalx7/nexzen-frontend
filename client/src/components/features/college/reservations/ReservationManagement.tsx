@@ -1,13 +1,30 @@
 import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useCollegeReservationsList, useDeleteCollegeReservation, useCollegeReservationDashboard } from "@/lib/hooks/college/use-college-reservations";
+import {
+  useCollegeReservationsList,
+  useDeleteCollegeReservation,
+  useCollegeReservationDashboard,
+} from "@/lib/hooks/college/use-college-reservations";
 import { motion } from "framer-motion";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -31,12 +48,20 @@ import { Printer } from "lucide-react";
 import ReservationForm from "../reservations/ReservationForm";
 import ReservationsTable from "../reservations/ReservationsTable";
 import { TransportService } from "@/lib/services/general/transport.service";
+import { toast } from "@/hooks/use-toast";
 import { CollegeReservationsService } from "@/lib/services/college/reservations.service";
-import { Plus, List, BarChart3 } from "lucide-react";
+import { Plus, List, BarChart3, Save } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import type { TabItem } from "@/components/shared/TabSwitcher";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { CollegeReservationStatsCards } from "./CollegeReservationStatsCards";
+import { ConcessionUpdateDialog } from "@/components/shared";
 
 const classFeeMap: Record<string, number> = {
   I: 12000,
@@ -59,11 +84,15 @@ const classFeeMap: Record<string, number> = {
 
 export default function ReservationNew() {
   const { academicYear } = useAuthStore();
-  const { data: routeNames = [] } = useQuery({ queryKey: ["public","bus-routes","names"], queryFn: () => TransportService.getRouteNames() });
-  
+  const { data: routeNames = [] } = useQuery({
+    queryKey: ["public", "bus-routes", "names"],
+    queryFn: () => TransportService.getRouteNames(),
+  });
+
   // Dashboard stats hook
-  const { data: dashboardStats, isLoading: dashboardLoading } = useCollegeReservationDashboard();
-  
+  const { data: dashboardStats, isLoading: dashboardLoading } =
+    useCollegeReservationDashboard();
+
   const [activeTab, setActiveTab] = useState("new");
   const [reservationNo, setReservationNo] = useState<string>("");
   const [showReceipt, setShowReceipt] = useState(false);
@@ -76,36 +105,60 @@ export default function ReservationNew() {
   const [editForm, setEditForm] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [reservationToDelete, setReservationToDelete] = useState<any>(null);
-  const [statusChanges, setStatusChanges] = useState<Record<string, 'PENDING' | 'CONFIRMED' | 'CANCELLED'>>({});
-  const [statusRemarks, setStatusRemarks] = useState<Record<string, string>>({});
-  const [loadingReservation, setLoadingReservation] = useState<number | null>(null);
-  
-  // Use React Query hook for reservations
-  const { 
-    data: reservationsData, 
-    isLoading: isLoadingReservations, 
-    isError: reservationsError, 
-    error: reservationsErrObj,
-    refetch: refetchReservations 
-  } = useCollegeReservationsList({ page: 1, page_size: 20 });
+  const [statusChanges, setStatusChanges] = useState<
+    Record<string, "PENDING" | "CONFIRMED" | "CANCELLED">
+  >({});
+  const [statusRemarks, setStatusRemarks] = useState<Record<string, string>>(
+    {}
+  );
+  const [loadingReservation, setLoadingReservation] = useState<number | null>(
+    null
+  );
 
+  // Concession related state
+  const [showConcessionDialog, setShowConcessionDialog] = useState(false);
+  const [
+    selectedReservationForConcession,
+    setSelectedReservationForConcession,
+  ] = useState<any>(null);
+
+  // Use React Query hook for reservations
+  const {
+    data: reservationsData,
+    isLoading: isLoadingReservations,
+    isError: reservationsError,
+    error: reservationsErrObj,
+    refetch: refetchReservations,
+  } = useCollegeReservationsList({ page: 1, page_size: 20 });
 
   // Delete reservation hook
   const deleteReservation = useDeleteCollegeReservation();
-  
+
   // Process reservations data
   const allReservations = useMemo(() => {
     if (!reservationsData?.reservations) return [];
-    
+
     if (!Array.isArray(reservationsData.reservations)) return [];
-    
+
     return reservationsData.reservations.map((r: any) => ({
       id: String(r.reservation_id),
+      no: r.reservation_no || r.reservationNo || "", // Add reservation number
       studentName: r.student_name,
-      classAdmission: r.group_name ? `${r.group_name}${r.course_name ? ` - ${r.course_name}` : ''}` : r.admit_into || '',
-      status: r.status || 'PENDING',
-      date: r.reservation_date || '',
+      classAdmission: r.group_name
+        ? `${r.group_name}${r.course_name ? ` - ${r.course_name}` : ""}`
+        : r.admit_into || "",
+      status: r.status || "PENDING",
+      date: r.reservation_date || "",
       totalFee: Number(r.total_tuition_fee || 0) + Number(r.transport_fee || 0),
+      income_id: r.income_id || r.incomeId, // Support both field names
+      concession_lock: r.concession_lock || false, // Add concession_lock
+      tuition_fee: r.total_tuition_fee || 0, // Add tuition_fee
+      transport_fee: r.transport_fee || 0, // Add transport_fee
+      book_fee: r.book_fee || 0, // Add book_fee
+      application_fee: r.reservation_fee || 0, // Add application_fee
+      tuition_concession: r.tuition_concession || 0, // Add tuition_concession
+      transport_concession: r.transport_concession || 0, // Add transport_concession
+      remarks: r.remarks || "", // Add remarks
     }));
   }, [reservationsData]);
 
@@ -173,21 +226,72 @@ export default function ReservationNew() {
     return 0;
   }, [form.transport, form.busRoute]);
 
+  const handleUpdateConcession = async (reservation: any) => {
+    try {
+      // Fetch the full reservation details for the dialog
+      const fullReservationData = await CollegeReservationsService.getById(
+        reservation.reservation_id
+      );
+      setSelectedReservationForConcession(fullReservationData);
+      setShowConcessionDialog(true);
+    } catch (error) {
+      console.error("Failed to load reservation for concession update:", error);
+      alert("Failed to load reservation details. Please try again.");
+    }
+  };
+
+  const handleConcessionUpdate = async (
+    reservationId: number,
+    tuitionConcession: number,
+    transportConcession: number,
+    remarks: string
+  ) => {
+    try {
+      await CollegeReservationsService.updateConcessions(reservationId, {
+        tuition_concession: tuitionConcession,
+        transport_concession: transportConcession,
+        remarks: remarks || null,
+      });
+
+      toast({
+        title: "Concession Updated",
+        description: "Concession amounts have been updated successfully.",
+      });
+
+      // Refresh the reservations list
+      refetchReservations();
+    } catch (error: any) {
+      console.error("Failed to update concession:", error);
+      toast({
+        title: "Update Failed",
+        description:
+          error?.response?.data?.detail ||
+          error?.message ||
+          "Failed to update concession.",
+        variant: "destructive",
+      });
+      throw error; // Re-throw to let the dialog handle it
+    }
+  };
+
   const handleSave = async (withPayment: boolean) => {
     // Parse siblings JSON if provided
     let siblings = null;
-    if ((form.siblingsJson || '').trim()) {
+    if ((form.siblingsJson || "").trim()) {
       try {
         siblings = JSON.parse(form.siblingsJson);
       } catch (e) {
-        console.warn('Invalid siblings JSON:', e);
+        console.warn("Invalid siblings JSON:", e);
       }
     }
 
     const payload = {
       student_name: form.studentName,
       aadhar_no: form.studentAadhar || null,
-      gender: (form.gender || "OTHER").toUpperCase() as "MALE" | "FEMALE" | "OTHER",
+      gender: (form.gender || "OTHER").toUpperCase() as
+        | "MALE"
+        | "FEMALE"
+        | "OTHER",
       dob: form.dob || null,
       father_name: form.fatherName || null,
       father_aadhar_no: form.fatherAadhar || null,
@@ -209,10 +313,16 @@ export default function ReservationNew() {
       course_fee: Number(classFee || 0) || null,
       book_fee: Number(form.bookFee || 0) || null,
       total_tuition_fee: Number(classFee || 0) || null,
-      preferred_transport_id: form.transport === "Yes" && form.busRoute ? Number(form.busRoute) : null,
-      preferred_distance_slab_id: form.preferredDistanceSlabId ? Number(form.preferredDistanceSlabId) : null,
+      preferred_transport_id:
+        form.transport === "Yes" && form.busRoute
+          ? Number(form.busRoute)
+          : null,
+      preferred_distance_slab_id: form.preferredDistanceSlabId
+        ? Number(form.preferredDistanceSlabId)
+        : null,
       pickup_point: null,
-      transport_fee: form.transport === "Yes" ? Number(transportFee || 0) : null,
+      transport_fee:
+        form.transport === "Yes" ? Number(transportFee || 0) : null,
       status: "PENDING" as "PENDING" | "CONFIRMED" | "CANCELLED",
       referred_by: form.referredBy ? Number(form.referredBy) : null,
       remarks: form.remarks || null,
@@ -224,7 +334,7 @@ export default function ReservationNew() {
       setReservationNo(String(res?.reservation_id || ""));
       if (withPayment) setShowReceipt(true);
       // Refresh list after creating
-      if (activeTab === 'all') {
+      if (activeTab === "all") {
         refetchReservations();
       }
     } catch (e: any) {
@@ -235,18 +345,21 @@ export default function ReservationNew() {
   const buildPayloadFromForm = (f: any) => {
     // Parse siblings JSON if provided
     let siblings = null;
-    if ((f.siblingsJson || '').trim()) {
+    if ((f.siblingsJson || "").trim()) {
       try {
         siblings = JSON.parse(f.siblingsJson);
       } catch (e) {
-        console.warn('Invalid siblings JSON:', e);
+        console.warn("Invalid siblings JSON:", e);
       }
     }
 
     return {
       student_name: f.studentName,
       aadhar_no: f.studentAadhar || null,
-      gender: (f.gender || "OTHER").toUpperCase() as "MALE" | "FEMALE" | "OTHER",
+      gender: (f.gender || "OTHER").toUpperCase() as
+        | "MALE"
+        | "FEMALE"
+        | "OTHER",
       dob: f.dob || null,
       father_name: f.fatherName || null,
       father_aadhar_no: f.fatherAadhar || null,
@@ -268,8 +381,11 @@ export default function ReservationNew() {
       course_fee: Number(classFee || 0) || null,
       book_fee: Number(f.bookFee || 0) || null,
       total_tuition_fee: Number(classFee || 0) || null,
-      preferred_transport_id: f.transport === "Yes" && f.busRoute ? Number(f.busRoute) : null,
-      preferred_distance_slab_id: f.preferredDistanceSlabId ? Number(f.preferredDistanceSlabId) : null,
+      preferred_transport_id:
+        f.transport === "Yes" && f.busRoute ? Number(f.busRoute) : null,
+      preferred_distance_slab_id: f.preferredDistanceSlabId
+        ? Number(f.preferredDistanceSlabId)
+        : null,
       pickup_point: null,
       transport_fee: f.transport === "Yes" ? Number(transportFee || 0) : null,
       status: "PENDING" as "PENDING" | "CONFIRMED" | "CANCELLED",
@@ -296,7 +412,9 @@ export default function ReservationNew() {
     permanentAddress: r.permanent_address || "",
     fatherMobile: r.father_mobile || "",
     motherMobile: r.mother_mobile || "",
-    classAdmission: r.group_name ? `${r.group_name}${r.course_name ? ` - ${r.course_name}` : ''}` : "",
+    classAdmission: r.group_name
+      ? `${r.group_name}${r.course_name ? ` - ${r.course_name}` : ""}`
+      : "",
     group: r.group_name || "",
     course: r.course_name || "N/A",
     transport: r.preferred_transport_id ? "Yes" : "No",
@@ -304,11 +422,17 @@ export default function ReservationNew() {
     applicationFee: "",
     reservationFee: r.reservation_fee != null ? String(r.reservation_fee) : "",
     remarks: r.remarks || "",
-    preferredClassId: r.preferred_group_id != null ? String(r.preferred_group_id) : "0",
-    preferredDistanceSlabId: r.preferred_distance_slab_id != null ? String(r.preferred_distance_slab_id) : "0",
+    preferredClassId:
+      r.preferred_group_id != null ? String(r.preferred_group_id) : "0",
+    preferredDistanceSlabId:
+      r.preferred_distance_slab_id != null
+        ? String(r.preferred_distance_slab_id)
+        : "0",
     bookFee: r.book_fee != null ? String(r.book_fee) : "0",
-    tuitionConcession: r.tuition_concession != null ? String(r.tuition_concession) : "0",
-    transportConcession: r.transport_concession != null ? String(r.transport_concession) : "0",
+    tuitionConcession:
+      r.tuition_concession != null ? String(r.tuition_concession) : "0",
+    transportConcession:
+      r.transport_concession != null ? String(r.transport_concession) : "0",
     referredBy: r.referred_by != null ? String(r.referred_by) : "",
     reservationDate: r.reservation_date || "",
     siblingsJson: JSON.stringify(r.siblings || []),
@@ -316,27 +440,31 @@ export default function ReservationNew() {
 
   const handleView = async (r: any) => {
     if (!r?.id || isNaN(Number(r.id))) {
-      alert('Invalid reservation ID');
+      alert("Invalid reservation ID");
       return;
     }
-    
+
     if (loadingReservation === Number(r.id)) {
       return; // Already loading this reservation
     }
-    
+
     setLoadingReservation(Number(r.id));
     try {
       const data = await CollegeReservationsService.getById(Number(r.id));
       setViewReservation(data);
       setShowViewDialog(true);
     } catch (e: any) {
-      console.error('Error loading reservation:', e);
+      console.error("Error loading reservation:", e);
       if (e?.response?.status === 404) {
-        alert('Reservation not found. It may have been deleted or you may not have permission to view it.');
+        alert(
+          "Reservation not found. It may have been deleted or you may not have permission to view it."
+        );
       } else if (e?.response?.status === 500) {
-        alert('Server error occurred while loading reservation. Please try again later.');
+        alert(
+          "Server error occurred while loading reservation. Please try again later."
+        );
       } else {
-        alert(e?.message || 'Failed to load reservation');
+        alert(e?.message || "Failed to load reservation");
       }
     } finally {
       setLoadingReservation(null);
@@ -345,14 +473,14 @@ export default function ReservationNew() {
 
   const handleEdit = async (r: any) => {
     if (!r?.id || isNaN(Number(r.id))) {
-      alert('Invalid reservation ID');
+      alert("Invalid reservation ID");
       return;
     }
-    
+
     if (loadingReservation === Number(r.id)) {
       return; // Already loading this reservation
     }
-    
+
     setLoadingReservation(Number(r.id));
     try {
       const data: any = await CollegeReservationsService.getById(Number(r.id));
@@ -360,13 +488,17 @@ export default function ReservationNew() {
       setSelectedReservation({ id: r.id });
       setShowEditDialog(true);
     } catch (e: any) {
-      console.error('Error loading reservation for edit:', e);
+      console.error("Error loading reservation for edit:", e);
       if (e?.response?.status === 404) {
-        alert('Reservation not found. It may have been deleted or you may not have permission to edit it.');
+        alert(
+          "Reservation not found. It may have been deleted or you may not have permission to edit it."
+        );
       } else if (e?.response?.status === 500) {
-        alert('Server error occurred while loading reservation. Please try again later.');
+        alert(
+          "Server error occurred while loading reservation. Please try again later."
+        );
       } else {
-        alert(e?.message || 'Failed to load reservation');
+        alert(e?.message || "Failed to load reservation");
       }
     } finally {
       setLoadingReservation(null);
@@ -377,11 +509,14 @@ export default function ReservationNew() {
     if (!selectedReservation?.id || !editForm) return;
     try {
       const payload = buildPayloadFromForm(editForm);
-      await CollegeReservationsService.update(Number(selectedReservation.id), payload);
+      await CollegeReservationsService.update(
+        Number(selectedReservation.id),
+        payload
+      );
       setShowEditDialog(false);
       refetchReservations();
     } catch (e: any) {
-      alert(e?.message || 'Failed to update reservation');
+      alert(e?.message || "Failed to update reservation");
     }
   };
 
@@ -401,15 +536,18 @@ export default function ReservationNew() {
     }
     try {
       if (selectedReservation?.id) {
-        await CollegeReservationsService.updateStatus(Number(selectedReservation.id), { 
-          status: 'CANCELLED' as "PENDING" | "CONFIRMED" | "CANCELLED",
-          remarks: cancelRemarks || null
-        });
+        await CollegeReservationsService.updateStatus(
+          Number(selectedReservation.id),
+          {
+            status: "CANCELLED" as "PENDING" | "CONFIRMED" | "CANCELLED",
+            remarks: cancelRemarks || null,
+          }
+        );
         // refresh list
         refetchReservations();
       }
     } catch (e: any) {
-      alert(e?.message || 'Failed to cancel reservation');
+      alert(e?.message || "Failed to cancel reservation");
     } finally {
       setShowCancelDialog(false);
       setCancelRemarks("");
@@ -463,21 +601,29 @@ export default function ReservationNew() {
             label: "New Reservations",
             icon: Plus,
             content: (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+              <div>
                 <ReservationForm
                   form={form as any}
                   setForm={(next) => setForm(next as any)}
                   classFee={classFee}
                   transportFee={transportFee}
-                  routes={routeNames.map((route: { bus_route_id: number; route_no?: string; route_name: string }) => ({
-                    id: route.bus_route_id?.toString() || '',
-                    name: `${route.route_no || 'Route'} - ${route.route_name}`,
-                    fee: 5000 // Default fee, would need to be enhanced
-                  }))}
+                  routes={routeNames.map(
+                    (route: {
+                      bus_route_id: number;
+                      route_no?: string;
+                      route_name: string;
+                    }) => ({
+                      id: route.bus_route_id?.toString() || "",
+                      name: `${route.route_no || "Route"} - ${
+                        route.route_name
+                      }`,
+                      fee: 5000, // Default fee, would need to be enhanced
+                    })
+                  )}
                   classFeeMapKeys={Object.keys(classFeeMap)}
                   onSave={handleSave}
                 />
-              </motion.div>
+              </div>
             ),
           },
           {
@@ -485,21 +631,26 @@ export default function ReservationNew() {
             label: "All Reservations",
             icon: List,
             content: (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+              <div>
                 {isLoadingReservations ? (
-                  <div className="p-6 text-sm text-muted-foreground text-center">Loading reservations…</div>
+                  <div className="p-6 text-sm text-muted-foreground text-center">
+                    Loading reservations…
+                  </div>
                 ) : reservationsError ? (
                   <div className="p-6 text-center">
                     <div className="text-red-600 mb-2">
                       <h3 className="font-medium">Connection Error</h3>
                       <p className="text-sm text-muted-foreground">
-                        {reservationsErrObj?.message?.includes('Bad Gateway') 
-                          ? 'Backend server is not responding (502 Bad Gateway)'
-                          : 'Failed to load reservations'
-                        }
+                        {reservationsErrObj?.message?.includes("Bad Gateway")
+                          ? "Backend server is not responding (502 Bad Gateway)"
+                          : "Failed to load reservations"}
                       </p>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => refetchReservations()}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => refetchReservations()}
+                    >
                       Try Again
                     </Button>
                   </div>
@@ -512,9 +663,10 @@ export default function ReservationNew() {
                       setReservationToDelete(r);
                       setShowDeleteDialog(true);
                     }}
+                    onUpdateConcession={handleUpdateConcession}
                   />
                 )}
-              </motion.div>
+              </div>
             ),
           },
           {
@@ -522,140 +674,211 @@ export default function ReservationNew() {
             label: "Status",
             icon: BarChart3,
             content: (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div>
+                <div className="mb-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle>Update Status</CardTitle>
-                      <CardDescription>Modify reservation statuses quickly</CardDescription>
+                      <h3 className="text-lg font-semibold">Update Status</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Modify reservation statuses quickly
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline">{allReservations.length} items</Badge>
+                      <Badge variant="outline">
+                        {allReservations.length} items
+                      </Badge>
                       {reservationsData && (
                         <Badge variant="secondary">
                           Total: {reservationsData.total_count || 0}
                         </Badge>
                       )}
-                      <Button variant="outline" size="sm" onClick={() => refetchReservations()} disabled={isLoadingReservations}>Refresh</Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => refetchReservations()}
+                        disabled={isLoadingReservations}
+                      >
+                        Refresh
+                      </Button>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    {isLoadingReservations ? (
-                      <div className="p-6 text-sm text-muted-foreground">Loading reservations…</div>
-                    ) : reservationsError ? (
-                      <div className="p-6 text-center">
-                        <div className="text-red-600 mb-2">
-                          <h3 className="font-medium">Connection Error</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {reservationsErrObj?.message?.includes('Bad Gateway') 
-                              ? 'Backend server is not responding (502 Bad Gateway)'
-                              : 'Failed to load reservations'
-                            }
-                          </p>
-                        </div>
-                        <Button variant="outline" size="sm" onClick={() => refetchReservations()}>
-                          Try Again
-                        </Button>
-                      </div>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Reservation No</TableHead>
-                            <TableHead>Student</TableHead>
-                            <TableHead>Current Status</TableHead>
-                            <TableHead>Change To</TableHead>
-                            <TableHead>Remarks</TableHead>
-                            <TableHead>Action</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {allReservations.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={6} className="h-24 text-center text-sm text-muted-foreground">
-                                <div className="space-y-2">
-                                  <p>No reservations found</p>
-                                  <p className="text-xs">Create your first reservation using the "New Reservations" tab</p>
+                  </div>
+                </div>
+                {isLoadingReservations ? (
+                  <div className="p-6 text-sm text-muted-foreground">
+                    Loading reservations…
+                  </div>
+                ) : reservationsError ? (
+                  <div className="p-6 text-center">
+                    <div className="text-red-600 mb-2">
+                      <h3 className="font-medium">Connection Error</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {reservationsErrObj?.message?.includes("Bad Gateway")
+                          ? "Backend server is not responding (502 Bad Gateway)"
+                          : "Failed to load reservations"}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => refetchReservations()}
+                    >
+                      Try Again
+                    </Button>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Reservation No</TableHead>
+                        <TableHead>Student</TableHead>
+                        <TableHead>Current Status</TableHead>
+                        <TableHead>Change To</TableHead>
+                        <TableHead>Remarks</TableHead>
+                        <TableHead>Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {allReservations.length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={6}
+                            className="h-24 text-center text-sm text-muted-foreground"
+                          >
+                            <div className="space-y-2">
+                              <p>No reservations found</p>
+                              <p className="text-xs">
+                                Create your first reservation using the "New
+                                Reservations" tab
+                              </p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        allReservations.map((r) => {
+                          const current = (r.status || "").toUpperCase();
+                          const selected = (statusChanges[r.id] || current) as
+                            | "PENDING"
+                            | "CONFIRMED"
+                            | "CANCELLED";
+                          const same = selected === current;
+                          return (
+                            <TableRow key={r.id}>
+                              <TableCell className="font-medium">
+                                {r.no}
+                              </TableCell>
+                              <TableCell>{r.studentName}</TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    current === "PENDING"
+                                      ? "default"
+                                      : current === "CANCELLED"
+                                      ? "destructive"
+                                      : current === "CONFIRMED"
+                                      ? "secondary"
+                                      : "outline"
+                                  }
+                                >
+                                  {current}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="w-48">
+                                  <Select
+                                    value={selected}
+                                    onValueChange={(v) =>
+                                      setStatusChanges((prev) => ({
+                                        ...prev,
+                                        [r.id]: v as any,
+                                      }))
+                                    }
+                                  >
+                                    <SelectTrigger aria-label="Select status">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="PENDING">
+                                        Pending
+                                      </SelectItem>
+                                      <SelectItem value="CONFIRMED">
+                                        Confirmed
+                                      </SelectItem>
+                                      <SelectItem value="CANCELLED">
+                                        Cancelled
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="w-48">
+                                  <Textarea
+                                    placeholder="Enter remarks..."
+                                    value={statusRemarks[r.id] || ""}
+                                    onChange={(e) =>
+                                      setStatusRemarks((prev) => ({
+                                        ...prev,
+                                        [r.id]: e.target.value,
+                                      }))
+                                    }
+                                    className="text-sm "
+                                  />
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant={same ? "outline" : "default"}
+                                    disabled={same}
+                                    onClick={async () => {
+                                      const to = (statusChanges[r.id] ||
+                                        current) as
+                                        | "PENDING"
+                                        | "CONFIRMED"
+                                        | "CANCELLED";
+                                      const remarks = statusRemarks[r.id] || "";
+                                      try {
+                                        const payload = {
+                                          status: to as
+                                            | "PENDING"
+                                            | "CONFIRMED"
+                                            | "CANCELLED",
+                                          remarks: remarks.trim()
+                                            ? remarks
+                                            : null,
+                                        };
+                                        await CollegeReservationsService.updateStatus(
+                                          Number(r.id),
+                                          payload
+                                        );
+                                        refetchReservations();
+                                        // Clear the remarks after successful update
+                                        setStatusRemarks((prev) => ({
+                                          ...prev,
+                                          [r.id]: "",
+                                        }));
+                                      } catch (e: any) {
+                                        alert(
+                                          e?.message ||
+                                            "Failed to update status"
+                                        );
+                                      }
+                                    }}
+                                  >
+                                    <Save className="h-4 w-4 mr-2" />
+                                    Update
+                                  </Button>
                                 </div>
                               </TableCell>
                             </TableRow>
-                          ) : allReservations.map((r) => {
-                        const current = (r.status || '').toUpperCase();
-                        const selected = (statusChanges[r.id] || current) as 'PENDING' | 'CONFIRMED' | 'CANCELLED';
-                        const same = selected === current;
-                        return (
-                          <TableRow key={r.id}>
-                            <TableCell className="font-medium">{r.id}</TableCell>
-                            <TableCell>{r.studentName}</TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={current === 'PENDING' ? 'default' : current === 'CANCELLED' ? 'destructive' : current === 'CONFIRMED' ? 'secondary' : 'outline'}
-                              >
-                                {current}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="w-48">
-                                <Select
-                                  value={selected}
-                                  onValueChange={(v) => setStatusChanges((prev) => ({ ...prev, [r.id]: v as any }))}
-                                >
-                                  <SelectTrigger aria-label="Select status">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="PENDING">Pending</SelectItem>
-                                    <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="w-48">
-                                <Textarea
-                                  placeholder="Enter remarks..."
-                                  value={statusRemarks[r.id] || ''}
-                                  onChange={(e) => setStatusRemarks((prev) => ({ ...prev, [r.id]: e.target.value }))}
-                                  rows={2}
-                                  className="text-sm"
-                                />
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                size="sm"
-                                variant={same ? "outline" : "default"}
-                                disabled={same}
-                                onClick={async () => {
-                                  const to = (statusChanges[r.id] || current) as 'PENDING' | 'CONFIRMED' | 'CANCELLED';
-                                  const remarks = statusRemarks[r.id] || '';
-                                  try {
-                                    const payload = { 
-                                      status: to as "PENDING" | "CONFIRMED" | "CANCELLED",
-                                      remarks: remarks.trim() ? remarks : null
-                                    };
-                                    await CollegeReservationsService.updateStatus(Number(r.id), payload);
-                                    refetchReservations();
-                                    // Clear the remarks after successful update
-                                    setStatusRemarks((prev) => ({ ...prev, [r.id]: '' }));
-                                  } catch (e: any) {
-                                    alert(e?.message || 'Failed to update status');
-                                  }
-                                }}
-                              >
-                                Update
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                        </TableBody>
-                      </Table>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
             ),
           },
         ]}
@@ -663,7 +886,6 @@ export default function ReservationNew() {
         onTabChange={setActiveTab}
         gridCols="grid-cols-3"
       />
-
 
       {/* Receipt Dialog */}
       <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
@@ -734,72 +956,190 @@ export default function ReservationNew() {
           ) : (
             <div className="space-y-6 text-sm flex-1 overflow-y-auto pr-1">
               <div className="grid grid-cols-2 gap-4">
-                <div><strong>Reservation No:</strong> {viewReservation.reservation_id}</div>
-                <div><strong>Date:</strong> {viewReservation.reservation_date || "-"}</div>
-                <div><strong>Status:</strong> {viewReservation.status || "-"}</div>
-                <div><strong>Referred By:</strong> {viewReservation.referred_by ?? "-"}</div>
+                <div>
+                  <strong>Reservation No:</strong>{" "}
+                  {viewReservation.reservation_id}
+                </div>
+                <div>
+                  <strong>Date:</strong>{" "}
+                  {viewReservation.reservation_date || "-"}
+                </div>
+                <div>
+                  <strong>Status:</strong> {viewReservation.status || "-"}
+                </div>
+                <div>
+                  <strong>Referred By:</strong>{" "}
+                  {viewReservation.referred_by ?? "-"}
+                </div>
               </div>
 
               <div className="border-t pt-4">
                 <div className="font-medium mb-2">Student Details</div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div><strong>Name:</strong> {viewReservation.student_name || "-"}</div>
-                  <div><strong>Aadhar No:</strong> {viewReservation.aadhar_no || "-"}</div>
-                  <div><strong>Gender:</strong> {viewReservation.gender || "-"}</div>
-                  <div><strong>DOB:</strong> {viewReservation.dob || "-"}</div>
+                  <div>
+                    <strong>Name:</strong> {viewReservation.student_name || "-"}
+                  </div>
+                  <div>
+                    <strong>Aadhar No:</strong>{" "}
+                    {viewReservation.aadhar_no || "-"}
+                  </div>
+                  <div>
+                    <strong>Gender:</strong> {viewReservation.gender || "-"}
+                  </div>
+                  <div>
+                    <strong>DOB:</strong> {viewReservation.dob || "-"}
+                  </div>
                 </div>
               </div>
 
               <div className="border-t pt-4">
                 <div className="font-medium mb-2">Parent Details</div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div><strong>Father Name:</strong> {viewReservation.father_name || "-"}</div>
-                  <div><strong>Father Aadhar:</strong> {viewReservation.father_aadhar_no || "-"}</div>
-                  <div><strong>Father Mobile:</strong> {viewReservation.father_mobile || "-"}</div>
-                  <div><strong>Father Occupation:</strong> {viewReservation.father_occupation || "-"}</div>
-                  <div><strong>Mother Name:</strong> {viewReservation.mother_name || "-"}</div>
-                  <div><strong>Mother Aadhar:</strong> {viewReservation.mother_aadhar_no || "-"}</div>
-                  <div><strong>Mother Mobile:</strong> {viewReservation.mother_mobile || "-"}</div>
-                  <div><strong>Mother Occupation:</strong> {viewReservation.mother_occupation || "-"}</div>
+                  <div>
+                    <strong>Father Name:</strong>{" "}
+                    {viewReservation.father_name || "-"}
+                  </div>
+                  <div>
+                    <strong>Father Aadhar:</strong>{" "}
+                    {viewReservation.father_aadhar_no || "-"}
+                  </div>
+                  <div>
+                    <strong>Father Mobile:</strong>{" "}
+                    {viewReservation.father_mobile || "-"}
+                  </div>
+                  <div>
+                    <strong>Father Occupation:</strong>{" "}
+                    {viewReservation.father_occupation || "-"}
+                  </div>
+                  <div>
+                    <strong>Mother Name:</strong>{" "}
+                    {viewReservation.mother_name || "-"}
+                  </div>
+                  <div>
+                    <strong>Mother Aadhar:</strong>{" "}
+                    {viewReservation.mother_aadhar_no || "-"}
+                  </div>
+                  <div>
+                    <strong>Mother Mobile:</strong>{" "}
+                    {viewReservation.mother_mobile || "-"}
+                  </div>
+                  <div>
+                    <strong>Mother Occupation:</strong>{" "}
+                    {viewReservation.mother_occupation || "-"}
+                  </div>
                 </div>
               </div>
 
               <div className="border-t pt-4">
                 <div className="font-medium mb-2">Academic Details</div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div><strong>Group:</strong> {viewReservation.group_name || "-"}</div>
-                  <div><strong>Course:</strong> {viewReservation.course_name || "-"}</div>
-                  <div><strong>Previous Class:</strong> {viewReservation.previous_class || "-"}</div>
-                  <div><strong>Previous School:</strong> {viewReservation.previous_school_details || "-"}</div>
+                  <div>
+                    <strong>Group:</strong> {viewReservation.group_name || "-"}
+                  </div>
+                  <div>
+                    <strong>Course:</strong>{" "}
+                    {viewReservation.course_name || "-"}
+                  </div>
+                  <div>
+                    <strong>Previous Class:</strong>{" "}
+                    {viewReservation.previous_class || "-"}
+                  </div>
+                  <div>
+                    <strong>Previous School:</strong>{" "}
+                    {viewReservation.previous_school_details || "-"}
+                  </div>
                 </div>
               </div>
 
               <div className="border-t pt-4">
                 <div className="font-medium mb-2">Contact Details</div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div><strong>Present Address:</strong> {viewReservation.present_address || "-"}</div>
-                  <div><strong>Permanent Address:</strong> {viewReservation.permanent_address || "-"}</div>
+                  <div>
+                    <strong>Present Address:</strong>{" "}
+                    {viewReservation.present_address || "-"}
+                  </div>
+                  <div>
+                    <strong>Permanent Address:</strong>{" "}
+                    {viewReservation.permanent_address || "-"}
+                  </div>
                 </div>
               </div>
 
               <div className="border-t pt-4">
                 <div className="font-medium mb-2">Fees</div>
                 <div className="space-y-1">
-                  <div className="flex justify-between"><span>Reservation Fee:</span><span>₹{Number(viewReservation.reservation_fee || 0).toLocaleString()}</span></div>
-                  <div className="flex justify-between"><span>Group Fee:</span><span>₹{Number(viewReservation.group_fee || 0).toLocaleString()}</span></div>
-                  <div className="flex justify-between"><span>Course Fee:</span><span>₹{Number(viewReservation.course_fee || 0).toLocaleString()}</span></div>
-                  <div className="flex justify-between"><span>Total Tuition Fee:</span><span>₹{Number(viewReservation.total_tuition_fee || 0).toLocaleString()}</span></div>
+                  <div className="flex justify-between">
+                    <span>Reservation Fee:</span>
+                    <span>
+                      ₹
+                      {Number(
+                        viewReservation.reservation_fee || 0
+                      ).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Group Fee:</span>
+                    <span>
+                      ₹{Number(viewReservation.group_fee || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Course Fee:</span>
+                    <span>
+                      ₹
+                      {Number(viewReservation.course_fee || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Total Tuition Fee:</span>
+                    <span>
+                      ₹
+                      {Number(
+                        viewReservation.total_tuition_fee || 0
+                      ).toLocaleString()}
+                    </span>
+                  </div>
                   {viewReservation.book_fee != null && (
-                    <div className="flex justify-between"><span>Book Fee:</span><span>₹{Number(viewReservation.book_fee || 0).toLocaleString()}</span></div>
+                    <div className="flex justify-between">
+                      <span>Book Fee:</span>
+                      <span>
+                        ₹
+                        {Number(viewReservation.book_fee || 0).toLocaleString()}
+                      </span>
+                    </div>
                   )}
                   {viewReservation.tuition_concession != null && (
-                    <div className="flex justify-between"><span>Tuition Concession:</span><span>₹{Number(viewReservation.tuition_concession || 0).toLocaleString()}</span></div>
+                    <div className="flex justify-between">
+                      <span>Tuition Concession:</span>
+                      <span>
+                        ₹
+                        {Number(
+                          viewReservation.tuition_concession || 0
+                        ).toLocaleString()}
+                      </span>
+                    </div>
                   )}
                   {viewReservation.transport_fee != null && (
-                    <div className="flex justify-between"><span>Transport Fee:</span><span>₹{Number(viewReservation.transport_fee || 0).toLocaleString()}</span></div>
+                    <div className="flex justify-between">
+                      <span>Transport Fee:</span>
+                      <span>
+                        ₹
+                        {Number(
+                          viewReservation.transport_fee || 0
+                        ).toLocaleString()}
+                      </span>
+                    </div>
                   )}
                   {viewReservation.transport_concession != null && (
-                    <div className="flex justify-between"><span>Transport Concession:</span><span>₹{Number(viewReservation.transport_concession || 0).toLocaleString()}</span></div>
+                    <div className="flex justify-between">
+                      <span>Transport Concession:</span>
+                      <span>
+                        ₹
+                        {Number(
+                          viewReservation.transport_concession || 0
+                        ).toLocaleString()}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -807,17 +1147,30 @@ export default function ReservationNew() {
               <div className="border-t pt-4">
                 <div className="font-medium mb-2">Preferences</div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div><strong>Preferred Group ID:</strong> {viewReservation.preferred_group_id ?? "-"}</div>
-                  <div><strong>Preferred Course ID:</strong> {viewReservation.preferred_course_id ?? "-"}</div>
-                  <div><strong>Preferred Transport ID:</strong> {viewReservation.preferred_transport_id ?? "-"}</div>
-                  <div><strong>Preferred Distance Slab ID:</strong> {viewReservation.preferred_distance_slab_id ?? "-"}</div>
+                  <div>
+                    <strong>Preferred Group ID:</strong>{" "}
+                    {viewReservation.preferred_group_id ?? "-"}
+                  </div>
+                  <div>
+                    <strong>Preferred Course ID:</strong>{" "}
+                    {viewReservation.preferred_course_id ?? "-"}
+                  </div>
+                  <div>
+                    <strong>Preferred Transport ID:</strong>{" "}
+                    {viewReservation.preferred_transport_id ?? "-"}
+                  </div>
+                  <div>
+                    <strong>Preferred Distance Slab ID:</strong>{" "}
+                    {viewReservation.preferred_distance_slab_id ?? "-"}
+                  </div>
                 </div>
               </div>
-
             </div>
           )}
           <DialogFooter className="mt-2 bg-background border-t py-3">
-            <Button type="button" onClick={() => setShowViewDialog(false)}>Close</Button>
+            <Button type="button" onClick={() => setShowViewDialog(false)}>
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -827,7 +1180,9 @@ export default function ReservationNew() {
         <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Edit Reservation</DialogTitle>
-            <DialogDescription>Update reservation information</DialogDescription>
+            <DialogDescription>
+              Update reservation information
+            </DialogDescription>
           </DialogHeader>
           {editForm ? (
             <div className="flex-1 overflow-y-auto pr-1">
@@ -836,16 +1191,34 @@ export default function ReservationNew() {
                 setForm={setEditForm}
                 classFee={classFee}
                 transportFee={transportFee}
-                routes={routeNames.map((route: { bus_route_id: number; route_no?: string; route_name: string }) => ({ id: route.bus_route_id.toString(), name: `${route.route_no || 'Route'} - ${route.route_name}`, fee: 5000 }))}
+                routes={routeNames.map(
+                  (route: {
+                    bus_route_id: number;
+                    route_no?: string;
+                    route_name: string;
+                  }) => ({
+                    id: route.bus_route_id.toString(),
+                    name: `${route.route_no || "Route"} - ${route.route_name}`,
+                    fee: 5000,
+                  })
+                )}
                 classFeeMapKeys={Object.keys(classFeeMap)}
-                onSave={async () => { await submitEdit(); }}
+                onSave={async () => {
+                  await submitEdit();
+                }}
               />
             </div>
           ) : (
             <div className="p-4">Loading...</div>
           )}
           <DialogFooter className="mt-2 bg-background border-t py-3">
-            <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>Close</Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowEditDialog(false)}
+            >
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -886,12 +1259,21 @@ export default function ReservationNew() {
       </Dialog>
 
       {/* Delete Reservation Confirmation */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={(open) => { if (!open) { setReservationToDelete(null); } setShowDeleteDialog(open); }}>
+      <AlertDialog
+        open={showDeleteDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReservationToDelete(null);
+          }
+          setShowDeleteDialog(open);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Reservation</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete reservation {reservationToDelete?.id}? This action cannot be undone.
+              Are you sure you want to delete reservation{" "}
+              {reservationToDelete?.id}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -901,13 +1283,21 @@ export default function ReservationNew() {
               onClick={async () => {
                 if (!reservationToDelete?.id) return;
                 try {
-                  await deleteReservation.mutateAsync(Number(reservationToDelete.id));
+                  await deleteReservation.mutateAsync(
+                    Number(reservationToDelete.id)
+                  );
                   // Success - dialog will close automatically due to onSuccess in hook
                 } catch (e: any) {
                   if (e?.response?.status === 409) {
-                    alert('Cannot delete this reservation because it has associated income records. Please remove the income records first or change the reservation status to CANCELLED instead.');
+                    alert(
+                      "Cannot delete this reservation because it has associated income records. Please remove the income records first or change the reservation status to CANCELLED instead."
+                    );
                   } else {
-                    alert(e?.response?.data?.detail || e?.message || 'Failed to delete reservation');
+                    alert(
+                      e?.response?.data?.detail ||
+                        e?.message ||
+                        "Failed to delete reservation"
+                    );
                   }
                 } finally {
                   setShowDeleteDialog(false);
@@ -916,11 +1306,21 @@ export default function ReservationNew() {
               }}
               disabled={deleteReservation.isPending}
             >
-              {deleteReservation.isPending ? 'Deleting...' : 'Delete'}
+              {deleteReservation.isPending ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Concession Update Dialog */}
+      <ConcessionUpdateDialog
+        isOpen={showConcessionDialog}
+        onClose={() => {
+          setShowConcessionDialog(false);
+          setSelectedReservationForConcession(null);
+        }}
+        reservation={selectedReservationForConcession}
+        onUpdateConcession={handleConcessionUpdate}
+      />
     </div>
   );
 }

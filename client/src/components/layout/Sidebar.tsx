@@ -143,6 +143,13 @@ const Sidebar = () => {
           description: "Student reservations",
           roles: ["institute_admin", "accountant"],
         },
+        {
+          title: "Admissions",
+          href: "/school/admissions",
+          icon: UserCheck,
+          description: "Student admissions",
+          roles: ["institute_admin", "accountant"],
+        },
 
         {
           title: "Students",
@@ -203,6 +210,13 @@ const Sidebar = () => {
           href: "/college/reservations/new",
           icon: ClipboardList,
           description: "Student reservations",
+          roles: ["institute_admin", "accountant"],
+        },
+        {
+          title: "Admissions",
+          href: "/college/admissions",
+          icon: UserCheck,
+          description: "Student admissions",
           roles: ["institute_admin", "accountant"],
         },
 
