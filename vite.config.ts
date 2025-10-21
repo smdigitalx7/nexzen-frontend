@@ -48,7 +48,6 @@ export default defineConfig({
     include: [
       "react",
       "react-dom",
-      "react/jsx-runtime",
       "scheduler",
       "wouter",
       "zustand",
@@ -59,8 +58,6 @@ export default defineConfig({
       "clsx",
       "tailwind-merge",
       "date-fns",
-      "exceljs",
-      "jspdf",
     ],
     exclude: ["@replit/vite-plugin-cartographer"],
     // Force React to be pre-bundled and available
@@ -84,14 +81,71 @@ export default defineConfig({
     commonjsOptions: {
       include: [/node_modules/],
     },
-    // Module preload for proper chunk loading
-    modulePreload: {
-      polyfill: true,
-    },
     // Rollup options for advanced bundling
     rollupOptions: {
       output: {
-        // No chunk splitting to avoid empty chunks
+        // Manual chunk splitting for better caching
+        manualChunks: (id) => {
+          // Vendor chunks - React ecosystem must be in one chunk to avoid loading issues
+          if (id.includes("node_modules")) {
+            // Pure utility libraries ONLY (absolutely no React dependency)
+            // These are the ONLY packages that can be separate from React
+            if (
+              id.includes("clsx") ||
+              id.includes("tailwind-merge") ||
+              id.includes("date-fns") ||
+              id.includes("zod") ||
+              id.includes("immer") ||
+              id.includes("class-variance-authority") ||
+              id.includes("tailwindcss-animate")
+            ) {
+              return "utils-vendor";
+            }
+
+            // EVERYTHING ELSE goes into react-vendor (safer approach)
+            // This ensures no package can execute before React is ready
+            // Includes: React core, all UI libs, data libs, state management, etc.
+            return "react-vendor";
+          }
+
+          // Feature-based chunks
+          if (
+            id.includes("components/pages/general") ||
+            id.includes("components/features/general")
+          ) {
+            return "general-components";
+          }
+          if (
+            id.includes("components/pages/school") ||
+            id.includes("components/features/school")
+          ) {
+            return "school-components";
+          }
+          if (
+            id.includes("components/pages/college") ||
+            id.includes("components/features/college")
+          ) {
+            return "college-components";
+          }
+          if (
+            id.includes("components/shared") ||
+            id.includes("components/ui") ||
+            id.includes("components/layout")
+          ) {
+            return "shared-components";
+          }
+          if (id.includes("lib/") || id.includes("store/")) {
+            return "lib-utils";
+          }
+        },
+        // Optimize chunk naming and ensure proper loading order
+        chunkFileNames: (chunkInfo) => {
+          // Prefix React vendor with '0-' to ensure it loads first (alphabetically)
+          if (chunkInfo.name === "react-vendor") {
+            return "js/0-react-vendor-[hash].js";
+          }
+          return `js/[name]-[hash].js`;
+        },
         // Ensure proper chunk loading order
         entryFileNames: "js/[name]-[hash].js",
         assetFileNames: (assetInfo) => {
@@ -108,12 +162,6 @@ export default defineConfig({
       external: [],
       // Ensure React is not externalized and is bundled
       preserveEntrySignatures: "strict",
-      // Ensure proper module resolution
-      treeshake: {
-        moduleSideEffects: false,
-        propertyReadSideEffects: false,
-        unknownGlobalSideEffects: false,
-      },
     },
     // Terser options for better minification
     terserOptions: {
