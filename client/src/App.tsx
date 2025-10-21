@@ -145,7 +145,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <div className="p-4">{children}</div>
+          <div className="p-2">{children}</div>
         </main>
       </div>
     </div>
