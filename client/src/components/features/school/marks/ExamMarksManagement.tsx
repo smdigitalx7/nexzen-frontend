@@ -559,8 +559,7 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
             ) : (
               <div className="space-y-4">
                 {/* Unified Filter Controls */}
-                <Card className="p-4">
-                  <div className="flex flex-wrap gap-4 items-center">
+                <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                     <div className="flex items-center gap-2">
                       <label className="text-sm font-medium">Class:</label>
                       <Select value={selectedClass || 'all'} onValueChange={(value) => setSelectedClass(value === 'all' ? '' : value)}>
@@ -632,7 +631,6 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
                       </Select>
                     </div>
                   </div>
-                </Card>
 
                 <EnhancedDataTable
                   data={examMarks}

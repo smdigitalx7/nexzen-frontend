@@ -22,11 +22,11 @@ import {
   FileText,
   Receipt,
   CreditCard,
-  Download,
-  Printer
+  Download
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { SchoolFinanceReport } from '@/lib/types/school/income';
+import { exportFinanceReportToExcel, generateExportFilename } from '@/lib/utils/export-utils';
 
 interface FinanceReportDialogProps {
   open: boolean;
@@ -51,18 +51,20 @@ export const FinanceReportDialog: React.FC<FinanceReportDialogProps> = ({
               Finance Report
             </DialogTitle>
             <DialogDescription>
-              No finance report data available for the selected period.
+              No financial data available for the selected period.
             </DialogDescription>
           </DialogHeader>
+          
           <div className="flex items-center justify-center py-8">
-            <p className="text-muted-foreground">No data to display</p>
+            <div className="text-center">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">No data found</p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
     );
   }
-
-  const report = reportData[0]; // Assuming single report for now
 
   const getFinancialStatusIcon = (status: string) => {
     switch (status.toUpperCase()) {
@@ -90,292 +92,240 @@ export const FinanceReportDialog: React.FC<FinanceReportDialogProps> = ({
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
 
   const handleDownload = () => {
-    // TODO: Implement download functionality
-    console.log('Downloading finance report...');
+    try {
+      const filename = generateExportFilename(reportData);
+      exportFinanceReportToExcel(reportData, filename);
+    } catch (error) {
+      console.error('Error exporting finance report:', error);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] print:max-w-none print:max-h-none">
+      <DialogContent className="max-w-6xl max-h-[90vh]">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Finance Report
-              </DialogTitle>
-              <DialogDescription>
-                Comprehensive financial report for {report.institute_name}
-              </DialogDescription>
-            </div>
-            <div className="flex items-center gap-2 print:hidden">
-              <Button variant="outline" size="sm" onClick={handlePrint}>
-                <Printer className="h-4 w-4 mr-2" />
-                Print
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleDownload}>
-                <Download className="h-4 w-4 mr-2" />
-                Download
-              </Button>
-            </div>
-          </div>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Finance Report
+          </DialogTitle>
+          <DialogDescription>
+            Comprehensive financial overview with income and expenditure details
+          </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="h-[70vh] print:h-auto">
-          <div className="space-y-6 print:space-y-4">
-            {/* Header Information */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border print:bg-white print:border-gray-300"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {report.institute_name}
-                  </h3>
-                  <div className="space-y-1 text-sm text-gray-600">
+        <div className="flex items-center justify-between mb-6 mt-4 px-1">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">
+              Generated on {new Date().toLocaleDateString()}
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={handleDownload}>
+              <Download className="h-4 w-4 mr-2" />
+              Export Excel
+            </Button>
+          </div>
+        </div>
+
+        <ScrollArea className="h-[70vh]">
+          <div className="space-y-6">
+            {reportData.map((report, index) => (
+              <motion.div
+                key={`${report.branch_id}-${report.report_date}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="border rounded-lg p-6 bg-white"
+              >
+                {/* Branch Information */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Building2 className="h-5 w-5 text-blue-600" />
+                    <h3 className="text-lg font-semibold">{report.branch_name}</h3>
+                    <Badge variant="outline">{report.branch_type}</Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
-                      {report.branch_name} - {report.branch_type}
+                      <span>{report.branch_address}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4" />
-                      {report.branch_phone}
+                      <span>{report.branch_phone}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4" />
-                      {report.branch_email}
+                      <span>{report.branch_email}</span>
                     </div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Calendar className="h-4 w-4" />
-                    <span className="text-sm font-medium">Report Date:</span>
+                  
+                  <div className="mt-2">
+                    <p className="text-sm font-medium">{report.institute_name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Report Date: {new Date(report.report_date).toLocaleDateString()}
+                    </p>
                   </div>
-                  <p className="text-lg font-semibold">{report.report_date}</p>
-                  <p className="text-xs text-gray-500">
-                    Generated: {new Date(report.generated_at).toLocaleString()}
-                  </p>
                 </div>
-              </div>
-            </motion.div>
 
-            {/* Financial Summary */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="grid grid-cols-1 md:grid-cols-4 gap-4"
-            >
-              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <DollarSign className="h-5 w-5 text-green-600" />
-                  <span className="text-sm font-medium text-green-800">Total Income</span>
-                </div>
-                <p className="text-2xl font-bold text-green-900">
-                  {formatCurrency(report.total_income)}
-                </p>
-                <p className="text-xs text-green-600">
-                  {report.income_object.income_count} transactions
-                </p>
-              </div>
+                {/* Financial Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <DollarSign className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-800">Total Income</span>
+                    </div>
+                    <p className="text-2xl font-bold text-green-900">
+                      {formatCurrency(report.total_income)}
+                    </p>
+                    <p className="text-xs text-green-700">
+                      {report.income_object.income_count} transactions
+                    </p>
+                  </div>
 
-              <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingDown className="h-5 w-5 text-red-600" />
-                  <span className="text-sm font-medium text-red-800">Total Expenditure</span>
-                </div>
-                <p className="text-2xl font-bold text-red-900">
-                  {formatCurrency(report.total_expenditure)}
-                </p>
-                <p className="text-xs text-red-600">
-                  {report.expenditure_object.expenditure_count} transactions
-                </p>
-              </div>
+                  <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingDown className="h-4 w-4 text-red-600" />
+                      <span className="text-sm font-medium text-red-800">Total Expenditure</span>
+                    </div>
+                    <p className="text-2xl font-bold text-red-900">
+                      {formatCurrency(report.total_expenditure)}
+                    </p>
+                    <p className="text-xs text-red-700">
+                      {report.expenditure_object.expenditure_count} transactions
+                    </p>
+                  </div>
 
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="h-5 w-5 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-800">Profit/Loss</span>
-                </div>
-                <p className={`text-2xl font-bold ${report.profit_loss >= 0 ? 'text-green-900' : 'text-red-900'}`}>
-                  {formatCurrency(report.profit_loss)}
-                </p>
-                <p className="text-xs text-blue-600">
-                  {report.profit_loss >= 0 ? 'Profit' : 'Loss'}
-                </p>
-              </div>
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800">Net Result</span>
+                    </div>
+                    <p className={`text-2xl font-bold ${
+                      report.profit_loss >= 0 ? 'text-green-900' : 'text-red-900'
+                    }`}>
+                      {formatCurrency(report.profit_loss)}
+                    </p>
+                  </div>
 
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <div className="flex items-center gap-2 mb-2">
-                  {getFinancialStatusIcon(report.financial_status)}
-                  <span className="text-sm font-medium text-gray-800">Status</span>
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      {getFinancialStatusIcon(report.financial_status)}
+                      <span className="text-sm font-medium text-gray-800">Status</span>
+                    </div>
+                    <Badge className={getFinancialStatusColor(report.financial_status)}>
+                      {report.financial_status.replace('_', ' ')}
+                    </Badge>
+                  </div>
                 </div>
-                <Badge className={getFinancialStatusColor(report.financial_status)}>
-                  {report.financial_status.replace('_', ' ')}
-                </Badge>
-              </div>
-            </motion.div>
 
-            {/* Income Details */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="space-y-4"
-            >
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Receipt className="h-5 w-5 text-green-600" />
-                Income Details
-              </h3>
-              <div className="border rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-green-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-green-800 uppercase tracking-wider">
-                          S.No
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-green-800 uppercase tracking-wider">
-                          Receipt No
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-green-800 uppercase tracking-wider">
-                          Student
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-green-800 uppercase tracking-wider">
-                          Purpose
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-green-800 uppercase tracking-wider">
-                          Payment Method
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-green-800 uppercase tracking-wider">
-                          Amount
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {report.income_object.income_list.map((item, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {item.sNo}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {item.receipt_no}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            <div>
-                              <div className="font-medium">{item.student_name}</div>
-                              <div className="text-gray-500">{item.identity_no}</div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {item.purpose}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            <Badge variant="outline">{item.payment_method}</Badge>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900 text-right font-medium">
-                            {formatCurrency(item.amount)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-green-100">
-                      <tr>
-                        <td colSpan={5} className="px-4 py-3 text-right text-sm font-medium text-green-800">
-                          Total Income:
-                        </td>
-                        <td className="px-4 py-3 text-right text-sm font-bold text-green-900">
-                          {formatCurrency(report.income_object.total_income)}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </div>
-            </motion.div>
+                {/* Income Details */}
+                {report.income_object.income_list.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Receipt className="h-5 w-5 text-green-600" />
+                      Income Details ({report.income_object.income_count} transactions)
+                    </h4>
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-2 font-medium">S.No</th>
+                            <th className="text-left p-2 font-medium">Receipt No</th>
+                            <th className="text-left p-2 font-medium">Student</th>
+                            <th className="text-left p-2 font-medium">ID No</th>
+                            <th className="text-left p-2 font-medium">Purpose</th>
+                            <th className="text-left p-2 font-medium">Payment Method</th>
+                            <th className="text-right p-2 font-medium">Amount</th>
+                            <th className="text-left p-2 font-medium">Created By</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {report.income_object.income_list.map((income, idx) => (
+                            <tr key={idx} className="border-b hover:bg-gray-50">
+                              <td className="p-2">{income.sNo}</td>
+                              <td className="p-2 font-mono text-sm">{income.receipt_no}</td>
+                              <td className="p-2">{income.student_name}</td>
+                              <td className="p-2 font-mono text-sm">{income.identity_no}</td>
+                              <td className="p-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {income.purpose}
+                                </Badge>
+                              </td>
+                              <td className="p-2">
+                                <Badge variant="secondary" className="text-xs">
+                                  {income.payment_method}
+                                </Badge>
+                              </td>
+                              <td className="p-2 text-right font-medium text-green-700">
+                                {formatCurrency(income.amount)}
+                              </td>
+                              <td className="p-2 text-sm text-muted-foreground">
+                                {income.created_by}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
 
-            {/* Expenditure Details */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="space-y-4"
-            >
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-red-600" />
-                Expenditure Details
-              </h3>
-              <div className="border rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-red-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-red-800 uppercase tracking-wider">
-                          S.No
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-red-800 uppercase tracking-wider">
-                          Voucher No
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-red-800 uppercase tracking-wider">
-                          Bill Date
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-red-800 uppercase tracking-wider">
-                          Purpose
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-red-800 uppercase tracking-wider">
-                          Payment Method
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-red-800 uppercase tracking-wider">
-                          Amount
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {report.expenditure_object.expenditure_list.map((item, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {item.sNo}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {item.voucher_no}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {new Date(item.bill_date).toLocaleDateString()}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {item.purpose}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            <Badge variant="outline">{item.payment_method}</Badge>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900 text-right font-medium">
-                            {formatCurrency(item.amount)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-red-100">
-                      <tr>
-                        <td colSpan={5} className="px-4 py-3 text-right text-sm font-medium text-red-800">
-                          Total Expenditure:
-                        </td>
-                        <td className="px-4 py-3 text-right text-sm font-bold text-red-900">
-                          {formatCurrency(report.expenditure_object.total_expenditure)}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </div>
-            </motion.div>
+                {/* Expenditure Details */}
+                {report.expenditure_object.expenditure_list.length > 0 && (
+                  <div>
+                    <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <CreditCard className="h-5 w-5 text-red-600" />
+                      Expenditure Details ({report.expenditure_object.expenditure_count} transactions)
+                    </h4>
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-2 font-medium">S.No</th>
+                            <th className="text-left p-2 font-medium">Voucher No</th>
+                            <th className="text-left p-2 font-medium">Bill Date</th>
+                            <th className="text-left p-2 font-medium">Purpose</th>
+                            <th className="text-left p-2 font-medium">Payment Method</th>
+                            <th className="text-right p-2 font-medium">Amount</th>
+                            <th className="text-left p-2 font-medium">Created By</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {report.expenditure_object.expenditure_list.map((expenditure, idx) => (
+                            <tr key={idx} className="border-b hover:bg-gray-50">
+                              <td className="p-2">{expenditure.sNo}</td>
+                              <td className="p-2 font-mono text-sm">{expenditure.voucher_no}</td>
+                              <td className="p-2">
+                                {new Date(expenditure.bill_date).toLocaleDateString()}
+                              </td>
+                              <td className="p-2">{expenditure.purpose}</td>
+                              <td className="p-2">
+                                <Badge variant="secondary" className="text-xs">
+                                  {expenditure.payment_method}
+                                </Badge>
+                              </td>
+                              <td className="p-2 text-right font-medium text-red-700">
+                                {formatCurrency(expenditure.amount)}
+                              </td>
+                              <td className="p-2 text-sm text-muted-foreground">
+                                {expenditure.created_by}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            ))}
           </div>
         </ScrollArea>
       </DialogContent>
@@ -384,3 +334,4 @@ export const FinanceReportDialog: React.FC<FinanceReportDialogProps> = ({
 };
 
 export default FinanceReportDialog;
+

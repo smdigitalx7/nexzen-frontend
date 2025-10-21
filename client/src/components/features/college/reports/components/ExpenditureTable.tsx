@@ -217,16 +217,6 @@ export const ExpenditureTable = ({
         filters={filterOptions}
       />
 
-      {/* Summary */}
-      <div className="grid grid-cols-1 gap-4 p-4 bg-muted/50 rounded-lg">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-red-600">
-            {formatCurrency(expenditureData.reduce((sum, expenditure) => sum + expenditure.amount, 0))}
-          </div>
-          <div className="text-sm text-muted-foreground">Total Expenditure</div>
-        </div>
-      </div>
-
       {/* Edit Dialog */}
       <FormDialog
         open={showEditDialog}

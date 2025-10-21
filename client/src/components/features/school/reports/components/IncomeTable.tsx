@@ -133,16 +133,6 @@ export const IncomeTable = ({
         filters={filterOptions}
       />
 
-      {/* Summary */}
-      <div className="grid grid-cols-1 gap-4 p-4 bg-muted/50 rounded-lg">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-green-600">
-            {formatCurrency(incomeData.reduce((sum, income) => sum + income.total_amount, 0))}
-          </div>
-          <div className="text-sm text-muted-foreground">Total Income</div>
-        </div>
-      </div>
-
       {/* View Income Dialog */}
       <ViewIncomeDialog
         open={showViewDialog}

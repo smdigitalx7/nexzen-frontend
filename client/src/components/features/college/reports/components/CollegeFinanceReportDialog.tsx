@@ -22,11 +22,11 @@ import {
   FileText,
   Receipt,
   CreditCard,
-  Download,
-  Printer
+  Download
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { CollegeFinanceReport } from '@/lib/types/college/income';
+import { exportFinanceReportToExcel, generateExportFilename } from '@/lib/utils/export-utils';
 
 interface CollegeFinanceReportDialogProps {
   open: boolean;
@@ -92,13 +92,14 @@ export const CollegeFinanceReportDialog: React.FC<CollegeFinanceReportDialogProp
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
 
   const handleDownload = () => {
-    // TODO: Implement PDF download functionality
-    console.log('Download functionality to be implemented');
+    try {
+      const filename = generateExportFilename(reportData);
+      exportFinanceReportToExcel(reportData, filename);
+    } catch (error) {
+      console.error('Error exporting finance report:', error);
+    }
   };
 
   return (
@@ -114,7 +115,7 @@ export const CollegeFinanceReportDialog: React.FC<CollegeFinanceReportDialogProp
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-6 mt-4 px-1">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">
@@ -122,14 +123,10 @@ export const CollegeFinanceReportDialog: React.FC<CollegeFinanceReportDialogProp
             </span>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" onClick={handleDownload}>
               <Download className="h-4 w-4 mr-2" />
-              Download PDF
-            </Button>
-            <Button variant="outline" size="sm" onClick={handlePrint}>
-              <Printer className="h-4 w-4 mr-2" />
-              Print
+              Export Excel
             </Button>
           </div>
         </div>
