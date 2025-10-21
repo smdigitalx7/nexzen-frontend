@@ -104,7 +104,7 @@ export const CollegeFinanceReportDialog: React.FC<CollegeFinanceReportDialogProp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh]">
+      <DialogContent className="max-w-6xl max-h-[90vh] !overflow-visible">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -139,7 +139,7 @@ export const CollegeFinanceReportDialog: React.FC<CollegeFinanceReportDialogProp
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="border rounded-lg p-6 bg-white"
+                className="border rounded-lg p-4 bg-white"
               >
                 {/* Branch Information */}
                 <div className="mb-6">
@@ -232,40 +232,40 @@ export const CollegeFinanceReportDialog: React.FC<CollegeFinanceReportDialogProp
                     </h4>
                     
                     <div className="overflow-x-auto">
-                      <table className="w-full border-collapse">
+                      <table className="w-full border-collapse" style={{ minWidth: '800px' }}>
                         <thead>
                           <tr className="border-b">
-                            <th className="text-left p-2 font-medium">S.No</th>
-                            <th className="text-left p-2 font-medium">Receipt No</th>
-                            <th className="text-left p-2 font-medium">Student</th>
-                            <th className="text-left p-2 font-medium">ID No</th>
-                            <th className="text-left p-2 font-medium">Purpose</th>
-                            <th className="text-left p-2 font-medium">Payment Method</th>
-                            <th className="text-right p-2 font-medium">Amount</th>
-                            <th className="text-left p-2 font-medium">Created By</th>
+                            <th className="text-left p-1 font-medium text-xs">S.No</th>
+                            <th className="text-left p-1 font-medium text-xs">Receipt No</th>
+                            <th className="text-left p-1 font-medium text-xs">Student</th>
+                            <th className="text-left p-1 font-medium text-xs">ID No</th>
+                            <th className="text-left p-1 font-medium text-xs">Purpose</th>
+                            <th className="text-left p-1 font-medium text-xs">Payment Method</th>
+                            <th className="text-right p-1 font-medium text-xs">Amount</th>
+                            <th className="text-left p-1 font-medium text-xs">Created By</th>
                           </tr>
                         </thead>
                         <tbody>
                           {report.income_object.income_list.map((income, idx) => (
                             <tr key={idx} className="border-b hover:bg-gray-50">
-                              <td className="p-2">{income.sNo}</td>
-                              <td className="p-2 font-mono text-sm">{income.receipt_no}</td>
-                              <td className="p-2">{income.student_name}</td>
-                              <td className="p-2 font-mono text-sm">{income.identity_no}</td>
-                              <td className="p-2">
+                              <td className="p-1 text-xs">{income.sNo}</td>
+                              <td className="p-1 font-mono text-xs">{income.receipt_no}</td>
+                              <td className="p-1 text-xs">{income.student_name}</td>
+                              <td className="p-1 font-mono text-xs">{income.identity_no}</td>
+                              <td className="p-1">
                                 <Badge variant="outline" className="text-xs">
                                   {income.purpose}
                                 </Badge>
                               </td>
-                              <td className="p-2">
+                              <td className="p-1">
                                 <Badge variant="secondary" className="text-xs">
                                   {income.payment_method}
                                 </Badge>
                               </td>
-                              <td className="p-2 text-right font-medium text-green-700">
+                              <td className="p-1 text-right font-medium text-green-700 text-xs">
                                 {formatCurrency(income.amount)}
                               </td>
-                              <td className="p-2 text-sm text-muted-foreground">
+                              <td className="p-1 text-xs text-muted-foreground">
                                 {income.created_by}
                               </td>
                             </tr>
@@ -285,36 +285,36 @@ export const CollegeFinanceReportDialog: React.FC<CollegeFinanceReportDialogProp
                     </h4>
                     
                     <div className="overflow-x-auto">
-                      <table className="w-full border-collapse">
+                      <table className="w-full border-collapse" style={{ minWidth: '800px' }}>
                         <thead>
                           <tr className="border-b">
-                            <th className="text-left p-2 font-medium">S.No</th>
-                            <th className="text-left p-2 font-medium">Voucher No</th>
-                            <th className="text-left p-2 font-medium">Bill Date</th>
-                            <th className="text-left p-2 font-medium">Purpose</th>
-                            <th className="text-left p-2 font-medium">Payment Method</th>
-                            <th className="text-right p-2 font-medium">Amount</th>
-                            <th className="text-left p-2 font-medium">Created By</th>
+                            <th className="text-left p-1 font-medium text-xs">S.No</th>
+                            <th className="text-left p-1 font-medium text-xs">Voucher No</th>
+                            <th className="text-left p-1 font-medium text-xs">Bill Date</th>
+                            <th className="text-left p-1 font-medium text-xs">Purpose</th>
+                            <th className="text-left p-1 font-medium text-xs">Payment Method</th>
+                            <th className="text-right p-1 font-medium text-xs">Amount</th>
+                            <th className="text-left p-1 font-medium text-xs">Created By</th>
                           </tr>
                         </thead>
                         <tbody>
                           {report.expenditure_object.expenditure_list.map((expenditure, idx) => (
                             <tr key={idx} className="border-b hover:bg-gray-50">
-                              <td className="p-2">{expenditure.sNo}</td>
-                              <td className="p-2 font-mono text-sm">{expenditure.voucher_no}</td>
-                              <td className="p-2">
+                              <td className="p-1 text-xs">{expenditure.sNo}</td>
+                              <td className="p-1 font-mono text-xs">{expenditure.voucher_no}</td>
+                              <td className="p-1 text-xs">
                                 {new Date(expenditure.bill_date).toLocaleDateString()}
                               </td>
-                              <td className="p-2">{expenditure.purpose}</td>
-                              <td className="p-2">
+                              <td className="p-1 text-xs">{expenditure.purpose}</td>
+                              <td className="p-1">
                                 <Badge variant="secondary" className="text-xs">
                                   {expenditure.payment_method}
                                 </Badge>
                               </td>
-                              <td className="p-2 text-right font-medium text-red-700">
+                              <td className="p-1 text-right font-medium text-red-700 text-xs">
                                 {formatCurrency(expenditure.amount)}
                               </td>
-                              <td className="p-2 text-sm text-muted-foreground">
+                              <td className="p-1 text-xs text-muted-foreground">
                                 {expenditure.created_by}
                               </td>
                             </tr>

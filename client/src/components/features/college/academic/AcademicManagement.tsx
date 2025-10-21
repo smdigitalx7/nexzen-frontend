@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { School, Building2, Users, Layers, BookOpen, GraduationCap, FileText, Calendar, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
-import type { TabItem } from "@/components/shared/TabSwitcher";
 import { useAuthStore } from "@/store/authStore";
 import { useCollegeClasses } from '@/lib/hooks/college/use-college-classes';
 import { useCollegeSubjects } from '@/lib/hooks/college/use-college-subjects';
@@ -66,8 +65,55 @@ const AcademicManagement = () => {
   // Local state for filters
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBranchType, setSelectedBranchType] = useState("all");
-  const [selectedClass, setSelectedClass] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("classes");
+
+  // Dynamic header content based on active tab
+  const getHeaderContent = () => {
+    switch (activeTab) {
+      case 'classes':
+        return {
+          title: 'Classes Management',
+          description: 'Manage academic classes and their subject assignments'
+        };
+      case 'groups':
+        return {
+          title: 'Groups Management',
+          description: 'Manage student groups and their academic structure'
+        };
+      case 'courses':
+        return {
+          title: 'Courses Management',
+          description: 'Manage academic courses and their curriculum'
+        };
+      case 'subjects':
+        return {
+          title: 'Subjects Management',
+          description: 'Manage academic subjects and their assignments'
+        };
+      case 'exams':
+        return {
+          title: 'Exams Management',
+          description: 'Manage academic examinations and schedules'
+        };
+      case 'tests':
+        return {
+          title: 'Tests Management',
+          description: 'Manage academic tests and assessments'
+        };
+      case 'academic-years':
+        return {
+          title: 'Academic Years Management',
+          description: 'Manage academic years, terms, and academic calendar'
+        };
+      default:
+        return {
+          title: 'Academic Management',
+          description: 'Comprehensive academic structure and performance management'
+        };
+    }
+  };
+
+  const headerContent = getHeaderContent();
 
   // Ensure tests are fetched when Tests tab becomes active
   useEffect(() => {
@@ -86,10 +132,10 @@ const AcademicManagement = () => {
       >
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Academic Management
+            {headerContent.title}
           </h1>
           <p className="text-muted-foreground">
-            Comprehensive academic structure and performance management
+            {headerContent.description}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -217,7 +263,6 @@ const AcademicManagement = () => {
         ]}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        gridCols="grid-cols-7"
       />
     </div>
   );

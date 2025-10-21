@@ -62,6 +62,49 @@ const AcademicManagement = () => {
   const [selectedClass, setSelectedClass] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("classes");
 
+  // Dynamic header content based on active tab
+  const getHeaderContent = () => {
+    switch (activeTab) {
+      case 'classes':
+        return {
+          title: 'Classes Management',
+          description: 'Manage academic classes and their subject assignments'
+        };
+      case 'sections':
+        return {
+          title: 'Sections Management',
+          description: 'Manage class sections and student groupings'
+        };
+      case 'subjects':
+        return {
+          title: 'Subjects Management',
+          description: 'Manage academic subjects and their assignments'
+        };
+      case 'exams':
+        return {
+          title: 'Exams Management',
+          description: 'Manage academic examinations and schedules'
+        };
+      case 'tests':
+        return {
+          title: 'Tests Management',
+          description: 'Manage academic tests and assessments'
+        };
+      case 'academic-years':
+        return {
+          title: 'Academic Years Management',
+          description: 'Manage academic years, terms, and academic calendar'
+        };
+      default:
+        return {
+          title: 'Academic Management',
+          description: 'Comprehensive academic structure and performance management'
+        };
+    }
+  };
+
+  const headerContent = getHeaderContent();
+
   // Ensure tests are fetched when Tests tab becomes active
   useEffect(() => {
     if (activeTab === "tests") {
@@ -79,10 +122,10 @@ const AcademicManagement = () => {
       >
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Academic Management
+            {headerContent.title}
           </h1>
           <p className="text-muted-foreground">
-            Comprehensive academic structure and performance management
+            {headerContent.description}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -184,7 +227,6 @@ const AcademicManagement = () => {
         ]}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        gridCols="grid-cols-6"
       />
     </div>
   );

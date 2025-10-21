@@ -21,9 +21,9 @@ import {
 } from "@/components/ui/dialog";
 import { DollarSign, TrendingUp, Eye } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
-import { useSchoolIncomeList, useSchoolIncomeDashboard } from "@/lib/hooks/school/use-school-income-expenditure";
+import { useSchoolIncomeDashboard } from "@/lib/hooks/school/use-school-income-expenditure";
 import { useSchoolExpenditureList, useSchoolExpenditureDashboard } from "@/lib/hooks/school/use-school-income-expenditure";
-import { IncomeTable } from "@/components/features/school/reports/components/IncomeTable";
+import { IncomeSummaryTable } from "@/components/features/school/reports/components/IncomeSummaryTable";
 import { ExpenditureTable } from "@/components/features/school/reports/components/ExpenditureTable";
 import { AddExpenditureDialog } from "@/components/features/school/reports/components/AddExpenditureDialog";
 import { SchoolIncomeStatsCards } from "../income/SchoolIncomeStatsCards";
@@ -37,8 +37,7 @@ export const SchoolReportsTemplate = () => {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportFormat, setExportFormat] = useState("pdf");
 
-  // Fetch real income and expenditure data
-  const { data: incomeData = [] } = useSchoolIncomeList();
+  // Fetch real expenditure data
   const { data: expenditureData = [] } = useSchoolExpenditureList();
   
   // Fetch dashboard data for financial stats
@@ -110,8 +109,7 @@ export const SchoolReportsTemplate = () => {
             label: "Income",
             icon: DollarSign,
             content: (
-              <IncomeTable
-                incomeData={incomeData}
+              <IncomeSummaryTable
                 onExportCSV={() => {}}
               />
             ),

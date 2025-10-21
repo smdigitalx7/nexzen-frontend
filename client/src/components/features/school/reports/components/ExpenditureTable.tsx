@@ -63,7 +63,6 @@ export const ExpenditureTable = ({
       console.error("Invalid expenditure object:", expenditure);
       return;
     }
-    console.log("handleEdit called with expenditure:", expenditure);
     setSelectedExpenditure(expenditure);
     setUpdateId(expenditure.expenditure_id);
     setEditForm({
@@ -81,7 +80,6 @@ export const ExpenditureTable = ({
       console.error("Invalid expenditure object:", expenditure);
       return;
     }
-    console.log("handleDelete called with expenditure:", expenditure);
     setSelectedExpenditure(expenditure);
     openDeleteDialog(expenditure);
   };
@@ -91,7 +89,6 @@ export const ExpenditureTable = ({
       console.error("Invalid expenditure object:", expenditure);
       return;
     }
-    console.log("handleView called with expenditure:", expenditure);
     setViewExpenditureId(expenditure.expenditure_id);
     setShowViewDialog(true);
   };
@@ -129,11 +126,7 @@ export const ExpenditureTable = ({
     {
       id: 'bill_date',
       header: 'Bill Date',
-      cell: ({ row }) => {
-        const value = row.original.bill_date;
-        console.log("Bill date cell - value:", value);
-        return formatDate(value);
-      },
+      cell: ({ row }) => formatDate(row.original.bill_date),
     },
     createTextColumn<SchoolExpenditureRead>("expenditure_purpose", { header: "Purpose" }),
     createCurrencyColumn<SchoolExpenditureRead>("amount", { 
@@ -143,27 +136,18 @@ export const ExpenditureTable = ({
     {
       id: 'payment_method',
       header: 'Payment Method',
-      cell: ({ row }) => {
-        const value = row.original.payment_method;
-        console.log("Payment method cell - value:", value);
-        return value || "-";
-      },
+      cell: ({ row }) => row.original.payment_method || "-",
     },
     {
       id: 'remarks',
       header: 'Remarks',
-      cell: ({ row }) => {
-        const value = row.original.remarks;
-        console.log("Remarks cell - value:", value);
-        return value || "-";
-      },
+      cell: ({ row }) => row.original.remarks || "-",
     },
     createActionColumn<SchoolExpenditureRead>([
       {
         icon: Eye,
         label: "View Expenditure",
         onClick: (expenditure: SchoolExpenditureRead) => {
-          console.log("View clicked - expenditure:", expenditure);
           handleView(expenditure);
         },
       },
@@ -171,7 +155,6 @@ export const ExpenditureTable = ({
         icon: Edit,
         label: "Edit Expenditure",
         onClick: (expenditure: SchoolExpenditureRead) => {
-          console.log("Edit clicked - expenditure:", expenditure);
           handleEdit(expenditure);
         },
       },
@@ -179,7 +162,6 @@ export const ExpenditureTable = ({
         icon: Trash2,
         label: "Delete Expenditure",
         onClick: (expenditure: SchoolExpenditureRead) => {
-          console.log("Delete clicked - expenditure:", expenditure);
           handleDelete(expenditure);
         },
       },
