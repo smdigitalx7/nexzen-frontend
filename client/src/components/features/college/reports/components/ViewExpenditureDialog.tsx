@@ -134,10 +134,6 @@ export const ViewExpenditureDialog = ({
                 <span className="text-sm text-muted-foreground">Bill Date:</span>
                 <span className="text-sm font-medium">{formatDate(expenditure.bill_date)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Payment Date:</span>
-                <span className="text-sm font-medium">{expenditure.payment_date ? formatDate(expenditure.payment_date) : "N/A"}</span>
-              </div>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between">

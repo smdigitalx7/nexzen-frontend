@@ -1,13 +1,21 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { GraduationCap, ClipboardList } from 'lucide-react';
+import { GraduationCap, ClipboardList, FileText, Calculator, Target, Trophy } from 'lucide-react';
 import { TabSwitcher } from '@/components/shared';
-import type { TabItem } from '@/components/shared/TabSwitcher';
+import { StatsCard } from '@/components/shared/dashboard/StatsCard';
+import { DashboardGrid } from '@/components/shared/dashboard/DashboardGrid';
+import { useMarksStatistics, type MarksData } from '@/lib/hooks/school/use-marks-statistics';
 import ExamMarksManagement from './ExamMarksManagement';
 import TestMarksManagement from './TestMarksManagement';
 
 const MarksManagement = () => {
   const [activeTab, setActiveTab] = useState('exam-marks');
+  const [examMarksData, setExamMarksData] = useState<MarksData[]>([]);
+  const [testMarksData, setTestMarksData] = useState<MarksData[]>([]);
+
+  // Calculate statistics for current active tab
+  const currentMarksData = activeTab === 'exam-marks' ? examMarksData : testMarksData;
+  const statistics = useMarksStatistics(currentMarksData);
 
   return (
     <div className="flex flex-col h-full bg-slate-50/30">
@@ -20,9 +28,58 @@ const MarksManagement = () => {
             className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
           >
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Marks & Grades Management</h1>
-              <p className="text-slate-600 mt-1">Track exam and test results, manage academic performance</p>
+              <h1 className="text-3xl font-bold text-slate-900">
+                {activeTab === 'exam-marks' ? 'Marks Management' : 'Tests Management'}
+              </h1>
+              <p className="text-slate-600 mt-1">
+                {activeTab === 'exam-marks' 
+                  ? 'Track exam results and manage academic performance' 
+                  : 'Track test results and manage academic performance'
+                }
+              </p>
             </div>
+          </motion.div>
+
+          {/* Statistics Cards */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <DashboardGrid columns={4} gap="md">
+              <StatsCard
+                title={`Total ${activeTab === 'exam-marks' ? 'Marks' : 'Tests'}`}
+                value={statistics.totalMarks}
+                icon={FileText}
+                color="blue"
+                variant="elevated"
+                size="md"
+              />
+              <StatsCard
+                title="Avg Score"
+                value={`${statistics.avgPercentage}%`}
+                icon={Calculator}
+                color="green"
+                variant="elevated"
+                size="md"
+              />
+              <StatsCard
+                title="Pass Rate"
+                value={`${statistics.passPercentage}%`}
+                icon={Target}
+                color="purple"
+                variant="elevated"
+                size="md"
+              />
+              <StatsCard
+                title="Top Score"
+                value={`${statistics.topScore}%`}
+                icon={Trophy}
+                color="orange"
+                variant="elevated"
+                size="md"
+              />
+            </DashboardGrid>
           </motion.div>
 
           {/* Main Content */}
@@ -30,20 +87,19 @@ const MarksManagement = () => {
             tabs={[
               {
                 value: "exam-marks",
-                label: "Exam Marks",
+                label: "Marks",
                 icon: GraduationCap,
-                content: <ExamMarksManagement />,
+                content: <ExamMarksManagement onDataChange={setExamMarksData} />,
               },
               {
                 value: "test-marks",
-                label: "Test Marks",
+                label: "Tests",
                 icon: ClipboardList,
-                content: <TestMarksManagement />,
+                content: <TestMarksManagement onDataChange={setTestMarksData} />,
               },
             ]}
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            gridCols="grid-cols-2"
           />
         </div>
       </div>

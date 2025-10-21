@@ -41,7 +41,23 @@ export const formatDate = (dateString: string, options?: Intl.DateTimeFormatOpti
     day: 'numeric',
   };
   
-  return new Date(dateString).toLocaleDateString("en-IN", { ...defaultOptions, ...options });
+  // Handle different date formats and validate the date
+  let date: Date;
+  
+  if (!dateString) {
+    return 'Invalid Date';
+  }
+  
+  // Try to parse the date string
+  date = new Date(dateString);
+  
+  // Check if the date is valid
+  if (isNaN(date.getTime())) {
+    console.warn(`Invalid date string: ${dateString}`);
+    return 'Invalid Date';
+  }
+  
+  return date.toLocaleDateString("en-IN", { ...defaultOptions, ...options });
 };
 
 /**

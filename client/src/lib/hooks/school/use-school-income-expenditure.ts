@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolIncomeService } from "@/lib/services/school/income.service";
 import { SchoolExpenditureService } from "@/lib/services/school/expenditure.service";
-import type { SchoolExpenditureCreate, SchoolExpenditureRead, SchoolExpenditureUpdate, SchoolIncomeCreate, SchoolIncomeCreateReservation, SchoolIncomeRead, SchoolIncomeUpdate, SchoolExpenditureDashboardStats, SchoolRecentExpenditure } from "@/lib/types/school";
+import type { SchoolExpenditureCreate, SchoolExpenditureRead, SchoolExpenditureUpdate, SchoolIncomeCreate, SchoolIncomeCreateReservation, SchoolIncomeRead, SchoolIncomeUpdate, SchoolExpenditureDashboardStats, SchoolRecentExpenditure, SchoolFinanceReport, SchoolFinanceReportParams } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
 
 export function useSchoolIncomeList(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string }) {
@@ -134,6 +134,14 @@ export function useDeleteSchoolExpenditure() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.expenditure.root() });
     },
+  });
+}
+
+export function useSchoolFinanceReport(params?: SchoolFinanceReportParams) {
+  return useQuery({
+    queryKey: [...schoolKeys.income.root(), "finance-report", params],
+    queryFn: () => SchoolIncomeService.getFinanceReport(params) as Promise<SchoolFinanceReport[]>,
+    enabled: true, // Always enabled since params are optional
   });
 }
 

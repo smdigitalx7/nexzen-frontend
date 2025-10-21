@@ -6,7 +6,6 @@ import {
   AlertTriangle, 
   CreditCard, 
   TrendingUp, 
-  Calendar,
   Users,
   Wallet,
   Calculator
@@ -34,7 +33,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
       color: "blue" as const,
       description: "All payroll records",
       variant: "elevated" as const,
-      size: "lg" as const,
+      size: "sm" as const,
     },
     {
       title: "Pending Payrolls",
@@ -43,13 +42,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
       color: "yellow" as const,
       description: "Awaiting processing",
       variant: "bordered" as const,
-      size: "lg" as const,
-      trend: {
-        value: stats.total_payroll_records > 0 ? 
-          Math.round((stats.pending_payrolls / stats.total_payroll_records) * 100) : 0,
-        label: "of total records",
-        isPositive: false,
-      },
+      size: "sm" as const,
     },
     {
       title: "Paid Payrolls",
@@ -58,13 +51,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
       color: "green" as const,
       description: "Successfully paid",
       variant: "gradient" as const,
-      size: "lg" as const,
-      trend: {
-        value: stats.total_payroll_records > 0 ? 
-          Math.round((stats.paid_payrolls / stats.total_payroll_records) * 100) : 0,
-        label: "completion rate",
-        isPositive: true,
-      },
+      size: "sm" as const,
     },
     {
       title: "Hold Payrolls",
@@ -73,16 +60,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
       color: "red" as const,
       description: "On hold",
       variant: "default" as const,
-      size: "md" as const,
-    },
-    {
-      title: "Current Month",
-      value: stats.current_month_payrolls,
-      icon: Calendar,
-      color: "purple" as const,
-      description: "This month's payrolls",
-      variant: "default" as const,
-      size: "md" as const,
+      size: "sm" as const,
     },
     {
       title: "Total Gross Pay",
@@ -91,7 +69,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
       color: "indigo" as const,
       description: "Before deductions",
       variant: "bordered" as const,
-      size: "lg" as const,
+      size: "sm" as const,
     },
     {
       title: "Total Net Pay",
@@ -100,13 +78,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
       color: "emerald" as const,
       description: "After deductions",
       variant: "bordered" as const,
-      size: "lg" as const,
-      trend: {
-        value: stats.total_gross_pay > 0 ? 
-          Math.round(((stats.total_gross_pay - stats.total_net_pay) / stats.total_gross_pay) * 100) : 0,
-        label: "deduction rate",
-        isPositive: false,
-      },
+      size: "sm" as const,
     },
     {
       title: "Total Deductions",
@@ -115,7 +87,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
       color: "orange" as const,
       description: "All deductions",
       variant: "default" as const,
-      size: "md" as const,
+      size: "sm" as const,
     },
     {
       title: "Total Paid",
@@ -124,13 +96,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
       color: "teal" as const,
       description: "Amount disbursed",
       variant: "elevated" as const,
-      size: "lg" as const,
-      trend: {
-        value: stats.total_net_pay > 0 ? 
-          Math.round((stats.total_paid_amount / stats.total_net_pay) * 100) : 0,
-        label: "payment rate",
-        isPositive: true,
-      },
+      size: "sm" as const,
     },
     {
       title: "Pending Payment",
@@ -139,7 +105,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
       color: "rose" as const,
       description: "Awaiting payment",
       variant: "elevated" as const,
-      size: "lg" as const,
+      size: "sm" as const,
     },
     {
       title: "Average Salary",
@@ -148,7 +114,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
       color: "cyan" as const,
       description: "Per employee",
       variant: "gradient" as const,
-      size: "md" as const,
+      size: "sm" as const,
     },
   ];
 

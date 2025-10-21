@@ -15,18 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Eye,
-  Edit,
-  Trash2,
-  Printer,
-  Lock,
-  Percent,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Eye, Edit, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   Select,

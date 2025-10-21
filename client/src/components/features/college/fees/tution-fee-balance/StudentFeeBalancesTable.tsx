@@ -1,14 +1,24 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Eye, Download, Search, Filter, Edit, Trash2 } from "lucide-react";
+import { Eye, Download, Edit, Trash2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/lib/utils";
-import { useTableState } from "@/lib/hooks/common/useTableState";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateCollegeTuitionBalance, useDeleteCollegeTuitionBalance } from "@/lib/hooks/college/use-college-tuition-balances";
+import { ColumnDef } from "@tanstack/react-table";
+import { EnhancedDataTable } from "@/components/shared";
+import {
+  createTextColumn,
+  createCurrencyColumn,
+  createActionColumn,
+  createViewAction,
+  createEditAction,
+  createDeleteAction,
+  createDateColumn,
+} from "@/lib/utils/columnFactories";
 import {
   Dialog,
   DialogContent,
@@ -27,21 +37,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface StudentFeeBalance {
   id: number;
@@ -66,9 +61,11 @@ interface StudentFeeBalancesTableProps {
   studentBalances: StudentFeeBalance[];
   onViewStudent: (student: StudentFeeBalance) => void;
   onExportCSV: () => void;
+  onBulkCreate?: () => void;
   title?: string;
   description?: string;
   showHeader?: boolean;
+  loading?: boolean;
 }
 
 const getStatusColor = (status: string) => {
@@ -88,9 +85,11 @@ export const StudentFeeBalancesTable = ({
   studentBalances,
   onViewStudent,
   onExportCSV,
+  onBulkCreate,
   title = "Student Fee Balances",
   description = "Track individual student fee payments and outstanding amounts",
   showHeader = true,
+  loading = false,
 }: StudentFeeBalancesTableProps) => {
   const { toast } = useToast();
   const deleteMutation = useDeleteCollegeTuitionBalance();
@@ -107,26 +106,65 @@ export const StudentFeeBalancesTable = ({
     book_paid: 0,
   });
 
-  // Using shared table state management
-  const {
-    searchTerm,
-    setSearchTerm,
-    filters,
-    setFilters,
-  } = useTableState({
-    initialFilters: { class: "all", status: "all" }
-  });
-  
-  const selectedClass = filters.class || "all";
-  const selectedStatus = filters.status || "all";
+  // Get unique classes for filter options
+  const uniqueClasses = Array.from(new Set(studentBalances.map(s => s.class_name)));
 
-  const handleClassFilterChange = (value: string) => {
-    setFilters(prev => ({ ...prev, class: value }));
-  };
-
-  const handleStatusFilterChange = (value: string) => {
-    setFilters(prev => ({ ...prev, status: value }));
-  };
+  // Define columns for EnhancedDataTable
+  const columns: ColumnDef<StudentFeeBalance>[] = useMemo(() => [
+    {
+      id: 'student_info',
+      header: 'Student',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <User className="h-4 w-4 text-blue-600" />
+          </div>
+          <div>
+            <div className="font-medium">{row.original.student_name}</div>
+            <div className="text-sm text-muted-foreground font-mono">{row.original.student_id}</div>
+          </div>
+        </div>
+      ),
+    },
+    createTextColumn<StudentFeeBalance>("class_name", { header: "Class" }),
+    createCurrencyColumn<StudentFeeBalance>("total_fee", { header: "Total Fee" }),
+    {
+      id: 'paid_amount',
+      header: 'Paid Amount',
+      cell: ({ row }) => (
+        <span className="text-green-600 font-medium">
+          {formatCurrency(row.original.paid_amount)}
+        </span>
+      ),
+    },
+    {
+      id: 'outstanding_amount',
+      header: 'Outstanding',
+      cell: ({ row }) => (
+        <span className="text-red-600 font-bold">
+          {formatCurrency(row.original.outstanding_amount)}
+        </span>
+      ),
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      cell: ({ row }) => (
+        <Badge className={getStatusColor(row.original.status)}>
+          {row.original.status}
+        </Badge>
+      ),
+    },
+    createDateColumn<StudentFeeBalance>("last_payment_date", { 
+      header: "Last Payment",
+      className: "text-sm text-muted-foreground"
+    }),
+    createActionColumn<StudentFeeBalance>([
+      createViewAction((row) => onViewStudent(row)),
+      createEditAction((row) => handleEdit(row)),
+      createDeleteAction((row) => handleDelete(row))
+    ])
+  ], [onViewStudent]);
 
   const handleEdit = (student: StudentFeeBalance) => {
     setSelectedStudent(student);
@@ -186,18 +224,36 @@ export const StudentFeeBalancesTable = ({
     }
   };
 
-  const filteredBalances = studentBalances.filter((student) => {
-    const searchMatch = searchTerm === "" || 
-      student.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.student_id.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const classMatch = selectedClass === "all" || student.class_name === selectedClass;
-    const statusMatch = selectedStatus === "all" || student.status === selectedStatus;
-    
-    return searchMatch && classMatch && statusMatch;
-  });
+  // Calculate summary statistics
+  const totalCollected = studentBalances.reduce((sum, s) => sum + s.paid_amount, 0);
+  const totalOutstanding = studentBalances.reduce((sum, s) => sum + s.outstanding_amount, 0);
+  const totalStudents = studentBalances.length;
 
-  const uniqueClasses = Array.from(new Set(studentBalances.map(s => s.class_name)));
+  // Prepare filter options for EnhancedDataTable
+  const filterOptions = [
+    {
+      key: 'class_name',
+      label: 'Class',
+      options: uniqueClasses.map(className => ({ value: className, label: className })),
+      value: 'all',
+      onChange: (value: string) => {
+        // This will be handled by EnhancedDataTable's built-in filtering
+      }
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      options: [
+        { value: 'PAID', label: 'Paid' },
+        { value: 'PARTIAL', label: 'Partial' },
+        { value: 'OUTSTANDING', label: 'Outstanding' }
+      ],
+      value: 'all',
+      onChange: (value: string) => {
+        // This will be handled by EnhancedDataTable's built-in filtering
+      }
+    }
+  ];
 
   return (
     <motion.div
@@ -206,158 +262,39 @@ export const StudentFeeBalancesTable = ({
       transition={{ delay: 0.3 }}
       className="space-y-4"
     >
-      {/* Header and Actions */}
-      {showHeader && (
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold">{title}</h2>
-            <p className="text-muted-foreground">
-              {description}
-            </p>
-          </div>
-          <Button onClick={onExportCSV} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
-        </div>
-      )}
+      {/* Enhanced Data Table */}
+      <EnhancedDataTable
+        data={studentBalances}
+        columns={columns}
+        title={title}
+        description={description}
+        searchKey="student_name"
+        searchPlaceholder="Search students..."
+        exportable={true}
+        onExport={onExportCSV}
+        onAdd={onBulkCreate}
+        addButtonText="Bulk Create"
+        loading={loading}
+        filters={filterOptions}
+      />
 
-      {/* Filters */}
-      <div className="flex items-center gap-4">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search students..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 max-w-sm"
-            />
-          </div>
-        </div>
-        <Select value={selectedClass} onValueChange={handleClassFilterChange}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by class" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Classes</SelectItem>
-            {uniqueClasses.map((className) => (
-              <SelectItem key={className} value={className}>
-                {className}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={selectedStatus} onValueChange={handleStatusFilterChange}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="PAID">Paid</SelectItem>
-            <SelectItem value="PARTIAL">Partial</SelectItem>
-            <SelectItem value="OUTSTANDING">Outstanding</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Table */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Student ID</TableHead>
-              <TableHead>Student Name</TableHead>
-              <TableHead>Class</TableHead>
-              <TableHead>Total Fee</TableHead>
-              <TableHead>Paid Amount</TableHead>
-              <TableHead>Outstanding</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Last Payment</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredBalances.map((student) => (
-              <TableRow key={student.id}>
-                <TableCell className="font-mono text-sm">
-                  {student.student_id}
-                </TableCell>
-                <TableCell className="font-medium">
-                  {student.student_name}
-                </TableCell>
-                <TableCell>{student.class_name}</TableCell>
-                <TableCell>{formatCurrency(student.total_fee)}</TableCell>
-                <TableCell className="text-green-600">
-                  {formatCurrency(student.paid_amount)}
-                </TableCell>
-                <TableCell className="text-red-600 font-bold">
-                  {formatCurrency(student.outstanding_amount)}
-                </TableCell>
-                <TableCell>
-                  <Badge className={getStatusColor(student.status)}>
-                    {student.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {new Date(student.last_payment_date).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onViewStudent(student)}
-                      title="View Details"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(student)}
-                      title="Edit Balance"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(student)}
-                      title="Delete Balance"
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Summary */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
         <div className="text-center">
           <div className="text-2xl font-bold text-green-600">
-            {formatCurrency(
-              filteredBalances.reduce((sum, s) => sum + s.paid_amount, 0)
-            )}
+            {formatCurrency(totalCollected)}
           </div>
           <div className="text-sm text-muted-foreground">Total Collected</div>
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold text-red-600">
-            {formatCurrency(
-              filteredBalances.reduce((sum, s) => sum + s.outstanding_amount, 0)
-            )}
+            {formatCurrency(totalOutstanding)}
           </div>
           <div className="text-sm text-muted-foreground">Total Outstanding</div>
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold text-blue-600">
-            {filteredBalances.length}
+            {totalStudents}
           </div>
           <div className="text-sm text-muted-foreground">Students</div>
         </div>

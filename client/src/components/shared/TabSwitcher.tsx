@@ -132,13 +132,11 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
             key={tab.value}
             value={tab.value}
             className={cn(
-              "mt-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+              "mt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
               contentClassName
             )}
           >
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-8 ">
-              {tab.content}
-            </div>
+            {tab.content}
           </TabsContent>
         ))}
       </Tabs>

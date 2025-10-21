@@ -2,9 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { Plus } from "lucide-react";
 import { useCollegeClasses } from "@/lib/hooks/college/use-college-classes";
 import { useCollegeGroups } from "@/lib/hooks/college/use-college-groups";
-import { useCollegeTuitionBalancesList, useCollegeTuitionBalance } from "@/lib/hooks/college/use-college-tuition-balances";
+import { useCollegeTuitionBalancesList, useCollegeTuitionBalance, useBulkCreateCollegeTuitionBalances } from "@/lib/hooks/college/use-college-tuition-balances";
 import type { CollegeTuitionFeeBalanceRead, CollegeTuitionFeeBalanceFullRead } from "@/lib/types/college";
 import { StudentFeeBalancesTable } from "./StudentFeeBalancesTable";
 
@@ -15,6 +18,8 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
   const { data: groups = [] } = useCollegeGroups();
   const [balanceClass, setBalanceClass] = useState<string>(classes[0]?.class_id?.toString() || "");
   const [balanceGroup, setBalanceGroup] = useState<string>(groups[0]?.group_id?.toString() || "");
+  const { toast } = useToast();
+  const bulkCreateMutation = useBulkCreateCollegeTuitionBalances();
 
   useEffect(() => {
     if (!balanceClass && classes.length > 0) {
@@ -30,7 +35,7 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
 
   const classIdNum = balanceClass ? parseInt(balanceClass) : undefined;
   const groupIdNum = balanceGroup ? parseInt(balanceGroup) : undefined;
-  const { data: tuitionResp } = useCollegeTuitionBalancesList({ 
+  const { data: tuitionResp, refetch } = useCollegeTuitionBalancesList({ 
     class_id: classIdNum, 
     group_id: groupIdNum,
     page: 1, 
@@ -40,7 +45,38 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
   // Optional: when a row is clicked, fetch full details
   const [selectedBalanceId, setSelectedBalanceId] = useState<number | undefined>();
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [bulkCreateOpen, setBulkCreateOpen] = useState(false);
   const { data: selectedBalance } = useCollegeTuitionBalance(selectedBalanceId);
+
+  const handleBulkCreate = async () => {
+    if (!classIdNum || !groupIdNum) {
+      toast({
+        title: "Error",
+        description: "Please select both class and group first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await bulkCreateMutation.mutateAsync({ 
+        class_id: classIdNum,
+        group_id: groupIdNum 
+      });
+      toast({
+        title: "Success",
+        description: "Tuition fee balances created successfully for the selected class and group",
+      });
+      refetch();
+      setBulkCreateOpen(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create tuition fee balances",
+        variant: "destructive",
+      });
+    }
+  };
 
   const rows = useMemo<StudentRow[]>(() => {
     return (tuitionResp?.data || []).map((t: CollegeTuitionFeeBalanceRead, index: number) => {
@@ -74,40 +110,6 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
       transition={{ delay: 0.1 }}
       className="space-y-4"
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Tuition Fee Balances</h2>
-          <p className="text-muted-foreground">
-            Track individual student tuition fee payments and outstanding amounts
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Select value={balanceClass} onValueChange={setBalanceClass}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Select Class" />
-            </SelectTrigger>
-            <SelectContent>
-              {classes.map((cls: any) => (
-                <SelectItem key={cls.class_id} value={cls.class_id.toString()}>
-                  {cls.class_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={balanceGroup} onValueChange={setBalanceGroup}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Select Group" />
-            </SelectTrigger>
-            <SelectContent>
-              {groups.map((group: any) => (
-                <SelectItem key={group.group_id} value={group.group_id.toString()}>
-                  {group.group_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
 
       <StudentFeeBalancesTable
         studentBalances={rows}
@@ -117,6 +119,7 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
           onViewStudent(student);
         }}
         onExportCSV={onExportCSV}
+        onBulkCreate={() => setBulkCreateOpen(true)}
         showHeader={false}
       />
 
@@ -159,6 +162,52 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Create Dialog */}
+      <Dialog open={bulkCreateOpen} onOpenChange={setBulkCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bulk Create Tuition Fee Balances</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              This will create tuition fee balances for all students in the selected class and group: <strong>{classes.find(c => c.class_id?.toString() === balanceClass)?.class_name}</strong> - <strong>{groups.find(g => g.group_id?.toString() === balanceGroup)?.group_name}</strong>
+            </p>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-yellow-800">Warning</h3>
+                  <div className="mt-2 text-sm text-yellow-700">
+                    <p>This action will create tuition fee balance records for all students in the selected class and group. This cannot be undone.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setBulkCreateOpen(false)}
+                disabled={bulkCreateMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleBulkCreate}
+                disabled={bulkCreateMutation.isPending}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                {bulkCreateMutation.isPending ? 'Creating...' : 'Create Balances'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </motion.div>

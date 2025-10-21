@@ -1,21 +1,17 @@
 import { motion } from "framer-motion";
 import { useMemo } from "react";
-import { CreditCard, DollarSign, Truck } from "lucide-react";
+import { CreditCard, DollarSign } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import type { TabItem } from "@/components/shared/TabSwitcher";
 import { useCollegeFeesManagement } from "@/lib/hooks/college/use-college-fees-management";
 import { useCollegeTuitionFeeBalancesDashboard } from "@/lib/hooks/college/use-college-tuition-balances";
-import { useCollegeTransportFeeBalancesDashboard } from "@/lib/hooks/college/use-college-transport-balances";
 import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalancesPanel";
-import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeBalancesPanel";
 import { CollectFee } from "./collect-fee/CollectFee";
 import { CollegeTuitionFeeBalanceStatsCards } from "../tuition-fee-balances/CollegeTuitionFeeBalanceStatsCards";
-import { CollegeTransportFeeBalanceStatsCards } from "../transport-fee-balances/CollegeTransportFeeBalanceStatsCards";
 
 export const FeesManagement = () => {
   // Dashboard stats hooks
   const { data: tuitionDashboardStats, isLoading: tuitionDashboardLoading } = useCollegeTuitionFeeBalancesDashboard();
-  const { data: transportDashboardStats, isLoading: transportDashboardLoading } = useCollegeTransportFeeBalancesDashboard();
   
   const {
     activeTab,
@@ -80,14 +76,6 @@ export const FeesManagement = () => {
         />
       )}
 
-      {/* College Transport Fee Balance Dashboard Stats - Only show when transport-balances tab is active */}
-      {activeTab === 'transport-balances' && transportDashboardStats && (
-        <CollegeTransportFeeBalanceStatsCards
-          stats={transportDashboardStats}
-          loading={transportDashboardLoading}
-        />
-      )}
-
       {/* Main Content Tabs */}
       <TabSwitcher
         tabs={[
@@ -103,16 +91,9 @@ export const FeesManagement = () => {
             icon: DollarSign,
             content: <TuitionFeeBalancesPanel onViewStudent={() => {}} onExportCSV={() => {}} />,
           },
-          {
-            value: "transport-balances",
-            label: "Transport Fee Balances",
-            icon: Truck,
-            content: <TransportFeeBalancesPanel onViewStudent={() => {}} onExportCSV={() => {}} />,
-          },
         ]}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        gridCols="grid-cols-3"
       />
 
     </div>

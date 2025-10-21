@@ -3,7 +3,6 @@ export { PaymentProcessor } from './PaymentProcessor';
 export { PaymentConfirmationDialog } from './PaymentConfirmationDialog';
 export { PaymentSuccess } from './PaymentSuccess';
 export { ReceiptDownload } from './ReceiptDownload';
-export { PaymentDemo } from './PaymentDemo';
 export { ReservationPaymentProcessor } from './ReservationPaymentProcessor';
 
 // Types

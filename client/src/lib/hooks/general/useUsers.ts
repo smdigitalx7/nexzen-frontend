@@ -5,6 +5,7 @@ import type {
   UserCreate, 
   UserUpdate, 
   UserWithRolesAndBranches,
+  UserWithAccesses,
   UserDashboardStats 
 } from '@/lib/types/general/users';
 
@@ -57,6 +58,7 @@ export const useCreateUser = () => {
     mutationFn: (data: UserCreate) => UsersService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: userKeys.rolesAndBranches() });
       queryClient.invalidateQueries({ queryKey: userKeys.dashboard() });
     },
   });
@@ -70,6 +72,7 @@ export const useUpdateUser = () => {
       UsersService.update(id, payload),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: userKeys.rolesAndBranches() });
       queryClient.invalidateQueries({ queryKey: userKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: userKeys.dashboard() });
     },
@@ -83,6 +86,22 @@ export const useDeleteUser = () => {
     mutationFn: (id: number) => UsersService.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: userKeys.rolesAndBranches() });
+      queryClient.invalidateQueries({ queryKey: userKeys.dashboard() });
+    },
+  });
+};
+
+export const useRevokeUserAccess = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ accessId, payload }: { accessId: number; payload: { user_id: number; access_notes?: string } }) => 
+      UsersService.revokeAccess(accessId, payload),
+    onSuccess: (_, { payload }) => {
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: userKeys.rolesAndBranches() });
+      queryClient.invalidateQueries({ queryKey: userKeys.detail(payload.user_id) });
       queryClient.invalidateQueries({ queryKey: userKeys.dashboard() });
     },
   });

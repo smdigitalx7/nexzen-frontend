@@ -92,36 +92,6 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
       transition={{ delay: 0.1 }}
       className="space-y-4"
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Tuition Fee Balances</h2>
-          <p className="text-muted-foreground">
-            Track individual student tuition fee payments and outstanding amounts
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Select value={balanceClass} onValueChange={setBalanceClass}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Select Class" />
-            </SelectTrigger>
-            <SelectContent>
-              {classes.map((cls: any) => (
-                <SelectItem key={cls.class_id} value={cls.class_id?.toString() || ''}>
-                  {cls.class_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button 
-            onClick={() => setBulkCreateOpen(true)}
-            disabled={!classIdNum}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Bulk Create
-          </Button>
-        </div>
-      </div>
 
       <StudentFeeBalancesTable
         studentBalances={rows}
@@ -131,6 +101,7 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
           onViewStudent(student);
         }}
         onExportCSV={onExportCSV}
+        onBulkCreate={() => setBulkCreateOpen(true)}
         showHeader={false}
       />
 

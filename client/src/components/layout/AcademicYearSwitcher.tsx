@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { useAuthStore } from "@/store/authStore";
+import { useAuthStore, type AcademicYear } from "@/store/authStore";
 import { useAcademicYears } from "@/lib/hooks/general/useAcademicYear";
 
 const AcademicYearSwitcher = () => {
@@ -22,7 +22,16 @@ const AcademicYearSwitcher = () => {
     if (academicYears.length > 0) return;
 
     const { setAcademicYears, setAcademicYear } = useAuthStore.getState();
-    setAcademicYears(academicYearsData);
+    
+    // Transform AcademicYearRead to AcademicYear format
+    const transformedData: AcademicYear[] = academicYearsData.map((year: any) => ({
+      ...year,
+      updated_at: year.updated_at ?? null,
+      created_by: year.created_by ?? null,
+      updated_by: year.updated_by ?? null,
+    }));
+    
+    setAcademicYears(transformedData);
     const activeYear = academicYearsData.find((y: any) => y.is_active) || academicYearsData[0];
     if (!academicYear && activeYear) {
       setAcademicYear(activeYear.year_name);
@@ -92,5 +101,3 @@ const AcademicYearSwitcher = () => {
 };
 
 export default AcademicYearSwitcher;
-
-

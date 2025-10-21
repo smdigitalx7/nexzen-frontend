@@ -19,22 +19,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DollarSign, TrendingUp } from "lucide-react";
+import { DollarSign, TrendingUp, Eye } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
-import type { TabItem } from "@/components/shared/TabSwitcher";
 import { useSchoolIncomeList, useSchoolIncomeDashboard } from "@/lib/hooks/school/use-school-income-expenditure";
 import { useSchoolExpenditureList, useSchoolExpenditureDashboard } from "@/lib/hooks/school/use-school-income-expenditure";
-import { FinancialStatsCards } from "@/components/features/school/reports/components/FinancialStatsCards";
 import { IncomeTable } from "@/components/features/school/reports/components/IncomeTable";
 import { ExpenditureTable } from "@/components/features/school/reports/components/ExpenditureTable";
-import { AddIncomeDialog } from "@/components/features/school/reports/components/AddIncomeDialog";
 import { AddExpenditureDialog } from "@/components/features/school/reports/components/AddExpenditureDialog";
 import { SchoolIncomeStatsCards } from "../income/SchoolIncomeStatsCards";
 import { SchoolExpenditureStatsCards } from "../expenditure/SchoolExpenditureStatsCards";
+import { SchoolFinanceReportButtons } from '../reports/components/SchoolFinanceReportButtons';
 
 
 export const SchoolReportsTemplate = () => {
-  const [showAddIncomeDialog, setShowAddIncomeDialog] = useState(false);
   const [showAddExpenditureDialog, setShowAddExpenditureDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("income");
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -47,31 +44,6 @@ export const SchoolReportsTemplate = () => {
   // Fetch dashboard data for financial stats
   const { data: incomeDashboard, error: incomeDashboardError, isLoading: incomeDashboardLoading } = useSchoolIncomeDashboard();
   const { data: expenditureDashboard, error: expenditureDashboardError, isLoading: expenditureDashboardLoading } = useSchoolExpenditureDashboard();
-
-  // Calculate financial metrics from dashboard data
-  const totalRevenue = incomeDashboard?.total_income_amount || 0;
-  const totalExpenses = expenditureDashboard?.total_expenditure_amount || 0;
-  const netProfit = totalRevenue - totalExpenses;
-  const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
-
-  // Utility functions
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-    }).format(amount);
-  };
-
-  const formatCompactCurrency = (amount: number) => {
-    if (amount >= 10000000) {
-      return `₹${(amount / 10000000).toFixed(1)}Cr`;
-    } else if (amount >= 100000) {
-      return `₹${(amount / 100000).toFixed(1)}L`;
-    } else if (amount >= 1000) {
-      return `₹${(amount / 1000).toFixed(1)}K`;
-    }
-    return formatCurrency(amount);
-  };
 
   // Handlers
   const handleExportReport = () => {
@@ -99,10 +71,7 @@ export const SchoolReportsTemplate = () => {
             <BarChart3 className="h-3 w-3" />
             School Financial Reports
           </Badge>
-          <Button onClick={() => setShowExportDialog(true)}>
-            <Download className="h-4 w-4 mr-2" />
-            Export Report
-          </Button>
+          <SchoolFinanceReportButtons />
         </div>
       </motion.div>        
 
@@ -115,28 +84,6 @@ export const SchoolReportsTemplate = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Financial Overview Cards */}
-      {incomeDashboardLoading || expenditureDashboardLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="animate-pulse">
-              <div className="bg-gray-200 rounded-lg h-32"></div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <FinancialStatsCards
-          totalRevenue={totalRevenue}
-          totalExpenses={totalExpenses}
-          netProfit={netProfit}
-          profitMargin={profitMargin}
-          formatCurrency={formatCurrency}
-          formatCompactCurrency={formatCompactCurrency}
-          incomeDashboard={incomeDashboard}
-          expenditureDashboard={expenditureDashboard}
-        />
       )}
 
       {/* Detailed Income Stats Cards - Only show when income tab is active */}
@@ -166,7 +113,6 @@ export const SchoolReportsTemplate = () => {
               <IncomeTable
                 incomeData={incomeData}
                 onExportCSV={() => {}}
-                onAddIncome={() => setShowAddIncomeDialog(true)}
               />
             ),
           },
@@ -185,7 +131,6 @@ export const SchoolReportsTemplate = () => {
         ]}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        gridCols="grid-cols-2"
       />
 
       {/* Export Dialog */}
@@ -236,12 +181,6 @@ export const SchoolReportsTemplate = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Add Income Dialog */}
-      <AddIncomeDialog
-        open={showAddIncomeDialog}
-        onOpenChange={setShowAddIncomeDialog}
-      />
 
       {/* Add Expenditure Dialog */}
       <AddExpenditureDialog

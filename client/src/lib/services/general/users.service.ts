@@ -1,5 +1,5 @@
 import { Api } from "@/lib/api";
-import type { UserRead, UserCreate, UserUpdate, UserWithRolesAndBranches, UserDashboardStats } from "@/lib/types/general/users";
+import type { UserRead, UserCreate, UserUpdate, UserWithRolesAndBranches, UserWithAccesses, UserDashboardStats } from "@/lib/types/general/users";
 
 /**
  * UsersService - Handles all user-related API operations
@@ -46,11 +46,11 @@ export const UsersService = {
   /**
    * Get a specific user by ID
    * @param id - User ID
-   * @returns Promise<UserRead> - User details
+   * @returns Promise<UserWithAccesses> - User details with accesses
    */
-  getById(id: number): Promise<UserRead> {
+  getById(id: number): Promise<UserWithAccesses> {
     console.log(`API: Calling /users/${id} endpoint`);
-    return Api.get<UserRead>(`/users/${id}`);
+    return Api.get<UserWithAccesses>(`/users/${id}`);
   },
 
   /**
@@ -82,6 +82,17 @@ export const UsersService = {
   remove(id: number): Promise<UserRead> {
     console.log(`API: Deleting user ${id}`);
     return Api.delete<UserRead>(`/users/${id}`);
+  },
+
+  /**
+   * Revoke user branch access
+   * @param accessId - Access ID
+   * @param payload - Revoke data with user_id and access_notes
+   * @returns Promise<any> - Revoke response
+   */
+  revokeAccess(accessId: number, payload: { user_id: number; access_notes?: string }): Promise<any> {
+    console.log(`API: Revoking access ${accessId} for user ${payload.user_id}`);
+    return Api.put(`/user-branch-accesses/revoke/${accessId}`, payload);
   },
 };
 

@@ -1,24 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Eye, Download, Search, Filter, Plus, Edit, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Eye, Edit, Trash2 } from "lucide-react";
 import { useUpdateSchoolExpenditure, useDeleteSchoolExpenditure, useSchoolExpenditure } from "@/lib/hooks/school/use-school-income-expenditure";
 import type { SchoolExpenditureRead } from "@/lib/types/school";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
@@ -27,31 +9,24 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { useTableState } from "@/lib/hooks/common/useTableState";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
+import { createTextColumn, createCurrencyColumn, createActionColumn } from "@/lib/utils/columnFactories";
+import type { ColumnDef } from "@tanstack/react-table";
 
 interface ExpenditureTableProps {
   expenditureData: SchoolExpenditureRead[];
   onExportCSV?: () => void;
   onAddExpenditure?: () => void;
-  title?: string;
-  description?: string;
-  showHeader?: boolean;
 }
-
 
 export const ExpenditureTable = ({
   expenditureData,
   onExportCSV,
   onAddExpenditure,
-  title = "Expenditure Records",
-  description = "Track all expenditure transactions and payments",
-  showHeader = true,
 }: ExpenditureTableProps) => {
   // Using shared table state management
   const {
-    searchTerm,
-    setSearchTerm,
-    filters,
-    setFilters,
     showEditDialog,
     showDeleteDialog,
     openEditDialog,
@@ -60,9 +35,7 @@ export const ExpenditureTable = ({
     closeDeleteDialog,
     selectedItem: selectedExpenditure,
     setSelectedItem: setSelectedExpenditure,
-  } = useTableState({
-    initialFilters: { purpose: "all" }
-  });
+  } = useTableState();
 
   // View dialog state
   const [showViewDialog, setShowViewDialog] = useState(false);
@@ -71,13 +44,11 @@ export const ExpenditureTable = ({
   // Fetch expenditure details for viewing
   const { data: viewExpenditure, isLoading: isViewLoading, error: viewError } = useSchoolExpenditure(viewExpenditureId);
   
-  const selectedPurpose = filters.purpose || "all";
   const [editForm, setEditForm] = useState({
     expenditure_purpose: "",
     amount: "",
     bill_date: "",
     payment_method: "",
-    payment_date: "",
     remarks: "",
   });
 
@@ -85,23 +56,14 @@ export const ExpenditureTable = ({
   const [updateId, setUpdateId] = useState<number | null>(null);
   const updateExpenditureMutation = useUpdateSchoolExpenditure(updateId ?? 0);
 
-  const filteredExpenditure = useMemo(() => {
-    return expenditureData.filter((expenditure) => {
-      const searchMatch = searchTerm === "" || 
-        expenditure.expenditure_purpose.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        expenditure.remarks?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const purposeMatch = selectedPurpose === "all" || expenditure.expenditure_purpose === selectedPurpose;
-      
-      return searchMatch && purposeMatch;
-    });
-  }, [expenditureData, searchTerm, selectedPurpose]);
-
   const uniquePurposes = Array.from(new Set(expenditureData.map(e => e.expenditure_purpose)));
 
-  const totalAmount = filteredExpenditure.reduce((sum, expenditure) => sum + expenditure.amount, 0);
-
   const handleEdit = (expenditure: SchoolExpenditureRead) => {
+    if (!expenditure || !expenditure.expenditure_id) {
+      console.error("Invalid expenditure object:", expenditure);
+      return;
+    }
+    console.log("handleEdit called with expenditure:", expenditure);
     setSelectedExpenditure(expenditure);
     setUpdateId(expenditure.expenditure_id);
     setEditForm({
@@ -109,24 +71,29 @@ export const ExpenditureTable = ({
       amount: expenditure.amount.toString(),
       bill_date: expenditure.bill_date,
       payment_method: expenditure.payment_method || "",
-      payment_date: expenditure.payment_date || "",
       remarks: expenditure.remarks || "",
     });
     openEditDialog(expenditure);
   };
 
   const handleDelete = (expenditure: SchoolExpenditureRead) => {
+    if (!expenditure || !expenditure.expenditure_id) {
+      console.error("Invalid expenditure object:", expenditure);
+      return;
+    }
+    console.log("handleDelete called with expenditure:", expenditure);
     setSelectedExpenditure(expenditure);
     openDeleteDialog(expenditure);
   };
 
   const handleView = (expenditure: SchoolExpenditureRead) => {
+    if (!expenditure || !expenditure.expenditure_id) {
+      console.error("Invalid expenditure object:", expenditure);
+      return;
+    }
+    console.log("handleView called with expenditure:", expenditure);
     setViewExpenditureId(expenditure.expenditure_id);
     setShowViewDialog(true);
-  };
-
-  const handlePurposeFilterChange = (value: string) => {
-    setFilters(prev => ({ ...prev, purpose: value }));
   };
 
   const handleUpdateExpenditure = async () => {
@@ -138,7 +105,6 @@ export const ExpenditureTable = ({
         amount: parseFloat(editForm.amount),
         bill_date: editForm.bill_date,
         payment_method: editForm.payment_method && editForm.payment_method.trim() !== "" ? editForm.payment_method : null,
-        payment_date: editForm.payment_date && editForm.payment_date.trim() !== "" ? editForm.payment_date : null,
         remarks: editForm.remarks && editForm.remarks.trim() !== "" ? editForm.remarks : null,
       });
       closeEditDialog();
@@ -158,6 +124,81 @@ export const ExpenditureTable = ({
     }
   };
 
+  // Define columns for EnhancedDataTable
+  const columns: ColumnDef<SchoolExpenditureRead>[] = [
+    {
+      id: 'bill_date',
+      header: 'Bill Date',
+      cell: ({ row }) => {
+        const value = row.original.bill_date;
+        console.log("Bill date cell - value:", value);
+        return formatDate(value);
+      },
+    },
+    createTextColumn<SchoolExpenditureRead>("expenditure_purpose", { header: "Purpose" }),
+    createCurrencyColumn<SchoolExpenditureRead>("amount", { 
+      header: "Amount",
+      className: "text-red-600 font-bold",
+    }),
+    {
+      id: 'payment_method',
+      header: 'Payment Method',
+      cell: ({ row }) => {
+        const value = row.original.payment_method;
+        console.log("Payment method cell - value:", value);
+        return value || "-";
+      },
+    },
+    {
+      id: 'remarks',
+      header: 'Remarks',
+      cell: ({ row }) => {
+        const value = row.original.remarks;
+        console.log("Remarks cell - value:", value);
+        return value || "-";
+      },
+    },
+    createActionColumn<SchoolExpenditureRead>([
+      {
+        icon: Eye,
+        label: "View Expenditure",
+        onClick: (expenditure: SchoolExpenditureRead) => {
+          console.log("View clicked - expenditure:", expenditure);
+          handleView(expenditure);
+        },
+      },
+      {
+        icon: Edit,
+        label: "Edit Expenditure",
+        onClick: (expenditure: SchoolExpenditureRead) => {
+          console.log("Edit clicked - expenditure:", expenditure);
+          handleEdit(expenditure);
+        },
+      },
+      {
+        icon: Trash2,
+        label: "Delete Expenditure",
+        onClick: (expenditure: SchoolExpenditureRead) => {
+          console.log("Delete clicked - expenditure:", expenditure);
+          handleDelete(expenditure);
+        },
+      },
+    ]),
+  ];
+
+  // Prepare filter options for EnhancedDataTable
+  const filterOptions = [
+    {
+      key: 'expenditure_purpose',
+      label: 'Purpose',
+      options: uniquePurposes.map(purpose => ({ value: purpose, label: purpose })),
+      value: 'all',
+      onChange: (value: string) => {
+        // This will be handled by EnhancedDataTable's built-in filtering
+      }
+    }
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -165,138 +206,19 @@ export const ExpenditureTable = ({
       transition={{ delay: 0.3 }}
       className="space-y-4"
     >
-      {/* Header and Actions */}
-      {showHeader && (
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold">{title}</h2>
-            <p className="text-muted-foreground">
-              {description}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {onAddExpenditure && (
-              <Button onClick={onAddExpenditure} variant="default">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Expenditure
-              </Button>
-            )}
-            {onExportCSV && (
-              <Button onClick={onExportCSV} variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="flex items-center gap-4">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by purpose or remarks..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 max-w-sm"
-            />
-          </div>
-        </div>
-        <Select value={selectedPurpose} onValueChange={handlePurposeFilterChange}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by purpose" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Purposes</SelectItem>
-            {uniquePurposes.map((purpose) => (
-              <SelectItem key={purpose} value={purpose}>
-                {purpose}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Table */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Bill Date</TableHead>
-              <TableHead>Purpose</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Payment Method</TableHead>
-              <TableHead>Payment Date</TableHead>
-              <TableHead>Remarks</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredExpenditure.map((expenditure) => (
-              <TableRow key={expenditure.expenditure_id}>
-                <TableCell className="text-sm">
-                  {formatDate(expenditure.bill_date)}
-                </TableCell>
-                <TableCell className="font-medium">
-                  {expenditure.expenditure_purpose}
-                </TableCell>
-                <TableCell className="text-red-600 font-bold">
-                  {formatCurrency(expenditure.amount)}
-                </TableCell>
-                <TableCell>
-                  {expenditure.payment_method || "-"}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {expenditure.payment_date ? formatDate(expenditure.payment_date) : "-"}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {expenditure.remarks || "-"}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleView(expenditure)}
-                      title="View Expenditure"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(expenditure)}
-                      title="Edit Expenditure"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(expenditure)}
-                      title="Delete Expenditure"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Summary */}
-      <div className="grid grid-cols-1 gap-4 p-4 bg-muted/50 rounded-lg">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-red-600">
-            {formatCurrency(totalAmount)}
-          </div>
-          <div className="text-sm text-muted-foreground">Total Expenditure</div>
-        </div>
-      </div>
+      <EnhancedDataTable
+        data={expenditureData}
+        columns={columns}
+        title="Expenditure Records"
+        description="Track all expenditure transactions and payments"
+        searchKey="expenditure_purpose"
+        searchPlaceholder="Search by purpose or remarks..."
+        exportable={!!onExportCSV}
+        onExport={onExportCSV}
+        onAdd={onAddExpenditure}
+        addButtonText="Add Expenditure"
+        filters={filterOptions}
+      />
 
       {/* Edit Dialog */}
       <FormDialog
@@ -343,15 +265,6 @@ export const ExpenditureTable = ({
                 id="payment_method"
                 value={editForm.payment_method}
                 onChange={(e) => setEditForm(prev => ({ ...prev, payment_method: e.target.value }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="payment_date">Payment Date</Label>
-              <Input
-                id="payment_date"
-                type="date"
-                value={editForm.payment_date}
-                onChange={(e) => setEditForm(prev => ({ ...prev, payment_date: e.target.value }))}
               />
             </div>
             <div>

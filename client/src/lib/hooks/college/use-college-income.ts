@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeIncomeService } from "@/lib/services/college/income.service";
-import type { CollegeIncomeCreate, CollegeIncomeCreateReservation, CollegeIncomeRead, CollegeIncomeUpdate, CollegeIncomeDashboardStats, CollegeRecentIncome } from "@/lib/types/college/index.ts";
+import type { CollegeIncomeCreate, CollegeIncomeCreateReservation, CollegeIncomeRead, CollegeIncomeUpdate, CollegeIncomeDashboardStats, CollegeRecentIncome, CollegeFinanceReport, CollegeFinanceReportParams } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 
 export function useCollegeIncomeList(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string }) {
@@ -61,5 +61,13 @@ export function useCollegeIncomeRecent(limit?: number) {
   return useQuery({
     queryKey: [...collegeKeys.income.root(), "recent", { limit }],
     queryFn: () => CollegeIncomeService.recent(limit),
+  });
+}
+
+export function useCollegeFinanceReport(params?: CollegeFinanceReportParams) {
+  return useQuery({
+    queryKey: [...collegeKeys.income.root(), "finance-report", params],
+    queryFn: () => CollegeIncomeService.getFinanceReport(params) as Promise<CollegeFinanceReport[]>,
+    enabled: true, // Always enabled since params are optional
   });
 }
