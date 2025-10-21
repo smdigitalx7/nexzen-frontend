@@ -1,5 +1,5 @@
 import { Api } from "@/lib/api";
-import { CollegeIncomeCreate, CollegeIncomeCreateReservation, CollegeIncomeRead, CollegeIncomeUpdate, CollegeIncomeDashboardStats, CollegeRecentIncome, CollegeIncomeReceipt } from "@/lib/types/college";
+import { CollegeIncomeCreate, CollegeIncomeCreateReservation, CollegeIncomeRead, CollegeIncomeUpdate, CollegeIncomeDashboardStats, CollegeRecentIncome, CollegeIncomeReceipt, CollegeFinanceReport, CollegeFinanceReportParams } from "@/lib/types/college";
 
 export interface CollegeIncomeListParams {
   admission_no?: string;
@@ -74,6 +74,11 @@ export const CollegeIncomeService = {
   // GET /api/v1/college/income?reservation_id={reservation_id}
   getByReservationId(reservation_id: number) {
     return Api.get<CollegeIncomeRead[]>(`/college/income`, { reservation_id });
+  },
+
+  // GET /api/v1/college/income/finance-report
+  getFinanceReport(params?: CollegeFinanceReportParams) {
+    return Api.get<CollegeFinanceReport[]>(`/college/income/finance-report`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
 };
 

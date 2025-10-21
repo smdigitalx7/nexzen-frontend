@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Search, Download, Edit, Trash2, FileText, Calculator, Award, BarChart3, Target, ClipboardList, Eye } from 'lucide-react';
+import { ClipboardList } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,9 +22,8 @@ import {
   useUpdateSchoolTestMark,
   useDeleteSchoolTestMark
 } from '@/lib/hooks/school/use-school-test-marks';
-import { useSchoolClasses } from '@/lib/hooks/school/use-school-classes';
+import { useSchoolClasses, useSchoolSections, useSchoolSubjects } from '@/lib/hooks/school/use-school-dropdowns';
 import { useSchoolStudentsList } from '@/lib/hooks/school/use-school-students';
-import { useSchoolSubjects } from '@/lib/hooks/school/use-school-subjects';
 import { useSchoolTests } from '@/lib/hooks/school/use-school-exams-tests';
 import type { TestMarkWithDetails } from '@/lib/types/school/test-marks';
 import {
@@ -66,10 +65,16 @@ const testMarkFormSchema = z.object({
   remarks: z.string().optional(),
 });
 
-const TestMarksManagement = () => {
+interface TestMarksManagementProps {
+  onDataChange?: (data: any[]) => void;
+}
+
+const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
   
   const [selectedClass, setSelectedClass] = useState('');
+  const [selectedSection, setSelectedSection] = useState('all');
   const [selectedSubject, setSelectedSubject] = useState('all');
+  const [selectedGrade, setSelectedGrade] = useState('all');
   
   // Dialog states
   const [showTestMarkDialog, setShowTestMarkDialog] = useState(false);
@@ -79,18 +84,31 @@ const TestMarksManagement = () => {
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   // API hooks
-  const { data: classes = [] } = useSchoolClasses();
-  
+  const { data: classesData, isLoading: classesLoading, error: classesError } = useSchoolClasses();
+  const { data: sectionsData, isLoading: sectionsLoading, error: sectionsError } = useSchoolSections(selectedClass ? parseInt(selectedClass) : 0);
+  const { data: subjectsData, isLoading: subjectsLoading, error: subjectsError } = useSchoolSubjects(selectedClass ? parseInt(selectedClass) : 0);
+  const { data: studentsData } = useSchoolStudentsList();
+  const students = studentsData?.data || [];
+  const { data: testsData } = useSchoolTests();
+
+  // Extract items from response data
+  const classes = classesData?.items || [];
+  const sections = sectionsData?.items || [];
+  const subjects = subjectsData?.items || [];
+  const tests = testsData || [];
+
   // Auto-select first class when available
   useEffect(() => {
     if (!selectedClass && classes.length > 0) {
       setSelectedClass(classes[0].class_id.toString());
     }
   }, [selectedClass, classes]);
-  const { data: studentsData } = useSchoolStudentsList();
-  const students = studentsData?.data || [];
-  const { data: subjects = [] } = useSchoolSubjects();
-  const { data: tests = [] } = useSchoolTests();
+
+  // Reset section and subject when class changes
+  useEffect(() => {
+    setSelectedSection('all');
+    setSelectedSubject('all');
+  }, [selectedClass]);
 
   // Single test mark view data (enabled only when an id is set)
   const viewQuery = useSchoolTestMark(viewingTestMarkId || 0);
@@ -98,13 +116,22 @@ const TestMarksManagement = () => {
   const viewTestLoading = viewingTestMarkId ? viewQuery.isLoading : false;
   const viewTestError = viewingTestMarkId ? viewQuery.error : null;
 
-  // Test marks hooks - only fetch when class is selected
-  const { data: testMarksData, isLoading: testMarksLoading, error: testMarksError } = useSchoolTestMarksList(
-    selectedClass ? {
+  // Test marks query - only filter by class (server-side)
+  const testMarksQuery = useMemo(() => {
+    if (!selectedClass || isNaN(parseInt(selectedClass))) {
+      return undefined;
+    }
+    
+    // Only fetch by class, let client-side handle other filters
+    const query: any = {
       class_id: parseInt(selectedClass),
-      subject_id: selectedSubject !== 'all' ? parseInt(selectedSubject) : undefined,
-    } : undefined
-  );
+    };
+    
+    return query;
+  }, [selectedClass]);
+
+  // Test marks hooks - only fetch when class is selected
+  const { data: testMarksData, isLoading: testMarksLoading, error: testMarksError } = useSchoolTestMarksList(testMarksQuery);
   const createTestMarkMutation = useCreateSchoolTestMark();
   const updateTestMarkMutation = useUpdateSchoolTestMark(editingTestMark?.test_mark_id || 0);
   const deleteTestMarkMutation = useDeleteSchoolTestMark();
@@ -199,40 +226,40 @@ const TestMarksManagement = () => {
     return items;
   }, [testMarksData]);
 
+  // Apply client-side filtering for section, subject, and grade
+  const filteredMarks = useMemo(() => {
+    let filtered = flattenedMarks;
+    
+    // Apply section filter (client-side)
+    if (selectedSection !== 'all') {
+      filtered = filtered.filter(mark => mark.section_name === selectedSection);
+    }
+    
+    // Apply subject filter (client-side)
+    if (selectedSubject !== 'all') {
+      filtered = filtered.filter(mark => mark.subject_name === selectedSubject);
+    }
+    
+    // Apply grade filter (client-side)
+    if (selectedGrade !== 'all') {
+      filtered = filtered.filter(mark => mark.grade === selectedGrade);
+    }
+    
+    return filtered;
+  }, [flattenedMarks, selectedSection, selectedSubject, selectedGrade]);
+
   const { searchTerm, setSearchTerm, filteredItems: testMarks } = useSearchFilters<TestMarkWithDetails>(
-    flattenedMarks,
+    filteredMarks,
     { keys: ['student_name', 'subject_name', 'roll_number'] as any }
   );
 
-  // Statistics calculations
-  const testStatistics = useMemo(() => {
-    const totalMarks = testMarks.length;
-    const avgPercentage = testMarks.length > 0 ? 
-      testMarks.reduce((sum, mark) => sum + (mark.percentage || 0), 0) / testMarks.length : 0;
-    
-    const passCount = testMarks.filter(mark => (mark.percentage || 0) >= 35).length;
-    const passPercentage = totalMarks > 0 ? (passCount / totalMarks * 100).toFixed(1) : '0';
-    
-    const gradeDistribution = testMarks.reduce((acc, mark) => {
-      const grade = mark.grade || 'F';
-      acc[grade] = (acc[grade] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+  // Notify parent component when data changes
+  useEffect(() => {
+    if (onDataChange) {
+      onDataChange(testMarks);
+    }
+  }, [testMarks, onDataChange]);
 
-    const topPerformers = testMarks
-      .slice()
-      .sort((a, b) => (b.percentage || 0) - (a.percentage || 0))
-      .slice(0, 3);
-
-    return {
-      totalMarks,
-      avgPercentage: avgPercentage.toFixed(1),
-      passCount,
-      passPercentage,
-      gradeDistribution,
-      topPerformers,
-    };
-  }, [testMarks]);
 
 
   // Grade colors mapping
@@ -271,32 +298,8 @@ const TestMarksManagement = () => {
             animate={{ opacity: 1, y: 0 }}
             className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
           >
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">Test Marks Management</h1>
-              <p className="text-slate-600 mt-1">Track test results and academic performance</p>
-              {!selectedClass && (
-                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-700">
-                    💡 <strong>Tip:</strong> Select a class from the dropdown below to view test marks data.
-                  </p>
-                </div>
-              )}
-            </div>
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="hover-elevate"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export
-              </Button>
               <Dialog open={showTestMarkDialog} onOpenChange={setShowTestMarkDialog}>
-                <DialogTrigger asChild>
-                  <Button className="hover-elevate" >
-                    <ClipboardList className="mr-2 h-4 w-4" />
-                    Add Test Marks
-                  </Button>
-                </DialogTrigger>
                 <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
                   <DialogTitle>{editingTestMark ? 'Edit Test Mark' : 'Add New Test Mark'}</DialogTitle>
@@ -499,66 +502,6 @@ const TestMarksManagement = () => {
             </div>
           </motion.div>
 
-          {/* Statistics Cards */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
-          >
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Total Test Marks</p>
-                    <p className="text-2xl font-bold text-slate-900">{testStatistics.totalMarks}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
-                    <Calculator className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Avg Score</p>
-                    <p className="text-2xl font-bold text-slate-900">{testStatistics.avgPercentage}%</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-                    <Target className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Pass Rate</p>
-                    <p className="text-2xl font-bold text-slate-900">{testStatistics.passPercentage}%</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-                    <Trophy className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Top Score</p>
-                    <p className="text-2xl font-bold text-slate-900">{testStatistics.topPerformers[0]?.percentage || 0}%</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
 
           {/* Main Content */}
           <motion.div
@@ -567,43 +510,81 @@ const TestMarksManagement = () => {
             transition={{ delay: 0.2 }}
             className="space-y-6"
           >
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search students, subjects..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+            {/* Unified Filter Controls */}
+            <Card className="p-4">
+              <div className="flex flex-wrap gap-4 items-center">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">Class:</label>
+                  <Select value={selectedClass || 'all'} onValueChange={(value) => setSelectedClass(value === 'all' ? '' : value)}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Select class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Classes</SelectItem>
+                      {classes.map((cls) => (
+                        <SelectItem key={cls.class_id} value={cls.class_id.toString()}>
+                          {cls.class_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">Section:</label>
+                  <Select value={selectedSection} onValueChange={setSelectedSection}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="All Sections" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Sections</SelectItem>
+                      {sections.map((section) => (
+                        <SelectItem key={section.section_id} value={section.section_name}>
+                          {section.section_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">Subject:</label>
+                  <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="All Subjects" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Subjects</SelectItem>
+                      {subjects.map((subject) => (
+                        <SelectItem key={subject.subject_id} value={subject.subject_name}>
+                          {subject.subject_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">Grade:</label>
+                  <Select value={selectedGrade} onValueChange={setSelectedGrade}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="All Grades" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Grades</SelectItem>
+                      <SelectItem value="A+">A+</SelectItem>
+                      <SelectItem value="A">A</SelectItem>
+                      <SelectItem value="B+">B+</SelectItem>
+                      <SelectItem value="B">B</SelectItem>
+                      <SelectItem value="C+">C+</SelectItem>
+                      <SelectItem value="C">C</SelectItem>
+                      <SelectItem value="D">D</SelectItem>
+                      <SelectItem value="F">F</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger className="w-full sm:w-[150px]" >
-                  <SelectValue placeholder="Select Class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((cls: any) => (
-                    <SelectItem key={cls.class_id} value={cls.class_id?.toString() || ''}>
-                      {cls.class_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                <SelectTrigger className="w-full sm:w-[150px]" >
-                  <SelectValue placeholder="All Subjects" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Subjects</SelectItem>
-                  {subjects.map((subject: any) => (
-                    <SelectItem key={subject.subject_id} value={subject.subject_id?.toString() || ''}>
-                      {subject.subject_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            </Card>
 
             {/* Data Table */}
             {!selectedClass ? (
@@ -653,7 +634,13 @@ const TestMarksManagement = () => {
             ) : (
               <EnhancedDataTable
                 data={testMarks}
+                title="Test Marks"
+                description="Manage test marks for students"
+                searchKey={['student_name', 'roll_number', 'class_name', 'section_name', 'test_name', 'subject_name'] as any}
+                searchPlaceholder="Search students..."
                 columns={testMarkColumns}
+                onAdd={() => setShowTestMarkDialog(true)}
+                addButtonText="Add Test Mark"
                 exportable={true}
               />
             ))}

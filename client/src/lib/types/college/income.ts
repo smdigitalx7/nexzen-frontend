@@ -83,3 +83,62 @@ export interface CollegeIncomeDashboardStats {
   income_records_this_year: number;
 }
 
+// Finance Report Types
+export interface CollegeFinanceReportIncomeItem {
+  sNo: number;
+  receipt_no: string;
+  identity_no: string;
+  student_name: string;
+  purpose: string;
+  payment_method: string;
+  amount: number;
+  created_by: string;
+}
+
+export interface CollegeFinanceReportExpenditureItem {
+  sNo: number;
+  expenditure_id: number;
+  voucher_no: string;
+  bill_date: string;
+  purpose: string;
+  amount: number;
+  payment_method: string;
+  created_by: string;
+}
+
+export interface CollegeFinanceReportIncomeObject {
+  income_list: CollegeFinanceReportIncomeItem[];
+  total_income: number;
+  income_count: number;
+}
+
+export interface CollegeFinanceReportExpenditureObject {
+  expenditure_list: CollegeFinanceReportExpenditureItem[];
+  total_expenditure: number;
+  expenditure_count: number;
+}
+
+export interface CollegeFinanceReport {
+  branch_id: number;
+  branch_name: string;
+  branch_type: string;
+  branch_address: string;
+  branch_phone: string;
+  branch_email: string;
+  institute_name: string;
+  report_date: string;
+  income_object: CollegeFinanceReportIncomeObject;
+  expenditure_object: CollegeFinanceReportExpenditureObject;
+  total_income: number;
+  total_expenditure: number;
+  profit_loss: number;
+  financial_status: string;
+  generated_date: string;
+  generated_at: string;
+}
+
+export interface CollegeFinanceReportParams {
+  start_date?: string;
+  end_date?: string;
+}
+

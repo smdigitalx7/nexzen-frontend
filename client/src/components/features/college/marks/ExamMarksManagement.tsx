@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Search, Download, FileText, Calculator, Target, GraduationCap } from 'lucide-react';
+import { Search, Download, GraduationCap } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { EnhancedDataTable } from '@/components/shared';
-import { useSearchFilters } from '@/lib/hooks/common';
 import { 
   useCollegeExamMarksList, 
   useCollegeExamMark,
@@ -67,7 +66,11 @@ const examMarkFormSchema = z.object({
   remarks: z.string().optional(),
 });
 
-const ExamMarksManagement = () => {
+interface ExamMarksManagementProps {
+  onDataChange?: (data: any[]) => void;
+}
+
+const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange }) => {
   // State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
@@ -217,40 +220,15 @@ const ExamMarksManagement = () => {
     return examMarksData as ExamMarkRow[];
   }, [examMarksData]);
 
-  const { searchTerm, setSearchTerm, filteredItems: examMarks } = useSearchFilters<ExamMarkRow>(
-    flattenedMarks,
-    { keys: ['student_name', 'subject_name', 'roll_number'] as any }
-  );
+  const examMarks = flattenedMarks;
 
-  // Statistics calculations
-  const examStatistics = useMemo(() => {
-    const totalMarks = examMarks.length;
-    const avgPercentage = examMarks.length > 0 ? 
-      examMarks.reduce((sum, mark) => sum + (mark.percentage || 0), 0) / examMarks.length : 0;
-    
-    const passCount = examMarks.filter(mark => (mark.percentage || 0) >= 35).length;
-    const passPercentage = totalMarks > 0 ? (passCount / totalMarks * 100).toFixed(1) : '0';
-    
-    const gradeDistribution = examMarks.reduce((acc, mark) => {
-      const grade = mark.grade || 'F';
-      acc[grade] = (acc[grade] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+  // Notify parent component when data changes
+  useEffect(() => {
+    if (onDataChange) {
+      onDataChange(examMarks);
+    }
+  }, [examMarks, onDataChange]);
 
-    const topPerformers = examMarks
-      .slice()
-      .sort((a, b) => (b.percentage || 0) - (a.percentage || 0))
-      .slice(0, 3);
-
-    return {
-      totalMarks,
-      avgPercentage: avgPercentage.toFixed(1),
-      passCount,
-      passPercentage,
-      gradeDistribution,
-      topPerformers,
-    };
-  }, [examMarks]);
 
   // Grade colors mapping
   const gradeColors = {
@@ -288,33 +266,8 @@ const ExamMarksManagement = () => {
             animate={{ opacity: 1, y: 0 }}
             className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
           >
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">Exam Marks Management</h1>
-              <p className="text-slate-600 mt-1">Track exam results and academic performance</p>
-              {!selectedClass && (
-                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-700">
-                    💡 <strong>Tip:</strong> Select a class from the dropdown below to view exam marks data.
-                  </p>
-                </div>
-              )}
-            </div>
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="hover-elevate"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export
-              </Button>
               <Dialog open={showExamMarkDialog} onOpenChange={setShowExamMarkDialog}>
-                <DialogTrigger asChild>
-                  <Button className="hover-elevate">
-                    <GraduationCap className="mr-2 h-4 w-4" />
-                    Add Exam Marks
-                  </Button>
-                </DialogTrigger>
-                {/* Exam Marks Dialog */}
                 <DialogContent className="sm:max-w-[600px]">
                   <DialogHeader>
                     <DialogTitle>{editingExamMark ? 'Edit Exam Mark' : 'Add New Exam Mark'}</DialogTitle>
@@ -335,7 +288,7 @@ const ExamMarksManagement = () => {
                               </FormControl>
                               <SelectContent>
                                 {students.map((student: any) => (
-                                  <SelectItem key={student.student_id} value={student.student_id.toString()}>
+                                  <SelectItem key={student.student_id} value={student.student_id?.toString() || ''}>
                                     {student.student_name} ({student.admission_no})
                                   </SelectItem>
                                 ))}
@@ -360,7 +313,7 @@ const ExamMarksManagement = () => {
                                 </FormControl>
                                 <SelectContent>
                                   {exams.map((exam: any) => (
-                                    <SelectItem key={exam.id} value={exam.id.toString()}>
+                                    <SelectItem key={exam.exam_id || exam.id} value={(exam.exam_id || exam.id)?.toString() || ''}>
                                       {exam.exam_name}
                                     </SelectItem>
                                   ))}
@@ -384,7 +337,7 @@ const ExamMarksManagement = () => {
                                 </FormControl>
                                 <SelectContent>
                                   {subjects.map((subject: any) => (
-                                    <SelectItem key={subject.subject_id} value={subject.subject_id.toString()}>
+                                    <SelectItem key={subject.subject_id} value={subject.subject_id?.toString() || ''}>
                                       {subject.subject_name}
                                     </SelectItem>
                                   ))}
@@ -517,66 +470,6 @@ const ExamMarksManagement = () => {
             </div>
           </motion.div>
 
-          {/* Statistics Cards */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
-          >
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Total Exam Marks</p>
-                    <p className="text-2xl font-bold text-slate-900">{examStatistics.totalMarks}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
-                    <Calculator className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Avg Score</p>
-                    <p className="text-2xl font-bold text-slate-900">{examStatistics.avgPercentage}%</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-                    <Target className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Pass Rate</p>
-                    <p className="text-2xl font-bold text-slate-900">{examStatistics.passPercentage}%</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-                    <Trophy className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Top Score</p>
-                    <p className="text-2xl font-bold text-slate-900">{examStatistics.topPerformers[0]?.percentage || 0}%</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
 
           {/* Main Content */}
           <motion.div
@@ -587,15 +480,6 @@ const ExamMarksManagement = () => {
           >
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search students, subjects..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
               <Select value={selectedClass} onValueChange={setSelectedClass}>
                 <SelectTrigger className="w-full sm:w-[150px]" >
                   <SelectValue placeholder="Select Class" />
@@ -713,7 +597,13 @@ const ExamMarksManagement = () => {
             ) : (
               <EnhancedDataTable
                 data={examMarks}
+                title="Exam Marks"
+                description="Manage exam marks for students"
+                searchKey={['student_name', 'roll_number', 'class_name', 'section_name', 'exam_name', 'subject_name'] as any}
+                searchPlaceholder="Search students..."
                 columns={examMarkColumns}
+                onAdd={() => setShowExamMarkDialog(true)}
+                addButtonText="Add Exam Mark"
                 exportable={true}
               />
             ))}

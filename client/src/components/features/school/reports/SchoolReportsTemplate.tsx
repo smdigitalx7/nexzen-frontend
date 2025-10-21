@@ -28,6 +28,7 @@ import { ExpenditureTable } from "@/components/features/school/reports/component
 import { AddExpenditureDialog } from "@/components/features/school/reports/components/AddExpenditureDialog";
 import { SchoolIncomeStatsCards } from "../income/SchoolIncomeStatsCards";
 import { SchoolExpenditureStatsCards } from "../expenditure/SchoolExpenditureStatsCards";
+import { SchoolFinanceReportButtons } from '../reports/components/SchoolFinanceReportButtons';
 
 
 export const SchoolReportsTemplate = () => {
@@ -70,10 +71,7 @@ export const SchoolReportsTemplate = () => {
             <BarChart3 className="h-3 w-3" />
             School Financial Reports
           </Badge>
-          <Button onClick={() => setShowExportDialog(true)}>
-            <Download className="h-4 w-4 mr-2" />
-            Export Report
-          </Button>
+          <SchoolFinanceReportButtons />
         </div>
       </motion.div>        
 

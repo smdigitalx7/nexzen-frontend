@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Search, Download, FileText, Calculator, Target, GraduationCap } from 'lucide-react';
+import { GraduationCap } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { EnhancedDataTable } from '@/components/shared';
-import { useSearchFilters } from '@/lib/hooks/common';
 import { 
   useSchoolExamMarksList, 
   useSchoolExamMark,
@@ -21,9 +20,8 @@ import {
   useUpdateSchoolExamMark, 
   useDeleteSchoolExamMark
 } from '@/lib/hooks/school/use-school-exam-marks';
-import { useSchoolClasses } from '@/lib/hooks/school/use-school-classes';
+import { useSchoolClasses, useSchoolSections, useSchoolSubjects } from '@/lib/hooks/school/use-school-dropdowns';
 import { useSchoolStudentsList } from '@/lib/hooks/school/use-school-students';
-import { useSchoolSubjects } from '@/lib/hooks/school/use-school-subjects';
 import { useSchoolExams } from '@/lib/hooks/school/use-school-exams-tests';
 import type { ExamMarkWithDetails } from '@/lib/types/school/exam-marks';
 import {
@@ -65,11 +63,16 @@ const examMarkFormSchema = z.object({
   remarks: z.string().optional(),
 });
 
-const ExamMarksManagement = () => {
+interface ExamMarksManagementProps {
+  onDataChange?: (data: any[]) => void;
+}
+
+const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
   // State
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
+  const [selectedSection, setSelectedSection] = useState('all');
   const [selectedSubject, setSelectedSubject] = useState('all');
+  const [selectedGrade, setSelectedGrade] = useState('all');
   
   // Dialog states
   const [showExamMarkDialog, setShowExamMarkDialog] = useState(false);
@@ -79,7 +82,19 @@ const ExamMarksManagement = () => {
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   // API hooks
-  const { data: classes = [] } = useSchoolClasses();
+  const { data: classesData, isLoading: classesLoading, error: classesError } = useSchoolClasses();
+  const { data: sectionsData, isLoading: sectionsLoading, error: sectionsError } = useSchoolSections(selectedClass ? parseInt(selectedClass) : 0);
+  const { data: subjectsData, isLoading: subjectsLoading, error: subjectsError } = useSchoolSubjects(selectedClass ? parseInt(selectedClass) : 0);
+  const { data: studentsData } = useSchoolStudentsList();
+  const students = studentsData?.data || [];
+  const { data: examsData } = useSchoolExams();
+
+  // Extract items from response data
+  const classes = classesData?.items || [];
+  const sections = sectionsData?.items || [];
+  const subjects = subjectsData?.items || [];
+  const exams = examsData || [];
+
 
   // Auto-select first class when available
   useEffect(() => {
@@ -87,10 +102,12 @@ const ExamMarksManagement = () => {
       setSelectedClass(classes[0].class_id.toString());
     }
   }, [selectedClass, classes]);
-  const { data: studentsData } = useSchoolStudentsList();
-  const students = studentsData?.data || [];
-  const { data: subjects = [] } = useSchoolSubjects();
-  const { data: exams = [] } = useSchoolExams();
+
+  // Reset section and subject when class changes
+  useEffect(() => {
+    setSelectedSection('all');
+    setSelectedSubject('all');
+  }, [selectedClass]);
 
   // Single exam mark view data (enabled only when an id is set)
   const viewQuery = useSchoolExamMark(viewingExamMarkId || 0);
@@ -104,18 +121,16 @@ const ExamMarksManagement = () => {
       return undefined;
     }
     
+    // Only fetch by class, let EnhancedDataTable handle other filters
     const query: any = {
       class_id: parseInt(selectedClass),
     };
     
-    if (selectedSubject !== 'all' && !isNaN(parseInt(selectedSubject))) {
-      query.subject_id = parseInt(selectedSubject);
-    }
-    
     return query;
-  }, [selectedClass, selectedSubject]);
+  }, [selectedClass]);
 
   const { data: examMarksData, isLoading: examMarksLoading, error: examMarksError } = useSchoolExamMarksList(examMarksQuery);
+  
   const createExamMarkMutation = useCreateSchoolExamMark();
   const updateExamMarkMutation = useUpdateSchoolExamMark(editingExamMark?.mark_id || 0);
   const deleteExamMarkMutation = useDeleteSchoolExamMark();
@@ -210,40 +225,38 @@ const ExamMarksManagement = () => {
     return items;
   }, [examMarksData]);
 
-  const { searchTerm, setSearchTerm, filteredItems: examMarks } = useSearchFilters<ExamMarkWithDetails>(
-    flattenedMarks,
-    { keys: ['student_name', 'subject_name', 'roll_number'] as any }
-  );
-
-  // Statistics calculations
-  const examStatistics = useMemo(() => {
-    const totalMarks = examMarks.length;
-    const avgPercentage = examMarks.length > 0 ? 
-      examMarks.reduce((sum, mark) => sum + (mark.percentage || 0), 0) / examMarks.length : 0;
+  // Apply client-side filtering for section, subject, and grade
+  const filteredMarks = useMemo(() => {
+    let filtered = flattenedMarks;
     
-    const passCount = examMarks.filter(mark => (mark.percentage || 0) >= 35).length;
-    const passPercentage = totalMarks > 0 ? (passCount / totalMarks * 100).toFixed(1) : '0';
+    // Apply section filter (client-side)
+    if (selectedSection !== 'all') {
+      filtered = filtered.filter(mark => mark.section_name === selectedSection);
+    }
     
-    const gradeDistribution = examMarks.reduce((acc, mark) => {
-      const grade = mark.grade || 'F';
-      acc[grade] = (acc[grade] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    // Apply subject filter (client-side)
+    if (selectedSubject !== 'all') {
+      filtered = filtered.filter(mark => mark.subject_name === selectedSubject);
+    }
+    
+    // Apply grade filter (client-side)
+    if (selectedGrade !== 'all') {
+      filtered = filtered.filter(mark => mark.grade === selectedGrade);
+    }
+    
+    return filtered;
+  }, [flattenedMarks, selectedSection, selectedSubject, selectedGrade]);
 
-    const topPerformers = examMarks
-      .slice()
-      .sort((a, b) => (b.percentage || 0) - (a.percentage || 0))
-      .slice(0, 3);
+  // Use filtered marks for the table
+  const examMarks = filteredMarks;
 
-    return {
-      totalMarks,
-      avgPercentage: avgPercentage.toFixed(1),
-      passCount,
-      passPercentage,
-      gradeDistribution,
-      topPerformers,
-    };
-  }, [examMarks]);
+  // Notify parent component when data changes
+  useEffect(() => {
+    if (onDataChange) {
+      onDataChange(examMarks);
+    }
+  }, [examMarks, onDataChange]);
+
 
   // Grade colors mapping
   const gradeColors = {
@@ -271,6 +284,8 @@ const ExamMarksManagement = () => {
     ])
   ], [handleViewExamMark, handleEditExamMark, handleDeleteExamMark]);
 
+
+
   return (
     <div className="flex flex-col h-full bg-slate-50/30">
       <div className="flex-1 overflow-auto">
@@ -281,33 +296,8 @@ const ExamMarksManagement = () => {
             animate={{ opacity: 1, y: 0 }}
             className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
           >
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">Exam Marks Management</h1>
-              <p className="text-slate-600 mt-1">Track exam results and academic performance</p>
-              {!selectedClass && (
-                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-700">
-                    💡 <strong>Tip:</strong> Select a class from the dropdown below to view exam marks data.
-                  </p>
-                </div>
-              )}
-            </div>
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="hover-elevate"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export
-              </Button>
               <Dialog open={showExamMarkDialog} onOpenChange={setShowExamMarkDialog}>
-                <DialogTrigger asChild>
-                  <Button className="hover-elevate">
-                    <GraduationCap className="mr-2 h-4 w-4" />
-                    Add Exam Marks
-                  </Button>
-                </DialogTrigger>
-                {/* Exam Marks Dialog */}
                 <DialogContent className="sm:max-w-[600px]">
                   <DialogHeader>
                     <DialogTitle>{editingExamMark ? 'Edit Exam Mark' : 'Add New Exam Mark'}</DialogTitle>
@@ -352,8 +342,8 @@ const ExamMarksManagement = () => {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {exams.map((exam: any) => (
-                                    <SelectItem key={exam.exam_id || exam.id} value={(exam.exam_id || exam.id)?.toString() || ''}>
+                                  {exams.map((exam) => (
+                                    <SelectItem key={exam.exam_id} value={exam.exam_id?.toString() || ''}>
                                       {exam.exam_name}
                                     </SelectItem>
                                   ))}
@@ -376,7 +366,7 @@ const ExamMarksManagement = () => {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {subjects.map((subject: any) => (
+                                  {subjects.map((subject) => (
                                     <SelectItem key={subject.subject_id} value={subject.subject_id?.toString() || ''}>
                                       {subject.subject_name}
                                     </SelectItem>
@@ -510,66 +500,6 @@ const ExamMarksManagement = () => {
             </div>
           </motion.div>
 
-          {/* Statistics Cards */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
-          >
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Total Exam Marks</p>
-                    <p className="text-2xl font-bold text-slate-900">{examStatistics.totalMarks}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
-                    <Calculator className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Avg Score</p>
-                    <p className="text-2xl font-bold text-slate-900">{examStatistics.avgPercentage}%</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-                    <Target className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Pass Rate</p>
-                    <p className="text-2xl font-bold text-slate-900">{examStatistics.passPercentage}%</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-                    <Trophy className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Top Score</p>
-                    <p className="text-2xl font-bold text-slate-900">{examStatistics.topPerformers[0]?.percentage || 0}%</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
 
           {/* Main Content */}
           <motion.div
@@ -578,44 +508,6 @@ const ExamMarksManagement = () => {
             transition={{ delay: 0.2 }}
             className="space-y-6"
           >
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search students, subjects..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger className="w-full sm:w-[150px]" >
-                  <SelectValue placeholder="Select Class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((cls: any) => (
-                    <SelectItem key={cls.class_id} value={cls.class_id?.toString() || ''}>
-                      {cls.class_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                <SelectTrigger className="w-full sm:w-[150px]" >
-                  <SelectValue placeholder="All Subjects" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Subjects</SelectItem>
-                  {subjects.map((subject: any) => (
-                    <SelectItem key={subject.subject_id} value={subject.subject_id?.toString() || ''}>
-                      {subject.subject_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Data Table */}
             {!selectedClass ? (
               <Card className="p-8 text-center">
@@ -665,11 +557,95 @@ const ExamMarksManagement = () => {
                 </div>
               </Card>
             ) : (
-              <EnhancedDataTable
-                data={examMarks}
-                columns={examMarkColumns}
-                exportable={true}
-              />
+              <div className="space-y-4">
+                {/* Unified Filter Controls */}
+                <Card className="p-4">
+                  <div className="flex flex-wrap gap-4 items-center">
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium">Class:</label>
+                      <Select value={selectedClass || 'all'} onValueChange={(value) => setSelectedClass(value === 'all' ? '' : value)}>
+                        <SelectTrigger className="w-48">
+                          <SelectValue placeholder="Select class" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Classes</SelectItem>
+                          {classes.map((cls) => (
+                            <SelectItem key={cls.class_id} value={cls.class_id.toString()}>
+                              {cls.class_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium">Section:</label>
+                      <Select value={selectedSection} onValueChange={setSelectedSection}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue placeholder="All Sections" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Sections</SelectItem>
+                          {sections.map((section) => (
+                            <SelectItem key={section.section_id} value={section.section_name}>
+                              {section.section_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium">Subject:</label>
+                      <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue placeholder="All Subjects" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Subjects</SelectItem>
+                          {subjects.map((subject) => (
+                            <SelectItem key={subject.subject_id} value={subject.subject_name}>
+                              {subject.subject_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium">Grade:</label>
+                      <Select value={selectedGrade} onValueChange={setSelectedGrade}>
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="All Grades" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Grades</SelectItem>
+                          <SelectItem value="A+">A+</SelectItem>
+                          <SelectItem value="A">A</SelectItem>
+                          <SelectItem value="B+">B+</SelectItem>
+                          <SelectItem value="B">B</SelectItem>
+                          <SelectItem value="C+">C+</SelectItem>
+                          <SelectItem value="C">C</SelectItem>
+                          <SelectItem value="D">D</SelectItem>
+                          <SelectItem value="F">F</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </Card>
+
+                <EnhancedDataTable
+                  data={examMarks}
+                  title="Exam Marks"
+                  description="Manage exam marks for students"
+                  searchKey={['student_name', 'roll_number', 'class_name', 'section_name', 'exam_name', 'subject_name'] as any}
+                  searchPlaceholder="Search students..."
+                  columns={examMarkColumns}
+                  onAdd={() => setShowExamMarkDialog(true)}
+                  addButtonText="Add Exam Mark"
+                  exportable={true}
+                />
+              </div>
             ))}
 
             {/* View Exam Mark Dialog */}

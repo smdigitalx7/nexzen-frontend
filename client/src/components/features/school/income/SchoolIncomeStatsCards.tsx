@@ -16,6 +16,7 @@ import { StatsCard, DashboardGrid } from '@/components/shared';
 import { SchoolIncomeDashboardStats } from '@/lib/types/school/income';
 import { formatCurrency } from '@/lib/utils';
 
+
 interface SchoolIncomeStatsCardsProps {
   stats: SchoolIncomeDashboardStats;
   loading?: boolean;
@@ -130,19 +131,21 @@ export const SchoolIncomeStatsCards: React.FC<SchoolIncomeStatsCardsProps> = ({
   ];
 
   return (
-    <DashboardGrid 
-      columns={6} 
-      gap="md" 
-      className={className}
-    >
-      {statsCards.map((stat, index) => (
-        <StatsCard
-          key={stat.title}
-          {...stat}
-          loading={loading}
-        />
-      ))}
-    </DashboardGrid>
+    <div className={className}>      
+      {/* Stats Cards */}
+      <DashboardGrid 
+        columns={6} 
+        gap="md"
+      >
+        {statsCards.map((stat, index) => (
+          <StatsCard
+            key={stat.title}
+            {...stat}
+            loading={loading}
+          />
+        ))}
+      </DashboardGrid>
+    </div>
   );
 };
 

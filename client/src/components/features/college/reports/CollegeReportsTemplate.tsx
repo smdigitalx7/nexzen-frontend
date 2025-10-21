@@ -12,6 +12,8 @@ import { AddExpenditureDialog } from "./components/AddExpenditureDialog";
 import { ViewIncomeDialog } from "./components/ViewIncomeDialog";
 import { CollegeIncomeStatsCards } from "../income/CollegeIncomeStatsCards";
 import { CollegeExpenditureStatsCards } from "../expenditure/CollegeExpenditureStatsCards";
+import { CollegeFinanceReportButtons } from './components/CollegeFinanceReportButtons';
+
 
 export const CollegeReportsTemplate = () => {
   const [showAddExpenditureDialog, setShowAddExpenditureDialog] = useState(false);
@@ -57,6 +59,7 @@ export const CollegeReportsTemplate = () => {
             <BarChart3 className="h-3 w-3" />
             College Financial Reports
           </Badge>
+          <CollegeFinanceReportButtons />
         </div>
       </motion.div>
 

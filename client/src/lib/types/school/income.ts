@@ -83,3 +83,62 @@ export interface SchoolIncomeReceipt {
   total_amount: number;
   receipt_type: string;
 }
+
+// Finance Report Types
+export interface SchoolFinanceReportIncomeItem {
+  sNo: number;
+  receipt_no: string;
+  identity_no: string;
+  student_name: string;
+  purpose: string;
+  payment_method: string;
+  amount: number;
+  created_by: string;
+}
+
+export interface SchoolFinanceReportExpenditureItem {
+  sNo: number;
+  expenditure_id: number;
+  voucher_no: string;
+  bill_date: string;
+  purpose: string;
+  amount: number;
+  payment_method: string;
+  created_by: string;
+}
+
+export interface SchoolFinanceReportIncomeObject {
+  income_list: SchoolFinanceReportIncomeItem[];
+  total_income: number;
+  income_count: number;
+}
+
+export interface SchoolFinanceReportExpenditureObject {
+  expenditure_list: SchoolFinanceReportExpenditureItem[];
+  total_expenditure: number;
+  expenditure_count: number;
+}
+
+export interface SchoolFinanceReport {
+  branch_id: number;
+  branch_name: string;
+  branch_type: string;
+  branch_address: string;
+  branch_phone: string;
+  branch_email: string;
+  institute_name: string;
+  report_date: string;
+  income_object: SchoolFinanceReportIncomeObject;
+  expenditure_object: SchoolFinanceReportExpenditureObject;
+  total_income: number;
+  total_expenditure: number;
+  profit_loss: number;
+  financial_status: string;
+  generated_date: string;
+  generated_at: string;
+}
+
+export interface SchoolFinanceReportParams {
+  start_date?: string;
+  end_date?: string;
+}

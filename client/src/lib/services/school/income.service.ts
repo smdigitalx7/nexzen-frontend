@@ -6,7 +6,9 @@ import type {
   SchoolIncomeUpdate,
   SchoolIncomeDashboardStats,
   SchoolRecentIncome,
-  SchoolIncomeReceipt
+  SchoolIncomeReceipt,
+  SchoolFinanceReport,
+  SchoolFinanceReportParams
 } from "@/lib/types/school";
 
 export const SchoolIncomeService = {  
@@ -61,6 +63,10 @@ export const SchoolIncomeService = {
 
   getIncomeReceipt(income_id: number) {
     return Api.get<SchoolIncomeReceipt>(`/school/income/${income_id}/receipt`);
+  },
+
+  getFinanceReport(params?: SchoolFinanceReportParams) {
+    return Api.get<SchoolFinanceReport[]>(`/school/income/finance-report`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
 };
 
