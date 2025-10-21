@@ -69,7 +69,10 @@ import {
   ReservationPaymentProcessor,
   ReservationPaymentData,
 } from "@/components/shared/payment";
-import { ConcessionUpdateDialog } from "@/components/shared";
+import {
+  ConcessionUpdateDialog,
+  ReceiptPreviewModal,
+} from "@/components/shared";
 import type { SchoolIncomeRead } from "@/lib/types/school";
 
 export default function ReservationNew() {
@@ -109,6 +112,7 @@ export default function ReservationNew() {
   );
   const [paymentIncomeRecord, setPaymentIncomeRecord] =
     useState<SchoolIncomeRead | null>(null);
+  const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
 
   // Concession related state
   const [showConcessionDialog, setShowConcessionDialog] = useState(false);
@@ -353,7 +357,11 @@ export default function ReservationNew() {
       setShowConcessionDialog(true);
     } catch (error) {
       console.error("Failed to load reservation for concession update:", error);
-      alert("Failed to load reservation details. Please try again.");
+      toast({
+        title: "Failed to Load Reservation",
+        description: "Could not load reservation details. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -465,7 +473,14 @@ export default function ReservationNew() {
         refetchReservations();
       }
     } catch (e: any) {
-      alert(e?.message || "Failed to create reservation");
+      console.error("Failed to create reservation:", e);
+      toast({
+        title: "Reservation Creation Failed",
+        description:
+          e?.message ||
+          "Unable to create reservation. Please check your inputs and try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -515,7 +530,13 @@ export default function ReservationNew() {
       setViewReservation(data);
       setShowViewDialog(true);
     } catch (e: any) {
-      alert(e?.message || "Failed to load reservation");
+      console.error("Failed to load reservation:", e);
+      toast({
+        title: "Failed to Load Reservation",
+        description:
+          e?.message || "Could not load reservation details. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -540,7 +561,14 @@ export default function ReservationNew() {
       setSelectedReservation({ id: r.reservation_id });
       setShowEditDialog(true);
     } catch (e: any) {
-      alert(e?.message || "Failed to load reservation");
+      console.error("Failed to load reservation for edit:", e);
+      toast({
+        title: "Failed to Load Reservation",
+        description:
+          e?.message ||
+          "Could not load reservation for editing. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -601,7 +629,13 @@ export default function ReservationNew() {
       setShowEditDialog(false);
       refetchReservations();
     } catch (e: any) {
-      alert(e?.message || "Failed to update reservation");
+      console.error("Failed to update reservation:", e);
+      toast({
+        title: "Update Failed",
+        description:
+          e?.message || "Could not update reservation. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -616,7 +650,12 @@ export default function ReservationNew() {
 
   const handleConfirmCancel = async () => {
     if (!cancelRemarks.trim()) {
-      alert("Please provide cancellation remarks");
+      toast({
+        title: "Cancellation Remarks Required",
+        description:
+          "Please provide a reason for cancellation before proceeding.",
+        variant: "destructive",
+      });
       return;
     }
     try {
@@ -630,7 +669,13 @@ export default function ReservationNew() {
         refetchReservations();
       }
     } catch (e: any) {
-      alert(e?.message || "Failed to cancel reservation");
+      console.error("Failed to cancel reservation:", e);
+      toast({
+        title: "Cancellation Failed",
+        description:
+          e?.message || "Could not cancel reservation. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setShowCancelDialog(false);
       setCancelRemarks("");
@@ -938,10 +983,17 @@ export default function ReservationNew() {
                                           [r.id]: "",
                                         }));
                                       } catch (e: any) {
-                                        alert(
-                                          e?.message ||
-                                            "Failed to update status"
+                                        console.error(
+                                          "Failed to update status:",
+                                          e
                                         );
+                                        toast({
+                                          title: "Status Update Failed",
+                                          description:
+                                            e?.message ||
+                                            "Could not update reservation status. Please try again.",
+                                          variant: "destructive",
+                                        });
                                       }
                                     }}
                                   >
@@ -965,94 +1017,18 @@ export default function ReservationNew() {
         onTabChange={setActiveTab}
       />
 
-      {/* Receipt Dialog */}
-      <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Reservation Receipt</DialogTitle>
-            <DialogDescription>
-              Reservation has been created successfully
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <strong>Reservation No:</strong> {reservationNo}
-              </div>
-              <div>
-                <strong>Date:</strong> {new Date().toLocaleDateString()}
-              </div>
-              <div>
-                <strong>Student Name:</strong> {form.student_name}
-              </div>
-              <div>
-                <strong>Class:</strong> {form.class_name}
-              </div>
-              <div>
-                <strong>Father Name:</strong> {form.father_or_guardian_name}
-              </div>
-              <div>
-                <strong>Mobile:</strong> {form.father_or_guardian_mobile}
-              </div>
-            </div>
-
-            {/* Payment Information */}
-            {paymentIncomeRecord && (
-              <div className="border-t pt-4">
-                <h4 className="font-semibold text-green-600 mb-2">
-                  Payment Information
-                </h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <strong>Payment ID:</strong> {paymentIncomeRecord.income_id}
-                  </div>
-                  <div>
-                    <strong>Payment Date:</strong>{" "}
-                    {new Date(
-                      paymentIncomeRecord.income_date
-                    ).toLocaleDateString()}
-                  </div>
-                  <div>
-                    <strong>Payment Method:</strong>{" "}
-                    {paymentIncomeRecord.payment_method}
-                  </div>
-                  <div>
-                    <strong>Status:</strong>{" "}
-                    <span className="text-green-600 font-semibold">PAID</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="border-t pt-4">
-              <div className="flex justify-between">
-                <span>Reservation Fee:</span>
-                <span>
-                  ₹{Number(form.application_fee || 0).toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between font-bold text-lg border-t pt-2">
-                <span>Total:</span>
-                <span className={paymentIncomeRecord ? "text-green-600" : ""}>
-                  ₹{Number(form.application_fee || 0).toLocaleString()}
-                </span>
-              </div>
-              {paymentIncomeRecord && (
-                <div className="text-center text-green-600 font-semibold mt-2">
-                  ✓ Payment Completed Successfully
-                </div>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handlePrint}>
-              <Printer className="h-4 w-4 mr-2" />
-              Print
-            </Button>
-            <Button onClick={() => setShowReceipt(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Receipt Preview Modal - Shows PDF receipt after payment */}
+      <ReceiptPreviewModal
+        isOpen={showReceipt}
+        onClose={() => {
+          setShowReceipt(false);
+          if (receiptBlobUrl) {
+            URL.revokeObjectURL(receiptBlobUrl);
+            setReceiptBlobUrl(null);
+          }
+        }}
+        blobUrl={receiptBlobUrl}
+      />
 
       {/* View Reservation Dialog */}
       <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
@@ -1393,22 +1369,32 @@ export default function ReservationNew() {
                   setShowDeleteDialog(false);
                   setReservationToDelete(null);
                 } catch (e: any) {
+                  console.error("Failed to delete reservation:", e);
                   if (e?.response?.status === 409) {
-                    alert(
-                      "Cannot delete this reservation because it has associated income records. Please remove the income records first or change the reservation status to CANCELLED instead."
-                    );
+                    toast({
+                      title: "Cannot Delete Reservation",
+                      description:
+                        "This reservation has associated income records. Please remove the income records first or change the status to CANCELLED instead.",
+                      variant: "destructive",
+                    });
                   } else if (e?.response?.status === 404) {
-                    alert(
-                      "Reservation not found. It may have already been deleted."
-                    );
+                    toast({
+                      title: "Reservation Not Found",
+                      description:
+                        "The reservation may have already been deleted.",
+                      variant: "destructive",
+                    });
                     setShowDeleteDialog(false);
                     setReservationToDelete(null);
                   } else {
-                    alert(
-                      e?.response?.data?.detail ||
+                    toast({
+                      title: "Deletion Failed",
+                      description:
+                        e?.response?.data?.detail ||
                         e?.message ||
-                        "Failed to delete reservation"
-                    );
+                        "Failed to delete reservation",
+                      variant: "destructive",
+                    });
                   }
                 }
               }}
@@ -1435,15 +1421,27 @@ export default function ReservationNew() {
             </DialogHeader>
             <ReservationPaymentProcessor
               reservationData={paymentData}
-              onPaymentComplete={(incomeRecord: SchoolIncomeRead) => {
+              onPaymentComplete={(
+                incomeRecord: SchoolIncomeRead,
+                blobUrl: string
+              ) => {
                 setPaymentIncomeRecord(incomeRecord);
+                setReceiptBlobUrl(blobUrl);
                 setShowPaymentProcessor(false);
-                setShowReceipt(true);
+                // Show receipt modal after closing payment processor
+                setTimeout(() => {
+                  setShowReceipt(true);
+                }, 100);
                 // Refresh reservations list to show updated status
                 refetchReservations();
               }}
               onPaymentFailed={(error: string) => {
-                alert(`Payment failed: ${error}`);
+                toast({
+                  title: "Payment Failed",
+                  description:
+                    error || "Could not process payment. Please try again.",
+                  variant: "destructive",
+                });
                 setShowPaymentProcessor(false);
               }}
               onPaymentCancel={() => {

@@ -1,3 +1,4 @@
+export * from "./admissions";
 export * from "./classes";
 export * from "./sections";
 export * from "./subjects";

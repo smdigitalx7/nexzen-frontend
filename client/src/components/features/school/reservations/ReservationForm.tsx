@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { EmployeeCombobox } from "@/components/ui/employee-combobox";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { useMemo, useState } from "react";
+import { Save } from "lucide-react";
 
 type ReservationFormState = {
   student_name: string;
@@ -670,46 +671,6 @@ export default function ReservationForm({
             </div>
           </div>
 
-          {/* Fee Information Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">
-              Admission Fee Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="application_fee">Application Fee</Label>
-                <Input
-                  id="application_fee"
-                  type="number"
-                  value={form.application_fee}
-                  onChange={(e) =>
-                    setForm({ ...form, application_fee: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="application_fee_paid">
-                  Application Fee Paid
-                </Label>
-                <Select
-                  value={form.application_fee_paid ? "true" : "false"}
-                  onValueChange={(value) =>
-                    setForm({ ...form, application_fee_paid: value === "true" })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">Yes</SelectItem>
-                    <SelectItem value="false">No</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div></div>
-            </div>
-          </div>
-
           {/* Transport Information Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-2">
@@ -854,6 +815,47 @@ export default function ReservationForm({
               </div>
             </div>
           </div>
+
+          {/* Fee Information Section */}
+          <div className="space-y-4 ">
+            <h3 className="text-lg font-semibold border-b pb-2">
+              Application Fee Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="application_fee">Application Fee</Label>
+                <Input
+                  id="application_fee"
+                  type="number"
+                  value={form.application_fee}
+                  onChange={(e) =>
+                    setForm({ ...form, application_fee: e.target.value })
+                  }
+                  className="w-full mb-5"
+                />
+              </div>
+              {/* <div>
+                <Label htmlFor="application_fee_paid">
+                  Application Fee Paid
+                </Label>
+                <Select
+                  value={form.application_fee_paid ? "true" : "false"}
+                  onValueChange={(value) =>
+                    setForm({ ...form, application_fee_paid: value === "true" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Yes</SelectItem>
+                    <SelectItem value="false">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div> */}
+              <div></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -866,14 +868,19 @@ export default function ReservationForm({
             </Button>
           ) : (
             <>
-              <Button
+              {/* <Button
                 variant="outline"
                 onClick={handleSaveClick}
                 disabled={isSaveDisabled}
               >
                 Save
-              </Button>
-              <Button onClick={handleSaveAndPayClick} disabled={isSaveDisabled}>
+              </Button> */}
+              <Button
+                onClick={handleSaveAndPayClick}
+                disabled={isSaveDisabled}
+                className="w-full"
+              >
+                <Save className="h-4 w-4 mr-2" />
                 Save & Pay
               </Button>
             </>

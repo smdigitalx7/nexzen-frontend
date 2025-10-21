@@ -236,7 +236,11 @@ export default function ReservationNew() {
       setShowConcessionDialog(true);
     } catch (error) {
       console.error("Failed to load reservation for concession update:", error);
-      alert("Failed to load reservation details. Please try again.");
+      toast({
+        title: "Failed to Load Reservation",
+        description: "Could not load reservation details. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -338,7 +342,14 @@ export default function ReservationNew() {
         refetchReservations();
       }
     } catch (e: any) {
-      alert(e?.message || "Failed to create reservation");
+      console.error("Failed to create reservation:", e);
+      toast({
+        title: "Reservation Creation Failed",
+        description:
+          e?.message ||
+          "Unable to create reservation. Please check your inputs and try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -440,7 +451,11 @@ export default function ReservationNew() {
 
   const handleView = async (r: any) => {
     if (!r?.id || isNaN(Number(r.id))) {
-      alert("Invalid reservation ID");
+      toast({
+        title: "Invalid Reservation",
+        description: "The reservation ID is invalid. Please try again.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -456,15 +471,27 @@ export default function ReservationNew() {
     } catch (e: any) {
       console.error("Error loading reservation:", e);
       if (e?.response?.status === 404) {
-        alert(
-          "Reservation not found. It may have been deleted or you may not have permission to view it."
-        );
+        toast({
+          title: "Reservation Not Found",
+          description:
+            "The reservation may have been deleted or you may not have permission to view it.",
+          variant: "destructive",
+        });
       } else if (e?.response?.status === 500) {
-        alert(
-          "Server error occurred while loading reservation. Please try again later."
-        );
+        toast({
+          title: "Server Error",
+          description:
+            "A server error occurred while loading reservation. Please try again later.",
+          variant: "destructive",
+        });
       } else {
-        alert(e?.message || "Failed to load reservation");
+        toast({
+          title: "Failed to Load Reservation",
+          description:
+            e?.message ||
+            "Could not load reservation details. Please try again.",
+          variant: "destructive",
+        });
       }
     } finally {
       setLoadingReservation(null);
@@ -473,7 +500,11 @@ export default function ReservationNew() {
 
   const handleEdit = async (r: any) => {
     if (!r?.id || isNaN(Number(r.id))) {
-      alert("Invalid reservation ID");
+      toast({
+        title: "Invalid Reservation",
+        description: "The reservation ID is invalid. Please try again.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -490,15 +521,27 @@ export default function ReservationNew() {
     } catch (e: any) {
       console.error("Error loading reservation for edit:", e);
       if (e?.response?.status === 404) {
-        alert(
-          "Reservation not found. It may have been deleted or you may not have permission to edit it."
-        );
+        toast({
+          title: "Reservation Not Found",
+          description:
+            "The reservation may have been deleted or you may not have permission to edit it.",
+          variant: "destructive",
+        });
       } else if (e?.response?.status === 500) {
-        alert(
-          "Server error occurred while loading reservation. Please try again later."
-        );
+        toast({
+          title: "Server Error",
+          description:
+            "A server error occurred while loading reservation. Please try again later.",
+          variant: "destructive",
+        });
       } else {
-        alert(e?.message || "Failed to load reservation");
+        toast({
+          title: "Failed to Load Reservation",
+          description:
+            e?.message ||
+            "Could not load reservation for editing. Please try again.",
+          variant: "destructive",
+        });
       }
     } finally {
       setLoadingReservation(null);
@@ -516,7 +559,13 @@ export default function ReservationNew() {
       setShowEditDialog(false);
       refetchReservations();
     } catch (e: any) {
-      alert(e?.message || "Failed to update reservation");
+      console.error("Failed to update reservation:", e);
+      toast({
+        title: "Update Failed",
+        description:
+          e?.message || "Could not update reservation. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -531,7 +580,12 @@ export default function ReservationNew() {
 
   const handleConfirmCancel = async () => {
     if (!cancelRemarks.trim()) {
-      alert("Please provide cancellation remarks");
+      toast({
+        title: "Cancellation Remarks Required",
+        description:
+          "Please provide a reason for cancellation before proceeding.",
+        variant: "destructive",
+      });
       return;
     }
     try {
@@ -547,7 +601,13 @@ export default function ReservationNew() {
         refetchReservations();
       }
     } catch (e: any) {
-      alert(e?.message || "Failed to cancel reservation");
+      console.error("Failed to cancel reservation:", e);
+      toast({
+        title: "Cancellation Failed",
+        description:
+          e?.message || "Could not cancel reservation. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setShowCancelDialog(false);
       setCancelRemarks("");
@@ -859,10 +919,17 @@ export default function ReservationNew() {
                                           [r.id]: "",
                                         }));
                                       } catch (e: any) {
-                                        alert(
-                                          e?.message ||
-                                            "Failed to update status"
+                                        console.error(
+                                          "Failed to update status:",
+                                          e
                                         );
+                                        toast({
+                                          title: "Status Update Failed",
+                                          description:
+                                            e?.message ||
+                                            "Could not update reservation status. Please try again.",
+                                          variant: "destructive",
+                                        });
                                       }
                                     }}
                                   >
@@ -884,7 +951,6 @@ export default function ReservationNew() {
         ]}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        gridCols="grid-cols-3"
       />
 
       {/* Receipt Dialog */}
@@ -1288,16 +1354,23 @@ export default function ReservationNew() {
                   );
                   // Success - dialog will close automatically due to onSuccess in hook
                 } catch (e: any) {
+                  console.error("Failed to delete reservation:", e);
                   if (e?.response?.status === 409) {
-                    alert(
-                      "Cannot delete this reservation because it has associated income records. Please remove the income records first or change the reservation status to CANCELLED instead."
-                    );
+                    toast({
+                      title: "Cannot Delete Reservation",
+                      description:
+                        "This reservation has associated income records. Please remove the income records first or change the status to CANCELLED instead.",
+                      variant: "destructive",
+                    });
                   } else {
-                    alert(
-                      e?.response?.data?.detail ||
+                    toast({
+                      title: "Deletion Failed",
+                      description:
+                        e?.response?.data?.detail ||
                         e?.message ||
-                        "Failed to delete reservation"
-                    );
+                        "Failed to delete reservation",
+                      variant: "destructive",
+                    });
                   }
                 } finally {
                   setShowDeleteDialog(false);

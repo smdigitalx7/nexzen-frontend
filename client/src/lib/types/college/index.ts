@@ -1,3 +1,4 @@
+export * from "./admissions.ts";
 export * from "./classes.ts";
 export * from "./groups.ts";
 export * from "./courses.ts";

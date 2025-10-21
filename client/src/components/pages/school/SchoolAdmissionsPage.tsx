@@ -35,16 +35,20 @@ import {
   Edit,
   CheckCircle,
   DollarSign,
+  List,
+  Users,
 } from "lucide-react";
 import { useSchoolReservationsList } from "@/lib/hooks/school/use-school-reservations";
 import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
 import { SchoolStudentsService } from "@/lib/services/school/students.service";
 import { toast } from "@/hooks/use-toast";
-import { ReceiptPreviewModal } from "@/components/shared";
+import { ReceiptPreviewModal, TabSwitcher } from "@/components/shared";
+import type { TabItem } from "@/components/shared/TabSwitcher";
 import {
   handleRegenerateReceipt,
   handlePayByAdmissionWithIncomeId,
 } from "@/lib/api";
+import AdmissionsList from "@/components/features/school/admissions/AdmissionsList";
 
 interface Reservation {
   reservation_id: number;
@@ -90,9 +94,12 @@ interface Reservation {
   remarks: string | null;
   reservation_date: string;
   income_id?: number;
+  is_enrolled?: boolean;
+  admission_income_id?: number;
 }
 
 const SchoolAdmissionsPage = () => {
+  const [activeTab, setActiveTab] = useState("reservations");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("CONFIRMED");
   const [selectedReservation, setSelectedReservation] =
@@ -148,8 +155,8 @@ const SchoolAdmissionsPage = () => {
       const reservationDetails = await SchoolReservationsService.getById(
         reservationId
       );
-      setSelectedReservation(reservationDetails);
-      setEditForm(reservationDetails);
+      setSelectedReservation(reservationDetails as unknown as Reservation);
+      setEditForm(reservationDetails as unknown as Reservation);
       setAdmissionFee(3000); // Set default admission fee to 3000
       setIsEditMode(false);
       setShowDetailsDialog(true);
@@ -157,7 +164,7 @@ const SchoolAdmissionsPage = () => {
       console.error("Failed to load reservation:", error);
       toast({
         title: "Error",
-        description: "Failed to load reservation details",
+        description: "Failed to load reservation details. Please try again.",
         variant: "destructive",
       });
     }
@@ -216,19 +223,21 @@ const SchoolAdmissionsPage = () => {
       const updatedReservation = await SchoolReservationsService.getById(
         selectedReservation.reservation_id
       );
-      setSelectedReservation(updatedReservation);
-      setEditForm(updatedReservation);
+      setSelectedReservation(updatedReservation as unknown as Reservation);
+      setEditForm(updatedReservation as unknown as Reservation);
       setIsEditMode(false);
 
       toast({
         title: "Details Updated",
         description: "Reservation details have been updated successfully",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update reservation:", error);
       toast({
         title: "Update Failed",
-        description: "Failed to update reservation details",
+        description:
+          error?.message ||
+          "Failed to update reservation details. Please try again.",
         variant: "destructive",
       });
     }
@@ -268,12 +277,19 @@ const SchoolAdmissionsPage = () => {
         payload
       );
 
-      // Handle nested response structure
+      // Handle nested response structure - safely access admission_no
       const admissionNo =
-        studentResponse.data?.admission_no || studentResponse.admission_no;
+        (studentResponse as any)?.data?.admission_no ||
+        (studentResponse as any)?.admission_no;
 
       if (!admissionNo) {
         console.error("Student response:", studentResponse);
+        toast({
+          title: "Enrollment Error",
+          description:
+            "Student created but admission number not received from server.",
+          variant: "destructive",
+        });
         throw new Error("Student created but no admission number received");
       }
 
@@ -285,11 +301,12 @@ const SchoolAdmissionsPage = () => {
         title: "Student Enrolled Successfully",
         description: `Student enrolled with admission number ${admissionNo}`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Enrollment failed:", error);
       toast({
         title: "Enrollment Failed",
-        description: "Failed to enroll student",
+        description:
+          error?.message || "Failed to enroll student. Please try again.",
         variant: "destructive",
       });
     }
@@ -327,11 +344,13 @@ const SchoolAdmissionsPage = () => {
       });
 
       refetch();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Payment failed:", error);
       toast({
         title: "Payment Failed",
-        description: "Failed to process admission fee payment",
+        description:
+          error?.message ||
+          "Failed to process admission fee payment. Please try again.",
         variant: "destructive",
       });
     }
@@ -356,42 +375,38 @@ const SchoolAdmissionsPage = () => {
     );
   }
 
-  return (
-    <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">School Admissions</h1>
-          <p className="text-muted-foreground">
-            Process confirmed reservations into student admissions
-          </p>
-        </div>
-      </div>
+  const tabs: TabItem[] = [
+    {
+      value: "reservations",
+      label: "Confirmed Reservations",
+      icon: UserCheck,
+      content: (
+        <div className="space-y-6">
+          {/* Filters */}
+          <div className="flex gap-4 items-center">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search by name, reservation number, or Aadhar..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* Filters */}
-      <div className="flex gap-4 items-center">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search by name, reservation number, or Aadhar..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-            <SelectItem value="PENDING">Pending</SelectItem>
-            <SelectItem value="CANCELLED">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Reservations Table */}
-      <Card>
+          {/* Reservations Table */}
+          <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <GraduationCap className="h-5 w-5" />
@@ -424,8 +439,10 @@ const SchoolAdmissionsPage = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredReservations.map((reservation: any) => (
-                  <TableRow key={reservation.reservation_id}>
+                filteredReservations.map((reservation: any, index: number) => (
+                  <TableRow
+                    key={`${reservation.reservation_id}-${reservation.reservation_no}-${index}`}
+                  >
                     <TableCell className="font-medium">
                       {reservation.reservation_no}
                     </TableCell>
@@ -447,16 +464,26 @@ const SchoolAdmissionsPage = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          handleEnrollStudent(reservation.reservation_id)
-                        }
-                        className="flex items-center gap-2"
-                      >
-                        <UserCheck className="h-4 w-4" />
-                        Enroll Student
-                      </Button>
+                      {reservation.is_enrolled ? (
+                        <Badge
+                          variant="secondary"
+                          className="flex items-center gap-1 w-fit"
+                        >
+                          <CheckCircle className="h-3 w-3" />
+                          Enrolled
+                        </Badge>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            handleEnrollStudent(reservation.reservation_id)
+                          }
+                          className="flex items-center gap-2"
+                        >
+                          <UserCheck className="h-4 w-4" />
+                          Enroll Student
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
@@ -465,6 +492,34 @@ const SchoolAdmissionsPage = () => {
           </Table>
         </CardContent>
       </Card>
+        </div>
+      ),
+    },
+    {
+      value: "admissions",
+      label: "Student Admissions",
+      icon: Users,
+      content: <AdmissionsList />,
+    },
+  ];
+
+  return (
+    <div className="space-y-6 p-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">School Admissions</h1>
+          <p className="text-muted-foreground">
+            Process confirmed reservations and manage student admissions
+          </p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <TabSwitcher
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
 
       {/* Reservation Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
@@ -1060,37 +1115,57 @@ const SchoolAdmissionsPage = () => {
                   </div>
                 )}
 
-                {/* Admission Fee Input */}
+                {/* Admission Fee Section */}
                 <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <Label className="text-base font-semibold text-green-900 dark:text-green-100">
-                        Admission Fee to Collect Now
+                        {editForm.admission_income_id
+                          ? "Admission Fee Status"
+                          : "Admission Fee to Collect Now"}
                       </Label>
                       <p className="text-xs text-green-700 dark:text-green-300 mt-1">
-                        This is a one-time payment required during enrollment
+                        {editForm.admission_income_id
+                          ? "Admission fee has already been paid"
+                          : "This is a one-time payment required during enrollment"}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <Input
-                        type="number"
-                        value={admissionFee}
-                        onChange={(e) =>
-                          setAdmissionFee(Number(e.target.value))
-                        }
-                        placeholder="Enter admission fee"
-                        className="text-xl font-bold h-12 bg-white dark:bg-slate-950 border-green-300 focus:border-green-500"
-                      />
+                  {editForm.admission_income_id ? (
+                    <div className="flex items-center gap-3 p-4 bg-white dark:bg-slate-950 rounded-lg border-2 border-green-400">
+                      <CheckCircle className="h-8 w-8 text-green-600" />
+                      <div>
+                        <p className="text-lg font-bold text-green-600">
+                          Admission Fee Paid
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Payment has been successfully processed
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs text-muted-foreground">
-                        Default Amount
-                      </p>
-                      <p className="text-lg font-bold text-green-600">₹3,000</p>
+                  ) : (
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <Input
+                          type="number"
+                          value={admissionFee}
+                          onChange={(e) =>
+                            setAdmissionFee(Number(e.target.value))
+                          }
+                          placeholder="Enter admission fee"
+                          className="text-xl font-bold h-12 bg-white dark:bg-slate-950 border-green-300 focus:border-green-500"
+                        />
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">
+                          Default Amount
+                        </p>
+                        <p className="text-lg font-bold text-green-600">
+                          ₹3,000
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>

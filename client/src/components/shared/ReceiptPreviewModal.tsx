@@ -102,7 +102,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
       <DialogContent
-        className="max-w-4xl w-full h-[95vh] p-0"
+        className="max-w-3xl w-full h-[95vh] p-0"
         onPointerDownOutside={handleBackdropClick}
         onEscapeKeyDown={handleClose}
       >

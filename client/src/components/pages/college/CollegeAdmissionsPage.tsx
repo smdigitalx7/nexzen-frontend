@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, UserCheck, GraduationCap } from "lucide-react";
+import { Search, UserCheck, GraduationCap, CheckCircle } from "lucide-react";
 import { useCollegeReservationsList } from "@/lib/hooks/college/use-college-reservations";
 import { CollegeReservationsService } from "@/lib/services/college/reservations.service";
 import { CollegeStudentsService } from "@/lib/services/college/students.service";
@@ -53,6 +53,8 @@ interface Reservation {
   group_name: string;
   course_name: string;
   preferred_class_id: number;
+  is_enrolled?: boolean;
+  admission_income_id?: number;
 }
 
 interface AdmissionFormData {
@@ -150,6 +152,8 @@ const CollegeAdmissionsPage = () => {
       group_name: r.group_name,
       course_name: r.course_name,
       preferred_class_id: r.preferred_class_id,
+      is_enrolled: r.is_enrolled || false,
+      admission_income_id: r.admission_income_id,
     }));
   }, [reservationsData]);
 
@@ -233,11 +237,13 @@ const CollegeAdmissionsPage = () => {
       if (income_id && income_id > 0) {
         console.log("✅ Payment processed with income_id:", income_id);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Payment processing failed:", error);
       toast({
         title: "Payment Failed",
-        description: "Failed to process admission fee payment",
+        description:
+          error?.message ||
+          "Failed to process admission fee payment. Please try again.",
         variant: "destructive",
       });
     }
@@ -254,7 +260,7 @@ const CollegeAdmissionsPage = () => {
     }
 
     try {
-      await CollegeStudentsService.createStudent(admissionFormData);
+      await CollegeStudentsService.create(admissionFormData as any);
 
       toast({
         title: "Student Created Successfully",
@@ -264,11 +270,13 @@ const CollegeAdmissionsPage = () => {
       setShowAdmissionDialog(false);
       setSelectedReservation(null);
       refetch();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Student creation failed:", error);
       toast({
         title: "Enrollment Failed",
-        description: "Failed to create student record",
+        description:
+          error?.message ||
+          "Failed to create student record. Please try again.",
         variant: "destructive",
       });
     }
@@ -369,14 +377,24 @@ const CollegeAdmissionsPage = () => {
                     <TableCell>₹{reservation.admission_fee}</TableCell>
                     <TableCell>{reservation.date}</TableCell>
                     <TableCell>
-                      <Button
-                        size="sm"
-                        onClick={() => handleEnrollStudent(reservation)}
-                        className="flex items-center gap-2"
-                      >
-                        <UserCheck className="h-4 w-4" />
-                        Enroll Student
-                      </Button>
+                      {reservation.is_enrolled ? (
+                        <Badge
+                          variant="secondary"
+                          className="flex items-center gap-1 w-fit"
+                        >
+                          <CheckCircle className="h-3 w-3" />
+                          Enrolled
+                        </Badge>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={() => handleEnrollStudent(reservation)}
+                          className="flex items-center gap-2"
+                        >
+                          <UserCheck className="h-4 w-4" />
+                          Enroll Student
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
@@ -425,7 +443,19 @@ const CollegeAdmissionsPage = () => {
                     ₹{admissionFormData.admission_fee}
                   </span>
                 </div>
-                {!admissionFormData.admission_fee_paid ? (
+                {selectedReservation?.admission_income_id ? (
+                  <div className="flex items-center gap-3 p-4 bg-white rounded-lg border-2 border-green-400">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                    <div>
+                      <p className="font-bold text-green-600">
+                        Admission Fee Paid
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Payment has been successfully processed
+                      </p>
+                    </div>
+                  </div>
+                ) : !admissionFormData.admission_fee_paid ? (
                   <Button onClick={handleAdmissionPayment} className="w-full">
                     Pay Admission Fee
                   </Button>

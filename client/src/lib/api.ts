@@ -347,21 +347,21 @@ export async function handlePayAndPrint(
       response.headers.get("content-type")
     );
 
-    const pdfBlob = await response.blob();
-    console.log(
-      "📄 PDF Blob received. Size:",
-      pdfBlob.size,
-      "bytes, Type:",
-      pdfBlob.type
-    );
+    // Parse JSON response to get income_id
+    const paymentData = await response.json();
+    console.log("📦 Payment response data:", paymentData);
 
-    if (pdfBlob.size === 0) {
-      throw new Error("Received empty PDF from server");
+    const income_id = paymentData.income_id;
+
+    if (!income_id) {
+      throw new Error("Payment successful but income_id not found in response");
     }
 
-    const pdfBlobWithType = new Blob([pdfBlob], { type: "application/pdf" });
-    const blobUrl = URL.createObjectURL(pdfBlobWithType);
-    console.log("🔗 Blob URL created:", blobUrl);
+    console.log("🆔 Income ID received:", income_id);
+
+    // Now call regenerate receipt endpoint to get PDF
+    console.log("📄 Generating receipt for income_id:", income_id);
+    const blobUrl = await handleRegenerateReceipt(income_id);
 
     // Return the blobUrl for the caller to handle (e.g., in modal)
     return blobUrl;
@@ -426,31 +426,21 @@ export async function handleAdmissionPayment(
       response.headers.get("content-type")
     );
 
-    const pdfBlob = await response.blob();
-    console.log(
-      "📄 PDF Blob received. Size:",
-      pdfBlob.size,
-      "bytes, Type:",
-      pdfBlob.type
-    );
+    // Parse JSON response to get income_id
+    const paymentData = await response.json();
+    console.log("📦 Payment response data:", paymentData);
 
-    if (pdfBlob.size === 0) {
-      throw new Error("Received empty PDF from server");
+    const income_id = paymentData.income_id;
+
+    if (!income_id) {
+      throw new Error("Payment successful but income_id not found in response");
     }
 
-    const pdfBlobWithType = new Blob([pdfBlob], { type: "application/pdf" });
-    const blobUrl = URL.createObjectURL(pdfBlobWithType);
-    console.log("🔗 Blob URL created:", blobUrl);
+    console.log("🆔 Income ID received:", income_id);
 
-    // Try to extract income_id from response headers
-    let income_id = 0;
-    const incomeIdHeader = response.headers.get("x-income-id");
-    if (incomeIdHeader) {
-      income_id = parseInt(incomeIdHeader, 10);
-    } else {
-      // If not in headers, we'll need to generate a receipt separately
-      console.warn("⚠️ income_id not found in response headers");
-    }
+    // Now call regenerate receipt endpoint to get PDF
+    console.log("📄 Generating receipt for income_id:", income_id);
+    const blobUrl = await handleRegenerateReceipt(income_id);
 
     return {
       income_id,
@@ -554,8 +544,9 @@ export async function handleRegenerateReceipt(
  *
  * This function:
  * 1. Calls the reservation payment API with reservation_no
- * 2. Receives PDF receipt directly as StreamingResponse
- * 3. Creates a Blob URL for modal display
+ * 2. Receives JSON response with income_id
+ * 3. Calls regenerate receipt endpoint to get PDF
+ * 4. Creates a Blob URL for modal display
  *
  * @param reservationNo - The reservation number for the payment
  * @param payload - The payment data (PayFeeByReservationRequest format)
@@ -619,21 +610,21 @@ export async function handlePayByReservation(
       response.headers.get("content-type")
     );
 
-    const pdfBlob = await response.blob();
-    console.log(
-      "📄 PDF Blob received. Size:",
-      pdfBlob.size,
-      "bytes, Type:",
-      pdfBlob.type
-    );
+    // Parse JSON response to get income_id
+    const paymentData = await response.json();
+    console.log("📦 Payment response data:", paymentData);
 
-    if (pdfBlob.size === 0) {
-      throw new Error("Received empty PDF from server");
+    const income_id = paymentData.income_id;
+
+    if (!income_id) {
+      throw new Error("Payment successful but income_id not found in response");
     }
 
-    const pdfBlobWithType = new Blob([pdfBlob], { type: "application/pdf" });
-    const blobUrl = URL.createObjectURL(pdfBlobWithType);
-    console.log("🔗 Blob URL created:", blobUrl);
+    console.log("🆔 Income ID received:", income_id);
+
+    // Now call regenerate receipt endpoint to get PDF
+    console.log("📄 Generating receipt for income_id:", income_id);
+    const blobUrl = await handleRegenerateReceipt(income_id);
 
     return blobUrl;
   } catch (error) {
@@ -652,8 +643,9 @@ export async function handlePayByReservation(
  *
  * This function:
  * 1. Calls the admission payment API with admission_no
- * 2. Receives PDF receipt directly as StreamingResponse
- * 3. Creates a Blob URL for modal display
+ * 2. Receives JSON response with income_id
+ * 3. Calls regenerate receipt endpoint to get PDF
+ * 4. Creates a Blob URL for modal display
  *
  * @param admissionNo - The admission number for the payment
  * @param payload - The payment data (PayFeeByAdmissionRequest format)
@@ -723,21 +715,21 @@ export async function handlePayByAdmission(
       response.headers.get("content-type")
     );
 
-    const pdfBlob = await response.blob();
-    console.log(
-      "📄 PDF Blob received. Size:",
-      pdfBlob.size,
-      "bytes, Type:",
-      pdfBlob.type
-    );
+    // Parse JSON response to get income_id
+    const paymentData = await response.json();
+    console.log("📦 Payment response data:", paymentData);
 
-    if (pdfBlob.size === 0) {
-      throw new Error("Received empty PDF from server");
+    const income_id = paymentData.income_id;
+
+    if (!income_id) {
+      throw new Error("Payment successful but income_id not found in response");
     }
 
-    const pdfBlobWithType = new Blob([pdfBlob], { type: "application/pdf" });
-    const blobUrl = URL.createObjectURL(pdfBlobWithType);
-    console.log("🔗 Blob URL created:", blobUrl);
+    console.log("🆔 Income ID received:", income_id);
+
+    // Now call regenerate receipt endpoint to get PDF
+    console.log("📄 Generating receipt for income_id:", income_id);
+    const blobUrl = await handleRegenerateReceipt(income_id);
 
     return blobUrl;
   } catch (error) {
@@ -756,9 +748,10 @@ export async function handlePayByAdmission(
  *
  * This function:
  * 1. Calls the admission payment API with admission_no
- * 2. Receives PDF receipt directly as StreamingResponse
- * 3. Creates a Blob URL for modal display
- * 4. Extracts income_id from response headers for receipt regeneration
+ * 2. Receives JSON response with income_id
+ * 3. Calls regenerate receipt endpoint to get PDF
+ * 4. Creates a Blob URL for modal display
+ * 5. Returns both income_id and blobUrl
  *
  * @param admissionNo - The admission number for the payment
  * @param payload - The payment data (PayFeeByAdmissionRequest format)
@@ -828,31 +821,21 @@ export async function handlePayByAdmissionWithIncomeId(
       response.headers.get("content-type")
     );
 
-    const pdfBlob = await response.blob();
-    console.log(
-      "📄 PDF Blob received. Size:",
-      pdfBlob.size,
-      "bytes, Type:",
-      pdfBlob.type
-    );
+    // Parse JSON response to get income_id
+    const paymentData = await response.json();
+    console.log("📦 Payment response data:", paymentData);
 
-    if (pdfBlob.size === 0) {
-      throw new Error("Received empty PDF from server");
+    const income_id = paymentData.income_id;
+
+    if (!income_id) {
+      throw new Error("Payment successful but income_id not found in response");
     }
 
-    const pdfBlobWithType = new Blob([pdfBlob], { type: "application/pdf" });
-    const blobUrl = URL.createObjectURL(pdfBlobWithType);
-    console.log("🔗 Blob URL created:", blobUrl);
+    console.log("🆔 Income ID received:", income_id);
 
-    // Try to extract income_id from response headers
-    let income_id = 0;
-    const incomeIdHeader = response.headers.get("x-income-id");
-    if (incomeIdHeader) {
-      income_id = parseInt(incomeIdHeader, 10);
-    } else {
-      // If not in headers, we'll need to generate a receipt separately
-      console.warn("⚠️ income_id not found in response headers");
-    }
+    // Now call regenerate receipt endpoint to get PDF
+    console.log("📄 Generating receipt for income_id:", income_id);
+    const blobUrl = await handleRegenerateReceipt(income_id);
 
     return {
       income_id,

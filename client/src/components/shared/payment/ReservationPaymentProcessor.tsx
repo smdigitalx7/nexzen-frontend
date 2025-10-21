@@ -30,9 +30,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { PaymentData } from "./PaymentProcessor";
-import { PaymentSuccess } from "./PaymentSuccess";
-import { ReceiptPreviewModal } from "@/components/shared/ReceiptPreviewModal";
 import { handlePayByReservation } from "@/lib/api";
 import type {
   SchoolIncomeCreateReservation,
@@ -54,7 +51,10 @@ export interface ReservationPaymentData {
 
 export interface ReservationPaymentProcessorProps {
   reservationData: ReservationPaymentData;
-  onPaymentComplete?: (incomeRecord: SchoolIncomeRead) => void;
+  onPaymentComplete?: (
+    incomeRecord: SchoolIncomeRead,
+    receiptBlobUrl: string
+  ) => void;
   onPaymentFailed?: (error: string) => void;
   onPaymentCancel?: () => void;
   className?: string;
@@ -72,9 +72,6 @@ const ReservationPaymentProcessor: React.FC<
   const [currentStep, setCurrentStep] = useState<
     "confirm" | "processing" | "success" | "failed"
   >("confirm");
-  const [showPaymentProcessor, setShowPaymentProcessor] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [showReceipt, setShowReceipt] = useState(false);
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [incomeRecord, setIncomeRecord] = useState<SchoolIncomeRead | null>(
@@ -102,15 +99,20 @@ const ReservationPaymentProcessor: React.FC<
           `Payment for reservation ${reservationData.reservationNo}`,
       };
 
-      // Call the API that returns a PDF receipt as blob (StreamingResponse)
+      console.log("🔄 Processing reservation payment...");
+
+      // Call the updated API that returns a PDF receipt as blob and gets income_id from JSON response
       const blobUrl = await handlePayByReservation(
         reservationData.reservationNo,
         payload as any
       );
 
-      // Create income record for UI (API returns PDF, so we create the record for display)
+      console.log("✅ Payment processed successfully, receipt generated");
+
+      // Create income record for UI display
+      // Note: The actual income_id is already in the database, we just need this for UI
       const incomeRecord = {
-        income_id: Date.now(), // Temporary ID for UI
+        income_id: Date.now(), // Temporary ID for UI - actual ID is in database
         reservation_id: reservationData.reservationId,
         purpose: "APPLICATION_FEE",
         amount: reservationData.totalAmount,
@@ -122,12 +124,19 @@ const ReservationPaymentProcessor: React.FC<
 
       setIncomeRecord(incomeRecord as any);
       setCurrentStep("success");
-      setShowSuccess(true);
-      // Open receipt modal with the returned PDF blob URL
+
+      // Pass the receipt blob URL to parent component to display
+      // Don't show receipt in this component - let parent handle it
       setReceiptBlobUrl(blobUrl);
-      setShowReceipt(true);
-      onPaymentComplete?.(incomeRecord as any);
+
+      // Pass both income record and receipt blob URL to parent
+      onPaymentComplete?.(incomeRecord as any, blobUrl);
+
+      console.log(
+        "✅ Payment flow completed successfully - Receipt URL passed to parent"
+      );
     } catch (err: any) {
+      console.error("❌ Payment failed:", err);
       setCurrentStep("failed");
       setError(err?.message || "Failed to record payment method");
       onPaymentFailed?.(err?.message || "Failed to record payment method");
@@ -137,10 +146,6 @@ const ReservationPaymentProcessor: React.FC<
   const handleRetry = () => {
     setCurrentStep("confirm");
     setError(null);
-  };
-
-  const handleDownloadReceipt = () => {
-    setShowReceipt(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -170,26 +175,6 @@ const ReservationPaymentProcessor: React.FC<
   };
 
   const StatusIcon = getStatusIcon(currentStep);
-
-  // Convert reservation data to payment data format
-  const paymentData: PaymentData = {
-    id: reservationData.reservationNo,
-    amount: reservationData.totalAmount,
-    currency: "INR",
-    description: `Reservation payment for ${reservationData.studentName}`,
-    merchant: "School Management System",
-    paymentMethod: selectedPaymentMethod.toLowerCase() as any,
-    status:
-      currentStep === "success"
-        ? "success"
-        : currentStep === "failed"
-        ? "failed"
-        : "pending",
-    transactionId: incomeRecord?.income_id?.toString(),
-    timestamp: incomeRecord ? new Date(incomeRecord.created_at) : new Date(),
-    fees: 0, // No processing fees for school payments
-    totalAmount: reservationData.totalAmount,
-  };
 
   return (
     <div className={cn("w-full max-w-2xl mx-auto", className)}>
@@ -361,26 +346,17 @@ const ReservationPaymentProcessor: React.FC<
 
             {currentStep === "success" && (
               <div className="space-y-2">
-                <Button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleDownloadReceipt();
-                  }}
-                  className="w-full"
-                  size="lg"
-                >
-                  <Receipt className="w-4 h-4 mr-2" />
-                  Download Receipt
-                </Button>
+                <div className="flex items-center justify-center gap-2 text-sm text-green-600 mb-2">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Payment successful! Receipt will be displayed.</span>
+                </div>
                 <Button
                   type="button"
                   onClick={onPaymentCancel}
                   variant="outline"
                   className="w-full"
                 >
-                  Done
+                  Close
                 </Button>
               </div>
             )}
@@ -388,26 +364,7 @@ const ReservationPaymentProcessor: React.FC<
         </CardContent>
       </Card>
 
-      {/* Success Dialog */}
-      <PaymentSuccess
-        open={showSuccess}
-        onOpenChange={setShowSuccess}
-        paymentData={paymentData}
-        onClose={() => setShowSuccess(false)}
-      />
-
-      {/* Receipt Preview Modal (PDF from blob URL) */}
-      <ReceiptPreviewModal
-        isOpen={showReceipt}
-        onClose={() => {
-          setShowReceipt(false);
-          if (receiptBlobUrl) {
-            URL.revokeObjectURL(receiptBlobUrl);
-            setReceiptBlobUrl(null);
-          }
-        }}
-        blobUrl={receiptBlobUrl}
-      />
+      {/* Note: Receipt modal is now displayed by parent component to prevent unmounting issues */}
     </div>
   );
 };
