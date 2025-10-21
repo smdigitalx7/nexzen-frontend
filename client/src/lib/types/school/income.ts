@@ -142,3 +142,29 @@ export interface SchoolFinanceReportParams {
   start_date?: string;
   end_date?: string;
 }
+
+// Income Summary Types for paginated table view
+export interface SchoolIncomeSummary {
+  income_id: number;
+  branch_id: number;
+  receipt_no: string;
+  student_name: string;
+  identity_no: string;
+  total_amount: number;
+  purpose: string;
+  created_at: string;
+}
+
+export interface SchoolIncomeSummaryListResponse {
+  items: SchoolIncomeSummary[];
+  total: number;
+  page: number;
+  size: number;
+}
+
+export interface SchoolIncomeSummaryParams {
+  page?: number;
+  size?: number;
+  start_date?: string;
+  end_date?: string;
+}

@@ -2,6 +2,9 @@ export interface UserAccess {
   access_id: number;
   role_name: string;
   branch_name: string;
+  is_default?: boolean;
+  access_notes?: string;
+  is_active?: boolean;
 }
 
 export interface UserRead {

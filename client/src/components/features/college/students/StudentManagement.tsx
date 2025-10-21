@@ -59,7 +59,6 @@ const StudentManagement = () => {
         ]}
         activeTab={activePageTab}
         onTabChange={setActivePageTab}
-        gridCols="grid-cols-3"
       />
     </motion.div>
   );

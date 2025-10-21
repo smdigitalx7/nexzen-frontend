@@ -22,7 +22,7 @@ import {
   createEditAction,
   createDeleteAction
 } from "@/lib/utils/columnFactories.tsx";
-import { useUsersWithRolesAndBranches, useCreateUser, useUpdateUser, useDeleteUser, useUserDashboard, useRevokeUserAccess, useUser } from '@/lib/hooks/general/useUsers';
+import { useUsersWithRolesAndBranches, useCreateUser, useUpdateUser, useDeleteUser, useUserDashboard, useRevokeUserAccess, useCreateUserAccess, useUser } from '@/lib/hooks/general/useUsers';
 import { useRoles } from '@/lib/hooks/general/useRoles';
 import { useBranches } from '@/lib/hooks/general/useBranches';
 import { UserWithRolesAndBranches, UserCreate, UserUpdate, BranchRoleAssignment, UserWithAccesses } from '@/lib/types/general/users';
@@ -40,6 +40,7 @@ const UserManagement = () => {
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
   const revokeAccessMutation = useRevokeUserAccess();
+  const createAccessMutation = useCreateUserAccess();
 
   // Helper function to extract role and branch info from accesses
   const getRoleAndBranchFromAccesses = (user: UserWithRolesAndBranches | UserWithAccesses) => {
@@ -70,9 +71,17 @@ const UserManagement = () => {
   const [userToDelete, setUserToDelete] = useState<UserWithRolesAndBranches | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [showRevokeDialog, setShowRevokeDialog] = useState(false);
-  const [accessToRevoke, setAccessToRevoke] = useState<{ accessId: number; userId: number; roleName: string; branchName: string } | null>(null);
-  const [revokeNotes, setRevokeNotes] = useState<string>('');
+  const [showAccessDialog, setShowAccessDialog] = useState(false);
+  const [accessFormData, setAccessFormData] = useState({
+    branch_id: 0,
+    role_id: 0,
+    is_default: false,
+    access_notes: '',
+    is_active: true
+  });
+  const [showAccessRevokeDialog, setShowAccessRevokeDialog] = useState(false);
+  const [accessToRevokeFromDialog, setAccessToRevokeFromDialog] = useState<{ accessId: number; userId: number; roleName: string; branchName: string } | null>(null);
+  const [accessRevokeNotes, setAccessRevokeNotes] = useState<string>('');
   
   // Fetch detailed user data when viewing user details (includes accesses array)
   const { data: detailedUser, isLoading: detailedUserLoading } = useUser(selectedUser?.user_id || 0);
@@ -154,24 +163,63 @@ const UserManagement = () => {
     }
   };
 
-  const handleRevokeAccess = (accessId: number, userId: number, roleName: string, branchName: string) => {
-    setAccessToRevoke({ accessId, userId, roleName, branchName });
-    setRevokeNotes('');
-    setShowRevokeDialog(true);
+
+  const handleAddAccess = (user: UserWithRolesAndBranches) => {
+    setSelectedUser(user);
+    setAccessFormData({
+      branch_id: 0,
+      role_id: 0,
+      is_default: false,
+      access_notes: '',
+      is_active: true
+    });
+    setShowAccessDialog(true);
   };
 
-  const confirmRevokeAccess = () => {
-    if (accessToRevoke) {
+  const handleAccessFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser || !accessFormData.branch_id || !accessFormData.role_id) {
+      setFormError('Please select both branch and role for the access.');
+      return;
+    }
+
+    createAccessMutation.mutate({
+      user_id: selectedUser.user_id,
+      branch_id: accessFormData.branch_id,
+      role_id: accessFormData.role_id,
+      is_default: accessFormData.is_default,
+      access_notes: accessFormData.access_notes || undefined,
+      is_active: accessFormData.is_active
+    }, {
+      onSuccess: () => {
+        setShowAccessDialog(false);
+        setFormError(null);
+      },
+      onError: (error: any) => {
+        const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred while creating the access.';
+        setFormError(errorMessage);
+      }
+    });
+  };
+
+  const handleRevokeAccessFromDialog = (accessId: number, userId: number, roleName: string, branchName: string) => {
+    setAccessToRevokeFromDialog({ accessId, userId, roleName, branchName });
+    setAccessRevokeNotes('');
+    setShowAccessRevokeDialog(true);
+  };
+
+  const confirmRevokeAccessFromDialog = () => {
+    if (accessToRevokeFromDialog) {
       revokeAccessMutation.mutate({
-        accessId: accessToRevoke.accessId,
+        accessId: accessToRevokeFromDialog.accessId,
         payload: {
-          user_id: accessToRevoke.userId,
-          access_notes: revokeNotes || undefined,
+          user_id: accessToRevokeFromDialog.userId,
+          access_notes: accessRevokeNotes || undefined,
         }
       });
-      setShowRevokeDialog(false);
-      setAccessToRevoke(null);
-      setRevokeNotes('');
+      setShowAccessRevokeDialog(false);
+      setAccessToRevokeFromDialog(null);
+      setAccessRevokeNotes('');
     }
   };
 
@@ -295,6 +343,14 @@ const UserManagement = () => {
     createActionColumn<UserWithRolesAndBranches>([
       createViewAction((row) => { setSelectedUser(row); setShowDetail(true); }),
       createEditAction((row) => handleEditUser(row)),
+      {
+        label: 'Access',
+        icon: Shield,
+        onClick: (row) => handleAddAccess(row),
+        variant: 'outline',
+        size: 'sm',
+        className: 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'
+      },
       createDeleteAction((row) => handleDeleteUser(row))
     ])
   ]), [handleEditUser, handleDeleteUser]);
@@ -575,32 +631,6 @@ const UserManagement = () => {
               </div>
             </div>
             
-            {/* Access Information */}
-            {detailedUser && ('accesses' in detailedUser && detailedUser.accesses && detailedUser.accesses.length > 0) && (
-              <div className="mt-4">
-                <Label className="text-muted-foreground">Access Permissions</Label>
-                <div className="mt-2 space-y-2">
-                  {detailedUser.accesses.map((access, index) => (
-                    <div key={access.access_id || index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
-                      <div>
-                        <span className="font-medium">{access.role_name}</span>
-                        <span className="text-muted-foreground ml-2">at {access.branch_name}</span>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRevokeAccess(access.access_id, detailedUser.user_id, access.role_name, access.branch_name)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        disabled={revokeAccessMutation.isPending}
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        {revokeAccessMutation.isPending ? "Revoking..." : "Revoke"}
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
             
             {/* Legacy roles and branches display for backward compatibility */}
             {('roles' in selectedUser && selectedUser.roles && selectedUser.roles.length > 0) && (
@@ -637,15 +667,155 @@ const UserManagement = () => {
         disabled={deleteUserMutation.isPending}
       />
 
-      {/* Revoke Access Confirmation Dialog */}
+
+      {/* Add Access Dialog */}
       <FormDialog
-        open={showRevokeDialog}
-        onOpenChange={setShowRevokeDialog}
+        open={showAccessDialog}
+        onOpenChange={setShowAccessDialog}
+        title="Manage Branch Access"
+        description={`Manage branch access for ${selectedUser?.full_name}`}
+        size="LARGE"
+        isLoading={createAccessMutation.isPending}
+        onSave={() => {
+          const form = document.getElementById('access-form') as HTMLFormElement;
+          if (form) {
+            form.requestSubmit();
+          }
+        }}
+        saveText={createAccessMutation.isPending ? "Adding..." : "Add Access"}
+        cancelText="Cancel"
+      >
+        {formError && (
+          <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md mb-4">
+            <strong>Error:</strong> {formError}
+          </div>
+        )}
+        
+        {/* Existing Access Permissions */}
+        {detailedUser && ('accesses' in detailedUser && detailedUser.accesses && detailedUser.accesses.length > 0) && (
+          <div className="mb-6">
+            <Label className="text-muted-foreground text-sm font-medium">Current Access Permissions</Label>
+            <div className="mt-2 space-y-2">
+              {detailedUser.accesses.map((access, index) => (
+                <div key={access.access_id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-md border">
+                  <div className="flex items-center space-x-3">
+                    <Shield className="h-4 w-4 text-blue-600" />
+                    <div>
+                      <span className="font-medium text-sm">{access.role_name}</span>
+                      <span className="text-muted-foreground text-sm ml-2">at {access.branch_name}</span>
+                      {access.is_default && (
+                        <Badge variant="outline" className="ml-2 text-xs">Default</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRevokeAccessFromDialog(access.access_id, detailedUser.user_id, access.role_name, access.branch_name)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    disabled={revokeAccessMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    {revokeAccessMutation.isPending ? "Revoking..." : "Revoke"}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Add New Access Form */}
+        <div className="border-t pt-4">
+          <Label className="text-muted-foreground text-sm font-medium mb-4 block">Add New Access</Label>
+          <form id="access-form" onSubmit={handleAccessFormSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="access-branch">Branch *</Label>
+                <Select 
+                  value={accessFormData.branch_id.toString()} 
+                  onValueChange={(value) => setAccessFormData(prev => ({ ...prev, branch_id: parseInt(value) }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a branch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branchesLoading ? (
+                      <SelectItem value="" disabled>Loading branches...</SelectItem>
+                    ) : (
+                      branchesArray.map((branch: BranchRead) => (
+                        <SelectItem key={branch.branch_id} value={branch.branch_id.toString()}>
+                          {branch.branch_name} ({branch.branch_type})
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="access-role">Role *</Label>
+                <Select 
+                  value={accessFormData.role_id.toString()} 
+                  onValueChange={(value) => setAccessFormData(prev => ({ ...prev, role_id: parseInt(value) }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {rolesLoading ? (
+                      <SelectItem value="" disabled>Loading roles...</SelectItem>
+                    ) : (
+                      roles.map((role) => (
+                        <SelectItem key={role.role_id} value={role.role_id.toString()}>
+                          {role.role_name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="access-notes">Access Notes</Label>
+              <Input
+                id="access-notes"
+                value={accessFormData.access_notes}
+                onChange={(e) => setAccessFormData(prev => ({ ...prev, access_notes: e.target.value }))}
+                placeholder="Optional notes about this access"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="access-is-default"
+                  checked={accessFormData.is_default}
+                  onCheckedChange={(checked) => setAccessFormData(prev => ({ ...prev, is_default: checked as boolean }))}
+                />
+                <Label htmlFor="access-is-default">Set as Default Access</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="access-is-active"
+                  checked={accessFormData.is_active}
+                  onCheckedChange={(checked) => setAccessFormData(prev => ({ ...prev, is_active: checked as boolean }))}
+                />
+                <Label htmlFor="access-is-active">Active</Label>
+              </div>
+            </div>
+          </form>
+        </div>
+      </FormDialog>
+
+      {/* Revoke Access from Access Dialog Confirmation */}
+      <FormDialog
+        open={showAccessRevokeDialog}
+        onOpenChange={setShowAccessRevokeDialog}
         title="Revoke Access"
-        description={`Are you sure you want to revoke ${accessToRevoke?.roleName} access at ${accessToRevoke?.branchName}? This action cannot be undone.`}
+        description={`Are you sure you want to revoke ${accessToRevokeFromDialog?.roleName} access at ${accessToRevokeFromDialog?.branchName}? This action cannot be undone.`}
         size="MEDIUM"
         isLoading={revokeAccessMutation.isPending}
-        onSave={confirmRevokeAccess}
+        onSave={confirmRevokeAccessFromDialog}
         saveText={revokeAccessMutation.isPending ? "Revoking..." : "Revoke Access"}
         cancelText="Cancel"
         saveVariant="destructive"
@@ -657,18 +827,18 @@ const UserManagement = () => {
               <div>
                 <p className="text-sm font-medium text-red-800">Revoke Access Permission</p>
                 <p className="text-sm text-red-700">
-                  This will remove the user's {accessToRevoke?.roleName} role at {accessToRevoke?.branchName}.
+                  This will remove the user's {accessToRevokeFromDialog?.roleName} role at {accessToRevokeFromDialog?.branchName}.
                 </p>
               </div>
             </div>
           </div>
           
           <div>
-            <Label htmlFor="revoke-notes">Reason for Revocation (Optional)</Label>
+            <Label htmlFor="access-revoke-notes">Reason for Revocation (Optional)</Label>
             <Input
-              id="revoke-notes"
-              value={revokeNotes}
-              onChange={(e) => setRevokeNotes(e.target.value)}
+              id="access-revoke-notes"
+              value={accessRevokeNotes}
+              onChange={(e) => setAccessRevokeNotes(e.target.value)}
               placeholder="Enter reason for revoking access..."
               className="mt-1"
             />

@@ -44,8 +44,13 @@ export const formatDate = (dateString: string, options?: Intl.DateTimeFormatOpti
   // Handle different date formats and validate the date
   let date: Date;
   
-  if (!dateString) {
-    return 'Invalid Date';
+  if (!dateString || dateString === null || dateString === undefined) {
+    return '-';
+  }
+  
+  // Handle empty string or whitespace
+  if (typeof dateString === 'string' && dateString.trim() === '') {
+    return '-';
   }
   
   // Try to parse the date string
@@ -54,7 +59,15 @@ export const formatDate = (dateString: string, options?: Intl.DateTimeFormatOpti
   // Check if the date is valid
   if (isNaN(date.getTime())) {
     console.warn(`Invalid date string: ${dateString}`);
-    return 'Invalid Date';
+    return '-';
+  }
+  
+  // Check if the date is too far in the past or future (likely invalid)
+  const now = new Date();
+  const yearDiff = Math.abs(date.getFullYear() - now.getFullYear());
+  if (yearDiff > 100) {
+    console.warn(`Date seems invalid (${yearDiff} years difference): ${dateString}`);
+    return '-';
   }
   
   return date.toLocaleDateString("en-IN", { ...defaultOptions, ...options });

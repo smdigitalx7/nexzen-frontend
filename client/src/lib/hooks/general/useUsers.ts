@@ -92,6 +92,21 @@ export const useDeleteUser = () => {
   });
 };
 
+export const useCreateUserAccess = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (payload: { user_id: number; branch_id: number; role_id: number; is_default?: boolean; access_notes?: string; is_active?: boolean }) => 
+      UsersService.createAccess(payload),
+    onSuccess: (_, payload) => {
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: userKeys.rolesAndBranches() });
+      queryClient.invalidateQueries({ queryKey: userKeys.detail(payload.user_id) });
+      queryClient.invalidateQueries({ queryKey: userKeys.dashboard() });
+    },
+  });
+};
+
 export const useRevokeUserAccess = () => {
   const queryClient = useQueryClient();
   

@@ -85,6 +85,16 @@ export const UsersService = {
   },
 
   /**
+   * Create user branch access
+   * @param payload - Access creation data with user_id, branch_id, role_id, etc.
+   * @returns Promise<any> - Created access response
+   */
+  createAccess(payload: { user_id: number; branch_id: number; role_id: number; is_default?: boolean; access_notes?: string; is_active?: boolean }): Promise<any> {
+    console.log(`API: Creating access for user ${payload.user_id} at branch ${payload.branch_id} with role ${payload.role_id}`);
+    return Api.post(`/user-branch-accesses`, payload);
+  },
+
+  /**
    * Revoke user branch access
    * @param accessId - Access ID
    * @param payload - Revoke data with user_id and access_notes
