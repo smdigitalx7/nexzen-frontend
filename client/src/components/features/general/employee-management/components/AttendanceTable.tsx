@@ -1,12 +1,9 @@
 import { useMemo } from "react";
+import { Eye, Edit, Trash2 } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
-  createTextColumn,
-  createActionColumn,
-  createViewAction,
-  createEditAction,
-  createDeleteAction
+  createTextColumn
 } from "@/lib/utils/columnFactories.tsx";
 
 interface EmployeeAttendanceRead {
@@ -64,11 +61,22 @@ export const AttendanceTable = ({
     createTextColumn<EmployeeAttendanceRead>("days_absent", { header: "Absent", fallback: "-" }),
     createTextColumn<EmployeeAttendanceRead>("late_arrivals", { header: "Late", fallback: "-" }),
     createTextColumn<EmployeeAttendanceRead>("early_departures", { header: "Early", fallback: "-" }),
-    createActionColumn<EmployeeAttendanceRead>([
-      createViewAction((row) => onViewAttendance(row)),
-      createEditAction((row) => onEditAttendance(row)),
-      createDeleteAction((row) => onDeleteAttendance(row.attendance_id))
-    ])
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (row: EmployeeAttendanceRead) => onViewAttendance(row)
+    },
+    {
+      type: 'edit' as const,
+      onClick: (row: EmployeeAttendanceRead) => onEditAttendance(row)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: EmployeeAttendanceRead) => onDeleteAttendance(row.attendance_id)
+    }
   ], [onViewAttendance, onEditAttendance, onDeleteAttendance]);
 
   if (isLoading) {
@@ -84,12 +92,15 @@ export const AttendanceTable = ({
       data={attendance}
       columns={columns as any}
       title="Employee Attendance"
-      description="Manage employee attendance records"
       searchKey="employee_name"
       showSearch={showSearch}
       exportable={true}
       onAdd={onAddAttendance}
       addButtonText="Add Attendance"
+      showActions={true}
+      actionButtonGroups={actionButtonGroups}
+      actionColumnHeader="Actions"
+      showActionLabels={false}
     />
   );
 };

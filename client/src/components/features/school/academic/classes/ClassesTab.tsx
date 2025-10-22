@@ -1,5 +1,5 @@
 import { useState, memo, useMemo } from "react";
-import { BookOpen, Plus } from "lucide-react";
+import { BookOpen, Plus, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,10 +9,7 @@ import { useCreateSchoolClass, useUpdateSchoolClass } from '@/lib/hooks/school/u
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
 import {
-  createIconTextColumn,
-  createActionColumn,
-  createEditAction,
-  createDeleteAction
+  createIconTextColumn
 } from "@/lib/utils/columnFactories";
 
 interface ClassesTabProps {
@@ -135,11 +132,19 @@ export const ClassesTab = memo(({
 
   // Define columns for the data table
   const columns: ColumnDef<import("@/lib/types/school").SchoolClassRead>[] = useMemo(() => [
-    createIconTextColumn<import("@/lib/types/school").SchoolClassRead>("class_name", { header: "Class Name", icon: BookOpen }),
-    createActionColumn<import("@/lib/types/school").SchoolClassRead>([
-      createEditAction((classItem) => handleEditClick(classItem)),
-      createDeleteAction((classItem) => handleDeleteClick(classItem))
-    ])
+    createIconTextColumn<import("@/lib/types/school").SchoolClassRead>("class_name", { header: "Class Name", icon: BookOpen })
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'edit' as const,
+      onClick: (classItem: import("@/lib/types/school").SchoolClassRead) => handleEditClick(classItem)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (classItem: import("@/lib/types/school").SchoolClassRead) => handleDeleteClick(classItem)
+    }
   ], [handleEditClick, handleDeleteClick]);
 
   if (hasError) {
@@ -165,12 +170,15 @@ export const ClassesTab = memo(({
         data={classesWithSubjects}
         columns={columns as any}
         title="Classes"
-        description="Manage academic classes and their subjects"
         searchKey="class_name"
         searchPlaceholder="Search classes..."
         exportable={true}
         onAdd={() => setIsAddClassOpen(true)}
         addButtonText="Add Class"
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
       />
 
       {/* Add Class Dialog */}

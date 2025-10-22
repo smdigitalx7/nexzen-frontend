@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ColumnDef } from '@tanstack/react-table';
-import { Plus, Edit, Trash2, Eye, MoreHorizontal, Shield, ShieldCheck, ShieldX, UserCheck, UserX } from 'lucide-react';
+import { Trash2, Shield, ShieldX } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { FormDialog, ConfirmDialog } from '@/components/shared';
 import { Input } from '@/components/ui/input';
@@ -16,11 +16,7 @@ import {
   createAvatarColumn,
   createTextColumn,
   createBadgeColumn,
-  createDateColumn,
-  createActionColumn,
-  createViewAction,
-  createEditAction,
-  createDeleteAction
+  createDateColumn
 } from "@/lib/utils/columnFactories.tsx";
 import { useUsersWithRolesAndBranches, useCreateUser, useUpdateUser, useDeleteUser, useUserDashboard, useRevokeUserAccess, useCreateUserAccess, useUser } from '@/lib/hooks/general/useUsers';
 import { useRoles } from '@/lib/hooks/general/useRoles';
@@ -339,21 +335,32 @@ const UserManagement = () => {
     createTextColumn<UserWithRolesAndBranches>('email', { header: 'Email' }),
     createTextColumn<UserWithRolesAndBranches>('mobile_no', { header: 'Mobile', fallback: 'N/A' }),
     createBadgeColumn<UserWithRolesAndBranches>('is_active', { header: 'Status', variant: 'outline' }),
-    createDateColumn<UserWithRolesAndBranches>('created_at', { header: 'Created' }),
-    createActionColumn<UserWithRolesAndBranches>([
-      createViewAction((row) => { setSelectedUser(row); setShowDetail(true); }),
-      createEditAction((row) => handleEditUser(row)),
-      {
-        label: 'Access',
-        icon: Shield,
-        onClick: (row) => handleAddAccess(row),
-        variant: 'outline',
-        size: 'sm',
-        className: 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'
-      },
-      createDeleteAction((row) => handleDeleteUser(row))
-    ])
-  ]), [handleEditUser, handleDeleteUser]);
+    createDateColumn<UserWithRolesAndBranches>('created_at', { header: 'Created' })
+  ]), []);
+
+  // Action button groups for the EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (row: UserWithRolesAndBranches) => { setSelectedUser(row); setShowDetail(true); }
+    },
+    {
+      type: 'edit' as const,
+      onClick: (row: UserWithRolesAndBranches) => handleEditUser(row)
+    },
+    {
+      type: 'custom' as const,
+      label: 'Access',
+      icon: Shield,
+      onClick: (row: UserWithRolesAndBranches) => handleAddAccess(row),
+      variant: 'outline' as const,
+      className: 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: UserWithRolesAndBranches) => handleDeleteUser(row)
+    }
+  ], [handleEditUser, handleDeleteUser]);
 
   // Use dashboard stats if available, otherwise fallback to calculated stats
   const displayStats = dashboardStats || {
@@ -402,12 +409,15 @@ const UserManagement = () => {
           data={users}
           columns={columns}
           title={isLoading ? "Users (Loading...)" : "Users"}
-          description="Manage user accounts and permissions"
           searchKey="full_name"
           searchPlaceholder="Search users..."
           exportable={true}
           onAdd={handleAddUser}
           addButtonText="Add User"
+          showActions={true}
+          actionButtonGroups={actionButtonGroups}
+          actionColumnHeader="Actions"
+          showActionLabels={false}
         />
       )}
 
@@ -466,11 +476,11 @@ const UserManagement = () => {
                   id="mobile_no"
                   value={formData.mobile_no || ""}
                   onChange={(e) => handleFormChange('mobile_no', e.target.value)}
-                  placeholder="Enter mobile number (e.g., +919876543210)"
+                  placeholder="Enter mobile number (e.g., 9876543210)"
                   data-testid="input-mobile"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Include country code (e.g., +91 for India). Each mobile number must be unique within your institute.
+                  Exclude country code (e.g., 9876543210 for India).
                 </p>
               </div>
               <div></div>

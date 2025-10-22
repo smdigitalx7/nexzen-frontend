@@ -1,5 +1,5 @@
 import { useState, memo, useMemo } from "react";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
@@ -8,10 +8,7 @@ import { useCollegeClasses, useUpdateCollegeClass, useCreateCollegeClass } from 
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
 import {
-  createIconTextColumn,
-  createActionColumn,
-  createEditAction,
-  createDeleteAction
+  createIconTextColumn
 } from "@/lib/utils/columnFactories";
 
 interface ClassesTabProps {
@@ -138,11 +135,19 @@ export const ClassesTab = memo(({
 
   // Define columns for the data table
   const columns: ColumnDef<any>[] = useMemo(() => [
-    createIconTextColumn<any>("class_name", { header: "Class Name", icon: BookOpen }),
-    createActionColumn<any>([
-      createEditAction((classItem) => handleEditClick(classItem)),
-      createDeleteAction((classItem) => handleDeleteClick(classItem))
-    ])
+    createIconTextColumn<any>("class_name", { header: "Class Name", icon: BookOpen })
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'edit' as const,
+      onClick: (classItem: any) => handleEditClick(classItem)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (classItem: any) => handleDeleteClick(classItem)
+    }
   ], [handleEditClick, handleDeleteClick]);
 
   if (hasError) {
@@ -167,11 +172,14 @@ export const ClassesTab = memo(({
         data={classesWithSubjects}
         columns={columns}
         title="Classes"
-        description="Manage academic classes and their subjects"
         searchKey="class_name"
         exportable={true}
         onAdd={() => setIsAddClassOpen(true)}
         addButtonText="Add Class"
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
       />
 
       {/* Add Class Dialog */}

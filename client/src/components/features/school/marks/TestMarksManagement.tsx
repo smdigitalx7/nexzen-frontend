@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, Eye, Edit, Trash2 } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,10 +32,6 @@ import {
   createMarksColumn,
   createGradeColumn,
   createTestDateColumn,
-  createActionColumn,
-  createViewAction,
-  createEditAction,
-  createDeleteAction
 } from "@/lib/utils/columnFactories.tsx";
 
 // Utility functions for grade calculation
@@ -281,11 +277,22 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
     createMarksColumn<TestMarkWithDetails>("marks_obtained", "max_marks", "percentage", { header: "Marks" }),
     createGradeColumn<TestMarkWithDetails>("grade", gradeColors, { header: "Grade" }),
     createTestDateColumn<TestMarkWithDetails>("conducted_at", { header: "Test Date" }),
-    createActionColumn<TestMarkWithDetails>([
-      createViewAction((row) => handleViewTestMark(row.test_mark_id)),
-      createEditAction((row) => handleEditTestMark(row)),
-      createDeleteAction((row) => handleDeleteTestMark(row.test_mark_id))
-    ])
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (row: TestMarkWithDetails) => handleViewTestMark(row.test_mark_id)
+    },
+    {
+      type: 'edit' as const,
+      onClick: (row: TestMarkWithDetails) => handleEditTestMark(row)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: TestMarkWithDetails) => handleDeleteTestMark(row.test_mark_id)
+    }
   ], [handleViewTestMark, handleEditTestMark, handleDeleteTestMark]);
 
   return (
@@ -633,13 +640,16 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
               <EnhancedDataTable
                 data={testMarks}
                 title="Test Marks"
-                description="Manage test marks for students"
                 searchKey={['student_name', 'roll_number', 'class_name', 'section_name', 'test_name', 'subject_name'] as any}
                 searchPlaceholder="Search students..."
                 columns={testMarkColumns}
                 onAdd={() => setShowTestMarkDialog(true)}
                 addButtonText="Add Test Mark"
                 exportable={true}
+                showActions={true}
+                actionButtonGroups={actionButtonGroups}
+                actionColumnHeader="Actions"
+                showActionLabels={false}
               />
             ))}
 

@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { createTextColumn, createCurrencyColumn, createActionColumn } from "@/lib/utils/columnFactories";
+import { createTextColumn, createCurrencyColumn } from "@/lib/utils/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface ExpenditureTableProps {
@@ -143,30 +143,29 @@ export const ExpenditureTable = ({
       header: 'Remarks',
       cell: ({ row }) => row.original.remarks || "-",
     },
-    createActionColumn<SchoolExpenditureRead>([
-      {
-        icon: Eye,
-        label: "View Expenditure",
-        onClick: (expenditure: SchoolExpenditureRead) => {
-          handleView(expenditure);
-        },
-      },
-      {
-        icon: Edit,
-        label: "Edit Expenditure",
-        onClick: (expenditure: SchoolExpenditureRead) => {
-          handleEdit(expenditure);
-        },
-      },
-      {
-        icon: Trash2,
-        label: "Delete Expenditure",
-        onClick: (expenditure: SchoolExpenditureRead) => {
-          handleDelete(expenditure);
-        },
-      },
-    ]),
   ];
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (expenditure: SchoolExpenditureRead) => {
+        handleView(expenditure);
+      }
+    },
+    {
+      type: 'edit' as const,
+      onClick: (expenditure: SchoolExpenditureRead) => {
+        handleEdit(expenditure);
+      }
+    },
+    {
+      type: 'delete' as const,
+      onClick: (expenditure: SchoolExpenditureRead) => {
+        handleDelete(expenditure);
+      }
+    }
+  ], []);
 
   // Prepare filter options for EnhancedDataTable
   const filterOptions = [
@@ -192,13 +191,16 @@ export const ExpenditureTable = ({
         data={expenditureData}
         columns={columns}
         title="Expenditure Records"
-        description="Track all expenditure transactions and payments"
         searchKey="expenditure_purpose"
         searchPlaceholder="Search by purpose or remarks..."
         exportable={!!onExportCSV}
         onExport={onExportCSV}
         onAdd={onAddExpenditure}
         addButtonText="Add Expenditure"
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
         filters={filterOptions}
       />
 

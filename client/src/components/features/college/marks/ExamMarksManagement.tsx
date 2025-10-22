@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Download, GraduationCap } from 'lucide-react';
+import { Search, Download, GraduationCap, Eye, Edit, Trash2 } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,10 +33,6 @@ import {
   createMarksColumn,
   createGradeColumn,
   createTestDateColumn,
-  createActionColumn,
-  createViewAction,
-  createEditAction,
-  createDeleteAction
 } from "@/lib/utils/columnFactories.tsx";
 
 // Utility functions for grade calculation
@@ -249,11 +245,22 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
     createMarksColumn<ExamMarkRow>("marks_obtained", "max_marks", "percentage", { header: "Marks" }),
     createGradeColumn<ExamMarkRow>("grade", gradeColors, { header: "Grade" }),
     createTestDateColumn<ExamMarkRow>("conducted_at", { header: "Exam Date" }),
-    createActionColumn<ExamMarkRow>([
-      createViewAction((row) => handleViewExamMark(row.mark_id)),
-      createEditAction((row) => handleEditExamMark(row)),
-      createDeleteAction((row) => handleDeleteExamMark(row.mark_id))
-    ])
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (row: ExamMarkRow) => handleViewExamMark(row.mark_id)
+    },
+    {
+      type: 'edit' as const,
+      onClick: (row: ExamMarkRow) => handleEditExamMark(row)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: ExamMarkRow) => handleDeleteExamMark(row.mark_id)
+    }
   ], [handleViewExamMark, handleEditExamMark, handleDeleteExamMark]);
 
   return (
@@ -598,13 +605,16 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
               <EnhancedDataTable
                 data={examMarks}
                 title="Exam Marks"
-                description="Manage exam marks for students"
                 searchKey={['student_name', 'roll_number', 'class_name', 'section_name', 'exam_name', 'subject_name'] as any}
                 searchPlaceholder="Search students..."
                 columns={examMarkColumns}
                 onAdd={() => setShowExamMarkDialog(true)}
                 addButtonText="Add Exam Mark"
                 exportable={true}
+                showActions={true}
+                actionButtonGroups={actionButtonGroups}
+                actionColumnHeader="Actions"
+                showActionLabels={false}
               />
             ))}
 

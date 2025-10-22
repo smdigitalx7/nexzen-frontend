@@ -1,13 +1,10 @@
 import { useMemo } from "react";
+import { Eye, Edit, Trash2 } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn,
-  createDateColumn,
-  createActionColumn,
-  createViewAction,
-  createEditAction,
-  createDeleteAction
+  createDateColumn
 } from "@/lib/utils/columnFactories.tsx";
 
 interface EmployeeAdvanceRead {
@@ -115,11 +112,22 @@ export const AdvancesTable = ({
         );
       }
     },
-    createActionColumn<EmployeeAdvanceRead>([
-      createViewAction((row) => onViewAdvance(row)),
-      createEditAction((row) => onEditAdvance(row)),
-      createDeleteAction((row) => onDeleteAdvance(row.advance_id))
-    ])
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (row: EmployeeAdvanceRead) => onViewAdvance(row)
+    },
+    {
+      type: 'edit' as const,
+      onClick: (row: EmployeeAdvanceRead) => onEditAdvance(row)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: EmployeeAdvanceRead) => onDeleteAdvance(row.advance_id)
+    }
   ], [onViewAdvance, onEditAdvance, onDeleteAdvance]);
 
   if (isLoading) {
@@ -135,12 +143,15 @@ export const AdvancesTable = ({
       data={advances}
       columns={columns as any}
       title="Employee Advances"
-      description="Manage employee advances"
       searchKey="employee_name"
       showSearch={showSearch}
       exportable={true}
       onAdd={onAddAdvance}
       addButtonText="Add Advance"
+      showActions={true}
+      actionButtonGroups={actionButtonGroups}
+      actionColumnHeader="Actions"
+      showActionLabels={false}
     />
   );
 };

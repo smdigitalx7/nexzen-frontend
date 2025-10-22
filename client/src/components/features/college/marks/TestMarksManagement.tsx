@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Download, ClipboardList } from 'lucide-react';
+import { Search, Download, ClipboardList, Eye, Edit, Trash2 } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,11 +33,7 @@ import {
   createSubjectColumn,
   createMarksColumn,
   createGradeColumn,
-  createTestDateColumn,
-  createActionColumn,
-  createViewAction,
-  createEditAction,
-  createDeleteAction
+  createTestDateColumn
 } from "@/lib/utils/columnFactories.tsx";
 
 // Utility functions for grade calculation
@@ -245,12 +241,23 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
     createSubjectColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string }>("subject_name", "test_name", { header: "Subject" }),
     createMarksColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; max_marks?: number }>("marks_obtained", "max_marks", "percentage", { header: "Marks" }),
     createGradeColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string }>("grade", gradeColors, { header: "Grade" }),
-    createTestDateColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string }>("conducted_at", { header: "Test Date" }),
-    createActionColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string }>([
-      createViewAction((row) => handleViewTestMark(row.test_mark_id)),
-      createEditAction((row) => handleEditTestMark(row)),
-      createDeleteAction((row) => handleDeleteTestMark(row.test_mark_id))
-    ])
+    createTestDateColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string }>("conducted_at", { header: "Test Date" })
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (row: CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; max_marks?: number }) => handleViewTestMark(row.test_mark_id)
+    },
+    {
+      type: 'edit' as const,
+      onClick: (row: CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; max_marks?: number }) => handleEditTestMark(row)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; max_marks?: number }) => handleDeleteTestMark(row.test_mark_id)
+    }
   ], [handleViewTestMark, handleEditTestMark, handleDeleteTestMark]);
 
   return (
@@ -592,13 +599,16 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
               <EnhancedDataTable
                 data={testMarks}
                 title="Test Marks"
-                description="Manage test marks for students"
                 searchKey={['student_name', 'roll_number', 'class_name', 'section_name', 'test_name', 'subject_name'] as any}
                 searchPlaceholder="Search students..."
                 columns={testMarkColumns}
                 onAdd={() => setShowTestMarkDialog(true)}
                 addButtonText="Add Test Mark"
                 exportable={true}
+                showActions={true}
+                actionButtonGroups={actionButtonGroups}
+                actionColumnHeader="Actions"
+                showActionLabels={false}
               />
             ))}
 

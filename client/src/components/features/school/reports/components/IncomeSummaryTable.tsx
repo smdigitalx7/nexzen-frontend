@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Receipt } from "lucide-react";
+import { Receipt, Eye, Edit, Trash2 } from "lucide-react";
 import { SchoolIncomeService } from "@/lib/services/school/income.service";
 import type { SchoolIncomeSummary, SchoolIncomeSummaryParams } from "@/lib/types/school/income";
 import { ViewIncomeDialog } from "./ViewIncomeDialog";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { createCurrencyColumn, createActionColumn } from "@/lib/utils/columnFactories";
+import { createCurrencyColumn } from "@/lib/utils/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -96,20 +96,21 @@ export const IncomeSummaryTable = ({
       header: "Amount",
       className: "text-green-600 font-bold",
     }),
-    createActionColumn<SchoolIncomeSummary>([
-      {
-        icon: Receipt,
-        label: "View Receipt",
-        onClick: (income) => {
-          if (income) {
-            handleView(income);
-          } else {
-            console.error("income is undefined");
-          }
-        },
-      },
-    ]),
   ];
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (income: SchoolIncomeSummary) => {
+        if (income) {
+          handleView(income);
+        } else {
+          console.error("income is undefined");
+        }
+      }
+    }
+  ], []);
 
 
   return (
@@ -166,11 +167,14 @@ export const IncomeSummaryTable = ({
         data={incomeData?.items || []}
         columns={columns}
         title="Income Summary"
-        description="Track all income transactions and payments"
         searchKey="receipt_no"
         searchPlaceholder="Search by receipt no, student name, or identity no..."
         exportable={true}
         loading={isLoading}
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
       />
 
       {/* View Income Dialog */}

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
@@ -8,10 +8,7 @@ import { useCreateSchoolSubject, useUpdateSchoolSubject } from '@/lib/hooks/scho
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
 import { 
-  createIconTextColumn, 
-  createActionColumn,
-  createEditAction,
-  createDeleteAction
+  createIconTextColumn
 } from "@/lib/utils/columnFactories";
 
 interface SubjectsTabProps {
@@ -152,10 +149,18 @@ export const SubjectsTab = ({
       icon: BookOpen, 
       header: "Subject Name" 
     }),
-    createActionColumn<any>([
-      createEditAction(handleEditClick),
-      createDeleteAction(handleDeleteClick)
-    ])
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'edit' as const,
+      onClick: (subject: any) => handleEditClick(subject)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (subject: any) => handleDeleteClick(subject)
+    }
   ], []);
 
   if (subjectsLoading) {
@@ -172,11 +177,14 @@ export const SubjectsTab = ({
         data={backendSubjects}
         columns={columns}
         title="Subjects"
-        description="Manage academic subjects and their details"
         searchKey="subject_name"
         exportable={true}
         onAdd={() => setIsAddSubjectOpen(true)}
         addButtonText="Add Subject"
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
       />
 
       {/* Add Subject Dialog */}

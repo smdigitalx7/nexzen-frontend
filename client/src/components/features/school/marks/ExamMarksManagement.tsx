@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, Eye, Edit, Trash2 } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,11 +29,7 @@ import {
   createSubjectColumn,
   createMarksColumn,
   createGradeColumn,
-  createTestDateColumn,
-  createActionColumn,
-  createViewAction,
-  createEditAction,
-  createDeleteAction
+  createTestDateColumn
 } from "@/lib/utils/columnFactories.tsx";
 
 // Utility functions for grade calculation
@@ -276,12 +272,23 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
     createSubjectColumn<ExamMarkWithDetails>("subject_name", "exam_name", { header: "Subject" }),
     createMarksColumn<ExamMarkWithDetails>("marks_obtained", "max_marks", "percentage", { header: "Marks" }),
     createGradeColumn<ExamMarkWithDetails>("grade", gradeColors, { header: "Grade" }),
-    createTestDateColumn<ExamMarkWithDetails>("conducted_at", { header: "Exam Date" }),
-    createActionColumn<ExamMarkWithDetails>([
-      createViewAction((row) => handleViewExamMark(row.mark_id)),
-      createEditAction((row) => handleEditExamMark(row)),
-      createDeleteAction((row) => handleDeleteExamMark(row.mark_id))
-    ])
+    createTestDateColumn<ExamMarkWithDetails>("conducted_at", { header: "Exam Date" })
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (row: ExamMarkWithDetails) => handleViewExamMark(row.mark_id)
+    },
+    {
+      type: 'edit' as const,
+      onClick: (row: ExamMarkWithDetails) => handleEditExamMark(row)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: ExamMarkWithDetails) => handleDeleteExamMark(row.mark_id)
+    }
   ], [handleViewExamMark, handleEditExamMark, handleDeleteExamMark]);
 
 
@@ -635,13 +642,16 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
                 <EnhancedDataTable
                   data={examMarks}
                   title="Exam Marks"
-                  description="Manage exam marks for students"
                   searchKey={['student_name', 'roll_number', 'class_name', 'section_name', 'exam_name', 'subject_name'] as any}
                   searchPlaceholder="Search students..."
                   columns={examMarkColumns}
                   onAdd={() => setShowExamMarkDialog(true)}
                   addButtonText="Add Exam Mark"
                   exportable={true}
+                  showActions={true}
+                  actionButtonGroups={actionButtonGroups}
+                  actionColumnHeader="Actions"
+                  showActionLabels={false}
                 />
               </div>
             ))}

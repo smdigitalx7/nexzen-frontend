@@ -1,5 +1,5 @@
 import { useState, memo, useMemo } from "react";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
@@ -8,10 +8,7 @@ import { useCollegeCourses, useUpdateCollegeCourse, useCreateCollegeCourse, useD
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
 import {
-  createIconTextColumn,
-  createActionColumn,
-  createEditAction,
-  createDeleteAction
+  createIconTextColumn
 } from "@/lib/utils/columnFactories";
 
 interface CoursesTabProps {
@@ -181,11 +178,19 @@ export const CoursesTab = memo(({
       accessorKey: "course_fee",
       header: "Course Fee",
       cell: ({ row }) => `$${row.getValue("course_fee")}`,
+    }
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'edit' as const,
+      onClick: (courseItem: any) => handleEditClick(courseItem)
     },
-    createActionColumn<any>([
-      createEditAction((courseItem) => handleEditClick(courseItem)),
-      createDeleteAction((courseItem) => handleDeleteClick(courseItem))
-    ])
+    {
+      type: 'delete' as const,
+      onClick: (courseItem: any) => handleDeleteClick(courseItem)
+    }
   ], [handleEditClick, handleDeleteClick]);
 
   if (hasError) {
@@ -210,11 +215,14 @@ export const CoursesTab = memo(({
         data={coursesWithSubjects}
         columns={columns}
         title="Courses"
-        description="Manage academic courses and their subjects"
         searchKey="course_name"
         exportable={true}
         onAdd={() => setIsAddCourseOpen(true)}
         addButtonText="Add Course"
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
       />
 
       {/* Add Course Dialog */}

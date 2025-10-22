@@ -11,10 +11,7 @@ import {
   createIconTextColumn, 
   createBadgeColumn, 
   createTruncatedTextColumn, 
-  createTextColumn,
-  createActionColumn,
-  createEditAction,
-  createDeleteAction
+  createTextColumn
 } from "@/lib/utils/columnFactories.tsx";
 
 export default function BranchesManagement() {
@@ -64,9 +61,14 @@ export default function BranchesManagement() {
       fallback: "No phone",
       className: "text-sm text-muted-foreground"
     }),
-    createActionColumn<any>([
-      createDeleteAction(handleDeleteClick)
-    ])
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'delete' as const,
+      onClick: (branch: any) => handleDeleteClick(branch)
+    }
   ], []);
 
   if (isLoading) {
@@ -91,9 +93,12 @@ export default function BranchesManagement() {
         data={data || []}
         columns={columns}
         title="Branches"
-        description="Manage branch locations and information"
         searchKey="branch_name"
         exportable={true}
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
       />
 
       {/* Delete Confirmation Dialog */}

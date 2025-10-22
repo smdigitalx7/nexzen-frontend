@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Eye, Download, User } from "lucide-react";
+import { Eye, Download, User, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
@@ -9,8 +9,6 @@ import { EnhancedDataTable } from "@/components/shared";
 import {
   createTextColumn,
   createCurrencyColumn,
-  createActionColumn,
-  createViewAction,
   createDateColumn,
 } from "@/lib/utils/columnFactories";
 
@@ -120,9 +118,14 @@ export const StudentFeeBalancesTable = ({
       header: "Last Payment",
       className: "text-sm text-muted-foreground"
     }),
-    createActionColumn<StudentFeeBalance>([
-      createViewAction((row) => onViewStudent(row))
-    ])
+  ], [onViewStudent]);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (row: StudentFeeBalance) => onViewStudent(row)
+    }
   ], [onViewStudent]);
 
   // Calculate summary statistics
@@ -168,13 +171,16 @@ export const StudentFeeBalancesTable = ({
         data={studentBalances}
         columns={columns}
         title={title}
-        description={description}
         searchKey="student_name"
         searchPlaceholder="Search students..."
         exportable={true}
         onExport={onExportCSV}
         onAdd={onBulkCreate}
         addButtonText="Bulk Create"
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
         loading={loading}
         filters={filterOptions}
       />

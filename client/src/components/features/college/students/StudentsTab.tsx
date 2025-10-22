@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Users, Plus, Save, X } from 'lucide-react';
+import { Users, Plus, Save, X, Edit, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -10,10 +10,7 @@ import { EnhancedDataTable } from '@/components/shared';
 import { 
   createAvatarColumn,
   createTextColumn,
-  createBadgeColumn,
-  createActionColumn,
-  createEditAction,
-  createDeleteAction
+  createBadgeColumn
 } from '@/lib/utils/columnFactories';
 import { useCollegeStudentsList, useDeleteCollegeStudent, useCreateCollegeStudent, useUpdateCollegeStudent } from '@/lib/hooks/college/use-college-students';
 import { useAuthStore } from '@/store/authStore';
@@ -127,11 +124,19 @@ export const StudentsTab = () => {
     createTextColumn<CollegeStudentRead>('father_or_guardian_mobile', { header: 'Father/Guardian Mobile', fallback: 'N/A' }),
     createTextColumn<CollegeStudentRead>('mother_or_guardian_mobile', { header: 'Mother/Guardian Mobile', fallback: 'N/A' }),
     createBadgeColumn<CollegeStudentRead>('gender', { header: 'Gender', variant: 'outline', fallback: 'N/A' }),
-    createBadgeColumn<CollegeStudentRead>('status', { header: 'Status', variant: 'outline', fallback: 'N/A' }),
-    createActionColumn<CollegeStudentRead>([
-      createEditAction((row) => handleEditStudent(row)),
-      createDeleteAction((row) => handleDeleteStudent(row.student_id))
-    ])
+    createBadgeColumn<CollegeStudentRead>('status', { header: 'Status', variant: 'outline', fallback: 'N/A' })
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'edit' as const,
+      onClick: (row: CollegeStudentRead) => handleEditStudent(row)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: CollegeStudentRead) => handleDeleteStudent(row.student_id)
+    }
   ], []);
 
   return (
@@ -158,12 +163,15 @@ export const StudentsTab = () => {
           data={students}
           columns={columns}
           title="Students"
-          description="Manage student information and enrollments"
           searchKey="student_name"
           exportable={true}
           selectable={true}
           onAdd={handleAddStudent}
           addButtonText="Add Student"
+          showActions={true}
+          actionButtonGroups={actionButtonGroups}
+          actionColumnHeader="Actions"
+          showActionLabels={false}
         />
       )}
 

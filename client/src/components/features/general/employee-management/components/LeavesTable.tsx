@@ -1,13 +1,10 @@
 import { useMemo } from "react";
+import { Eye, Edit, Trash2 } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn,
-  createDateColumn,
-  createActionColumn,
-  createViewAction,
-  createEditAction,
-  createDeleteAction
+  createDateColumn
 } from "@/lib/utils/columnFactories.tsx";
 import { EmployeeLeaveRead } from "@/lib/types/general/employee-leave";
 
@@ -67,11 +64,22 @@ export const LeavesTable = ({
       }
     },
     createDateColumn<EmployeeLeaveRead>("applied_date", { header: "Applied Date" }),
-    createActionColumn<EmployeeLeaveRead>([
-      createViewAction((row) => onViewLeave(row)),
-      createEditAction((row) => onEditLeave(row)),
-      createDeleteAction((row) => onDeleteLeave(row.leave_id))
-    ])
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (row: EmployeeLeaveRead) => onViewLeave(row)
+    },
+    {
+      type: 'edit' as const,
+      onClick: (row: EmployeeLeaveRead) => onEditLeave(row)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: EmployeeLeaveRead) => onDeleteLeave(row.leave_id)
+    }
   ], [onViewLeave, onEditLeave, onDeleteLeave]);
 
   if (isLoading) {
@@ -87,12 +95,15 @@ export const LeavesTable = ({
       data={leaves}
       columns={columns as any}
       title="Employee Leaves"
-      description="Manage employee leave requests and approvals"
       searchKey="employee_name"
       showSearch={showSearch}
       exportable={true}
       onAdd={onAddLeave}
       addButtonText="Add Leave"
+      showActions={true}
+      actionButtonGroups={actionButtonGroups}
+      actionColumnHeader="Actions"
+      showActionLabels={false}
     />
   );
 };

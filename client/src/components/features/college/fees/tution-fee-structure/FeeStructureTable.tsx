@@ -8,12 +8,7 @@ import { formatCurrency } from "@/lib/utils";
 import { ColumnDef } from "@tanstack/react-table";
 import { EnhancedDataTable } from "@/components/shared";
 import {
-  createTextColumn,
-  createCurrencyColumn,
-  createActionColumn,
-  createViewAction,
-  createEditAction,
-  createDeleteAction,
+  createCurrencyColumn
 } from "@/lib/utils/columnFactories";
 import {
   Dialog,
@@ -108,11 +103,22 @@ export const FeeStructureTable = ({
         </Badge>
       ),
     },
-    createActionColumn<FeeStructure>([
-      createViewAction((row) => onViewFeeStructure(row.id)),
-      createEditAction((row) => onEditFeeStructure(row.id)),
-      createDeleteAction((row) => onDeleteFeeStructure(row.id))
-    ])
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (row: FeeStructure) => onViewFeeStructure(row.id)
+    },
+    {
+      type: 'edit' as const,
+      onClick: (row: FeeStructure) => onEditFeeStructure(row.id)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: FeeStructure) => onDeleteFeeStructure(row.id)
+    }
   ], [onViewFeeStructure, onEditFeeStructure, onDeleteFeeStructure]);
 
   // Calculate summary statistics
@@ -161,13 +167,16 @@ export const FeeStructureTable = ({
         data={feeStructures}
         columns={columns}
         title="Fee Structures"
-        description="Manage fee structures for different classes and academic years"
         searchKey="class_name"
         searchPlaceholder="Search fee structures..."
         exportable={true}
         loading={loading}
         filters={filterOptions}
         onAdd={onAddFeeStructure}
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
         addButtonText="Add Fee Structure"
       />
 

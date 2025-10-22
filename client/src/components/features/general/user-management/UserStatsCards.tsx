@@ -32,11 +32,6 @@ export const UserStatsCards: React.FC<UserStatsCardsProps> = ({
       description: "Currently active",
       variant: "elevated" as const,
       size: "md" as const,
-      // trend: {
-      //   value: stats.total_users > 0 ? Math.round((stats.active_users / stats.total_users) * 100) : 0,
-      //   label: "of total users",
-      //   isPositive: true,
-      // },
     },
     {
       title: "Inactive Users",

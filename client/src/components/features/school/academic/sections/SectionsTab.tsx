@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { createActionColumn, createEditAction } from "@/lib/utils/columnFactories";
+import { Edit, Trash2 } from "lucide-react";
 import { useSchoolClasses } from "@/lib/hooks/school/use-school-classes";
 import { useSchoolSectionsByClass, useCreateSchoolSection, useUpdateSchoolSection } from "@/lib/hooks/school/use-school-sections";
 import type { SchoolSectionRead } from "@/lib/types/school";
@@ -37,17 +37,22 @@ export const SectionsTab = () => {
     { accessorKey: "section_id", header: "Section ID" },
     { accessorKey: "section_name", header: "Section Name" },
     { accessorKey: "current_enrollment", header: "Current Enrollment" },
-    { accessorKey: "is_active", header: "Active" },
-    createActionColumn<SchoolSectionRead>([
-      createEditAction((row) => {
-        setSelectedSection(row as SchoolSectionRead);
+    { accessorKey: "is_active", header: "Active" }
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'edit' as const,
+      onClick: (row: SchoolSectionRead) => {
+        setSelectedSection(row);
         setEditSection({
-          section_name: (row as SchoolSectionRead).section_name,
-          current_enrollment: (row as SchoolSectionRead).current_enrollment,
+          section_name: row.section_name,
+          current_enrollment: row.current_enrollment,
         });
         setIsEditOpen(true);
-      }),
-    ]),
+      }
+    }
   ], []);
 
   return (
@@ -70,11 +75,14 @@ export const SectionsTab = () => {
         data={sections}
         columns={columns}
         title="Sections"
-        description="Manage sections for the selected class"
         searchKey="section_name"
         exportable={true}
         onAdd={() => setIsAddOpen(true)}
         addButtonText="Add Section"
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
       />
 
       <FormDialog

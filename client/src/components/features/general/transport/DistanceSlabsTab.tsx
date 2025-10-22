@@ -6,10 +6,7 @@ import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { ColumnDef } from "@tanstack/react-table";
 import { EnhancedDataTable } from "@/components/shared";
 import {
-  createTextColumn,
-  createActionColumn,
-  createEditAction,
-  createDeleteAction
+  createTextColumn
 } from "@/lib/utils/columnFactories";
 import DistanceSlabFormDialog from "./DistanceSlabFormDialog";
 
@@ -70,10 +67,18 @@ const DistanceSlabsTab = ({
         </span>
       ),
     },
-    createActionColumn([
-      createEditAction((row) => handleEditSlab(row)),
-      createDeleteAction((row) => handleDeleteSlab(row.original.slab_id))
-    ])
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'edit' as const,
+      onClick: (row: any) => handleEditSlab(row)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: any) => handleDeleteSlab(row.original.slab_id)
+    }
   ], []);
 
   const handleAddSlab = (data: any) => {
@@ -117,6 +122,10 @@ const DistanceSlabsTab = ({
         title="Distance Slabs"
         searchKey="slab_name"
         searchPlaceholder="Search slabs..."
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
       />
 
       {/* Edit Fee Dialog */}

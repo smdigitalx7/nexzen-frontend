@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { createTextColumn, createCurrencyColumn, createActionColumn } from "@/lib/utils/columnFactories";
+import { createTextColumn, createCurrencyColumn } from "@/lib/utils/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface ExpenditureTableProps {
@@ -149,39 +149,38 @@ export const ExpenditureTable = ({
         return value || "-";
       },
     },
-    createActionColumn<CollegeExpenditureRead>([
-      {
-        icon: Eye,
-        label: "View Expenditure",
-        onClick: (expenditure: CollegeExpenditureRead) => {
-          console.log("College View clicked - expenditure:", expenditure);
-          if (!expenditure || !expenditure.expenditure_id) {
-            console.error("Invalid expenditure object:", expenditure);
-            return;
-          }
-          setSelectedExpenditureId(expenditure.expenditure_id);
-          setShowViewDialog(true);
-          onViewExpenditure?.(expenditure);
-        },
-      },
-      {
-        icon: Edit,
-        label: "Edit Expenditure",
-        onClick: (expenditure: CollegeExpenditureRead) => {
-          console.log("College Edit clicked - expenditure:", expenditure);
-          handleEdit(expenditure);
-        },
-      },
-      {
-        icon: Trash2,
-        label: "Delete Expenditure",
-        onClick: (expenditure: CollegeExpenditureRead) => {
-          console.log("College Delete clicked - expenditure:", expenditure);
-          handleDelete(expenditure);
-        },
-      },
-    ]),
   ];
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (expenditure: CollegeExpenditureRead) => {
+        console.log("College View clicked - expenditure:", expenditure);
+        if (!expenditure || !expenditure.expenditure_id) {
+          console.error("Invalid expenditure object:", expenditure);
+          return;
+        }
+        setSelectedExpenditureId(expenditure.expenditure_id);
+        setShowViewDialog(true);
+        onViewExpenditure?.(expenditure);
+      }
+    },
+    {
+      type: 'edit' as const,
+      onClick: (expenditure: CollegeExpenditureRead) => {
+        console.log("College Edit clicked - expenditure:", expenditure);
+        handleEdit(expenditure);
+      }
+    },
+    {
+      type: 'delete' as const,
+      onClick: (expenditure: CollegeExpenditureRead) => {
+        console.log("College Delete clicked - expenditure:", expenditure);
+        handleDelete(expenditure);
+      }
+    }
+  ], [onViewExpenditure]);
 
   // Prepare filter options for EnhancedDataTable
   const filterOptions = [
@@ -207,13 +206,16 @@ export const ExpenditureTable = ({
         data={expenditureData}
         columns={columns}
         title="Expenditure Records"
-        description="Track all expenditure transactions and payments"
         searchKey="expenditure_purpose"
         searchPlaceholder="Search by purpose or remarks..."
         exportable={!!onExportCSV}
         onExport={onExportCSV}
         onAdd={onAddExpenditure}
         addButtonText="Add Expenditure"
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
         filters={filterOptions}
       />
 

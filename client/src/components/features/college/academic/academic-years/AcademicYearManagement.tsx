@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Calendar } from 'lucide-react';
+import { Calendar, Edit, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FormDialog, ConfirmDialog } from '@/components/shared';
@@ -10,10 +10,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import {
   createIconTextColumn,
   createDateColumn,
-  createBadgeColumn,
-  createActionColumn,
-  createEditAction,
-  createDeleteAction
+  createBadgeColumn
 } from "@/lib/utils/columnFactories";
 
 // UI row shape for the table
@@ -160,10 +157,18 @@ const AcademicYearManagement = () => {
     createDateColumn<UIAcademicYearRow>('start_date', { header: 'Start Date' }),
     createDateColumn<UIAcademicYearRow>('end_date', { header: 'End Date' }),
     createBadgeColumn<UIAcademicYearRow>('is_active', { header: 'Status', variant: 'outline', fallback: 'Inactive' }),
-    createActionColumn<UIAcademicYearRow>([
-      createEditAction((academicYear) => handleEditClick(academicYear)),
-      createDeleteAction((academicYear) => handleDeleteClick(academicYear))
-    ])
+  ], [handleEditClick, handleDeleteClick]);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'edit' as const,
+      onClick: (academicYear: UIAcademicYearRow) => handleEditClick(academicYear)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (academicYear: UIAcademicYearRow) => handleDeleteClick(academicYear)
+    }
   ], [handleEditClick, handleDeleteClick]);
 
 
@@ -190,11 +195,14 @@ const AcademicYearManagement = () => {
         data={academicYears as UIAcademicYearRow[]}
         columns={columns}
         title="Academic Years"
-        description="Manage academic years, terms, and academic calendar"
         searchKey="year_name"
         exportable={true}
         onAdd={() => setIsAddDialogOpen(true)}
         addButtonText="Add Academic Year"
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={true}
       />
 
       {/* Add Academic Year Dialog */}

@@ -13,10 +13,6 @@ import { EnhancedDataTable } from "@/components/shared";
 import {
   createTextColumn,
   createCurrencyColumn,
-  createActionColumn,
-  createViewAction,
-  createEditAction,
-  createDeleteAction,
   createDateColumn,
 } from "@/lib/utils/columnFactories";
 import {
@@ -159,11 +155,22 @@ export const StudentFeeBalancesTable = ({
       header: "Last Payment",
       className: "text-sm text-muted-foreground"
     }),
-    createActionColumn<StudentFeeBalance>([
-      createViewAction((row) => onViewStudent(row)),
-      createEditAction((row) => handleEdit(row)),
-      createDeleteAction((row) => handleDelete(row))
-    ])
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (row: StudentFeeBalance) => onViewStudent(row)
+    },
+    {
+      type: 'edit' as const,
+      onClick: (row: StudentFeeBalance) => handleEdit(row)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: StudentFeeBalance) => handleDelete(row)
+    }
   ], [onViewStudent]);
 
   const handleEdit = (student: StudentFeeBalance) => {
@@ -267,13 +274,16 @@ export const StudentFeeBalancesTable = ({
         data={studentBalances}
         columns={columns}
         title={title}
-        description={description}
         searchKey="student_name"
         searchPlaceholder="Search students..."
         exportable={true}
         onExport={onExportCSV}
         onAdd={onBulkCreate}
         addButtonText="Bulk Create"
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
         loading={loading}
         filters={filterOptions}
       />

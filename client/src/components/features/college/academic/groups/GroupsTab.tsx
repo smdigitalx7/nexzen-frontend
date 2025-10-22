@@ -1,5 +1,5 @@
 import { useState, memo, useMemo } from "react";
-import { Users } from "lucide-react";
+import { Users, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
@@ -8,10 +8,7 @@ import { useCollegeGroups, useUpdateCollegeGroup, useCreateCollegeGroup, useDele
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
 import {
-  createIconTextColumn,
-  createActionColumn,
-  createEditAction,
-  createDeleteAction
+  createIconTextColumn
 } from "@/lib/utils/columnFactories";
 
 interface GroupsTabProps {
@@ -178,11 +175,19 @@ export const GroupsTab = memo(({
       accessorKey: "group_fee", 
       header: "Group Fee",
       cell: ({ row }) => `$${row.getValue("group_fee")}`,
+    }
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'edit' as const,
+      onClick: (groupItem: any) => handleEditClick(groupItem)
     },
-    createActionColumn<any>([
-      createEditAction((groupItem) => handleEditClick(groupItem)),
-      createDeleteAction((groupItem) => handleDeleteClick(groupItem))
-    ])
+    {
+      type: 'delete' as const,
+      onClick: (groupItem: any) => handleDeleteClick(groupItem)
+    }
   ], [handleEditClick, handleDeleteClick]);
 
   if (hasError) {
@@ -207,11 +212,14 @@ export const GroupsTab = memo(({
         data={groupsWithSubjects}
         columns={columns}
         title="Groups"
-        description="Manage academic groups and their subjects"
         searchKey="group_name"
         exportable={true}
         onAdd={() => setIsAddGroupOpen(true)}
         addButtonText="Add Group"
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
       />
 
       {/* Add Group Dialog */}

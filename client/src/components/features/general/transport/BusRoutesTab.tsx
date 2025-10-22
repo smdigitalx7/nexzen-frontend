@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Plus, Bus, MapPin, Clock, Users } from "lucide-react";
+import { Plus, Bus, MapPin, Clock, Users, Eye, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
@@ -9,11 +9,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { EnhancedDataTable } from "@/components/shared";
 import {
   createTextColumn,
-  createBadgeColumn,
-  createActionColumn,
-  createViewAction,
-  createEditAction,
-  createDeleteAction
+  createBadgeColumn
 } from "@/lib/utils/columnFactories";
 import RouteFormDialog from "./RouteFormDialog";
 import RouteDetailsDialog from "./RouteDetailsDialog";
@@ -130,11 +126,22 @@ const BusRoutesTab = ({
         </Badge>
       ),
     },
-    createActionColumn([
-      createViewAction((row) => handleViewRoute(row)),
-      createEditAction((row) => handleEditRoute(row)),
-      createDeleteAction((row) => handleDeleteRoute(row))
-    ])
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (row: any) => handleViewRoute(row)
+    },
+    {
+      type: 'edit' as const,
+      onClick: (row: any) => handleEditRoute(row)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: any) => handleDeleteRoute(row)
+    }
   ], []);
 
   const viewRouteData = viewRouteId ? routesData.find(route => route.bus_route_id === viewRouteId) : null;
@@ -194,6 +201,10 @@ const BusRoutesTab = ({
         searchKey="route_name"
         searchPlaceholder="Search routes..."
         loading={isLoading}
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
       />
 
       {/* View Route Details Dialog */}

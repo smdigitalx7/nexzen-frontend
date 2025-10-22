@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Eye } from "lucide-react";
+import { Eye, Edit, Trash2 } from "lucide-react";
 import type { CollegeIncomeRead } from "@/lib/types/college";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { createTextColumn, createCurrencyColumn, createActionColumn } from "@/lib/utils/columnFactories";
+import { createTextColumn, createCurrencyColumn } from "@/lib/utils/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface IncomeTableProps {
@@ -83,21 +83,22 @@ export const IncomeTable = ({
         return value || "-";
       },
     },
-    createActionColumn<CollegeIncomeRead>([
-      ...(onViewIncome ? [{
-        icon: Eye,
-        label: "View Income",
-        onClick: (income: CollegeIncomeRead) => {
-          console.log("College View Income clicked - income:", income);
-          if (!income || !income.income_id) {
-            console.error("Invalid income object:", income);
-            return;
-          }
-          onViewIncome(income);
-        },
-      }] : []),
-    ]),
   ];
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    ...(onViewIncome ? [{
+      type: 'view' as const,
+      onClick: (income: CollegeIncomeRead) => {
+        console.log("College View Income clicked - income:", income);
+        if (!income || !income.income_id) {
+          console.error("Invalid income object:", income);
+          return;
+        }
+        onViewIncome(income);
+      }
+    }] : [])
+  ], [onViewIncome]);
 
   // Prepare filter options for EnhancedDataTable
   const filterOptions = [
@@ -123,11 +124,14 @@ export const IncomeTable = ({
         data={incomeData}
         columns={columns}
         title="Income Records"
-        description="Track all income transactions and payments"
         searchKey="receipt_no"
         searchPlaceholder="Search by receipt no, student name, or admission no..."
         exportable={true}
         filters={filterOptions}
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
       />
 
     </motion.div>

@@ -25,10 +25,7 @@ import {
   createCapacityColumn,
   createSubjectsColumn,
   createBooleanStatusColumn,
-  createBadgeColumn,
-  createActionColumn,
-  createEditAction,
-  createDeleteAction
+  createBadgeColumn
 } from "@/lib/utils/columnFactories.tsx";
 
 // UI row shape used by the table; we will map backend data into this shape
@@ -144,16 +141,24 @@ const ClassesManagement = () => {
       header: "Status",
       variant: "outline"
     }),
-    createActionColumn<UIClassRow>([
-      createEditAction((row) => {
+  ], [setEditingClass, form, setShowAddDialog, handleDeleteClass]);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'edit' as const,
+      onClick: (row: UIClassRow) => {
         setEditingClass(row);
-              form.reset({
+        form.reset({
           class_name: row.class_name,
-              });
-              setShowAddDialog(true);
-      }),
-      createDeleteAction((row) => handleDeleteClass(row.class_id))
-    ])
+        });
+        setShowAddDialog(true);
+      }
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: UIClassRow) => handleDeleteClass(row.class_id)
+    }
   ], [setEditingClass, form, setShowAddDialog, handleDeleteClass]);
 
   const handleSubmit = (values: any) => {
@@ -441,6 +446,10 @@ const ClassesManagement = () => {
                 columns={columns as any}
                 exportable={true}
                 title="Classes"
+                showActions={true}
+                actionButtonGroups={actionButtonGroups}
+                actionColumnHeader="Actions"
+                showActionLabels={false}
               />
             )}
           </motion.div>

@@ -30,14 +30,6 @@ export interface ColumnFactoryConfig {
   variant?: "default" | "destructive" | "outline" | "secondary";
 }
 
-export interface ActionButtonConfig {
-  label: string;
-  icon: React.ComponentType<any>;
-  onClick: (row: any) => void;
-  variant?: "ghost" | "outline" | "destructive";
-  size?: "sm" | "icon";
-  className?: string;
-}
 
 // ============================================================================
 // TEXT COLUMN FACTORIES
@@ -238,76 +230,6 @@ export const createAvatarColumn = <T,>(
   },
 });
 
-// ============================================================================
-// ACTION COLUMN FACTORIES
-// ============================================================================
-
-/**
- * Creates an action column with configurable buttons
- */
-export const createActionColumn = <T,>(
-  actions: ActionButtonConfig[],
-  config: ColumnFactoryConfig = {}
-): ColumnDef<T> => ({
-  id: "actions",
-  header: config.header || "Actions",
-  cell: ({ row }) => (
-    <div className="flex items-center gap-2">
-      {actions.map((action, index) => {
-        const Icon = action.icon;
-        return (
-          <Button
-            key={index}
-            variant={action.variant || "ghost"}
-            size={action.size || "sm"}
-            onClick={() => action.onClick(row.original)}
-            className={action.className}
-          >
-            <Icon className="h-4 w-4" />
-          </Button>
-        );
-      })}
-    </div>
-  ),
-});
-
-// ============================================================================
-// COMMON ACTION BUTTON CONFIGURATIONS
-// ============================================================================
-
-/**
- * Standard edit action button
- */
-export const createEditAction = (onEdit: (row: any) => void): ActionButtonConfig => ({
-  label: "Edit",
-  icon: Edit,
-  onClick: onEdit,
-  variant: "ghost",
-  size: "sm"
-});
-
-/**
- * Standard delete action button
- */
-export const createDeleteAction = (onDelete: (row: any) => void): ActionButtonConfig => ({
-  label: "Delete",
-  icon: Trash2,
-  onClick: onDelete,
-  variant: "ghost",
-  size: "sm",
-  className: "text-red-600 hover:text-red-700"
-});
-
-/**
- * Standard view action button
- */
-export const createViewAction = (onView: (row: any) => void): ActionButtonConfig => ({
-  label: "View",
-  icon: Eye,
-  onClick: onView,
-  variant: "ghost",
-  size: "sm"
-});
 
 // ============================================================================
 // COMMON COLUMN CONFIGURATIONS

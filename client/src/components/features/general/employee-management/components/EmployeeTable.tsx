@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Eye, Edit, Trash2 } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import { 
@@ -7,10 +8,6 @@ import {
   createCurrencyColumn, 
   createDateColumn, 
   createStatusColumn, 
-  createActionColumn,
-  createEditAction,
-  createDeleteAction,
-  createViewAction,
   StatusColors,
   StatusIcons
 } from "@/lib/utils/columnFactories.tsx";
@@ -60,13 +57,24 @@ export const EmployeeTable = ({
     createTextColumn<EmployeeRead>("mobile_no", { header: "Mobile", fallback: "N/A" }),
     createCurrencyColumn<EmployeeRead>("salary", { header: "Salary" }),
     createDateColumn<EmployeeRead>("date_of_joining", { header: "Joining Date" }),
-    createStatusColumn<EmployeeRead>("status", StatusColors.employee, StatusIcons.employee, { header: "Status" }),
-    createActionColumn<EmployeeRead>([
-      createViewAction(onViewEmployee),
-      createEditAction(onEditEmployee),
-      createDeleteAction((employee) => onDeleteEmployee(employee.employee_id))
-    ])
-  ], [onViewEmployee, onEditEmployee, onDeleteEmployee, onUpdateStatus]);
+    createStatusColumn<EmployeeRead>("status", StatusColors.employee, StatusIcons.employee, { header: "Status" })
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (row: EmployeeRead) => onViewEmployee(row)
+    },
+    {
+      type: 'edit' as const,
+      onClick: (row: EmployeeRead) => onEditEmployee(row)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: EmployeeRead) => onDeleteEmployee(row.employee_id)
+    }
+  ], [onViewEmployee, onEditEmployee, onDeleteEmployee]);
 
   if (isLoading) {
     return (
@@ -81,12 +89,15 @@ export const EmployeeTable = ({
       data={employees}
       columns={columns as any}
       title="Employees"
-      description="Manage employee information and details"
       searchKey="employee_name"
       exportable={true}
       showSearch={showSearch}
       onAdd={onAddEmployee}
       addButtonText="Add Employee"
+      showActions={true}
+      actionButtonGroups={actionButtonGroups}
+      actionColumnHeader="Actions"
+      showActionLabels={false}
     />
   );
 };

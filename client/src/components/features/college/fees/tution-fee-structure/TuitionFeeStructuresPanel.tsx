@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Edit, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSchoolClasses } from "@/lib/hooks/school/use-school-classes";
 import { SchoolTuitionFeeStructuresService } from "@/lib/services/school/tuition-fee-structures.service";
@@ -14,9 +15,7 @@ import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn,
-  createCurrencyColumn,
-  createActionColumn,
-  createEditAction
+  createCurrencyColumn
 } from "@/lib/utils/columnFactories";
 
 export const TuitionFeeStructuresPanel = () => {
@@ -104,10 +103,15 @@ export const TuitionFeeStructuresPanel = () => {
     }),
     createCurrencyColumn<any>("book_fee", { header: "Book Fee" }),
     createCurrencyColumn<any>("tuition_fee", { header: "Tuition Fee" }),
-    createActionColumn<any>([
-      createEditAction((row) => startEdit(row))
-    ])
   ], [classIdToName]);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'edit' as const,
+      onClick: (row: any) => startEdit(row)
+    }
+  ], []);
 
   return (
     <div className="space-y-4">
@@ -115,11 +119,14 @@ export const TuitionFeeStructuresPanel = () => {
         data={structures}
         columns={columns}
         title="Tuition Fee Structures"
-        description="Manage per-class tuition and book fees"
         searchKey="class_name"
         exportable={true}
         onAdd={startCreate}
         addButtonText="Add Fee Structure"
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
       />
 
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>

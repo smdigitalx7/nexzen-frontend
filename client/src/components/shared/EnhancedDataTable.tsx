@@ -11,27 +11,65 @@ import {
   useReactTable,
   ColumnFiltersState,
 } from '@tanstack/react-table';
-import { ArrowUpDown, Search, Filter, ChevronLeft, ChevronRight, Download, Plus, Loader2, X, Clock } from 'lucide-react';
+import { ArrowUpDown, Search, Filter, ChevronLeft, ChevronRight, Download, Plus, Loader2, X, Clock, Eye, Edit, Trash2, Shield, MoreHorizontal } from 'lucide-react';
 import { LoadingStates } from '@/components/ui/loading';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
+import * as ExcelJS from 'exceljs';
+
 import { cn } from '@/lib/utils';
-import { useTableState } from '@/lib/hooks/common/useTableState';
+
 
 interface FilterOption {
   value: string;
   label: string;
 }
 
+/**
+ * Action button configuration for individual buttons
+ * @example
+ * {
+ *   id: 'custom-action',
+ *   label: 'Custom Action',
+ *   icon: CustomIcon,
+ *   variant: 'outline',
+ *   onClick: (row) => handleCustomAction(row)
+ * }
+ */
+interface ActionButton<TData = any> {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost";
+  size?: "default" | "sm" | "lg" | "icon";
+  className?: string;
+  onClick: (row: TData) => void;
+  show?: (row: TData) => boolean;
+}
+
+/**
+ * Action button group for predefined button types
+ * @example
+ * {
+ *   type: 'view',
+ *   onClick: (row) => handleView(row)
+ * }
+ */
+interface ActionButtonGroup<TData = any> {
+  type: 'view' | 'edit' | 'delete' | 'custom';
+  onClick: (row: TData) => void;
+  show?: (row: TData) => boolean;
+  label?: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost";
+  className?: string;
+}
+
 interface EnhancedDataTableProps<TData> {
   data: TData[];
   columns: ColumnDef<TData>[];
   title?: string;
-  description?: string;
   searchKey?: keyof TData;
   searchPlaceholder?: string;
   selectable?: boolean;
@@ -61,13 +99,18 @@ interface EnhancedDataTableProps<TData> {
   debounceDelay?: number;
   highlightSearchResults?: boolean;
   searchSuggestions?: string[];
+  // Action buttons
+  actionButtons?: ActionButton<TData>[];
+  actionButtonGroups?: ActionButtonGroup<TData>[];
+  showActions?: boolean;
+  actionColumnHeader?: string;
+  showActionLabels?: boolean;
 }
 
 function EnhancedDataTableComponent<TData>({
   data,
   columns,
   title,
-  description,
   searchKey,
   searchPlaceholder = "Search...",
   selectable = false,
@@ -86,6 +129,11 @@ function EnhancedDataTableComponent<TData>({
   debounceDelay = 300,
   highlightSearchResults = true,
   searchSuggestions = [],
+  actionButtons = [],
+  actionButtonGroups = [],
+  showActions = false,
+  actionColumnHeader = "Actions",
+  showActionLabels = true,
 }: EnhancedDataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -192,6 +240,97 @@ function EnhancedDataTableComponent<TData>({
     setPagination(prev => ({ ...prev, pageIndex: 0 }));
   }, [data]);
 
+  // Generate action column if actions are enabled
+  const generateActionColumn = useCallback((): ColumnDef<TData> | null => {
+    if (!showActions || (actionButtons.length === 0 && actionButtonGroups.length === 0)) {
+      return null;
+    }
+
+    return {
+      id: "actions",
+      header: actionColumnHeader,
+      cell: ({ row }) => {
+        const allButtons: ActionButton[] = [];
+
+        // Add individual action buttons
+        actionButtons.forEach(button => {
+          if (!button.show || button.show(row.original)) {
+            allButtons.push(button);
+          }
+        });
+
+        // Add action button groups
+        actionButtonGroups.forEach(group => {
+          if (!group.show || group.show(row.original)) {
+            const button: ActionButton = {
+              id: group.type,
+              label: group.label || group.type.charAt(0).toUpperCase() + group.type.slice(1),
+              icon: group.icon || getDefaultIcon(group.type),
+              variant: group.variant || getDefaultVariant(group.type),
+              size: "sm",
+              className: group.className || getDefaultClassName(group.type),
+              onClick: group.onClick
+            };
+            allButtons.push(button);
+          }
+        });
+
+        if (allButtons.length === 0) return null;
+
+       return (
+         <div className="flex items-center gap-1">
+           {allButtons.map((button, index) => {
+             const Icon = button.icon;
+             return (
+               <Button
+                 key={`${button.id}-${index}`}
+                 variant="ghost"
+                 size="sm"
+                 onClick={() => button.onClick(row.original)}
+                 className={cn(
+                   "h-8 w-8 p-0 transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md",
+                   button.className
+                 )}
+                 title={button.label}
+               >
+                 <Icon className="h-4 w-4" />
+               </Button>
+             );
+           })}
+         </div>
+       );
+      },
+    };
+  }, [showActions, actionButtons, actionButtonGroups, actionColumnHeader, showActionLabels]);
+
+  // Helper functions for default styling
+  const getDefaultIcon = (type: string) => {
+    switch (type) {
+      case 'view': return Eye;
+      case 'edit': return Edit;
+      case 'delete': return Trash2;
+      default: return MoreHorizontal;
+    }
+  };
+
+  const getDefaultVariant = (type: string): "default" | "destructive" | "outline" | "secondary" | "ghost" => {
+    switch (type) {
+      case 'delete': return "ghost";
+      case 'edit': return "ghost";
+      case 'view': return "ghost";
+      default: return "ghost";
+    }
+  };
+
+  const getDefaultClassName = (type: string) => {
+    switch (type) {
+      case 'view': return "text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200 hover:border-blue-300";
+      case 'edit': return "text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200 hover:border-green-300";
+      case 'delete': return "text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300";
+      default: return "text-gray-600 hover:text-gray-700 hover:bg-gray-50 border-gray-200 hover:border-gray-300";
+    }
+  };
+
   // Apply additional filters (non-search filters)
   const filteredData = useMemo(() => {
     let result = data;
@@ -209,9 +348,15 @@ function EnhancedDataTableComponent<TData>({
     return result;
   }, [data, filters]);
 
+  // Combine original columns with action column
+  const tableColumns = useMemo(() => {
+    const actionColumn = generateActionColumn();
+    return actionColumn ? [...columns, actionColumn] : columns;
+  }, [columns, generateActionColumn]);
+
   const table = useReactTable({
     data: filteredData,
-    columns,
+    columns: tableColumns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onPaginationChange: setPagination,
@@ -273,7 +418,241 @@ function EnhancedDataTableComponent<TData>({
     }
   }, [onExport, filteredData, columns, title]);
 
-  const performExport = useCallback(() => {
+  const performExport = useCallback(async () => {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet(title || 'Data Export');
+
+      // Set up professional worksheet properties
+      worksheet.properties.defaultRowHeight = 22;
+      worksheet.properties.defaultColWidth = 15;
+
+      // Add title row with enhanced corporate styling
+      if (title) {
+        const titleRow = worksheet.addRow([title]);
+        titleRow.font = { 
+          bold: true, 
+          size: 18, 
+          color: { argb: 'FF1A252F' },
+          name: 'Segoe UI'
+        };
+        titleRow.height = 40;
+        titleRow.alignment = { 
+          horizontal: 'center', 
+          vertical: 'middle',
+          wrapText: true
+        };
+        titleRow.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF8F9FA' }
+        };
+        titleRow.border = {
+          top: { style: 'thick', color: { argb: 'FF2C3E50' } },
+          bottom: { style: 'thick', color: { argb: 'FF2C3E50' } },
+          left: { style: 'thick', color: { argb: 'FF2C3E50' } },
+          right: { style: 'thick', color: { argb: 'FF2C3E50' } }
+        };
+        worksheet.addRow([]); // Empty row
+      }
+
+      // Add export metadata with enhanced styling
+      const exportDate = new Date().toLocaleString();
+      const metadataRow = worksheet.addRow([`Generated on: ${exportDate}`]);
+      metadataRow.font = { 
+        size: 11, 
+        color: { argb: 'FF6C757D' },
+        italic: true,
+        name: 'Segoe UI'
+      };
+      metadataRow.height = 20;
+      metadataRow.alignment = { horizontal: 'right', vertical: 'middle' };
+      metadataRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFF1F3F4' }
+      };
+      worksheet.addRow([]); // Empty row
+
+      // Filter out action columns (columns without accessorKey or with id containing 'action')
+      const exportableColumns = columns.filter(col => {
+        const hasAccessorKey = !!(col as any).accessorKey;
+        const isActionColumn = col.id?.toLowerCase().includes('action') || 
+                              col.id?.toLowerCase().includes('actions') ||
+                              (col as any).header?.toString().toLowerCase().includes('action');
+        return hasAccessorKey && !isActionColumn;
+      });
+
+      // Add headers with professional styling
+      const headers = exportableColumns.map(col => {
+        if (typeof col.header === 'string') return col.header;
+        if (typeof col.header === 'function') return col.id;
+        return (col as any).accessorKey || col.id;
+      });
+      
+      const headerRow = worksheet.addRow(headers);
+      headerRow.font = { 
+        bold: true, 
+        size: 12, 
+        color: { argb: 'FFFFFFFF' },
+        name: 'Segoe UI'
+      };
+      headerRow.height = 32;
+      headerRow.alignment = { 
+        horizontal: 'center', 
+        vertical: 'middle',
+        wrapText: true
+      };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF1A252F' }
+      };
+      headerRow.border = {
+        top: { style: 'medium', color: { argb: 'FF2C3E50' } },
+        bottom: { style: 'medium', color: { argb: 'FF2C3E50' } },
+        left: { style: 'medium', color: { argb: 'FF2C3E50' } },
+        right: { style: 'medium', color: { argb: 'FF2C3E50' } }
+      };
+
+      // Add data rows with professional alternating styling
+      filteredData.forEach((row, index) => {
+        const rowData = exportableColumns.map(col => {
+          const key = (col as any).accessorKey;
+          if (key) {
+            const value = (row as any)[key];
+            // Handle different data types
+            if (value === null || value === undefined) return '';
+            if (typeof value === 'object') return JSON.stringify(value);
+            return value;
+          }
+          return '';
+        });
+        
+        const dataRow = worksheet.addRow(rowData);
+        dataRow.height = 24;
+        dataRow.alignment = { vertical: 'middle' };
+        
+        // Enhanced alternating row colors
+        if (index % 2 === 0) {
+          dataRow.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFFFFFF' }
+          };
+        } else {
+          dataRow.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF8F9FA' }
+          };
+        }
+        
+        // Enhanced cell styling
+        dataRow.eachCell((cell, colNumber) => {
+          cell.font = { 
+            size: 11, 
+            color: { argb: 'FF1A252F' },
+            name: 'Segoe UI'
+          };
+          cell.alignment = { 
+            vertical: 'middle',
+            horizontal: 'left',
+            wrapText: true
+          };
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFDEE2E6' } },
+            left: { style: 'thin', color: { argb: 'FFDEE2E6' } },
+            bottom: { style: 'thin', color: { argb: 'FFDEE2E6' } },
+            right: { style: 'thin', color: { argb: 'FFDEE2E6' } }
+          };
+        });
+      });
+
+      // Auto-fit columns
+      worksheet.columns.forEach(column => {
+        if (column && column.eachCell) {
+          let maxLength = 0;
+          column.eachCell({ includeEmpty: true }, (cell) => {
+            if (cell && cell.value) {
+              const columnLength = String(cell.value).length;
+              if (columnLength > maxLength) {
+                maxLength = columnLength;
+              }
+            } else {
+              if (10 > maxLength) {
+                maxLength = 10;
+              }
+            }
+          });
+          column.width = Math.min(maxLength + 2, 50);
+        }
+      });
+
+      // Add enhanced summary footer
+      const totalRows = filteredData.length;
+      const summaryRow = worksheet.addRow([`Total Records: ${totalRows}`]);
+      summaryRow.font = { 
+        bold: true, 
+        size: 12, 
+        color: { argb: 'FF1A252F' },
+        name: 'Segoe UI'
+      };
+      summaryRow.height = 28;
+      summaryRow.alignment = { horizontal: 'right', vertical: 'middle' };
+      summaryRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFF1F3F4' }
+      };
+      summaryRow.border = {
+        top: { style: 'thick', color: { argb: 'FF2C3E50' } },
+        bottom: { style: 'thick', color: { argb: 'FF2C3E50' } },
+        left: { style: 'thick', color: { argb: 'FF2C3E50' } },
+        right: { style: 'thick', color: { argb: 'FF2C3E50' } }
+      };
+
+      // Add freeze panes for better navigation
+      if (title) {
+        worksheet.views = [{ state: 'frozen', ySplit: 4 }]; // Freeze title, metadata, and header rows
+      } else {
+        worksheet.views = [{ state: 'frozen', ySplit: 2 }]; // Freeze metadata and header rows
+      }
+
+      // Set professional page setup
+      worksheet.pageSetup = {
+        orientation: 'landscape',
+        paperSize: 9, // A4
+        margins: {
+          left: 0.7,
+          right: 0.7,
+          top: 0.75,
+          bottom: 0.75,
+          header: 0.3,
+          footer: 0.3
+        }
+      };
+
+      // Add print titles
+      worksheet.pageSetup.printTitlesRow = '1:3'; // Repeat first 3 rows on each page
+
+      // Generate Excel file
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${title || 'data'}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export failed:', error);
+      // Fallback to CSV if Excel export fails
     const csvContent = [
       columns.map(col => (col as any).header || (col as any).accessorKey).join(','),
       ...filteredData.map(row => 
@@ -293,6 +672,7 @@ function EnhancedDataTableComponent<TData>({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    }
   }, [filteredData, columns, title]);
 
 
@@ -310,25 +690,22 @@ function EnhancedDataTableComponent<TData>({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className={cn('space-y-4', className)}
+      className={cn('space-y-3', className)}
     >
        {/* Header */}
-       <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-700">
-         <div className="flex items-center gap-6">
+       <div className="flex items-center justify-between p-3">
+         <div className="flex items-center gap-6 flex-1">
            <div className="space-y-1">
              {title && (
-               <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+               <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
                  {title}
                </h2>
              )}
-             {description && (
-               <p className="text-sm text-muted-foreground">{description}</p>
-             )}
            </div>
            {showSearch && (
-             <div className="relative group w-full max-w-md">
-               {/* Search Container with Compact Design */}
-               <div className="relative bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 transition-all duration-200 focus-within:border-blue-500 dark:focus-within:border-blue-400">
+             <div className="relative group flex-1 mr-8">
+               {/* Search Container with Extended Width */}
+               <div className="relative bg-white dark:bg-white rounded-lg border border-slate-200 dark:border-slate-300 transition-all duration-200 focus-within:border-blue-500 dark:focus-within:border-blue-400 shadow-md">
                  <div className="flex items-center px-3 py-2">
                    {/* Search Icon */}
                    <div className="flex-shrink-0 mr-2">
@@ -471,7 +848,7 @@ function EnhancedDataTableComponent<TData>({
                ) : (
                  <Download className="h-4 w-4 mr-2" />
                )}
-               {isExporting ? 'Exporting...' : 'Export'}
+                 {isExporting ? 'Exporting...' : 'Export Excel'}
              </Button>
            )}
            {onAdd && (
@@ -514,7 +891,7 @@ function EnhancedDataTableComponent<TData>({
        )}
 
        {/* Table */}
-         <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900">
+         <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
            <Table>
              <TableHeader className="bg-white dark:bg-slate-900">
                {table.getHeaderGroups().map((headerGroup) => (
@@ -523,8 +900,9 @@ function EnhancedDataTableComponent<TData>({
                      <TableHead
                        key={header.id}
                        className={cn(
-                         'sticky top-0 z-10 bg-white dark:bg-slate-900 font-bold text-slate-700 dark:text-slate-300 py-4 px-6',
-                         header.column.getCanSort() && 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200'
+                         'sticky top-0 z-10 bg-white dark:bg-slate-900 font-semibold text-slate-600 dark:text-slate-400 py-3 text-left',
+                         header.column.getCanSort() && 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-200',
+                         header.index === 0 ? 'pl-4 pr-2' : 'px-2'
                        )}
                        onClick={header.column.getToggleSortingHandler()}
                        style={{ minWidth: '120px', maxWidth: '300px' }}
@@ -563,7 +941,10 @@ function EnhancedDataTableComponent<TData>({
                     data-testid={`row-${row.id}`}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="truncate max-w-[200px] py-4 px-6 text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-200">
+                       <TableCell key={cell.id} className={cn(
+                         "truncate max-w-[200px] py-3 text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-200",
+                         cell.column.getIndex() === 0 ? 'pl-4 pr-2' : 'px-2'
+                       )}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
@@ -591,7 +972,7 @@ function EnhancedDataTableComponent<TData>({
         </div>
 
        {/* Pagination */}
-         <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+         <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
            <div className="flex items-center space-x-3">
              <div className="text-sm font-medium text-slate-600 dark:text-slate-400">
                {globalFilter ? (

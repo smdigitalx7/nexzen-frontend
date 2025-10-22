@@ -1,7 +1,6 @@
 import { useMemo } from "react";
-import { Edit, Eye, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Edit, Eye, Download, Trash2 } from "lucide-react";
+
 import { formatCurrency } from "@/lib/utils";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { PayrollRead } from "@/lib/types/general/payrolls";
@@ -9,11 +8,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn,
   createCurrencyColumn,
-  createBadgeColumn,
-  createActionColumn,
-  createViewAction,
-  createEditAction,
-  createDeleteAction
+  createBadgeColumn
 } from "@/lib/utils/columnFactories.tsx";
 
 // Extended interface that includes employee information
@@ -82,11 +77,22 @@ export const EmployeePayrollTable = ({
     },
     createCurrencyColumn<PayrollWithEmployee>("net_pay", { header: "Net Pay" }),
     createBadgeColumn<PayrollWithEmployee>("status", { header: "Status", variant: "outline" }),
-    createActionColumn<PayrollWithEmployee>([
-      createViewAction((row) => onViewPayslip(row)),
-      createEditAction((row) => onEditPayroll(row)),
-      createDeleteAction((row) => onUpdateStatus(row.payroll_id, "PAID"))
-    ])
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (row: PayrollWithEmployee) => onViewPayslip(row)
+    },
+    {
+      type: 'edit' as const,
+      onClick: (row: PayrollWithEmployee) => onEditPayroll(row)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: PayrollWithEmployee) => onUpdateStatus(row.payroll_id, "PAID")
+    }
   ], [onViewPayslip, onEditPayroll, onUpdateStatus]);
 
   // Define filter options
@@ -129,7 +135,6 @@ export const EmployeePayrollTable = ({
       data={payrolls}
       columns={columns}
       title="Employee Payrolls"
-      description="Track employee salary payments and deductions"
       searchKey="employee_name"
       exportable={true}
       filters={[
@@ -141,6 +146,10 @@ export const EmployeePayrollTable = ({
           onChange: () => {}, // This will be handled by the EnhancedDataTable component
         },
       ]}
+      showActions={true}
+      actionButtonGroups={actionButtonGroups}
+      actionColumnHeader="Actions"
+      showActionLabels={false}
     />
   );
 };

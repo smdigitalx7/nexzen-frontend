@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { FileText } from "lucide-react";
+import { FileText, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
@@ -10,10 +10,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { 
   createIconTextColumn, 
   createDateColumn,
-  createBadgeColumn, 
-  createActionColumn,
-  createEditAction,
-  createDeleteAction
+  createBadgeColumn
 } from "@/lib/utils/columnFactories";
 import { useCreateCollegeTest, useDeleteCollegeTest, useUpdateCollegeTest } from "@/lib/hooks/college/use-college-tests";
 import type { CollegeTestCreate, CollegeTestRead, CollegeTestUpdate } from "@/lib/types/college";
@@ -189,26 +186,34 @@ export const TestTab = ({
   };
 
   // Define columns for the data table using column factories
-  const columns: ColumnDef<any>[] = useMemo(() => [
-    createIconTextColumn<any>("test_name", { 
+  const columns: ColumnDef<CollegeTestRead>[] = useMemo(() => [
+    createIconTextColumn<CollegeTestRead>("test_name", { 
       icon: FileText, 
       header: "Test Name" 
     }),
-    createDateColumn<any>("test_date", { header: "Date", fallback: "Not set" }),
-    createBadgeColumn<any>("pass_marks", { 
+    createDateColumn<CollegeTestRead>("test_date", { header: "Date", fallback: "Not set" }),
+    createBadgeColumn<CollegeTestRead>("pass_marks", { 
       header: "Pass Marks", 
       variant: "outline",
       fallback: "50 marks"
     }),
-    createBadgeColumn<any>("max_marks", { 
+    createBadgeColumn<CollegeTestRead>("max_marks", { 
       header: "Max Marks", 
       variant: "outline",
       fallback: "50 marks" 
-    }),
-    createActionColumn<any>([
-      createEditAction(handleEditClick),
-      createDeleteAction(handleDeleteClick)
-    ])
+    })
+  ], []);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'edit' as const,
+      onClick: (row: CollegeTestRead) => handleEditClick(row)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: CollegeTestRead) => handleDeleteClick(row)
+    }
   ], []);
 
   return (
@@ -217,11 +222,14 @@ export const TestTab = ({
         data={tests}
         columns={columns}
         title="Tests"
-        description="Manage academic tests and assessments"
         searchKey="test_name"
         exportable={true}
         onAdd={() => setIsAddTestOpen(true)}
         addButtonText="Add Test"
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
       />
 
       {/* Add Test Dialog */}
