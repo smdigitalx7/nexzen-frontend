@@ -7,6 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EnhancedDataTable } from '@/components/shared';
+import { useToast } from '@/hooks/use-toast';
 import { 
   createAvatarColumn,
   createTextColumn,
@@ -43,6 +44,7 @@ type StudentFormData = z.infer<typeof studentFormSchema>;
 
 export const StudentsTab = () => {
   const { currentBranch } = useAuthStore();
+  const { toast } = useToast();
   const { data: studentsResp, isLoading, error } = useCollegeStudentsList({ page: 1, pageSize: 50 });
   const students: CollegeStudentRead[] = studentsResp?.data ?? [];
   const deleteStudentMutation = useDeleteCollegeStudent();
@@ -104,18 +106,48 @@ export const StudentsTab = () => {
   };
 
   const handleDeleteStudent = async (studentId: number) => {
-    await deleteStudentMutation.mutateAsync(studentId);
+    try {
+      await deleteStudentMutation.mutateAsync(studentId);
+      toast({
+        title: "Student Deleted Successfully",
+        description: "Student has been deleted successfully.",
+      });
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred while deleting the student.';
+      toast({
+        title: "Deletion Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
   };
 
   const onSubmit = async (data: StudentFormData) => {
-    if (selectedStudent) {
-      await updateStudentMutation.mutateAsync(data as any);
-      setIsEditDialogOpen(false);
-    } else {
-      await createStudentMutation.mutateAsync(data as any);
-      setIsAddDialogOpen(false);
+    try {
+      if (selectedStudent) {
+        await updateStudentMutation.mutateAsync(data as any);
+        toast({
+          title: "Student Updated Successfully",
+          description: `${data.student_name} has been updated successfully.`,
+        });
+        setIsEditDialogOpen(false);
+      } else {
+        await createStudentMutation.mutateAsync(data as any);
+        toast({
+          title: "Student Created Successfully",
+          description: `${data.student_name} has been created successfully.`,
+        });
+        setIsAddDialogOpen(false);
+      }
+      form.reset();
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred while saving the student.';
+      toast({
+        title: "Operation Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
-    form.reset();
   };
 
   const columns = useMemo(() => [

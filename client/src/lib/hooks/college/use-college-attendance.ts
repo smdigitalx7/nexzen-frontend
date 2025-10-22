@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeAttendanceService } from "@/lib/services/college/attendance.service";
-import type { CollegeStudentAttendanceBulkCreate, CollegeStudentAttendanceBulkCreateResult, CollegeStudentAttendancePaginatedResponse, CollegeStudentAttendanceRead } from "@/lib/types/college/index.ts";
+import type { CollegeStudentAttendanceBulkCreate, CollegeStudentAttendanceBulkCreateResult, CollegeStudentAttendancePaginatedResponse, CollegeStudentAttendanceRead, CollegeStudentAttendanceCreate, CollegeStudentAttendanceUpdate } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 
 export function useCollegeAttendanceList(params?: { page?: number; pageSize?: number; admission_no?: string }) {
@@ -29,7 +29,7 @@ export function useCollegeAttendanceByAdmission(admissionNo: string | null | und
 export function useCreateCollegeAttendance() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CollegeStudentAttendanceBulkCreate) => CollegeAttendanceService.create(payload) as Promise<CollegeStudentAttendanceRead>,
+    mutationFn: (payload: CollegeStudentAttendanceCreate) => CollegeAttendanceService.create(payload) as Promise<CollegeStudentAttendanceRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
     },
@@ -40,6 +40,27 @@ export function useBulkCreateCollegeAttendance() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: CollegeStudentAttendanceBulkCreate) => CollegeAttendanceService.bulkCreate(payload) as Promise<CollegeStudentAttendanceBulkCreateResult>,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
+    },
+  });
+}
+
+export function useUpdateCollegeAttendance(attendanceId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CollegeStudentAttendanceUpdate) => CollegeAttendanceService.update(attendanceId, payload) as Promise<CollegeStudentAttendanceRead>,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: collegeKeys.attendance.detail(attendanceId) });
+      qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
+    },
+  });
+}
+
+export function useDeleteCollegeAttendance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (attendanceId: number) => CollegeAttendanceService.delete(attendanceId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
     },

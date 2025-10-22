@@ -1,5 +1,5 @@
 import { Api } from "@/lib/api";
-import { CollegeStudentAttendanceBulkCreate, CollegeStudentAttendanceBulkCreateResult, CollegeStudentAttendancePaginatedResponse, CollegeStudentAttendanceRead, CollegeStudentAttendanceWithClassGroup, CollegeStudentAttendanceUpdate } from "@/lib/types/college";
+import { CollegeStudentAttendanceBulkCreate, CollegeStudentAttendanceBulkCreateResult, CollegeStudentAttendancePaginatedResponse, CollegeStudentAttendanceRead, CollegeStudentAttendanceWithClassGroup, CollegeStudentAttendanceUpdate, CollegeStudentAttendanceCreate } from "@/lib/types/college";
 
 export interface CollegeAttendanceListParams {
   page?: number;
@@ -34,7 +34,7 @@ export const CollegeAttendanceService = {
   },
 
   // POST /api/v1/college/student-attendance
-  create(payload: CollegeStudentAttendanceBulkCreate) {
+  create(payload: CollegeStudentAttendanceCreate) {
     return Api.post<CollegeStudentAttendanceRead>(`/college/student-attendance`, payload);
   },
 

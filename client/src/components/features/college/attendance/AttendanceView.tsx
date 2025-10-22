@@ -42,7 +42,6 @@ export default function AttendanceView() {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<any | null>(null);
-  const [editPresent, setEditPresent] = useState<string>("0");
   const [editAbsent, setEditAbsent] = useState<string>("0");
   const [editRemarks, setEditRemarks] = useState<string>("");
   const [viewOpen, setViewOpen] = useState(false);
@@ -63,10 +62,9 @@ export default function AttendanceView() {
       toast({ title: 'No record', description: 'Initialize month in Create tab first', variant: 'destructive' });
       return;
     }
-    const nextPresent = (student.present_days ?? 0) + (status === 'present' ? 1 : 0);
-    const nextAbsent = (student.absent_days ?? 0) + (status === 'absent' ? 1 : 0);
+    const nextAbsent = (student.absent_days ?? 0) + (status === 'absent' ? 1 : -1);
     try {
-      await CollegeAttendanceService.update(student.attendance_id, { present_days: nextPresent, absent_days: nextAbsent });
+      await CollegeAttendanceService.update(student.attendance_id, { absent_days: Math.max(0, nextAbsent) });
       await studentsQuery.refetch();
       toast({ title: 'Updated', description: `${student.student_name} marked ${status}` });
     } catch {
@@ -98,7 +96,7 @@ export default function AttendanceView() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button size="icon" variant="outline" aria-label="Edit attendance" onClick={() => { setEditingRow(student); setEditPresent(String(student.present_days ?? 0)); setEditAbsent(String(student.absent_days ?? 0)); setEditRemarks(student.remarks ?? ''); setEditOpen(true); }}>
+                <Button size="icon" variant="outline" aria-label="Edit attendance" onClick={() => { setEditingRow(student); setEditAbsent(String(student.absent_days ?? 0)); setEditRemarks(student.remarks ?? ''); setEditOpen(true); }}>
                   <Pencil className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -208,12 +206,11 @@ export default function AttendanceView() {
               <div className="flex justify-between"><span className="text-slate-600">Admission No</span><span className="font-medium">{viewQuery.data.admission_no}</span></div>
               <div className="flex justify-between"><span className="text-slate-600">Student</span><span className="font-medium">{viewQuery.data.student_name}</span></div>
               <div className="flex justify-between"><span className="text-slate-600">Roll</span><span className="font-medium">{viewQuery.data.roll_number}</span></div>
-              {/* College API does not return section_name; omit */}
               <div className="flex justify-between"><span className="text-slate-600">Working Days</span><span className="font-medium">{viewQuery.data.total_working_days ?? 0}</span></div>
               <div className="flex justify-between"><span className="text-slate-600">Present</span><span className="font-medium">{viewQuery.data.present_days ?? 0}</span></div>
               <div className="flex justify-between"><span className="text-slate-600">Absent</span><span className="font-medium">{viewQuery.data.absent_days ?? 0}</span></div>
               <div className="flex justify-between"><span className="text-slate-600">Remarks</span><span className="font-medium">{viewQuery.data.remarks || '-'}</span></div>
-              <div className="flex justify-between"><span className="text-slate-600">Month</span><span className="font-medium">{typeof viewQuery.data.attendance_month === 'number' ? (monthNames[(viewQuery.data.attendance_month as number) - 1] || '-') : ((viewQuery.data.attendance_month as string)?.slice(5,7) ? monthNames[parseInt((viewQuery.data.attendance_month as string).slice(5,7)) - 1] : '-')} / {typeof (viewQuery.data as any).attendance_year === 'number' ? (viewQuery.data as any).attendance_year : ((viewQuery.data.attendance_month as string)?.slice(0,4) || '-')}</span></div>
+              <div className="flex justify-between"><span className="text-slate-600">Month</span><span className="font-medium">{viewQuery.data.attendance_month ? `${viewQuery.data.attendance_month}` : '-'} / {viewQuery.data.attendance_year ? `${viewQuery.data.attendance_year}` : '-'}</span></div>
             </div>
           ) : (
             <div className="text-sm text-slate-500">No data.</div>
@@ -231,10 +228,6 @@ export default function AttendanceView() {
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label>Present Days</Label>
-            <Input type="number" value={editPresent} onChange={(e) => setEditPresent(e.target.value)} />
-          </div>
-          <div>
             <Label>Absent Days</Label>
             <Input type="number" value={editAbsent} onChange={(e) => setEditAbsent(e.target.value)} />
           </div>
@@ -246,19 +239,18 @@ export default function AttendanceView() {
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
             <Button onClick={async () => {
               if (!editingRow?.attendance_id) { toast({ title: 'Not found', description: 'No attendance record to update', variant: 'destructive' }); return; }
-              const present = parseInt(editPresent) || 0;
               const absent = parseInt(editAbsent) || 0;
               const working = editingRow?.total_working_days ?? 0;
-              if (present < 0 || absent < 0) {
-                toast({ title: 'Invalid values', description: 'Present/Absent cannot be negative', variant: 'destructive' });
+              if (absent < 0) {
+                toast({ title: 'Invalid values', description: 'Absent days cannot be negative', variant: 'destructive' });
                 return;
               }
-              if (present + absent > working) {
-                toast({ title: 'Invalid totals', description: `Present + Absent (${present + absent}) cannot exceed Working Days (${working})`, variant: 'destructive' });
+              if (absent > working) {
+                toast({ title: 'Invalid totals', description: `Absent days (${absent}) cannot exceed Working Days (${working})`, variant: 'destructive' });
                 return;
               }
               try {
-                await CollegeAttendanceService.update(editingRow.attendance_id, { present_days: present, absent_days: absent, remarks: editRemarks || null });
+                await CollegeAttendanceService.update(editingRow.attendance_id, { absent_days: absent, remarks: editRemarks || null });
                 await studentsQuery.refetch();
                 toast({ title: 'Updated', description: 'Attendance updated' });
                 setEditOpen(false);
@@ -274,5 +266,3 @@ export default function AttendanceView() {
     </>
   );
 }
-
-

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
+import { useToast } from '@/hooks/use-toast';
 import {
   createAvatarColumn,
   createTextColumn,
@@ -37,6 +38,7 @@ const UserManagement = () => {
   const deleteUserMutation = useDeleteUser();
   const revokeAccessMutation = useRevokeUserAccess();
   const createAccessMutation = useCreateUserAccess();
+  const { toast } = useToast();
 
   // Helper function to extract role and branch info from accesses
   const getRoleAndBranchFromAccesses = (user: UserWithRolesAndBranches | UserWithAccesses) => {
@@ -153,9 +155,24 @@ const UserManagement = () => {
 
   const confirmDelete = () => {
     if (userToDelete) {
-      deleteUserMutation.mutate(userToDelete.user_id);
-      setShowDeleteDialog(false);
-      setUserToDelete(null);
+      deleteUserMutation.mutate(userToDelete.user_id, {
+        onSuccess: () => {
+          toast({
+            title: "User Deleted Successfully",
+            description: `${userToDelete.full_name} has been deleted successfully.`,
+          });
+          setShowDeleteDialog(false);
+          setUserToDelete(null);
+        },
+        onError: (error: any) => {
+          const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred while deleting the user.';
+          toast({
+            title: "Deletion Failed",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
+      });
     }
   };
 
@@ -188,11 +205,20 @@ const UserManagement = () => {
       is_active: accessFormData.is_active
     }, {
       onSuccess: () => {
+        toast({
+          title: "Access Granted Successfully",
+          description: `Access has been granted to ${selectedUser.full_name} successfully.`,
+        });
         setShowAccessDialog(false);
         setFormError(null);
       },
       onError: (error: any) => {
         const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred while creating the access.';
+        toast({
+          title: "Access Creation Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
         setFormError(errorMessage);
       }
     });
@@ -212,10 +238,25 @@ const UserManagement = () => {
           user_id: accessToRevokeFromDialog.userId,
           access_notes: accessRevokeNotes || undefined,
         }
+      }, {
+        onSuccess: () => {
+          toast({
+            title: "Access Revoked Successfully",
+            description: `Access has been revoked from ${accessToRevokeFromDialog.roleName} at ${accessToRevokeFromDialog.branchName} successfully.`,
+          });
+          setShowAccessRevokeDialog(false);
+          setAccessToRevokeFromDialog(null);
+          setAccessRevokeNotes('');
+        },
+        onError: (error: any) => {
+          const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred while revoking the access.';
+          toast({
+            title: "Access Revocation Failed",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
       });
-      setShowAccessRevokeDialog(false);
-      setAccessToRevokeFromDialog(null);
-      setAccessRevokeNotes('');
     }
   };
 
@@ -268,10 +309,20 @@ const UserManagement = () => {
       };
       updateUserMutation.mutate({ id: selectedUser.user_id, payload: updateData }, {
         onSuccess: () => {
+          toast({
+            title: "User Updated Successfully",
+            description: `${formData.full_name} has been updated successfully.`,
+          });
           setShowUserForm(false);
+          setFormError(null);
         },
         onError: (error: any) => {
           const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred while updating the user.';
+          toast({
+            title: "Update Failed",
+            description: errorMessage,
+            variant: "destructive",
+          });
           setFormError(errorMessage);
         }
       });
@@ -290,10 +341,20 @@ const UserManagement = () => {
       };
       createUserMutation.mutate(userData, {
         onSuccess: () => {
+          toast({
+            title: "User Created Successfully",
+            description: `${formData.full_name} has been created successfully.`,
+          });
           setShowUserForm(false);
+          setFormError(null);
         },
         onError: (error: any) => {
           const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred while creating the user.';
+          toast({
+            title: "Creation Failed",
+            description: errorMessage,
+            variant: "destructive",
+          });
           setFormError(errorMessage);
         }
       });

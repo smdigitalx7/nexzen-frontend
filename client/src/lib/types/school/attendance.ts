@@ -1,6 +1,7 @@
 export interface SchoolStudentAttendanceCreate {
   enrollment_id: number;
-  attendance_month: string; // YYYY-MM-DD
+  attendance_month: number; // 1-12
+  attendance_year: number; // 1900-2100
   total_working_days: number;
   present_days: number;
   absent_days: number;
@@ -8,7 +9,6 @@ export interface SchoolStudentAttendanceCreate {
 }
 
 export interface SchoolStudentAttendanceUpdate {
-  present_days?: number;
   absent_days?: number;
   remarks?: string | null;
 }
@@ -37,11 +37,11 @@ export interface SchoolStudentAttendancePaginatedResponse {
 }
 
 export interface SchoolBulkStudentAttendanceCreate {
-  attendance_month: string; // YYYY-MM-DD
+  attendance_month: number; // 1-12
+  attendance_year: number; // 1900-2100
   total_working_days: number;
   class_id: number;
   section_id?: number | null;
-  academic_year_id?: number | null;
 }
 
 export interface SchoolClassAttendanceUpdateItem {

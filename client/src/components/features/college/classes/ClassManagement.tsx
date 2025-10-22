@@ -164,41 +164,65 @@ const ClassesManagement = () => {
   const handleSubmit = (values: any) => {
     if (editingClass) {
       // Backend only supports updating class_name
-      updateClassMutation.mutate({ class_name: values.class_name });
-      toast({ title: "Class Updated", description: `${values.class_name} has been updated successfully.` });
-      // Optimistic local update for UI-only fields
-      setClasses(classes.map(c => c.class_id === editingClass.class_id ? {
-        ...c,
-        class_name: values.class_name,
-      } : c));
+      updateClassMutation.mutate({ class_name: values.class_name }, {
+        onSuccess: () => {
+          toast({ title: "Class Updated", description: `${values.class_name} has been updated successfully.` });
+          // Optimistic local update for UI-only fields
+          setClasses(classes.map(c => c.class_id === editingClass.class_id ? {
+            ...c,
+            class_name: values.class_name,
+          } : c));
+          form.reset();
+          setEditingClass(null);
+          setShowAddDialog(false);
+        },
+        onError: (error: any) => {
+          const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred while updating the class.';
+          toast({
+            title: "Update Failed",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
+      });
     } else {
       // Create on backend (only class_name required)
-      createClassMutation.mutate({ class_name: values.class_name });
-      toast({ title: "Class Added", description: `${values.class_name} has been added successfully.` });
-      // Append optimistic UI row until refetch updates from backend
-      setClasses([
-        ...classes,
-        {
-          class_id: Date.now(),
-          class_name: values.class_name,
-          section: '-',
-          grade: '-',
-          academic_year: academicYears?.find((ay: any) => ay.is_active)?.year_name || academicYears?.[0]?.year_name || '2024-25',
-          class_teacher: '-',
-          room_number: '-',
-          capacity: 0,
-          current_strength: 0,
-          subjects: [],
-          timetable_set: false,
-          status: 'active',
-          created_at: new Date().toISOString().split('T')[0],
+      createClassMutation.mutate({ class_name: values.class_name }, {
+        onSuccess: () => {
+          toast({ title: "Class Added", description: `${values.class_name} has been added successfully.` });
+          // Append optimistic UI row until refetch updates from backend
+          setClasses([
+            ...classes,
+            {
+              class_id: Date.now(),
+              class_name: values.class_name,
+              section: '-',
+              grade: '-',
+              academic_year: academicYears?.find((ay: any) => ay.is_active)?.year_name || academicYears?.[0]?.year_name || '2024-25',
+              class_teacher: '-',
+              room_number: '-',
+              capacity: 0,
+              current_strength: 0,
+              subjects: [],
+              timetable_set: false,
+              status: 'active',
+              created_at: new Date().toISOString().split('T')[0],
+            },
+          ]);
+          form.reset();
+          setEditingClass(null);
+          setShowAddDialog(false);
         },
-      ]);
+        onError: (error: any) => {
+          const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred while creating the class.';
+          toast({
+            title: "Creation Failed",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
+      });
     }
-
-    form.reset();
-    setEditingClass(null);
-    setShowAddDialog(false);
   };
 
   

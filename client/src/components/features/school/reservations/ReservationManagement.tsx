@@ -1372,6 +1372,10 @@ export default function ReservationNew() {
                   await deleteReservation.mutateAsync(
                     reservationToDelete.reservation_id
                   );
+                  toast({
+                    title: "Reservation Deleted Successfully",
+                    description: `Reservation ${reservationToDelete.reservation_id} has been deleted successfully.`,
+                  });
                   // Success - dialog will close automatically due to onSuccess in hook
                   setShowDeleteDialog(false);
                   setReservationToDelete(null);

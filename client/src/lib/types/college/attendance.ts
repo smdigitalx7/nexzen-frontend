@@ -1,6 +1,7 @@
 export interface CollegeStudentAttendanceCreate {
   enrollment_id: number;
-  attendance_month: string; // YYYY-MM-DD
+  attendance_month: number; // 1-12
+  attendance_year: number; // 1900-2100
   total_working_days: number;
   present_days: number;
   absent_days: number;
@@ -8,13 +9,13 @@ export interface CollegeStudentAttendanceCreate {
 }
 
 export interface CollegeStudentAttendanceUpdate {
-  present_days?: number;
   absent_days?: number;
   remarks?: string | null;
 }
 
 export interface CollegeStudentAttendanceBulkCreate {
-  attendance_month: string; // YYYY-MM-DD
+  attendance_month: number; // 1-12
+  attendance_year: number; // 1900-2100
   total_working_days: number;
   class_id: number;
   group_id: number;
@@ -26,7 +27,8 @@ export interface CollegeStudentAttendanceRead {
   admission_no: string;
   roll_number: string;
   student_name: string;
-  attendance_month: string; // YYYY-MM-DD
+  attendance_month: number; // 1-12
+  attendance_year: number; // 1900-2100
   total_working_days: number;
   present_days: number;
   absent_days: number;

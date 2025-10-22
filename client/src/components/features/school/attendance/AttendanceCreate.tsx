@@ -88,11 +88,11 @@ export default function AttendanceCreate() {
                   toast({ title: 'Error', description: 'Enter valid enrollment ID', variant: 'destructive' });
                   return;
                 }
-                const isoMonth = (selectedDate?.toISOString().split('T')[0] || '').slice(0, 7) + '-01';
                 try {
                   await createSingle.mutateAsync({
                     enrollment_id,
-                    attendance_month: isoMonth,
+                    attendance_month: month || (new Date().getMonth() + 1),
+                    attendance_year: year || new Date().getFullYear(),
                     total_working_days: parseInt(singleWorkingDays) || 0,
                     present_days: parseInt(singlePresentDays) || 0,
                     absent_days: parseInt(singleAbsentDays) || 0,
@@ -195,12 +195,11 @@ export default function AttendanceCreate() {
             try {
               await bulkCreate.mutateAsync({
                 class_id: selectedClassId,
-                section_id: selectedSectionId ?? 0,
-                attendance_month: bulkMonth as unknown as any,
-                attendance_year: bulkYear as unknown as any,
+                section_id: selectedSectionId || null,
+                attendance_month: bulkMonth,
+                attendance_year: bulkYear,
                 total_working_days: bulkWorkingDays,
-                academic_year_id: 0,
-              } as any);
+              });
               toast({ title: 'Created', description: 'Monthly attendance records initialized' });
               setBulkOpen(false);
             } catch (err: any) {
