@@ -1,11 +1,4 @@
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Table,
   TableBody,
   TableCell,
@@ -17,12 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Eye,
-  Edit,
-  Trash2,
-  Printer,
-  Lock,
-  Percent,
   Search,
   ChevronLeft,
   ChevronRight,
@@ -36,26 +23,36 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
-import { ReceiptPreviewModal } from "@/components/shared";
-import { handleRegenerateReceipt as regenerateReceiptAPI } from "@/lib/api";
+import { CollegeReservationsService } from "@/lib/services/college/reservations.service";
+import { CollegeIncomeService } from "@/lib/services/college/income.service";
+import { ReceiptPreviewModal, ConcessionUpdateDialog } from "@/components/shared";
+import type { CollegeReservationMinimalRead, ReservationStatusEnum } from "@/lib/types/college/reservations";
 
 export type Reservation = {
-  id: string;
-  no: string; // Add reservation number field
-  studentName: string;
-  status: "Pending" | "Cancelled" | string;
-  date: string;
-  totalFee: number;
-  income_id?: number; // Add income_id for receipt regeneration
-  concession_lock?: boolean; // Add concession_lock for UI state
-  tuition_fee?: number; // Add tuition_fee for concession dialog
-  transport_fee?: number; // Add transport_fee for concession dialog
-  book_fee?: number; // Add book_fee for concession dialog
-  application_fee?: number; // Add application_fee for concession dialog
-  tuition_concession?: number; // Add current tuition_concession
-  transport_concession?: number; // Add current transport_concession
-  remarks?: string; // Add remarks for concession dialog
+  reservation_id: number;
+  reservation_date?: string | null;
+  student_name: string;
+  aadhar_no?: string | null;
+  gender?: "MALE" | "FEMALE" | "OTHER" | null;
+  dob?: string | null;
+  father_name?: string | null;
+  father_mobile?: string | null;
+  group_id: number;
+  course_id: number;
+  group_name?: string | null;
+  course_name?: string | null;
+  status: ReservationStatusEnum;
+  created_at: string;
+  remarks?: string | null;
+  // Additional fields for UI functionality
+  income_id?: number; // For receipt regeneration
+  concession_lock?: boolean; // For UI state
+  tuition_fee?: number; // For concession dialog
+  transport_fee?: number; // For concession dialog
+  book_fee?: number; // For concession dialog
+  application_fee?: number; // For concession dialog
+  tuition_concession?: number; // Current tuition concession
+  transport_concession?: number; // Current transport concession
 };
 
 export type ReservationsTableProps = {
@@ -88,9 +85,9 @@ export default function ReservationsTable({
 
     // Filter by status
     if (statusFilter !== "all") {
-      const target = statusFilter.toLowerCase();
+      const target = statusFilter.toUpperCase();
       filtered = filtered.filter(
-        (r) => (r.status || "").toLowerCase() === target
+        (r) => r.status === target
       );
     }
 
@@ -99,9 +96,11 @@ export default function ReservationsTable({
       const search = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (r) =>
-          r.studentName.toLowerCase().includes(search) ||
-          r.id.toLowerCase().includes(search) ||
-          (r.classAdmission || "").toLowerCase().includes(search)
+          r.student_name.toLowerCase().includes(search) ||
+          r.reservation_id.toString().includes(search) ||
+          (r.group_name || "").toLowerCase().includes(search) ||
+          (r.course_name || "").toLowerCase().includes(search) ||
+          (r.father_name || "").toLowerCase().includes(search)
       );
     }
 
@@ -142,7 +141,8 @@ export default function ReservationsTable({
         "🔄 Starting receipt regeneration for income ID:",
         reservation.income_id
       );
-      const blobUrl = await regenerateReceiptAPI(reservation.income_id);
+      const blob = await CollegeIncomeService.regenerateReceipt(reservation.income_id);
+      const blobUrl = URL.createObjectURL(blob);
       console.log("✅ Receipt blob URL received:", blobUrl);
 
       setReceiptBlobUrl(blobUrl);
@@ -180,6 +180,7 @@ export default function ReservationsTable({
     }
   };
 
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
@@ -206,9 +207,9 @@ export default function ReservationsTable({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="admitted">Admitted</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                <SelectItem value="CANCELLED">Cancelled</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -218,11 +219,12 @@ export default function ReservationsTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Reservation No</TableHead>
+            <TableHead>Reservation ID</TableHead>
             <TableHead>Student Name</TableHead>
+            <TableHead>Group</TableHead>
+            <TableHead>Course</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Date</TableHead>
-
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -230,7 +232,7 @@ export default function ReservationsTable({
           {paginatedReservations.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={5}
+                colSpan={7}
                 className="h-24 text-center text-sm text-muted-foreground"
               >
                 <div className="space-y-2">
@@ -244,23 +246,32 @@ export default function ReservationsTable({
             </TableRow>
           ) : (
             paginatedReservations.map((reservation) => (
-              <TableRow key={reservation.id}>
-                <TableCell className="font-medium">{reservation.no}</TableCell>
-                <TableCell>{reservation.studentName}</TableCell>
+              <TableRow key={reservation.reservation_id}>
+                <TableCell className="font-medium">{reservation.reservation_id}</TableCell>
+                <TableCell>{reservation.student_name}</TableCell>
+                <TableCell>{reservation.group_name || 'N/A'}</TableCell>
+                <TableCell>{reservation.course_name || 'N/A'}</TableCell>
                 <TableCell>
                   <Badge
                     variant={
-                      reservation.status === "Pending"
+                      reservation.status === "PENDING"
                         ? "default"
-                        : reservation.status === "Cancelled"
+                        : reservation.status === "CANCELLED"
                         ? "destructive"
-                        : "secondary"
+                        : reservation.status === "CONFIRMED"
+                        ? "secondary"
+                        : "outline"
                     }
                   >
                     {reservation.status}
                   </Badge>
                 </TableCell>
-                <TableCell>{reservation.date}</TableCell>
+                <TableCell>
+                  {reservation.reservation_date 
+                    ? new Date(reservation.reservation_date).toLocaleDateString()
+                    : new Date(reservation.created_at).toLocaleDateString()
+                  }
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Button
@@ -415,6 +426,7 @@ export default function ReservationsTable({
         onClose={handleCloseReceiptModal}
         blobUrl={receiptBlobUrl}
       />
+
     </div>
   );
 }

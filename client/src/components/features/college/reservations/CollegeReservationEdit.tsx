@@ -187,6 +187,9 @@ export default function SchoolReservationEdit({ form, setForm, classFee, transpo
         </div>
       </div>
 
+      <div className="flex justify-end gap-2 pt-2">
+        <Button onClick={onSave}>Save Changes</Button>
+      </div>
     </div>
   );
 }

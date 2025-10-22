@@ -9,107 +9,290 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { useMemo } from "react";
+import { EmployeeCombobox } from "@/components/ui/employee-combobox";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { useMemo, useState } from "react";
+import { Save } from "lucide-react";
 
 type ReservationFormState = {
-  studentName: string;
-  studentAadhar: string;
-  fatherName: string;
-  fatherAadhar: string;
-  motherName: string;
-  motherAadhar: string;
-  fatherOccupation: string;
-  motherOccupation: string;
+  student_name: string;
+  aadhar_no: string;
   gender: string;
   dob: string;
-  previousSchool: string;
-  village: string;
-  lastClass: string;
-  presentAddress: string;
-  permanentAddress: string;
-  fatherMobile: string;
-  motherMobile: string;
-  classAdmission: string;
-  group: string;
-  course: string;
-  transport: string;
-  busRoute: string;
-  applicationFee: string;
-  reservationFee: string;
+  father_or_guardian_name: string;
+  father_or_guardian_aadhar_no: string;
+  father_or_guardian_mobile: string;
+  father_or_guardian_occupation: string;
+  mother_or_guardian_name: string;
+  mother_or_guardian_aadhar_no: string;
+  mother_or_guardian_mobile: string;
+  mother_or_guardian_occupation: string;
+  siblings: Array<{
+    name: string;
+    class_name: string;
+    where: string;
+    gender: string;
+  }>;
+  previous_class: string;
+  previous_school_details: string;
+  present_address: string;
+  permanent_address: string;
+  application_fee: number;
+  application_fee_paid: boolean;
+  preferred_group_id: number;
+  group_name: string;
+  preferred_course_id: number;
+  course_name: string;
+  group_fee: number;
+  course_fee: number;
+  book_fee: number;
+  total_tuition_fee: number;
+  transport_required: boolean;
+  preferred_transport_id: number;
+  preferred_distance_slab_id: number;
+  pickup_point: string;
+  transport_fee: number;
+  concession_lock: boolean;
+  book_fee_required: boolean;
+  course_required: boolean;
+  status: string;
+  referred_by: number;
   remarks: string;
-  // Advanced/new fields
-  preferredClassId: string;
-  preferredDistanceSlabId: string;
-  bookFee: string;
-  tuitionConcession: string;
-  transportConcession: string;
-  referredBy: string;
-  reservationDate: string; // yyyy-mm-dd
-  siblingsJson: string; // JSON string
+  reservation_date: string; // yyyy-mm-dd
 };
 
-type RouteItem = { id: string; name: string; fee: number };
+type RouteItem = { id: number; name: string; fee: number };
+type GroupItem = { group_id: number; group_name: string; fee: number };
+type CourseItem = { course_id: number; course_name: string; fee: number };
+type DistanceSlabItem = {
+  slab_id: number;
+  slab_name: string;
+  min_distance: number;
+  max_distance?: number;
+  fee_amount: number;
+};
 
 export type ReservationFormProps = {
   form: ReservationFormState;
   setForm: (next: ReservationFormState) => void;
-  classFee: number;
+  groupFee: number;
+  courseFee: number;
   transportFee: number;
   routes: RouteItem[];
-  classFeeMapKeys: string[];
+  groups: GroupItem[];
+  courses: CourseItem[];
+  distanceSlabs: DistanceSlabItem[];
+  onGroupChange: (groupId: number) => void;
+  onCourseChange: (courseId: number) => void;
+  onDistanceSlabChange: (slabId: number) => void;
   onSave: (withPayment: boolean) => void;
+  isEdit?: boolean;
 };
 
 export default function ReservationForm({
   form,
   setForm,
-  classFee,
+  groupFee,
+  courseFee,
   transportFee,
   routes,
-  classFeeMapKeys,
+  groups,
+  courses,
+  distanceSlabs,
+  onGroupChange,
+  onCourseChange,
+  onDistanceSlabChange,
   onSave,
+  isEdit = false,
 }: ReservationFormProps) {
   const isSaveDisabled = useMemo(
-    () => !form.studentName || !form.classAdmission,
-    [form.studentName, form.classAdmission]
+    () => !form.student_name || !form.group_name || !form.course_name,
+    [form.student_name, form.group_name, form.course_name]
   );
 
-  const parsedSiblings = useMemo(() => {
-    try {
-      const v = JSON.parse(form.siblingsJson || "[]");
-      return Array.isArray(v) ? v : [];
-    } catch {
-      return [];
-    }
-  }, [form.siblingsJson]);
+  // Confirmation dialog states
+  const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
+  const [showSaveAndPayConfirmation, setShowSaveAndPayConfirmation] =
+    useState(false);
+  const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const syncSiblings = (
-    siblings: Array<{ name: string; age: number; relation: string }>
-  ) => {
-    setForm({ ...form, siblingsJson: JSON.stringify(siblings) });
+  const handleSaveClick = () => {
+    setShowSaveConfirmation(true);
+  };
+
+  const handleSaveAndPayClick = () => {
+    setShowSaveAndPayConfirmation(true);
+  };
+
+  const handleConfirmSave = async () => {
+    setIsLoading(true);
+    try {
+      await onSave(false);
+      setShowSaveConfirmation(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirmSaveAndPay = async () => {
+    setIsLoading(true);
+    try {
+      await onSave(true);
+      setShowSaveAndPayConfirmation(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateClick = () => {
+    setShowUpdateConfirmation(true);
+  };
+
+  const handleConfirmUpdate = async () => {
+    setIsLoading(true);
+    try {
+      await onSave(false); // For update, we don't need payment option
+      setShowUpdateConfirmation(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAutofill = () => {
+    setForm({
+      student_name: "John Doe",
+      aadhar_no: "123456789012",
+      gender: "MALE",
+      dob: "2010-05-15",
+      father_or_guardian_name: "Robert Doe",
+      father_or_guardian_aadhar_no: "987654321098",
+      father_or_guardian_mobile: "9876543210",
+      father_or_guardian_occupation: "Engineer",
+      mother_or_guardian_name: "Jane Doe",
+      mother_or_guardian_aadhar_no: "112233445566",
+      mother_or_guardian_mobile: "9876543211",
+      mother_or_guardian_occupation: "Teacher",
+      siblings: [
+        {
+          name: "Alice Doe",
+          class_name: "8th Grade",
+          where: "Same School",
+          gender: "FEMALE",
+        },
+      ],
+      previous_class: "12th Grade",
+      previous_school_details: "ABC Public School, City Center",
+      present_address: "123 Main Street, Downtown Area, City - 123456",
+      permanent_address: "123 Main Street, Downtown Area, City - 123456",
+      application_fee: 500,
+      application_fee_paid: true,
+      preferred_group_id: (groups && groups.length > 0) ? groups[0].group_id : 0,
+      group_name: (groups && groups.length > 0) ? groups[0].group_name : "",
+      preferred_course_id: (courses && courses.length > 0) ? courses[0].course_id : 0,
+      course_name: (courses && courses.length > 0) ? courses[0].course_name : "",
+      group_fee: (groups && groups.length > 0) ? groups[0].fee : 0,
+      course_fee: (courses && courses.length > 0) ? courses[0].fee : 0,
+      book_fee: 3000,
+      total_tuition_fee: 0, // Will be calculated
+      transport_required: true,
+      preferred_transport_id: (routes && routes.length > 0) ? routes[0].id : 0,
+      preferred_distance_slab_id: (distanceSlabs && distanceSlabs.length > 0) ? distanceSlabs[0].slab_id : 0,
+      pickup_point: "Near City Mall",
+      transport_fee: 2000,
+      concession_lock: false,
+      book_fee_required: true,
+      course_required: true,
+      status: "PENDING",
+      referred_by: 0,
+      remarks: "Student is interested in science subjects and extracurricular activities.",
+      reservation_date: new Date().toISOString().split("T")[0],
+    });
+
+    // Trigger group change to populate fees
+    if (groups && groups.length > 0) {
+      onGroupChange(groups[0].group_id);
+    }
+
+    // Trigger course change to populate fees
+    if (courses && courses.length > 0) {
+      onCourseChange(courses[0].course_id);
+    }
+
+    // Trigger distance slab change to populate transport fee
+    if (distanceSlabs && distanceSlabs.length > 0) {
+      onDistanceSlabChange(distanceSlabs[0].slab_id);
+    }
+  };
+
+  const handleClearForm = () => {
+    setForm({
+      student_name: "",
+      aadhar_no: "",
+      gender: "",
+      dob: "",
+      father_or_guardian_name: "",
+      father_or_guardian_aadhar_no: "",
+      father_or_guardian_mobile: "",
+      father_or_guardian_occupation: "",
+      mother_or_guardian_name: "",
+      mother_or_guardian_aadhar_no: "",
+      mother_or_guardian_mobile: "",
+      mother_or_guardian_occupation: "",
+      siblings: [],
+      previous_class: "",
+      previous_school_details: "",
+      present_address: "",
+      permanent_address: "",
+      application_fee: 0,
+      application_fee_paid: false,
+      preferred_group_id: 0,
+      group_name: "",
+      preferred_course_id: 0,
+      course_name: "",
+      group_fee: 0,
+      course_fee: 0,
+      book_fee: 0,
+      total_tuition_fee: 0,
+      transport_required: false,
+      preferred_transport_id: 0,
+      preferred_distance_slab_id: 0,
+      pickup_point: "",
+      transport_fee: 0,
+      concession_lock: false,
+      book_fee_required: false,
+      course_required: false,
+      status: "PENDING",
+      referred_by: 0,
+      remarks: "",
+      reservation_date: "",
+    });
   };
 
   const addSibling = () => {
-    const next = [...parsedSiblings, { name: "", age: 0, relation: "" }];
-    syncSiblings(next);
+    const next = [
+      ...(form.siblings || []),
+      { name: "", class_name: "", where: "", gender: "MALE" },
+    ];
+    setForm({ ...form, siblings: next });
   };
 
   const updateSibling = (
     index: number,
-    field: "name" | "age" | "relation",
+    field: "name" | "class_name" | "where" | "gender",
     value: string
   ) => {
-    const next = parsedSiblings.map((s: any, i: number) =>
-      i === index
-        ? { ...s, [field]: field === "age" ? Number(value || 0) : value }
-        : s
+    const siblings = form.siblings || [];
+    const next = siblings.map((s, i) =>
+      i === index ? { ...s, [field]: value } : s
     );
-    syncSiblings(next);
+    setForm({ ...form, siblings: next });
   };
 
   const removeSibling = (index: number) => {
-    const next = parsedSiblings.filter((_: any, i: number) => i !== index);
-    syncSiblings(next);
+    const siblings = form.siblings || [];
+    const next = siblings.filter((_, i) => i !== index);
+    setForm({ ...form, siblings: next });
   };
 
   return (
@@ -117,25 +300,50 @@ export default function ReservationForm({
       <div className="space-y-6">
         <div className="flex justify-between items-start">
           <div>
-            <h2 className="text-2xl font-semibold">Student Reservation Form</h2>
+            <h2 className="text-2xl font-semibold">
+              {isEdit ? "Edit Student Reservation" : "Student Reservation Form"}
+            </h2>
             <p className="text-muted-foreground">
-              Fill in all the required details for the new student reservation
+              {isEdit
+                ? "Update the student reservation details below"
+                : "Fill in all the required details for the new student reservation"}
             </p>
           </div>
+          {!isEdit && (
+            <div className="flex gap-2 ml-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAutofill}
+              >
+                🧪 Autofill Test Data
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleClearForm}
+              >
+                🗑️ Clear Form
+              </Button>
+            </div>
+          )}
         </div>
         <div className="space-y-8">
-          {/* Exact Payload Order */}
+          {/* Student Information Section */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Reservation Details</h3>
+            <h3 className="text-lg font-semibold border-b pb-2">
+              Student Information
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* 2-4. student_name, aadhar_no, gender */}
               <div>
-                <Label htmlFor="student_name">Student Name</Label>
+                <Label htmlFor="student_name">Student Name *</Label>
                 <Input
                   id="student_name"
-                  value={form.studentName}
+                  value={form.student_name}
                   onChange={(e) =>
-                    setForm({ ...form, studentName: e.target.value })
+                    setForm({ ...form, student_name: e.target.value })
                   }
                 />
               </div>
@@ -143,14 +351,14 @@ export default function ReservationForm({
                 <Label htmlFor="aadhar_no">Aadhar No</Label>
                 <Input
                   id="aadhar_no"
-                  value={form.studentAadhar}
+                  value={form.aadhar_no}
                   onChange={(e) =>
-                    setForm({ ...form, studentAadhar: e.target.value })
+                    setForm({ ...form, aadhar_no: e.target.value })
                   }
                 />
               </div>
               <div>
-                <Label htmlFor="gender">Gender</Label>
+                <Label htmlFor="gender">Gender *</Label>
                 <Select
                   value={form.gender}
                   onValueChange={(value) => setForm({ ...form, gender: value })}
@@ -165,8 +373,6 @@ export default function ReservationForm({
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* 5. dob */}
               <div>
                 <Label htmlFor="dob">Date of Birth</Label>
                 <Input
@@ -177,180 +383,232 @@ export default function ReservationForm({
                 />
               </div>
               <div className="md:col-span-2"></div>
+            </div>
+          </div>
 
-              {/* 6-9 father_* */}
+          {/* Parent/Guardian Information Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">
+              Parent/Guardian Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="father_name">Father/Guardian Name</Label>
+                <Label htmlFor="father_or_guardian_name">
+                  Father/Guardian Name
+                </Label>
                 <Input
-                  id="father_name"
-                  value={form.fatherName}
+                  id="father_or_guardian_name"
+                  value={form.father_or_guardian_name}
                   onChange={(e) =>
-                    setForm({ ...form, fatherName: e.target.value })
+                    setForm({
+                      ...form,
+                      father_or_guardian_name: e.target.value,
+                    })
                   }
                 />
               </div>
               <div>
-                <Label htmlFor="father_aadhar_no">
+                <Label htmlFor="father_or_guardian_aadhar_no">
                   Father/Guardian Aadhar No
                 </Label>
                 <Input
-                  id="father_aadhar_no"
-                  value={form.fatherAadhar}
+                  id="father_or_guardian_aadhar_no"
+                  value={form.father_or_guardian_aadhar_no}
                   onChange={(e) =>
-                    setForm({ ...form, fatherAadhar: e.target.value })
+                    setForm({
+                      ...form,
+                      father_or_guardian_aadhar_no: e.target.value,
+                    })
                   }
                 />
               </div>
               <div>
-                <Label htmlFor="father_mobile">Father/Guardian Mobile</Label>
+                <Label htmlFor="father_or_guardian_mobile">
+                  Father/Guardian Mobile
+                </Label>
                 <Input
-                  id="father_mobile"
-                  value={form.fatherMobile}
+                  id="father_or_guardian_mobile"
+                  value={form.father_or_guardian_mobile}
                   onChange={(e) =>
-                    setForm({ ...form, fatherMobile: e.target.value })
+                    setForm({
+                      ...form,
+                      father_or_guardian_mobile: e.target.value,
+                    })
                   }
                 />
               </div>
               <div>
-                <Label htmlFor="father_occupation">
+                <Label htmlFor="father_or_guardian_occupation">
                   Father/Guardian Occupation
                 </Label>
                 <Input
-                  id="father_occupation"
-                  value={form.fatherOccupation}
+                  id="father_or_guardian_occupation"
+                  value={form.father_or_guardian_occupation}
                   onChange={(e) =>
-                    setForm({ ...form, fatherOccupation: e.target.value })
-                  }
-                />
-              </div>
-
-              {/* 10-13 mother_* */}
-              <div>
-                <Label htmlFor="mother_name">Mother/Guardian Name</Label>
-                <Input
-                  id="mother_name"
-                  value={form.motherName}
-                  onChange={(e) =>
-                    setForm({ ...form, motherName: e.target.value })
+                    setForm({
+                      ...form,
+                      father_or_guardian_occupation: e.target.value,
+                    })
                   }
                 />
               </div>
               <div>
-                <Label htmlFor="mother_aadhar_no">
-                  Mother/Guardian Aadhar No
+                <Label htmlFor="mother_or_guardian_name">
+                  Mother/Guardian Name *
                 </Label>
                 <Input
-                  id="mother_aadhar_no"
-                  value={form.motherAadhar}
+                  id="mother_or_guardian_name"
+                  value={form.mother_or_guardian_name}
                   onChange={(e) =>
-                    setForm({ ...form, motherAadhar: e.target.value })
+                    setForm({
+                      ...form,
+                      mother_or_guardian_name: e.target.value,
+                    })
                   }
                 />
               </div>
               <div>
-                <Label htmlFor="mother_mobile">Mother/Guardian Mobile</Label>
-                <Input
-                  id="mother_mobile"
-                  value={form.motherMobile}
-                  onChange={(e) =>
-                    setForm({ ...form, motherMobile: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="mother_occupation">
-                  Mother/Guardian Occupation
+                <Label htmlFor="mother_or_guardian_aadhar_no">
+                  Mother/Guardian Aadhar No *
                 </Label>
                 <Input
-                  id="mother_occupation"
-                  value={form.motherOccupation}
+                  id="mother_or_guardian_aadhar_no"
+                  value={form.mother_or_guardian_aadhar_no}
                   onChange={(e) =>
-                    setForm({ ...form, motherOccupation: e.target.value })
+                    setForm({
+                      ...form,
+                      mother_or_guardian_aadhar_no: e.target.value,
+                    })
                   }
                 />
               </div>
+              <div>
+                <Label htmlFor="mother_or_guardian_mobile">
+                  Mother/Guardian Mobile *
+                </Label>
+                <Input
+                  id="mother_or_guardian_mobile"
+                  value={form.mother_or_guardian_mobile}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      mother_or_guardian_mobile: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="mother_or_guardian_occupation">
+                  Mother/Guardian Occupation *
+                </Label>
+                <Input
+                  id="mother_or_guardian_occupation"
+                  value={form.mother_or_guardian_occupation}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      mother_or_guardian_occupation: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            </div>
+          </div>
 
-              {/* 14 siblings (user-friendly) */}
-              <div className="md:col-span-3 space-y-3">
-                <Label>Siblings</Label>
-                {parsedSiblings.length === 0 && (
-                  <div className="text-sm text-slate-500">
-                    No siblings added.
-                  </div>
-                )}
-                <div className="space-y-2">
-                  {parsedSiblings.map((s: any, idx: number) => (
-                    <div
-                      key={idx}
-                      className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end"
-                    >
-                      <div className="md:col-span-2">
-                        <Label htmlFor={`sibling-name-${idx}`}>Name</Label>
-                        <Input
-                          id={`sibling-name-${idx}`}
-                          value={s.name || ""}
-                          onChange={(e) =>
-                            updateSibling(idx, "name", e.target.value)
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor={`sibling-age-${idx}`}>Age</Label>
-                        <Input
-                          id={`sibling-age-${idx}`}
-                          type="number"
-                          value={Number.isFinite(s.age) ? s.age : 0}
-                          onChange={(e) =>
-                            updateSibling(idx, "age", e.target.value)
-                          }
-                        />
-                      </div>
-                      <div className="md:col-span-2">
-                        <Label htmlFor={`sibling-relation-${idx}`}>
-                          Relation
-                        </Label>
-                        <Input
-                          id={`sibling-relation-${idx}`}
-                          value={s.relation || ""}
-                          onChange={(e) =>
-                            updateSibling(idx, "relation", e.target.value)
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          onClick={() => removeSibling(idx)}
-                        >
-                          Remove
-                        </Button>
-                      </div>
+          {/* Siblings Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">
+              Siblings Information
+            </h3>
+            <div className="space-y-3">
+              {(!form.siblings || form.siblings.length === 0) && (
+                <div className="text-sm text-slate-500">No siblings added.</div>
+              )}
+              <div className="space-y-2">
+                {(form.siblings || []).map((s, idx) => (
+                  <div
+                    key={idx}
+                    className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end"
+                  >
+                    <div className="md:col-span-2">
+                      <Label htmlFor={`sibling-name-${idx}`}>Name</Label>
+                      <Input
+                        id={`sibling-name-${idx}`}
+                        value={s.name || ""}
+                        onChange={(e) =>
+                          updateSibling(idx, "name", e.target.value)
+                        }
+                      />
                     </div>
-                  ))}
-                </div>
-                <Button type="button" variant="outline" onClick={addSibling}>
-                  Add Sibling
-                </Button>
-                {/* Keep hidden textarea to preserve exact payload order and keys if needed elsewhere */}
-                <Textarea
-                  id="siblingsJson"
-                  value={form.siblingsJson}
-                  onChange={(e) =>
-                    setForm({ ...form, siblingsJson: e.target.value })
-                  }
-                  className="hidden"
-                />
+                    <div>
+                      <Label htmlFor={`sibling-class-${idx}`}>Class</Label>
+                      <Input
+                        id={`sibling-class-${idx}`}
+                        value={s.class_name || ""}
+                        onChange={(e) =>
+                          updateSibling(idx, "class_name", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`sibling-where-${idx}`}>Where</Label>
+                      <Input
+                        id={`sibling-where-${idx}`}
+                        value={s.where || ""}
+                        onChange={(e) =>
+                          updateSibling(idx, "where", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`sibling-gender-${idx}`}>Gender</Label>
+                      <Select
+                        value={s.gender || "MALE"}
+                        onValueChange={(value) =>
+                          updateSibling(idx, "gender", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MALE">MALE</SelectItem>
+                          <SelectItem value="FEMALE">FEMALE</SelectItem>
+                          <SelectItem value="OTHER">OTHER</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={() => removeSibling(idx)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
+              <Button type="button" variant="outline" onClick={addSibling}>
+                Add Sibling
+              </Button>
+            </div>
+          </div>
 
-              {/* 15-16 previous_* */}
+          {/* Academic Information Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">
+              Academic Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="previous_class">Previous Class</Label>
                 <Input
                   id="previous_class"
-                  value={form.lastClass}
+                  value={form.previous_class}
                   onChange={(e) =>
-                    setForm({ ...form, lastClass: e.target.value })
+                    setForm({ ...form, previous_class: e.target.value })
                   }
                 />
               </div>
@@ -360,106 +618,105 @@ export default function ReservationForm({
                 </Label>
                 <Input
                   id="previous_school_details"
-                  value={form.previousSchool}
+                  value={form.previous_school_details}
                   onChange={(e) =>
-                    setForm({ ...form, previousSchool: e.target.value })
+                    setForm({
+                      ...form,
+                      previous_school_details: e.target.value,
+                    })
                   }
                 />
               </div>
-
-              {/* 17-18 addresses */}
-              <div className="md:col-span-3">
-                <Label htmlFor="present_address">Present Address</Label>
-                <Textarea
-                  id="present_address"
-                  value={form.presentAddress}
-                  onChange={(e) =>
-                    setForm({ ...form, presentAddress: e.target.value })
-                  }
-                  rows={3}
-                />
-              </div>
-              <div className="md:col-span-3">
-                <Label htmlFor="permanent_address">Permanent Address</Label>
-                <Textarea
-                  id="permanent_address"
-                  value={form.permanentAddress}
-                  onChange={(e) =>
-                    setForm({ ...form, permanentAddress: e.target.value })
-                  }
-                  rows={3}
-                />
-              </div>
-
-              {/* 19-20 admit_into, admission_group */}
               <div>
-                <Label htmlFor="admit_into">Admit Into</Label>
+                <Label htmlFor="group_name">Group Name *</Label>
                 <Select
-                  value={form.classAdmission}
-                  onValueChange={(value) =>
-                    setForm({ ...form, classAdmission: value })
-                  }
+                  value={form.group_name}
+                  onValueChange={(value) => {
+                    const selectedGroup = groups.find(
+                      (g) => g.group_name === value
+                    );
+                    if (selectedGroup) {
+                      setForm({ 
+                        ...form, 
+                        group_name: value,
+                        preferred_group_id: selectedGroup.group_id,
+                        group_fee: selectedGroup.fee
+                      });
+                      onGroupChange(selectedGroup.group_id);
+                    }
+                  }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select class" />
+                    <SelectValue placeholder="Select group" />
                   </SelectTrigger>
                   <SelectContent>
-                    {classFeeMapKeys.map((cls) => (
-                      <SelectItem key={cls} value={cls}>
-                        {cls}
+                    {(groups || []).map((group) => (
+                      <SelectItem key={group.group_id} value={group.group_name}>
+                        {group.group_name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label htmlFor="admission_group">Admission Group</Label>
+                <Label htmlFor="course_name">Course Name *</Label>
                 <Select
-                  value={form.group}
-                  onValueChange={(value) => setForm({ ...form, group: value })}
+                  value={form.course_name}
+                  onValueChange={(value) => {
+                    const selectedCourse = courses.find(
+                      (c) => c.course_name === value
+                    );
+                    if (selectedCourse) {
+                      setForm({ 
+                        ...form, 
+                        course_name: value,
+                        preferred_course_id: selectedCourse.course_id,
+                        course_fee: selectedCourse.fee
+                      });
+                      onCourseChange(selectedCourse.course_id);
+                    }
+                  }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select group" />
+                    <SelectValue placeholder="Select course" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="MPC">MPC</SelectItem>
-                    <SelectItem value="BiPC">BiPC</SelectItem>
-                    <SelectItem value="N/A">N/A</SelectItem>
+                    {(courses || []).map((course) => (
+                      <SelectItem key={course.course_id} value={course.course_name}>
+                        {course.course_name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* 21 reservation_fee */}
               <div>
-                <Label htmlFor="reservation_fee">Reservation Fee</Label>
+                <Label htmlFor="total_tuition_fee">Total Tuition Fee</Label>
                 <Input
-                  id="reservation_fee"
+                  id="total_tuition_fee"
                   type="number"
-                  value={form.reservationFee}
-                  onChange={(e) =>
-                    setForm({ ...form, reservationFee: e.target.value })
-                  }
-                />
-              </div>
-
-              {/* 22-25 preferred_class_id, tuition_fee, book_fee, tuition_concession */}
-              <div>
-                <Label htmlFor="preferred_class_id">Preferred Class ID</Label>
-                <Input
-                  id="preferred_class_id"
-                  value={form.preferredClassId}
-                  onChange={(e) =>
-                    setForm({ ...form, preferredClassId: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="tuition_fee">Tuition Fee</Label>
-                <Input
-                  id="tuition_fee"
-                  type="number"
-                  value={classFee}
+                  value={form.total_tuition_fee || ""}
                   readOnly
+                  placeholder="Calculated from group and course fees"
+                />
+              </div>
+              <div>
+                <Label htmlFor="group_fee">Group Fee</Label>
+                <Input
+                  id="group_fee"
+                  type="number"
+                  value={form.group_fee || ""}
+                  readOnly
+                  placeholder="Select a group to auto-populate"
+                />
+              </div>
+              <div>
+                <Label htmlFor="course_fee">Course Fee</Label>
+                <Input
+                  id="course_fee"
+                  type="number"
+                  value={form.course_fee || ""}
+                  readOnly
+                  placeholder="Select a course to auto-populate"
                 />
               </div>
               <div>
@@ -467,65 +724,132 @@ export default function ReservationForm({
                 <Input
                   id="book_fee"
                   type="number"
-                  value={form.bookFee}
+                  value={form.book_fee || ""}
                   onChange={(e) =>
-                    setForm({ ...form, bookFee: e.target.value })
+                    setForm({ ...form, book_fee: Number(e.target.value) })
                   }
                 />
               </div>
-              <div>
-                <Label htmlFor="tuition_concession">Tuition Concession</Label>
-                <Input
-                  id="tuition_concession"
-                  type="number"
-                  value={form.tuitionConcession}
-                  onChange={(e) =>
-                    setForm({ ...form, tuitionConcession: e.target.value })
-                  }
-                />
-              </div>
+            </div>
+          </div>
 
-              {/* 26-29 transport fields */}
+          {/* Address Information Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">
+              Address Information
+            </h3>
+            <div className="grid grid-cols-1 gap-4">
               <div>
-                <Label htmlFor="preferred_transport_id">Transport</Label>
+                <Label htmlFor="present_address">Present Address *</Label>
+                <Textarea
+                  id="present_address"
+                  value={form.present_address}
+                  onChange={(e) =>
+                    setForm({ ...form, present_address: e.target.value })
+                  }
+                  rows={3}
+                />
+              </div>
+              <div>
+                <Label htmlFor="permanent_address">Permanent Address *</Label>
+                <Textarea
+                  id="permanent_address"
+                  value={form.permanent_address}
+                  onChange={(e) =>
+                    setForm({ ...form, permanent_address: e.target.value })
+                  }
+                  rows={3}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Transport Information Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">
+              Transport Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="transport_required">Transport Required</Label>
                 <Select
-                  value={form.transport}
+                  value={form.transport_required ? "true" : "false"}
                   onValueChange={(value) =>
-                    setForm({ ...form, transport: value })
+                    setForm({ ...form, transport_required: value === "true" })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select transport" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Yes">Yes</SelectItem>
-                    <SelectItem value="No">No</SelectItem>
+                    <SelectItem value="true">Yes</SelectItem>
+                    <SelectItem value="false">No</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              {form.transport === "Yes" && (
+              {form.transport_required && (
                 <>
                   <div>
-                    <Label htmlFor="busRoute">
-                      Preferred Transport (Route)
+                    <Label htmlFor="preferred_transport_id">
+                      Transport Route
                     </Label>
                     <Select
-                      value={form.busRoute}
+                      value={form.preferred_transport_id.toString()}
                       onValueChange={(value) =>
-                        setForm({ ...form, busRoute: value })
+                        setForm({ ...form, preferred_transport_id: Number(value) })
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select bus route" />
+                        <SelectValue placeholder="Select transport route" />
                       </SelectTrigger>
                       <SelectContent>
-                        {routes.map((route) => (
-                          <SelectItem key={route.id} value={route.id}>
-                            {route.name} - ₹{route.fee.toLocaleString()}
+                        {(routes || []).map((route) => (
+                          <SelectItem key={route.id} value={route.id.toString()}>
+                            {route.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="preferred_distance_slab_id">
+                      Distance Slab
+                    </Label>
+                    <Select
+                      value={form.preferred_distance_slab_id.toString()}
+                      onValueChange={(value) => {
+                        setForm({ ...form, preferred_distance_slab_id: Number(value) });
+                        onDistanceSlabChange(Number(value));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select distance slab" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(distanceSlabs || []).map((slab) => (
+                          <SelectItem
+                            key={slab.slab_id}
+                            value={slab.slab_id.toString()}
+                          >
+                            {slab.slab_name} - {slab.min_distance}km
+                            {slab.max_distance
+                              ? `-${slab.max_distance}km`
+                              : "+"}{" "}
+                            (₹{slab.fee_amount})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="pickup_point">Pickup Point</Label>
+                    <Input
+                      id="pickup_point"
+                      value={form.pickup_point}
+                      onChange={(e) =>
+                        setForm({ ...form, pickup_point: e.target.value })
+                      }
+                    />
                   </div>
                   <div>
                     <Label htmlFor="transport_fee">Transport Fee</Label>
@@ -536,92 +860,213 @@ export default function ReservationForm({
                       readOnly
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="transport_concession">
-                      Transport Concession
-                    </Label>
-                    <Input
-                      id="transport_concession"
-                      type="number"
-                      value={form.transportConcession}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          transportConcession: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
+                  <div></div>
                 </>
               )}
+            </div>
+          </div>
 
-              {/* 30 preferred_distance_slab_id */}
+          {/* College-Specific Settings Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">
+              College Settings
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="preferred_distance_slab_id">
-                  Preferred Distance Slab ID
-                </Label>
-                <Input
-                  id="preferred_distance_slab_id"
-                  value={form.preferredDistanceSlabId}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      preferredDistanceSlabId: e.target.value,
-                    })
+                <Label htmlFor="concession_lock">Concession Lock</Label>
+                <Select
+                  value={form.concession_lock ? "true" : "false"}
+                  onValueChange={(value) =>
+                    setForm({ ...form, concession_lock: value === "true" })
                   }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select concession lock" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Yes</SelectItem>
+                    <SelectItem value="false">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="book_fee_required">Book Fee Required</Label>
+                <Select
+                  value={form.book_fee_required ? "true" : "false"}
+                  onValueChange={(value) =>
+                    setForm({ ...form, book_fee_required: value === "true" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select book fee requirement" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Yes</SelectItem>
+                    <SelectItem value="false">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="course_required">Course Required</Label>
+                <Select
+                  value={form.course_required ? "true" : "false"}
+                  onValueChange={(value) =>
+                    setForm({ ...form, course_required: value === "true" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select course requirement" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Yes</SelectItem>
+                    <SelectItem value="false">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Information Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">
+              Additional Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="referred_by">Referred By</Label>
+                <EmployeeCombobox
+                  value={form.referred_by.toString()}
+                  onValueChange={(value) => {
+                    console.log("EmployeeCombobox value changed:", value);
+                    setForm({ ...form, referred_by: Number(value) });
+                  }}
+                  placeholder="Select referring employee..."
                 />
               </div>
-
-              {/* 31 status */}
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Input id="status" value={"PENDING"} readOnly />
-              </div>
-
-              {/* 32 referred_by */}
-              <div>
-                <Label htmlFor="referred_by">Referred By (User ID)</Label>
-                <Input
-                  id="referred_by"
-                  value={form.referredBy}
-                  onChange={(e) =>
-                    setForm({ ...form, referredBy: e.target.value })
-                  }
-                />
-              </div>
-
-              {/* 33 reservation_date */}
               <div>
                 <Label htmlFor="reservation_date">Reservation Date</Label>
                 <Input
                   id="reservation_date"
                   type="date"
-                  value={form.reservationDate}
+                  value={form.reservation_date}
                   onChange={(e) =>
-                    setForm({ ...form, reservationDate: e.target.value })
+                    setForm({ ...form, reservation_date: e.target.value })
                   }
                 />
               </div>
+              <div></div>
+              <div className="md:col-span-3">
+                <Label htmlFor="remarks">Remarks</Label>
+                <Textarea
+                  id="remarks"
+                  value={form.remarks}
+                  onChange={(e) =>
+                    setForm({ ...form, remarks: e.target.value })
+                  }
+                  rows={2}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Fee Information Section */}
+          <div className="space-y-4 ">
+            <h3 className="text-lg font-semibold border-b pb-2">
+              Application Fee Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="application_fee">Application Fee</Label>
+                <Input
+                  id="application_fee"
+                  type="number"
+                  value={form.application_fee}
+                  onChange={(e) =>
+                    setForm({ ...form, application_fee: Number(e.target.value) })
+                  }
+                  className="w-full mb-5"
+                />
+              </div>
+              {/* <div>
+                <Label htmlFor="application_fee_paid">
+                  Application Fee Paid
+                </Label>
+                <Select
+                  value={form.application_fee_paid ? "true" : "false"}
+                  onValueChange={(value) =>
+                    setForm({ ...form, application_fee_paid: value === "true" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Yes</SelectItem>
+                    <SelectItem value="false">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div> */}
+              <div></div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Sticky Footer for New Reservation */}
-      <div className="sticky bottom-0 bg-background border-t p-4">
-        <div className="flex justify-end gap-4">
-          <Button
-            variant="outline"
-            onClick={() => onSave(false)}
-            disabled={isSaveDisabled}
-          >
-            Save
-          </Button>
-          <Button onClick={() => onSave(true)} disabled={isSaveDisabled}>
-            Save & Pay
-          </Button>
+      {/* Sticky Footer for New Reservation - Only show for new reservations, not edit mode */}
+      {!isEdit && (
+        <div className="sticky bottom-0 bg-background border-t p-4">
+          <div className="flex justify-end gap-4">
+            <Button
+              onClick={handleSaveAndPayClick}
+              disabled={isSaveDisabled}
+              className="w-full"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save & Pay
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Confirmation Dialogs */}
+      <ConfirmDialog
+        open={showSaveConfirmation}
+        onOpenChange={setShowSaveConfirmation}
+        title="Confirm Reservation Creation"
+        description={`Are you sure you want to create a reservation for ${form.student_name}? This will save the reservation with PENDING status.`}
+        confirmText="Create Reservation"
+        cancelText="Cancel"
+        onConfirm={handleConfirmSave}
+        isLoading={isLoading}
+        loadingText="Creating reservation..."
+        disabled={isLoading}
+      />
+
+      <ConfirmDialog
+        open={showSaveAndPayConfirmation}
+        onOpenChange={setShowSaveAndPayConfirmation}
+        title="Confirm Reservation & Payment"
+        description={`Are you sure you want to create a reservation for ${form.student_name} and proceed with payment? This will save the reservation and show the payment receipt.`}
+        confirmText="Create & Show Receipt"
+        cancelText="Cancel"
+        onConfirm={handleConfirmSaveAndPay}
+        isLoading={isLoading}
+        loadingText="Creating reservation..."
+        disabled={isLoading}
+      />
+
+      <ConfirmDialog
+        open={showUpdateConfirmation}
+        onOpenChange={setShowUpdateConfirmation}
+        title="Confirm Reservation Update"
+        description={`Are you sure you want to update the reservation for ${form.student_name}? This will save all the changes made to the reservation.`}
+        confirmText="Update Reservation"
+        cancelText="Cancel"
+        onConfirm={handleConfirmUpdate}
+        isLoading={isLoading}
+        loadingText="Updating reservation..."
+        disabled={isLoading}
+      />
     </>
   );
 }

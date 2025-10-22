@@ -155,7 +155,7 @@ export const StudentsTab = () => {
           showActions={true}
           actionButtonGroups={actionButtonGroups}
           actionColumnHeader="Actions"
-          showActionLabels={false}
+          showActionLabels={true}
         />
       )}
 

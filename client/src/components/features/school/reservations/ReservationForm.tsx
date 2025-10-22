@@ -859,34 +859,21 @@ export default function ReservationForm({
         </div>
       </div>
 
-      {/* Sticky Footer for New Reservation */}
-      <div className="sticky bottom-0 bg-background border-t p-4">
-        <div className="flex justify-end gap-4">
-          {isEdit ? (
-            <Button onClick={handleUpdateClick} disabled={isSaveDisabled}>
-              Update Reservation
+      {/* Sticky Footer for New Reservation - Only show for new reservations, not edit mode */}
+      {!isEdit && (
+        <div className="sticky bottom-0 bg-background border-t p-4">
+          <div className="flex justify-end gap-4">
+            <Button
+              onClick={handleSaveAndPayClick}
+              disabled={isSaveDisabled}
+              className="w-full"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save & Pay
             </Button>
-          ) : (
-            <>
-              {/* <Button
-                variant="outline"
-                onClick={handleSaveClick}
-                disabled={isSaveDisabled}
-              >
-                Save
-              </Button> */}
-              <Button
-                onClick={handleSaveAndPayClick}
-                disabled={isSaveDisabled}
-                className="w-full"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Save & Pay
-              </Button>
-            </>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Confirmation Dialogs */}
       <ConfirmDialog

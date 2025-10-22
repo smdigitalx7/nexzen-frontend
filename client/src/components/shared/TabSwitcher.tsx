@@ -83,7 +83,7 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
       >
         <TabsList
           className={cn(
-            "flex w-full h-auto bg-transparent p-0 justify-start border-b-2 border-gray-300 dark:border-gray-600 shadow-sm",
+            "flex w-full h-auto bg-transparent p-0 justify-start",
             tabListClassName
           )}
         >

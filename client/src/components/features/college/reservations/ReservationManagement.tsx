@@ -5,6 +5,8 @@ import {
   useDeleteCollegeReservation,
   useCollegeReservationDashboard,
 } from "@/lib/hooks/college/use-college-reservations";
+import { useCollegeGroups, useCollegeCourses } from "@/lib/hooks/college/use-college-dropdowns";
+import { useDistanceSlabs } from "@/lib/hooks/general/useDistanceSlabs";
 import { motion } from "framer-motion";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -50,6 +52,7 @@ import ReservationsTable from "../reservations/ReservationsTable";
 import { TransportService } from "@/lib/services/general/transport.service";
 import { toast } from "@/hooks/use-toast";
 import { CollegeReservationsService } from "@/lib/services/college/reservations.service";
+import type { CollegeReservationView } from "@/lib/types/college/reservations";
 import { Plus, List, BarChart3, Save } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import type { TabItem } from "@/components/shared/TabSwitcher";
@@ -62,23 +65,6 @@ import {
 } from "@/components/ui/card";
 import { CollegeReservationStatsCards } from "./CollegeReservationStatsCards";
 import { ConcessionUpdateDialog } from "@/components/shared";
-
-const classFeeMap: Record<string, number> = {
-  I: 12000,
-  II: 13000,
-  III: 14000,
-  IV: 15000,
-  V: 16000,
-  VI: 17000,
-  VII: 18000,
-  VIII: 19000,
-  IX: 20000,
-  X: 21000,
-  "XI-MPC": 45000,
-  "XI-BiPC": 45000,
-  "XII-MPC": 48000,
-  "XII-BiPC": 48000,
-};
 
 // Reservations are loaded from backend
 
@@ -93,6 +79,13 @@ export default function ReservationNew() {
   const { data: dashboardStats, isLoading: dashboardLoading } =
     useCollegeReservationDashboard();
 
+  // Dropdown data hooks - Load groups, courses, and distance slabs from API
+  // Groups are loaded independently, courses are loaded based on selected group
+  const { data: groupsData, isLoading: groupsLoading, error: groupsError } = useCollegeGroups();
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  const { data: coursesData, isLoading: coursesLoading, error: coursesError } = useCollegeCourses(selectedGroupId || 0);
+  const { distanceSlabs, isLoadingDistanceSlabs, distanceSlabsError } = useDistanceSlabs();
+
   const [activeTab, setActiveTab] = useState("new");
   const [reservationNo, setReservationNo] = useState<string>("");
   const [showReceipt, setShowReceipt] = useState(false);
@@ -100,7 +93,7 @@ export default function ReservationNew() {
   const [cancelRemarks, setCancelRemarks] = useState("");
   const [selectedReservation, setSelectedReservation] = useState<any>(null);
   const [showViewDialog, setShowViewDialog] = useState(false);
-  const [viewReservation, setViewReservation] = useState<any>(null);
+  const [viewReservation, setViewReservation] = useState<CollegeReservationView | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -141,24 +134,30 @@ export default function ReservationNew() {
     if (!Array.isArray(reservationsData.reservations)) return [];
 
     return reservationsData.reservations.map((r: any) => ({
-      id: String(r.reservation_id),
-      no: r.reservation_no || r.reservationNo || "", // Add reservation number
-      studentName: r.student_name,
-      classAdmission: r.group_name
-        ? `${r.group_name}${r.course_name ? ` - ${r.course_name}` : ""}`
-        : r.admit_into || "",
+      reservation_id: r.reservation_id,
+      reservation_date: r.reservation_date,
+      student_name: r.student_name,
+      aadhar_no: r.aadhar_no,
+      gender: r.gender,
+      dob: r.dob,
+      father_name: r.father_name,
+      father_mobile: r.father_mobile,
+      group_id: r.group_id || r.preferred_group_id,
+      course_id: r.course_id || r.preferred_course_id,
+      group_name: r.group_name,
+      course_name: r.course_name,
       status: r.status || "PENDING",
-      date: r.reservation_date || "",
-      totalFee: Number(r.total_tuition_fee || 0) + Number(r.transport_fee || 0),
-      income_id: r.income_id || r.incomeId, // Support both field names
-      concession_lock: r.concession_lock || false, // Add concession_lock
-      tuition_fee: r.total_tuition_fee || 0, // Add tuition_fee
-      transport_fee: r.transport_fee || 0, // Add transport_fee
-      book_fee: r.book_fee || 0, // Add book_fee
-      application_fee: r.reservation_fee || 0, // Add application_fee
-      tuition_concession: r.tuition_concession || 0, // Add tuition_concession
-      transport_concession: r.transport_concession || 0, // Add transport_concession
-      remarks: r.remarks || "", // Add remarks
+      created_at: r.created_at,
+      remarks: r.remarks,
+      // Additional fields for UI functionality
+      income_id: r.income_id || r.incomeId,
+      concession_lock: r.concession_lock || false,
+      tuition_fee: r.total_tuition_fee || 0,
+      transport_fee: r.transport_fee || 0,
+      book_fee: r.book_fee || 0,
+      application_fee: r.reservation_fee || 0,
+      tuition_concession: r.tuition_concession || 0,
+      transport_concession: r.transport_concession || 0,
     }));
   }, [reservationsData]);
 
@@ -190,10 +189,12 @@ export default function ReservationNew() {
     classAdmission: "",
     group: "N/A",
     course: "N/A",
+    courseName: "N/A",
 
     // Fee Setup
     transport: "No",
     busRoute: "",
+    pickupPoint: "",
 
     // Payments
     applicationFee: "",
@@ -208,23 +209,88 @@ export default function ReservationNew() {
     referredBy: "",
     reservationDate: "",
     siblingsJson: "",
+    siblings: [] as Array<{
+      name: string;
+      class_name: string;
+      where: string;
+      gender: string;
+    }>,
 
     // Remarks
     remarks: "",
   });
 
-  const classFee = useMemo(() => {
-    return classFeeMap[form.classAdmission] || 0;
-  }, [form.classAdmission]);
+  // Fee calculations based on selected group, course, and transport options
+  const groupFee = useMemo(() => {
+    if (!selectedGroupId || !groupsData?.items) return 0;
+    const selectedGroup = groupsData.items.find(g => g.group_id === selectedGroupId);
+    return selectedGroup?.group_fee || 0;
+  }, [selectedGroupId, groupsData]);
+
+  const courseFee = useMemo(() => {
+    if (!coursesData?.items || coursesData.items.length === 0) return 0;
+    
+    // Get the selected course ID from the form
+    const selectedCourseId = Number(form.course || 0);
+    if (selectedCourseId && selectedCourseId > 0) {
+      const selectedCourse = coursesData.items.find(c => c.course_id === selectedCourseId);
+      return selectedCourse?.course_fee || 0;
+    }
+    
+    // Fallback to first course if no specific course is selected
+    return coursesData.items[0]?.course_fee || 0;
+  }, [coursesData, form.course]);
+
+  const bookFee = useMemo(() => {
+    if (!selectedGroupId || !groupsData?.items) return 0;
+    const selectedGroup = groupsData.items.find(g => g.group_id === selectedGroupId);
+    return selectedGroup?.book_fee || 0;
+  }, [selectedGroupId, groupsData]);
 
   const transportFee = useMemo(() => {
-    if (form.transport === "Yes") {
-      // For now, return a default fee since we don't have fee data in the route names
-      // This would need to be enhanced to include fee information
-      return 5000; // Default transport fee
+    if (form.transport !== "Yes") return 0;
+    
+    const selectedSlabId = Number(form.preferredDistanceSlabId || 0);
+    if (selectedSlabId && distanceSlabs) {
+      const selectedSlab = distanceSlabs.find(slab => slab.slab_id === selectedSlabId);
+      return selectedSlab?.fee_amount || 0;
     }
+    
     return 0;
-  }, [form.transport, form.busRoute]);
+  }, [form.transport, form.preferredDistanceSlabId, distanceSlabs]);
+
+  // Group and course change handlers
+  const handleGroupChange = (groupId: number) => {
+    setSelectedGroupId(groupId);
+    // Reset course selection when group changes
+    setForm(prev => ({
+      ...prev,
+      preferredClassId: groupId.toString(),
+      group: groupsData?.items?.find(g => g.group_id === groupId)?.group_name || "",
+      course: "N/A", // Reset course when group changes
+    }));
+  };
+
+  const handleCourseChange = (courseId: number) => {
+    const selectedCourse = coursesData?.items?.find(c => c.course_id === courseId);
+    if (selectedCourse) {
+      setForm(prev => ({
+        ...prev,
+        course: courseId.toString(), // Store course ID for fee calculation
+        courseName: selectedCourse.course_name, // Store course name for display
+      }));
+    }
+  };
+
+  const handleDistanceSlabChange = (slabId: number) => {
+    const selectedSlab = distanceSlabs?.find(slab => slab.slab_id === slabId);
+    if (selectedSlab) {
+      setForm(prev => ({
+        ...prev,
+        preferredDistanceSlabId: slabId.toString(),
+      }));
+    }
+  };
 
   const handleUpdateConcession = async (reservation: any) => {
     try {
@@ -297,38 +363,45 @@ export default function ReservationNew() {
         | "FEMALE"
         | "OTHER",
       dob: form.dob || null,
-      father_name: form.fatherName || null,
-      father_aadhar_no: form.fatherAadhar || null,
-      father_mobile: form.fatherMobile || null,
-      father_occupation: form.fatherOccupation || null,
-      mother_name: form.motherName || null,
-      mother_aadhar_no: form.motherAadhar || null,
-      mother_mobile: form.motherMobile || null,
-      mother_occupation: form.motherOccupation || null,
+      father_or_guardian_name: form.fatherName || null,
+      father_or_guardian_aadhar_no: form.fatherAadhar || null,
+      father_or_guardian_mobile: form.fatherMobile || null,
+      father_or_guardian_occupation: form.fatherOccupation || null,
+      mother_or_guardian_name: form.motherName || null,
+      mother_or_guardian_aadhar_no: form.motherAadhar || null,
+      mother_or_guardian_mobile: form.motherMobile || null,
+      mother_or_guardian_occupation: form.motherOccupation || null,
       siblings: siblings,
       previous_class: form.lastClass || null,
       previous_school_details: form.previousSchool || null,
       present_address: form.presentAddress || null,
       permanent_address: form.permanentAddress || null,
-      reservation_fee: Number(form.reservationFee || 0) || null,
+      application_fee: Number(form.reservationFee || 0),
+      application_fee_paid: false,
       preferred_group_id: Number(form.preferredClassId || 0),
-      preferred_course_id: Number(form.course || 0), // This needs to be mapped properly
-      group_fee: Number(classFee || 0) || null,
-      course_fee: Number(classFee || 0) || null,
-      book_fee: Number(form.bookFee || 0) || null,
-      total_tuition_fee: Number(classFee || 0) || null,
+      group_name: form.group || null,
+      preferred_course_id: Number(form.course || 0),
+      course_name: form.courseName || null,
+      group_fee: Number(groupFee || 0),
+      course_fee: Number(courseFee || 0),
+      book_fee: Number(bookFee || 0),
+      total_tuition_fee: Number(groupFee + courseFee || 0),
+      transport_required: form.transport === "Yes",
       preferred_transport_id:
         form.transport === "Yes" && form.busRoute
           ? Number(form.busRoute)
-          : null,
+          : 0,
       preferred_distance_slab_id: form.preferredDistanceSlabId
         ? Number(form.preferredDistanceSlabId)
-        : null,
-      pickup_point: null,
+        : 0,
+      pickup_point: form.pickupPoint || null,
       transport_fee:
-        form.transport === "Yes" ? Number(transportFee || 0) : null,
+        form.transport === "Yes" ? Number(transportFee || 0) : 0,
+      concession_lock: false,
+      book_fee_required: false,
+      course_required: false,
       status: "PENDING" as "PENDING" | "CONFIRMED" | "CANCELLED",
-      referred_by: form.referredBy ? Number(form.referredBy) : null,
+      referred_by: form.referredBy ? Number(form.referredBy) : 0,
       remarks: form.remarks || null,
     };
 
@@ -372,35 +445,42 @@ export default function ReservationNew() {
         | "FEMALE"
         | "OTHER",
       dob: f.dob || null,
-      father_name: f.fatherName || null,
-      father_aadhar_no: f.fatherAadhar || null,
-      father_mobile: f.fatherMobile || null,
-      father_occupation: f.fatherOccupation || null,
-      mother_name: f.motherName || null,
-      mother_aadhar_no: f.motherAadhar || null,
-      mother_mobile: f.motherMobile || null,
-      mother_occupation: f.motherOccupation || null,
+      father_or_guardian_name: f.fatherName || null,
+      father_or_guardian_aadhar_no: f.fatherAadhar || null,
+      father_or_guardian_mobile: f.fatherMobile || null,
+      father_or_guardian_occupation: f.fatherOccupation || null,
+      mother_or_guardian_name: f.motherName || null,
+      mother_or_guardian_aadhar_no: f.motherAadhar || null,
+      mother_or_guardian_mobile: f.motherMobile || null,
+      mother_or_guardian_occupation: f.motherOccupation || null,
       siblings: siblings,
       previous_class: f.lastClass || null,
       previous_school_details: f.previousSchool || null,
       present_address: f.presentAddress || null,
       permanent_address: f.permanentAddress || null,
-      reservation_fee: Number(f.reservationFee || 0) || null,
+      application_fee: Number(f.reservationFee || 0),
+      application_fee_paid: false,
       preferred_group_id: Number(f.preferredClassId || 0),
+      group_name: f.group || null,
       preferred_course_id: Number(f.course || 0),
-      group_fee: Number(classFee || 0) || null,
-      course_fee: Number(classFee || 0) || null,
-      book_fee: Number(f.bookFee || 0) || null,
-      total_tuition_fee: Number(classFee || 0) || null,
+      course_name: f.courseName || null,
+      group_fee: Number(groupFee || 0),
+      course_fee: Number(courseFee || 0),
+      book_fee: Number(bookFee || 0),
+      total_tuition_fee: Number(groupFee + courseFee || 0),
+      transport_required: f.transport === "Yes",
       preferred_transport_id:
-        f.transport === "Yes" && f.busRoute ? Number(f.busRoute) : null,
+        f.transport === "Yes" && f.busRoute ? Number(f.busRoute) : 0,
       preferred_distance_slab_id: f.preferredDistanceSlabId
         ? Number(f.preferredDistanceSlabId)
-        : null,
-      pickup_point: null,
-      transport_fee: f.transport === "Yes" ? Number(transportFee || 0) : null,
+        : 0,
+      pickup_point: f.pickupPoint || null,
+      transport_fee: f.transport === "Yes" ? Number(transportFee || 0) : 0,
+      concession_lock: false,
+      book_fee_required: false,
+      course_required: false,
       status: "PENDING" as "PENDING" | "CONFIRMED" | "CANCELLED",
-      referred_by: f.referredBy ? Number(f.referredBy) : null,
+      referred_by: f.referredBy ? Number(f.referredBy) : 0,
       remarks: f.remarks || null,
     };
   };
@@ -408,12 +488,12 @@ export default function ReservationNew() {
   const mapApiToForm = (r: any) => ({
     studentName: r.student_name || "",
     studentAadhar: r.aadhar_no || "",
-    fatherName: r.father_name || "",
-    fatherAadhar: r.father_aadhar_no || "",
-    motherName: r.mother_name || "",
-    motherAadhar: r.mother_aadhar_no || "",
-    fatherOccupation: r.father_occupation || "",
-    motherOccupation: r.mother_occupation || "",
+    fatherName: r.father_or_guardian_name || "",
+    fatherAadhar: r.father_or_guardian_aadhar_no || "",
+    motherName: r.mother_or_guardian_name || "",
+    motherAadhar: r.mother_or_guardian_aadhar_no || "",
+    fatherOccupation: r.father_or_guardian_occupation || "",
+    motherOccupation: r.mother_or_guardian_occupation || "",
     gender: (r.gender || "").toString(),
     dob: r.dob || "",
     previousSchool: r.previous_school_details || "",
@@ -421,17 +501,19 @@ export default function ReservationNew() {
     lastClass: r.previous_class || "",
     presentAddress: r.present_address || "",
     permanentAddress: r.permanent_address || "",
-    fatherMobile: r.father_mobile || "",
-    motherMobile: r.mother_mobile || "",
+    fatherMobile: r.father_or_guardian_mobile || "",
+    motherMobile: r.mother_or_guardian_mobile || "",
     classAdmission: r.group_name
       ? `${r.group_name}${r.course_name ? ` - ${r.course_name}` : ""}`
       : "",
     group: r.group_name || "",
-    course: r.course_name || "N/A",
+    course: r.preferred_course_id ? String(r.preferred_course_id) : "N/A",
+    courseName: r.course_name || "N/A",
     transport: r.preferred_transport_id ? "Yes" : "No",
     busRoute: r.preferred_transport_id ? String(r.preferred_transport_id) : "",
+    pickupPoint: r.pickup_point || "",
     applicationFee: "",
-    reservationFee: r.reservation_fee != null ? String(r.reservation_fee) : "",
+    reservationFee: r.application_fee != null ? String(r.application_fee) : "",
     remarks: r.remarks || "",
     preferredClassId:
       r.preferred_group_id != null ? String(r.preferred_group_id) : "0",
@@ -450,7 +532,7 @@ export default function ReservationNew() {
   });
 
   const handleView = async (r: any) => {
-    if (!r?.id || isNaN(Number(r.id))) {
+    if (!r?.reservation_id || isNaN(Number(r.reservation_id))) {
       toast({
         title: "Invalid Reservation",
         description: "The reservation ID is invalid. Please try again.",
@@ -459,13 +541,13 @@ export default function ReservationNew() {
       return;
     }
 
-    if (loadingReservation === Number(r.id)) {
+    if (loadingReservation === Number(r.reservation_id)) {
       return; // Already loading this reservation
     }
 
-    setLoadingReservation(Number(r.id));
+    setLoadingReservation(Number(r.reservation_id));
     try {
-      const data = await CollegeReservationsService.getById(Number(r.id));
+      const data = await CollegeReservationsService.getViewById(Number(r.reservation_id));
       setViewReservation(data);
       setShowViewDialog(true);
     } catch (e: any) {
@@ -499,7 +581,7 @@ export default function ReservationNew() {
   };
 
   const handleEdit = async (r: any) => {
-    if (!r?.id || isNaN(Number(r.id))) {
+    if (!r?.reservation_id || isNaN(Number(r.reservation_id))) {
       toast({
         title: "Invalid Reservation",
         description: "The reservation ID is invalid. Please try again.",
@@ -508,15 +590,15 @@ export default function ReservationNew() {
       return;
     }
 
-    if (loadingReservation === Number(r.id)) {
+    if (loadingReservation === Number(r.reservation_id)) {
       return; // Already loading this reservation
     }
 
-    setLoadingReservation(Number(r.id));
+    setLoadingReservation(Number(r.reservation_id));
     try {
-      const data: any = await CollegeReservationsService.getById(Number(r.id));
+      const data: any = await CollegeReservationsService.getById(Number(r.reservation_id));
       setEditForm(mapApiToForm(data));
-      setSelectedReservation({ id: r.id });
+      setSelectedReservation({ reservation_id: r.reservation_id });
       setShowEditDialog(true);
     } catch (e: any) {
       console.error("Error loading reservation for edit:", e);
@@ -549,11 +631,11 @@ export default function ReservationNew() {
   };
 
   const submitEdit = async () => {
-    if (!selectedReservation?.id || !editForm) return;
+    if (!selectedReservation?.reservation_id || !editForm) return;
     try {
       const payload = buildPayloadFromForm(editForm);
       await CollegeReservationsService.update(
-        Number(selectedReservation.id),
+        Number(selectedReservation.reservation_id),
         payload
       );
       setShowEditDialog(false);
@@ -589,9 +671,9 @@ export default function ReservationNew() {
       return;
     }
     try {
-      if (selectedReservation?.id) {
+      if (selectedReservation?.reservation_id) {
         await CollegeReservationsService.updateStatus(
-          Number(selectedReservation.id),
+          Number(selectedReservation.reservation_id),
           {
             status: "CANCELLED" as "PENDING" | "CONFIRMED" | "CANCELLED",
             remarks: cancelRemarks || null,
@@ -617,8 +699,39 @@ export default function ReservationNew() {
 
   const handleConvertToAdmission = (reservation: any) => {
     // Navigate to admissions page with reservation data
-    window.location.href = `/admissions/new?reservation=${reservation.id}`;
+    window.location.href = `/admissions/new?reservation=${reservation.reservation_id}`;
   };
+
+  // Handle API errors
+  useEffect(() => {
+    if (groupsError) {
+      toast({
+        title: "Failed to Load Groups",
+        description: "Could not load groups data. Please refresh the page.",
+        variant: "destructive",
+      });
+    }
+  }, [groupsError]);
+
+  useEffect(() => {
+    if (coursesError) {
+      toast({
+        title: "Failed to Load Courses",
+        description: "Could not load courses data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [coursesError]);
+
+  useEffect(() => {
+    if (distanceSlabsError) {
+      toast({
+        title: "Failed to Load Distance Slabs",
+        description: "Could not load distance slabs data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [distanceSlabsError]);
 
   // Handle reservations errors
   useEffect(() => {
@@ -662,10 +775,93 @@ export default function ReservationNew() {
             icon: Plus,
             content: (
               <div>
+                {(groupsLoading || coursesLoading || isLoadingDistanceSlabs) && (
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-blue-700">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
+                      <span className="text-sm">Loading groups, courses, and distance slabs...</span>
+                    </div>
+                  </div>
+                )}
                 <ReservationForm
-                  form={form as any}
-                  setForm={(next) => setForm(next as any)}
-                  classFee={classFee}
+                  form={{
+                    student_name: form.studentName,
+                    aadhar_no: form.studentAadhar,
+                    gender: form.gender,
+                    dob: form.dob,
+                    father_or_guardian_name: form.fatherName,
+                    father_or_guardian_aadhar_no: form.fatherAadhar,
+                    father_or_guardian_mobile: form.fatherMobile,
+                    father_or_guardian_occupation: form.fatherOccupation,
+                    mother_or_guardian_name: form.motherName,
+                    mother_or_guardian_aadhar_no: form.motherAadhar,
+                    mother_or_guardian_mobile: form.motherMobile,
+                    mother_or_guardian_occupation: form.motherOccupation,
+                    siblings: form.siblings || [],
+                    previous_class: form.lastClass,
+                    previous_school_details: form.previousSchool,
+                    present_address: form.presentAddress,
+                    permanent_address: form.permanentAddress,
+                    application_fee: Number(form.reservationFee || 0),
+                    application_fee_paid: false,
+                    preferred_group_id: Number(form.preferredClassId || 0),
+                    group_name: form.group,
+                    preferred_course_id: Number(form.course || 0),
+                    course_name: form.courseName,
+                    group_fee: groupFee,
+                    course_fee: courseFee,
+                    book_fee: bookFee,
+                    total_tuition_fee: groupFee + courseFee,
+                    transport_required: form.transport === "Yes",
+                    preferred_transport_id: form.transport === "Yes" ? Number(form.busRoute || 0) : 0,
+                    preferred_distance_slab_id: Number(form.preferredDistanceSlabId || 0),
+                    pickup_point: form.pickupPoint,
+                    transport_fee: transportFee,
+                    concession_lock: false,
+                    book_fee_required: true,
+                    course_required: true,
+                    status: "PENDING",
+                    referred_by: Number(form.referredBy || 0),
+                    remarks: form.remarks,
+                    reservation_date: form.reservationDate || new Date().toISOString().split("T")[0],
+                  }}
+                  setForm={(next) => {
+                    setForm({
+                      ...form,
+                      studentName: next.student_name,
+                      studentAadhar: next.aadhar_no,
+                      gender: next.gender,
+                      dob: next.dob,
+                      fatherName: next.father_or_guardian_name,
+                      fatherAadhar: next.father_or_guardian_aadhar_no,
+                      fatherMobile: next.father_or_guardian_mobile,
+                      fatherOccupation: next.father_or_guardian_occupation,
+                      motherName: next.mother_or_guardian_name,
+                      motherAadhar: next.mother_or_guardian_aadhar_no,
+                      motherMobile: next.mother_or_guardian_mobile,
+                      motherOccupation: next.mother_or_guardian_occupation,
+                      siblings: next.siblings,
+                      lastClass: next.previous_class,
+                      previousSchool: next.previous_school_details,
+                      presentAddress: next.present_address,
+                      permanentAddress: next.permanent_address,
+                      reservationFee: next.application_fee.toString(),
+                      preferredClassId: next.preferred_group_id.toString(),
+                      group: next.group_name,
+                      course: next.preferred_course_id.toString(),
+                      courseName: next.course_name,
+                      bookFee: next.book_fee.toString(),
+                      transport: next.transport_required ? "Yes" : "No",
+                      busRoute: next.preferred_transport_id.toString(),
+                      pickupPoint: next.pickup_point,
+                      preferredDistanceSlabId: next.preferred_distance_slab_id.toString(),
+                      referredBy: next.referred_by.toString(),
+                      remarks: next.remarks,
+                      reservationDate: next.reservation_date,
+                    });
+                  }}
+                  groupFee={groupFee}
+                  courseFee={courseFee}
                   transportFee={transportFee}
                   routes={routeNames.map(
                     (route: {
@@ -673,14 +869,31 @@ export default function ReservationNew() {
                       route_no?: string;
                       route_name: string;
                     }) => ({
-                      id: route.bus_route_id?.toString() || "",
-                      name: `${route.route_no || "Route"} - ${
-                        route.route_name
-                      }`,
-                      fee: 5000, // Default fee, would need to be enhanced
+                      id: route.bus_route_id,
+                      name: `${route.route_no || "Route"} - ${route.route_name}`,
+                      fee: 0, // Route fee will be calculated based on distance slab
                     })
                   )}
-                  classFeeMapKeys={Object.keys(classFeeMap)}
+                  groups={groupsData?.items?.map(g => ({
+                    group_id: g.group_id,
+                    group_name: g.group_name,
+                    fee: g.group_fee,
+                  })) || []}
+                  courses={coursesData?.items?.map(c => ({
+                    course_id: c.course_id,
+                    course_name: c.course_name,
+                    fee: c.course_fee,
+                  })) || []}
+                  distanceSlabs={distanceSlabs?.map(slab => ({
+                    slab_id: slab.slab_id,
+                    slab_name: slab.slab_name,
+                    min_distance: slab.min_distance,
+                    max_distance: slab.max_distance,
+                    fee_amount: slab.fee_amount,
+                  })) || []}
+                  onGroupChange={handleGroupChange}
+                  onCourseChange={handleCourseChange}
+                  onDistanceSlabChange={handleDistanceSlabChange}
                   onSave={handleSave}
                 />
               </div>
@@ -716,9 +929,9 @@ export default function ReservationNew() {
                   </div>
                 ) : (
                   <ReservationsTable
-                    reservations={allReservations as any}
-                    onView={handleView as any}
-                    onEdit={handleEdit as any}
+                    reservations={allReservations}
+                    onView={handleView}
+                    onEdit={handleEdit}
                     onDelete={(r: any) => {
                       setReservationToDelete(r);
                       setShowDeleteDialog(true);
@@ -816,17 +1029,17 @@ export default function ReservationNew() {
                       ) : (
                         allReservations.map((r) => {
                           const current = (r.status || "").toUpperCase();
-                          const selected = (statusChanges[r.id] || current) as
+                          const selected = (statusChanges[r.reservation_id] || current) as
                             | "PENDING"
                             | "CONFIRMED"
                             | "CANCELLED";
                           const same = selected === current;
                           return (
-                            <TableRow key={r.id}>
+                            <TableRow key={r.reservation_id}>
                               <TableCell className="font-medium">
-                                {r.no}
+                                {r.reservation_id}
                               </TableCell>
-                              <TableCell>{r.studentName}</TableCell>
+                              <TableCell>{r.student_name}</TableCell>
                               <TableCell>
                                 <Badge
                                   variant={
@@ -849,7 +1062,7 @@ export default function ReservationNew() {
                                     onValueChange={(v) =>
                                       setStatusChanges((prev) => ({
                                         ...prev,
-                                        [r.id]: v as any,
+                                        [r.reservation_id]: v as any,
                                       }))
                                     }
                                   >
@@ -874,11 +1087,11 @@ export default function ReservationNew() {
                                 <div className="w-48">
                                   <Textarea
                                     placeholder="Enter remarks..."
-                                    value={statusRemarks[r.id] || ""}
+                                    value={statusRemarks[r.reservation_id] || ""}
                                     onChange={(e) =>
                                       setStatusRemarks((prev) => ({
                                         ...prev,
-                                        [r.id]: e.target.value,
+                                        [r.reservation_id]: e.target.value,
                                       }))
                                     }
                                     className="text-sm "
@@ -892,12 +1105,12 @@ export default function ReservationNew() {
                                     variant={same ? "outline" : "default"}
                                     disabled={same}
                                     onClick={async () => {
-                                      const to = (statusChanges[r.id] ||
+                                      const to = (statusChanges[r.reservation_id] ||
                                         current) as
                                         | "PENDING"
                                         | "CONFIRMED"
                                         | "CANCELLED";
-                                      const remarks = statusRemarks[r.id] || "";
+                                      const remarks = statusRemarks[r.reservation_id] || "";
                                       try {
                                         const payload = {
                                           status: to as
@@ -909,14 +1122,14 @@ export default function ReservationNew() {
                                             : null,
                                         };
                                         await CollegeReservationsService.updateStatus(
-                                          Number(r.id),
+                                          Number(r.reservation_id),
                                           payload
                                         );
                                         refetchReservations();
                                         // Clear the remarks after successful update
                                         setStatusRemarks((prev) => ({
                                           ...prev,
-                                          [r.id]: "",
+                                          [r.reservation_id]: "",
                                         }));
                                       } catch (e: any) {
                                         console.error(
@@ -985,8 +1198,16 @@ export default function ReservationNew() {
             </div>
             <div className="border-t pt-4">
               <div className="flex justify-between">
-                <span>Class Fee:</span>
-                <span>₹{classFee.toLocaleString()}</span>
+                <span>Group Fee:</span>
+                <span>₹{groupFee.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Course Fee:</span>
+                <span>₹{courseFee.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Book Fee:</span>
+                <span>₹{bookFee.toLocaleString()}</span>
               </div>
               {form.transport === "Yes" && (
                 <div className="flex justify-between">
@@ -996,7 +1217,7 @@ export default function ReservationNew() {
               )}
               <div className="flex justify-between font-bold text-lg border-t pt-2">
                 <span>Total:</span>
-                <span>₹{(classFee + transportFee).toLocaleString()}</span>
+                <span>₹{(groupFee + courseFee + bookFee + transportFee).toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -1023,8 +1244,20 @@ export default function ReservationNew() {
             <div className="space-y-6 text-sm flex-1 overflow-y-auto pr-1">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <strong>Reservation No:</strong>{" "}
+                  <strong>Reservation ID:</strong>{" "}
                   {viewReservation.reservation_id}
+                </div>
+                <div>
+                  <strong>Reservation No:</strong>{" "}
+                  {viewReservation.reservation_no || "-"}
+                </div>
+                <div>
+                  <strong>Branch:</strong>{" "}
+                  {viewReservation.branch_name || "-"}
+                </div>
+                <div>
+                  <strong>Academic Year:</strong>{" "}
+                  {viewReservation.academic_year || "-"}
                 </div>
                 <div>
                   <strong>Date:</strong>{" "}
@@ -1035,7 +1268,11 @@ export default function ReservationNew() {
                 </div>
                 <div>
                   <strong>Referred By:</strong>{" "}
-                  {viewReservation.referred_by ?? "-"}
+                  {viewReservation.referred_by_name || "-"}
+                </div>
+                <div>
+                  <strong>Created At:</strong>{" "}
+                  {viewReservation.created_at ? new Date(viewReservation.created_at).toLocaleString() : "-"}
                 </div>
               </div>
 
@@ -1046,76 +1283,64 @@ export default function ReservationNew() {
                     <strong>Name:</strong> {viewReservation.student_name || "-"}
                   </div>
                   <div>
-                    <strong>Aadhar No:</strong>{" "}
-                    {viewReservation.aadhar_no || "-"}
-                  </div>
-                  <div>
                     <strong>Gender:</strong> {viewReservation.gender || "-"}
                   </div>
                   <div>
-                    <strong>DOB:</strong> {viewReservation.dob || "-"}
+                    <strong>DOB:</strong> {viewReservation.dob ? new Date(viewReservation.dob).toLocaleDateString() : "-"}
                   </div>
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <div className="font-medium mb-2">Parent Details</div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <strong>Father Name:</strong>{" "}
-                    {viewReservation.father_name || "-"}
-                  </div>
-                  <div>
-                    <strong>Father Aadhar:</strong>{" "}
-                    {viewReservation.father_aadhar_no || "-"}
-                  </div>
-                  <div>
-                    <strong>Father Mobile:</strong>{" "}
-                    {viewReservation.father_mobile || "-"}
-                  </div>
-                  <div>
-                    <strong>Father Occupation:</strong>{" "}
-                    {viewReservation.father_occupation || "-"}
-                  </div>
-                  <div>
-                    <strong>Mother Name:</strong>{" "}
-                    {viewReservation.mother_name || "-"}
-                  </div>
-                  <div>
-                    <strong>Mother Aadhar:</strong>{" "}
-                    {viewReservation.mother_aadhar_no || "-"}
-                  </div>
-                  <div>
-                    <strong>Mother Mobile:</strong>{" "}
-                    {viewReservation.mother_mobile || "-"}
-                  </div>
-                  <div>
-                    <strong>Mother Occupation:</strong>{" "}
-                    {viewReservation.mother_occupation || "-"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <div className="font-medium mb-2">Academic Details</div>
-                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <strong>Group:</strong> {viewReservation.group_name || "-"}
                   </div>
                   <div>
-                    <strong>Course:</strong>{" "}
-                    {viewReservation.course_name || "-"}
-                  </div>
-                  <div>
-                    <strong>Previous Class:</strong>{" "}
-                    {viewReservation.previous_class || "-"}
-                  </div>
-                  <div>
-                    <strong>Previous School:</strong>{" "}
-                    {viewReservation.previous_school_details || "-"}
+                    <strong>Course:</strong> {viewReservation.course_name || "-"}
                   </div>
                 </div>
               </div>
+
+              <div className="border-t pt-4">
+                <div className="font-medium mb-2">Father/Guardian Details</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <strong>Name:</strong>{" "}
+                    {viewReservation.father_or_guardian_name || "-"}
+                  </div>
+                  <div>
+                    <strong>Aadhar No:</strong>{" "}
+                    {viewReservation.father_or_guardian_aadhar_no || "-"}
+                  </div>
+                  <div>
+                    <strong>Mobile:</strong>{" "}
+                    {viewReservation.father_or_guardian_mobile || "-"}
+                  </div>
+                  <div>
+                    <strong>Occupation:</strong>{" "}
+                    {viewReservation.father_or_guardian_occupation || "-"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <div className="font-medium mb-2">Mother/Guardian Details</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <strong>Name:</strong>{" "}
+                    {viewReservation.mother_or_guardian_name || "-"}
+                  </div>
+                  <div>
+                    <strong>Aadhar No:</strong>{" "}
+                    {viewReservation.mother_or_guardian_aadhar_no || "-"}
+                  </div>
+                  <div>
+                    <strong>Mobile:</strong>{" "}
+                    {viewReservation.mother_or_guardian_mobile || "-"}
+                  </div>
+                  <div>
+                    <strong>Occupation:</strong>{" "}
+                    {viewReservation.mother_or_guardian_occupation || "-"}
+                  </div>
+                </div>
+              </div>
+
 
               <div className="border-t pt-4">
                 <div className="font-medium mb-2">Contact Details</div>
@@ -1135,102 +1360,121 @@ export default function ReservationNew() {
                 <div className="font-medium mb-2">Fees</div>
                 <div className="space-y-1">
                   <div className="flex justify-between">
-                    <span>Reservation Fee:</span>
+                    <span>Application Fee:</span>
                     <span>
-                      ₹
-                      {Number(
-                        viewReservation.reservation_fee || 0
-                      ).toLocaleString()}
+                      ₹{viewReservation.application_fee || "0"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Application Fee Paid:</span>
+                    <span>{viewReservation.application_fee_paid || "-"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Book Fee:</span>
+                    <span>
+                      ₹{viewReservation.book_fee || "0"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Group Fee:</span>
                     <span>
-                      ₹{Number(viewReservation.group_fee || 0).toLocaleString()}
+                      ₹{viewReservation.group_fee || "0"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Course Fee:</span>
                     <span>
-                      ₹
-                      {Number(viewReservation.course_fee || 0).toLocaleString()}
+                      ₹{viewReservation.course_fee || "0"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Total Tuition Fee:</span>
                     <span>
-                      ₹
-                      {Number(
-                        viewReservation.total_tuition_fee || 0
-                      ).toLocaleString()}
+                      ₹{viewReservation.total_tuition_fee || "0"}
                     </span>
                   </div>
-                  {viewReservation.book_fee != null && (
-                    <div className="flex justify-between">
-                      <span>Book Fee:</span>
-                      <span>
-                        ₹
-                        {Number(viewReservation.book_fee || 0).toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-                  {viewReservation.tuition_concession != null && (
-                    <div className="flex justify-between">
-                      <span>Tuition Concession:</span>
-                      <span>
-                        ₹
-                        {Number(
-                          viewReservation.tuition_concession || 0
-                        ).toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-                  {viewReservation.transport_fee != null && (
-                    <div className="flex justify-between">
-                      <span>Transport Fee:</span>
-                      <span>
-                        ₹
-                        {Number(
-                          viewReservation.transport_fee || 0
-                        ).toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-                  {viewReservation.transport_concession != null && (
-                    <div className="flex justify-between">
-                      <span>Transport Concession:</span>
-                      <span>
-                        ₹
-                        {Number(
-                          viewReservation.transport_concession || 0
-                        ).toLocaleString()}
-                      </span>
-                    </div>
+                  <div className="flex justify-between">
+                    <span>Tuition Concession:</span>
+                    <span>
+                      ₹{viewReservation.tuition_concession || "0"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between font-semibold">
+                    <span>Payable Tuition Fee:</span>
+                    <span className="text-green-600">
+                      ₹{viewReservation.payable_tuition_fee || "0"}
+                    </span>
+                  </div>
+                  {viewReservation.transport_required === "Yes" && (
+                    <>
+                      <div className="flex justify-between">
+                        <span>Transport Fee:</span>
+                        <span>
+                          ₹{viewReservation.transport_fee || "0"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Transport Concession:</span>
+                        <span>
+                          ₹{viewReservation.transport_concession || "0"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between font-semibold">
+                        <span>Payable Transport Fee:</span>
+                        <span className="text-green-600">
+                          ₹{viewReservation.payable_transport_fee || "0"}
+                        </span>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
 
-              <div className="border-t pt-4">
-                <div className="font-medium mb-2">Preferences</div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <strong>Preferred Group ID:</strong>{" "}
-                    {viewReservation.preferred_group_id ?? "-"}
-                  </div>
-                  <div>
-                    <strong>Preferred Course ID:</strong>{" "}
-                    {viewReservation.preferred_course_id ?? "-"}
-                  </div>
-                  <div>
-                    <strong>Preferred Transport ID:</strong>{" "}
-                    {viewReservation.preferred_transport_id ?? "-"}
-                  </div>
-                  <div>
-                    <strong>Preferred Distance Slab ID:</strong>{" "}
-                    {viewReservation.preferred_distance_slab_id ?? "-"}
+              {viewReservation.transport_required === "Yes" && (
+                <div className="border-t pt-4">
+                  <div className="font-medium mb-2">Transport Information</div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <strong>Transport Required:</strong>{" "}
+                      {viewReservation.transport_required}
+                    </div>
+                    <div>
+                      <strong>Route:</strong>{" "}
+                      {viewReservation.route_ || "-"}
+                    </div>
+                    <div>
+                      <strong>Slab:</strong>{" "}
+                      {viewReservation.slab || "-"}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {viewReservation.siblings && viewReservation.siblings.length > 0 && (
+                <div className="border-t pt-4">
+                  <div className="font-medium mb-2">Siblings Information</div>
+                  <div className="space-y-3">
+                    {viewReservation.siblings.map((sibling, index) => (
+                      <div key={index} className="border rounded p-3 bg-gray-50">
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <strong>Name:</strong> {sibling.name || "-"}
+                          </div>
+                          <div>
+                            <strong>Class:</strong> {sibling.class_name || "-"}
+                          </div>
+                          <div>
+                            <strong>Where:</strong> {sibling.where || "-"}
+                          </div>
+                          <div>
+                            <strong>Gender:</strong> {sibling.gender || "-"}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           <DialogFooter className="mt-2 bg-background border-t py-3">
@@ -1252,10 +1496,93 @@ export default function ReservationNew() {
           </DialogHeader>
           {editForm ? (
             <div className="flex-1 overflow-y-auto pr-1">
+              {(groupsLoading || coursesLoading || isLoadingDistanceSlabs) && (
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
+                    <span className="text-sm">Loading groups, courses, and distance slabs...</span>
+                  </div>
+                </div>
+              )}
               <ReservationForm
-                form={editForm}
-                setForm={setEditForm}
-                classFee={classFee}
+                form={{
+                  student_name: editForm.studentName,
+                  aadhar_no: editForm.studentAadhar,
+                  gender: editForm.gender,
+                  dob: editForm.dob,
+                  father_or_guardian_name: editForm.fatherName,
+                  father_or_guardian_aadhar_no: editForm.fatherAadhar,
+                  father_or_guardian_mobile: editForm.fatherMobile,
+                  father_or_guardian_occupation: editForm.fatherOccupation,
+                  mother_or_guardian_name: editForm.motherName,
+                  mother_or_guardian_aadhar_no: editForm.motherAadhar,
+                  mother_or_guardian_mobile: editForm.motherMobile,
+                  mother_or_guardian_occupation: editForm.motherOccupation,
+                  siblings: editForm.siblings || [],
+                  previous_class: editForm.lastClass,
+                  previous_school_details: editForm.previousSchool,
+                  present_address: editForm.presentAddress,
+                  permanent_address: editForm.permanentAddress,
+                  application_fee: Number(editForm.reservationFee || 0),
+                  application_fee_paid: false,
+                  preferred_group_id: Number(editForm.preferredClassId || 0),
+                  group_name: editForm.group,
+                  preferred_course_id: Number(editForm.course || 0),
+                  course_name: editForm.courseName,
+                  group_fee: groupFee,
+                  course_fee: courseFee,
+                  book_fee: bookFee,
+                  total_tuition_fee: groupFee + courseFee,
+                  transport_required: editForm.transport === "Yes",
+                  preferred_transport_id: editForm.transport === "Yes" ? Number(editForm.busRoute || 0) : 0,
+                  preferred_distance_slab_id: Number(editForm.preferredDistanceSlabId || 0),
+                  pickup_point: editForm.pickupPoint,
+                  transport_fee: transportFee,
+                  concession_lock: false,
+                  book_fee_required: true,
+                  course_required: true,
+                  status: "PENDING",
+                  referred_by: Number(editForm.referredBy || 0),
+                  remarks: editForm.remarks,
+                  reservation_date: editForm.reservationDate || new Date().toISOString().split("T")[0],
+                }}
+                setForm={(next) => {
+                  setEditForm({
+                    ...editForm,
+                    studentName: next.student_name,
+                    studentAadhar: next.aadhar_no,
+                    gender: next.gender,
+                    dob: next.dob,
+                    fatherName: next.father_or_guardian_name,
+                    fatherAadhar: next.father_or_guardian_aadhar_no,
+                    fatherMobile: next.father_or_guardian_mobile,
+                    fatherOccupation: next.father_or_guardian_occupation,
+                    motherName: next.mother_or_guardian_name,
+                    motherAadhar: next.mother_or_guardian_aadhar_no,
+                    motherMobile: next.mother_or_guardian_mobile,
+                    motherOccupation: next.mother_or_guardian_occupation,
+                    siblings: next.siblings,
+                    lastClass: next.previous_class,
+                    previousSchool: next.previous_school_details,
+                    presentAddress: next.present_address,
+                    permanentAddress: next.permanent_address,
+                    reservationFee: next.application_fee.toString(),
+                    preferredClassId: next.preferred_group_id.toString(),
+                    group: next.group_name,
+                    course: next.preferred_course_id.toString(),
+                    courseName: next.course_name,
+                    bookFee: next.book_fee.toString(),
+                    transport: next.transport_required ? "Yes" : "No",
+                    busRoute: next.preferred_transport_id.toString(),
+                    pickupPoint: next.pickup_point,
+                    preferredDistanceSlabId: next.preferred_distance_slab_id.toString(),
+                    referredBy: next.referred_by.toString(),
+                    remarks: next.remarks,
+                    reservationDate: next.reservation_date,
+                  });
+                }}
+                groupFee={groupFee}
+                courseFee={courseFee}
                 transportFee={transportFee}
                 routes={routeNames.map(
                   (route: {
@@ -1263,29 +1590,56 @@ export default function ReservationNew() {
                     route_no?: string;
                     route_name: string;
                   }) => ({
-                    id: route.bus_route_id.toString(),
+                    id: route.bus_route_id,
                     name: `${route.route_no || "Route"} - ${route.route_name}`,
-                    fee: 5000,
+                    fee: 0, // Route fee will be calculated based on distance slab
                   })
                 )}
-                classFeeMapKeys={Object.keys(classFeeMap)}
+                groups={groupsData?.items?.map(g => ({
+                  group_id: g.group_id,
+                  group_name: g.group_name,
+                  fee: g.group_fee,
+                })) || []}
+                courses={coursesData?.items?.map(c => ({
+                  course_id: c.course_id,
+                  course_name: c.course_name,
+                  fee: c.course_fee,
+                })) || []}
+                distanceSlabs={distanceSlabs?.map(slab => ({
+                  slab_id: slab.slab_id,
+                  slab_name: slab.slab_name,
+                  min_distance: slab.min_distance,
+                  max_distance: slab.max_distance,
+                  fee_amount: slab.fee_amount,
+                })) || []}
+                onGroupChange={handleGroupChange}
+                onCourseChange={handleCourseChange}
+                onDistanceSlabChange={handleDistanceSlabChange}
                 onSave={async () => {
                   await submitEdit();
                 }}
+                isEdit={true}
               />
             </div>
           ) : (
             <div className="p-4">Loading...</div>
           )}
-          <DialogFooter className="mt-2 bg-background border-t py-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowEditDialog(false)}
-            >
-              Close
-            </Button>
-          </DialogFooter>
+           <DialogFooter className="mt-2 bg-background border-t py-3">
+             <Button
+               type="button"
+               variant="outline"
+               onClick={() => setShowEditDialog(false)}
+             >
+               Close
+             </Button>
+             <Button
+               type="button"
+               onClick={submitEdit}
+               disabled={!editForm}
+             >
+               Update Reservation
+             </Button>
+           </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1339,7 +1693,7 @@ export default function ReservationNew() {
             <AlertDialogTitle>Delete Reservation</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete reservation{" "}
-              {reservationToDelete?.id}? This action cannot be undone.
+              {reservationToDelete?.reservation_id}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1347,10 +1701,10 @@ export default function ReservationNew() {
             <AlertDialogAction
               className="bg-red-600 hover:bg-red-700"
               onClick={async () => {
-                if (!reservationToDelete?.id) return;
+                if (!reservationToDelete?.reservation_id) return;
                 try {
                   await deleteReservation.mutateAsync(
-                    Number(reservationToDelete.id)
+                    Number(reservationToDelete.reservation_id)
                   );
                   // Success - dialog will close automatically due to onSuccess in hook
                 } catch (e: any) {

@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route } from "wouter";
 import React, { useEffect, Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,14 +6,6 @@ import { Header, Sidebar } from "@/components/layout";
 import { useAuthStore } from "@/store/authStore";
 import { useNavigationStore } from "@/store/navigationStore";
 import { cn } from "@/lib/utils";
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { AuthTokenTimers } from "@/lib/api";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query";
@@ -101,9 +93,6 @@ const CollegeReportsPage = lazy(
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { sidebarOpen } = useNavigationStore();
-  const [location] = useLocation();
-
-  const segments = location.split("/").filter(Boolean);
 
   return (
     <div className="flex h-screen bg-background">
@@ -116,35 +105,6 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
       >
         <Header />
         <main className="flex-1 overflow-auto">
-          <div className="px-6 pt-4">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href="/">Dashboard</BreadcrumbLink>
-                </BreadcrumbItem>
-                {segments.length > 0 && <BreadcrumbSeparator />}
-                {segments.map((seg, idx) => {
-                  const href = "/" + segments.slice(0, idx + 1).join("/");
-                  const label = seg
-                    .replace(/-/g, " ")
-                    .replace(/\b\w/g, (c) => c.toUpperCase());
-                  const isLast = idx === segments.length - 1;
-                  return (
-                    <React.Fragment key={href}>
-                      <BreadcrumbItem>
-                        {isLast ? (
-                          <BreadcrumbPage>{label}</BreadcrumbPage>
-                        ) : (
-                          <BreadcrumbLink href={href}>{label}</BreadcrumbLink>
-                        )}
-                      </BreadcrumbItem>
-                      {!isLast && <BreadcrumbSeparator key={`${href}-sep`} />}
-                    </React.Fragment>
-                  );
-                })}
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
           <div className="p-2">{children}</div>
         </main>
       </div>
@@ -324,7 +284,6 @@ function ProtectedRoute({
   component: Component,
 }: ProtectedRouteProps) {
   const { user } = useAuthStore();
-  const [location] = useLocation();
   const hasAccess = user && roles.includes(user.role);
   const Guard = () => (hasAccess ? <Component /> : <NotAuthorized />);
   return <Route path={path} component={Guard} />;

@@ -244,7 +244,7 @@ export const ExamsTab = ({
         showActions={true}
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
-        showActionLabels={false}
+        showActionLabels={true}
       />
 
       {/* Add Exam Dialog */}

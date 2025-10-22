@@ -278,7 +278,7 @@ function EnhancedDataTableComponent<TData>({
         if (allButtons.length === 0) return null;
 
        return (
-         <div className="flex items-center gap-1">
+         <div className="flex items-center gap-2">
            {allButtons.map((button, index) => {
              const Icon = button.icon;
              return (
@@ -288,12 +288,19 @@ function EnhancedDataTableComponent<TData>({
                  size="sm"
                  onClick={() => button.onClick(row.original)}
                  className={cn(
-                   "h-8 w-8 p-0 transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md",
+                   showActionLabels 
+                     ? "h-9 px-3 py-2 transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md border border-transparent hover:border-slate-200 dark:hover:border-slate-600"
+                     : "h-9 w-9 p-0 transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md border border-transparent hover:border-slate-200 dark:hover:border-slate-600",
                    button.className
                  )}
                  title={button.label}
                >
                  <Icon className="h-4 w-4" />
+                 {showActionLabels && (
+                   <span className="ml-2 text-sm font-medium">
+                     {button.label}
+                   </span>
+                 )}
                </Button>
              );
            })}
@@ -324,15 +331,20 @@ function EnhancedDataTableComponent<TData>({
 
   const getDefaultClassName = (type: string) => {
     switch (type) {
-      case 'view': return "text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200 hover:border-blue-300";
-      case 'edit': return "text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200 hover:border-green-300";
-      case 'delete': return "text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300";
-      default: return "text-gray-600 hover:text-gray-700 hover:bg-gray-50 border-gray-200 hover:border-gray-300";
+      case 'view': return "text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/20";
+      case 'edit': return "text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/20";
+      case 'delete': return "text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20";
+      default: return "text-slate-600 hover:text-slate-700 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-300 dark:hover:bg-slate-800";
     }
   };
 
-  // Apply additional filters (non-search filters)
-  const filteredData = useMemo(() => {
+  // Memoize expensive computations
+  const memoizedColumns = useMemo(() => {
+    const actionColumn = generateActionColumn();
+    return actionColumn ? [...columns, actionColumn] : columns;
+  }, [columns, generateActionColumn]);
+
+  const memoizedFilteredData = useMemo(() => {
     let result = data;
 
     // Apply additional filters
@@ -348,15 +360,9 @@ function EnhancedDataTableComponent<TData>({
     return result;
   }, [data, filters]);
 
-  // Combine original columns with action column
-  const tableColumns = useMemo(() => {
-    const actionColumn = generateActionColumn();
-    return actionColumn ? [...columns, actionColumn] : columns;
-  }, [columns, generateActionColumn]);
-
   const table = useReactTable({
-    data: filteredData,
-    columns: tableColumns,
+    data: memoizedFilteredData,
+    columns: memoizedColumns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onPaginationChange: setPagination,
@@ -416,7 +422,7 @@ function EnhancedDataTableComponent<TData>({
     } finally {
       setIsExporting(false);
     }
-  }, [onExport, filteredData, columns, title]);
+  }, [onExport, memoizedFilteredData, columns, title]);
 
   const performExport = useCallback(async () => {
     try {
@@ -516,7 +522,7 @@ function EnhancedDataTableComponent<TData>({
       };
 
       // Add data rows with professional alternating styling
-      filteredData.forEach((row, index) => {
+      memoizedFilteredData.forEach((row, index) => {
         const rowData = exportableColumns.map(col => {
           const key = (col as any).accessorKey;
           if (key) {
@@ -590,7 +596,7 @@ function EnhancedDataTableComponent<TData>({
       });
 
       // Add enhanced summary footer
-      const totalRows = filteredData.length;
+      const totalRows = memoizedFilteredData.length;
       const summaryRow = worksheet.addRow([`Total Records: ${totalRows}`]);
       summaryRow.font = { 
         bold: true, 
@@ -655,7 +661,7 @@ function EnhancedDataTableComponent<TData>({
       // Fallback to CSV if Excel export fails
     const csvContent = [
       columns.map(col => (col as any).header || (col as any).accessorKey).join(','),
-      ...filteredData.map(row => 
+      ...memoizedFilteredData.map(row => 
         columns.map(col => {
           const key = (col as any).accessorKey;
           return key ? (row as any)[key] : '';
@@ -673,7 +679,7 @@ function EnhancedDataTableComponent<TData>({
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     }
-  }, [filteredData, columns, title]);
+  }, [memoizedFilteredData, columns, title]);
 
 
   // Loading state
@@ -690,22 +696,22 @@ function EnhancedDataTableComponent<TData>({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className={cn('space-y-3', className)}
+      className={cn('space-y-4 w-full', className)}
     >
        {/* Header */}
-       <div className="flex items-center justify-between p-3">
-         <div className="flex items-center gap-6 flex-1">
+       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-2">
+         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-1 w-full">
            <div className="space-y-1">
              {title && (
-               <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+               <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">
                  {title}
                </h2>
              )}
            </div>
            {showSearch && (
-             <div className="relative group flex-1 mr-8">
-               {/* Search Container with Extended Width */}
-               <div className="relative bg-white dark:bg-white rounded-lg border border-slate-200 dark:border-slate-300 transition-all duration-200 focus-within:border-blue-500 dark:focus-within:border-blue-400 shadow-md">
+             <div className="relative group flex-1 w-full sm:w-auto sm:mr-8">
+               {/* Search Container */}
+               <div className="relative bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-600 transition-all duration-200 focus-within:border-blue-500 dark:focus-within:border-blue-400">
                  <div className="flex items-center px-3 py-2">
                    {/* Search Icon */}
                    <div className="flex-shrink-0 mr-2">
@@ -726,6 +732,9 @@ function EnhancedDataTableComponent<TData>({
                      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                      className="flex-1 bg-transparent border-none outline-none text-slate-700 dark:text-slate-300 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm font-normal"
                      data-testid="input-search"
+                     aria-label="Search table data"
+                     aria-describedby="search-results-count"
+                     role="searchbox"
                    />
                    
                    {/* Clear Button */}
@@ -746,6 +755,10 @@ function EnhancedDataTableComponent<TData>({
                      {table.getFilteredRowModel().rows.length}
                    </div>
                  )}
+                 {/* Hidden element for screen readers */}
+                 <div id="search-results-count" className="sr-only">
+                   {globalFilter ? `${table.getFilteredRowModel().rows.length} results found` : ''}
+                 </div>
                </div>
                
                {/* Search Suggestions Dropdown */}
@@ -834,7 +847,7 @@ function EnhancedDataTableComponent<TData>({
              </div>
            )}
          </div>
-         <div className="flex items-center gap-2">
+         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
            {exportable && (
              <Button
                variant="outline"
@@ -867,20 +880,21 @@ function EnhancedDataTableComponent<TData>({
 
        {/* Additional Filters */}
        {filters.length > 0 && (
-         <div className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+         <div className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+           <div className="text-sm font-medium text-slate-600 dark:text-slate-400">Filters:</div>
            {filters.map((filter) => (
              <Select
                key={filter.key}
                value={filter.value}
                onValueChange={filter.onChange}
              >
-               <SelectTrigger className="w-40">
+               <SelectTrigger className="w-48 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600">
                  <SelectValue placeholder={filter.label} />
                </SelectTrigger>
-               <SelectContent>
-                 <SelectItem key="all" value="all">All {filter.label}</SelectItem>
+               <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600">
+                 <SelectItem key="all" value="all" className="hover:bg-slate-100 dark:hover:bg-slate-700">All {filter.label}</SelectItem>
                  {filter.options.map((option) => (
-                   <SelectItem key={option.value} value={option.value}>
+                   <SelectItem key={option.value} value={option.value} className="hover:bg-slate-100 dark:hover:bg-slate-700">
                      {option.label}
                    </SelectItem>
                  ))}
@@ -892,21 +906,34 @@ function EnhancedDataTableComponent<TData>({
 
        {/* Table */}
          <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
-           <Table>
-             <TableHeader className="bg-white dark:bg-slate-900">
+           <div className="overflow-x-auto" role="region" aria-label="Data table">
+             <Table className="w-full" role="table">
+             <TableHeader className="bg-slate-50 dark:bg-slate-800">
                {table.getHeaderGroups().map((headerGroup) => (
                  <TableRow key={headerGroup.id} className="hover:bg-transparent border-b border-slate-200 dark:border-slate-700">
                    {headerGroup.headers.map((header) => (
                      <TableHead
                        key={header.id}
                        className={cn(
-                         'sticky top-0 z-10 bg-white dark:bg-slate-900 font-semibold text-slate-600 dark:text-slate-400 py-3 text-left',
-                         header.column.getCanSort() && 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-200',
-                         header.index === 0 ? 'pl-4 pr-2' : 'px-2'
+                         'sticky top-0 z-10 bg-slate-50 dark:bg-slate-800 font-medium text-slate-700 dark:text-slate-300 py-4 text-left',
+                         header.column.getCanSort() && 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-200',
+                         header.index === 0 ? 'pl-6 pr-3' : 'px-3'
                        )}
                        onClick={header.column.getToggleSortingHandler()}
-                       style={{ minWidth: '120px', maxWidth: '300px' }}
+                       style={{ 
+                         minWidth: '120px', 
+                         maxWidth: '500px',
+                         width: header.column.getSize() > 0 ? `${header.column.getSize()}px` : 'auto'
+                       }}
                        data-testid={`header-${header.id}`}
+                       aria-sort={header.column.getIsSorted() === 'asc' ? 'ascending' : header.column.getIsSorted() === 'desc' ? 'descending' : 'none'}
+                       tabIndex={header.column.getCanSort() ? 0 : -1}
+                       onKeyDown={(e) => {
+                         if (header.column.getCanSort() && (e.key === 'Enter' || e.key === ' ')) {
+                           e.preventDefault();
+                           header.column.getToggleSortingHandler()?.(e);
+                         }
+                       }}
                      >
                        <div className="flex items-center gap-2">
                          {header.isPlaceholder
@@ -942,26 +969,35 @@ function EnhancedDataTableComponent<TData>({
                   >
                     {row.getVisibleCells().map((cell) => (
                        <TableCell key={cell.id} className={cn(
-                         "truncate max-w-[200px] py-3 text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-200",
-                         cell.column.getIndex() === 0 ? 'pl-4 pr-2' : 'px-2'
+                         "py-4 text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-200",
+                         cell.column.getIndex() === 0 ? 'pl-6 pr-3' : 'px-3'
                        )}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        <div className={cn(
+                          "max-w-[400px]",
+                          // Only truncate if the cell content is text-based
+                          (() => {
+                            const value = cell.getValue();
+                            return typeof value === 'string' && value && value.length > 50 ? "truncate" : "break-words";
+                          })()
+                        )}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </div>
                       </TableCell>
                     ))}
                   </motion.tr>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-32 text-center bg-white dark:bg-slate-900">
-                    <div className="flex flex-col items-center justify-center space-y-3">
-                      <div className="w-16 h-16 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center">
-                        <Filter className="h-8 w-8 text-slate-400 dark:text-slate-500" />
+                  <TableCell colSpan={columns.length} className="h-40 text-center bg-white dark:bg-slate-900">
+                    <div className="flex flex-col items-center justify-center space-y-4">
+                      <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
+                        <Filter className="h-10 w-10 text-slate-400 dark:text-slate-500" />
                       </div>
-                      <div className="text-slate-500 dark:text-slate-400 font-medium">
+                      <div className="text-slate-600 dark:text-slate-300 font-medium text-lg">
                         No results found
                       </div>
-                      <div className="text-sm text-slate-400 dark:text-slate-500">
-                        Try adjusting your filters or search criteria
+                      <div className="text-sm text-slate-500 dark:text-slate-400 max-w-md text-center">
+                        Try adjusting your search criteria or filters to find what you're looking for
                       </div>
                     </div>
                   </TableCell>
@@ -969,10 +1005,11 @@ function EnhancedDataTableComponent<TData>({
               )}
             </TableBody>
           </Table>
+           </div>
         </div>
 
        {/* Pagination */}
-         <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-2">
            <div className="flex items-center space-x-3">
              <div className="text-sm font-medium text-slate-600 dark:text-slate-400">
                {globalFilter ? (
@@ -1015,7 +1052,7 @@ function EnhancedDataTableComponent<TData>({
                </div>
              )}
            </div>
-           <div className="flex items-center gap-3">
+           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
              <Button
                variant="outline"
                size="sm"

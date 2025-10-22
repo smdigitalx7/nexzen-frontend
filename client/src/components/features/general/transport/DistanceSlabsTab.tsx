@@ -41,6 +41,7 @@ const DistanceSlabsTab = ({
   const columns: ColumnDef<any>[] = useMemo(() => [
     {
       id: 'slab_name',
+      accessorKey: 'slab_name',
       header: 'Slab Name',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
@@ -48,6 +49,18 @@ const DistanceSlabsTab = ({
           <span className="font-medium">{row.original.slab_name}</span>
         </div>
       ),
+    },
+    {
+      id: 'min_distance',
+      accessorKey: 'min_distance',
+      header: 'Min Distance (km)',
+      cell: ({ row }) => row.original.min_distance,
+    },
+    {
+      id: 'max_distance',
+      accessorKey: 'max_distance',
+      header: 'Max Distance (km)',
+      cell: ({ row }) => row.original.max_distance || '∞',
     },
     {
       id: 'range',
@@ -60,6 +73,7 @@ const DistanceSlabsTab = ({
     },
     {
       id: 'fee_amount',
+      accessorKey: 'fee_amount',
       header: 'Amount',
       cell: ({ row }) => (
         <span className="font-semibold text-green-700">
@@ -99,22 +113,14 @@ const DistanceSlabsTab = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Dialog open={isAddFeeOpen} onOpenChange={setIsAddFeeOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Distance Slab
-            </Button>
-          </DialogTrigger>
-          <DistanceSlabFormDialog
-            isOpen={isAddFeeOpen}
-            onClose={() => setIsAddFeeOpen(false)}
-            onSubmit={handleAddSlab}
-            isEditing={false}
-          />
-        </Dialog>
-      </div>
+      <Dialog open={isAddFeeOpen} onOpenChange={setIsAddFeeOpen}>
+        <DistanceSlabFormDialog
+          isOpen={isAddFeeOpen}
+          onClose={() => setIsAddFeeOpen(false)}
+          onSubmit={handleAddSlab}
+          isEditing={false}
+        />
+      </Dialog>
 
       <EnhancedDataTable
         data={slabsData}
@@ -126,6 +132,10 @@ const DistanceSlabsTab = ({
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
         showActionLabels={false}
+        exportable={true}
+        onAdd={() => setIsAddFeeOpen(true)}
+        addButtonText="Add Distance Slab"
+        addButtonVariant="outline"
       />
 
       {/* Edit Fee Dialog */}

@@ -11,7 +11,6 @@ export interface NavigationHistory {
 export interface NavigationPreferences {
   sidebarCollapsed: boolean;
   sidebarPinned: boolean;
-  showBreadcrumbs: boolean;
   showModuleIcons: boolean;
   theme: 'light' | 'dark' | 'system';
 }
@@ -69,7 +68,6 @@ export const useNavigationStore = create<NavigationState>()(
         preferences: {
           sidebarCollapsed: false,
           sidebarPinned: false,
-          showBreadcrumbs: true,
           showModuleIcons: true,
           theme: 'system',
         },
@@ -191,7 +189,6 @@ export const useNavigationStore = create<NavigationState>()(
             state.preferences = {
               sidebarCollapsed: false,
               sidebarPinned: false,
-              showBreadcrumbs: true,
               showModuleIcons: true,
               theme: 'system',
             };
@@ -240,7 +237,6 @@ export const useNavigationStore = create<NavigationState>()(
               preferences: {
                 sidebarCollapsed: false,
                 sidebarPinned: false,
-                showBreadcrumbs: true,
                 showModuleIcons: true,
                 theme: 'system',
               },

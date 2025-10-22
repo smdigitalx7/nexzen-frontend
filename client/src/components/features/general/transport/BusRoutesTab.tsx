@@ -67,8 +67,9 @@ const BusRoutesTab = ({
 
   const columns: ColumnDef<any>[] = useMemo(() => [
     {
-      id: 'route_info',
-      header: 'Route',
+      id: 'route_name',
+      accessorKey: 'route_name',
+      header: 'Route Name',
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           <div className="p-2 bg-blue-100 rounded-lg">
@@ -82,8 +83,15 @@ const BusRoutesTab = ({
       ),
     },
     {
-      id: 'vehicle_info',
-      header: 'Vehicle',
+      id: 'route_number',
+      accessorKey: 'route_number',
+      header: 'Route Number',
+      cell: ({ row }) => row.original.route_number,
+    },
+    {
+      id: 'vehicle_number',
+      accessorKey: 'vehicle_number',
+      header: 'Vehicle Number',
       cell: ({ row }) => (
         <div>
           <div className="font-medium">{row.original.vehicle_number}</div>
@@ -92,8 +100,15 @@ const BusRoutesTab = ({
       ),
     },
     {
-      id: 'route_details',
-      header: 'Route Details',
+      id: 'vehicle_capacity',
+      accessorKey: 'vehicle_capacity',
+      header: 'Vehicle Capacity',
+      cell: ({ row }) => row.original.vehicle_capacity,
+    },
+    {
+      id: 'distance_km',
+      accessorKey: 'distance_km',
+      header: 'Distance (km)',
       cell: ({ row }) => (
         <div className="space-y-1">
           <div className="flex items-center gap-1 text-sm">
@@ -108,8 +123,15 @@ const BusRoutesTab = ({
       ),
     },
     {
-      id: 'students',
-      header: 'Students',
+      id: 'estimated_duration',
+      accessorKey: 'estimated_duration',
+      header: 'Duration (min)',
+      cell: ({ row }) => row.original.estimated_duration,
+    },
+    {
+      id: 'students_count',
+      accessorKey: 'students_count',
+      header: 'Students Count',
       cell: ({ row }) => (
         <div className="flex items-center gap-1">
           <Users className="h-4 w-4 text-muted-foreground" />
@@ -118,7 +140,8 @@ const BusRoutesTab = ({
       ),
     },
     {
-      id: 'status',
+      id: 'active',
+      accessorKey: 'active',
       header: 'Status',
       cell: ({ row }) => (
         <Badge variant={row.original.active ? "default" : "secondary"}>
@@ -165,34 +188,23 @@ const BusRoutesTab = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Dialog open={isAddRouteOpen} onOpenChange={(open) => { 
-          if (!open) { 
-            setIsEditingRoute(false); 
-            setRouteEditingId(null);
-          } 
-          setIsAddRouteOpen(open); 
-        }}>
-          <DialogTrigger asChild>
-            <Button className="gap-2" onClick={() => { 
-              setIsEditingRoute(false); 
-              setRouteEditingId(null); 
-            }}>
-              <Plus className="h-4 w-4" />
-              Add Bus Route
-            </Button>
-          </DialogTrigger>
-          <RouteFormDialog
-            isOpen={isAddRouteOpen}
-            onClose={() => setIsAddRouteOpen(false)}
-            onSubmit={isEditingRoute ? handleUpdateRoute : handleAddRoute}
-            isEditing={isEditingRoute}
-            editingRoute={isEditingRoute && routeEditingId ? 
-              busRoutes.find(r => r.id === routeEditingId) : undefined
-            }
-          />
-        </Dialog>
-      </div>
+      <Dialog open={isAddRouteOpen} onOpenChange={(open) => { 
+        if (!open) { 
+          setIsEditingRoute(false); 
+          setRouteEditingId(null);
+        } 
+        setIsAddRouteOpen(open); 
+      }}>
+        <RouteFormDialog
+          isOpen={isAddRouteOpen}
+          onClose={() => setIsAddRouteOpen(false)}
+          onSubmit={isEditingRoute ? handleUpdateRoute : handleAddRoute}
+          isEditing={isEditingRoute}
+          editingRoute={isEditingRoute && routeEditingId ? 
+            busRoutes.find(r => r.id === routeEditingId) : undefined
+          }
+        />
+      </Dialog>
 
       <EnhancedDataTable
         data={busRoutes}
@@ -205,6 +217,10 @@ const BusRoutesTab = ({
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
         showActionLabels={false}
+        exportable={true}
+        onAdd={() => setIsAddRouteOpen(true)}
+        addButtonText="Add Bus Route"
+        addButtonVariant="outline"
       />
 
       {/* View Route Details Dialog */}

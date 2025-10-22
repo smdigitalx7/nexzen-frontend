@@ -82,7 +82,7 @@ export const SectionsTab = () => {
         showActions={true}
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
-        showActionLabels={false}
+        showActionLabels={true}
       />
 
       <FormDialog

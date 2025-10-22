@@ -266,7 +266,7 @@ export const TestTab = ({
         showActions={true}
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
-        showActionLabels={false}
+        showActionLabels={true}
       />
 
       {/* Add Test Dialog */}

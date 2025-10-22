@@ -1292,6 +1292,13 @@ export default function ReservationNew() {
             >
               Close
             </Button>
+            <Button
+              type="button"
+              onClick={submitEdit}
+              disabled={!editForm}
+            >
+              Update Reservation
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

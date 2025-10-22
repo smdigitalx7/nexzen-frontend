@@ -13,12 +13,15 @@ export interface ClassOption {
 export interface GroupOption {
   group_id: number;
   group_name: string;
+  group_fee: number;
+  book_fee: number;
 }
 
 export interface CourseOption {
   group_id: number;
   course_id: number;
   course_name: string;
+  course_fee: number;
 }
 
 export interface SubjectOption {

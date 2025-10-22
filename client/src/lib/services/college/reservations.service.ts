@@ -6,6 +6,7 @@ import {
   CollegePaginatedReservationRead,
   CollegeReservationDashboardStats,
   CollegeRecentReservation,
+  CollegeReservationView,
   ReservationStatusEnum,
 } from "@/lib/types/college";
 import { handlePayAndPrint, handleAdmissionPayment } from "@/lib/api";
@@ -33,6 +34,13 @@ export const CollegeReservationsService = {
   getById(reservation_id: number) {
     return Api.get<CollegeReservationRead>(
       `/college/reservations/${reservation_id}`
+    );
+  },
+
+  // GET /api/v1/college/reservations/view/{reservation_id}
+  getViewById(reservation_id: number) {
+    return Api.get<CollegeReservationView>(
+      `/college/reservations/view/${reservation_id}`
     );
   },
 

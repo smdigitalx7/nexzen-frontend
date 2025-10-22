@@ -178,7 +178,7 @@ export const ClassesTab = memo(({
         showActions={true}
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
-        showActionLabels={false}
+        showActionLabels={true}
       />
 
       {/* Add Class Dialog */}

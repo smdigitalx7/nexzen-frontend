@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { StatsCard, DashboardGrid } from "@/components/shared";
 import { SchoolReservationDashboardStats } from "@/lib/types/school/reservations";
-import { formatCurrency } from "@/lib/utils";
 
 interface SchoolReservationStatsCardsProps {
   stats: SchoolReservationDashboardStats;
