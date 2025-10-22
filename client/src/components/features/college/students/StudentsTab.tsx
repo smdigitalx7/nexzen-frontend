@@ -151,7 +151,7 @@ export const StudentsTab = () => {
   };
 
   const columns = useMemo(() => [
-    createTextColumn<CollegeStudentRead>('admission_no', { header: 'Admission No.', className: 'font-mono font-semibold text-slate-900' }),
+    createTextColumn<CollegeStudentRead>('admission_no', { header: 'Admission No.'}),
     createAvatarColumn<CollegeStudentRead>('student_name', 'gender', { header: 'Student Details' }),
     createTextColumn<CollegeStudentRead>('father_or_guardian_mobile', { header: 'Father/Guardian Mobile', fallback: 'N/A' }),
     createTextColumn<CollegeStudentRead>('mother_or_guardian_mobile', { header: 'Mother/Guardian Mobile', fallback: 'N/A' }),
@@ -173,19 +173,6 @@ export const StudentsTab = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Students</h2>
-          {currentBranch && (
-            <div className="flex items-center gap-2 mt-2">
-              <Badge variant="outline" className="text-xs">
-                {currentBranch.branch_name} • {currentBranch.branch_type.toUpperCase()}
-              </Badge>
-            </div>
-          )}
-        </div>
-      </div>
-
       {isLoading ? (
         <Card><CardContent className="py-8 text-center">Loading students...</CardContent></Card>
       ) : error ? (
@@ -203,7 +190,7 @@ export const StudentsTab = () => {
           showActions={true}
           actionButtonGroups={actionButtonGroups}
           actionColumnHeader="Actions"
-          showActionLabels={false}
+          showActionLabels={true}
         />
       )}
 

@@ -131,11 +131,11 @@ const DistanceSlabsTab = ({
         showActions={true}
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
-        showActionLabels={false}
+        showActionLabels={true}
         exportable={true}
         onAdd={() => setIsAddFeeOpen(true)}
         addButtonText="Add Distance Slab"
-        addButtonVariant="outline"
+        addButtonVariant="default"
       />
 
       {/* Edit Fee Dialog */}

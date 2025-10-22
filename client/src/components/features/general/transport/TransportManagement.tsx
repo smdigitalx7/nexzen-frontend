@@ -133,7 +133,6 @@ const TransportManagement = () => {
         ]}
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        gridCols="grid-cols-2"
       />
     </div>
   );

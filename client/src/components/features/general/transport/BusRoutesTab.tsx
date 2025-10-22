@@ -220,7 +220,7 @@ const BusRoutesTab = ({
         exportable={true}
         onAdd={() => setIsAddRouteOpen(true)}
         addButtonText="Add Bus Route"
-        addButtonVariant="outline"
+        addButtonVariant="default"
       />
 
       {/* View Route Details Dialog */}

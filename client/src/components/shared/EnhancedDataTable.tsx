@@ -880,7 +880,7 @@ function EnhancedDataTableComponent<TData>({
 
        {/* Additional Filters */}
        {filters.length > 0 && (
-         <div className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+         <div className="flex items-center gap-4 p-4">
            <div className="text-sm font-medium text-slate-600 dark:text-slate-400">Filters:</div>
            {filters.map((filter) => (
              <Select

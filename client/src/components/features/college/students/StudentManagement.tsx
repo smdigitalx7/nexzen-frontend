@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users, IdCard, MapPin, Plus } from 'lucide-react';
+import { Users, IdCard, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { TabSwitcher } from '@/components/shared';
-import { Button } from '@/components/ui/button';
-import type { TabItem } from '@/components/shared/TabSwitcher';
 import { useAuthStore } from '@/store/authStore';
 import { StudentsTab } from './StudentsTab';
 import { EnrollmentsTab } from './EnrollmentsTab';
@@ -16,26 +14,22 @@ const StudentManagement = () => {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 p-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Student Management</h1>
           <p className="text-muted-foreground mt-1">Manage student records, attendance, and academic progress</p>
-          {currentBranch && (
-            <div className="flex items-center gap-2 mt-2">
-              <Badge variant="outline" className="text-xs">
-                {currentBranch.branch_name} • {currentBranch.branch_type.toUpperCase()}
-              </Badge>
-            </div>
-          )}
         </div>
-        {activePageTab === 'students' && (
-          <Button className="hover-elevate">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Student
-          </Button>
+        {currentBranch && (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
+              {currentBranch.branch_name} • {currentBranch.branch_type.toUpperCase()}
+            </Badge>
+          </div>
         )}
       </div>
-
+        
+      {/* Tabs */}
       <TabSwitcher
         tabs={[
           {
