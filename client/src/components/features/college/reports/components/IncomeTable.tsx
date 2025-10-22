@@ -1,36 +1,43 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Eye, Edit, Trash2 } from "lucide-react";
-import type { CollegeIncomeRead } from "@/lib/types/college";
+import type { CollegeIncomeSummary, CollegeIncomeSummaryParams } from "@/lib/types/college";
+import { useCollegeIncomeSummary } from "@/lib/hooks/college/use-college-income";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { createTextColumn, createCurrencyColumn } from "@/lib/utils/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface IncomeTableProps {
-  incomeData: CollegeIncomeRead[];
-  onViewIncome?: (income: CollegeIncomeRead) => void;
+  onViewIncome?: (income: CollegeIncomeSummary) => void;
+  params?: CollegeIncomeSummaryParams;
 }
 
 export const IncomeTable = ({
-  incomeData,
   onViewIncome,
+  params = {},
 }: IncomeTableProps) => {
+  // Fetch income summary data using the hook
+  const { 
+    data: incomeResponse, 
+    isLoading, 
+    error, 
+    refetch 
+  } = useCollegeIncomeSummary(params);
 
-  // Debug: Log the data to see what we're getting
-  console.log("College Income Data:", incomeData);
+  const incomeData = incomeResponse?.items || [];
+  const totalCount = incomeResponse?.total || 0;
 
   const uniqueReceiptNos = Array.from(new Set(incomeData.map(i => i.receipt_no).filter(Boolean)));
 
-
   // Define columns for EnhancedDataTable
-  const columns: ColumnDef<CollegeIncomeRead>[] = [
+  const columns: ColumnDef<CollegeIncomeSummary>[] = [
     {
       id: 'created_at',
       header: 'Date',
       cell: ({ row }) => {
         const value = row.original.created_at;
-        console.log("College Date cell - value:", value);
         return formatDate(value);
       },
     },
@@ -39,7 +46,6 @@ export const IncomeTable = ({
       header: 'Receipt No',
       cell: ({ row }) => {
         const value = row.original.receipt_no;
-        console.log("College Receipt no cell - value:", value);
         return value || "-";
       },
     },
@@ -48,49 +54,36 @@ export const IncomeTable = ({
       header: 'Student',
       cell: ({ row }) => {
         const value = row.original.student_name;
-        console.log("College Student name cell - value:", value);
         return value || "-";
       },
     },
     {
-      id: 'admission_no',
-      header: 'Admission No',
+      id: 'identity_no',
+      header: 'Identity No',
       cell: ({ row }) => {
-        const value = row.original.admission_no;
-        console.log("College Admission no cell - value:", value);
-        return value || "No Enrollment";
-      },
-    },
-    {
-      id: 'roll_number',
-      header: 'Roll Number',
-      cell: ({ row }) => {
-        const value = row.original.roll_number;
-        console.log("College Roll number cell - value:", value);
+        const value = row.original.identity_no;
         return value || "-";
       },
     },
-    createCurrencyColumn<CollegeIncomeRead>("total_amount", {
+    {
+      id: 'purpose',
+      header: 'Purpose',
+      cell: ({ row }) => {
+        const value = row.original.purpose;
+        return value || "-";
+      },
+    },
+    createCurrencyColumn<CollegeIncomeSummary>("total_amount", {
       header: "Amount",
       className: "text-green-600 font-bold",
     }),
-    {
-      id: 'remarks',
-      header: 'Remarks',
-      cell: ({ row }) => {
-        const value = row.original.remarks;
-        console.log("College Remarks cell - value:", value);
-        return value || "-";
-      },
-    },
   ];
 
   // Action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => [
     ...(onViewIncome ? [{
       type: 'view' as const,
-      onClick: (income: CollegeIncomeRead) => {
-        console.log("College View Income clicked - income:", income);
+      onClick: (income: CollegeIncomeSummary) => {
         if (!income || !income.income_id) {
           console.error("Invalid income object:", income);
           return;
@@ -113,6 +106,37 @@ export const IncomeTable = ({
     }
   ];
 
+  // Handle loading and error states
+  if (isLoading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="space-y-4"
+      >
+        <div className="flex items-center justify-center p-8">
+          <div className="text-gray-500">Loading income data...</div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="space-y-4"
+      >
+        <div className="flex items-center justify-center p-8">
+          <div className="text-red-500">Error loading income data. Please try again.</div>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -125,7 +149,7 @@ export const IncomeTable = ({
         columns={columns}
         title="Income Records"
         searchKey="receipt_no"
-        searchPlaceholder="Search by receipt no, student name, or admission no..."
+        searchPlaceholder="Search by receipt no, student name, or identity no..."
         exportable={true}
         filters={filterOptions}
         showActions={true}

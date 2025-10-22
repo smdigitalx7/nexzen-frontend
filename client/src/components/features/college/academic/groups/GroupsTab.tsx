@@ -219,7 +219,7 @@ export const GroupsTab = memo(({
         showActions={true}
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
-        showActionLabels={false}
+        showActionLabels={true}
       />
 
       {/* Add Group Dialog */}

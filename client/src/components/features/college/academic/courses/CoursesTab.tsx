@@ -222,7 +222,7 @@ export const CoursesTab = memo(({
         showActions={true}
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
-        showActionLabels={false}
+        showActionLabels={true}
       />
 
       {/* Add Course Dialog */}

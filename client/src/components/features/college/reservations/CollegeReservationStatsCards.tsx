@@ -34,7 +34,7 @@ export const CollegeReservationStatsCards: React.FC<
       icon: Users,
       color: "blue" as const,
       variant: "elevated" as const,
-      size: "lg" as const,
+      size: "md" as const,
     },
     {
       title: "Pending Reservations",
@@ -42,7 +42,7 @@ export const CollegeReservationStatsCards: React.FC<
       icon: Clock,
       color: "yellow" as const,
       variant: "bordered" as const,
-      size: "lg" as const,
+      size: "md" as const,
     },
     {
       title: "Confirmed Reservations",
@@ -50,7 +50,7 @@ export const CollegeReservationStatsCards: React.FC<
       icon: CheckCircle,
       color: "green" as const,
       variant: "gradient" as const,
-      size: "lg" as const,
+      size: "md" as const,
     },
     {
       title: "Cancelled Reservations",
@@ -58,7 +58,7 @@ export const CollegeReservationStatsCards: React.FC<
       icon: XCircle,
       color: "red" as const,
       variant: "default" as const,
-      size: "lg" as const,
+      size: "md" as const,
     },
     {
       title: "Male Students",
@@ -66,7 +66,7 @@ export const CollegeReservationStatsCards: React.FC<
       icon: UserCheck,
       color: "purple" as const,
       variant: "default" as const,
-      size: "lg" as const,
+      size: "md" as const,
     },
     {
       title: "Female Students",
@@ -74,7 +74,7 @@ export const CollegeReservationStatsCards: React.FC<
       icon: UserX,
       color: "pink" as const,
       variant: "default" as const,
-      size: "lg" as const,
+      size: "md" as const,
     },
   ];
 

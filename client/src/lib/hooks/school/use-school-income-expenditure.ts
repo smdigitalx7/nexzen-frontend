@@ -141,7 +141,7 @@ export function useSchoolFinanceReport(params?: SchoolFinanceReportParams) {
   return useQuery({
     queryKey: [...schoolKeys.income.root(), "finance-report", params],
     queryFn: () => SchoolIncomeService.getFinanceReport(params) as Promise<SchoolFinanceReport[]>,
-    enabled: true, // Always enabled since params are optional
+    enabled: !!params && !!params.start_date && !!params.end_date,
   });
 }
 

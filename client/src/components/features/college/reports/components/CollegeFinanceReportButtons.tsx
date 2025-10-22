@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { 
   Calendar, 
   CalendarDays, 
   FileText, 
-  Download
+  Download,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -16,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCollegeFinanceReport } from '@/lib/hooks/college/use-college-income';
 import { CollegeFinanceReportDialog } from './CollegeFinanceReportDialog';
 import { CollegeFinanceReportParams } from '@/lib/types/college/income';
@@ -31,27 +34,53 @@ export const CollegeFinanceReportButtons: React.FC<CollegeFinanceReportButtonsPr
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
-  const [reportParams, setReportParams] = useState<CollegeFinanceReportParams | null>(null);
+  const [reportParams, setReportParams] = useState<CollegeFinanceReportParams | undefined>(undefined);
 
-  // Query for finance report
+  // Query for finance report - only enabled when params are provided
   const { 
     data: reportData, 
     isLoading: reportLoading, 
     error: reportError
-  } = useCollegeFinanceReport(reportParams || undefined);
+  } = useCollegeFinanceReport(reportParams);
 
-  const handleDailyReport = () => {
+  // Date validation helper
+  const validateDateRange = useCallback((startDate: string, endDate: string) => {
+    if (!startDate || !endDate) return { isValid: false, message: 'Both dates are required' };
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const today = new Date();
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(today.getFullYear() - 1);
+    
+    if (start > end) {
+      return { isValid: false, message: 'End date must be after start date' };
+    }
+    
+    if (start > today) {
+      return { isValid: false, message: 'Start date cannot be in the future' };
+    }
+    
+    if (start < oneYearAgo) {
+      return { isValid: false, message: 'Date range cannot exceed 1 year' };
+    }
+    
+    return { isValid: true, message: '' };
+  }, []);
+
+  const handleDailyReport = useCallback(() => {
     const today = new Date().toISOString().split('T')[0];
     setReportParams({ start_date: today, end_date: today });
     setShowReportDialog(true);
-  };
+  }, []);
 
-  const handleCustomReport = () => {
+  const handleCustomReport = useCallback(() => {
     setShowCustomReportDialog(true);
-  };
+  }, []);
 
-  const handleGenerateCustomReport = () => {
-    if (customStartDate && customEndDate) {
+  const handleGenerateCustomReport = useCallback(() => {
+    const validation = validateDateRange(customStartDate, customEndDate);
+    if (validation.isValid) {
       setReportParams({ 
         start_date: customStartDate, 
         end_date: customEndDate 
@@ -59,18 +88,20 @@ export const CollegeFinanceReportButtons: React.FC<CollegeFinanceReportButtonsPr
       setShowCustomReportDialog(false);
       setShowReportDialog(true);
     }
-  };
+  }, [customStartDate, customEndDate, validateDateRange]);
 
-  const handleCloseReportDialog = () => {
+  const handleCloseReportDialog = useCallback(() => {
     setShowReportDialog(false);
-    setReportParams(null);
-  };
+    setReportParams(undefined);
+  }, []);
 
-  const handleCloseCustomDialog = () => {
+  const handleCloseCustomDialog = useCallback(() => {
     setShowCustomReportDialog(false);
     setCustomStartDate('');
     setCustomEndDate('');
-  };
+  }, []);
+
+  const dateValidation = validateDateRange(customStartDate, customEndDate);
 
   return (
     <>
@@ -80,8 +111,14 @@ export const CollegeFinanceReportButtons: React.FC<CollegeFinanceReportButtonsPr
           variant="outline"
           size="sm"
           className="flex items-center gap-2"
+          disabled={reportLoading}
+          aria-label="Generate daily finance report"
         >
-          <CalendarDays className="h-4 w-4" />
+          {reportLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <CalendarDays className="h-4 w-4" />
+          )}
           Daily Report
         </Button>
         
@@ -90,8 +127,14 @@ export const CollegeFinanceReportButtons: React.FC<CollegeFinanceReportButtonsPr
           variant="outline"
           size="sm"
           className="flex items-center gap-2"
+          disabled={reportLoading}
+          aria-label="Generate custom date range finance report"
         >
-          <Calendar className="h-4 w-4" />
+          {reportLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Calendar className="h-4 w-4" />
+          )}
           Custom Report
         </Button>
       </div>
@@ -132,10 +175,13 @@ export const CollegeFinanceReportButtons: React.FC<CollegeFinanceReportButtonsPr
               />
             </div>
             
-            {customStartDate && customEndDate && customStartDate > customEndDate && (
-              <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
-                End date must be after start date.
-              </div>
+            {!dateValidation.isValid && customStartDate && customEndDate && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {dateValidation.message}
+                </AlertDescription>
+              </Alert>
             )}
           </div>
           
@@ -145,9 +191,13 @@ export const CollegeFinanceReportButtons: React.FC<CollegeFinanceReportButtonsPr
             </Button>
             <Button 
               onClick={handleGenerateCustomReport}
-              disabled={!customStartDate || !customEndDate || customStartDate > customEndDate}
+              disabled={!dateValidation.isValid || reportLoading}
             >
-              <Download className="h-4 w-4 mr-2" />
+              {reportLoading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
               Generate Report
             </Button>
           </DialogFooter>
@@ -164,12 +214,13 @@ export const CollegeFinanceReportButtons: React.FC<CollegeFinanceReportButtonsPr
 
       {/* Error Display */}
       {reportError && (
-        <div className="fixed bottom-4 right-4 bg-red-50 border border-red-200 rounded-lg p-4 max-w-sm">
-          <div className="flex items-center gap-2">
-            <div className="text-red-600 text-sm">
-              ❌ Failed to load finance report. Please try again.
-            </div>
-          </div>
+        <div className="fixed bottom-4 right-4 z-50">
+          <Alert variant="destructive" className="max-w-sm">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Failed to load finance report. Please check your connection and try again.
+            </AlertDescription>
+          </Alert>
         </div>
       )}
     </>

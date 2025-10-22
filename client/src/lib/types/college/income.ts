@@ -142,3 +142,29 @@ export interface CollegeFinanceReportParams {
   end_date?: string;
 }
 
+// Income Summary Types
+export interface CollegeIncomeSummary {
+  income_id: number;
+  branch_id: number;
+  receipt_no: string;
+  student_name: string;
+  identity_no: string;
+  total_amount: number;
+  purpose: string;
+  created_at: string;
+}
+
+export interface CollegeIncomeSummaryListResponse {
+  items: CollegeIncomeSummary[];
+  total: number;
+  page: number;
+  size: number;
+}
+
+export interface CollegeIncomeSummaryParams {
+  page?: number;
+  size?: number;
+  start_date?: string;
+  end_date?: string;
+}
+
