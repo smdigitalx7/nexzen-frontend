@@ -150,30 +150,30 @@ const colorVariants = {
 
 const sizeVariants = {
   sm: {
-    card: "p-4",
+    card: "p-2",
     icon: "h-4 w-4",
-    value: "text-lg",
+    value: "text-2xl",
     title: "text-xs",
     description: "text-xs",
   },
   md: {
-    card: "p-5",
+    card: "p-3",
     icon: "h-5 w-5",
-    value: "text-2xl",
+    value: "text-4xl",
     title: "text-sm",
     description: "text-xs",
   },
   lg: {
-    card: "p-6",
+    card: "p-4",
     icon: "h-6 w-6",
-    value: "text-3xl",
+    value: "text-5xl",
     title: "text-base",
     description: "text-sm",
   },
   xl: {
-    card: "p-8",
+    card: "p-5",
     icon: "h-8 w-8",
-    value: "text-4xl",
+    value: "text-6xl",
     title: "text-lg",
     description: "text-base",
   },
