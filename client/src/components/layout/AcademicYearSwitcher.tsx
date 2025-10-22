@@ -17,22 +17,36 @@ const AcademicYearSwitcher = () => {
   const { academicYear, academicYears, switchAcademicYear } = useAuthStore();
   const { data: academicYearsData } = useAcademicYears();
 
+  const handleAcademicYearSwitch = async (year: any) => {
+    try {
+      await switchAcademicYear(year);
+      // Academic year switching doesn't need URL change, just refresh to maintain current path
+      window.location.reload();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Failed to switch academic year:", error);
+    }
+  };
+
   useEffect(() => {
     if (!academicYearsData || academicYearsData.length === 0) return;
     if (academicYears.length > 0) return;
 
     const { setAcademicYears, setAcademicYear } = useAuthStore.getState();
-    
+
     // Transform AcademicYearRead to AcademicYear format
-    const transformedData: AcademicYear[] = academicYearsData.map((year: any) => ({
-      ...year,
-      updated_at: year.updated_at ?? null,
-      created_by: year.created_by ?? null,
-      updated_by: year.updated_by ?? null,
-    }));
-    
+    const transformedData: AcademicYear[] = academicYearsData.map(
+      (year: any) => ({
+        ...year,
+        updated_at: year.updated_at ?? null,
+        created_by: year.created_by ?? null,
+        updated_by: year.updated_by ?? null,
+      })
+    );
+
     setAcademicYears(transformedData);
-    const activeYear = academicYearsData.find((y: any) => y.is_active) || academicYearsData[0];
+    const activeYear =
+      academicYearsData.find((y: any) => y.is_active) || academicYearsData[0];
     if (!academicYear && activeYear) {
       setAcademicYear(activeYear.year_name);
     }
@@ -48,12 +62,12 @@ const AcademicYearSwitcher = () => {
           aria-label="Select academic year"
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-blue-400 to-blue-600">
-              <Calendar className="h-4 w-4 text-white" />
+            <div>
+              <Calendar className="h-5 w-5 text-blue-500" />
             </div>
             <div className="flex flex-col items-start">
               <span
-                className="truncate max-w-[120px] font-semibold text-base text-slate-700"
+                className="truncate max-w-[100px] font-semibold text-base text-slate-700"
                 title={academicYear || "Select Academic Year"}
               >
                 {academicYear || "Select Academic Year"}
@@ -76,7 +90,7 @@ const AcademicYearSwitcher = () => {
               .map((year) => (
                 <DropdownMenuItem
                   key={year.academic_year_id}
-                  onClick={() => switchAcademicYear(year)}
+                  onClick={() => handleAcademicYearSwitch(year)}
                   className="hover-elevate"
                   data-testid={`menuitem-academic-year-${year.academic_year_id}`}
                 >

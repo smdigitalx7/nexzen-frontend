@@ -1,10 +1,10 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { LucideIcon } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
+import React from "react";
+import { motion } from "framer-motion";
+import { LucideIcon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 export interface StatsCardConfig {
   title: string;
@@ -16,7 +16,24 @@ export interface StatsCardConfig {
     label: string;
     isPositive?: boolean;
   };
-  color?: "blue" | "green" | "yellow" | "red" | "purple" | "indigo" | "orange" | "gray" | "emerald" | "rose" | "amber" | "cyan" | "violet" | "pink" | "lime" | "teal" | "sky";
+  color?:
+    | "blue"
+    | "green"
+    | "yellow"
+    | "red"
+    | "purple"
+    | "indigo"
+    | "orange"
+    | "gray"
+    | "emerald"
+    | "rose"
+    | "amber"
+    | "cyan"
+    | "violet"
+    | "pink"
+    | "lime"
+    | "teal"
+    | "sky";
   size?: "sm" | "md" | "lg" | "xl";
   variant?: "default" | "gradient" | "minimal" | "elevated" | "bordered";
   showProgress?: boolean;
@@ -150,7 +167,7 @@ const colorVariants = {
 
 const sizeVariants = {
   sm: {
-    card: "p-2",
+    card: "p-4",
     icon: "h-4 w-4",
     value: "text-2xl",
     title: "text-xs",
@@ -180,11 +197,16 @@ const sizeVariants = {
 };
 
 const variantStyles = {
-  default: "bg-card border shadow-sm hover:shadow-md transition-all duration-200",
-  gradient: "bg-gradient-to-br from-card to-card/50 border shadow-lg hover:shadow-xl transition-all duration-300",
-  minimal: "bg-transparent border-0 shadow-none hover:bg-muted/50 transition-all duration-200",
-  elevated: "bg-card border shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1",
-  bordered: "bg-card border-2 shadow-sm hover:shadow-md transition-all duration-200",
+  default:
+    "bg-card border shadow-sm hover:shadow-md transition-all duration-200",
+  gradient:
+    "bg-gradient-to-br from-card to-card/50 border shadow-lg hover:shadow-xl transition-all duration-300",
+  minimal:
+    "bg-transparent border-0 shadow-none hover:bg-muted/50 transition-all duration-200",
+  elevated:
+    "bg-card border shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1",
+  bordered:
+    "bg-card border-2 shadow-sm hover:shadow-md transition-all duration-200",
 };
 
 export const StatsCard: React.FC<StatsCardConfig> = ({
@@ -207,7 +229,7 @@ export const StatsCard: React.FC<StatsCardConfig> = ({
   const variantStyle = variantStyles[variant];
 
   const cardContent = (
-    <Card 
+    <Card
       className={cn(
         "relative overflow-hidden group cursor-pointer transition-all duration-200",
         variantStyle,
@@ -219,10 +241,12 @@ export const StatsCard: React.FC<StatsCardConfig> = ({
     >
       {/* Gradient overlay for gradient variant */}
       {variant === "gradient" && (
-        <div className={cn(
-          "absolute inset-0 bg-gradient-to-br opacity-5",
-          `from-${color}-500 to-${color}-600`
-        )} />
+        <div
+          className={cn(
+            "absolute inset-0 bg-gradient-to-br opacity-5",
+            `from-${color}-500 to-${color}-600`
+          )}
+        />
       )}
 
       {/* Animated background for elevated variant */}
@@ -230,23 +254,34 @@ export const StatsCard: React.FC<StatsCardConfig> = ({
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
       )}
 
-      <CardHeader className={cn("flex flex-row items-center justify-between space-y-0 pb-2", sizes.card)}>
-        <CardTitle className={cn("font-medium text-muted-foreground", sizes.title)}>
+      <CardHeader
+        className={cn(
+          "flex flex-row items-center justify-between space-y-0 pb-2",
+          sizes.card
+        )}
+      >
+        <CardTitle
+          className={cn("font-medium text-muted-foreground", sizes.title)}
+        >
           {title}
         </CardTitle>
-        <div className={cn(
-          "p-2 rounded-xl transition-all duration-200 group-hover:scale-110",
-          colors.bg,
-          variant === "elevated" && "group-hover:shadow-lg"
-        )}>
+        <div
+          className={cn(
+            "p-2 rounded-xl transition-all duration-200 group-hover:scale-110",
+            colors.bg,
+            variant === "elevated" && "group-hover:shadow-lg"
+          )}
+        >
           <Icon className={cn(colors.icon, sizes.icon)} />
         </div>
       </CardHeader>
 
-      <CardContent className={cn("space-y-3", sizes.card)}>
+      <CardContent className={cn("space-y-1", sizes.card)}>
         {loading ? (
           <div className="space-y-2">
-            <div className={cn("h-8 bg-muted animate-pulse rounded", sizes.value)} />
+            <div
+              className={cn("h-8 bg-muted animate-pulse rounded", sizes.value)}
+            />
             <div className="h-4 bg-muted animate-pulse rounded w-2/3" />
           </div>
         ) : (
@@ -265,8 +300,8 @@ export const StatsCard: React.FC<StatsCardConfig> = ({
             {/* Progress bar */}
             {showProgress && (
               <div className="space-y-2">
-                <Progress 
-                  value={progressValue} 
+                <Progress
+                  value={progressValue}
                   className="h-2"
                   // @ts-ignore - Custom color prop
                   color={color}
@@ -280,14 +315,17 @@ export const StatsCard: React.FC<StatsCardConfig> = ({
             {/* Trend indicator */}
             {trend && (
               <div className="flex items-center justify-between">
-                <Badge 
-                  variant="outline" 
+                <Badge
+                  variant="outline"
                   className={cn(
                     "text-xs font-medium",
-                    trend.isPositive ? "text-green-600 border-green-200 bg-green-50" : "text-red-600 border-red-200 bg-red-50"
+                    trend.isPositive
+                      ? "text-green-600 border-green-200 bg-green-50"
+                      : "text-red-600 border-red-200 bg-red-50"
                   )}
                 >
-                  {trend.isPositive ? "+" : ""}{trend.value}%
+                  {trend.isPositive ? "+" : ""}
+                  {trend.value}%
                 </Badge>
                 <span className="text-xs text-muted-foreground">
                   {trend.label}

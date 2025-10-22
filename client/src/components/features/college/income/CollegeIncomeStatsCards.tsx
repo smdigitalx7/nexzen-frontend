@@ -1,18 +1,18 @@
-import React from 'react';
-import { 
-  DollarSign, 
-  CalendarDays, 
-  FileText, 
-  GraduationCap, 
-  Bus, 
-  BookOpen, 
-  CreditCard, 
+import React from "react";
+import {
+  DollarSign,
+  CalendarDays,
+  FileText,
+  GraduationCap,
+  Bus,
+  BookOpen,
+  CreditCard,
   Wallet,
-  BarChart3
-} from 'lucide-react';
-import { StatsCard, DashboardGrid } from '@/components/shared';
-import { CollegeIncomeDashboardStats } from '@/lib/types/college/income';
-import { formatCurrency } from '@/lib/utils';
+  BarChart3,
+} from "lucide-react";
+import { StatsCard, DashboardGrid } from "@/components/shared";
+import { CollegeIncomeDashboardStats } from "@/lib/types/college/income";
+import { formatCurrency } from "@/lib/utils";
 
 interface CollegeIncomeStatsCardsProps {
   stats: CollegeIncomeDashboardStats;
@@ -20,11 +20,9 @@ interface CollegeIncomeStatsCardsProps {
   className?: string;
 }
 
-export const CollegeIncomeStatsCards: React.FC<CollegeIncomeStatsCardsProps> = ({
-  stats,
-  loading = false,
-  className,
-}) => {
+export const CollegeIncomeStatsCards: React.FC<
+  CollegeIncomeStatsCardsProps
+> = ({ stats, loading = false, className }) => {
   const statsCards = [
     {
       title: "Total Income Records",
@@ -41,7 +39,7 @@ export const CollegeIncomeStatsCards: React.FC<CollegeIncomeStatsCardsProps> = (
       icon: DollarSign,
       color: "green" as const,
       description: "Total revenue collected",
-      variant: "gradient" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -50,7 +48,7 @@ export const CollegeIncomeStatsCards: React.FC<CollegeIncomeStatsCardsProps> = (
       icon: GraduationCap,
       color: "purple" as const,
       description: "From tuition fees",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -59,7 +57,7 @@ export const CollegeIncomeStatsCards: React.FC<CollegeIncomeStatsCardsProps> = (
       icon: Bus,
       color: "orange" as const,
       description: "From transport fees",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -68,7 +66,7 @@ export const CollegeIncomeStatsCards: React.FC<CollegeIncomeStatsCardsProps> = (
       icon: BookOpen,
       color: "indigo" as const,
       description: "From book fees",
-      variant: "default" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -77,7 +75,7 @@ export const CollegeIncomeStatsCards: React.FC<CollegeIncomeStatsCardsProps> = (
       icon: CreditCard,
       color: "teal" as const,
       description: "From reservation fees",
-      variant: "default" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -104,23 +102,15 @@ export const CollegeIncomeStatsCards: React.FC<CollegeIncomeStatsCardsProps> = (
       icon: BarChart3,
       color: "violet" as const,
       description: "Current year's income",
-      variant: "gradient" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
   ];
 
   return (
-    <DashboardGrid 
-      columns={6} 
-      gap="md" 
-      className={className}
-    >
+    <DashboardGrid columns={6} gap="md" className={className}>
       {statsCards.map((stat, index) => (
-        <StatsCard
-          key={stat.title}
-          {...stat}
-          loading={loading}
-        />
+        <StatsCard key={stat.title} {...stat} loading={loading} />
       ))}
     </DashboardGrid>
   );

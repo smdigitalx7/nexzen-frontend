@@ -43,15 +43,8 @@ const Sidebar = () => {
     "public",
   ]);
 
-  // Build General section per role
-  const baseGeneral: NavigationItem[] = [
-    {
-      title: "Dashboard",
-      href: "/",
-      icon: LayoutDashboard,
-      description: "Overview and analytics",
-    },
-  ];
+  // Build General section per role (Dashboard moved outside)
+  const baseGeneral: NavigationItem[] = [];
 
   let publicModules: NavigationItem[] = [];
 
@@ -69,7 +62,6 @@ const Sidebar = () => {
         title: "Users",
         href: "/users",
         icon: Users,
-        badge: 5,
         description: "User management",
       },
       {
@@ -82,7 +74,6 @@ const Sidebar = () => {
         title: "Payroll",
         href: "/payroll",
         icon: CreditCard,
-        badge: 2,
         description: "Salary and payments",
         roles: ["institute_admin", "accountant"],
       },
@@ -130,13 +121,6 @@ const Sidebar = () => {
     if (currentBranch?.branch_type === "SCHOOL") {
       return [
         {
-          title: "Academic",
-          href: "/school/academic",
-          icon: FileText,
-          description: "Academic structure & performance",
-          roles: ["institute_admin", "academic"],
-        },
-        {
           title: "Reservations",
           href: "/school/reservations/new",
           icon: ClipboardList,
@@ -155,8 +139,14 @@ const Sidebar = () => {
           title: "Students",
           href: "/school/students",
           icon: GraduationCap,
-          badge: 15,
           description: "Student records",
+          roles: ["institute_admin", "academic"],
+        },
+        {
+          title: "Academic",
+          href: "/school/academic",
+          icon: FileText,
+          description: "Academic structure & performance",
           roles: ["institute_admin", "academic"],
         },
         {
@@ -177,7 +167,6 @@ const Sidebar = () => {
           title: "Fees",
           href: "/school/fees",
           icon: DollarSign,
-          badge: 8,
           description: "Fee management",
           roles: ["institute_admin", "accountant"],
         },
@@ -224,7 +213,6 @@ const Sidebar = () => {
           title: "Students",
           href: "/college/students",
           icon: GraduationCap,
-          badge: 25,
           description: "Student records",
           roles: ["institute_admin", "academic"],
         },
@@ -246,7 +234,6 @@ const Sidebar = () => {
           title: "Fees",
           href: "/college/fees",
           icon: DollarSign,
-          badge: 8,
           description: "Fee management",
           roles: ["institute_admin", "accountant"],
         },
@@ -333,8 +320,7 @@ const Sidebar = () => {
       transition={{ duration: 0.3, ease: "easeInOut" }}
       className={cn(
         "fixed left-0 top-0 z-40 h-screen bg-sidebar border-r border-sidebar-border",
-        "flex flex-col overflow-hidden overflow-y-auto",
-        "scrollbar-none scrollbar-track-transparent scrollbar-thumb-transparent"
+        "flex flex-col overflow-hidden overflow-y-auto scrollbar-hide"
       )}
     >
       {/* Logo Section */}
@@ -346,18 +332,20 @@ const Sidebar = () => {
               animate={{ opacity: 1, x: 0 }}
               className="flex items-center gap-3"
             >
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-md ${
-                  currentBranch?.branch_type === "SCHOOL"
-                    ? "bg-gradient-to-br from-emerald-400 to-emerald-600"
-                    : "bg-gradient-to-br from-purple-400 to-purple-600"
-                }`}
-              >
-                {currentBranch?.branch_type === "SCHOOL" ? (
-                  <School className="h-6 w-6 text-white" />
-                ) : (
-                  <GraduationCap className="h-6 w-6 text-white" />
-                )}
+              <div className="w-10 h-10 ">
+                <img
+                  src={
+                    currentBranch?.branch_type === "SCHOOL"
+                      ? "/assets/nexzen-logo.png"
+                      : "/assets/Velocity-logo.png"
+                  }
+                  alt={
+                    currentBranch?.branch_type === "SCHOOL"
+                      ? "Nexzen Logo"
+                      : "Velocity Logo"
+                  }
+                  className="w-full h-full object-contain"
+                />
               </div>
               <div className="flex flex-col">
                 <span className="font-bold text-lg bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
@@ -385,26 +373,19 @@ const Sidebar = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-none scrollbar-track-transparent scrollbar-thumb-transparent">
+      <div className="flex-1 overflow-y-auto scrollbar-hide">
         <div className="p-4 space-y-4">
-          {/* Public Modules */}
+          {/* Dashboard - Outside of sections */}
           <div>
-            {sidebarOpen && (
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  General
-                </h3>
-              </div>
-            )}
-            <div className="space-y-1">
-              {publicModules.filter(hasPermission).map((item) => (
-                <NavItem
-                  key={item.href}
-                  item={item}
-                  isActive={location === item.href}
-                />
-              ))}
-            </div>
+            <NavItem
+              item={{
+                title: "Dashboard",
+                href: "/",
+                icon: LayoutDashboard,
+                description: "Overview and analytics",
+              }}
+              isActive={location === "/"}
+            />
           </div>
 
           {/* Schema-specific Modules */}
@@ -435,6 +416,26 @@ const Sidebar = () => {
               </div>
             </div>
           )}
+
+          {/* Public Modules */}
+          <div>
+            {sidebarOpen && (
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  General
+                </h3>
+              </div>
+            )}
+            <div className="space-y-1">
+              {publicModules.filter(hasPermission).map((item) => (
+                <NavItem
+                  key={item.href}
+                  item={item}
+                  isActive={location === item.href}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 

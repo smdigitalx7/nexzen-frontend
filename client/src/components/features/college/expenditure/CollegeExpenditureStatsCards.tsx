@@ -1,19 +1,19 @@
-import React from 'react';
-import { 
-  DollarSign, 
-  TrendingUp, 
-  CalendarDays, 
-  FileText, 
-  CheckCircle, 
-  Clock, 
+import React from "react";
+import {
+  DollarSign,
+  TrendingUp,
+  CalendarDays,
+  FileText,
+  CheckCircle,
+  Clock,
   AlertTriangle,
   CreditCard,
   BarChart3,
-  Receipt
-} from 'lucide-react';
-import { StatsCard, DashboardGrid } from '@/components/shared';
-import { CollegeExpenditureDashboardStats } from '@/lib/types/college/expenditure';
-import { formatCurrency } from '@/lib/utils';
+  Receipt,
+} from "lucide-react";
+import { StatsCard, DashboardGrid } from "@/components/shared";
+import { CollegeExpenditureDashboardStats } from "@/lib/types/college/expenditure";
+import { formatCurrency } from "@/lib/utils";
 
 interface CollegeExpenditureStatsCardsProps {
   stats: CollegeExpenditureDashboardStats;
@@ -21,11 +21,9 @@ interface CollegeExpenditureStatsCardsProps {
   className?: string;
 }
 
-export const CollegeExpenditureStatsCards: React.FC<CollegeExpenditureStatsCardsProps> = ({
-  stats,
-  loading = false,
-  className,
-}) => {
+export const CollegeExpenditureStatsCards: React.FC<
+  CollegeExpenditureStatsCardsProps
+> = ({ stats, loading = false, className }) => {
   const statsCards = [
     {
       title: "Total Expenditure Records",
@@ -42,7 +40,7 @@ export const CollegeExpenditureStatsCards: React.FC<CollegeExpenditureStatsCards
       icon: DollarSign,
       color: "red" as const,
       description: "Total expenses incurred",
-      variant: "gradient" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -51,7 +49,7 @@ export const CollegeExpenditureStatsCards: React.FC<CollegeExpenditureStatsCards
       icon: CheckCircle,
       color: "green" as const,
       description: "Successfully paid bills",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -60,7 +58,7 @@ export const CollegeExpenditureStatsCards: React.FC<CollegeExpenditureStatsCards
       icon: Clock,
       color: "orange" as const,
       description: "Pending payments",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -87,7 +85,7 @@ export const CollegeExpenditureStatsCards: React.FC<CollegeExpenditureStatsCards
       icon: CalendarDays,
       color: "cyan" as const,
       description: "Current month's expenses",
-      variant: "default" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -96,7 +94,7 @@ export const CollegeExpenditureStatsCards: React.FC<CollegeExpenditureStatsCards
       icon: BarChart3,
       color: "violet" as const,
       description: "Current year's expenses",
-      variant: "gradient" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -105,7 +103,7 @@ export const CollegeExpenditureStatsCards: React.FC<CollegeExpenditureStatsCards
       icon: Receipt,
       color: "yellow" as const,
       description: "Transactions this month",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
     {
@@ -114,23 +112,15 @@ export const CollegeExpenditureStatsCards: React.FC<CollegeExpenditureStatsCards
       icon: TrendingUp,
       color: "indigo" as const,
       description: "Transactions this year",
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "sm" as const,
     },
   ];
 
   return (
-    <DashboardGrid 
-      columns={6} 
-      gap="md" 
-      className={className}
-    >
+    <DashboardGrid columns={6} gap="md" className={className}>
       {statsCards.map((stat, index) => (
-        <StatsCard
-          key={stat.title}
-          {...stat}
-          loading={loading}
-        />
+        <StatsCard key={stat.title} {...stat} loading={loading} />
       ))}
     </DashboardGrid>
   );
