@@ -103,13 +103,6 @@ const AdmissionsList = () => {
   // Column definitions for the enhanced table
   const columns: ColumnDef<SchoolAdmissionListItem>[] = useMemo(() => [
     {
-      accessorKey: "student_id",
-      header: "Student ID",
-      cell: ({ row }) => (
-        <span className="font-mono text-sm">{row.getValue("student_id")}</span>
-      ),
-    },
-    {
       accessorKey: "admission_no",
       header: "Admission No",
       cell: ({ row }) => (
@@ -180,7 +173,7 @@ const AdmissionsList = () => {
         columns={columns}
         title="Student Admissions"
         searchKey="student_name"
-        searchPlaceholder="Search by name, admission number, or student ID..."
+        searchPlaceholder="Search by name, admission number..."
         exportable={true}
         onExport={handleExportAll}
         loading={isLoading}

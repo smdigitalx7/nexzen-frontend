@@ -341,10 +341,10 @@ const ConfirmedReservationsTab = () => {
   // Column definitions for the enhanced table
   const columns: ColumnDef<SchoolReservationListItem>[] = useMemo(() => [
     {
-      accessorKey: "reservation_id",
-      header: "Reservation ID",
+      accessorKey: "reservation_no",
+      header: "Reservation No",
       cell: ({ row }) => (
-        <span className="font-medium">{row.getValue("reservation_id")}</span>
+        <span className="font-medium">{row.getValue("reservation_no")}</span>
       ),
     },
     {
@@ -448,13 +448,14 @@ const ConfirmedReservationsTab = () => {
         columns={columns}
         title="Confirmed Reservations"
         searchKey="student_name"
-        searchPlaceholder="Search by name, reservation number, or Aadhar..."
+        searchPlaceholder="Search by name, reservation number..."
         loading={isLoading}
         showSearch={true}
         enableDebounce={true}
         debounceDelay={300}
         highlightSearchResults={true}
         className="w-full"
+        exportable={true}
       />
 
       {/* Reservation Details Dialog */}

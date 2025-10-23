@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useMemo } from "react";
-import { CreditCard, DollarSign, Truck } from "lucide-react";
+import { CreditCard, DollarSign, Building2, Truck } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import type { TabItem } from "@/components/shared/TabSwitcher";
 import { useSchoolFeesManagement } from "@/lib/hooks/school/use-school-fees-management";
@@ -8,9 +8,11 @@ import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalances
 import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeBalancesPanel";
 import { FeeStatsCards } from "./FeeStatsCards";
 import { CollectFee } from "./collect-fee/CollectFee";
-
+import { useAuthStore } from "@/store/authStore";
+import { Badge } from "@/components/ui/badge";
 
 export const FeesManagement = () => {
+  const { currentBranch } = useAuthStore();
   const {
     totalOutstanding,
     totalIncome,
@@ -70,6 +72,16 @@ export const FeesManagement = () => {
             Comprehensive fee structure management and payment tracking
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="gap-1">
+            {currentBranch?.branch_type === "SCHOOL" ? (
+              <DollarSign className="h-3 w-3" />
+            ) : (
+              <Building2 className="h-3 w-3" />
+            )}
+            {currentBranch?.branch_name}
+          </Badge>
+        </div>
       </motion.div>
 
       {/* Fee Overview Cards */}
@@ -103,7 +115,6 @@ export const FeesManagement = () => {
         ]}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        gridCols="grid-cols-3"
       />
 
     </div>

@@ -30,6 +30,7 @@ import type { CollegeReservationMinimalRead, ReservationStatusEnum } from "@/lib
 
 export type Reservation = {
   reservation_id: number;
+  reservation_no?: string | null;
   reservation_date?: string | null;
   student_name: string;
   aadhar_no?: string | null;
@@ -247,7 +248,7 @@ export default function ReservationsTable({
           ) : (
             paginatedReservations.map((reservation) => (
               <TableRow key={reservation.reservation_id}>
-                <TableCell className="font-medium">{reservation.reservation_id}</TableCell>
+                <TableCell className="font-medium">{reservation.reservation_no || reservation.reservation_id}</TableCell>
                 <TableCell>{reservation.student_name}</TableCell>
                 <TableCell>{reservation.group_name || 'N/A'}</TableCell>
                 <TableCell>{reservation.course_name || 'N/A'}</TableCell>

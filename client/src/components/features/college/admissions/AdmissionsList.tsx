@@ -107,13 +107,6 @@ const AdmissionsList = () => {
   // Column definitions for the enhanced table
   const columns: ColumnDef<CollegeAdmissionListItem>[] = useMemo(() => [
     {
-      accessorKey: "student_id",
-      header: "Student ID",
-      cell: ({ row }) => (
-        <span className="font-mono text-sm">{row.getValue("student_id")}</span>
-      ),
-    },
-    {
       accessorKey: "admission_no",
       header: "Admission No",
       cell: ({ row }) => (

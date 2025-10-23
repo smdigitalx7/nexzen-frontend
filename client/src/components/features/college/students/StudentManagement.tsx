@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users, IdCard, MapPin } from 'lucide-react';
+import { Users, IdCard, MapPin, Building2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { TabSwitcher } from '@/components/shared';
 import { useAuthStore } from '@/store/authStore';
@@ -20,13 +20,16 @@ const StudentManagement = () => {
           <h1 className="text-3xl font-bold tracking-tight">Student Management</h1>
           <p className="text-muted-foreground mt-1">Manage student records, attendance, and academic progress</p>
         </div>
-        {currentBranch && (
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
-              {currentBranch.branch_name} • {currentBranch.branch_type.toUpperCase()}
-            </Badge>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="gap-1">
+            {currentBranch?.branch_type === "COLLEGE" ? (
+              <Users className="h-3 w-3" />
+            ) : (
+              <Building2 className="h-3 w-3" />
+            )}
+            {currentBranch?.branch_name}
+          </Badge>
+        </div>
       </div>
         
       {/* Tabs */}

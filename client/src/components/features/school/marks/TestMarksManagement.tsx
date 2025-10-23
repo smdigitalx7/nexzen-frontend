@@ -298,7 +298,7 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
   return (
     <div className="flex flex-col h-full bg-slate-50/30">
       <div className="flex-1 overflow-auto">
-        <div className="p-6 space-y-6">
+        <div className="p-2 space-y-2">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}

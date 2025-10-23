@@ -28,6 +28,7 @@ import type { ReservationStatusEnum } from "@/lib/types/college/reservations";
 // Define the reservation type for this component
 export type ReservationForAllReservations = {
   reservation_id: number;
+  reservation_no?: string | null;
   reservation_date?: string | null;
   student_name: string;
   aadhar_no?: string | null;
@@ -155,10 +156,10 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
   // Column definitions for the enhanced table
   const columns: ColumnDef<ReservationForAllReservations>[] = useMemo(() => [
     {
-      accessorKey: "reservation_id",
-      header: "ID",
+      accessorKey: "reservation_no",
+      header: "Reservation No",
       cell: ({ row }) => (
-        <span className="font-medium">{row.getValue("reservation_id")}</span>
+        <span className="font-medium">{row.original.reservation_no || 'N/A'}</span>
       ),
     },
     {
@@ -303,7 +304,7 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
         columns={columns}
         title="All Reservations"
         searchKey="student_name"
-        searchPlaceholder="Search by name, ID, group, course, or father name..."
+        searchPlaceholder="Search by name, reservation no, group, course, or father name..."
         loading={isLoading}
         showSearch={true}
         enableDebounce={true}

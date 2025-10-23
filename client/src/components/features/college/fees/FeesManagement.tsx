@@ -8,8 +8,11 @@ import { useCollegeTuitionFeeBalancesDashboard } from "@/lib/hooks/college/use-c
 import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalancesPanel";
 import { CollectFee } from "./collect-fee/CollectFee";
 import { CollegeTuitionFeeBalanceStatsCards } from "../tuition-fee-balances/CollegeTuitionFeeBalanceStatsCards";
+import { useAuthStore } from "@/store";
+import { Badge } from "@/components/ui/badge";
 
 export const FeesManagement = () => {
+  const { currentBranch } = useAuthStore();
   // Dashboard stats hooks
   const { data: tuitionDashboardStats, isLoading: tuitionDashboardLoading } = useCollegeTuitionFeeBalancesDashboard();
   
@@ -65,6 +68,12 @@ export const FeesManagement = () => {
           <p className="text-muted-foreground">
             Comprehensive fee structure management and payment tracking
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="gap-1">
+            <DollarSign className="h-3 w-3" />
+            {currentBranch?.branch_name}
+          </Badge>
         </div>
       </motion.div>
 

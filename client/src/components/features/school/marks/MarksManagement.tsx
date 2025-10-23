@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { GraduationCap, ClipboardList, FileText, Calculator, Target, Trophy } from 'lucide-react';
+import { GraduationCap, ClipboardList, FileText, Calculator, Target, Building2, TrophyIcon } from 'lucide-react' ;
+import { Badge } from '@/components/ui/badge';
 import { TabSwitcher } from '@/components/shared';
 import { StatsCard } from '@/components/shared/dashboard/StatsCard';
 import { DashboardGrid } from '@/components/shared/dashboard/DashboardGrid';
 import { useMarksStatistics, type MarksData } from '@/lib/hooks/school/use-marks-statistics';
 import ExamMarksManagement from './ExamMarksManagement';
 import TestMarksManagement from './TestMarksManagement';
+import { useAuthStore } from '@/store/authStore';
 
 const MarksManagement = () => {
+  const { currentBranch } = useAuthStore();
   const [activeTab, setActiveTab] = useState('exam-marks');
   const [examMarksData, setExamMarksData] = useState<MarksData[]>([]);
   const [testMarksData, setTestMarksData] = useState<MarksData[]>([]);
@@ -38,6 +41,16 @@ const MarksManagement = () => {
                 }
               </p>
             </div>
+            <div className="flex items-center gap-2">
+          <Badge variant="outline" className="gap-1">
+            {currentBranch?.branch_type === "SCHOOL" ? (
+              <GraduationCap className="h-3 w-3" />
+            ) : (
+              <Building2 className="h-3 w-3" />
+            )}
+            {currentBranch?.branch_name}
+          </Badge>
+        </div>
           </motion.div>
 
           {/* Statistics Cards */}
@@ -74,7 +87,7 @@ const MarksManagement = () => {
               <StatsCard
                 title="Top Score"
                 value={`${statistics.topScore}%`}
-                icon={Trophy}
+                icon={TrophyIcon}
                 color="orange"
                 variant="elevated"
                 size="md"

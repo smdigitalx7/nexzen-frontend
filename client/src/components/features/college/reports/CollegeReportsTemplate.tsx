@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useAuthStore } from "@/store/authStore";
 import { DollarSign, TrendingUp } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import { useCollegeIncomeList, useCollegeIncomeDashboard, useCollegeIncome } from "@/lib/hooks/college/use-college-income";
@@ -16,6 +17,7 @@ import { CollegeFinanceReportButtons } from './components/CollegeFinanceReportBu
 
 
 export const CollegeReportsTemplate = () => {
+  const { currentBranch } = useAuthStore();
   const [showAddExpenditureDialog, setShowAddExpenditureDialog] = useState(false);
   const [showViewIncomeDialog, setShowViewIncomeDialog] = useState(false);
   const [selectedIncomeId, setSelectedIncomeId] = useState<number | null>(null);

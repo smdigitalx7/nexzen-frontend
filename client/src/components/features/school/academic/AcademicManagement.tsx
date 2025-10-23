@@ -3,8 +3,6 @@ import { motion } from "framer-motion";
 import { School, Building2, Users, GraduationCap, Layers, Calendar, FileText, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
-import type { TabItem } from "@/components/shared/TabSwitcher";
-import { useAuthStore } from "@/store/authStore";
 import { useSchoolClasses } from '@/lib/hooks/school/use-school-classes';
 import { useSchoolSubjects } from '@/lib/hooks/school/use-school-subjects';
 import { useSchoolExams, useSchoolTests } from '@/lib/hooks/school/use-school-exams-tests';
@@ -15,6 +13,7 @@ import { SectionsTab } from "@/components/features/school/academic/sections/Sect
 import { ExamsTab } from "@/components/features/school/academic/exams/ExamsTab";
 import { TestTab } from "@/components/features/school/academic/tests/TestTab";
 import { AcademicOverviewCards } from "@/components/features/school/academic/AcademicOverviewCards";
+import { useAuthStore } from "@/store/authStore";
 
 const AcademicManagement = () => {
   const { currentBranch } = useAuthStore();

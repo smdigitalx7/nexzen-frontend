@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { BarChart3, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -32,6 +33,7 @@ import { SchoolFinanceReportButtons } from '../reports/components/SchoolFinanceR
 
 
 export const SchoolReportsTemplate = () => {
+  const { currentBranch } = useAuthStore();
   const [showAddExpenditureDialog, setShowAddExpenditureDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("income");
   const [showExportDialog, setShowExportDialog] = useState(false);

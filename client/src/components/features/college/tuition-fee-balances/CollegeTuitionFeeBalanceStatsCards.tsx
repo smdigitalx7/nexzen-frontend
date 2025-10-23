@@ -36,7 +36,7 @@ export const CollegeTuitionFeeBalanceStatsCards: React.FC<CollegeTuitionFeeBalan
       color: "blue" as const,
       description: "All fee balance records",
       variant: "elevated" as const,
-      size: "lg" as const,
+      size: "sm" as const,
     },
     {
       title: "Total Actual Fee",
@@ -45,7 +45,7 @@ export const CollegeTuitionFeeBalanceStatsCards: React.FC<CollegeTuitionFeeBalan
       color: "green" as const,
       description: "Before concessions",
       variant: "gradient" as const,
-      size: "lg" as const,
+      size: "sm" as const,
     },
     {
       title: "Total Concession",
@@ -54,13 +54,7 @@ export const CollegeTuitionFeeBalanceStatsCards: React.FC<CollegeTuitionFeeBalan
       color: "emerald" as const,
       description: "Total concessions given",
       variant: "bordered" as const,
-      size: "lg" as const,
-      trend: {
-        value: stats.total_actual_fee > 0 ? 
-          Math.round((stats.total_concession / stats.total_actual_fee) * 100) : 0,
-        label: "concession rate",
-        isPositive: false,
-      },
+      size: "sm" as const,
     },
     {
       title: "Total Net Fee",
@@ -69,7 +63,7 @@ export const CollegeTuitionFeeBalanceStatsCards: React.FC<CollegeTuitionFeeBalan
       color: "indigo" as const,
       description: "After concessions",
       variant: "bordered" as const,
-      size: "lg" as const,
+      size: "sm" as const,
     },
     {
       title: "Total Paid",
@@ -78,13 +72,7 @@ export const CollegeTuitionFeeBalanceStatsCards: React.FC<CollegeTuitionFeeBalan
       color: "teal" as const,
       description: "Amount collected",
       variant: "elevated" as const,
-      size: "lg" as const,
-      trend: {
-        value: stats.total_net_fee > 0 ? 
-          Math.round((stats.total_paid / stats.total_net_fee) * 100) : 0,
-        label: "collection rate",
-        isPositive: true,
-      },
+      size: "sm" as const,
     },
     {
       title: "Total Outstanding",
@@ -93,7 +81,7 @@ export const CollegeTuitionFeeBalanceStatsCards: React.FC<CollegeTuitionFeeBalan
       color: "red" as const,
       description: "Pending payments",
       variant: "elevated" as const,
-      size: "lg" as const,
+      size: "sm" as const,
     },
     {
       title: "Book Fee Total",
@@ -102,7 +90,7 @@ export const CollegeTuitionFeeBalanceStatsCards: React.FC<CollegeTuitionFeeBalan
       color: "purple" as const,
       description: "Total book fees",
       variant: "default" as const,
-      size: "md" as const,
+      size: "sm" as const,
     },
     {
       title: "Book Fee Paid",
@@ -111,7 +99,7 @@ export const CollegeTuitionFeeBalanceStatsCards: React.FC<CollegeTuitionFeeBalan
       color: "cyan" as const,
       description: "Book fees collected",
       variant: "default" as const,
-      size: "md" as const,
+      size: "sm" as const,
     },
     {
       title: "Book Pending",
@@ -120,7 +108,7 @@ export const CollegeTuitionFeeBalanceStatsCards: React.FC<CollegeTuitionFeeBalan
       color: "yellow" as const,
       description: "Pending book payments",
       variant: "bordered" as const,
-      size: "md" as const,
+      size: "sm" as const,
     },
     {
       title: "Book Paid",
@@ -129,7 +117,7 @@ export const CollegeTuitionFeeBalanceStatsCards: React.FC<CollegeTuitionFeeBalan
       color: "green" as const,
       description: "Completed book payments",
       variant: "bordered" as const,
-      size: "md" as const,
+      size: "sm" as const,
     },
     {
       title: "Term 1 Pending",
@@ -192,9 +180,7 @@ export const CollegeTuitionFeeBalanceStatsCards: React.FC<CollegeTuitionFeeBalan
       color: (stats.average_payment_completion >= 80 ? "green" : stats.average_payment_completion >= 60 ? "yellow" : "red") as "green" | "yellow" | "red",
       description: "Average completion rate",
       variant: "gradient" as const,
-      size: "lg" as const,
-      showProgress: true,
-      progressValue: stats.average_payment_completion,
+      size: "sm" as const,
     },
   ];
 

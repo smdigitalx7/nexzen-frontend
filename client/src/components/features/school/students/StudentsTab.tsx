@@ -139,7 +139,7 @@ export const StudentsTab = () => {
   };
 
   const columns = useMemo(() => [
-    createTextColumn<SchoolStudentRead>('admission_no', { header: 'Admission No.', className: 'font-mono font-semibold text-slate-900' }),
+    createTextColumn<SchoolStudentRead>('admission_no', { header: 'Admission No.' }),
     createAvatarColumn<SchoolStudentRead>('student_name', 'gender', { header: 'Student Details' }),
     createTextColumn<SchoolStudentRead>('father_or_guardian_mobile', { header: 'Father/Guardian Mobile', fallback: 'N/A' }),
     createTextColumn<SchoolStudentRead>('mother_or_guardian_mobile', { header: 'Mother/Guardian Mobile', fallback: 'N/A' }),

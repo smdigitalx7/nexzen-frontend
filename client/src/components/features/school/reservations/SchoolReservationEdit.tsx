@@ -139,10 +139,6 @@ export default function SchoolReservationEdit({ form, setForm, classFee, transpo
             <Label htmlFor="application_fee">Application Fee</Label>
             <Input id="application_fee" type="number" value={form.application_fee || "0"} onChange={(e) => setForm({ ...form, application_fee: e.target.value })} />
           </div>
-          <div className="flex items-center gap-2 pt-6">
-            <Switch checked={!!form.application_fee_paid} onCheckedChange={(v) => setForm({ ...form, application_fee_paid: v })} id="application_fee_paid" />
-            <Label htmlFor="application_fee_paid">Application Fee Paid</Label>
-          </div>
           <div>
             <Label htmlFor="tuition_fee">Tuition Fee</Label>
             <Input id="tuition_fee" type="number" value={form.tuition_fee || "0"} onChange={(e) => setForm({ ...form, tuition_fee: e.target.value })} />

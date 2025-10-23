@@ -38,7 +38,6 @@ type ReservationFormState = {
   present_address: string;
   permanent_address: string;
   application_fee: string;
-  application_fee_paid: boolean;
   class_name: string;
   tuition_fee: string;
   book_fee: string;
@@ -171,7 +170,6 @@ export default function ReservationForm({
       present_address: "123 Main Street, Downtown Area, City - 123456",
       permanent_address: "123 Main Street, Downtown Area, City - 123456",
       application_fee: "500",
-      application_fee_paid: false,
       class_name: classes.length > 0 ? classes[0].class_name : "",
       tuition_fee: "15000",
       book_fee: "3000",
@@ -219,7 +217,6 @@ export default function ReservationForm({
       present_address: "",
       permanent_address: "",
       application_fee: "",
-      application_fee_paid: false,
       class_name: "",
       tuition_fee: "",
       book_fee: "",
@@ -833,25 +830,6 @@ export default function ReservationForm({
                   }
                   className="w-full mb-5"
                 />
-              </div>
-              <div>
-                <Label htmlFor="application_fee_paid">
-                  Application Fee Paid
-                </Label>
-                <Select
-                  value={form.application_fee_paid ? "true" : "false"}
-                  onValueChange={(value) =>
-                    setForm({ ...form, application_fee_paid: value === "true" })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">Yes</SelectItem>
-                    <SelectItem value="false">No</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
               <div></div>
             </div>

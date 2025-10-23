@@ -11,7 +11,7 @@ import { useDistanceSlabs } from "@/lib/hooks/general/useDistanceSlabs";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
+import { useAuthStore } from "@/store/authStore";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +37,7 @@ import StatusUpdateTable from "../reservations/StatusUpdateTable";
 import { TransportService } from "@/lib/services/school/transport.service";
 import { toast } from "@/hooks/use-toast";
 import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
-import { Plus, List, BarChart3 } from "lucide-react";
+import { Plus, List, BarChart3, School, Building2 } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import { SchoolReservationStatsCards } from "./SchoolReservationStatsCards";
 import {
@@ -51,6 +51,7 @@ import {
 import type { SchoolIncomeRead } from "@/lib/types/school";
 
 export default function ReservationNew() {
+  const { currentBranch } = useAuthStore();
   const { data: routeNames = [] } = useQuery({
     queryKey: ["public", "bus-routes", "names"],
     queryFn: () => TransportService.getRouteNames(),
@@ -142,7 +143,6 @@ export default function ReservationNew() {
       transport_fee: r.transport_fee || 0, // Add transport_fee
       book_fee: r.book_fee || 0, // Add book_fee
       application_fee: r.application_fee || 0, // Add application_fee
-      application_fee_paid: r.application_fee_paid || false, // Add application_fee_paid
       tuition_concession: r.tuition_concession || 0, // Add tuition_concession
       transport_concession: r.transport_concession || 0, // Add transport_concession
       remarks: r.remarks || "", // Add remarks
@@ -636,6 +636,16 @@ export default function ReservationNew() {
               Reservation No: {reservationNo}
             </Badge>
           )}
+          <div className="flex items-center gap-2">
+          <Badge variant="outline" className="gap-1">
+            {currentBranch?.branch_type === "SCHOOL" ? (
+              <School className="h-3 w-3" />
+            ) : (
+              <Building2 className="h-3 w-3" />
+            )}
+            {currentBranch?.branch_name}
+          </Badge>
+        </div>
         </div>
       </motion.div>
 

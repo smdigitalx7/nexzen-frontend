@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { GraduationCap, ClipboardList, FileText, Calculator, Target, Trophy } from 'lucide-react';
+import { GraduationCap, ClipboardList, FileText, Calculator, Target, TrophyIcon } from 'lucide-react';
 import { TabSwitcher } from '@/components/shared';
 import { StatsCard } from '@/components/shared/dashboard/StatsCard';
 import { DashboardGrid } from '@/components/shared/dashboard/DashboardGrid';
 import { useCollegeMarksStatistics, type CollegeMarksData } from '@/lib/hooks/college/use-college-marks-statistics';
 import ExamMarksManagement from './ExamMarksManagement';
 import TestMarksManagement from './TestMarksManagement';
+import { useAuthStore } from "@/store";
+import { Badge } from "@/components/ui/badge";
 
 const MarksManagement = () => {
+  const { currentBranch } = useAuthStore();
   const [activeTab, setActiveTab] = useState('exam-marks');
   const [examMarksData, setExamMarksData] = useState<CollegeMarksData[]>([]);
   const [testMarksData, setTestMarksData] = useState<CollegeMarksData[]>([]);
@@ -37,6 +40,12 @@ const MarksManagement = () => {
                   : 'Track test results and manage academic performance'
                 }
               </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="gap-1">
+                <GraduationCap className="h-3 w-3" />
+                {currentBranch?.branch_name}
+              </Badge>
             </div>
           </motion.div>
 
@@ -74,7 +83,7 @@ const MarksManagement = () => {
               <StatsCard
                 title="Top Score"
                 value={`${statistics.topScore}%`}
-                icon={Trophy}
+                icon={TrophyIcon}
                 color="orange"
                 variant="elevated"
                 size="md"

@@ -6,9 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import AttendanceView from './AttendanceView';
 import AttendanceCreate from './AttendanceCreate';
 import { Eye, Plus } from 'lucide-react';
-import { TabSwitcher } from '@/components/shared';
-import type { TabItem } from '@/components/shared/TabSwitcher';
- 
+import { TabSwitcher } from '@/components/shared'; 
 
 const AttendanceManagement = () => {
   const [selectedDate] = useState<Date | undefined>(new Date());
@@ -128,7 +126,6 @@ const AttendanceManagement = () => {
               ]}
               activeTab={activeTab}
               onTabChange={setActiveTab}
-              gridCols="grid-cols-2"
             />
           </motion.div>
         </div>

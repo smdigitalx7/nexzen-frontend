@@ -14,21 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -58,21 +43,13 @@ import { Plus, List, BarChart3, Save } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import StatusUpdateComponent from "./StatusUpdateComponent";
 import AllReservationsComponent from "./AllReservationsComponent";
-import type { TabItem } from "@/components/shared/TabSwitcher";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { CollegeReservationStatsCards } from "./CollegeReservationStatsCards";
 import { ConcessionUpdateDialog } from "@/components/shared";
+import { Building2, University } from "lucide-react";
 
-// Reservations are loaded from backend
 
 export default function ReservationNew() {
-  const { academicYear } = useAuthStore();
+  const { academicYear, currentBranch } = useAuthStore();
   const { data: routeNames = [] } = useQuery({
     queryKey: ["public", "bus-routes", "names"],
     queryFn: () => TransportService.getRouteNames(),
@@ -138,18 +115,18 @@ export default function ReservationNew() {
       aadhar_no: r.aadhar_no,
       gender: r.gender,
       dob: r.dob,
-      father_name: r.father_name,
-      father_mobile: r.father_mobile,
+      father_name: r.father_or_guardian_name,
+      father_mobile: r.father_or_guardian_mobile,
       group_id: r.group_id || r.preferred_group_id,
       course_id: r.course_id || r.preferred_course_id,
       group_name: r.group_name,
       course_name: r.course_name,
+      reservation_no: r.reservation_no,
       status: r.status || "PENDING",
       created_at: r.created_at,
       remarks: r.remarks,
       // Additional fields for UI functionality
       income_id: r.income_id || r.incomeId,
-      concession_lock: r.concession_lock || false,
       tuition_fee: r.total_tuition_fee || 0,
       transport_fee: r.transport_fee || 0,
       book_fee: r.book_fee || 0,
@@ -420,7 +397,6 @@ export default function ReservationNew() {
       present_address: form.presentAddress || null,
       permanent_address: form.permanentAddress || null,
       application_fee: Number(form.reservationFee || 0),
-      application_fee_paid: false,
       preferred_class_id: Number(form.preferredClassId || 0),
       preferred_group_id: Number(form.preferredGroupId || 0),
       group_name: form.group || "N/A", // Required field - provide default
@@ -441,7 +417,6 @@ export default function ReservationNew() {
       pickup_point: form.pickupPoint || null,
       transport_fee:
         form.transport === "Yes" ? Number(transportFee || 0) : null, // Use null instead of 0
-      concession_lock: false,
       book_fee_required: false,
       course_required: false,
       status: "PENDING" as "PENDING" | "CONFIRMED" | "CANCELLED",
@@ -503,7 +478,6 @@ export default function ReservationNew() {
       present_address: f.presentAddress || null,
       permanent_address: f.permanentAddress || null,
       application_fee: Number(f.reservationFee || 0),
-      application_fee_paid: false,
       preferred_class_id: Number(f.preferredClassId || 0),
       preferred_group_id: Number(f.preferredGroupId || 0),
       group_name: f.group || "N/A", // Required field - provide default
@@ -521,7 +495,6 @@ export default function ReservationNew() {
         : null, // Use null instead of 0
       pickup_point: f.pickupPoint || null,
       transport_fee: f.transport === "Yes" ? Number(transportFee || 0) : null, // Use null instead of 0
-      concession_lock: false,
       book_fee_required: false,
       course_required: false,
       status: "PENDING" as "PENDING" | "CONFIRMED" | "CANCELLED",
@@ -803,7 +776,18 @@ export default function ReservationNew() {
               Reservation No: {reservationNo}
             </Badge>
           )}
+          <div className="flex items-center gap-2">
+          <Badge variant="outline" className="gap-1">
+            {currentBranch?.branch_type === "COLLEGE" ? (
+              <University className="h-3 w-3" />
+            ) : (
+              <Building2 className="h-3 w-3" />
+            )}
+            {currentBranch?.branch_name}
+          </Badge>
         </div>
+        </div>
+        
       </motion.div>
 
       {/* College Reservation Dashboard Stats */}
@@ -850,7 +834,6 @@ export default function ReservationNew() {
                     present_address: form.presentAddress,
                     permanent_address: form.permanentAddress,
                     application_fee: Number(form.reservationFee || 0),
-                    application_fee_paid: false,
                     preferred_class_id: Number(form.preferredClassId || 0),
                     preferred_group_id: Number(form.preferredGroupId || 0),
                     group_name: form.group,
@@ -865,7 +848,6 @@ export default function ReservationNew() {
                     preferred_distance_slab_id: Number(form.preferredDistanceSlabId || 0),
                     pickup_point: form.pickupPoint,
                     transport_fee: transportFee,
-                    concession_lock: false,
                     book_fee_required: true,
                     course_required: true,
                     status: "PENDING",
@@ -1422,7 +1404,6 @@ export default function ReservationNew() {
                   present_address: editForm.presentAddress,
                   permanent_address: editForm.permanentAddress,
                   application_fee: Number(editForm.reservationFee || 0),
-                  application_fee_paid: false,
                   preferred_class_id: Number(editForm.preferredClassId || 0),
                   preferred_group_id: Number(editForm.preferredGroupId || 0),
                   group_name: editForm.group,
@@ -1437,7 +1418,6 @@ export default function ReservationNew() {
                   preferred_distance_slab_id: Number(editForm.preferredDistanceSlabId || 0),
                   pickup_point: editForm.pickupPoint,
                   transport_fee: transportFee,
-                  concession_lock: false,
                   book_fee_required: true,
                   course_required: true,
                   status: "PENDING",

@@ -44,6 +44,8 @@ import type { CollegeReservationMinimalRead, CollegeReservationRead } from "@/li
 type Reservation = CollegeReservationMinimalRead & {
   // Add any additional properties needed for the component
   reservation_no?: string;
+  group_name?: string | null;
+  course_name?: string | null;
   father_or_guardian_name?: string;
   father_or_guardian_aadhar_no?: string;
   father_or_guardian_mobile?: string;
@@ -340,9 +342,14 @@ const ConfirmedReservationsTab = () => {
       cell: ({ row }) => <span>{row.getValue("student_name")}</span>,
     },
     {
-      accessorKey: "class_name",
-      header: "Class",
-      cell: ({ row }) => <span>{row.getValue("class_name")}</span>,
+      accessorKey: "group_name",
+      header: "Group",
+      cell: ({ row }) => <span>{row.getValue("group_name") || "-"}</span>,
+    },
+    {
+      accessorKey: "course_name",
+      header: "Course",
+      cell: ({ row }) => <span>{row.getValue("course_name") || "-"}</span>,
     },
     {
       accessorKey: "application_fee_paid",

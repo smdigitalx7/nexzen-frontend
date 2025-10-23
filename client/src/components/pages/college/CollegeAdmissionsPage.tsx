@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { UserCheck, Users } from "lucide-react";
+import { Building2, UserCheck, Users, FileText } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import type { TabItem } from "@/components/shared/TabSwitcher";
+import { useAuthStore } from "@/store/authStore";
+import { Badge } from "@/components/ui/badge";
 import AdmissionsList from "@/components/features/college/admissions/AdmissionsList";
 import ConfirmedReservationsTab from "@/components/features/college/admissions/ConfirmedReservationsTab";
 
 const CollegeAdmissionsPage = () => {
+  const { currentBranch } = useAuthStore();
   const [activeTab, setActiveTab] = useState("reservations");
 
   const tabs: TabItem[] = [
@@ -31,6 +34,16 @@ const CollegeAdmissionsPage = () => {
           <p className="text-muted-foreground">
             Manage student reservations and admissions
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="gap-1">
+            {currentBranch?.branch_type === "COLLEGE" ? (
+              <FileText className="h-3 w-3" />
+            ) : (
+              <Building2 className="h-3 w-3" />
+            )}
+            {currentBranch?.branch_name}
+          </Badge>
         </div>
       </div>
 

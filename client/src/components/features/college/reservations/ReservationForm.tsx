@@ -38,7 +38,6 @@ type ReservationFormState = {
   present_address: string;
   permanent_address: string;
   application_fee: number;
-  application_fee_paid: boolean;
   preferred_class_id: number;
   preferred_group_id: number;
   group_name: string;
@@ -53,7 +52,6 @@ type ReservationFormState = {
   preferred_distance_slab_id: number;
   pickup_point: string;
   transport_fee: number;
-  concession_lock: boolean;
   book_fee_required: boolean;
   course_required: boolean;
   status: string;
@@ -192,7 +190,6 @@ export default function ReservationForm({
       present_address: "123 Main Street, Downtown Area, City - 123456",
       permanent_address: "123 Main Street, Downtown Area, City - 123456",
       application_fee: 500,
-      application_fee_paid: true,
       preferred_class_id: (classes && classes.length > 0) ? classes[0].class_id : 0,
       preferred_group_id: (groups && groups.length > 0) ? groups[0].group_id : 0,
       group_name: (groups && groups.length > 0) ? groups[0].group_name : "",
@@ -207,7 +204,6 @@ export default function ReservationForm({
       preferred_distance_slab_id: (distanceSlabs && distanceSlabs.length > 0) ? distanceSlabs[0].slab_id : 0,
       pickup_point: "Near City Mall",
       transport_fee: 2000,
-      concession_lock: false,
       book_fee_required: true,
       course_required: true,
       status: "PENDING",
@@ -252,7 +248,6 @@ export default function ReservationForm({
       present_address: "",
       permanent_address: "",
       application_fee: 0,
-      application_fee_paid: false,
       preferred_class_id: 0,
       preferred_group_id: 0,
       group_name: "",
@@ -267,7 +262,6 @@ export default function ReservationForm({
       preferred_distance_slab_id: 0,
       pickup_point: "",
       transport_fee: 0,
-      concession_lock: false,
       book_fee_required: false,
       course_required: false,
       status: "PENDING",
@@ -908,24 +902,7 @@ export default function ReservationForm({
             <h3 className="text-lg font-semibold border-b pb-2">
               College Settings
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="concession_lock">Concession Lock</Label>
-                <Select
-                  value={form.concession_lock ? "true" : "false"}
-                  onValueChange={(value) =>
-                    setForm({ ...form, concession_lock: value === "true" })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select concession lock" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">Yes</SelectItem>
-                    <SelectItem value="false">No</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="book_fee_required">Book Fee Required</Label>
                 <Select
@@ -1023,25 +1000,6 @@ export default function ReservationForm({
                   }
                   className="w-full mb-5"
                 />
-              </div>
-              <div>
-                <Label htmlFor="application_fee_paid">
-                  Application Fee Paid
-                </Label>
-                <Select
-                  value={form.application_fee_paid ? "true" : "false"}
-                  onValueChange={(value) =>
-                    setForm({ ...form, application_fee_paid: value === "true" })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">Yes</SelectItem>
-                    <SelectItem value="false">No</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
               <div></div>
             </div>
