@@ -56,6 +56,8 @@ import { CollegeReservationsService } from "@/lib/services/college/reservations.
 import type { CollegeReservationView } from "@/lib/types/college/reservations";
 import { Plus, List, BarChart3, Save } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
+import StatusUpdateComponent from "./StatusUpdateComponent";
+import AllReservationsComponent from "./AllReservationsComponent";
 import type { TabItem } from "@/components/shared/TabSwitcher";
 import {
   Card,
@@ -100,12 +102,6 @@ export default function ReservationNew() {
   const [editForm, setEditForm] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [reservationToDelete, setReservationToDelete] = useState<any>(null);
-  const [statusChanges, setStatusChanges] = useState<
-    Record<string, "PENDING" | "CONFIRMED" | "CANCELLED">
-  >({});
-  const [statusRemarks, setStatusRemarks] = useState<Record<string, string>>(
-    {}
-  );
   const [loadingReservation, setLoadingReservation] = useState<number | null>(
     null
   );
@@ -963,11 +959,7 @@ export default function ReservationNew() {
             icon: List,
             content: (
               <div>
-                {isLoadingReservations ? (
-                  <div className="p-6 text-sm text-muted-foreground text-center">
-                    Loading reservations…
-                  </div>
-                ) : reservationsError ? (
+                {reservationsError ? (
                   <div className="p-6 text-center">
                     <div className="text-red-600 mb-2">
                       <h3 className="font-medium">Connection Error</h3>
@@ -986,7 +978,7 @@ export default function ReservationNew() {
                     </Button>
                   </div>
                 ) : (
-                  <ReservationsTable
+                  <AllReservationsComponent
                     reservations={allReservations}
                     onView={handleView}
                     onEdit={handleEdit}
@@ -995,6 +987,7 @@ export default function ReservationNew() {
                       setShowDeleteDialog(true);
                     }}
                     onUpdateConcession={handleUpdateConcession}
+                    isLoading={isLoadingReservations}
                   />
                 )}
               </div>
@@ -1057,164 +1050,11 @@ export default function ReservationNew() {
                     </Button>
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Reservation No</TableHead>
-                        <TableHead>Student</TableHead>
-                        <TableHead>Current Status</TableHead>
-                        <TableHead>Change To</TableHead>
-                        <TableHead>Remarks</TableHead>
-                        <TableHead>Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {allReservations.length === 0 ? (
-                        <TableRow>
-                          <TableCell
-                            colSpan={6}
-                            className="h-24 text-center text-sm text-muted-foreground"
-                          >
-                            <div className="space-y-2">
-                              <p>No reservations found</p>
-                              <p className="text-xs">
-                                Create your first reservation using the "New
-                                Reservations" tab
-                              </p>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        allReservations.map((r) => {
-                          const current = (r.status || "").toUpperCase();
-                          const selected = (statusChanges[r.reservation_id] || current) as
-                            | "PENDING"
-                            | "CONFIRMED"
-                            | "CANCELLED";
-                          const same = selected === current;
-                          return (
-                            <TableRow key={r.reservation_id}>
-                              <TableCell className="font-medium">
-                                {r.reservation_id}
-                              </TableCell>
-                              <TableCell>{r.student_name}</TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant={
-                                    current === "PENDING"
-                                      ? "default"
-                                      : current === "CANCELLED"
-                                      ? "destructive"
-                                      : current === "CONFIRMED"
-                                      ? "secondary"
-                                      : "outline"
-                                  }
-                                >
-                                  {current}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="w-48">
-                                  <Select
-                                    value={selected}
-                                    onValueChange={(v) =>
-                                      setStatusChanges((prev) => ({
-                                        ...prev,
-                                        [r.reservation_id]: v as any,
-                                      }))
-                                    }
-                                  >
-                                    <SelectTrigger aria-label="Select status">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="PENDING">
-                                        Pending
-                                      </SelectItem>
-                                      <SelectItem value="CONFIRMED">
-                                        Confirmed
-                                      </SelectItem>
-                                      <SelectItem value="CANCELLED">
-                                        Cancelled
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="w-48">
-                                  <Textarea
-                                    placeholder="Enter remarks..."
-                                    value={statusRemarks[r.reservation_id] || ""}
-                                    onChange={(e) =>
-                                      setStatusRemarks((prev) => ({
-                                        ...prev,
-                                        [r.reservation_id]: e.target.value,
-                                      }))
-                                    }
-                                    className="text-sm "
-                                  />
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex justify-end">
-                                  <Button
-                                    size="sm"
-                                    variant={same ? "outline" : "default"}
-                                    disabled={same}
-                                    onClick={async () => {
-                                      const to = (statusChanges[r.reservation_id] ||
-                                        current) as
-                                        | "PENDING"
-                                        | "CONFIRMED"
-                                        | "CANCELLED";
-                                      const remarks = statusRemarks[r.reservation_id] || "";
-                                      try {
-                                        const payload = {
-                                          status: to as
-                                            | "PENDING"
-                                            | "CONFIRMED"
-                                            | "CANCELLED",
-                                          remarks: remarks.trim()
-                                            ? remarks
-                                            : null,
-                                        };
-                                        await CollegeReservationsService.updateStatus(
-                                          Number(r.reservation_id),
-                                          payload
-                                        );
-                                        refetchReservations();
-                                        // Clear the remarks after successful update
-                                        setStatusRemarks((prev) => ({
-                                          ...prev,
-                                          [r.reservation_id]: "",
-                                        }));
-                                      } catch (e: any) {
-                                        console.error(
-                                          "Failed to update status:",
-                                          e
-                                        );
-                                        toast({
-                                          title: "Status Update Failed",
-                                          description:
-                                            e?.message ||
-                                            "Could not update reservation status. Please try again.",
-                                          variant: "destructive",
-                                        });
-                                      }
-                                    }}
-                                  >
-                                    <Save className="h-4 w-4 mr-2" />
-                                    Update
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })
-                      )}
-                    </TableBody>
-                  </Table>
+                  <StatusUpdateComponent
+                    reservations={allReservations}
+                    onStatusUpdate={refetchReservations}
+                    isLoading={isLoadingReservations}
+                  />
                 )}
               </div>
             ),

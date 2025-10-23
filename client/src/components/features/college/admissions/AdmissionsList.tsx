@@ -1,16 +1,7 @@
-import React, { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useMemo, useCallback } from "react";
+import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -19,13 +10,13 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  Search,
   FileSpreadsheet,
   FileText,
   Eye,
   Download,
   GraduationCap,
 } from "lucide-react";
+import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import {
   useCollegeAdmissions,
   useCollegeAdmissionById,
@@ -36,10 +27,9 @@ import {
   exportSingleAdmissionToExcel,
   exportAdmissionFormToPDF,
 } from "@/lib/utils/admissionsExport";
-import type { CollegeAdmissionDetails } from "@/lib/types/college/admissions";
+import type { CollegeAdmissionDetails, CollegeAdmissionListItem } from "@/lib/types/college/admissions";
 
 const AdmissionsList = () => {
-  const [searchTerm, setSearchTerm] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(
     null
   );
@@ -49,28 +39,12 @@ const AdmissionsList = () => {
   const { data: admissions = [], isLoading } = useCollegeAdmissions();
   const { data: selectedAdmission } = useCollegeAdmissionById(selectedStudentId);
 
-  // Filter admissions based on search term
-  const filteredAdmissions = useMemo(() => {
-    if (!searchTerm.trim()) return admissions;
-
-    return admissions.filter(
-      (admission) =>
-        admission.student_name
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        admission.admission_no
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        admission.student_id?.toString().includes(searchTerm)
-    );
-  }, [admissions, searchTerm]);
-
   const handleViewDetails = async (studentId: number) => {
     setSelectedStudentId(studentId);
     setShowDetailsDialog(true);
   };
 
-  const handleExportAll = async () => {
+  const handleExportAll = useCallback(async () => {
     try {
       setIsExporting(true);
       await exportAdmissionsToExcel(admissions as any, "College_Admissions");
@@ -88,7 +62,7 @@ const AdmissionsList = () => {
     } finally {
       setIsExporting(false);
     }
-  };
+  }, [admissions]);
 
   const handleExportSingle = async (admission: CollegeAdmissionDetails) => {
     try {
@@ -130,131 +104,109 @@ const AdmissionsList = () => {
     return "destructive";
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  // Column definitions for the enhanced table
+  const columns: ColumnDef<CollegeAdmissionListItem>[] = useMemo(() => [
+    {
+      accessorKey: "student_id",
+      header: "Student ID",
+      cell: ({ row }) => (
+        <span className="font-mono text-sm">{row.getValue("student_id")}</span>
+      ),
+    },
+    {
+      accessorKey: "admission_no",
+      header: "Admission No",
+      cell: ({ row }) => (
+        <span className="font-medium">{row.getValue("admission_no") || "N/A"}</span>
+      ),
+    },
+    {
+      accessorKey: "student_name",
+      header: "Student Name",
+      cell: ({ row }) => <span>{row.getValue("student_name")}</span>,
+    },
+    {
+      accessorKey: "group_name",
+      header: "Group",
+      cell: ({ row }) => (
+        <Badge variant="outline">{row.getValue("group_name") || "N/A"}</Badge>
+      ),
+    },
+    {
+      accessorKey: "course_name",
+      header: "Course",
+      cell: ({ row }) => (
+        <Badge variant="outline">{row.getValue("course_name") || "N/A"}</Badge>
+      ),
+    },
+    {
+      accessorKey: "admission_date",
+      header: "Admission Date",
+      cell: ({ row }) => <span>{row.getValue("admission_date") || "N/A"}</span>,
+    },
+    {
+      accessorKey: "admission_fee_paid",
+      header: "Admission Fee",
+      cell: ({ row }) => (
+        <Badge
+          variant={getStatusBadgeVariant(row.getValue("admission_fee_paid"))}
+        >
+          {row.getValue("admission_fee_paid")}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "payable_tuition_fee",
+      header: "Tuition Fee",
+      cell: ({ row }) => (
+        <span className="text-sm font-mono">
+          {row.getValue("payable_tuition_fee") || "N/A"}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "payable_transport_fee",
+      header: "Transport Fee",
+      cell: ({ row }) => (
+        <span className="text-sm font-mono">
+          {row.getValue("payable_transport_fee") || "N/A"}
+        </span>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => handleViewDetails(row.original.student_id)}
+          className="flex items-center gap-2"
+        >
+          <Eye className="h-4 w-4" />
+          View
+        </Button>
+      ),
+    },
+  ], [handleViewDetails, getStatusBadgeVariant]);
 
   return (
     <div className="space-y-6">
-      {/* Header with Actions */}
-      <div className="flex justify-between items-center">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search by name, admission number, or student ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Button
-          onClick={handleExportAll}
-          disabled={isExporting || admissions.length === 0}
-          className="flex items-center gap-2"
-        >
-          <FileSpreadsheet className="h-4 w-4" />
-          {isExporting ? "Exporting..." : "Export All to Excel"}
-        </Button>
-      </div>
-
-      {/* Admissions Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5" />
-            Student Admissions ({filteredAdmissions.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">Student ID</TableHead>
-                  <TableHead>Admission No</TableHead>
-                  <TableHead>Student Name</TableHead>
-                  <TableHead>Group</TableHead>
-                  <TableHead>Course</TableHead>
-                  <TableHead>Admission Date</TableHead>
-                  <TableHead>Admission Fee</TableHead>
-                  <TableHead>Tuition Fee</TableHead>
-                  <TableHead>Transport Fee</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredAdmissions.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
-                      <div className="flex flex-col items-center gap-2">
-                        <GraduationCap className="h-8 w-8 text-muted-foreground" />
-                        <p className="text-muted-foreground">
-                          {searchTerm
-                            ? "No admissions found matching your search"
-                            : "No admissions found"}
-                        </p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredAdmissions.map((admission, index) => (
-                    <TableRow
-                      key={`${admission.student_id}-${admission.admission_no}-${index}`}
-                    >
-                      <TableCell className="font-mono text-sm">
-                        {admission.student_id}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {admission.admission_no || "N/A"}
-                      </TableCell>
-                      <TableCell>{admission.student_name}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{admission.group_name || "N/A"}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{admission.course_name || "N/A"}</Badge>
-                      </TableCell>
-                      <TableCell>{admission.admission_date || "N/A"}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={getStatusBadgeVariant(
-                            admission.admission_fee_paid
-                          )}
-                        >
-                          {admission.admission_fee_paid}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm font-mono">
-                        {admission.payable_tuition_fee || "N/A"}
-                      </TableCell>
-                      <TableCell className="text-sm font-mono">
-                        {admission.payable_transport_fee || "N/A"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() =>
-                            handleViewDetails(admission.student_id)
-                          }
-                          className="flex items-center gap-2"
-                        >
-                          <Eye className="h-4 w-4" />
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      <EnhancedDataTable
+        data={admissions}
+        columns={columns}
+        title="Student Admissions"
+        searchKey="student_name"
+        searchPlaceholder="Search by name, admission number, or student ID..."
+        exportable={true}
+        onExport={handleExportAll}
+        loading={isLoading}
+        showSearch={true}
+        enableDebounce={true}
+        debounceDelay={300}
+        highlightSearchResults={true}
+        className="w-full"
+      />
 
       {/* Admission Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
