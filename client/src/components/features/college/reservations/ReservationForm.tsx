@@ -39,6 +39,7 @@ type ReservationFormState = {
   permanent_address: string;
   application_fee: number;
   application_fee_paid: boolean;
+  preferred_class_id: number;
   preferred_group_id: number;
   group_name: string;
   preferred_course_id: number;
@@ -64,6 +65,7 @@ type ReservationFormState = {
 type RouteItem = { id: number; name: string; fee: number };
 type GroupItem = { group_id: number; group_name: string; fee: number };
 type CourseItem = { course_id: number; course_name: string; fee: number };
+type ClassItem = { class_id: number; class_name: string };
 type DistanceSlabItem = {
   slab_id: number;
   slab_name: string;
@@ -81,7 +83,9 @@ export type ReservationFormProps = {
   routes: RouteItem[];
   groups: GroupItem[];
   courses: CourseItem[];
+  classes: ClassItem[];
   distanceSlabs: DistanceSlabItem[];
+  onClassChange: (classId: number) => void;
   onGroupChange: (groupId: number) => void;
   onCourseChange: (courseId: number) => void;
   onDistanceSlabChange: (slabId: number) => void;
@@ -98,7 +102,9 @@ export default function ReservationForm({
   routes,
   groups,
   courses,
+  classes,
   distanceSlabs,
+  onClassChange,
   onGroupChange,
   onCourseChange,
   onDistanceSlabChange,
@@ -106,8 +112,8 @@ export default function ReservationForm({
   isEdit = false,
 }: ReservationFormProps) {
   const isSaveDisabled = useMemo(
-    () => !form.student_name || !form.group_name || !form.course_name,
-    [form.student_name, form.group_name, form.course_name]
+    () => !form.student_name?.trim() || !form.preferred_class_id || form.preferred_class_id === 0 || !form.group_name?.trim() || !form.course_name?.trim(),
+    [form.student_name, form.preferred_class_id, form.group_name, form.course_name]
   );
 
   // Confirmation dialog states
@@ -187,6 +193,7 @@ export default function ReservationForm({
       permanent_address: "123 Main Street, Downtown Area, City - 123456",
       application_fee: 500,
       application_fee_paid: true,
+      preferred_class_id: (classes && classes.length > 0) ? classes[0].class_id : 0,
       preferred_group_id: (groups && groups.length > 0) ? groups[0].group_id : 0,
       group_name: (groups && groups.length > 0) ? groups[0].group_name : "",
       preferred_course_id: (courses && courses.length > 0) ? courses[0].course_id : 0,
@@ -246,6 +253,7 @@ export default function ReservationForm({
       permanent_address: "",
       application_fee: 0,
       application_fee_paid: false,
+      preferred_class_id: 0,
       preferred_group_id: 0,
       group_name: "",
       preferred_course_id: 0,
@@ -603,6 +611,35 @@ export default function ReservationForm({
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
+                <Label htmlFor="preferred_class_id">Preferred Class *</Label>
+                <Select
+                  value={form.preferred_class_id.toString()}
+                  onValueChange={(value) => {
+                    const selectedClass = classes.find(
+                      (c) => c.class_id.toString() === value
+                    );
+                    if (selectedClass) {
+                      setForm({ 
+                        ...form, 
+                        preferred_class_id: selectedClass.class_id
+                      });
+                      onClassChange(selectedClass.class_id);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(classes || []).map((classItem) => (
+                      <SelectItem key={classItem.class_id} value={classItem.class_id.toString()}>
+                        {classItem.class_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <Label htmlFor="previous_class">Previous Class</Label>
                 <Input
                   id="previous_class"
@@ -612,7 +649,7 @@ export default function ReservationForm({
                   }
                 />
               </div>
-              <div className="md:col-span-2">
+              <div>
                 <Label htmlFor="previous_school_details">
                   Previous School Details
                 </Label>

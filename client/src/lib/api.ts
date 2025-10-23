@@ -351,10 +351,10 @@ export async function handlePayAndPrint(
     const paymentData = await response.json();
     console.log("📦 Payment response data:", paymentData);
 
-    const income_id = paymentData.income_id;
+    const income_id = paymentData.context?.income_id;
 
     if (!income_id) {
-      throw new Error("Payment successful but income_id not found in response");
+      throw new Error("Payment successful but income_id not found in response context");
     }
 
     console.log("🆔 Income ID received:", income_id);
@@ -430,10 +430,10 @@ export async function handleAdmissionPayment(
     const paymentData = await response.json();
     console.log("📦 Payment response data:", paymentData);
 
-    const income_id = paymentData.income_id;
+    const income_id = paymentData.context?.income_id;
 
     if (!income_id) {
-      throw new Error("Payment successful but income_id not found in response");
+      throw new Error("Payment successful but income_id not found in response context");
     }
 
     console.log("🆔 Income ID received:", income_id);
@@ -614,10 +614,10 @@ export async function handlePayByReservation(
     const paymentData = await response.json();
     console.log("📦 Payment response data:", paymentData);
 
-    const income_id = paymentData.income_id;
+    const income_id = paymentData.context?.income_id;
 
     if (!income_id) {
-      throw new Error("Payment successful but income_id not found in response");
+      throw new Error("Payment successful but income_id not found in response context");
     }
 
     console.log("🆔 Income ID received:", income_id);
@@ -719,10 +719,10 @@ export async function handlePayByAdmission(
     const paymentData = await response.json();
     console.log("📦 Payment response data:", paymentData);
 
-    const income_id = paymentData.income_id;
+    const income_id = paymentData.context?.income_id;
 
     if (!income_id) {
-      throw new Error("Payment successful but income_id not found in response");
+      throw new Error("Payment successful but income_id not found in response context");
     }
 
     console.log("🆔 Income ID received:", income_id);
@@ -825,10 +825,10 @@ export async function handlePayByAdmissionWithIncomeId(
     const paymentData = await response.json();
     console.log("📦 Payment response data:", paymentData);
 
-    const income_id = paymentData.income_id;
+    const income_id = paymentData.context?.income_id;
 
     if (!income_id) {
-      throw new Error("Payment successful but income_id not found in response");
+      throw new Error("Payment successful but income_id not found in response context");
     }
 
     console.log("🆔 Income ID received:", income_id);

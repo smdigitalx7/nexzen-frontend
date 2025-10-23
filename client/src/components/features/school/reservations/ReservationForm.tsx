@@ -171,7 +171,7 @@ export default function ReservationForm({
       present_address: "123 Main Street, Downtown Area, City - 123456",
       permanent_address: "123 Main Street, Downtown Area, City - 123456",
       application_fee: "500",
-      application_fee_paid: true,
+      application_fee_paid: false,
       class_name: classes.length > 0 ? classes[0].class_name : "",
       tuition_fee: "15000",
       book_fee: "3000",

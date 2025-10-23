@@ -42,18 +42,18 @@ const StudentManagement = () => {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{headerContent.title}</h1>
           <p className="text-muted-foreground mt-1">{headerContent.description}</p>
-          {currentBranch && (
-            <div className="flex items-center gap-2 mt-2">
-              <Badge variant="outline" className="text-xs">
-                {currentBranch.branch_name} • {currentBranch.branch_type.toUpperCase()}
-              </Badge>
-            </div>
-          )}
         </div>
+        {currentBranch && (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
+              {currentBranch.branch_name} • {currentBranch.branch_type.toUpperCase()}
+            </Badge>
+          </div>
+        )}
       </div>
 
       <TabSwitcher

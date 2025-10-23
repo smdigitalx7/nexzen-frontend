@@ -33,7 +33,7 @@ export const FeesManagement = () => {
         id: t.enrollment_id,
         student_id: t.admission_no,
         student_name: t.student_name,
-        class_name: t.section_name || "",
+        class_name: t.section_name || "Unknown",
         academic_year: "",
         total_fee: t.total_fee,
         paid_amount: paidTotal,

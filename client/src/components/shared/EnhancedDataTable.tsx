@@ -893,11 +893,13 @@ function EnhancedDataTableComponent<TData>({
                </SelectTrigger>
                <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600">
                  <SelectItem key="all" value="all" className="hover:bg-slate-100 dark:hover:bg-slate-700">All {filter.label}</SelectItem>
-                 {filter.options.map((option) => (
-                   <SelectItem key={option.value} value={option.value} className="hover:bg-slate-100 dark:hover:bg-slate-700">
-                     {option.label}
-                   </SelectItem>
-                 ))}
+                 {filter.options
+                   .filter(option => option.value && option.value.trim() !== '') // Filter out empty values
+                   .map((option) => (
+                     <SelectItem key={option.value} value={option.value} className="hover:bg-slate-100 dark:hover:bg-slate-700">
+                       {option.label}
+                     </SelectItem>
+                   ))}
                </SelectContent>
              </Select>
            ))}

@@ -5,6 +5,7 @@ import {
   useDeleteCollegeReservation,
   useCollegeReservationDashboard,
 } from "@/lib/hooks/college/use-college-reservations";
+import { useCollegeClasses } from "@/lib/hooks/college/use-college-classes";
 import { useCollegeGroups, useCollegeCourses } from "@/lib/hooks/college/use-college-dropdowns";
 import { useDistanceSlabs } from "@/lib/hooks/general/useDistanceSlabs";
 import { motion } from "framer-motion";
@@ -79,8 +80,9 @@ export default function ReservationNew() {
   const { data: dashboardStats, isLoading: dashboardLoading } =
     useCollegeReservationDashboard();
 
-  // Dropdown data hooks - Load groups, courses, and distance slabs from API
-  // Groups are loaded independently, courses are loaded based on selected group
+  // Dropdown data hooks - Load classes, groups, courses, and distance slabs from API
+  // Classes are loaded independently, groups are loaded independently, courses are loaded based on selected group
+  const { data: classesData, isLoading: classesLoading, error: classesError } = useCollegeClasses();
   const { data: groupsData, isLoading: groupsLoading, error: groupsError } = useCollegeGroups();
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const { data: coursesData, isLoading: coursesLoading, error: coursesError } = useCollegeCourses(selectedGroupId || 0);
@@ -202,6 +204,7 @@ export default function ReservationNew() {
 
     // Advanced (new fields)
     preferredClassId: "0",
+    preferredGroupId: "0",
     preferredDistanceSlabId: "0",
     bookFee: "0",
     tuitionConcession: "0",
@@ -259,13 +262,20 @@ export default function ReservationNew() {
     return 0;
   }, [form.transport, form.preferredDistanceSlabId, distanceSlabs]);
 
-  // Group and course change handlers
+  // Class, group and course change handlers
+  const handleClassChange = (classId: number) => {
+    setForm(prev => ({
+      ...prev,
+      preferredClassId: classId.toString(),
+    }));
+  };
+
   const handleGroupChange = (groupId: number) => {
     setSelectedGroupId(groupId);
     // Reset course selection when group changes
     setForm(prev => ({
       ...prev,
-      preferredClassId: groupId.toString(),
+      preferredGroupId: groupId.toString(),
       group: groupsData?.items?.find(g => g.group_id === groupId)?.group_name || "",
       course: "N/A", // Reset course when group changes
     }));
@@ -345,6 +355,43 @@ export default function ReservationNew() {
   };
 
   const handleSave = async (withPayment: boolean) => {
+    // Validate required fields
+    if (!form.studentName?.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Student name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!form.preferredClassId || form.preferredClassId === "0") {
+      toast({
+        title: "Validation Error",
+        description: "Please select a class",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!form.preferredGroupId || form.preferredGroupId === "0") {
+      toast({
+        title: "Validation Error",
+        description: "Please select a group",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!form.course || form.course === "0") {
+      toast({
+        title: "Validation Error",
+        description: "Please select a course",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Parse siblings JSON if provided
     let siblings = null;
     if ((form.siblingsJson || "").trim()) {
@@ -362,7 +409,7 @@ export default function ReservationNew() {
         | "MALE"
         | "FEMALE"
         | "OTHER",
-      dob: form.dob || null,
+      dob: form.dob ? new Date(form.dob).toISOString() : null, // Convert string to ISO datetime
       father_or_guardian_name: form.fatherName || null,
       father_or_guardian_aadhar_no: form.fatherAadhar || null,
       father_or_guardian_mobile: form.fatherMobile || null,
@@ -378,10 +425,11 @@ export default function ReservationNew() {
       permanent_address: form.permanentAddress || null,
       application_fee: Number(form.reservationFee || 0),
       application_fee_paid: false,
-      preferred_group_id: Number(form.preferredClassId || 0),
-      group_name: form.group || null,
+      preferred_class_id: Number(form.preferredClassId || 0),
+      preferred_group_id: Number(form.preferredGroupId || 0),
+      group_name: form.group || "N/A", // Required field - provide default
       preferred_course_id: Number(form.course || 0),
-      course_name: form.courseName || null,
+      course_name: form.courseName || "N/A", // Required field - provide default
       group_fee: Number(groupFee || 0),
       course_fee: Number(courseFee || 0),
       book_fee: Number(bookFee || 0),
@@ -390,18 +438,18 @@ export default function ReservationNew() {
       preferred_transport_id:
         form.transport === "Yes" && form.busRoute
           ? Number(form.busRoute)
-          : 0,
+          : null, // Use null instead of 0 for optional fields
       preferred_distance_slab_id: form.preferredDistanceSlabId
         ? Number(form.preferredDistanceSlabId)
-        : 0,
+        : null, // Use null instead of 0 for optional fields
       pickup_point: form.pickupPoint || null,
       transport_fee:
-        form.transport === "Yes" ? Number(transportFee || 0) : 0,
+        form.transport === "Yes" ? Number(transportFee || 0) : null, // Use null instead of 0
       concession_lock: false,
       book_fee_required: false,
       course_required: false,
       status: "PENDING" as "PENDING" | "CONFIRMED" | "CANCELLED",
-      referred_by: form.referredBy ? Number(form.referredBy) : 0,
+      referred_by: form.referredBy ? Number(form.referredBy) : null, // Use null instead of 0
       remarks: form.remarks || null,
     };
 
@@ -444,7 +492,7 @@ export default function ReservationNew() {
         | "MALE"
         | "FEMALE"
         | "OTHER",
-      dob: f.dob || null,
+      dob: f.dob ? new Date(f.dob).toISOString() : null, // Convert string to ISO datetime
       father_or_guardian_name: f.fatherName || null,
       father_or_guardian_aadhar_no: f.fatherAadhar || null,
       father_or_guardian_mobile: f.fatherMobile || null,
@@ -460,27 +508,28 @@ export default function ReservationNew() {
       permanent_address: f.permanentAddress || null,
       application_fee: Number(f.reservationFee || 0),
       application_fee_paid: false,
-      preferred_group_id: Number(f.preferredClassId || 0),
-      group_name: f.group || null,
+      preferred_class_id: Number(f.preferredClassId || 0),
+      preferred_group_id: Number(f.preferredGroupId || 0),
+      group_name: f.group || "N/A", // Required field - provide default
       preferred_course_id: Number(f.course || 0),
-      course_name: f.courseName || null,
+      course_name: f.courseName || "N/A", // Required field - provide default
       group_fee: Number(groupFee || 0),
       course_fee: Number(courseFee || 0),
       book_fee: Number(bookFee || 0),
       total_tuition_fee: Number(groupFee + courseFee || 0),
       transport_required: f.transport === "Yes",
       preferred_transport_id:
-        f.transport === "Yes" && f.busRoute ? Number(f.busRoute) : 0,
+        f.transport === "Yes" && f.busRoute ? Number(f.busRoute) : null, // Use null instead of 0
       preferred_distance_slab_id: f.preferredDistanceSlabId
         ? Number(f.preferredDistanceSlabId)
-        : 0,
+        : null, // Use null instead of 0
       pickup_point: f.pickupPoint || null,
-      transport_fee: f.transport === "Yes" ? Number(transportFee || 0) : 0,
+      transport_fee: f.transport === "Yes" ? Number(transportFee || 0) : null, // Use null instead of 0
       concession_lock: false,
       book_fee_required: false,
       course_required: false,
       status: "PENDING" as "PENDING" | "CONFIRMED" | "CANCELLED",
-      referred_by: f.referredBy ? Number(f.referredBy) : 0,
+      referred_by: f.referredBy ? Number(f.referredBy) : null, // Use null instead of 0
       remarks: f.remarks || null,
     };
   };
@@ -516,6 +565,8 @@ export default function ReservationNew() {
     reservationFee: r.application_fee != null ? String(r.application_fee) : "",
     remarks: r.remarks || "",
     preferredClassId:
+      r.preferred_class_id != null ? String(r.preferred_class_id) : "0",
+    preferredGroupId:
       r.preferred_group_id != null ? String(r.preferred_group_id) : "0",
     preferredDistanceSlabId:
       r.preferred_distance_slab_id != null
@@ -775,11 +826,11 @@ export default function ReservationNew() {
             icon: Plus,
             content: (
               <div>
-                {(groupsLoading || coursesLoading || isLoadingDistanceSlabs) && (
+                {(classesLoading || groupsLoading || coursesLoading || isLoadingDistanceSlabs) && (
                   <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="flex items-center gap-2 text-blue-700">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
-                      <span className="text-sm">Loading groups, courses, and distance slabs...</span>
+                      <span className="text-sm">Loading classes, groups, courses, and distance slabs...</span>
                     </div>
                   </div>
                 )}
@@ -804,7 +855,8 @@ export default function ReservationNew() {
                     permanent_address: form.permanentAddress,
                     application_fee: Number(form.reservationFee || 0),
                     application_fee_paid: false,
-                    preferred_group_id: Number(form.preferredClassId || 0),
+                    preferred_class_id: Number(form.preferredClassId || 0),
+                    preferred_group_id: Number(form.preferredGroupId || 0),
                     group_name: form.group,
                     preferred_course_id: Number(form.course || 0),
                     course_name: form.courseName,
@@ -846,7 +898,8 @@ export default function ReservationNew() {
                       presentAddress: next.present_address,
                       permanentAddress: next.permanent_address,
                       reservationFee: next.application_fee.toString(),
-                      preferredClassId: next.preferred_group_id.toString(),
+                      preferredClassId: next.preferred_class_id.toString(),
+                      preferredGroupId: next.preferred_group_id.toString(),
                       group: next.group_name,
                       course: next.preferred_course_id.toString(),
                       courseName: next.course_name,
@@ -884,6 +937,10 @@ export default function ReservationNew() {
                     course_name: c.course_name,
                     fee: c.course_fee,
                   })) || []}
+                  classes={classesData?.map(c => ({
+                    class_id: c.class_id,
+                    class_name: c.class_name,
+                  })) || []}
                   distanceSlabs={distanceSlabs?.map(slab => ({
                     slab_id: slab.slab_id,
                     slab_name: slab.slab_name,
@@ -891,6 +948,7 @@ export default function ReservationNew() {
                     max_distance: slab.max_distance,
                     fee_amount: slab.fee_amount,
                   })) || []}
+                  onClassChange={handleClassChange}
                   onGroupChange={handleGroupChange}
                   onCourseChange={handleCourseChange}
                   onDistanceSlabChange={handleDistanceSlabChange}
@@ -1525,7 +1583,8 @@ export default function ReservationNew() {
                   permanent_address: editForm.permanentAddress,
                   application_fee: Number(editForm.reservationFee || 0),
                   application_fee_paid: false,
-                  preferred_group_id: Number(editForm.preferredClassId || 0),
+                  preferred_class_id: Number(editForm.preferredClassId || 0),
+                  preferred_group_id: Number(editForm.preferredGroupId || 0),
                   group_name: editForm.group,
                   preferred_course_id: Number(editForm.course || 0),
                   course_name: editForm.courseName,
@@ -1567,7 +1626,8 @@ export default function ReservationNew() {
                     presentAddress: next.present_address,
                     permanentAddress: next.permanent_address,
                     reservationFee: next.application_fee.toString(),
-                    preferredClassId: next.preferred_group_id.toString(),
+                    preferredClassId: next.preferred_class_id.toString(),
+                    preferredGroupId: next.preferred_group_id.toString(),
                     group: next.group_name,
                     course: next.preferred_course_id.toString(),
                     courseName: next.course_name,
@@ -1605,6 +1665,10 @@ export default function ReservationNew() {
                   course_name: c.course_name,
                   fee: c.course_fee,
                 })) || []}
+                classes={classesData?.map(c => ({
+                  class_id: c.class_id,
+                  class_name: c.class_name,
+                })) || []}
                 distanceSlabs={distanceSlabs?.map(slab => ({
                   slab_id: slab.slab_id,
                   slab_name: slab.slab_name,
@@ -1612,6 +1676,7 @@ export default function ReservationNew() {
                   max_distance: slab.max_distance,
                   fee_amount: slab.fee_amount,
                 })) || []}
+                onClassChange={handleClassChange}
                 onGroupChange={handleGroupChange}
                 onCourseChange={handleCourseChange}
                 onDistanceSlabChange={handleDistanceSlabChange}

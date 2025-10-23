@@ -47,7 +47,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useAuthStore } from "@/store/authStore";
-import { Printer } from "lucide-react";
 import ReservationForm from "../reservations/ReservationForm";
 import SchoolReservationEdit from "../reservations/SchoolReservationEdit";
 import ReservationsTable from "../reservations/ReservationsTable";
@@ -56,14 +55,6 @@ import { toast } from "@/hooks/use-toast";
 import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
 import { Plus, List, BarChart3, Save } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
-import type { TabItem } from "@/components/shared/TabSwitcher";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { SchoolReservationStatsCards } from "./SchoolReservationStatsCards";
 import {
   ReservationPaymentProcessor,
@@ -701,7 +692,8 @@ export default function ReservationNew() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <div className="flex items-center justify-between">
+
+        <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold">Reservations</h1>
             <p className="text-muted-foreground">Manage student reservations</p>

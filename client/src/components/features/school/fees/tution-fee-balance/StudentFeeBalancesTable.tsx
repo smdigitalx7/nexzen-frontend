@@ -65,8 +65,8 @@ export const StudentFeeBalancesTable = ({
   showHeader = true,
   loading = false,
 }: StudentFeeBalancesTableProps) => {
-  // Get unique classes for filter options
-  const uniqueClasses = Array.from(new Set(studentBalances.map(s => s.class_name)));
+  // Get unique classes for filter options (filter out empty strings)
+  const uniqueClasses = Array.from(new Set(studentBalances.map(s => s.class_name).filter(className => className && className.trim() !== '')));
 
   // Define columns for EnhancedDataTable
   const columns: ColumnDef<StudentFeeBalance>[] = useMemo(() => [

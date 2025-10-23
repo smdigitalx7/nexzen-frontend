@@ -28,6 +28,7 @@ export interface CollegeReservationCreate {
   permanent_address?: string | null;
   application_fee?: number | null;
   reservation_fee?: number | null;
+  preferred_class_id: number;
   preferred_group_id: number;
   group_name?: string | null;
   preferred_course_id: number;
@@ -73,6 +74,7 @@ export interface CollegeReservationRead {
   present_address?: string | null;
   permanent_address?: string | null;
   reservation_fee?: number | null;
+  preferred_class_id?: number | null;
   preferred_group_id?: number | null;
   group_name?: string | null;
   preferred_course_id?: number | null;
