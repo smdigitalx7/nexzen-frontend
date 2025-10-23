@@ -47,6 +47,7 @@ export type Reservation = {
   id: string;
   no: string; // Add reservation number field
   studentName: string;
+  classAdmission?: string; // Add classAdmission field for search
   status: "Pending" | "Cancelled" | string;
   date: string;
   totalFee: number;

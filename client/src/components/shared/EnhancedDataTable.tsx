@@ -99,6 +99,7 @@ interface EnhancedDataTableProps<TData> {
   debounceDelay?: number;
   highlightSearchResults?: boolean;
   searchSuggestions?: string[];
+  customGlobalFilterFn?: (row: any, columnId: string, value: string) => boolean;
   // Action buttons
   actionButtons?: ActionButton<TData>[];
   actionButtonGroups?: ActionButtonGroup<TData>[];
@@ -129,6 +130,7 @@ function EnhancedDataTableComponent<TData>({
   debounceDelay = 300,
   highlightSearchResults = true,
   searchSuggestions = [],
+  customGlobalFilterFn,
   actionButtons = [],
   actionButtonGroups = [],
   showActions = false,
@@ -278,7 +280,7 @@ function EnhancedDataTableComponent<TData>({
         if (allButtons.length === 0) return null;
 
        return (
-         <div className="flex items-center gap-2">
+         <div className="flex items-center">
            {allButtons.map((button, index) => {
              const Icon = button.icon;
              return (
@@ -289,15 +291,16 @@ function EnhancedDataTableComponent<TData>({
                  onClick={() => button.onClick(row.original)}
                  className={cn(
                    showActionLabels 
-                     ? "h-9 px-3 py-2 transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md border border-transparent hover:border-slate-200 dark:hover:border-slate-600"
-                     : "h-9 w-9 p-0 transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md border border-transparent hover:border-slate-200 dark:hover:border-slate-600",
+                     ? "h-5 px-1 py-0.5 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-sm"
+                     : "h-5 w-5 p-0 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-sm",
+                   index > 0 && "ml-0.5",
                    button.className
                  )}
                  title={button.label}
                >
-                 <Icon className="h-4 w-4" />
+                 <Icon className="h-3 w-3" />
                  {showActionLabels && (
-                   <span className="ml-2 text-sm font-medium">
+                   <span className="ml-0.5 text-xs font-medium">
                      {button.label}
                    </span>
                  )}
@@ -372,14 +375,14 @@ function EnhancedDataTableComponent<TData>({
     getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: (row, columnId, value) => {
+    globalFilterFn: customGlobalFilterFn || ((row, columnId, value) => {
       if (!value) return true;
       if (searchKey) {
         const cellValue = (row.original as any)[searchKey];
         return cellValue?.toString().toLowerCase().includes(value.toLowerCase()) ?? false;
       }
       return row.getValue(columnId)?.toString().toLowerCase().includes(value.toLowerCase()) ?? false;
-    },
+    }),
     state: {
       sorting,
       columnFilters,

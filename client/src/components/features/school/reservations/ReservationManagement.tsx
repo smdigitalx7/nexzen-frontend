@@ -9,25 +9,9 @@ import { useSchoolClasses } from "@/lib/hooks/school/use-school-dropdowns";
 import { useSchoolClass } from "@/lib/hooks/school/use-school-class";
 import { useDistanceSlabs } from "@/lib/hooks/general/useDistanceSlabs";
 import { motion } from "framer-motion";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import {
   Dialog,
   DialogContent,
@@ -46,14 +30,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useAuthStore } from "@/store/authStore";
 import ReservationForm from "../reservations/ReservationForm";
 import SchoolReservationEdit from "../reservations/SchoolReservationEdit";
-import ReservationsTable from "../reservations/ReservationsTable";
+import AllReservationsTable from "../reservations/AllReservationsTable";
+import StatusUpdateTable from "../reservations/StatusUpdateTable";
 import { TransportService } from "@/lib/services/school/transport.service";
 import { toast } from "@/hooks/use-toast";
 import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
-import { Plus, List, BarChart3, Save } from "lucide-react";
+import { Plus, List, BarChart3 } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import { SchoolReservationStatsCards } from "./SchoolReservationStatsCards";
 import {
@@ -67,7 +51,6 @@ import {
 import type { SchoolIncomeRead } from "@/lib/types/school";
 
 export default function ReservationNew() {
-  const { academicYear } = useAuthStore();
   const { data: routeNames = [] } = useQuery({
     queryKey: ["public", "bus-routes", "names"],
     queryFn: () => TransportService.getRouteNames(),
@@ -76,8 +59,6 @@ export default function ReservationNew() {
   const [activeTab, setActiveTab] = useState("new");
   const [reservationNo, setReservationNo] = useState<string>("");
   const [showReceipt, setShowReceipt] = useState(false);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [cancelRemarks, setCancelRemarks] = useState("");
   const [selectedReservation, setSelectedReservation] = useState<any>(null);
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [viewReservation, setViewReservation] = useState<any>(null);
@@ -85,12 +66,6 @@ export default function ReservationNew() {
   const [editForm, setEditForm] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [reservationToDelete, setReservationToDelete] = useState<any>(null);
-  const [statusChanges, setStatusChanges] = useState<
-    Record<string, "PENDING" | "CONFIRMED" | "CANCELLED">
-  >({});
-  const [statusRemarks, setStatusRemarks] = useState<Record<string, string>>(
-    {}
-  );
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [editSelectedClassId, setEditSelectedClassId] = useState<number | null>(
     null
@@ -112,19 +87,19 @@ export default function ReservationNew() {
     setSelectedReservationForConcession,
   ] = useState<any>(null);
 
+
   // Classes dropdown from API
-  const { data: classesData, isLoading: classesLoading } = useSchoolClasses();
+  const { data: classesData } = useSchoolClasses();
   const classes = classesData?.items || [];
 
   // Distance slabs dropdown from API
-  const { distanceSlabs, isLoadingDistanceSlabs } = useDistanceSlabs();
+  const { distanceSlabs } = useDistanceSlabs();
 
   // Fetch selected class details with fees
-  const { classData: selectedClassData, isLoading: isLoadingClassData } =
+  const { classData: selectedClassData } =
     useSchoolClass(selectedClassId);
   const {
     classData: editSelectedClassData,
-    isLoading: isLoadingEditClassData,
   } = useSchoolClass(editSelectedClassId);
 
   // Dashboard stats hook
@@ -142,6 +117,9 @@ export default function ReservationNew() {
 
   // Delete reservation hook
   const deleteReservation = useDeleteSchoolReservation();
+
+  // Status filter state
+  const [statusFilter, setStatusFilter] = useState("all");
 
   // Process reservations data
   const allReservations = useMemo(() => {
@@ -164,6 +142,7 @@ export default function ReservationNew() {
       transport_fee: r.transport_fee || 0, // Add transport_fee
       book_fee: r.book_fee || 0, // Add book_fee
       application_fee: r.application_fee || 0, // Add application_fee
+      application_fee_paid: r.application_fee_paid || false, // Add application_fee_paid
       tuition_concession: r.tuition_concession || 0, // Add tuition_concession
       transport_concession: r.transport_concession || 0, // Add transport_concession
       remarks: r.remarks || "", // Add remarks
@@ -389,6 +368,8 @@ export default function ReservationNew() {
       throw error; // Re-throw to let the dialog handle it
     }
   };
+
+
 
   const handleSave = async (withPayment: boolean) => {
     // Map form fields to backend schema as JSON object
@@ -630,54 +611,6 @@ export default function ReservationNew() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleCancelReservation = (reservation: any) => {
-    setSelectedReservation(reservation);
-    setShowCancelDialog(true);
-  };
-
-  const handleConfirmCancel = async () => {
-    if (!cancelRemarks.trim()) {
-      toast({
-        title: "Cancellation Remarks Required",
-        description:
-          "Please provide a reason for cancellation before proceeding.",
-        variant: "destructive",
-      });
-      return;
-    }
-    try {
-      if (selectedReservation?.id) {
-        await SchoolReservationsService.updateStatus(
-          Number(selectedReservation.id),
-          "CANCELLED",
-          cancelRemarks || undefined
-        );
-        // refresh list
-        refetchReservations();
-      }
-    } catch (e: any) {
-      console.error("Failed to cancel reservation:", e);
-      toast({
-        title: "Cancellation Failed",
-        description:
-          e?.message || "Could not cancel reservation. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setShowCancelDialog(false);
-      setCancelRemarks("");
-      setSelectedReservation(null);
-    }
-  };
-
-  const handleConvertToAdmission = (reservation: any) => {
-    // Navigate to admissions page with reservation data
-    window.location.href = `/school/admissions?reservation=${reservation.id}`;
-  };
 
   // Handle reservations errors
   useEffect(() => {
@@ -754,42 +687,22 @@ export default function ReservationNew() {
             label: "All Reservations",
             icon: List,
             content: (
-              <div>
-                {isLoadingReservations ? (
-                  <div className="p-6 text-sm text-muted-foreground text-center">
-                    Loading reservations…
-                  </div>
-                ) : reservationsError ? (
-                  <div className="p-6 text-center">
-                    <div className="text-red-600 mb-2">
-                      <h3 className="font-medium">Connection Error</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {reservationsErrObj?.message?.includes("Bad Gateway")
-                          ? "Backend server is not responding (502 Bad Gateway)"
-                          : "Failed to load reservations"}
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => refetchReservations()}
-                    >
-                      Try Again
-                    </Button>
-                  </div>
-                ) : (
-                  <ReservationsTable
-                    reservations={allReservations as any}
-                    onView={handleView as any}
-                    onEdit={handleEdit as any}
-                    onDelete={(r: any) => {
-                      setReservationToDelete(r);
-                      setShowDeleteDialog(true);
-                    }}
-                    onUpdateConcession={handleUpdateConcession}
-                  />
-                )}
-              </div>
+              <AllReservationsTable
+                reservations={allReservations}
+                isLoading={isLoadingReservations}
+                isError={reservationsError}
+                error={reservationsErrObj}
+                onRefetch={refetchReservations}
+                onView={handleView}
+                onEdit={handleEdit}
+                onDelete={(reservation) => {
+                  setReservationToDelete(reservation);
+                  setShowDeleteDialog(true);
+                }}
+                onUpdateConcession={handleUpdateConcession}
+                statusFilter={statusFilter}
+                onStatusFilterChange={setStatusFilter}
+              />
             ),
           },
           {
@@ -797,211 +710,14 @@ export default function ReservationNew() {
             label: "Status",
             icon: BarChart3,
             content: (
-              <div>
-                <div className="mb-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold">Update Status</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Modify reservation statuses quickly
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">
-                        {allReservations.length} items
-                      </Badge>
-                      {reservationsData && (
-                        <Badge variant="secondary">
-                          Total: {reservationsData.total_count || 0}
-                        </Badge>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => refetchReservations()}
-                        disabled={isLoadingReservations}
-                      >
-                        Refresh
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                {isLoadingReservations ? (
-                  <div className="p-6 text-sm text-muted-foreground">
-                    Loading reservations…
-                  </div>
-                ) : reservationsError ? (
-                  <div className="p-6 text-center">
-                    <div className="text-red-600 mb-2">
-                      <h3 className="font-medium">Connection Error</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {reservationsErrObj?.message?.includes("Bad Gateway")
-                          ? "Backend server is not responding (502 Bad Gateway)"
-                          : "Failed to load reservations"}
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => refetchReservations()}
-                    >
-                      Try Again
-                    </Button>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Reservation No</TableHead>
-                        <TableHead>Student</TableHead>
-                        <TableHead>Current Status</TableHead>
-                        <TableHead>Change To</TableHead>
-                        <TableHead>Remarks</TableHead>
-                        <TableHead>Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {allReservations.length === 0 ? (
-                        <TableRow>
-                          <TableCell
-                            colSpan={6}
-                            className="h-24 text-center text-sm text-muted-foreground"
-                          >
-                            <div className="space-y-2">
-                              <p>No reservations found</p>
-                              <p className="text-xs">
-                                Create your first reservation using the "New
-                                Reservations" tab
-                              </p>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        allReservations.map((r) => {
-                          const current = (r.status || "").toUpperCase();
-                          const selected = (statusChanges[r.id] || current) as
-                            | "PENDING"
-                            | "CONFIRMED"
-                            | "CANCELLED";
-                          const same = selected === current;
-                          return (
-                            <TableRow key={r.id}>
-                              <TableCell className="font-medium">
-                                {r.no}
-                              </TableCell>
-                              <TableCell>{r.studentName}</TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant={
-                                    current === "PENDING"
-                                      ? "default"
-                                      : current === "CANCELLED"
-                                      ? "destructive"
-                                      : current === "CONFIRMED"
-                                      ? "secondary"
-                                      : "outline"
-                                  }
-                                >
-                                  {current}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="w-48">
-                                  <Select
-                                    value={selected}
-                                    onValueChange={(v) =>
-                                      setStatusChanges((prev) => ({
-                                        ...prev,
-                                        [r.id]: v as any,
-                                      }))
-                                    }
-                                  >
-                                    <SelectTrigger aria-label="Select status">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="PENDING">
-                                        Pending
-                                      </SelectItem>
-                                      <SelectItem value="CONFIRMED">
-                                        Confirmed
-                                      </SelectItem>
-                                      <SelectItem value="CANCELLED">
-                                        Cancelled
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="w-48">
-                                  <Textarea
-                                    placeholder="Enter remarks..."
-                                    value={statusRemarks[r.id] || ""}
-                                    onChange={(e) =>
-                                      setStatusRemarks((prev) => ({
-                                        ...prev,
-                                        [r.id]: e.target.value,
-                                      }))
-                                    }
-                                    rows={1}
-                                    className="text-sm resize-none"
-                                  />
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex justify-end">
-                                  <Button
-                                    size="sm"
-                                    variant={same ? "outline" : "default"}
-                                    disabled={same}
-                                    onClick={async () => {
-                                      const to = (statusChanges[r.id] ||
-                                        current) as
-                                        | "PENDING"
-                                        | "CONFIRMED"
-                                        | "CANCELLED";
-                                      const remarks = statusRemarks[r.id] || "";
-                                      try {
-                                        await SchoolReservationsService.updateStatus(
-                                          r.reservation_id,
-                                          to,
-                                          remarks.trim() ? remarks : undefined
-                                        );
-                                        refetchReservations();
-                                        // Clear the remarks after successful update
-                                        setStatusRemarks((prev) => ({
-                                          ...prev,
-                                          [r.id]: "",
-                                        }));
-                                      } catch (e: any) {
-                                        console.error(
-                                          "Failed to update status:",
-                                          e
-                                        );
-                                        toast({
-                                          title: "Status Update Failed",
-                                          description:
-                                            e?.message ||
-                                            "Could not update reservation status. Please try again.",
-                                          variant: "destructive",
-                                        });
-                                      }
-                                    }}
-                                  >
-                                    <Save className="h-4 w-4 mr-2" />
-                                    Update
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })
-                      )}
-                    </TableBody>
-                  </Table>
-                )}
-              </div>
+              <StatusUpdateTable
+                reservations={allReservations}
+                isLoading={isLoadingReservations}
+                isError={reservationsError}
+                error={reservationsErrObj}
+                onRefetch={refetchReservations}
+                totalCount={reservationsData?.total_count}
+              />
             ),
           },
         ]}
@@ -1295,40 +1011,6 @@ export default function ReservationNew() {
         </DialogContent>
       </Dialog>
 
-      {/* Cancel Reservation Dialog */}
-      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancel Reservation</DialogTitle>
-            <DialogDescription>
-              Please provide a reason for cancelling this reservation
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="cancelRemarks">Cancellation Remarks</Label>
-              <Textarea
-                id="cancelRemarks"
-                value={cancelRemarks}
-                onChange={(e) => setCancelRemarks(e.target.value)}
-                placeholder="Enter reason for cancellation..."
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowCancelDialog(false)}
-            >
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleConfirmCancel}>
-              Confirm Cancellation
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Reservation Confirmation */}
       <AlertDialog
@@ -1465,6 +1147,7 @@ export default function ReservationNew() {
         reservation={selectedReservationForConcession}
         onUpdateConcession={handleConcessionUpdate}
       />
+
     </div>
   );
 }
