@@ -423,7 +423,7 @@ const CollegeAdmissionsPage = () => {
                 <TableHead>Reservation No</TableHead>
                 <TableHead>Student Name</TableHead>
                     <TableHead>Class</TableHead>
-                    <TableHead>Application Fee</TableHead>
+                    <TableHead>Payment Status</TableHead>
                 <TableHead>Date</TableHead>
                     <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
@@ -452,7 +452,18 @@ const CollegeAdmissionsPage = () => {
                     </TableCell>
                           <TableCell>{reservation.student_name}</TableCell>
                           <TableCell>{reservation.class_name}</TableCell>
-                          <TableCell>₹{reservation.application_fee}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                reservation.application_fee_paid
+                                  ? "secondary"
+                                  : "destructive"
+                              }
+                              className="text-xs"
+                            >
+                              {reservation.application_fee_paid ? "✓ Paid" : "Unpaid"}
+                            </Badge>
+                          </TableCell>
                           <TableCell>{reservation.reservation_date}</TableCell>
                     <TableCell>
                             <Badge

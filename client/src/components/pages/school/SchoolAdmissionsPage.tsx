@@ -76,7 +76,7 @@ interface Reservation {
   present_address: string;
   permanent_address: string;
   application_fee: number;
-  application_fee_paid: boolean;
+  application_fee_paid: string;
   preferred_class_id: number;
   class_name: string;
   tuition_fee: number;
@@ -420,7 +420,7 @@ const SchoolAdmissionsPage = () => {
                     <TableHead>Reservation No</TableHead>
                     <TableHead>Student Name</TableHead>
                     <TableHead>Class</TableHead>
-                    <TableHead>Application Fee</TableHead>
+                    <TableHead>Payment Status</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
@@ -449,7 +449,18 @@ const SchoolAdmissionsPage = () => {
                           </TableCell>
                           <TableCell>{reservation.student_name}</TableCell>
                           <TableCell>{reservation.class_name}</TableCell>
-                          <TableCell>₹{reservation.application_fee}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                reservation.application_fee_paid
+                                  ? "secondary"
+                                  : "destructive"
+                              }
+                              className="text-xs"
+                            >
+                              {reservation.application_fee_paid ? "✓ Paid" : "Unpaid"}
+                            </Badge>
+                          </TableCell>
                           <TableCell>{reservation.reservation_date}</TableCell>
                           <TableCell>
                             <Badge

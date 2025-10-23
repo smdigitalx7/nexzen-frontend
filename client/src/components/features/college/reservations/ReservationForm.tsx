@@ -1024,7 +1024,7 @@ export default function ReservationForm({
                   className="w-full mb-5"
                 />
               </div>
-              {/* <div>
+              <div>
                 <Label htmlFor="application_fee_paid">
                   Application Fee Paid
                 </Label>
@@ -1042,7 +1042,7 @@ export default function ReservationForm({
                     <SelectItem value="false">No</SelectItem>
                   </SelectContent>
                 </Select>
-              </div> */}
+              </div>
               <div></div>
             </div>
           </div>
