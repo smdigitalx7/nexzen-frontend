@@ -25,7 +25,7 @@ import {
 import { useSchoolClasses, useSchoolSections, useSchoolSubjects } from '@/lib/hooks/school/use-school-dropdowns';
 import { useSchoolStudentsList } from '@/lib/hooks/school/use-school-students';
 import { useSchoolTests } from '@/lib/hooks/school/use-school-exams-tests';
-import type { TestMarkWithDetails } from '@/lib/types/school/test-marks';
+import type { TestMarkWithDetails, TestMarksQuery } from '@/lib/types/school/test-marks';
 import {
   createStudentColumn,
   createSubjectColumn,
@@ -62,7 +62,7 @@ const testMarkFormSchema = z.object({
 });
 
 interface TestMarksManagementProps {
-  onDataChange?: (data: any[]) => void;
+  onDataChange?: (data: TestMarkWithDetails[]) => void;
 }
 
 const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
@@ -119,7 +119,7 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
     }
     
     // Only fetch by class, let client-side handle other filters
-    const query: any = {
+    const query: TestMarksQuery = {
       class_id: parseInt(selectedClass),
     };
     

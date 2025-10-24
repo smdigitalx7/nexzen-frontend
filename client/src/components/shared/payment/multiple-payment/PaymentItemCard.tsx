@@ -9,7 +9,7 @@ import { Edit, Trash2, BookOpen, GraduationCap, Truck, Plus } from 'lucide-react
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { PaymentItemCardProps, PaymentPurpose } from '../../types/PaymentTypes';
+import type { PaymentItemCardProps, PaymentPurpose } from '@/components/shared/payment/types/PaymentTypes';
 
 const purposeIcons = {
   BOOK_FEE: BookOpen,

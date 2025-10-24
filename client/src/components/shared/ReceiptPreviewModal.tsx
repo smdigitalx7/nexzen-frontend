@@ -95,8 +95,8 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   };
 
   // Prevent modal from closing accidentally
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleBackdropClick = (event: any) => {
+    event.stopPropagation();
   };
 
   return (

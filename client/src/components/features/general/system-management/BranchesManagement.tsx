@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useBranches, useDeleteBranch } from "@/lib/hooks/useBranches";
+import { useBranches, useDeleteBranch } from "@/lib/hooks/general/useBranches";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";

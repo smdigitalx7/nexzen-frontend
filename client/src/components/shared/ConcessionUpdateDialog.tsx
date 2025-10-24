@@ -43,9 +43,9 @@ export function ConcessionUpdateDialog({
   // Reset form when dialog opens/closes or reservation changes
   useEffect(() => {
     if (isOpen && reservation) {
-      setTuitionConcession(reservation.tuition_concession || 0);
-      setTransportConcession(reservation.transport_concession || 0);
-      setRemarks(reservation.remarks || "");
+      setTuitionConcession(reservation.tuition_concession ?? 0);
+      setTransportConcession(reservation.transport_concession ?? 0);
+      setRemarks(reservation.remarks ?? "");
     } else {
       setTuitionConcession(0);
       setTransportConcession(0);

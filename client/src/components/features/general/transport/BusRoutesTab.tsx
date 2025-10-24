@@ -18,7 +18,7 @@ interface BusRoutesTabProps {
   routesData: any[];
   busRoutes: any[];
   isLoading: boolean;
-  error: any;
+  error: unknown;
   searchTerm: string;
   onSearchChange: (term: string) => void;
   onCreateRoute: (data: any) => void;

@@ -40,13 +40,15 @@ export interface ActivityItemConfig {
   id: string;
   title: string;
   description?: string;
-  timestamp: string;
-  icon: LucideIcon;
-  type: "info" | "success" | "warning" | "error";
-  action?: {
-    label: string;
-    onClick: () => void;
+  timestamp: Date;
+  type: "user" | "system" | "action" | "alert";
+  user?: {
+    name: string;
+    avatar?: string;
+    initials?: string;
   };
+  status?: "success" | "warning" | "error" | "info";
+  metadata?: Record<string, any>;
 }
 
 export interface ChartConfig {
@@ -57,6 +59,7 @@ export interface ChartConfig {
     value: number;
     color?: string;
   }[];
+  dataKey: string;
   height?: number;
   className?: string;
 }
@@ -154,7 +157,6 @@ export const createModuleDashboard = (config: DashboardConfig) => {
           <DashboardQuickActions
             title="Quick Actions"
             actions={finalConfig.quickActions}
-            columns={finalConfig.quickActions.length > 4 ? 6 : 4}
           />
         )}
 

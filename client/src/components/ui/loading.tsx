@@ -4,8 +4,8 @@ import { Loader2, Database, FileText, Settings } from "lucide-react";
 import { Skeleton } from "./skeleton";
 
 // Loading component variants
-export type LoadingVariant = "spinner" | "skeleton" | "progress";
-export type LoadingSize = "sm" | "md" | "lg";
+export type LoadingVariant = "spinner" | "skeleton" | "progress" | "dots" | "pulse" | "success" | "error";
+export type LoadingSize = "xs" | "sm" | "md" | "lg" | "xl";
 export type LoadingContext = "data" | "page" | "form" | "general";
 
 interface BaseLoadingProps {
@@ -25,6 +25,7 @@ interface BaseLoadingProps {
 
 // Size configurations
 const sizeConfig = {
+  xs: { icon: "h-3 w-3", text: "text-xs", container: "p-2", spacing: "gap-1" },
   sm: { icon: "h-4 w-4", text: "text-sm", container: "p-3", spacing: "gap-2" },
   md: {
     icon: "h-6 w-6",
@@ -33,6 +34,7 @@ const sizeConfig = {
     spacing: "gap-3",
   },
   lg: { icon: "w-8 h-8", text: "text-lg", container: "p-6", spacing: "gap-4" },
+  xl: { icon: "w-10 h-10", text: "text-xl", container: "p-8", spacing: "gap-5" },
 };
 
 // Context-based configurations

@@ -235,7 +235,7 @@ export const useCacheStore = create<CacheState>()(
         let clearedCount = 0;
 
         set((state) => {
-          for (const [key, entry] of state.cache.entries()) {
+          for (const [key, entry] of Array.from(state.cache.entries())) {
             if (now > entry.expiresAt) {
               state.cache.delete(key);
               clearedCount++;

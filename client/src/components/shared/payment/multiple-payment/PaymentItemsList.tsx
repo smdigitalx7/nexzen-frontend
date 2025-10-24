@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PaymentItemCard } from './PaymentItemCard';
-import type { PaymentItem, PaymentPurpose } from '../../types/PaymentTypes';
+import type { PaymentItem, PaymentPurpose } from '@/components/shared/payment/types/PaymentTypes';
 
 interface PaymentItemsListProps {
   items: PaymentItem[];

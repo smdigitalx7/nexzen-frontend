@@ -28,6 +28,9 @@ export const CollegeReportsTemplate = () => {
   // Fetch real income and expenditure data
   const { data: incomeData = [], isLoading: incomeLoading, error: incomeError } = useCollegeIncomeList();
   const { data: expenditureData = [], isLoading: expenditureLoading, error: expenditureError } = useCollegeExpenditureList();
+  
+  // Define income params for the IncomeTable component
+  const incomeParams = {};
 
   // Fetch dashboard data for financial stats
   const { data: incomeDashboard, error: incomeDashboardError, isLoading: incomeDashboardLoading } = useCollegeIncomeDashboard();
@@ -99,8 +102,8 @@ export const CollegeReportsTemplate = () => {
               </div>
             ) : (
               <IncomeTable
-                incomeData={incomeData}
                 onViewIncome={handleViewIncome}
+                params={incomeParams}
               />
             ),
           },

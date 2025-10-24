@@ -16,6 +16,7 @@ import { useSchoolClasses } from '@/lib/hooks/school/use-school-classes';
 import { useSchoolSectionsByClass } from '@/lib/hooks/school/use-school-sections';
 import { useSchoolAttendanceAllStudents } from '@/lib/hooks/school/use-school-attendance';
 import { SchoolStudentAttendanceService } from '@/lib/services/school/student-attendance.service';
+import type { SchoolStudentAttendanceMonthlyGroupedResponse, SchoolClassRead, SchoolSectionRead } from '@/lib/types/school';
 
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -31,7 +32,7 @@ export default function AttendanceView() {
   const year = selectedDate ? selectedDate.getFullYear() : undefined;
   const attendeeParams = selectedClassId ? { class_id: selectedClassId, section_id: selectedSectionId, month, year } : null;
   const studentsQuery = useSchoolAttendanceAllStudents(attendeeParams);
-  const grouped: any = studentsQuery.data || { groups: [] };
+  const grouped: SchoolStudentAttendanceMonthlyGroupedResponse = studentsQuery.data || { groups: [] };
   const allStudents = ((grouped as any)?.groups?.[0]?.data as any[]) || [];
   const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -181,14 +182,14 @@ export default function AttendanceView() {
             <Select value={selectedClassId ? String(selectedClassId) : ''} onValueChange={(v) => setSelectedClassId(parseInt(v))}>
               <SelectTrigger className="w-[160px]"><SelectValue placeholder="Class" /></SelectTrigger>
               <SelectContent>
-                {classes.map((c: any) => (<SelectItem key={c.class_id} value={String(c.class_id)}>{c.class_name}</SelectItem>))}
+                {classes.map((c: SchoolClassRead) => (<SelectItem key={c.class_id} value={String(c.class_id)}>{c.class_name}</SelectItem>))}
               </SelectContent>
             </Select>
             <Select value={selectedSectionId ? String(selectedSectionId) : 'all'} onValueChange={(v) => setSelectedSectionId(v === 'all' ? undefined : parseInt(v))}>
               <SelectTrigger className="w-[160px]"><SelectValue placeholder="Section" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
-                {(sections as any[]).map((s: any) => (<SelectItem key={s.section_id} value={String(s.section_id)}>{s.section_name}</SelectItem>))}
+                {(sections as SchoolSectionRead[]).map((s: SchoolSectionRead) => (<SelectItem key={s.section_id} value={String(s.section_id)}>{s.section_name}</SelectItem>))}
               </SelectContent>
             </Select>
             <Select value={month ? String(month) : ''} onValueChange={(v) => { const m = parseInt(v); const d = selectedDate || new Date(); setSelectedDate(new Date(d.getFullYear(), m - 1, d.getDate())); }}>
@@ -274,8 +275,8 @@ export default function AttendanceView() {
                 await studentsQuery.refetch();
                 toast({ title: 'Updated', description: 'Attendance updated' });
                 setEditOpen(false);
-              } catch (err: any) {
-                const serverMsg = err?.response?.data?.detail || err?.message || 'Failed to update attendance';
+              } catch (err: unknown) {
+                const serverMsg = (err as any)?.response?.data?.detail || (err as any)?.message || 'Failed to update attendance';
                 toast({ title: 'Error', description: serverMsg, variant: 'destructive' });
               }
             }}>Save</Button>

@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { PurposeSelectionProps, PaymentPurpose } from '../../types/PaymentTypes';
+import type { PurposeSelectionProps, PaymentPurpose } from '@/components/shared/payment/types/PaymentTypes';
 
 const purposeConfig = {
   BOOK_FEE: {

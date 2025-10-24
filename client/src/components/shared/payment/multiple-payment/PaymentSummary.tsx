@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { PaymentSummaryProps, PaymentMethod } from '../../types/PaymentTypes';
+import type { PaymentSummaryProps, PaymentMethod } from '@/components/shared/payment/types/PaymentTypes';
 
 const paymentMethodOptions: Array<{ value: PaymentMethod; label: string; description: string }> = [
   {

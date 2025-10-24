@@ -285,7 +285,6 @@ export const PayrollManagementTemplate = () => {
         ]}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        gridCols="grid-cols-2"
       />
 
       {/* Salary Calculation Form Dialog */}

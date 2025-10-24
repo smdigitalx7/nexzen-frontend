@@ -23,7 +23,7 @@ import {
 import { useSchoolClasses, useSchoolSections, useSchoolSubjects } from '@/lib/hooks/school/use-school-dropdowns';
 import { useSchoolStudentsList } from '@/lib/hooks/school/use-school-students';
 import { useSchoolExams } from '@/lib/hooks/school/use-school-exams-tests';
-import type { ExamMarkWithDetails } from '@/lib/types/school/exam-marks';
+import type { ExamMarkWithDetails, ExamMarksQuery } from '@/lib/types/school/exam-marks';
 import {
   createStudentColumn,
   createSubjectColumn,
@@ -60,7 +60,7 @@ const examMarkFormSchema = z.object({
 });
 
 interface ExamMarksManagementProps {
-  onDataChange?: (data: any[]) => void;
+  onDataChange?: (data: ExamMarkWithDetails[]) => void;
 }
 
 const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
@@ -118,7 +118,7 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
     }
     
     // Only fetch by class, let EnhancedDataTable handle other filters
-    const query: any = {
+    const query: ExamMarksQuery = {
       class_id: parseInt(selectedClass),
     };
     

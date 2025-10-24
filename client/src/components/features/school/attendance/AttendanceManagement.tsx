@@ -122,7 +122,6 @@ const AttendanceManagement = () => {
             ]}
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            gridCols="grid-cols-2"
           />
         </div>
       </div>

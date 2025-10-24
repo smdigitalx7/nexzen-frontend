@@ -3,7 +3,7 @@ import { SchoolClassSubjectsService } from "@/lib/services/school/class-subjects
 import type { SchoolClassSubjectCreate, SchoolClassSubjectRead, SchoolClassSubjectUpdate } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
 
-export function useSchoolClassSubjects() {
+export function useSchoolClassSubjectsList() {
   return useQuery({
     queryKey: schoolKeys.classSubjects.list(),
     queryFn: () => SchoolClassSubjectsService.list() as Promise<SchoolClassSubjectRead[]>,

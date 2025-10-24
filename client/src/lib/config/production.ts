@@ -236,10 +236,10 @@ export const configUtils = {
   // Get configuration value with fallback
   get: <T>(path: string, fallback: T): T => {
     const keys = path.split('.');
-    let value: any = config;
+    let value: unknown = config;
     
     for (const key of keys) {
-      value = value?.[key];
+      value = (value as Record<string, unknown>)?.[key];
       if (value === undefined) {
         return fallback;
       }
