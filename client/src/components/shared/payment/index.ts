@@ -25,5 +25,9 @@ export { useMultiplePayment, usePaymentValidation, useFeeBalances } from './hook
 // Configuration
 export { schoolPaymentConfig, collegePaymentConfig, getPaymentConfig } from './config/PaymentConfig';
 
+// Reservation Payment Components
+export { ReservationPaymentProcessor } from './ReservationPaymentProcessor';
+export type { ReservationPaymentData } from './ReservationPaymentProcessor';
+
 // Types
 export type * from './types/PaymentTypes';
