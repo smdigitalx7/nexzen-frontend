@@ -2,27 +2,16 @@ import { motion } from "framer-motion";
 import { useMemo } from "react";
 import { CreditCard, DollarSign, Building2, Truck } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
-import type { TabItem } from "@/components/shared/TabSwitcher";
 import { useSchoolFeesManagement } from "@/lib/hooks/school/use-school-fees-management";
 import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalancesPanel";
 import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeBalancesPanel";
-import { FeeStatsCards } from "./FeeStatsCards";
 import { CollectFee } from "./collect-fee/CollectFee";
 import { useAuthStore } from "@/store/authStore";
 import { Badge } from "@/components/ui/badge";
 
 export const FeesManagement = () => {
   const { currentBranch } = useAuthStore();
-  const {
-    totalOutstanding,
-    totalIncome,
-    collectionRate,
-    activeTab,
-    setActiveTab,
-  } = useSchoolFeesManagement();
-
-  const totalCollected = totalIncome;
-
+  const { activeTab, setActiveTab } = useSchoolFeesManagement();
 
   // Build rows for "Collect Fees" from tuition balances
   const { tuitionBalances } = useSchoolFeesManagement();
@@ -51,7 +40,6 @@ export const FeesManagement = () => {
       };
     });
   }, [tuitionBalances]);
-
 
   const exportBalancesCSV = () => {
     // Placeholder export; integrate real export as needed
@@ -83,13 +71,6 @@ export const FeesManagement = () => {
           </Badge>
         </div>
       </motion.div>
-
-      {/* Fee Overview Cards */}
-      <FeeStatsCards
-        totalOutstanding={totalOutstanding}
-        totalCollected={totalCollected}
-        collectionRate={collectionRate}
-      />
 
       {/* Main Content Tabs */}
       <TabSwitcher

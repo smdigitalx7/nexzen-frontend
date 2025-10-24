@@ -16,9 +16,11 @@ interface StudentFeeDetails {
 
 interface CollectFeeSearchProps {
   onStudentSelected: (studentDetails: StudentFeeDetails) => void;
+  paymentMode: 'single' | 'multiple';
+  onStartPayment: (studentDetails: StudentFeeDetails) => void;
 }
 
-export const CollectFeeSearch = ({ onStudentSelected }: CollectFeeSearchProps) => {
+export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPayment }: CollectFeeSearchProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<StudentFeeDetails[]>([]);
@@ -199,12 +201,15 @@ export const CollectFeeSearch = ({ onStudentSelected }: CollectFeeSearchProps) =
 
                 <div className="mt-4 pt-4 border-t">
                   <Button 
-                    onClick={() => onStudentSelected(studentDetails)}
+                    onClick={() => onStartPayment(studentDetails)}
                     className="w-full bg-green-600 hover:bg-green-700"
                   >
                     <GraduationCap className="h-4 w-4 mr-2" />
                     Collect Fee - {formatCurrency(getTotalOutstanding(studentDetails))}
                   </Button>
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Click to open the multiple payment form
+                  </p>
                 </div>
               </CardContent>
             </Card>

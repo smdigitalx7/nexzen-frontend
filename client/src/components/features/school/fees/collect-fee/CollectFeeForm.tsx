@@ -23,9 +23,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useUpdateSchoolTuitionTermPayment, useUpdateSchoolBookFeePayment } from "@/lib/hooks/school/use-school-fee-balances";
-import { useUpdateSchoolTransportTermPayment } from "@/lib/hooks/school/use-school-fee-balances";
+// Removed individual payment hooks - now using pay-by-admission API
 import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
 
 interface StudentFeeDetails {
   student: any;
@@ -55,7 +55,7 @@ export const CollectFeeForm = ({
     tr2: false,
   });
   const [customAmount, setCustomAmount] = useState("");
-  const [paymentMode, setPaymentMode] = useState("Cash");
+  const [paymentMode, setPaymentMode] = useState("CASH");
   const [isProcessing, setIsProcessing] = useState(false);
   const [generatedBill, setGeneratedBill] = useState<any>(null);
   const [showBill, setShowBill] = useState(false);
@@ -63,10 +63,7 @@ export const CollectFeeForm = ({
   const billRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
-  // Use mutation hooks for payment updates
-  const updateBookPayment = useUpdateSchoolBookFeePayment(selectedStudent?.tuitionBalance?.enrollment_id || 0);
-  const updateTuitionTermPayment = useUpdateSchoolTuitionTermPayment(selectedStudent?.tuitionBalance?.enrollment_id || 0);
-  const updateTransportTermPayment = useUpdateSchoolTransportTermPayment(selectedStudent?.transportBalance?.enrollment_id || 0);
+  // Removed individual payment hooks - now using pay-by-admission API
 
   const isSelectionValid = () => {
     return Object.values(collectSelection).some(Boolean) || customAmount !== "";
@@ -106,94 +103,114 @@ export const CollectFeeForm = ({
       const amount = computeSelectedAmount();
       const paymentDate = new Date().toISOString();
       
-      // Process payments based on selection
-      const paymentPromises = [];
+      // Build payment details array for the pay-by-admission API
+      const paymentDetails = [];
       
       if (collectSelection.books && selectedStudent.tuitionBalance) {
-        paymentPromises.push(
-          updateBookPayment.mutateAsync({
-            amount: selectedStudent.tuitionBalance.book_fee - selectedStudent.tuitionBalance.book_paid
-          })
-        );
+        paymentDetails.push({
+          purpose: "BOOK_FEE",
+          custom_purpose_name: null,
+          term_number: null,
+          paid_amount: selectedStudent.tuitionBalance.book_fee - selectedStudent.tuitionBalance.book_paid,
+          payment_method: paymentMode
+        });
       }
       
       if (collectSelection.t1 && selectedStudent.tuitionBalance) {
-        paymentPromises.push(
-          updateTuitionTermPayment.mutateAsync({
-            term_id: 1,
-            amount: selectedStudent.tuitionBalance.term1_amount - selectedStudent.tuitionBalance.term1_paid
-          })
-        );
+        paymentDetails.push({
+          purpose: "TUITION_FEE",
+          custom_purpose_name: null,
+          term_number: 1,
+          paid_amount: selectedStudent.tuitionBalance.term1_amount - selectedStudent.tuitionBalance.term1_paid,
+          payment_method: paymentMode
+        });
       }
       
       if (collectSelection.t2 && selectedStudent.tuitionBalance) {
-        paymentPromises.push(
-          updateTuitionTermPayment.mutateAsync({
-            term_id: 2,
-            amount: selectedStudent.tuitionBalance.term2_amount - selectedStudent.tuitionBalance.term2_paid
-          })
-        );
+        paymentDetails.push({
+          purpose: "TUITION_FEE",
+          custom_purpose_name: null,
+          term_number: 2,
+          paid_amount: selectedStudent.tuitionBalance.term2_amount - selectedStudent.tuitionBalance.term2_paid,
+          payment_method: paymentMode
+        });
       }
       
       if (collectSelection.t3 && selectedStudent.tuitionBalance) {
-        paymentPromises.push(
-          updateTuitionTermPayment.mutateAsync({
-            term_id: 3,
-            amount: selectedStudent.tuitionBalance.term3_amount - selectedStudent.tuitionBalance.term3_paid
-          })
-        );
+        paymentDetails.push({
+          purpose: "TUITION_FEE",
+          custom_purpose_name: null,
+          term_number: 3,
+          paid_amount: selectedStudent.tuitionBalance.term3_amount - selectedStudent.tuitionBalance.term3_paid,
+          payment_method: paymentMode
+        });
       }
       
       if (collectSelection.tr1 && selectedStudent.transportBalance) {
-        paymentPromises.push(
-          updateTransportTermPayment.mutateAsync({
-            term_id: 1,
-            amount: selectedStudent.transportBalance.term1_amount - selectedStudent.transportBalance.term1_paid
-          })
-        );
+        paymentDetails.push({
+          purpose: "TRANSPORT_FEE",
+          custom_purpose_name: null,
+          term_number: 1,
+          paid_amount: selectedStudent.transportBalance.term1_amount - selectedStudent.transportBalance.term1_paid,
+          payment_method: paymentMode
+        });
       }
       
       if (collectSelection.tr2 && selectedStudent.transportBalance) {
-        paymentPromises.push(
-          updateTransportTermPayment.mutateAsync({
-            term_id: 2,
-            amount: selectedStudent.transportBalance.term2_amount - selectedStudent.transportBalance.term2_paid
-          })
-        );
+        paymentDetails.push({
+          purpose: "TRANSPORT_FEE",
+          custom_purpose_name: null,
+          term_number: 2,
+          paid_amount: selectedStudent.transportBalance.term2_amount - selectedStudent.transportBalance.term2_paid,
+          payment_method: paymentMode
+        });
       }
       
-      // Execute all payments
-      await Promise.all(paymentPromises);
-      
-      // Generate bill
-      const bill = {
-        billNumber: `BILL-${Date.now()}`,
-        studentName: selectedStudent.student.student_name,
-        admissionNo: selectedStudent.student.admission_no,
-        paymentDate,
-        amount,
-        paymentMode,
-        items: getPaymentItems(),
-        instituteName: "NexGen School",
-        address: "123 Education Street, Learning City",
-        phone: "+1 234 567 8900"
+      // Use the pay-by-admission API endpoint
+      const apiPayload = {
+        details: paymentDetails,
+        remarks: null
       };
+
+      const result = await api({
+        method: 'POST',
+        path: `/school/income/pay-fee/${selectedStudent.student.admission_no}`,
+        body: apiPayload,
+      }) as { success: boolean; message?: string };
       
-      setGeneratedBill(bill);
-      setShowBill(true);
-      
-      toast({
-        title: "Payment Successful",
-        description: `Payment of ${formatCurrency(amount)} collected successfully`,
-      });
-      
-      onPaymentComplete();
+      if (result.success) {
+        // Generate bill
+        const bill = {
+          billNumber: `BILL-${Date.now()}`,
+          studentName: selectedStudent.student.student_name,
+          admissionNo: selectedStudent.student.admission_no,
+          paymentDate,
+          amount,
+          paymentMode,
+          items: getPaymentItems(),
+          instituteName: "NexGen School",
+          address: "123 Education Street, Learning City",
+          phone: "+1 234 567 8900"
+        };
+        
+        setGeneratedBill(bill);
+        setShowBill(true);
+        
+        toast({
+          title: "Payment Successful",
+          description: `Payment of ${formatCurrency(amount)} collected successfully`,
+        });
+        
+        onPaymentComplete();
+      } else {
+        throw new Error(result.message || 'Payment processing failed');
+      }
       
     } catch (error) {
       console.error("Payment error:", error);
       toast({
         title: "Payment Failed",
-        description: "Failed to process payment. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to process payment. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -470,11 +487,8 @@ export const CollectFeeForm = ({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Cash">Cash</SelectItem>
-                        <SelectItem value="Card">Card</SelectItem>
-                        <SelectItem value="UPI">UPI</SelectItem>
-                        <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                        <SelectItem value="Cheque">Cheque</SelectItem>
+                        <SelectItem value="CASH">Cash</SelectItem>
+                        <SelectItem value="ONLINE">Online</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

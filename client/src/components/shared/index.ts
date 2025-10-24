@@ -9,3 +9,6 @@ export { default as ViewDialog } from "./ViewDialog";
 
 // Dashboard Components
 export * from "./dashboard";
+
+// Payment Components
+export * from "./payment";

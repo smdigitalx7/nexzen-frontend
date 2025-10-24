@@ -1,284 +1,353 @@
-# Payment Processing Components
+# Multiple Payment Form System
 
-A comprehensive set of animated, reusable UI components for payment processing, confirmation dialogs, and receipt generation in the NexGen ERP system.
+A comprehensive payment form system that allows users to add multiple fee payments in a single transaction with real-time validation, purpose-specific input components, and intelligent error handling.
 
-## Components Overview
+## Features
 
-### 1. PaymentProcessor
-The main payment processing component with animated states and progress tracking.
+- **Multi-purpose payment support**: BOOK_FEE, TUITION_FEE, TRANSPORT_FEE, OTHER
+- **Sequential payment validation**: Enforces business rules for term-based payments
+- **Real-time validation**: Immediate feedback on user input
+- **Duplicate prevention**: Prevents adding same payment type multiple times
+- **Responsive design**: Works on mobile and desktop devices
+- **School & College support**: Different configurations for different institution types
 
-**Features:**
-- Animated step-by-step payment process
-- Real-time progress indicators
-- Multiple payment method support
-- Error handling and retry functionality
-- Auto-processing option
+## Architecture
 
-### 2. PaymentConfirmationDialog
-A secure confirmation dialog that displays payment details before processing.
+### Shared Components
 
-**Features:**
-- Payment summary with all details
-- Security notices and warnings
-- Card details masking/unmasking
-- Confirmation and cancellation actions
+The system is built with reusable shared components that work for both school and college modules:
 
-### 3. PaymentSuccess
-An animated success screen with transaction details and receipt options.
-
-**Features:**
-- Celebration animations
-- Transaction details display
-- Receipt download options
-- Email sharing capabilities
-
-### 4. ReceiptDownload
-A comprehensive receipt generation and download component.
-
-**Features:**
-- PDF receipt generation via API
-- Email delivery options
-- Print functionality
-- Multiple format support
-
-### 5. PaymentDemo
-An interactive demo component showcasing all payment scenarios.
-
-**Features:**
-- Multiple payment scenarios
-- Interactive demonstrations
-- Feature showcase
-
-## Installation & Setup
-
-### 1. API Integration
-
-First, ensure your backend has the payment receipt API endpoints:
-
-```typescript
-// Backend API endpoints needed:
-POST /api/payment-receipts/generate
-GET /api/payment-receipts/{receiptId}/download
-GET /api/payment-receipts/transaction/{transactionId}
-GET /api/payment-receipts/student/{studentId}
-POST /api/payment-receipts/{receiptId}/send-email
-GET /api/payment-receipts/stats
+```
+/components/shared/payment/
+├── multiple-payment/
+│   ├── MultiplePaymentForm.tsx          # Main orchestrator
+│   ├── PurposeSelectionModal.tsx        # Purpose selection interface
+│   ├── PaymentItemsList.tsx             # List of payment items
+│   ├── PaymentItemCard.tsx              # Individual payment item
+│   ├── PaymentSummary.tsx               # Payment summary section
+│   └── components/
+│       ├── BookFeeComponent.tsx         # Book fee specific form
+│       ├── TuitionFeeComponent.tsx      # Tuition fee specific form
+│       ├── TransportFeeComponent.tsx    # Transport fee specific form
+│       └── OtherComponent.tsx           # Custom payment form
+├── validation/
+│   ├── PaymentValidation.ts             # Validation utilities
+├── types/
+│   ├── PaymentTypes.ts                  # Type definitions
+├── hooks/
+│   ├── useMultiplePayment.ts            # Main payment hook
+├── config/
+│   ├── PaymentConfig.ts                 # School/College configurations
+└── index.ts                             # Main exports
 ```
 
-### 2. Service Configuration
+### Integration Components
 
-The components use the `PaymentReceiptsService` which integrates with your existing API client:
+School and college specific wrappers:
 
-```typescript
-// Already configured in: lib/services/general/payment-receipts.service.ts
-// Uses your existing apiClient from lib/api-client
+```
+/components/features/school/fees/multiple-payment/
+└── SchoolMultiplePaymentForm.tsx
+
+/components/features/college/fees/multiple-payment/
+└── CollegeMultiplePaymentForm.tsx
 ```
 
-### 3. Hooks Integration
+## Usage
 
-The components use React Query hooks for data management:
-
-```typescript
-// Available hooks in: lib/hooks/general/use-payment-receipts.ts
-import { 
-  useGeneratePaymentReceipt,
-  useDownloadPaymentReceipt,
-  useSendReceiptEmail,
-  usePaymentReceipts,
-  useStudentPaymentReceipts
-} from '@/lib/hooks/general/use-payment-receipts';
-```
-
-## Usage Examples
-
-### Basic Payment Processing
+### Basic Usage
 
 ```tsx
-import { PaymentProcessor, PaymentData } from '@/components/shared/payment';
+import { SchoolMultiplePaymentForm } from '@/components/features/school/fees/multiple-payment/SchoolMultiplePaymentForm';
 
-const MyPaymentPage = () => {
-  const paymentData: PaymentData = {
-    id: 'payment-123',
-    amount: 15000,
-    currency: 'INR',
-    description: 'Monthly Tuition Fee',
-    merchant: 'NexGen Academy',
-    paymentMethod: 'card',
-    status: 'pending'
+const MyComponent = () => {
+  const student = {
+    studentId: '123',
+    admissionNo: 'ADM001',
+    name: 'John Doe',
+    className: '5th Grade',
+    academicYear: '2025-2026'
   };
 
-  const handlePaymentComplete = (completedPayment: PaymentData) => {
-    console.log('Payment completed:', completedPayment);
-    // Handle success (redirect, show notification, etc.)
+  const feeBalances = {
+    bookFee: { total: 1500, paid: 0, outstanding: 1500 },
+    tuitionFee: {
+      total: 30000,
+      term1: { paid: 0, outstanding: 15000 },
+      term2: { paid: 0, outstanding: 15000 }
+    },
+    transportFee: {
+      total: 4000,
+      term1: { paid: 0, outstanding: 2000 },
+      term2: { paid: 0, outstanding: 2000 }
+    }
   };
 
-  const handlePaymentFailed = (error: string) => {
-    console.error('Payment failed:', error);
-    // Handle error (show error message, etc.)
+  const handlePaymentComplete = async (data) => {
+    // Process payment data
+    console.log('Payment completed:', data);
   };
 
   return (
-    <PaymentProcessor
-      paymentData={paymentData}
+    <SchoolMultiplePaymentForm
+      student={student}
+      feeBalances={feeBalances}
       onPaymentComplete={handlePaymentComplete}
-      onPaymentFailed={handlePaymentFailed}
-      onPaymentCancel={() => console.log('Payment cancelled')}
-      autoProcess={false}
-      processingDelay={3000}
+      onCancel={() => console.log('Cancelled')}
     />
   );
 };
 ```
 
-### Payment Confirmation Dialog
+### Using Shared Components Directly
 
 ```tsx
-import { PaymentConfirmationDialog } from '@/components/shared/payment';
+import { MultiplePaymentForm } from '@/components/shared/payment';
+import { schoolPaymentConfig } from '@/components/shared/payment/config/PaymentConfig';
 
-const PaymentConfirmation = ({ isOpen, onClose, paymentData }) => {
-  const handleConfirm = () => {
-    // Process payment
-    onClose();
-  };
-
+const MyComponent = () => {
   return (
-    <PaymentConfirmationDialog
-      open={isOpen}
-      onOpenChange={onClose}
-      paymentData={paymentData}
-      onConfirm={handleConfirm}
-      onCancel={() => onClose()}
+    <MultiplePaymentForm
+      student={student}
+      feeBalances={feeBalances}
+      config={schoolPaymentConfig}
+      onPaymentComplete={handlePaymentComplete}
+      onCancel={handleCancel}
     />
   );
 };
 ```
 
-### Receipt Download
+## Configuration
 
-```tsx
-import { ReceiptDownload } from '@/components/shared/payment';
-
-const ReceiptSection = ({ paymentData, isOpen, onClose }) => {
-  return (
-    <ReceiptDownload
-      open={isOpen}
-      onOpenChange={onClose}
-      paymentData={paymentData}
-    />
-  );
-};
-```
-
-### Interactive Demo
-
-```tsx
-import { PaymentDemo } from '@/components/shared/payment';
-
-const PaymentDemoPage = () => {
-  return <PaymentDemo />;
-};
-```
-
-## Payment Data Structure
+### School Configuration
 
 ```typescript
-interface PaymentData {
-  id: string;
-  amount: number;
-  currency: string;
-  description: string;
-  merchant: string;
-  paymentMethod: 'card' | 'upi' | 'netbanking' | 'wallet';
-  status: 'pending' | 'processing' | 'success' | 'failed' | 'cancelled';
-  transactionId?: string;
-  timestamp?: Date;
-  fees?: number;
-  totalAmount?: number;
+export const schoolPaymentConfig: PaymentFormConfig = {
+  institutionType: 'school',
+  maxTerms: 2,
+  supportedPurposes: ['BOOK_FEE', 'TUITION_FEE', 'TRANSPORT_FEE', 'OTHER'],
+  validationRules: {
+    amountRange: { min: 1, max: 1000000, decimals: 2 },
+    termSequence: true,
+    duplicatePrevention: true,
+    bookFeeFirst: true
+  }
+};
+```
+
+### College Configuration
+
+```typescript
+export const collegePaymentConfig: PaymentFormConfig = {
+  institutionType: 'college',
+  maxTerms: 3,
+  supportedPurposes: ['BOOK_FEE', 'TUITION_FEE', 'TRANSPORT_FEE', 'OTHER'],
+  validationRules: {
+    amountRange: { min: 1, max: 1000000, decimals: 2 },
+    termSequence: true,
+    duplicatePrevention: true,
+    bookFeeFirst: true
+  }
+};
+```
+
+## Validation System
+
+### Real-time Validation
+
+The system provides real-time validation for:
+
+- **Amount validation**: Range, decimal places, required fields
+- **Term sequence validation**: Sequential payment enforcement
+- **Duplicate prevention**: Prevents duplicate payment types
+- **Business rules**: Book fee must be paid first
+- **Custom purpose validation**: Required for OTHER payments
+
+### Validation Rules
+
+```typescript
+interface ValidationRules {
+  amountRange: {
+    min: number;
+    max: number;
+    decimals: number;
+  };
+  termSequence: boolean;
+  duplicatePrevention: boolean;
+  bookFeeFirst: boolean;
 }
 ```
 
-## Styling & Theming
-
-The components use your existing design system:
-- Tailwind CSS for styling
-- Framer Motion for animations
-- Radix UI components
-- Consistent with your existing UI patterns
-
-## Animation Features
-
-- **Step Transitions**: Smooth transitions between payment steps
-- **Progress Indicators**: Animated progress bars and loading states
-- **Success Celebrations**: Confetti and checkmark animations
-- **Error States**: Shake animations for errors
-- **Hover Effects**: Interactive hover states
-- **Loading States**: Spinner and skeleton animations
-
 ## API Integration
 
-The components are designed to work with your existing API structure:
+### Payment Data Format
 
-1. **Service Layer**: Uses your existing service pattern
-2. **React Query**: Integrates with your query client
-3. **Error Handling**: Consistent with your error handling patterns
-4. **TypeScript**: Fully typed with your existing types
+The form generates this JSON structure for the API:
+
+```json
+{
+  "details": [
+    {
+      "purpose": "BOOK_FEE",
+      "paid_amount": 1500.0,
+      "payment_method": "CASH"
+    },
+    {
+      "purpose": "TUITION_FEE",
+      "term_number": 1,
+      "paid_amount": 5000.0,
+      "payment_method": "ONLINE"
+    },
+    {
+      "purpose": "OTHER",
+      "custom_purpose_name": "Library Fine",
+      "paid_amount": 250.0,
+      "payment_method": "CASH"
+    }
+  ],
+  "remarks": "Payment for Term 1 including miscellaneous fees"
+}
+```
+
+### API Endpoints
+
+- **School**: `POST /api/v1/school/income/pay-fee/{admission_no}`
+- **College**: `POST /api/v1/college/income/pay-fee/{admission_no}`
 
 ## Customization
 
-### Payment Methods
-Add new payment methods by extending the `paymentMethod` type:
+### Adding New Payment Types
+
+1. Add the new purpose to `PaymentPurpose` type
+2. Create a new component in `components/` directory
+3. Add configuration to `PaymentConfig.ts`
+4. Update the main form to handle the new purpose
+
+### Custom Validation Rules
 
 ```typescript
-type PaymentMethod = 'card' | 'upi' | 'netbanking' | 'wallet' | 'your-new-method';
+const customValidationRules: ValidationRules = {
+  amountRange: { min: 100, max: 50000, decimals: 2 },
+  termSequence: false,
+  duplicatePrevention: true,
+  bookFeeFirst: false
+};
 ```
-
-### Styling
-Customize colors and animations by modifying the Tailwind classes in each component.
-
-### API Endpoints
-Modify the service endpoints in `payment-receipts.service.ts` to match your backend.
 
 ## Error Handling
 
-The components include comprehensive error handling:
-- Network errors
-- Validation errors
-- Payment processing errors
-- Receipt generation errors
+### Error Types
+
+```typescript
+interface PaymentError {
+  type: 'validation' | 'business_rule' | 'not_found' | 'system_error' | 'generic';
+  field?: string;
+  message: string;
+  suggestion: string;
+}
+```
+
+### Error Display
+
+The system provides user-friendly error messages with suggestions for resolution:
+
+- **Validation errors**: Field-specific error messages
+- **Business rule errors**: Explanation of business rules
+- **System errors**: Generic error handling with retry options
+- **Not found errors**: Clear indication of missing data
+
+## Responsive Design
+
+### Mobile Layout
+
+- Stacked layout for payment items
+- Touch-friendly buttons and inputs
+- Optimized modal sizes
+- Swipe gestures for item management
+
+### Desktop Layout
+
+- Side-by-side layout for better space utilization
+- Keyboard shortcuts for power users
+- Drag-and-drop for item reordering
+- Multi-column forms
 
 ## Accessibility
 
-- ARIA labels and descriptions
-- Keyboard navigation support
-- Screen reader compatibility
-- Focus management
-- High contrast support
+### Keyboard Navigation
 
-## Browser Support
+- Tab through form elements
+- Enter to submit forms
+- Escape to close modals
+- Arrow keys for radio buttons
 
-- Modern browsers (Chrome, Firefox, Safari, Edge)
-- Mobile responsive design
-- Touch-friendly interactions
+### Screen Reader Support
 
-## Performance
-
-- Lazy loading of components
-- Optimized animations
-- Efficient re-renders
-- Minimal bundle size impact
+- ARIA labels for all form elements
+- Error announcements
+- Status updates for dynamic content
+- Descriptive button labels
 
 ## Testing
 
-The components are designed to be easily testable:
-- Isolated component logic
-- Mockable API calls
-- Accessible test selectors
-- Clear prop interfaces
+### Unit Tests
 
-## Future Enhancements
+```typescript
+import { PaymentValidator } from '@/components/shared/payment/validation/PaymentValidation';
 
-- Multi-currency support
-- Recurring payment options
-- Payment method management
-- Advanced receipt customization
-- Payment analytics dashboard
+describe('PaymentValidator', () => {
+  it('should validate amount range', () => {
+    const result = PaymentValidator.validateAmount(1500, validationRules);
+    expect(result.isValid).toBe(true);
+  });
+});
+```
+
+### Integration Tests
+
+```typescript
+import { render, screen } from '@testing-library/react';
+import { MultiplePaymentForm } from '@/components/shared/payment';
+
+describe('MultiplePaymentForm', () => {
+  it('should render payment form', () => {
+    render(<MultiplePaymentForm {...props} />);
+    expect(screen.getByText('Student Information')).toBeInTheDocument();
+  });
+});
+```
+
+## Performance Considerations
+
+- **Lazy loading**: Modal components are loaded on demand
+- **Debounced validation**: Real-time validation is debounced
+- **Optimistic updates**: UI updates immediately for better perceived performance
+- **Efficient re-renders**: Proper memoization and state management
+
+## Browser Support
+
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
+
+## Dependencies
+
+- React 18+
+- Framer Motion 10+
+- Radix UI components
+- Tailwind CSS
+- TypeScript 4.9+
+
+## Contributing
+
+1. Follow the existing code structure
+2. Add proper TypeScript types
+3. Include unit tests for new features
+4. Update documentation
+5. Follow the established naming conventions
+
+## License
+
+This project is licensed under the MIT License.

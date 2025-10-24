@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search, User, GraduationCap, DollarSign } from "lucide-react";
+import { Search, User, GraduationCap, DollarSign, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,8 @@ import { formatCurrency } from "@/lib/utils";
 import { SchoolStudentsService } from "@/lib/services/school/students.service";
 import { SchoolTuitionFeeBalancesService } from "@/lib/services/school/tuition-fee-balances.service";
 import { SchoolTransportFeeBalancesService } from "@/lib/services/school/transport-fee-balances.service";
+import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
+import type { ColumnDef } from "@tanstack/react-table";
 
 interface StudentFeeDetails {
   student: any;
@@ -18,9 +20,11 @@ interface StudentFeeDetails {
 
 interface CollectFeeSearchProps {
   onStudentSelected: (studentDetails: StudentFeeDetails) => void;
+  paymentMode: 'single' | 'multiple';
+  onStartPayment: (studentDetails: StudentFeeDetails) => void;
 }
 
-export const CollectFeeSearch = ({ onStudentSelected }: CollectFeeSearchProps) => {
+export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPayment }: CollectFeeSearchProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<StudentFeeDetails[]>([]);
@@ -125,115 +129,166 @@ export const CollectFeeSearch = ({ onStudentSelected }: CollectFeeSearchProps) =
     return total;
   };
 
+  // Define table columns
+  const columns = useMemo<ColumnDef<StudentFeeDetails>[]>(() => [
+    {
+      accessorKey: "student.admission_no",
+      header: "Admission No",
+      cell: ({ row }) => (
+        <div className="font-medium">{row.original.student.admission_no}</div>
+      ),
+    },
+    {
+      accessorKey: "student.student_name",
+      header: "Student Name",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <User className="h-4 w-4 text-muted-foreground" />
+          <span className="font-medium">{row.original.student.student_name}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "student.section_name",
+      header: "Class",
+      cell: ({ row }) => (
+        <Badge variant="outline">
+          <GraduationCap className="h-3 w-3 mr-1" />
+          {row.original.student.section_name || "N/A"}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "student.gender",
+      header: "Gender",
+      cell: ({ row }) => row.original.student.gender || "N/A",
+    },
+    {
+      id: "tuition_outstanding",
+      header: "Tuition Outstanding",
+      cell: ({ row }) => {
+        const tuition = row.original.tuitionBalance;
+        if (!tuition) return formatCurrency(0);
+        
+        const bookOutstanding = Math.max(0, (tuition.book_fee || 0) - (tuition.book_paid || 0));
+        const term1Outstanding = Math.max(0, (tuition.term1_amount || 0) - (tuition.term1_paid || 0));
+        const term2Outstanding = Math.max(0, (tuition.term2_amount || 0) - (tuition.term2_paid || 0));
+        const term3Outstanding = Math.max(0, (tuition.term3_amount || 0) - (tuition.term3_paid || 0));
+        const total = bookOutstanding + term1Outstanding + term2Outstanding + term3Outstanding;
+        
+        return (
+          <div className="text-right">
+            <div className="font-medium">{formatCurrency(total)}</div>
+            <div className="text-xs text-muted-foreground space-x-1">
+              {bookOutstanding > 0 && <span>Book: {formatCurrency(bookOutstanding)}</span>}
+              {term1Outstanding > 0 && <span>T1: {formatCurrency(term1Outstanding)}</span>}
+              {term2Outstanding > 0 && <span>T2: {formatCurrency(term2Outstanding)}</span>}
+              {term3Outstanding > 0 && <span>T3: {formatCurrency(term3Outstanding)}</span>}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      id: "transport_outstanding",
+      header: "Transport Outstanding",
+      cell: ({ row }) => {
+        const transport = row.original.transportBalance;
+        if (!transport) return formatCurrency(0);
+        
+        const term1Outstanding = Math.max(0, (transport.term1_amount || 0) - (transport.term1_paid || 0));
+        const term2Outstanding = Math.max(0, (transport.term2_amount || 0) - (transport.term2_paid || 0));
+        const total = term1Outstanding + term2Outstanding;
+        
+        return (
+          <div className="text-right">
+            <div className="font-medium">{formatCurrency(total)}</div>
+            <div className="text-xs text-muted-foreground space-x-1">
+              {term1Outstanding > 0 && <span>T1: {formatCurrency(term1Outstanding)}</span>}
+              {term2Outstanding > 0 && <span>T2: {formatCurrency(term2Outstanding)}</span>}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      id: "total_outstanding",
+      header: "Total Outstanding",
+      cell: ({ row }) => {
+        const total = getTotalOutstanding(row.original);
+        return (
+          <div className="text-right font-semibold text-green-600">
+            {formatCurrency(total)}
+          </div>
+        );
+      },
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <Button 
+          onClick={() => onStartPayment(row.original)}
+          size="sm"
+          className="bg-green-600 hover:bg-green-700"
+        >
+          <CreditCard className="h-4 w-4 mr-2" />
+          Collect Fee
+        </Button>
+      ),
+    },
+  ], [onStartPayment]);
+
   return (
     <div className="space-y-6">
       {/* Search Section */}
-      <Card>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
             Search Student for Fee Collection
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter admission number or student name to search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="flex-1"
-            />
+        <CardContent className="w-full px-6">
+          <div className="flex items-center gap-3 w-full">
+            <div className="flex-1 min-w-0">
+              <Input
+                placeholder="Enter admission number or student name to search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="w-full"
+              />
+            </div>
             <Button 
               onClick={handleSearch} 
               disabled={isSearching || !searchQuery.trim()}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
             >
+              <Search className="h-4 w-4 mr-2" />
               {isSearching ? "Searching..." : "Search"}
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Search Results */}
+      {/* Search Results - Enhanced Data Table */}
       {searchResults.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-4"
         >
-          {searchResults.map((studentDetails, index) => (
-            <Card key={index} className="border-2 border-blue-200">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <User className="h-5 w-5 text-blue-600" />
-                    <div>
-                      <h3 className="text-lg font-semibold">{studentDetails.student.student_name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Admission No: {studentDetails.student.admission_no}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="text-green-600 border-green-600">
-                    <DollarSign className="h-3 w-3 mr-1" />
-                    Outstanding: {formatCurrency(getTotalOutstanding(studentDetails))}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Student Details */}
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-muted-foreground">Student Information</h4>
-                    <div className="space-y-1">
-                      <p><span className="font-medium">Name:</span> {studentDetails.student.student_name}</p>
-                      <p><span className="font-medium">Admission No:</span> {studentDetails.student.admission_no}</p>
-                      <p><span className="font-medium">Class:</span> {studentDetails.student.section_name || "N/A"}</p>
-                      <p><span className="font-medium">Gender:</span> {studentDetails.student.gender || "N/A"}</p>
-                    </div>
-                  </div>
-
-                  {/* Fee Details */}
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-muted-foreground">Fee Details</h4>
-                    <div className="space-y-1">
-                      {studentDetails.tuitionBalance && (
-                        <div className="space-y-1">
-                          <p className="font-medium text-sm">Tuition Fees:</p>
-                          <div className="pl-2 space-y-1 text-sm">
-                            <p>Book Fee: {formatCurrency(studentDetails.tuitionBalance.book_fee - studentDetails.tuitionBalance.book_paid)}</p>
-                            <p>Term 1: {formatCurrency(studentDetails.tuitionBalance.term1_amount - studentDetails.tuitionBalance.term1_paid)}</p>
-                            <p>Term 2: {formatCurrency(studentDetails.tuitionBalance.term2_amount - studentDetails.tuitionBalance.term2_paid)}</p>
-                            <p>Term 3: {formatCurrency(studentDetails.tuitionBalance.term3_amount - studentDetails.tuitionBalance.term3_paid)}</p>
-                          </div>
-                        </div>
-                      )}
-                      {studentDetails.transportBalance && (
-                        <div className="space-y-1">
-                          <p className="font-medium text-sm">Transport Fees:</p>
-                          <div className="pl-2 space-y-1 text-sm">
-                            <p>Term 1: {formatCurrency(studentDetails.transportBalance.term1_amount - studentDetails.transportBalance.term1_paid)}</p>
-                            <p>Term 2: {formatCurrency(studentDetails.transportBalance.term2_amount - studentDetails.transportBalance.term2_paid)}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-4 border-t">
-                  <Button 
-                    onClick={() => onStudentSelected(studentDetails)}
-                    className="w-full bg-green-600 hover:bg-green-700"
-                  >
-                    <GraduationCap className="h-4 w-4 mr-2" />
-                    Collect Fee - {formatCurrency(getTotalOutstanding(studentDetails))}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          <EnhancedDataTable
+            data={searchResults}
+            columns={columns}
+            title="Student Fee Collection"
+            searchKey="student"
+            searchPlaceholder="Search by student name or admission number..."
+            exportable={true}
+            showSearch={true}
+            className="border rounded-lg"
+            loading={isSearching}
+          />
         </motion.div>
       )}
 
