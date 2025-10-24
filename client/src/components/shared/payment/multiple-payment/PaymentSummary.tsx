@@ -3,13 +3,21 @@
  * Displays payment summary and handles form submission
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, FileText, Loader2 } from 'lucide-react';
+import { CreditCard, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -17,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { PaymentSummaryProps, PaymentMethod } from '../../types/PaymentTypes';
+import type { PaymentSummaryProps, PaymentMethod } from '../types/PaymentTypes';
 
 const paymentMethodOptions: Array<{ value: PaymentMethod; label: string; description: string }> = [
   {
@@ -29,16 +37,6 @@ const paymentMethodOptions: Array<{ value: PaymentMethod; label: string; descrip
     value: 'ONLINE',
     label: 'Online',
     description: 'Online payment (UPI, Card, Net Banking)'
-  },
-  {
-    value: 'CHEQUE',
-    label: 'Cheque',
-    description: 'Cheque payment'
-  },
-  {
-    value: 'DD',
-    label: 'Demand Draft',
-    description: 'Demand Draft payment'
   }
 ];
 
@@ -53,6 +51,7 @@ export const PaymentSummary: React.FC<PaymentSummaryProps> = ({
   isSubmitting,
   disabled
 }) => {
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -65,6 +64,19 @@ export const PaymentSummary: React.FC<PaymentSummaryProps> = ({
   const selectedPaymentMethod = paymentMethodOptions.find(
     option => option.value === paymentMethod
   );
+
+  const handleSubmitClick = () => {
+    setShowConfirmationDialog(true);
+  };
+
+  const handleConfirmPayment = () => {
+    setShowConfirmationDialog(false);
+    onSubmit();
+  };
+
+  const handleCancelConfirmation = () => {
+    setShowConfirmationDialog(false);
+  };
 
   return (
     <Card>
@@ -165,7 +177,7 @@ export const PaymentSummary: React.FC<PaymentSummaryProps> = ({
           </Button>
           
           <Button
-            onClick={onSubmit}
+            onClick={handleSubmitClick}
             disabled={disabled || isSubmitting || totalAmount <= 0}
             className="flex-1 gap-2"
           >
@@ -210,6 +222,76 @@ export const PaymentSummary: React.FC<PaymentSummaryProps> = ({
           </motion.div>
         )}
       </CardContent>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmationDialog} onOpenChange={setShowConfirmationDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Confirm Payment
+            </DialogTitle>
+            <DialogDescription>
+              Please review your payment details before proceeding.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Payment Summary */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-600">Total Amount:</span>
+                  <span className="text-lg font-bold text-gray-900">
+                    {formatAmount(totalAmount)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-600">Payment Method:</span>
+                  <span className="text-sm text-gray-900">
+                    {selectedPaymentMethod?.label}
+                  </span>
+                </div>
+                {remarks && (
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium text-gray-600">Remarks:</span>
+                    <span className="text-sm text-gray-900">{remarks}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Warning Message */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
+                <div className="text-sm text-yellow-800">
+                  <p className="font-medium">Please confirm:</p>
+                  <p>This action will process the payment and cannot be undone.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={handleCancelConfirmation}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmPayment}
+              disabled={isSubmitting}
+              className="bg-green-600 hover:bg-green-700 gap-2"
+            >
+              <CheckCircle className="h-4 w-4" />
+              Confirm Payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

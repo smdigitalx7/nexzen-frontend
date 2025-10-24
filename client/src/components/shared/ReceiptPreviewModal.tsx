@@ -20,26 +20,45 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   onClose,
   blobUrl,
 }) => {
+  console.log("🔍 ReceiptPreviewModal render:", { isOpen, blobUrl: !!blobUrl });
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
+  // Debug logging for modal state changes
+  useEffect(() => {
+    console.log("🔍 ReceiptPreviewModal state changed:", { isOpen, blobUrl: !!blobUrl });
+    if (isOpen && blobUrl) {
+      console.log("🎯 ReceiptPreviewModal should be visible!");
+    }
+  }, [isOpen, blobUrl]);
+
+  // Debug component lifecycle
+  useEffect(() => {
+    console.log("🔍 ReceiptPreviewModal mounted/updated");
+    return () => {
+      console.log("🔍 ReceiptPreviewModal unmounting");
+    };
+  });
+
   useEffect(() => {
     if (isOpen && blobUrl) {
-      console.log("📄 Modal opened with blob URL:", blobUrl);
+      console.log("📄 Modal opened with blob URL, starting loading state");
       setIsLoading(true);
       setHasError(false);
 
-      // Force a delay to ensure modal is fully rendered
+      // Reduced delay to ensure modal shows faster
       setTimeout(() => {
         setIsLoading(false);
-        console.log("📄 Modal should be ready now");
-      }, 500);
+        console.log("📄 Modal loading completed");
+      }, 200);
+    } else if (isOpen && !blobUrl) {
+      console.log("📄 Modal opened but no blob URL provided");
+      setHasError(true);
+      setIsLoading(false);
     }
   }, [isOpen, blobUrl]);
 
   const handlePrint = () => {
-    console.log("🖨️ Attempting to print PDF...");
-
     if (blobUrl) {
       // Create a new window for printing
       const printWindow = window.open(blobUrl, "_blank");
@@ -71,7 +90,6 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
 
   const handleDownload = () => {
     if (blobUrl) {
-      console.log("📥 Downloading PDF...");
       const link = document.createElement("a");
       link.href = blobUrl;
       link.download = `receipt-${Date.now()}.pdf`;
@@ -87,33 +105,63 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
     }
   };
 
-  const handleClose = () => {
-    console.log("🧹 Closing modal");
+
+  const handleConfirmClose = () => {
+    console.log("🔍 handleConfirmClose called");
     setIsLoading(false);
     setHasError(false);
     onClose();
   };
 
-  // Prevent modal from closing accidentally
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+
+  // Allow modal to close on backdrop click
+  const handleBackdropClick = () => {
+    console.log("🔍 Backdrop clicked, closing modal");
+    handleConfirmClose();
   };
 
+  if (!isOpen) {
+    console.log("🔍 ReceiptPreviewModal not open, returning null");
+    return null;
+  }
+
+  console.log("🔍 ReceiptPreviewModal is open, rendering dialog");
+  console.log("🔍 ReceiptPreviewModal props:", { isOpen, blobUrl: !!blobUrl, blobUrlValue: blobUrl });
+
   return (
-    <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent
-        className="max-w-3xl w-full h-[95vh] p-0"
-        onPointerDownOutside={handleBackdropClick}
-        onEscapeKeyDown={handleClose}
-      >
+    <>
+      <Dialog open={isOpen} onOpenChange={(open) => {
+        console.log("🔍 Dialog onOpenChange called with:", open);
+        if (!open) {
+          // Don't call handleClose here as it shows confirmation dialog
+          // Instead, directly call onClose to avoid conflicts
+          console.log("🔍 Dialog closing, calling onClose directly");
+          onClose();
+        }
+      }} modal={false}>
+        <DialogContent
+          className="max-w-3xl w-full h-[95vh] p-0 z-[9999]"
+          onPointerDownOutside={handleBackdropClick}
+          onEscapeKeyDown={() => {
+            console.log("🔍 Escape key pressed, calling onClose directly");
+            handleConfirmClose();
+          }}
+          showCloseButton={false}
+          aria-describedby="receipt-preview-description"
+          aria-modal="true"
+          role="dialog"
+        >
         <DialogHeader className="p-4 border-b flex items-center justify-between">
           <div className="flex items-center justify-between w-full">
             <div>
               <DialogTitle className="text-lg font-semibold">
                 Receipt Preview
               </DialogTitle>
+              <div id="receipt-preview-description" className="sr-only">
+                Payment receipt preview with options to print, download, or close
+              </div>
             </div>
-            <div className="flex items-center gap-2 mr-8">
+            <div className="flex items-center gap-2">
               <Button onClick={handleDownload} variant="default" size="sm">
                 <Download className="h-4 w-4" />
                 Download
@@ -121,6 +169,13 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
               <Button onClick={handlePrint} variant="default" size="sm">
                 <Printer className="h-4 w-4 " />
                 Print
+              </Button>
+              <Button onClick={() => {
+                console.log("🔍 Close button clicked");
+                handleConfirmClose();
+              }} variant="outline" size="sm">
+                <X className="h-4 w-4" />
+                Close
               </Button>
             </div>
           </div>
@@ -191,5 +246,9 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
         </div>
       </DialogContent>
     </Dialog>
+
+    </>
   );
 };
+
+export default ReceiptPreviewModal;

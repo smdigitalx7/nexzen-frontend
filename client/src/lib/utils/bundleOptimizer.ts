@@ -94,11 +94,17 @@ export const addResourceHints = (urls: string[]) => {
 
 // Critical resource preloading
 export const preloadCriticalResources = () => {
-  const criticalResources = [
-    // Add critical CSS, fonts, or other resources here
-    '/fonts/inter.woff2',
-    '/css/critical.css',
+  const criticalResources: string[] = [
+    // Only add resources that actually exist in the project
+    // '/fonts/inter.woff2', // Uncomment when you add local fonts
+    // '/css/critical.css', // Uncomment when you create this file
   ];
+  
+  // Only preload if there are resources to preload
+  if (criticalResources.length === 0) {
+    console.log('No critical resources to preload');
+    return;
+  }
   
   criticalResources.forEach(resource => {
     const link = document.createElement('link');

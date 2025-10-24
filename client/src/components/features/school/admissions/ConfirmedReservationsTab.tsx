@@ -298,7 +298,8 @@ const ConfirmedReservationsTab = () => {
             },
           ],
           remarks: "Admission fee payment",
-        }
+        },
+        'school'
       );
 
       const { blobUrl } = paymentResponse;

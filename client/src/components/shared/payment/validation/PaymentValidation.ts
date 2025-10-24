@@ -127,7 +127,7 @@ export class PaymentValidator {
   /**
    * Validates business rules (e.g., book fee must be paid first)
    */
-  static validateBusinessRules(items: PaymentItem[], rules: ValidationRules): PaymentValidationResult {
+  static validateBusinessRules(items: PaymentItem[], rules: ValidationRules, feeBalances?: FeeBalance): PaymentValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -139,9 +139,20 @@ export class PaymentValidator {
     const hasTuitionFee = items.some(item => item.purpose === 'TUITION_FEE');
     const hasTransportFee = items.some(item => item.purpose === 'TRANSPORT_FEE');
 
-    // Book fee must be paid before tuition or transport fees
-    if ((hasTuitionFee || hasTransportFee) && !hasBookFee) {
-      errors.push('Book fee must be paid before tuition or transport fee payments');
+    // Check if book fee is already paid (if feeBalances is provided)
+    if (feeBalances) {
+      const bookOutstanding = feeBalances.bookFee.outstanding;
+      const bookFeePaid = bookOutstanding <= 0;
+      
+      // If book fee is outstanding, it must be included in the payment
+      if (!bookFeePaid && !hasBookFee) {
+        errors.push('Book fee must be paid before processing any other payments');
+      }
+    } else {
+      // Fallback to old logic if feeBalances is not provided
+      if ((hasTuitionFee || hasTransportFee) && !hasBookFee) {
+        errors.push('Book fee must be paid before tuition or transport fee payments');
+      }
     }
 
     return {
@@ -200,7 +211,7 @@ export class PaymentValidator {
   /**
    * Comprehensive form validation
    */
-  static validateForm(data: MultiplePaymentData, rules: ValidationRules): PaymentValidationResult {
+  static validateForm(data: MultiplePaymentData, rules: ValidationRules, feeBalances?: FeeBalance): PaymentValidationResult {
     const allErrors: string[] = [];
     const allWarnings: string[] = [];
 
@@ -222,7 +233,7 @@ export class PaymentValidator {
     // Validate form-level rules
     const duplicateValidation = this.validateDuplicates(data.details, rules);
     const sequenceValidation = this.validateTermSequence(data.details, rules);
-    const businessRulesValidation = this.validateBusinessRules(data.details, rules);
+    const businessRulesValidation = this.validateBusinessRules(data.details, rules, feeBalances);
 
     allErrors.push(...duplicateValidation.errors);
     allErrors.push(...sequenceValidation.errors);
@@ -279,8 +290,12 @@ export function getAvailableTerms(
   feeBalances: FeeBalance, 
   institutionType: 'school' | 'college'
 ): Array<{ term: number; available: boolean; paid: boolean; outstanding: number }> {
-  const maxTerms = institutionType === 'college' ? 3 : 2;
+  // Different term counts based on purpose and institution type
+  // Schools: 3 terms for tuition, 2 terms for transport
+  // Colleges: No terms (single payment)
+  const maxTerms = institutionType === 'college' ? 0 : (purpose === 'TRANSPORT_FEE' ? 2 : 3);
   const terms: Array<{ term: number; available: boolean; paid: boolean; outstanding: number }> = [];
+
 
   for (let i = 1; i <= maxTerms; i++) {
     let paid = false;
@@ -288,14 +303,14 @@ export function getAvailableTerms(
 
     if (purpose === 'TUITION_FEE') {
       const termKey = `term${i}` as 'term1' | 'term2' | 'term3';
-      const termData = feeBalances.tuitionFee[termKey];
+      const termData = feeBalances.tuitionFee[termKey as keyof typeof feeBalances.tuitionFee];
       if (termData && typeof termData === 'object' && 'paid' in termData && 'outstanding' in termData) {
         paid = termData.paid > 0;
         outstanding = termData.outstanding || 0;
       }
     } else if (purpose === 'TRANSPORT_FEE') {
       const termKey = `term${i}` as 'term1' | 'term2' | 'term3';
-      const termData = feeBalances.transportFee[termKey];
+      const termData = feeBalances.transportFee[termKey as keyof typeof feeBalances.transportFee];
       if (termData && typeof termData === 'object' && 'paid' in termData && 'outstanding' in termData) {
         paid = termData.paid > 0;
         outstanding = termData.outstanding || 0;
@@ -314,4 +329,107 @@ export function getAvailableTerms(
   }
 
   return terms;
+}
+
+/**
+ * Helper function to check if a fee purpose is available for payment
+ */
+export function isFeePurposeAvailable(
+  purpose: PaymentPurpose,
+  feeBalances: FeeBalance,
+  institutionType: 'school' | 'college',
+  addedPurposes: PaymentPurpose[] = []
+): { available: boolean; reason?: string; outstandingAmount?: number } {
+  // Check if book fee is pending and must be selected first
+  const bookOutstanding = feeBalances.bookFee.outstanding;
+  const bookFeePending = bookOutstanding > 0;
+  const bookFeeAdded = addedPurposes.includes('BOOK_FEE');
+
+  switch (purpose) {
+    case 'BOOK_FEE':
+      return {
+        available: bookOutstanding > 0,
+        reason: bookOutstanding <= 0 ? 'Book fee is already paid in full' : undefined,
+        outstandingAmount: bookOutstanding
+      };
+
+    case 'TUITION_FEE':
+      const tuitionTerms = getAvailableTerms('TUITION_FEE', feeBalances, institutionType);
+      const hasAvailableTuitionTerm = tuitionTerms.some(term => term.available);
+      const totalTuitionOutstanding = tuitionTerms.reduce((sum, term) => sum + term.outstanding, 0);
+      
+      // If book fee is pending and not added, tuition fee is not available
+      if (bookFeePending && !bookFeeAdded) {
+        return {
+          available: false,
+          reason: 'Book fee must be selected first before tuition fee',
+          outstandingAmount: totalTuitionOutstanding
+        };
+      }
+      
+      return {
+        available: hasAvailableTuitionTerm,
+        reason: !hasAvailableTuitionTerm ? 'No tuition fee terms available for payment' : undefined,
+        outstandingAmount: totalTuitionOutstanding
+      };
+
+    case 'TRANSPORT_FEE':
+      const transportTerms = getAvailableTerms('TRANSPORT_FEE', feeBalances, institutionType);
+      const hasAvailableTransportTerm = transportTerms.some(term => term.available);
+      const totalTransportOutstanding = transportTerms.reduce((sum, term) => sum + term.outstanding, 0);
+      
+      // If book fee is pending and not added, transport fee is not available
+      if (bookFeePending && !bookFeeAdded) {
+        return {
+          available: false,
+          reason: 'Book fee must be selected first before transport fee',
+          outstandingAmount: totalTransportOutstanding
+        };
+      }
+      
+      return {
+        available: hasAvailableTransportTerm,
+        reason: !hasAvailableTransportTerm ? 'No transport fee terms available for payment' : undefined,
+        outstandingAmount: totalTransportOutstanding
+      };
+
+    case 'OTHER':
+      // If book fee is pending and not added, other payments are not available
+      if (bookFeePending && !bookFeeAdded) {
+        return {
+          available: false,
+          reason: 'Book fee must be selected first before other payments',
+          outstandingAmount: 0
+        };
+      }
+      
+      // Other payments are available if book fee is not pending or already added
+      return {
+        available: true,
+        outstandingAmount: 0
+      };
+
+    default:
+      return {
+        available: false,
+        reason: 'Unknown payment purpose',
+        outstandingAmount: 0
+      };
+  }
+}
+
+/**
+ * Helper function to get fee purpose availability status for all purposes
+ */
+export function getAllFeePurposeAvailability(
+  feeBalances: FeeBalance,
+  institutionType: 'school' | 'college',
+  addedPurposes: PaymentPurpose[] = []
+): Record<PaymentPurpose, { available: boolean; reason?: string; outstandingAmount?: number }> {
+  const purposes: PaymentPurpose[] = ['BOOK_FEE', 'TUITION_FEE', 'TRANSPORT_FEE', 'OTHER'];
+  
+  return purposes.reduce((acc, purpose) => {
+    acc[purpose] = isFeePurposeAvailable(purpose, feeBalances, institutionType, addedPurposes);
+    return acc;
+  }, {} as Record<PaymentPurpose, { available: boolean; reason?: string; outstandingAmount?: number }>);
 }

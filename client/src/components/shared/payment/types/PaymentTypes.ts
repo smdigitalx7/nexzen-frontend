@@ -45,15 +45,14 @@ export interface FeeBalance {
   };
   tuitionFee: {
     total: number;
-    term1: { paid: number; outstanding: number };
-    term2: { paid: number; outstanding: number };
-    term3?: { paid: number; outstanding: number }; // Only for college
+    term1: { paid: number; outstanding: number }; // Required for schools
+    term2: { paid: number; outstanding: number }; // Required for schools
+    term3: { paid: number; outstanding: number }; // Required for schools
   };
   transportFee: {
     total: number;
-    term1: { paid: number; outstanding: number };
-    term2: { paid: number; outstanding: number };
-    term3?: { paid: number; outstanding: number }; // Only for college
+    term1?: { paid: number; outstanding: number }; // Only for schools (colleges have single payment)
+    term2?: { paid: number; outstanding: number }; // Only for schools (colleges have single payment)
   };
 }
 
@@ -79,15 +78,19 @@ export interface PurposeSelectionProps {
   isOpen?: boolean;
   availablePurposes: PaymentPurpose[];
   addedPurposes: PaymentPurpose[];
+  paymentItems?: PaymentItem[]; // Add actual payment items for duplicate term checking
   onPurposeSelect: (purpose: PaymentPurpose) => void;
   onClose: () => void;
+  feeBalances?: FeeBalance;
+  institutionType?: 'school' | 'college';
 }
 
 export interface PaymentItemCardProps {
   item: PaymentItem;
-  onEdit: (item: PaymentItem) => void;
   onRemove: (itemId: string) => void;
   institutionType: 'school' | 'college';
+  orderNumber?: number;
+  allItems?: PaymentItem[]; // Add all items to check deletion order
 }
 
 export interface PaymentSummaryProps {
@@ -106,7 +109,7 @@ export interface MultiplePaymentFormProps {
   student: StudentInfo;
   feeBalances: FeeBalance;
   config: PaymentFormConfig;
-  onPaymentComplete: (data: MultiplePaymentData) => void;
+  onPaymentComplete: (data: MultiplePaymentData) => Promise<any>;
   onCancel: () => void;
 }
 
@@ -116,6 +119,7 @@ export interface PurposeSpecificComponentProps {
   config: PaymentFormConfig;
   onAdd: (item: PaymentItem) => void;
   onCancel: () => void;
+  isOpen: boolean;
 }
 
 // API Integration Types

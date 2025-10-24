@@ -90,13 +90,19 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
       }
     }
 
-    // Setup resource hints
+    // Setup resource hints - only preload resources that actually exist
     if (config.optimization.enableImageOptimization) {
-      const criticalResources = [
-        '/fonts/inter.woff2',
-        '/css/critical.css',
+      // Only preload resources that actually exist in the project
+      const criticalResources: string[] = [
+        // Add actual resources here when they exist
+        // '/css/critical.css', // Uncomment when you create this file
+        // '/fonts/inter.woff2', // Uncomment when you add local fonts
       ];
-      productionUtils.bundle.addResourceHints(criticalResources);
+      
+      // Only add hints if there are resources to preload
+      if (criticalResources.length > 0) {
+        productionUtils.bundle.addResourceHints(criticalResources);
+      }
     }
 
     // Memory monitoring

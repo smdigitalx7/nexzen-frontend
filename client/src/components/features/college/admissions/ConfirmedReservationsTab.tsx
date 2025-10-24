@@ -299,7 +299,7 @@ const ConfirmedReservationsTab = () => {
           payment_method: "CASH",
         }],
         remarks: "Admission fee payment",
-      });
+      }, 'college');
 
       if (result.blobUrl) {
         setReceiptBlobUrl(result.blobUrl);

@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, AlertCircle, CheckCircle } from 'lucide-react';
+import { BookOpen, AlertCircle, CheckCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -17,23 +17,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PaymentValidator } from '../../validation/PaymentValidation';
 import type { PurposeSpecificComponentProps, PaymentItem, PaymentMethod } from '../../types/PaymentTypes';
 
 const paymentMethodOptions: Array<{ value: PaymentMethod; label: string }> = [
   { value: 'CASH', label: 'Cash' },
-  { value: 'ONLINE', label: 'Online' },
-  { value: 'CHEQUE', label: 'Cheque' },
-  { value: 'DD', label: 'Demand Draft' }
+  { value: 'ONLINE', label: 'Online' }
 ];
 
-export const BookFeeComponent: React.FC<PurposeSpecificComponentProps> = ({
+interface BookFeeComponentProps extends PurposeSpecificComponentProps {
+  isOpen: boolean;
+}
+
+export const BookFeeComponent: React.FC<BookFeeComponentProps> = ({
   student,
   feeBalances,
   config,
   onAdd,
-  onCancel
+  onCancel,
+  isOpen
 }) => {
   const [amount, setAmount] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
@@ -44,16 +54,13 @@ export const BookFeeComponent: React.FC<PurposeSpecificComponentProps> = ({
   const outstandingAmount = feeBalances.bookFee.outstanding;
 
   useEffect(() => {
-    // Pre-fill with outstanding amount if available
+    // Always set amount to full outstanding amount - no custom amounts allowed
     if (outstandingAmount > 0) {
       setAmount(outstandingAmount.toString());
     }
   }, [outstandingAmount]);
 
-  const handleAmountChange = (value: string) => {
-    setAmount(value);
-    validateAmount(value);
-  };
+  // Remove custom amount change handlers - book fee must be paid in full
 
   const validateAmount = (value: string) => {
     setIsValidating(true);
@@ -101,47 +108,24 @@ export const BookFeeComponent: React.FC<PurposeSpecificComponentProps> = ({
   const isFormValid = amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0 && errors.length === 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.2 }}
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+    <Dialog open={isOpen} onOpenChange={onCancel}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-blue-600" />
             Book Fee Payment
-          </CardTitle>
-        </CardHeader>
+          </DialogTitle>
+          <DialogDescription className="font-semibold">
+            Add book fee payment for {student.name} ({student.admissionNo})
+          </DialogDescription>
+        </DialogHeader>
 
-        <CardContent className="space-y-6">
-          {/* Student Info */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-600">Student:</span>
-                <span className="ml-2 font-medium">{student.name}</span>
-              </div>
-              <div>
-                <span className="text-gray-600">Admission No:</span>
-                <span className="ml-2 font-medium">{student.admissionNo}</span>
-              </div>
-              <div>
-                <span className="text-gray-600">Class:</span>
-                <span className="ml-2 font-medium">{student.className}</span>
-              </div>
-              <div>
-                <span className="text-gray-600">Academic Year:</span>
-                <span className="ml-2 font-medium">{student.academicYear}</span>
-              </div>
-            </div>
-          </div>
+        <div className="space-y-6">
 
           {/* Fee Information */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h3 className="font-medium text-blue-800 mb-2">Book Fee Information</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-blue-600">Total Fee:</span>
                 <span className="ml-2 font-medium">{formatAmount(feeBalances.bookFee.total)}</span>
@@ -157,80 +141,85 @@ export const BookFeeComponent: React.FC<PurposeSpecificComponentProps> = ({
             </div>
           </div>
 
-          {/* Amount Input */}
-          <div className="space-y-2">
-            <Label htmlFor="amount" className="text-sm font-medium">
-              Payment Amount *
-            </Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                ₹
-              </span>
-              <Input
-                id="amount"
-                type="number"
-                placeholder="Enter amount"
-                value={amount}
-                onChange={(e) => handleAmountChange(e.target.value)}
-                className="pl-8"
-                min="1"
-                max={config.validationRules.amountRange.max}
-                step="0.01"
-              />
-            </div>
-            
-            {/* Amount validation feedback */}
-            <div className="flex items-center gap-2 text-xs">
-              {isValidating ? (
-                <div className="flex items-center gap-1 text-gray-500">
-                  <div className="w-3 h-3 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
-                  Validating...
+          {outstandingAmount > 0 ? (
+            <>
+              {/* Amount Input */}
+              <div className="space-y-2">
+                <Label htmlFor="amount" className="text-sm font-medium">
+                  Payment Amount * <span className="text-xs text-gray-500">(Fixed - Full Outstanding Amount)</span>
+                </Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                    ₹
+                  </span>
+                  <Input
+                    id="amount"
+                    type="text"
+                    placeholder="Enter amount"
+                    value={amount}
+                    disabled={true}
+                    className="pl-8 bg-gray-100 cursor-not-allowed"
+                  />
                 </div>
-              ) : errors.length > 0 ? (
-                <div className="flex items-center gap-1 text-red-600">
-                  <AlertCircle className="h-3 w-3" />
-                  {errors[0]}
+                
+                {/* Amount validation feedback */}
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="flex items-center gap-1 text-blue-600">
+                    <CheckCircle className="h-3 w-3" />
+                    Amount automatically set to full outstanding balance
+                  </div>
                 </div>
-              ) : amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0 ? (
-                <div className="flex items-center gap-1 text-green-600">
-                  <CheckCircle className="h-3 w-3" />
-                  Amount is valid
-                </div>
-              ) : null}
-            </div>
-          </div>
+              </div>
 
-          {/* Payment Method */}
-          <div className="space-y-2">
-            <Label htmlFor="payment-method" className="text-sm font-medium">
-              Payment Method *
-            </Label>
-            <Select value={paymentMethod} onValueChange={(value: PaymentMethod) => setPaymentMethod(value)}>
-              <SelectTrigger id="payment-method">
-                <SelectValue placeholder="Select payment method" />
-              </SelectTrigger>
-              <SelectContent>
-                {paymentMethodOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              {/* Payment Method */}
+              <div className="space-y-2">
+                <Label htmlFor="payment-method" className="text-sm font-medium">
+                  Payment Method *
+                </Label>
+                <Select value={paymentMethod} onValueChange={(value: PaymentMethod) => setPaymentMethod(value)}>
+                  <SelectTrigger id="payment-method">
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paymentMethodOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Warning Message */}
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Important:</strong> Book fee must be paid in full in a single transaction.
-              {outstandingAmount > 0 && (
-                <span className="block mt-1">
-                  Outstanding amount: <strong>{formatAmount(outstandingAmount)}</strong>
-                </span>
-              )}
-            </AlertDescription>
-          </Alert>
+              {/* Warning Message */}
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Important:</strong> Book fee must be paid in full in a single transaction. Custom amounts are not allowed.
+                  {outstandingAmount > 0 && (
+                    <span className="block mt-1">
+                      Payment amount is automatically set to: <strong>{formatAmount(outstandingAmount)}</strong>
+                    </span>
+                  )}
+                </AlertDescription>
+              </Alert>
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="p-4 bg-green-100 rounded-full">
+                  <CheckCircle2 className="h-8 w-8 text-green-600" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-green-800 mb-2">
+                    Book Fee Already Paid!
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    The book fee has been paid in full for this student.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
@@ -242,18 +231,28 @@ export const BookFeeComponent: React.FC<PurposeSpecificComponentProps> = ({
               Cancel
             </Button>
             
-            <Button
-              onClick={handleSubmit}
-              disabled={!isFormValid}
-              className="flex-1 gap-2"
-            >
-              <BookOpen className="h-4 w-4" />
-              Add to Payment
-            </Button>
+            {outstandingAmount > 0 ? (
+              <Button
+                onClick={handleSubmit}
+                disabled={!isFormValid}
+                className="flex-1 gap-2"
+              >
+                <BookOpen className="h-4 w-4" />
+                Add to Payment
+              </Button>
+            ) : (
+              <Button
+                onClick={onCancel}
+                className="flex-1 gap-2"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Close
+              </Button>
+            )}
           </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

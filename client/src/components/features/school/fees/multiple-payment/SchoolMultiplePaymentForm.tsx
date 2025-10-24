@@ -11,7 +11,7 @@ import type { StudentInfo, FeeBalance, MultiplePaymentData } from '@/components/
 interface SchoolMultiplePaymentFormProps {
   student: StudentInfo;
   feeBalances: FeeBalance;
-  onPaymentComplete: (data: MultiplePaymentData) => void;
+  onPaymentComplete: (data: MultiplePaymentData) => Promise<any>;
   onCancel: () => void;
 }
 

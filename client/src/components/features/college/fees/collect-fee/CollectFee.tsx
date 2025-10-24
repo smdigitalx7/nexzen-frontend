@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreditCard, Layers } from "lucide-react";
 import type { StudentInfo, FeeBalance, MultiplePaymentData } from "@/components/shared/payment/types/PaymentTypes";
-import { api } from "@/lib/api";
+import { handlePayByAdmissionWithIncomeId } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface StudentFeeDetails {
   student: any;
@@ -16,6 +17,7 @@ interface StudentFeeDetails {
 }
 
 export const CollectFee = () => {
+  const { toast } = useToast();
   const [selectedStudent, setSelectedStudent] = useState<StudentFeeDetails | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [paymentMode, setPaymentMode] = useState<'single' | 'multiple'>('single');
@@ -41,44 +43,42 @@ export const CollectFee = () => {
 
   const handleMultiplePaymentComplete = async (paymentData: MultiplePaymentData) => {
     try {
-      // Transform data for your API
+      // Transform data for the specialized API
       const apiPayload = {
         details: paymentData.details.map(detail => ({
-          purpose: detail.purpose,
-          custom_purpose_name: detail.customPurposeName || null,
-          term_number: detail.termNumber || null,
+          purpose: detail.purpose as "BOOK_FEE" | "TUITION_FEE" | "TRANSPORT_FEE" | "OTHER" | "ADMISSION_FEE",
+          custom_purpose_name: detail.customPurposeName || undefined,
+          term_number: detail.termNumber || undefined,
           paid_amount: detail.amount,
-          payment_method: detail.paymentMethod,
+          payment_method: detail.paymentMethod === "CHEQUE" ? "CASH" : detail.paymentMethod as "CASH" | "ONLINE",
         })),
-        remarks: paymentData.remarks || null,
+        remarks: paymentData.remarks || undefined,
       };
 
-      // Call your existing API endpoint
-      const result = await api({
-        method: 'POST',
-        path: `/college/income/pay-fee/${paymentData.admissionNo}`,
-        body: apiPayload,
-      }) as { success: boolean; message?: string };
+      // Use the specialized API function that handles income_id extraction and receipt generation
+      const result = await handlePayByAdmissionWithIncomeId(paymentData.admissionNo, apiPayload, 'college');
       
-      if (result.success) {
-        // Handle successful payment
-        console.log('Multiple payment completed successfully:', result);
-        
-        // Close the form and refresh data
-        setSelectedStudent(null);
-        setIsFormOpen(false);
-        
-        // Show success message
-        alert('Multiple payments completed successfully!');
-        
-        // You can add toast notification here
-        // toast.success('Multiple payments completed successfully!');
-      } else {
-        throw new Error(result.message || 'Payment processing failed');
-      }
+      // Handle successful payment
+      console.log('Multiple payment completed successfully:', result);
+      
+      // Don't close the form immediately - let MultiplePaymentForm handle it after receipt modal closes
+      // setSelectedStudent(null);
+      // setIsFormOpen(false);
+
+      // Return the result so MultiplePaymentForm can extract income_id
+      return result;
     } catch (error) {
       console.error('Multiple payment error:', error);
-      alert(`Multiple payment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Show error toast
+      toast({
+        title: "Payment Failed",
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        variant: "destructive",
+      });
+      
+      // Re-throw the error so MultiplePaymentForm can handle it
+      throw error;
     }
   };
 
@@ -122,10 +122,6 @@ export const CollectFee = () => {
         term2: {
           paid: studentDetails.transportBalance?.term2_paid || 0,
           outstanding: Math.max(0, (studentDetails.transportBalance?.term2_amount || 0) - (studentDetails.transportBalance?.term2_paid || 0))
-        },
-        term3: {
-          paid: studentDetails.transportBalance?.term3_paid || 0,
-          outstanding: Math.max(0, (studentDetails.transportBalance?.term3_amount || 0) - (studentDetails.transportBalance?.term3_paid || 0))
         }
       }
     };

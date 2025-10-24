@@ -33,11 +33,9 @@ export const CollectFeeWithMultiplePayment = () => {
     },
     tuitionFee: {
       total: institutionType === 'college' ? 45000 : 30000,
-      term1: { paid: 0, outstanding: institutionType === 'college' ? 15000 : 15000 },
-      term2: { paid: 0, outstanding: institutionType === 'college' ? 15000 : 15000 },
-      ...(institutionType === 'college' && {
-        term3: { paid: 0, outstanding: 15000 }
-      })
+      term1: { paid: 0, outstanding: institutionType === 'college' ? 15000 : 10000 },
+      term2: { paid: 0, outstanding: institutionType === 'college' ? 15000 : 10000 },
+      term3: { paid: 0, outstanding: institutionType === 'college' ? 15000 : 10000 }
     },
     transportFee: {
       total: institutionType === 'college' ? 6000 : 4000,

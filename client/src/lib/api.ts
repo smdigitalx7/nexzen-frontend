@@ -625,6 +625,10 @@ export async function handlePayByReservation(
     // Now call regenerate receipt endpoint to get PDF
     console.log("📄 Generating receipt for income_id:", income_id);
     const blobUrl = await handleRegenerateReceipt(income_id);
+    
+    console.log("📄 Receipt blob URL generated:", blobUrl);
+    console.log("📄 Blob URL type:", typeof blobUrl);
+    console.log("📄 Blob URL length:", blobUrl?.length);
 
     return { blobUrl, income_id, paymentData };
   } catch (error) {
@@ -755,6 +759,7 @@ export async function handlePayByAdmission(
  *
  * @param admissionNo - The admission number for the payment
  * @param payload - The payment data (PayFeeByAdmissionRequest format)
+ * @param institutionType - The institution type ('school' or 'college')
  * @returns Promise that resolves with an object containing income_id, blobUrl (for PDF receipt), and paymentData (full response)
  */
 export async function handlePayByAdmissionWithIncomeId(
@@ -773,7 +778,8 @@ export async function handlePayByAdmissionWithIncomeId(
       custom_purpose_name?: string; // Required for OTHER purpose
     }>;
     remarks?: string;
-  }
+  },
+  institutionType: 'school' | 'college' = 'school'
 ): Promise<{ income_id: number; blobUrl: string; paymentData: any }> {
   const state = useAuthStore.getState();
   const token = state.token;
@@ -782,11 +788,15 @@ export async function handlePayByAdmissionWithIncomeId(
     throw new Error("Authentication token is required for payment processing");
   }
 
-  const url = `${API_BASE_URL}/school/income/pay-fee/${admissionNo}`;
+  const url = `${API_BASE_URL}/${institutionType}/income/pay-fee/${admissionNo}`;
 
   try {
-    console.log("💰 Processing admission payment for:", admissionNo);
+    console.log(`💰 Processing ${institutionType} admission payment for:`, admissionNo);
     console.log("📦 Payment payload:", payload);
+
+    // Add timeout to prevent hanging requests
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     const response = await fetch(url, {
       method: "POST",
@@ -796,7 +806,10 @@ export async function handlePayByAdmissionWithIncomeId(
       },
       body: JSON.stringify(payload),
       credentials: "include",
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const contentType = response.headers.get("content-type") || "";
@@ -836,18 +849,30 @@ export async function handlePayByAdmissionWithIncomeId(
     // Now call regenerate receipt endpoint to get PDF
     console.log("📄 Generating receipt for income_id:", income_id);
     const blobUrl = await handleRegenerateReceipt(income_id);
+    
+    console.log("📄 Receipt blob URL generated:", blobUrl);
+    console.log("📄 Blob URL type:", typeof blobUrl);
+    console.log("📄 Blob URL length:", blobUrl?.length);
 
-    return {
+    const result = {
       income_id,
       blobUrl,
       paymentData, // Include full payment data for debugging/additional info
     };
+    
+    console.log("📄 Final result object:", result);
+    return result;
   } catch (error) {
     console.error("❌ Payment processing failed:", error);
-    if (error instanceof TypeError && error.message.includes("fetch")) {
-      throw new Error(
-        "Network error occurred while processing payment. Please check your connection and try again."
-      );
+    
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error("Payment request timed out. Please try again.");
+      } else if (error.message.includes("fetch")) {
+        throw new Error(
+          "Network error occurred while processing payment. Please check your connection and try again."
+        );
+      }
     }
     throw error;
   }

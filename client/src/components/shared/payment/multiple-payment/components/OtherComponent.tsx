@@ -17,15 +17,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PaymentValidator } from '../../validation/PaymentValidation';
 import type { PurposeSpecificComponentProps, PaymentItem, PaymentMethod } from '../../types/PaymentTypes';
 
 const paymentMethodOptions: Array<{ value: PaymentMethod; label: string }> = [
   { value: 'CASH', label: 'Cash' },
-  { value: 'ONLINE', label: 'Online' },
-  { value: 'CHEQUE', label: 'Cheque' },
-  { value: 'DD', label: 'Demand Draft' }
+  { value: 'ONLINE', label: 'Online' }
 ];
 
 const commonPurposes = [
@@ -41,12 +46,17 @@ const commonPurposes = [
   'Other'
 ];
 
-export const OtherComponent: React.FC<PurposeSpecificComponentProps> = ({
+interface OtherComponentProps extends PurposeSpecificComponentProps {
+  isOpen: boolean;
+}
+
+export const OtherComponent: React.FC<OtherComponentProps> = ({
   student,
   feeBalances,
   config,
   onAdd,
-  onCancel
+  onCancel,
+  isOpen
 }) => {
   const [customPurposeName, setCustomPurposeName] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
@@ -125,42 +135,19 @@ export const OtherComponent: React.FC<PurposeSpecificComponentProps> = ({
   const isFormValid = customPurposeName.trim() && amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0 && errors.length === 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.2 }}
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+    <Dialog open={isOpen} onOpenChange={onCancel}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-hide">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5 text-purple-600" />
             Custom Payment
-          </CardTitle>
-        </CardHeader>
+          </DialogTitle>
+          <DialogDescription className="font-semibold">
+            Add custom purpose payment for {student.name} ({student.admissionNo})
+          </DialogDescription>
+        </DialogHeader>
 
-        <CardContent className="space-y-6">
-          {/* Student Info */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-600">Student:</span>
-                <span className="ml-2 font-medium">{student.name}</span>
-              </div>
-              <div>
-                <span className="text-gray-600">Admission No:</span>
-                <span className="ml-2 font-medium">{student.admissionNo}</span>
-              </div>
-              <div>
-                <span className="text-gray-600">Class:</span>
-                <span className="ml-2 font-medium">{student.className}</span>
-              </div>
-              <div>
-                <span className="text-gray-600">Academic Year:</span>
-                <span className="ml-2 font-medium">{student.academicYear}</span>
-              </div>
-            </div>
-          </div>
+        <div className="space-y-6">
 
           {/* Custom Purpose Name */}
           <div className="space-y-2">
@@ -194,7 +181,7 @@ export const OtherComponent: React.FC<PurposeSpecificComponentProps> = ({
           {/* Common Purposes Suggestions */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Common Purposes</Label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {commonPurposes.map((purpose) => (
                 <Button
                   key={purpose}
@@ -218,17 +205,14 @@ export const OtherComponent: React.FC<PurposeSpecificComponentProps> = ({
               <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
                 ₹
               </span>
-              <Input
-                id="amount"
-                type="number"
-                placeholder="Enter amount"
-                value={amount}
-                onChange={(e) => handleAmountChange(e.target.value)}
-                className="pl-8"
-                min="1"
-                max={config.validationRules.amountRange.max}
-                step="0.01"
-              />
+                  <Input
+                    id="amount"
+                    type="text"
+                    placeholder="Enter amount"
+                    value={amount}
+                    onChange={(e) => handleAmountChange(e.target.value)}
+                    className="pl-8"
+                  />
             </div>
             
             {/* Amount validation feedback */}
@@ -315,9 +299,9 @@ export const OtherComponent: React.FC<PurposeSpecificComponentProps> = ({
               Add to Payment
             </Button>
           </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -266,7 +266,21 @@ export const bundleOptimizations = {
         const link = document.createElement('link');
         link.rel = 'preload';
         link.href = url;
-        link.as = url.endsWith('.css') ? 'style' : 'script';
+        
+        // Set correct 'as' attribute based on file type
+        if (url.endsWith('.css')) {
+          link.as = 'style';
+        } else if (url.endsWith('.woff2') || url.endsWith('.woff') || url.endsWith('.ttf')) {
+          link.as = 'font';
+          link.crossOrigin = 'anonymous';
+        } else if (url.endsWith('.js')) {
+          link.as = 'script';
+        } else if (url.endsWith('.png') || url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.webp')) {
+          link.as = 'image';
+        } else {
+          link.as = 'fetch';
+        }
+        
         document.head.appendChild(link);
       });
     }
