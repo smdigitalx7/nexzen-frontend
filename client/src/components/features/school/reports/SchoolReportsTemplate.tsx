@@ -20,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DollarSign, TrendingUp, Eye } from "lucide-react";
+import { DollarSign, TrendingUp, Eye, PieChart } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import { useSchoolIncomeDashboard } from "@/lib/hooks/school/use-school-income-expenditure";
 import { useSchoolExpenditureList, useSchoolExpenditureDashboard } from "@/lib/hooks/school/use-school-income-expenditure";
@@ -30,6 +30,7 @@ import { AddExpenditureDialog } from "@/components/features/school/reports/compo
 import { SchoolIncomeStatsCards } from "../income/SchoolIncomeStatsCards";
 import { SchoolExpenditureStatsCards } from "../expenditure/SchoolExpenditureStatsCards";
 import { SchoolFinanceReportButtons } from '../reports/components/SchoolFinanceReportButtons';
+import { SchoolFinancialAnalytics } from "./components/SchoolFinancialAnalytics";
 
 
 export const SchoolReportsTemplate = () => {
@@ -125,6 +126,18 @@ export const SchoolReportsTemplate = () => {
                 expenditureData={expenditureData}
                 onExportCSV={() => {}}
                 onAddExpenditure={() => setShowAddExpenditureDialog(true)}
+              />
+            ),
+          },
+          {
+            value: "analytics",
+            label: "Analytics",
+            icon: PieChart,
+            content: (
+              <SchoolFinancialAnalytics
+                incomeDashboard={incomeDashboard}
+                expenditureDashboard={expenditureDashboard}
+                loading={incomeDashboardLoading || expenditureDashboardLoading}
               />
             ),
           },
