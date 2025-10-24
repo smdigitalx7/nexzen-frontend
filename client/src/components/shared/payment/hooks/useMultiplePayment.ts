@@ -126,7 +126,7 @@ export const useMultiplePayment = (validationRules: ValidationRules): UseMultipl
  * Custom hook for payment validation logic
  */
 
-import type { UsePaymentValidationReturn, PaymentItem, MultiplePaymentData, ValidationRules } from '../types/PaymentTypes';
+import type { UsePaymentValidationReturn } from '../types/PaymentTypes';
 
 export const usePaymentValidation = (validationRules: ValidationRules): UsePaymentValidationReturn => {
   const validateAmount = useCallback((amount: number) => {
@@ -157,8 +157,6 @@ export const usePaymentValidation = (validationRules: ValidationRules): UsePayme
  * Fee Balances Hook
  * Custom hook for managing fee balance data
  */
-
-import { useState, useEffect } from 'react';
 
 export interface FeeBalanceData {
   bookFee: {
