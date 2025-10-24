@@ -76,6 +76,8 @@ export interface SchoolReservationRead {
   pickup_point?: string | null;
   transport_fee?: number | null;
   transport_concession?: number | null;
+  tuition_concession?: number | null;
+  concession_lock?: boolean | null;
   status: SchoolReservationStatusEnum;
   referred_by?: number | null;
   remarks?: string | null;

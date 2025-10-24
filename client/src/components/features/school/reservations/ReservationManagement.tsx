@@ -48,7 +48,7 @@ import {
   ConcessionUpdateDialog,
   ReceiptPreviewModal,
 } from "@/components/shared";
-import type { SchoolIncomeRead } from "@/lib/types/school";
+import type { SchoolIncomeRead, SchoolReservationRead } from "@/lib/types/school";
 
 export default function ReservationNew() {
   const { currentBranch } = useAuthStore();
@@ -419,7 +419,7 @@ export default function ReservationNew() {
     };
 
     try {
-      const res: any = await SchoolReservationsService.create(payload);
+      const res: SchoolReservationRead = await SchoolReservationsService.create(payload);
       console.log("Reservation creation response:", res);
       // Use backend reservation_id to display receipt number
       setReservationNo(String(res?.reservation_id || ""));
@@ -518,7 +518,7 @@ export default function ReservationNew() {
 
   const handleEdit = async (r: any) => {
     try {
-      const data: any = await SchoolReservationsService.getById(
+      const data: SchoolReservationRead = await SchoolReservationsService.getById(
         r.reservation_id
       );
       const mappedForm = mapApiToForm(data);

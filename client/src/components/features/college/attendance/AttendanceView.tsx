@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useCollegeClasses, useCollegeClassGroups } from '@/lib/hooks/college/use-college-classes';
 import { CollegeAttendanceService } from '@/lib/services/college/attendance.service';
 import { useQuery } from '@tanstack/react-query';
+import type { CollegeClassResponse, CollegeGroupResponse } from '@/lib/types/college';
 
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -163,13 +164,13 @@ export default function AttendanceView() {
             <Select value={selectedClassId ? String(selectedClassId) : ''} onValueChange={(v) => setSelectedClassId(parseInt(v))}>
               <SelectTrigger className="w-[160px]"><SelectValue placeholder="Class" /></SelectTrigger>
               <SelectContent>
-                {classes.map((c: any) => (<SelectItem key={c.class_id} value={String(c.class_id)}>{c.class_name}</SelectItem>))}
+                {classes.map((c: CollegeClassResponse) => (<SelectItem key={c.class_id} value={String(c.class_id)}>{c.class_name}</SelectItem>))}
               </SelectContent>
             </Select>
             <Select value={selectedGroupId ? String(selectedGroupId) : ''} onValueChange={(v) => setSelectedGroupId(parseInt(v))}>
               <SelectTrigger className="w-[160px]"><SelectValue placeholder="Group" /></SelectTrigger>
               <SelectContent>
-                {(groups as any[]).map((g: any) => (<SelectItem key={g.group_id} value={String(g.group_id)}>{g.group_name}</SelectItem>))}
+                {(groups as CollegeGroupResponse[]).map((g: CollegeGroupResponse) => (<SelectItem key={g.group_id} value={String(g.group_id)}>{g.group_name}</SelectItem>))}
               </SelectContent>
             </Select>
             <Select value={month ? String(month) : ''} onValueChange={(v) => { const m = parseInt(v); const d = selectedDate || new Date(); setSelectedDate(new Date(d.getFullYear(), m - 1, d.getDate())); }}>
@@ -254,8 +255,8 @@ export default function AttendanceView() {
                 await studentsQuery.refetch();
                 toast({ title: 'Updated', description: 'Attendance updated' });
                 setEditOpen(false);
-              } catch (err: any) {
-                const serverMsg = err?.response?.data?.detail || err?.message || 'Failed to update attendance';
+              } catch (err: unknown) {
+                const serverMsg = (err as any)?.response?.data?.detail || (err as any)?.message || 'Failed to update attendance';
                 toast({ title: 'Error', description: serverMsg, variant: 'destructive' });
               }
             }}>Save</Button>

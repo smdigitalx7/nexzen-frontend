@@ -678,7 +678,6 @@ const InstituteManagement = () => {
               ]}
               activeTab="fees"
               onTabChange={() => {}}
-              gridCols="grid-cols-4"
             />
           </CardContent>
         </Card>

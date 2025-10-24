@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
-import { DollarSign, TrendingUp } from "lucide-react";
+import { DollarSign, TrendingUp, PieChart } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import { useCollegeIncomeList, useCollegeIncomeDashboard, useCollegeIncome } from "@/lib/hooks/college/use-college-income";
 import { useCollegeExpenditureList, useCollegeExpenditureDashboard } from "@/lib/hooks/college/use-college-expenditure";
@@ -14,6 +14,7 @@ import { ViewIncomeDialog } from "./components/ViewIncomeDialog";
 import { CollegeIncomeStatsCards } from "../income/CollegeIncomeStatsCards";
 import { CollegeExpenditureStatsCards } from "../expenditure/CollegeExpenditureStatsCards";
 import { CollegeFinanceReportButtons } from './components/CollegeFinanceReportButtons';
+import { CollegeFinancialAnalytics } from "./components/CollegeFinancialAnalytics";
 
 
 export const CollegeReportsTemplate = () => {
@@ -27,6 +28,9 @@ export const CollegeReportsTemplate = () => {
   // Fetch real income and expenditure data
   const { data: incomeData = [], isLoading: incomeLoading, error: incomeError } = useCollegeIncomeList();
   const { data: expenditureData = [], isLoading: expenditureLoading, error: expenditureError } = useCollegeExpenditureList();
+  
+  // Define income params for the IncomeTable component
+  const incomeParams = {};
 
   // Fetch dashboard data for financial stats
   const { data: incomeDashboard, error: incomeDashboardError, isLoading: incomeDashboardLoading } = useCollegeIncomeDashboard();
@@ -98,8 +102,8 @@ export const CollegeReportsTemplate = () => {
               </div>
             ) : (
               <IncomeTable
-                incomeData={incomeData}
                 onViewIncome={handleViewIncome}
+                params={incomeParams}
               />
             ),
           },
@@ -120,6 +124,18 @@ export const CollegeReportsTemplate = () => {
                 expenditureData={expenditureData}
                 onExportCSV={() => {}}
                 onAddExpenditure={() => setShowAddExpenditureDialog(true)}
+              />
+            ),
+          },
+          {
+            value: "analytics",
+            label: "Analytics",
+            icon: PieChart,
+            content: (
+              <CollegeFinancialAnalytics
+                incomeDashboard={incomeDashboard}
+                expenditureDashboard={expenditureDashboard}
+                loading={incomeDashboardLoading || expenditureDashboardLoading}
               />
             ),
           },

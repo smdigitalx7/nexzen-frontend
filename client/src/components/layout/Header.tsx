@@ -30,6 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import BranchSwitcher from "./BranchSwitcher";
 import AcademicYearSwitcher from "./AcademicYearSwitcher";
+import { useLocation } from "wouter";
 
 const Header = () => {
   const {
@@ -44,6 +45,7 @@ const Header = () => {
     isBranchSwitching,
   } = useAuthStore();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [notifications] = useState(0);
   const [openSearch, setOpenSearch] = useState(false);
   const [query, setQuery] = useState("");
@@ -108,6 +110,14 @@ const Header = () => {
     } catch (error) {
       console.error("Logout failed:", error);
     }
+  };
+
+  const handleProfileClick = () => {
+    setLocation("/profile");
+  };
+
+  const handleSettingsClick = () => {
+    setLocation("/settings");
   };
 
   return (
@@ -266,6 +276,7 @@ const Header = () => {
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
+                    onClick={handleProfileClick}
                     className="hover-elevate"
                     data-testid="menuitem-profile"
                   >
@@ -273,6 +284,7 @@ const Header = () => {
                     <span>Profile</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
+                    onClick={handleSettingsClick}
                     className="hover-elevate"
                     data-testid="menuitem-settings"
                   >

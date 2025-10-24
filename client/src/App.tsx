@@ -18,6 +18,8 @@ import { config } from "@/lib/config/production";
 const Login = lazy(() => import("./components/pages/general/Login"));
 const NotFound = lazy(() => import("./components/pages/general/not-found"));
 const Dashboard = lazy(() => import("./components/pages/general/Dashboard"));
+const ProfilePage = lazy(() => import("./components/pages/general/ProfilePage"));
+const SettingsPage = lazy(() => import("./components/pages/general/SettingsPage"));
 const UserManagement = lazy(
   () => import("./components/pages/general/UserManagementPage")
 );
@@ -129,6 +131,8 @@ function Router() {
         <Switch>
           {/* General */}
           <Route path="/" component={Dashboard} />
+          <Route path="/profile" component={ProfilePage} />
+          <Route path="/settings" component={SettingsPage} />
           {/* Role-guarded routes per PRD and Sidebar roles */}
           <ProtectedRoute
             path="/users"
