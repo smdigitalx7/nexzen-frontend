@@ -102,20 +102,22 @@ const ReservationPaymentProcessor: React.FC<
       console.log("🔄 Processing reservation payment...");
 
       // Call the updated API that returns a PDF receipt as blob and gets income_id from JSON response
-      const blobUrl = await handlePayByReservation(
+      const { blobUrl, income_id, paymentData } = await handlePayByReservation(
         reservationData.reservationNo,
         payload as any
       );
 
       console.log("✅ Payment processed successfully, receipt generated");
+      console.log("🆔 Actual income_id from backend:", income_id);
+      console.log("📦 Full payment data:", paymentData);
 
-      // Create income record for UI display
-      // Note: The actual income_id is already in the database, we just need this for UI
+      // Create income record for UI display using the actual income_id from backend
       const incomeRecord = {
-        income_id: Date.now(), // Temporary ID for UI - actual ID is in database
+        income_id: income_id, // Actual income_id from backend (e.g., 236)
+        application_income_id: income_id, // Use the same income_id
         reservation_id: reservationData.reservationId,
         purpose: "APPLICATION_FEE",
-        amount: reservationData.totalAmount,
+        amount: paymentData.data?.context?.total_amount || reservationData.totalAmount,
         income_date: new Date().toISOString().split("T")[0],
         payment_method: selectedPaymentMethod,
         note: reservationData.note,

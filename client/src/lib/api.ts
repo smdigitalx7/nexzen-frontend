@@ -540,17 +540,17 @@ export async function handleRegenerateReceipt(
 }
 
 /**
- * Handles payment processing by reservation and returns PDF receipt
+ * Handles payment processing by reservation and returns PDF receipt with income_id
  *
  * This function:
  * 1. Calls the reservation payment API with reservation_no
- * 2. Receives JSON response with income_id
+ * 2. Receives JSON response with income_id and payment data
  * 3. Calls regenerate receipt endpoint to get PDF
  * 4. Creates a Blob URL for modal display
  *
  * @param reservationNo - The reservation number for the payment
  * @param payload - The payment data (PayFeeByReservationRequest format)
- * @returns Promise that resolves with blob URL for PDF receipt
+ * @returns Promise that resolves with an object containing blobUrl (for PDF receipt), income_id (from backend), and paymentData (full response)
  */
 export async function handlePayByReservation(
   reservationNo: string,
@@ -563,7 +563,7 @@ export async function handlePayByReservation(
     }>;
     remarks?: string;
   }
-): Promise<string> {
+): Promise<{ blobUrl: string; income_id: number; paymentData: any }> {
   const state = useAuthStore.getState();
   const token = state.token;
 
@@ -614,7 +614,7 @@ export async function handlePayByReservation(
     const paymentData = await response.json();
     console.log("📦 Payment response data:", paymentData);
 
-    const income_id = paymentData.context?.income_id;
+    const income_id = paymentData.data?.context?.income_id || paymentData.context?.income_id;
 
     if (!income_id) {
       throw new Error("Payment successful but income_id not found in response context");
@@ -626,7 +626,7 @@ export async function handlePayByReservation(
     console.log("📄 Generating receipt for income_id:", income_id);
     const blobUrl = await handleRegenerateReceipt(income_id);
 
-    return blobUrl;
+    return { blobUrl, income_id, paymentData };
   } catch (error) {
     console.error("❌ Payment processing failed:", error);
     if (error instanceof TypeError && error.message.includes("fetch")) {
@@ -719,7 +719,7 @@ export async function handlePayByAdmission(
     const paymentData = await response.json();
     console.log("📦 Payment response data:", paymentData);
 
-    const income_id = paymentData.context?.income_id;
+    const income_id = paymentData.data?.context?.income_id || paymentData.context?.income_id;
 
     if (!income_id) {
       throw new Error("Payment successful but income_id not found in response context");
@@ -748,14 +748,14 @@ export async function handlePayByAdmission(
  *
  * This function:
  * 1. Calls the admission payment API with admission_no
- * 2. Receives JSON response with income_id
+ * 2. Receives JSON response with income_id and payment data
  * 3. Calls regenerate receipt endpoint to get PDF
  * 4. Creates a Blob URL for modal display
- * 5. Returns both income_id and blobUrl
+ * 5. Returns income_id, blobUrl, and full payment data
  *
  * @param admissionNo - The admission number for the payment
  * @param payload - The payment data (PayFeeByAdmissionRequest format)
- * @returns Promise that resolves with income_id and blob URL for PDF receipt
+ * @returns Promise that resolves with an object containing income_id, blobUrl (for PDF receipt), and paymentData (full response)
  */
 export async function handlePayByAdmissionWithIncomeId(
   admissionNo: string,
@@ -774,7 +774,7 @@ export async function handlePayByAdmissionWithIncomeId(
     }>;
     remarks?: string;
   }
-): Promise<{ income_id: number; blobUrl: string }> {
+): Promise<{ income_id: number; blobUrl: string; paymentData: any }> {
   const state = useAuthStore.getState();
   const token = state.token;
 
@@ -825,7 +825,7 @@ export async function handlePayByAdmissionWithIncomeId(
     const paymentData = await response.json();
     console.log("📦 Payment response data:", paymentData);
 
-    const income_id = paymentData.context?.income_id;
+    const income_id = paymentData.data?.context?.income_id || paymentData.context?.income_id;
 
     if (!income_id) {
       throw new Error("Payment successful but income_id not found in response context");
@@ -840,6 +840,7 @@ export async function handlePayByAdmissionWithIncomeId(
     return {
       income_id,
       blobUrl,
+      paymentData, // Include full payment data for debugging/additional info
     };
   } catch (error) {
     console.error("❌ Payment processing failed:", error);

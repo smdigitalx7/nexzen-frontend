@@ -210,7 +210,7 @@ function PaymentComponent() {
   // Process reservation payment and show receipt in modal
   const handleReservationPayment = async () => {
     try {
-      const blobUrl = await handlePayByReservation('RS-NZN25260105', {
+      const { blobUrl, income_id, paymentData } = await handlePayByReservation('RS-NZN25260105', {
         details: [{ 
           purpose: 'APPLICATION_FEE', 
           paid_amount: 1000, 
@@ -218,6 +218,7 @@ function PaymentComponent() {
         }],
         remarks: 'Payment for application fee'
       });
+      console.log('Income ID:', income_id, 'Payment Data:', paymentData);
       setReceiptBlobUrl(blobUrl);
       setShowReceiptModal(true);
     } catch (error) {
@@ -236,6 +237,8 @@ function PaymentComponent() {
         }],
         remarks: 'Payment for admission fee'
       });
+      // Note: handlePayByAdmission returns just blobUrl (string)
+      // Use handlePayByAdmissionWithIncomeId for income_id and paymentData
       setReceiptBlobUrl(blobUrl);
       setShowReceiptModal(true);
     } catch (error) {

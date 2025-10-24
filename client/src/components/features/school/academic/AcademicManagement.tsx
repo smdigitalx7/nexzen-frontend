@@ -6,6 +6,8 @@ import { TabSwitcher } from "@/components/shared";
 import { useSchoolClasses } from '@/lib/hooks/school/use-school-classes';
 import { useSchoolSubjects } from '@/lib/hooks/school/use-school-subjects';
 import { useSchoolExams, useSchoolTests } from '@/lib/hooks/school/use-school-exams-tests';
+import { useSchoolSectionsByClass } from '@/lib/hooks/school/use-school-sections';
+import { useQueries } from "@tanstack/react-query";
 import AcademicYearManagement from "@/components/features/school/academic/academic-years/AcademicYearManagement";
 import { ClassesTab } from "@/components/features/school/academic/classes/ClassesTab";
 import { SubjectsTab } from "@/components/features/school/academic/subjects/SubjectsTab";
@@ -27,15 +29,28 @@ const AcademicManagement = () => {
   // Get effective classes
   const effectiveClasses = backendClasses;
 
+  // Fetch sections for all classes
+  const sectionsQueries = useQueries({
+    queries: effectiveClasses.map((classItem: any) => ({
+      queryKey: ['school', 'sections', 'by-class', classItem.class_id],
+      queryFn: async () => {
+        const { SchoolSectionsService } = await import('@/lib/services/school/sections.service');
+        return SchoolSectionsService.listByClass(classItem.class_id);
+      },
+      enabled: !!classItem.class_id,
+    })),
+  });
+
+  // Calculate total sections from all fetched sections
+  const totalSections = sectionsQueries.reduce((total: number, query) => {
+    const sections = query.data || [];
+    return total + sections.length;
+  }, 0);
+
   // Calculate statistics
   const totalClasses = effectiveClasses.length;
   const totalSubjects = backendSubjects.length;
   const totalTests = tests.length;
-  
-  // Calculate total sections from classes (assuming each class has sections)
-  const totalSections = effectiveClasses.reduce((total: number, classItem: any) => {
-    return total + (classItem.sections?.length || 0);
-  }, 0);
   
   const today = new Date();
   const toDate = (v: any) => { const d = new Date(v); return isNaN(d.getTime()) ? null : d; };
@@ -45,7 +60,8 @@ const AcademicManagement = () => {
   }).length;
 
   // Loading states
-  const isLoading = classesLoading || subjectsLoading || examsLoading || testsLoading;
+  const sectionsLoading = sectionsQueries.some((query) => query.isLoading);
+  const isLoading = classesLoading || subjectsLoading || examsLoading || testsLoading || sectionsLoading;
   const hasError = classesError || subjectsError || examsError || testsError;
   const errorMessage = (
     (classesErrObj as any)?.message ||

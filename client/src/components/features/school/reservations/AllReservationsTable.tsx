@@ -166,7 +166,7 @@ export default function AllReservationsTable({
       icon: Printer,
       variant: "outline" as const,
       onClick: (row: Reservation) => handleRegenerateReceipt(row),
-      show: (row: Reservation) => !!(row.income_id && Number(row.income_id) > 0),
+      show: (row: Reservation) => !!((row.application_income_id || row.income_id) && Number(row.application_income_id || row.income_id) > 0),
     },
     {
       id: "concession",
@@ -194,7 +194,10 @@ export default function AllReservationsTable({
 
   // Receipt regeneration handler
   const handleRegenerateReceipt = async (reservation: Reservation) => {
-    if (!reservation.income_id) {
+    // Check for application_income_id first, then fallback to income_id
+    const incomeId = reservation.application_income_id || reservation.income_id;
+    
+    if (!incomeId) {
       toast({
         title: "Receipt Not Available",
         description:
@@ -207,9 +210,9 @@ export default function AllReservationsTable({
     try {
       console.log(
         "🔄 Starting receipt regeneration for income ID:",
-        reservation.income_id
+        incomeId
       );
-      const blobUrl = await regenerateReceiptAPI(reservation.income_id);
+      const blobUrl = await regenerateReceiptAPI(incomeId);
       console.log("✅ Receipt blob URL received:", blobUrl);
 
       toast({

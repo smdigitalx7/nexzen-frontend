@@ -34,7 +34,6 @@ export const SectionsTab = () => {
   const updateSection = useUpdateSchoolSection((selectedClassId || 0) as number, selectedSection?.section_id || 0);
 
   const columns: ColumnDef<SchoolSectionRead>[] = useMemo(() => [
-    { accessorKey: "section_id", header: "Section ID" },
     { accessorKey: "section_name", header: "Section Name" },
     { accessorKey: "current_enrollment", header: "Current Enrollment" },
     { accessorKey: "is_active", header: "Active" }
