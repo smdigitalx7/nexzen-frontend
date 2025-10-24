@@ -47,6 +47,7 @@ export interface SchoolReservationCreate {
 
 export interface SchoolReservationRead {
   reservation_id: number;
+  reservation_no?: string | null;
   student_name: string;
   aadhar_no?: string | null;
   gender?: string | null;
@@ -83,6 +84,10 @@ export interface SchoolReservationRead {
   updated_at?: string | null;
   created_by?: number | null;
   updated_by?: number | null;
+  // Additional fields for enrollment and income tracking
+  application_income_id?: number | null;
+  admission_income_id?: number | null;
+  is_enrolled?: boolean | null;
 }
 
 export interface SchoolReservationUpdate extends Partial<SchoolReservationCreate> {
@@ -91,6 +96,7 @@ export interface SchoolReservationUpdate extends Partial<SchoolReservationCreate
 
 export interface SchoolReservationListItem {
   reservation_id: number;
+  reservation_no?: string | null;
   student_name: string;
   aadhar_no?: string | null;
   gender?: string | null;
@@ -127,6 +133,10 @@ export interface SchoolReservationListItem {
   updated_at?: string | null;
   created_by?: number | null;
   updated_by?: number | null;
+  // Additional fields for enrollment and income tracking
+  application_income_id?: number | null;
+  admission_income_id?: number | null;
+  is_enrolled?: boolean | null;
 }
 
 export interface SchoolReservationListResponse {

@@ -146,6 +146,10 @@ export default function ReservationNew() {
       tuition_concession: r.tuition_concession || 0, // Add tuition_concession
       transport_concession: r.transport_concession || 0, // Add transport_concession
       remarks: r.remarks || "", // Add remarks
+      // Additional fields for enrollment and income tracking
+      application_income_id: r.application_income_id || null,
+      admission_income_id: r.admission_income_id || null,
+      is_enrolled: r.is_enrolled || false,
     }));
   }, [reservationsData]);
 
@@ -761,8 +765,12 @@ export default function ReservationNew() {
             <div className="space-y-6 text-sm flex-1 overflow-y-auto pr-1">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <strong>Reservation No:</strong>{" "}
+                  <strong>Reservation ID:</strong>{" "}
                   {viewReservation.reservation_id}
+                </div>
+                <div>
+                  <strong>Reservation No:</strong>{" "}
+                  {viewReservation.reservation_no || "-"}
                 </div>
                 <div>
                   <strong>Date:</strong>{" "}
@@ -774,6 +782,16 @@ export default function ReservationNew() {
                 <div>
                   <strong>Referred By (ID):</strong>{" "}
                   {viewReservation.referred_by ?? "-"}
+                </div>
+                <div>
+                  <strong>Enrollment Status:</strong>{" "}
+                  {viewReservation.is_enrolled ? (
+                    <Badge variant="secondary" className="bg-green-100 text-green-800">
+                      Enrolled
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">Not Enrolled</Badge>
+                  )}
                 </div>
               </div>
 
@@ -928,6 +946,31 @@ export default function ReservationNew() {
                   )}
                 </div>
               </div>
+
+              {/* Income Records Section */}
+              {(viewReservation.application_income_id || viewReservation.admission_income_id) && (
+                <div className="border-t pt-4">
+                  <div className="font-medium mb-2">Income Records</div>
+                  <div className="space-y-2">
+                    {viewReservation.application_income_id && (
+                      <div className="flex justify-between items-center p-2 bg-blue-50 rounded-lg">
+                        <span className="text-sm font-medium">Application Fee Income ID:</span>
+                        <Badge variant="outline" className="font-mono">
+                          {viewReservation.application_income_id}
+                        </Badge>
+                      </div>
+                    )}
+                    {viewReservation.admission_income_id && (
+                      <div className="flex justify-between items-center p-2 bg-green-50 rounded-lg">
+                        <span className="text-sm font-medium">Admission Fee Income ID:</span>
+                        <Badge variant="outline" className="font-mono">
+                          {viewReservation.admission_income_id}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="border-t pt-4">
                 <div className="font-medium mb-2">Preferences</div>

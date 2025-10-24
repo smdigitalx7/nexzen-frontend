@@ -27,6 +27,10 @@ export type Reservation = {
   tuition_concession?: number;
   transport_concession?: number;
   remarks?: string;
+  // Additional fields for enrollment and income tracking
+  application_income_id?: number | null;
+  admission_income_id?: number | null;
+  is_enrolled?: boolean | null;
 };
 
 export type AllReservationsTableProps = {
@@ -119,6 +123,21 @@ export default function AllReservationsTable({
             className="text-xs"
           >
             {isPaid ? "Paid" : "Not Paid"}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: "is_enrolled",
+      header: "Enrollment Status",
+      cell: ({ row }) => {
+        const isEnrolled = row.getValue("is_enrolled") as boolean;
+        return (
+          <Badge
+            variant={isEnrolled ? "secondary" : "outline"}
+            className={`text-xs ${isEnrolled ? "bg-green-100 text-green-800" : ""}`}
+          >
+            {isEnrolled ? "Enrolled" : "Not Enrolled"}
           </Badge>
         );
       },
