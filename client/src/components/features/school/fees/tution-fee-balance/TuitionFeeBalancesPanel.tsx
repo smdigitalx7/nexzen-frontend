@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useSchoolClasses } from "@/lib/hooks/school/use-school-classes";
 import { useSchoolTuitionBalancesList, useSchoolTuitionBalance, useBulkCreateSchoolTuitionBalances } from "@/lib/hooks/school/use-school-fee-balances";
-import type { SchoolTuitionFeeBalanceRead } from "@/lib/types/school";
+import type { SchoolTuitionFeeBalanceRead, SchoolTuitionFeeBalanceFullRead } from "@/lib/types/school";
 import { StudentFeeBalancesTable } from "./StudentFeeBalancesTable";
 import { Plus } from "lucide-react";
 
@@ -27,10 +27,10 @@ const DetailsDialog = memo(({
   isOpen: boolean;
   onClose: () => void;
   selectedBalanceId: number | undefined;
-  selectedBalance: SchoolTuitionFeeBalanceRead | undefined;
+  selectedBalance: SchoolTuitionFeeBalanceFullRead | undefined;
 }) => (
   <Dialog open={isOpen} onOpenChange={onClose}>
-    <DialogContent>
+    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>Tuition Fee Balance Details</DialogTitle>
       </DialogHeader>
@@ -39,30 +39,87 @@ const DetailsDialog = memo(({
       ) : !selectedBalance ? (
         <div className="p-2 text-sm text-muted-foreground">Loading...</div>
       ) : (
-        <div className="space-y-2 text-sm">
-          <div><span className="text-muted-foreground">Enrollment ID:</span> {selectedBalance.enrollment_id}</div>
-          <div><span className="text-muted-foreground">Student:</span> {selectedBalance.student_name} ({selectedBalance.admission_no})</div>
-          <div><span className="text-muted-foreground">Roll No:</span> {selectedBalance.roll_number}</div>
-          <div><span className="text-muted-foreground">Section:</span> {selectedBalance.section_name || '-'}</div>
-          <div><span className="text-muted-foreground">Total Fee:</span> {selectedBalance.total_fee}</div>
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <div className="font-medium">Term 1</div>
-              <div className="text-muted-foreground">Amount: {selectedBalance.term1_amount}</div>
-              <div className="text-muted-foreground">Paid: {selectedBalance.term1_paid}</div>
-              <div className="text-muted-foreground">Balance: {selectedBalance.term1_balance}</div>
+        <div className="space-y-6">
+          {/* Student Information */}
+          <div className="bg-slate-50 p-4 rounded-lg">
+            <h3 className="font-semibold text-lg mb-3">Student Information</h3>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><span className="text-muted-foreground">Admission No:</span> <span className="font-medium">{selectedBalance.admission_no}</span></div>
+              <div><span className="text-muted-foreground">Roll Number:</span> <span className="font-medium">{selectedBalance.roll_number}</span></div>
+              <div><span className="text-muted-foreground">Student Name:</span> <span className="font-medium">{selectedBalance.student_name}</span></div>
+              <div><span className="text-muted-foreground">Class:</span> <span className="font-medium">{selectedBalance.class_name}</span></div>
+              <div><span className="text-muted-foreground">Section:</span> <span className="font-medium">{selectedBalance.section_name || '-'}</span></div>
+              <div><span className="text-muted-foreground">Father Name:</span> <span className="font-medium">{selectedBalance.father_name}</span></div>
+              <div><span className="text-muted-foreground">Phone Number:</span> <span className="font-medium">{selectedBalance.phone_number}</span></div>
             </div>
-            <div>
-              <div className="font-medium">Term 2</div>
-              <div className="text-muted-foreground">Amount: {selectedBalance.term2_amount}</div>
-              <div className="text-muted-foreground">Paid: {selectedBalance.term2_paid}</div>
-              <div className="text-muted-foreground">Balance: {selectedBalance.term2_balance}</div>
+          </div>
+
+          {/* Fee Summary */}
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h3 className="font-semibold text-lg mb-3">Fee Summary</h3>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><span className="text-muted-foreground">Actual Fee:</span> <span className="font-medium">₹{selectedBalance.actual_fee}</span></div>
+              <div><span className="text-muted-foreground">Concession Amount:</span> <span className="font-medium">₹{selectedBalance.concession_amount}</span></div>
+              <div><span className="text-muted-foreground">Total Fee:</span> <span className="font-medium text-lg">₹{selectedBalance.total_fee}</span></div>
+              <div><span className="text-muted-foreground">Overall Balance:</span> <span className="font-medium text-lg text-red-600">₹{selectedBalance.overall_balance_fee}</span></div>
             </div>
-            <div>
-              <div className="font-medium">Term 3</div>
-              <div className="text-muted-foreground">Amount: {selectedBalance.term3_amount}</div>
-              <div className="text-muted-foreground">Paid: {selectedBalance.term3_paid}</div>
-              <div className="text-muted-foreground">Balance: {selectedBalance.term3_balance}</div>
+          </div>
+
+          {/* Book Fee Details */}
+          <div className="bg-green-50 p-4 rounded-lg">
+            <h3 className="font-semibold text-lg mb-3">Book Fee Details</h3>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div><span className="text-muted-foreground">Book Fee:</span> <span className="font-medium">₹{selectedBalance.book_fee}</span></div>
+              <div><span className="text-muted-foreground">Book Paid:</span> <span className="font-medium">₹{selectedBalance.book_paid}</span></div>
+              <div><span className="text-muted-foreground">Status:</span> <span className="font-medium">{selectedBalance.book_paid_status}</span></div>
+            </div>
+          </div>
+
+          {/* Term-wise Payment Details */}
+          <div className="bg-yellow-50 p-4 rounded-lg">
+            <h3 className="font-semibold text-lg mb-3">Term-wise Payment Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Term 1 */}
+              <div className="bg-white p-4 rounded-lg border">
+                <h4 className="font-semibold text-base mb-3 text-blue-600">Term 1</h4>
+                <div className="space-y-2 text-sm">
+                  <div><span className="text-muted-foreground">Amount:</span> <span className="font-medium">₹{selectedBalance.term1_amount}</span></div>
+                  <div><span className="text-muted-foreground">Paid:</span> <span className="font-medium">₹{selectedBalance.term1_paid}</span></div>
+                  <div><span className="text-muted-foreground">Balance:</span> <span className="font-medium text-red-600">₹{selectedBalance.term1_balance}</span></div>
+                  <div><span className="text-muted-foreground">Status:</span> <span className="font-medium">{selectedBalance.term1_status}</span></div>
+                </div>
+              </div>
+
+              {/* Term 2 */}
+              <div className="bg-white p-4 rounded-lg border">
+                <h4 className="font-semibold text-base mb-3 text-green-600">Term 2</h4>
+                <div className="space-y-2 text-sm">
+                  <div><span className="text-muted-foreground">Amount:</span> <span className="font-medium">₹{selectedBalance.term2_amount}</span></div>
+                  <div><span className="text-muted-foreground">Paid:</span> <span className="font-medium">₹{selectedBalance.term2_paid}</span></div>
+                  <div><span className="text-muted-foreground">Balance:</span> <span className="font-medium text-red-600">₹{selectedBalance.term2_balance}</span></div>
+                  <div><span className="text-muted-foreground">Status:</span> <span className="font-medium">{selectedBalance.term2_status}</span></div>
+                </div>
+              </div>
+
+              {/* Term 3 */}
+              <div className="bg-white p-4 rounded-lg border">
+                <h4 className="font-semibold text-base mb-3 text-purple-600">Term 3</h4>
+                <div className="space-y-2 text-sm">
+                  <div><span className="text-muted-foreground">Amount:</span> <span className="font-medium">₹{selectedBalance.term3_amount}</span></div>
+                  <div><span className="text-muted-foreground">Paid:</span> <span className="font-medium">₹{selectedBalance.term3_paid}</span></div>
+                  <div><span className="text-muted-foreground">Balance:</span> <span className="font-medium text-red-600">₹{selectedBalance.term3_balance}</span></div>
+                  <div><span className="text-muted-foreground">Status:</span> <span className="font-medium">{selectedBalance.term3_status}</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Timestamps */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="font-semibold text-lg mb-3">Record Information</h3>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><span className="text-muted-foreground">Created At:</span> <span className="font-medium">{new Date(selectedBalance.created_at).toLocaleString()}</span></div>
+              <div><span className="text-muted-foreground">Updated At:</span> <span className="font-medium">{selectedBalance.updated_at ? new Date(selectedBalance.updated_at).toLocaleString() : 'Never'}</span></div>
             </div>
           </div>
         </div>
@@ -230,7 +287,8 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
         id: t.enrollment_id,
         student_id: t.admission_no,
         student_name: t.student_name,
-        class_name: t.section_name || "Unknown",
+        class_name: t.class_name || "Unknown",
+        section_name: t.section_name || "Unknown",
         academic_year: "",
         total_fee: t.total_fee,
         paid_amount: paidTotal,

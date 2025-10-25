@@ -49,6 +49,7 @@ export interface SchoolTuitionFeeBalanceRead {
   roll_number: string;
   student_name: string;
   section_name: string;
+  class_name?: string;
   book_fee: number;
   book_paid: number;
   book_paid_status: string;

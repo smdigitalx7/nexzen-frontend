@@ -1,5 +1,5 @@
 import { useState, useMemo, memo, useCallback } from "react";
-import { BookOpen, Edit, Trash2 } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/components/shared";

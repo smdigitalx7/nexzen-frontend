@@ -144,6 +144,7 @@ export const usePayrollManagement = () => {
   const [showPayslipDialog, setShowPayslipDialog] = useState(false);
   const [selectedPayroll, setSelectedPayroll] =
     useState<PayrollWithEmployee | null>(null);
+  const [selectedPayrollId, setSelectedPayrollId] = useState<number | null>(null);
 
   // API Hooks - Always fetch all data, do client-side filtering
   // This ensures we have data to work with regardless of API filtering capabilities
@@ -165,6 +166,13 @@ export const usePayrollManagement = () => {
   const { data: pendingCount } = useQuery({
     queryKey: ["payrolls", "pending-count"],
     queryFn: () => PayrollsService.getPendingCount(),
+  });
+
+  // Detailed payroll query for view functionality
+  const { data: detailedPayroll, isLoading: detailedPayrollLoading } = useQuery({
+    queryKey: payrollKeys.detail(selectedPayrollId || 0),
+    queryFn: () => PayrollsService.getById(selectedPayrollId!),
+    enabled: !!selectedPayrollId,
   });
 
   const createPayrollMutation = useCreatePayroll();
@@ -195,15 +203,15 @@ export const usePayrollManagement = () => {
         (emp) => emp.employee_id === payrollRecord.employee_id
       );
 
-      // Better fallback logic for employee names
+      // Better fallback logic for employee names - prioritize API response data
       let employeeName = "Unknown Employee";
-      if (employee?.employee_name) {
-        employeeName = employee.employee_name;
-      } else if (
+      if (
         payrollRecord.employee_name &&
         payrollRecord.employee_name !== "Unknown Employee"
       ) {
         employeeName = payrollRecord.employee_name;
+      } else if (employee?.employee_name) {
+        employeeName = employee.employee_name;
       } else {
         employeeName = `Employee #${payrollRecord.employee_id}`;
       }
@@ -378,6 +386,7 @@ export const usePayrollManagement = () => {
 
   const handleViewPayslip = (payroll: PayrollWithEmployee) => {
     setSelectedPayroll(payroll);
+    setSelectedPayrollId(payroll.payroll_id);
     setShowPayslipDialog(true);
   };
 
@@ -485,6 +494,10 @@ export const usePayrollManagement = () => {
     setShowPayslipDialog,
     selectedPayroll,
     setSelectedPayroll,
+    selectedPayrollId,
+    setSelectedPayrollId,
+    detailedPayroll,
+    detailedPayrollLoading,
     activeTab,
     setActiveTab,
 

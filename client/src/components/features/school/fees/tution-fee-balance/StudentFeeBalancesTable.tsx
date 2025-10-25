@@ -17,6 +17,7 @@ interface StudentFeeBalance {
   student_id: string;
   student_name: string;
   class_name: string;
+  section_name: string;
   academic_year: string;
   total_fee: number;
   paid_amount: number;
@@ -100,7 +101,7 @@ const StudentFeeBalancesTableComponent = ({
   onViewStudent,
   onExportCSV,
   onBulkCreate,
-  title = "Student Fee Balances",
+  title = "Tuition Fee Balances",
   description = "Track individual student fee payments and outstanding amounts",
   showHeader = true,
   loading = false,
@@ -118,7 +119,7 @@ const StudentFeeBalancesTableComponent = ({
       header: 'Student',
       cell: ({ row }) => <StudentInfoCell student={row.original} />,
     },
-    createTextColumn<StudentFeeBalance>("class_name", { header: "Class" }),
+    createTextColumn<StudentFeeBalance>("section_name", { header: "Section" }),
     createCurrencyColumn<StudentFeeBalance>("total_fee", { header: "Total Fee" }),
     {
       id: 'paid_amount',

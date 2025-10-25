@@ -95,14 +95,6 @@ export const EmployeePayrollTable = ({
     }
   ], [onViewPayslip, onEditPayroll, onUpdateStatus]);
 
-  // Define filter options
-  const statusFilterOptions = [
-    { value: "all", label: "All Status" },
-    { value: "PENDING", label: "Pending" },
-    { value: "PAID", label: "Paid" },
-    { value: "OVERDUE", label: "Overdue" },
-  ];
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-32">
@@ -137,15 +129,6 @@ export const EmployeePayrollTable = ({
       title="Employee Payrolls"
       searchKey="employee_name"
       exportable={true}
-      filters={[
-        {
-          key: "status",
-          label: "Status",
-          options: statusFilterOptions,
-          value: "all",
-          onChange: () => {}, // This will be handled by the EnhancedDataTable component
-        },
-      ]}
       showActions={true}
       actionButtonGroups={actionButtonGroups}
       actionColumnHeader="Actions"

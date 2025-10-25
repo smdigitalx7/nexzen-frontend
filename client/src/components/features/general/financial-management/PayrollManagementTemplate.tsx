@@ -1,18 +1,428 @@
 import { motion } from "framer-motion";
-import { CreditCard, Plus, Download, X, Users, Calculator } from "lucide-react";
+import { CreditCard, Plus, Download, X, Users, Calculator, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TabSwitcher } from "@/components/shared";
 import { usePayrollManagement } from "@/lib/hooks/general/usePayrollManagement";
 import { usePayrollDashboard } from "@/lib/hooks/general/usePayrollManagement";
 import { formatCurrency } from "@/lib/utils";
+import type { PayrollRead } from "@/lib/types/general/payrolls";
 import { PayrollStatsCards as OldPayrollStatsCards } from "./components/PayrollStatsCards";
 import { PayrollStatsCards } from "./PayrollStatsCards";
 import { EmployeePayrollTable } from "./components/EmployeePayrollTable";
 import { SalaryCalculationForm } from "./components/SalaryCalculationForm";
 import { BulkPayrollOperations } from "./components/BulkPayrollOperations";
+import { memo, useMemo, useCallback } from "react";
 
-export const PayrollManagementTemplate = () => {
+// Memoized header component
+const PayrollHeader = memo(({ 
+  currentBranch, 
+  onCreatePayroll 
+}: { 
+  currentBranch: any;
+  onCreatePayroll: () => void;
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: -20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="flex items-center justify-between"
+  >
+    <div>
+      <h1 className="text-3xl font-bold tracking-tight">Payroll Management</h1>
+      <p className="text-muted-foreground">
+        Comprehensive payroll processing and employee salary management
+      </p>
+    </div>
+    <div className="flex items-center gap-2">
+      <Badge variant="outline" className="gap-1">
+        <CreditCard className="h-3 w-3" />
+        {currentBranch?.branch_name || "Branch Name"}
+      </Badge>
+      <Button onClick={onCreatePayroll}>
+        <Plus className="h-4 w-4 mr-2" />
+        Add Payroll
+      </Button>
+    </div>
+  </motion.div>
+));
+
+PayrollHeader.displayName = "PayrollHeader";
+
+// Memoized filter controls component
+const FilterControls = memo(({ 
+  selectedMonth, 
+  setSelectedMonth, 
+  selectedYear, 
+  setSelectedYear, 
+  selectedStatus, 
+  setSelectedStatus 
+}: { 
+  selectedMonth: number | undefined;
+  setSelectedMonth: (month: number | undefined) => void;
+  selectedYear: number | undefined;
+  setSelectedYear: (year: number | undefined) => void;
+  selectedStatus: string | undefined;
+  setSelectedStatus: (status: string | undefined) => void;
+}) => {
+  const handleMonthChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const month = e.target.value ? parseInt(e.target.value) : undefined;
+    setSelectedMonth(month);
+    if (!month) {
+      setSelectedYear(undefined);
+    } else if (!selectedYear) {
+      setSelectedYear(new Date().getFullYear());
+    }
+  }, [selectedYear, setSelectedMonth, setSelectedYear]);
+
+  const handleYearChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const year = e.target.value ? parseInt(e.target.value) : undefined;
+    setSelectedYear(year);
+    if (!year) {
+      setSelectedMonth(undefined);
+    } else if (!selectedMonth) {
+      setSelectedMonth(new Date().getMonth() + 1);
+    }
+  }, [selectedMonth, setSelectedYear, setSelectedMonth]);
+
+  const handleStatusChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedStatus(e.target.value || undefined);
+  }, [setSelectedStatus]);
+
+  const clearFilters = useCallback(() => {
+    setSelectedMonth(undefined);
+    setSelectedYear(undefined);
+    setSelectedStatus(undefined);
+  }, [setSelectedMonth, setSelectedYear, setSelectedStatus]);
+
+  const monthOptions = useMemo(() => 
+    Array.from({ length: 12 }, (_, i) => ({
+      value: i + 1,
+      label: new Date(0, i).toLocaleString('default', { month: 'long' })
+    })), []);
+
+  const yearOptions = useMemo(() => 
+    Array.from({ length: 10 }, (_, i) => {
+      const year = new Date().getFullYear() - 5 + i;
+      return { value: year, label: year.toString() };
+    }), []);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white p-4 rounded-lg border shadow-sm"
+    >
+      <div className="flex flex-wrap gap-4 items-end">
+        {/* Month Filter */}
+        <div className="flex-1 min-w-[120px]">
+          <label className="text-sm font-medium text-gray-700 mb-1 block">Month</label>
+          <select
+            value={selectedMonth || ""}
+            onChange={handleMonthChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          >
+            <option value="">All Months</option>
+            {monthOptions.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Year Filter */}
+        <div className="flex-1 min-w-[100px]">
+          <label className="text-sm font-medium text-gray-700 mb-1 block">Year</label>
+          <select
+            value={selectedYear || ""}
+            onChange={handleYearChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          >
+            <option value="">All Years</option>
+            {yearOptions.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Status Filter */}
+        <div className="flex-1 min-w-[120px]">
+          <label className="text-sm font-medium text-gray-700 mb-1 block">Status</label>
+          <select
+            value={selectedStatus || ""}
+            onChange={handleStatusChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          >
+            <option value="">All Status</option>
+            <option value="PENDING">Pending</option>
+            <option value="PAID">Paid</option>
+            <option value="HOLD">On Hold</option>
+          </select>
+        </div>
+
+        {/* Clear Filters Button */}
+        <button
+          onClick={clearFilters}
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+        >
+          Clear Filters
+        </button>
+      </div>
+
+      {/* Help Text */}
+      <div className="mt-3 text-xs text-gray-500">
+        💡 <strong>Tip:</strong> Month and year filters work together. Selecting a month will automatically set the current year, and selecting a year will set the current month.
+      </div>
+
+      {/* Filter Summary */}
+      {(selectedMonth || selectedYear || selectedStatus) && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="text-sm text-gray-600">Active filters:</span>
+          {selectedMonth && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              Month: {new Date(0, selectedMonth - 1).toLocaleString('default', { month: 'long' })}
+            </span>
+          )}
+          {selectedYear && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              Year: {selectedYear}
+            </span>
+          )}
+          {selectedStatus && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+              Status: {selectedStatus}
+            </span>
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+});
+
+FilterControls.displayName = "FilterControls";
+
+// Memoized employee info section component
+const EmployeeInfoSection = memo(({ detailedPayroll }: { detailedPayroll: DetailedPayrollRead }) => (
+  <div className="bg-slate-50 p-4 rounded-lg">
+    <h3 className="font-semibold text-lg mb-3">Employee Information</h3>
+    <div className="grid grid-cols-2 gap-4 text-sm">
+      <div>
+        <span className="text-muted-foreground">Employee Name:</span> 
+        <span className="font-medium">{detailedPayroll.employee_name}</span>
+      </div>
+      <div>
+        <span className="text-muted-foreground">Employee Type:</span> 
+        <span className="font-medium">{detailedPayroll.employee_type}</span>
+      </div>
+      <div>
+        <span className="text-muted-foreground">Pay Period:</span> 
+        <span className="font-medium">
+          {new Date(detailedPayroll.payroll_year, detailedPayroll.payroll_month - 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+        </span>
+      </div>
+    </div>
+  </div>
+));
+
+EmployeeInfoSection.displayName = "EmployeeInfoSection";
+
+// Memoized payroll summary section component
+const PayrollSummarySection = memo(({ detailedPayroll }: { detailedPayroll: DetailedPayrollRead }) => (
+  <div className="bg-blue-50 p-4 rounded-lg">
+    <h3 className="font-semibold text-lg mb-3">Payroll Summary</h3>
+    <div className="grid grid-cols-2 gap-4 text-sm">
+      <div>
+        <span className="text-muted-foreground">Gross Pay:</span> 
+        <span className="font-medium">{formatCurrency(detailedPayroll.gross_pay)}</span>
+      </div>
+      <div>
+        <span className="text-muted-foreground">Previous Balance:</span> 
+        <span className="font-medium">{formatCurrency(detailedPayroll.previous_balance)}</span>
+      </div>
+      <div>
+        <span className="text-muted-foreground">Total Deductions:</span> 
+        <span className="font-medium">{formatCurrency(detailedPayroll.total_deductions)}</span>
+      </div>
+      <div>
+        <span className="text-muted-foreground">Net Pay:</span> 
+        <span className="font-medium text-lg font-bold">{formatCurrency(detailedPayroll.net_pay)}</span>
+      </div>
+    </div>
+  </div>
+));
+
+PayrollSummarySection.displayName = "PayrollSummarySection";
+
+// Memoized deductions breakdown section component
+const DeductionsBreakdownSection = memo(({ detailedPayroll }: { detailedPayroll: DetailedPayrollRead }) => (
+  <div className="bg-red-50 p-4 rounded-lg">
+    <h3 className="font-semibold text-lg mb-3">Deductions Breakdown</h3>
+    <div className="grid grid-cols-2 gap-4 text-sm">
+      <div>
+        <span className="text-muted-foreground">Loss of Pay (LOP):</span> 
+        <span className="font-medium">{formatCurrency(detailedPayroll.lop)}</span>
+      </div>
+      <div>
+        <span className="text-muted-foreground">Advance Deduction:</span> 
+        <span className="font-medium">{formatCurrency(detailedPayroll.advance_deduction)}</span>
+      </div>
+      <div>
+        <span className="text-muted-foreground">Other Deductions:</span> 
+        <span className="font-medium">{formatCurrency(detailedPayroll.other_deductions)}</span>
+      </div>
+      <div>
+        <span className="text-muted-foreground">Total Deductions:</span> 
+        <span className="font-medium font-bold">{formatCurrency(detailedPayroll.total_deductions)}</span>
+      </div>
+    </div>
+  </div>
+));
+
+DeductionsBreakdownSection.displayName = "DeductionsBreakdownSection";
+
+// Memoized payment info section component
+const PaymentInfoSection = memo(({ detailedPayroll }: { detailedPayroll: DetailedPayrollRead }) => (
+  <div className="bg-green-50 p-4 rounded-lg">
+    <h3 className="font-semibold text-lg mb-3">Payment Information</h3>
+    <div className="grid grid-cols-2 gap-4 text-sm">
+      <div>
+        <span className="text-muted-foreground">Paid Amount:</span> 
+        <span className="font-medium">{formatCurrency(detailedPayroll.paid_amount)}</span>
+      </div>
+      <div>
+        <span className="text-muted-foreground">Carryover Balance:</span> 
+        <span className="font-medium">{formatCurrency(detailedPayroll.carryover_balance)}</span>
+      </div>
+      <div>
+        <span className="text-muted-foreground">Payment Method:</span> 
+        <span className="font-medium">{detailedPayroll.payment_method}</span>
+      </div>
+      <div>
+        <span className="text-muted-foreground">Status:</span> 
+        <span className="font-medium">
+          <Badge variant={detailedPayroll.status === 'PAID' ? 'default' : detailedPayroll.status === 'PENDING' ? 'secondary' : 'destructive'}>
+            {detailedPayroll.status}
+          </Badge>
+        </span>
+      </div>
+    </div>
+    {detailedPayroll.payment_notes && (
+      <div className="mt-3">
+        <span className="text-muted-foreground">Payment Notes:</span>
+        <p className="font-medium mt-1">{detailedPayroll.payment_notes}</p>
+      </div>
+    )}
+  </div>
+));
+
+PaymentInfoSection.displayName = "PaymentInfoSection";
+
+// Memoized record info section component
+const RecordInfoSection = memo(({ detailedPayroll }: { detailedPayroll: DetailedPayrollRead }) => (
+  <div className="bg-gray-50 p-4 rounded-lg">
+    <h3 className="font-semibold text-lg mb-3">Record Information</h3>
+    <div className="grid grid-cols-2 gap-4 text-sm">
+      <div>
+        <span className="text-muted-foreground">Generated At:</span> 
+        <span className="font-medium">{new Date(detailedPayroll.generated_at).toLocaleString()}</span>
+      </div>
+      <div>
+        <span className="text-muted-foreground">Updated At:</span> 
+        <span className="font-medium">{detailedPayroll.updated_at ? new Date(detailedPayroll.updated_at).toLocaleString() : 'Never'}</span>
+      </div>
+    </div>
+  </div>
+));
+
+RecordInfoSection.displayName = "RecordInfoSection";
+
+// Memoized action buttons component
+const ActionButtons = memo(({ 
+  onDownloadPayslip, 
+  onClose 
+}: { 
+  onDownloadPayslip: () => void;
+  onClose: () => void;
+}) => (
+  <div className="flex justify-end gap-2 pt-4 border-t">
+    <Button variant="outline" onClick={onDownloadPayslip}>
+      <Download className="h-4 w-4 mr-2" />
+      Download Payslip
+    </Button>
+    <Button variant="outline" onClick={onClose}>
+      Close
+    </Button>
+  </div>
+));
+
+ActionButtons.displayName = "ActionButtons";
+
+// Memoized bulk operations content component
+const BulkOperationsContent = memo(({ 
+  employees, 
+  onBulkCreate, 
+  onBulkExport, 
+  isLoading 
+}: { 
+  employees: any[];
+  onBulkCreate: (data: any) => void;
+  onBulkExport: () => void;
+  isLoading: boolean;
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: 0.1 }}
+    className="space-y-4"
+  >
+    <div>
+      <h2 className="text-2xl font-bold">Bulk Operations</h2>
+      <p className="text-muted-foreground">
+        Process multiple payrolls efficiently with bulk operations
+      </p>
+    </div>
+    
+    <BulkPayrollOperations
+      employees={employees}
+      onBulkCreate={onBulkCreate}
+      onBulkExport={onBulkExport}
+      isLoading={isLoading}
+    />
+  </motion.div>
+));
+
+BulkOperationsContent.displayName = "BulkOperationsContent";
+
+// Interface for detailed payroll response that includes employee information
+interface DetailedPayrollRead {
+  payroll_id: number;
+  employee_id: number;
+  employee_name: string;
+  employee_type: string;
+  payroll_month: number;
+  payroll_year: number;
+  previous_balance: number;
+  gross_pay: number;
+  lop: number;
+  advance_deduction: number;
+  other_deductions: number;
+  total_deductions: number;
+  net_pay: number;
+  paid_amount: number;
+  carryover_balance: number;
+  payment_method?: string;
+  payment_notes?: string;
+  status: string;
+  generated_at: string;
+  updated_at?: string;
+  generated_by?: number | null;
+  updated_by?: number | null;
+}
+
+export const PayrollManagementTemplateComponent = () => {
   // Dashboard stats hook
   const { data: dashboardStats, isLoading: dashboardLoading } = usePayrollDashboard();
   
@@ -45,6 +455,10 @@ export const PayrollManagementTemplate = () => {
     setShowPayslipDialog,
     selectedPayroll,
     setSelectedPayroll,
+    selectedPayrollId,
+    setSelectedPayrollId,
+    detailedPayroll,
+    detailedPayrollLoading,
     activeTab,
     setActiveTab,
     
@@ -72,217 +486,134 @@ export const PayrollManagementTemplate = () => {
     currentBranch,
   } = usePayrollManagement();
 
-  return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
-      >
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Payroll Management</h1>
-          <p className="text-muted-foreground">
-            Comprehensive payroll processing and employee salary management
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="gap-1">
-            <CreditCard className="h-3 w-3" />
-            {currentBranch?.branch_name || "Branch Name"}
-          </Badge>
-          <Button onClick={() => setShowCreateDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Payroll
-          </Button>
-        </div>
-      </motion.div>
+  // Memoized handlers
+  const handleCreatePayrollClick = useCallback(() => {
+    setShowCreateDialog(true);
+  }, [setShowCreateDialog]);
 
+  const handleCloseDialogs = useCallback(() => {
+    setShowCreateDialog(false);
+    setShowUpdateDialog(false);
+    setSelectedPayroll(null);
+  }, [setShowCreateDialog, setShowUpdateDialog, setSelectedPayroll]);
 
-      {/* Payroll Overview Cards */}
-      {dashboardStats ? (
+  const handleClosePayslipDialog = useCallback((open: boolean) => {
+    setShowPayslipDialog(open);
+    if (!open) {
+      setSelectedPayrollId(null);
+      setSelectedPayroll(null);
+    }
+  }, [setShowPayslipDialog, setSelectedPayrollId, setSelectedPayroll]);
+
+  const handleDownloadPayslip = useCallback(() => {
+    console.log('Download payslip');
+  }, []);
+
+  // Memoized tabs configuration
+  const tabsConfig = useMemo(() => [
+    {
+      value: "payrolls",
+      label: "Payrolls",
+      icon: Users,
+      content: (
+        <div className="space-y-4">
+          <FilterControls
+            selectedMonth={selectedMonth}
+            setSelectedMonth={setSelectedMonth}
+            selectedYear={selectedYear}
+            setSelectedYear={setSelectedYear}
+            selectedStatus={selectedStatus}
+            setSelectedStatus={setSelectedStatus}
+          />
+          <EmployeePayrollTable
+            payrolls={payrolls}
+            isLoading={isLoading}
+            onEditPayroll={handleEditPayroll}
+            onViewPayslip={handleViewPayslip}
+            onUpdateStatus={handleUpdateStatus}
+            getStatusColor={getStatusColor}
+            getStatusText={getStatusText}
+          />
+        </div>
+      ),
+    },
+    {
+      value: "bulk",
+      label: "Bulk Operations",
+      icon: Calculator,
+      content: (
+        <BulkOperationsContent
+          employees={employees}
+          onBulkCreate={handleBulkCreate}
+          onBulkExport={handleBulkExport}
+          isLoading={isLoading}
+        />
+      ),
+    },
+  ], [
+    selectedMonth,
+    setSelectedMonth,
+    selectedYear,
+    setSelectedYear,
+    selectedStatus,
+    setSelectedStatus,
+    payrolls,
+    isLoading,
+    handleEditPayroll,
+    handleViewPayslip,
+    handleUpdateStatus,
+    getStatusColor,
+    getStatusText,
+    employees,
+    handleBulkCreate,
+    handleBulkExport,
+  ]);
+
+  // Memoized stats cards
+  const statsCards = useMemo(() => {
+    if (dashboardStats) {
+      return (
         <PayrollStatsCards
           stats={dashboardStats}
           loading={dashboardLoading}
         />
-      ) : (
-        <OldPayrollStatsCards
-          totalPayrolls={totalPayrolls}
-          totalAmount={totalAmount}
-          paidAmount={paidAmount}
-          pendingAmount={pendingAmount}
-          pendingCount={pendingCount}
-          currentBranch={currentBranch}
-        />
-      )}
+      );
+    }
+    return (
+      <OldPayrollStatsCards
+        totalPayrolls={totalPayrolls}
+        totalAmount={totalAmount}
+        paidAmount={paidAmount}
+        pendingAmount={pendingAmount}
+        pendingCount={pendingCount}
+        currentBranch={currentBranch}
+      />
+    );
+  }, [
+    dashboardStats,
+    dashboardLoading,
+    totalPayrolls,
+    totalAmount,
+    paidAmount,
+    pendingAmount,
+    pendingCount,
+    currentBranch,
+  ]);
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <PayrollHeader
+        currentBranch={currentBranch}
+        onCreatePayroll={handleCreatePayrollClick}
+      />
+
+      {/* Payroll Overview Cards */}
+      {statsCards}
 
       {/* Main Content Tabs */}
       <TabSwitcher
-        tabs={[
-          {
-            value: "payrolls",
-            label: "Payrolls",
-            icon: Users,
-            content: (
-              <div className="space-y-4">
-                {/* Filter Controls */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white p-4 rounded-lg border shadow-sm"
-                >
-                  <div className="flex flex-wrap gap-4 items-end">
-                    {/* Month Filter */}
-                    <div className="flex-1 min-w-[120px]">
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Month</label>
-                      <select
-                        value={selectedMonth || ""}
-                        onChange={(e) => {
-                          const month = e.target.value ? parseInt(e.target.value) : undefined;
-                          setSelectedMonth(month);
-                          // Clear year if month is cleared, or set current year if month is selected
-                          if (!month) {
-                            setSelectedYear(undefined);
-                          } else if (!selectedYear) {
-                            setSelectedYear(new Date().getFullYear());
-                          }
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                      >
-                        <option value="">All Months</option>
-                        {Array.from({ length: 12 }, (_, i) => (
-                          <option key={i + 1} value={i + 1}>
-                            {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Year Filter */}
-                    <div className="flex-1 min-w-[100px]">
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Year</label>
-                      <select
-                        value={selectedYear || ""}
-                        onChange={(e) => {
-                          const year = e.target.value ? parseInt(e.target.value) : undefined;
-                          setSelectedYear(year);
-                          // Clear month if year is cleared, or set current month if year is selected
-                          if (!year) {
-                            setSelectedMonth(undefined);
-                          } else if (!selectedMonth) {
-                            setSelectedMonth(new Date().getMonth() + 1);
-                          }
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                      >
-                        <option value="">All Years</option>
-                        {Array.from({ length: 10 }, (_, i) => {
-                          const year = new Date().getFullYear() - 5 + i;
-                          return (
-                            <option key={year} value={year}>
-                              {year}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </div>
-
-                    {/* Status Filter */}
-                    <div className="flex-1 min-w-[120px]">
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Status</label>
-                      <select
-                        value={selectedStatus || ""}
-                        onChange={(e) => setSelectedStatus(e.target.value || undefined)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                      >
-                        <option value="">All Status</option>
-                        <option value="PENDING">Pending</option>
-                        <option value="PAID">Paid</option>
-                        <option value="HOLD">On Hold</option>
-                      </select>
-                    </div>
-
-                    {/* Clear Filters Button */}
-                    <button
-                      onClick={() => {
-                        setSelectedMonth(undefined);
-                        setSelectedYear(undefined);
-                        setSelectedStatus(undefined);
-                      }}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    >
-                      Clear Filters
-                    </button>
-                  </div>
-
-                  {/* Help Text */}
-                  <div className="mt-3 text-xs text-gray-500">
-                    💡 <strong>Tip:</strong> Month and year filters work together. Selecting a month will automatically set the current year, and selecting a year will set the current month.
-                  </div>
-
-                  {/* Filter Summary */}
-                  {(selectedMonth || selectedYear || selectedStatus) && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="text-sm text-gray-600">Active filters:</span>
-                      {selectedMonth && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          Month: {new Date(0, selectedMonth - 1).toLocaleString('default', { month: 'long' })}
-                        </span>
-                      )}
-                      {selectedYear && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Year: {selectedYear}
-                        </span>
-                      )}
-                      {selectedStatus && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                          Status: {selectedStatus}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </motion.div>
-
-                <EmployeePayrollTable
-                  payrolls={payrolls}
-                  isLoading={isLoading}
-                  onEditPayroll={handleEditPayroll}
-                  onViewPayslip={handleViewPayslip}
-                  onUpdateStatus={handleUpdateStatus}
-                  getStatusColor={getStatusColor}
-                  getStatusText={getStatusText}
-                />
-              </div>
-            ),
-          },
-          {
-            value: "bulk",
-            label: "Bulk Operations",
-            icon: Calculator,
-            content: (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="space-y-4"
-              >
-                <div>
-                  <h2 className="text-2xl font-bold">Bulk Operations</h2>
-                  <p className="text-muted-foreground">
-                    Process multiple payrolls efficiently with bulk operations
-                  </p>
-                </div>
-                
-                <BulkPayrollOperations
-                  employees={employees}
-                  onBulkCreate={handleBulkCreate}
-                  onBulkExport={handleBulkExport}
-                  isLoading={isLoading}
-                />
-              </motion.div>
-            ),
-          },
-        ]}
+        tabs={tabsConfig}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
@@ -290,82 +621,48 @@ export const PayrollManagementTemplate = () => {
       {/* Salary Calculation Form Dialog */}
       <SalaryCalculationForm
         isOpen={showCreateDialog || showUpdateDialog}
-        onClose={() => {
-          setShowCreateDialog(false);
-          setShowUpdateDialog(false);
-          setSelectedPayroll(null);
-        }}
+        onClose={handleCloseDialogs}
         onSubmit={handleFormSubmit}
         employees={employees}
         selectedPayroll={selectedPayroll}
       />
 
-      {/* Payslip Dialog */}
-      {showPayslipDialog && selectedPayroll && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-          onClick={() => setShowPayslipDialog(false)}
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-background rounded-lg p-6 max-w-2xl w-full mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Payslip - Employee {selectedPayroll.employee_id}</h3>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    // Add download functionality here
-                  }}
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowPayslipDialog(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+      {/* Detailed Payroll View Dialog */}
+      <Dialog open={showPayslipDialog} onOpenChange={handleClosePayslipDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Payroll Details
+            </DialogTitle>
+          </DialogHeader>
+          
+          {detailedPayrollLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-sm text-muted-foreground">Loading payroll details...</div>
             </div>
-            
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Employee ID</p>
-                  <p className="font-medium">{selectedPayroll.employee_id}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Pay Period</p>
-                  <p className="font-medium">{new Date(selectedPayroll.payroll_month).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Gross Pay:</span>
-                  <span>{formatCurrency(selectedPayroll.gross_pay)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Deductions:</span>
-                  <span>{formatCurrency((selectedPayroll.lop || 0) + (selectedPayroll.advance_deduction || 0) + (selectedPayroll.other_deductions || 0))}</span>
-                </div>
-                <div className="flex justify-between font-bold text-lg">
-                  <span>Net Pay:</span>
-                  <span>{formatCurrency(selectedPayroll.net_pay)}</span>
-                </div>
-              </div>
+          ) : !detailedPayroll ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-sm text-muted-foreground">No payroll data available</div>
             </div>
-          </motion.div>
-        </motion.div>
-      )}
+          ) : (
+            <div className="space-y-6">
+              <EmployeeInfoSection detailedPayroll={detailedPayroll as unknown as DetailedPayrollRead} />
+              <PayrollSummarySection detailedPayroll={detailedPayroll as unknown as DetailedPayrollRead} />
+              <DeductionsBreakdownSection detailedPayroll={detailedPayroll as unknown as DetailedPayrollRead} />
+              <PaymentInfoSection detailedPayroll={detailedPayroll as unknown as DetailedPayrollRead} />
+              <RecordInfoSection detailedPayroll={detailedPayroll as unknown as DetailedPayrollRead} />
+              <ActionButtons
+                onDownloadPayslip={handleDownloadPayslip}
+                onClose={() => setShowPayslipDialog(false)}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
+export const PayrollManagementTemplate = PayrollManagementTemplateComponent;
+export default PayrollManagementTemplateComponent;
