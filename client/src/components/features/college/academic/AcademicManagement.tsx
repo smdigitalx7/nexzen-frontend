@@ -1,15 +1,26 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { School, Building2, Users, Layers, BookOpen, GraduationCap, FileText, Calendar, Settings, UserCheck } from "lucide-react";
+import {
+  School,
+  Building2,
+  Users,
+  Layers,
+  BookOpen,
+  GraduationCap,
+  FileText,
+  Calendar,
+  Settings,
+  UserCheck,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
 import { useAuthStore } from "@/store/authStore";
-import { useCollegeClasses } from '@/lib/hooks/college/use-college-classes';
-import { useCollegeSubjects } from '@/lib/hooks/college/use-college-subjects';
-import { useCollegeExams } from '@/lib/hooks/college/use-college-exams';
-import { useCollegeTests } from '@/lib/hooks/college/use-college-tests';
-import { useCollegeGroups } from '@/lib/hooks/college/use-college-groups';
-import { useCollegeCourses } from '@/lib/hooks/college/use-college-courses';
+import { useCollegeClasses } from "@/lib/hooks/college/use-college-classes";
+import { useCollegeSubjects } from "@/lib/hooks/college/use-college-subjects";
+import { useCollegeExams } from "@/lib/hooks/college/use-college-exams";
+import { useCollegeTests } from "@/lib/hooks/college/use-college-tests";
+import { useCollegeGroups } from "@/lib/hooks/college/use-college-groups";
+import { useCollegeCourses } from "@/lib/hooks/college/use-college-courses";
 import AcademicYearManagement from "@/components/features/college/academic/academic-years/AcademicYearManagement";
 import { ClassesTab } from "@/components/features/college/academic/classes/ClassesTab";
 import { SubjectsTab } from "@/components/features/college/academic/subjects/SubjectsTab";
@@ -19,17 +30,78 @@ import { GroupsTab } from "@/components/features/college/academic/groups/GroupsT
 import { CoursesTab } from "@/components/features/college/academic/courses/CoursesTab";
 import { TeachersTab } from "@/components/features/college/academic/teachers/TeachersTab";
 import { AcademicOverviewCards } from "@/components/features/college/academic/AcademicOverviewCards";
+import {
+  useTabNavigation,
+  useTabEnabled,
+} from "@/lib/hooks/use-tab-navigation";
 
 const AcademicManagement = () => {
   const { currentBranch } = useAuthStore();
-  
-  // New modular college hooks
-  const { data: backendClasses = [], isLoading: classesLoading, isError: classesError, error: classesErrObj } = useCollegeClasses();
-  const { data: backendSubjects = [], isLoading: subjectsLoading, isError: subjectsError, error: subjectsErrObj } = useCollegeSubjects();
-  const { data: exams = [], isLoading: examsLoading, isError: examsError, error: examsErrObj } = useCollegeExams();
-  const { data: tests = [], isLoading: testsLoading, isError: testsError, error: testsErrObj, refetch: refetchTests } = useCollegeTests();
-  const { data: groups = [], isLoading: groupsLoading, isError: groupsError, error: groupsErrObj } = useCollegeGroups();
-  const { data: courses = [], isLoading: coursesLoading, isError: coursesError, error: coursesErrObj } = useCollegeCourses();
+  const { activeTab, setActiveTab } = useTabNavigation("classes");
+
+  // ✅ LAZY LOADING: Get enabled states at the top level to avoid hook order issues
+  const classesEnabled = useTabEnabled("classes");
+  const subjectsEnabled = useTabEnabled("subjects");
+  const examsEnabled = useTabEnabled("exams");
+  const testsEnabled = useTabEnabled("tests");
+  const groupsEnabled = useTabEnabled("groups");
+  const coursesEnabled = useTabEnabled("courses");
+
+  // ✅ LAZY LOADING: Only fetch data for active tab
+  const {
+    data: backendClasses = [],
+    isLoading: classesLoading,
+    isError: classesError,
+    error: classesErrObj,
+  } = useCollegeClasses({
+    enabled: classesEnabled,
+  });
+
+  const {
+    data: backendSubjects = [],
+    isLoading: subjectsLoading,
+    isError: subjectsError,
+    error: subjectsErrObj,
+  } = useCollegeSubjects({
+    enabled: subjectsEnabled,
+  });
+
+  const {
+    data: exams = [],
+    isLoading: examsLoading,
+    isError: examsError,
+    error: examsErrObj,
+  } = useCollegeExams({
+    enabled: examsEnabled,
+  });
+
+  const {
+    data: tests = [],
+    isLoading: testsLoading,
+    isError: testsError,
+    error: testsErrObj,
+    refetch: refetchTests,
+  } = useCollegeTests({
+    enabled: testsEnabled,
+  });
+
+  const {
+    data: groups = [],
+    isLoading: groupsLoading,
+    isError: groupsError,
+    error: groupsErrObj,
+  } = useCollegeGroups({
+    enabled: groupsEnabled,
+  });
+
+  const {
+    data: courses = [],
+    isLoading: coursesLoading,
+    isError: coursesError,
+    error: coursesErrObj,
+  } = useCollegeCourses({
+    enabled: coursesEnabled,
+  });
 
   // Get effective classes
   const effectiveClasses = backendClasses;
@@ -40,7 +112,10 @@ const AcademicManagement = () => {
   const totalGroups = groups.length;
   const totalCourses = courses.length;
   const today = new Date();
-  const toDate = (v: any) => { const d = new Date(v); return isNaN(d.getTime()) ? null : d; };
+  const toDate = (v: any) => {
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  };
   const activeExams = exams.filter((exam: any) => {
     const d = toDate(exam.exam_date);
     return d ? d >= new Date(today.toDateString()) : false;
@@ -51,82 +126,94 @@ const AcademicManagement = () => {
   }).length;
 
   // Loading states
-  const isLoading = classesLoading || subjectsLoading || examsLoading || testsLoading || groupsLoading || coursesLoading;
-  const hasError = classesError || subjectsError || examsError || testsError || groupsError || coursesError;
-  const errorMessage = (
+  const isLoading =
+    classesLoading ||
+    subjectsLoading ||
+    examsLoading ||
+    testsLoading ||
+    groupsLoading ||
+    coursesLoading;
+  const hasError =
+    classesError ||
+    subjectsError ||
+    examsError ||
+    testsError ||
+    groupsError ||
+    coursesError;
+  const errorMessage =
     (classesErrObj as any)?.message ||
     (subjectsErrObj as any)?.message ||
     (examsErrObj as any)?.message ||
     (testsErrObj as any)?.message ||
     (groupsErrObj as any)?.message ||
     (coursesErrObj as any)?.message ||
-    undefined
-  );
+    undefined;
 
   // Local state for filters
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBranchType, setSelectedBranchType] = useState("all");
-  const [activeTab, setActiveTab] = useState("classes");
 
   // Dynamic header content based on active tab
   const getHeaderContent = () => {
     switch (activeTab) {
-      case 'classes':
+      case "classes":
         return {
-          title: 'Classes Management',
-          description: 'Manage academic classes and their subject assignments'
+          title: "Classes Management",
+          description: "Manage academic classes and their subject assignments",
         };
-      case 'groups':
+      case "groups":
         return {
-          title: 'Groups Management',
-          description: 'Manage student groups and their academic structure'
+          title: "Groups Management",
+          description: "Manage student groups and their academic structure",
         };
-      case 'courses':
+      case "courses":
         return {
-          title: 'Courses Management',
-          description: 'Manage academic courses and their curriculum'
+          title: "Courses Management",
+          description: "Manage academic courses and their curriculum",
         };
-      case 'teachers':
+      case "teachers":
         return {
-          title: 'Teachers Management',
-          description: 'Manage teaching staff and their assignments'
+          title: "Teachers Management",
+          description: "Manage teaching staff and their assignments",
         };
-      case 'subjects':
+      case "subjects":
         return {
-          title: 'Subjects Management',
-          description: 'Manage academic subjects and their assignments'
+          title: "Subjects Management",
+          description: "Manage academic subjects and their assignments",
         };
-      case 'exams':
+      case "exams":
         return {
-          title: 'Exams Management',
-          description: 'Manage academic examinations and schedules'
+          title: "Exams Management",
+          description: "Manage academic examinations and schedules",
         };
-      case 'tests':
+      case "tests":
         return {
-          title: 'Tests Management',
-          description: 'Manage academic tests and assessments'
+          title: "Tests Management",
+          description: "Manage academic tests and assessments",
         };
-      case 'academic-years':
+      case "academic-years":
         return {
-          title: 'Academic Years Management',
-          description: 'Manage academic years, terms, and academic calendar'
+          title: "Academic Years Management",
+          description: "Manage academic years, terms, and academic calendar",
         };
       default:
         return {
-          title: 'Academic Management',
-          description: 'Comprehensive academic structure and performance management'
+          title: "Academic Management",
+          description:
+            "Comprehensive academic structure and performance management",
         };
     }
   };
 
   const headerContent = getHeaderContent();
 
-  // Ensure tests are fetched when Tests tab becomes active
-  useEffect(() => {
-    if (activeTab === "tests") {
-      refetchTests();
-    }
-  }, [activeTab, refetchTests]);
+  // ✅ URL-based tab management with persistence
+  const handleTabChange = useCallback(
+    (value: string) => {
+      setActiveTab(value);
+    },
+    [setActiveTab]
+  );
 
   return (
     <div className="space-y-6 p-6">
@@ -140,9 +227,7 @@ const AcademicManagement = () => {
           <h1 className="text-3xl font-bold tracking-tight">
             {headerContent.title}
           </h1>
-          <p className="text-muted-foreground">
-            {headerContent.description}
-          </p>
+          <p className="text-muted-foreground">{headerContent.description}</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="gap-1">
@@ -274,7 +359,7 @@ const AcademicManagement = () => {
           },
         ]}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
       />
     </div>
   );

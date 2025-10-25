@@ -9,12 +9,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Search,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
-import { useMemo, useState } from "react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -25,8 +21,14 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { CollegeReservationsService } from "@/lib/services/college/reservations.service";
 import { CollegeIncomeService } from "@/lib/services/college/income.service";
-import { ReceiptPreviewModal, ConcessionUpdateDialog } from "@/components/shared";
-import type { CollegeReservationMinimalRead, ReservationStatusEnum } from "@/lib/types/college/reservations";
+import {
+  ReceiptPreviewModal,
+  ConcessionUpdateDialog,
+} from "@/components/shared";
+import type {
+  CollegeReservationMinimalRead,
+  ReservationStatusEnum,
+} from "@/lib/types/college/reservations";
 
 export type Reservation = {
   reservation_id: number;
@@ -87,9 +89,7 @@ export default function ReservationsTable({
     // Filter by status
     if (statusFilter !== "all") {
       const target = statusFilter.toUpperCase();
-      filtered = filtered.filter(
-        (r) => r.status === target
-      );
+      filtered = filtered.filter((r) => r.status === target);
     }
 
     // Filter by search term
@@ -118,7 +118,7 @@ export default function ReservationsTable({
   );
 
   // Reset to first page when filters change
-  useMemo(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [statusFilter, searchTerm]);
 
@@ -142,7 +142,9 @@ export default function ReservationsTable({
         "🔄 Starting receipt regeneration for income ID:",
         reservation.income_id
       );
-      const blob = await CollegeIncomeService.regenerateReceipt(reservation.income_id);
+      const blob = await CollegeIncomeService.regenerateReceipt(
+        reservation.income_id
+      );
       const blobUrl = URL.createObjectURL(blob);
       console.log("✅ Receipt blob URL received:", blobUrl);
 
@@ -180,7 +182,6 @@ export default function ReservationsTable({
       setReceiptBlobUrl(null);
     }
   };
-
 
   return (
     <div className="space-y-4">
@@ -248,10 +249,12 @@ export default function ReservationsTable({
           ) : (
             paginatedReservations.map((reservation) => (
               <TableRow key={reservation.reservation_id}>
-                <TableCell className="font-medium">{reservation.reservation_no || reservation.reservation_id}</TableCell>
+                <TableCell className="font-medium">
+                  {reservation.reservation_no || reservation.reservation_id}
+                </TableCell>
                 <TableCell>{reservation.student_name}</TableCell>
-                <TableCell>{reservation.group_name || 'N/A'}</TableCell>
-                <TableCell>{reservation.course_name || 'N/A'}</TableCell>
+                <TableCell>{reservation.group_name || "N/A"}</TableCell>
+                <TableCell>{reservation.course_name || "N/A"}</TableCell>
                 <TableCell>
                   <Badge
                     variant={
@@ -268,10 +271,11 @@ export default function ReservationsTable({
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  {reservation.reservation_date 
-                    ? new Date(reservation.reservation_date).toLocaleDateString()
-                    : new Date(reservation.created_at).toLocaleDateString()
-                  }
+                  {reservation.reservation_date
+                    ? new Date(
+                        reservation.reservation_date
+                      ).toLocaleDateString()
+                    : new Date(reservation.created_at).toLocaleDateString()}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -427,7 +431,6 @@ export default function ReservationsTable({
         onClose={handleCloseReceiptModal}
         blobUrl={receiptBlobUrl}
       />
-
     </div>
   );
 }

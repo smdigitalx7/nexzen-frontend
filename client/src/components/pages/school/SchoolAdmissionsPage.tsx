@@ -1,17 +1,16 @@
 import { useState } from "react";
 import { TabSwitcher } from "@/components/shared";
 import type { TabItem } from "@/components/shared/TabSwitcher";
+import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 import { Users, School, Building2 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { Badge } from "@/components/ui/badge";
 import AdmissionsList from "@/components/features/school/admissions/AdmissionsList";
 import ConfirmedReservationsTab from "@/components/features/school/admissions/ConfirmedReservationsTab";
 
-
 const SchoolAdmissionsPage = () => {
   const { currentBranch } = useAuthStore();
-  const [activeTab, setActiveTab] = useState("reservations");
-
+  const { activeTab, setActiveTab } = useTabNavigation("reservations");
 
   const tabs: TabItem[] = [
     {
@@ -47,8 +46,8 @@ const SchoolAdmissionsPage = () => {
             )}
             {currentBranch?.branch_name}
           </Badge>
-        </div>        
-      </div>     
+        </div>
+      </div>
 
       {/* Tabs */}
       <TabSwitcher

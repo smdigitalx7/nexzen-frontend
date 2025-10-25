@@ -1,12 +1,37 @@
-import { useMemo, useState } from "react";
-import { useSchoolTuitionBalancesList, useSchoolTransportBalancesList } from "./use-school-fee-balances";
-import { useSchoolIncomeList, useSchoolExpenditureList } from "./use-school-income-expenditure";
+import { useMemo } from "react";
+import {
+  useSchoolTuitionBalancesList,
+  useSchoolTransportBalancesList,
+} from "./use-school-fee-balances";
+import {
+  useSchoolIncomeList,
+  useSchoolExpenditureList,
+} from "./use-school-income-expenditure";
+import { useTabNavigation } from "../use-tab-navigation";
 
-export function useSchoolFeesManagement(params?: { tuitionPage?: number; tuitionPageSize?: number; transportPage?: number; transportPageSize?: number; income?: { start_date?: string; end_date?: string; admission_no?: string; purpose?: string }; expenditure?: { start_date?: string; end_date?: string } }) {
-  const [activeTab, setActiveTab] = useState("collect");
+export function useSchoolFeesManagement(params?: {
+  tuitionPage?: number;
+  tuitionPageSize?: number;
+  transportPage?: number;
+  transportPageSize?: number;
+  income?: {
+    start_date?: string;
+    end_date?: string;
+    admission_no?: string;
+    purpose?: string;
+  };
+  expenditure?: { start_date?: string; end_date?: string };
+}) {
+  const { activeTab, setActiveTab } = useTabNavigation("collect");
 
-  const tuitionQuery = useSchoolTuitionBalancesList({ page: params?.tuitionPage, page_size: params?.tuitionPageSize });
-  const transportQuery = useSchoolTransportBalancesList({ page: params?.transportPage, page_size: params?.transportPageSize });
+  const tuitionQuery = useSchoolTuitionBalancesList({
+    page: params?.tuitionPage,
+    page_size: params?.tuitionPageSize,
+  });
+  const transportQuery = useSchoolTransportBalancesList({
+    page: params?.transportPage,
+    page_size: params?.transportPageSize,
+  });
   const incomeQuery = useSchoolIncomeList(params?.income);
   const expenditureQuery = useSchoolExpenditureList(params?.expenditure);
 
@@ -16,11 +41,22 @@ export function useSchoolFeesManagement(params?: { tuitionPage?: number; tuition
   const expenditures = expenditureQuery.data ?? [];
 
   const totalOutstandingTuition = useMemo(() => {
-    return tuitionBalances.reduce((sum: number, b: any) => sum + (Number(b.term1_balance || 0) + Number(b.term2_balance || 0) + Number(b.term3_balance || 0)), 0);
+    return tuitionBalances.reduce(
+      (sum: number, b: any) =>
+        sum +
+        (Number(b.term1_balance || 0) +
+          Number(b.term2_balance || 0) +
+          Number(b.term3_balance || 0)),
+      0
+    );
   }, [tuitionBalances]);
 
   const totalOutstandingTransport = useMemo(() => {
-    return transportBalances.reduce((sum: number, b: any) => sum + (Number(b.term1_balance || 0) + Number(b.term2_balance || 0)), 0);
+    return transportBalances.reduce(
+      (sum: number, b: any) =>
+        sum + (Number(b.term1_balance || 0) + Number(b.term2_balance || 0)),
+      0
+    );
   }, [transportBalances]);
 
   const totalOutstanding = totalOutstandingTuition + totalOutstandingTransport;
@@ -56,9 +92,15 @@ export function useSchoolFeesManagement(params?: { tuitionPage?: number; tuition
     activeTab,
     setActiveTab,
     // loading/error flags
-    loading: tuitionQuery.isLoading || transportQuery.isLoading || incomeQuery.isLoading || expenditureQuery.isLoading,
-    error: tuitionQuery.error || transportQuery.error || incomeQuery.error || expenditureQuery.error,
+    loading:
+      tuitionQuery.isLoading ||
+      transportQuery.isLoading ||
+      incomeQuery.isLoading ||
+      expenditureQuery.isLoading,
+    error:
+      tuitionQuery.error ||
+      transportQuery.error ||
+      incomeQuery.error ||
+      expenditureQuery.error,
   } as const;
 }
-
-

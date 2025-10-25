@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
+import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 import {
   Dialog,
   DialogContent,
@@ -48,7 +49,10 @@ import {
   ConcessionUpdateDialog,
   ReceiptPreviewModal,
 } from "@/components/shared";
-import type { SchoolIncomeRead, SchoolReservationRead } from "@/lib/types/school";
+import type {
+  SchoolIncomeRead,
+  SchoolReservationRead,
+} from "@/lib/types/school";
 
 export default function ReservationNew() {
   const { currentBranch } = useAuthStore();
@@ -57,7 +61,7 @@ export default function ReservationNew() {
     queryFn: () => TransportService.getRouteNames(),
   });
 
-  const [activeTab, setActiveTab] = useState("new");
+  const { activeTab, setActiveTab } = useTabNavigation("new");
   const [reservationNo, setReservationNo] = useState<string>("");
   const [showReceipt, setShowReceipt] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<any>(null);
@@ -88,7 +92,6 @@ export default function ReservationNew() {
     setSelectedReservationForConcession,
   ] = useState<any>(null);
 
-
   // Classes dropdown from API
   const { data: classesData } = useSchoolClasses();
   const classes = classesData?.items || [];
@@ -97,11 +100,9 @@ export default function ReservationNew() {
   const { distanceSlabs } = useDistanceSlabs();
 
   // Fetch selected class details with fees
-  const { classData: selectedClassData } =
-    useSchoolClass(selectedClassId);
-  const {
-    classData: editSelectedClassData,
-  } = useSchoolClass(editSelectedClassId);
+  const { classData: selectedClassData } = useSchoolClass(selectedClassId);
+  const { classData: editSelectedClassData } =
+    useSchoolClass(editSelectedClassId);
 
   // Dashboard stats hook
   const { data: dashboardStats, isLoading: dashboardLoading } =
@@ -373,8 +374,6 @@ export default function ReservationNew() {
     }
   };
 
-
-
   const handleSave = async (withPayment: boolean) => {
     // Map form fields to backend schema as JSON object
     const payload = {
@@ -419,7 +418,9 @@ export default function ReservationNew() {
     };
 
     try {
-      const res: SchoolReservationRead = await SchoolReservationsService.create(payload);
+      const res: SchoolReservationRead = await SchoolReservationsService.create(
+        payload
+      );
       console.log("Reservation creation response:", res);
       // Use backend reservation_id to display receipt number
       setReservationNo(String(res?.reservation_id || ""));
@@ -518,9 +519,8 @@ export default function ReservationNew() {
 
   const handleEdit = async (r: any) => {
     try {
-      const data: SchoolReservationRead = await SchoolReservationsService.getById(
-        r.reservation_id
-      );
+      const data: SchoolReservationRead =
+        await SchoolReservationsService.getById(r.reservation_id);
       const mappedForm = mapApiToForm(data);
       setEditForm(mappedForm);
 
@@ -615,7 +615,6 @@ export default function ReservationNew() {
     }
   };
 
-
   // Handle reservations errors
   useEffect(() => {
     if (reservationsError) {
@@ -629,7 +628,6 @@ export default function ReservationNew() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold">Reservations</h1>
@@ -641,15 +639,15 @@ export default function ReservationNew() {
             </Badge>
           )}
           <div className="flex items-center gap-2">
-          <Badge variant="outline" className="gap-1">
-            {currentBranch?.branch_type === "SCHOOL" ? (
-              <School className="h-3 w-3" />
-            ) : (
-              <Building2 className="h-3 w-3" />
-            )}
-            {currentBranch?.branch_name}
-          </Badge>
-        </div>
+            <Badge variant="outline" className="gap-1">
+              {currentBranch?.branch_type === "SCHOOL" ? (
+                <School className="h-3 w-3" />
+              ) : (
+                <Building2 className="h-3 w-3" />
+              )}
+              {currentBranch?.branch_name}
+            </Badge>
+          </div>
         </div>
       </motion.div>
 
@@ -786,7 +784,10 @@ export default function ReservationNew() {
                 <div>
                   <strong>Enrollment Status:</strong>{" "}
                   {viewReservation.is_enrolled ? (
-                    <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-100 text-green-800"
+                    >
                       Enrolled
                     </Badge>
                   ) : (
@@ -948,13 +949,16 @@ export default function ReservationNew() {
               </div>
 
               {/* Income Records Section */}
-              {(viewReservation.application_income_id || viewReservation.admission_income_id) && (
+              {(viewReservation.application_income_id ||
+                viewReservation.admission_income_id) && (
                 <div className="border-t pt-4">
                   <div className="font-medium mb-2">Income Records</div>
                   <div className="space-y-2">
                     {viewReservation.application_income_id && (
                       <div className="flex justify-between items-center p-2 bg-blue-50 rounded-lg">
-                        <span className="text-sm font-medium">Application Fee Income ID:</span>
+                        <span className="text-sm font-medium">
+                          Application Fee Income ID:
+                        </span>
                         <Badge variant="outline" className="font-mono">
                           {viewReservation.application_income_id}
                         </Badge>
@@ -962,7 +966,9 @@ export default function ReservationNew() {
                     )}
                     {viewReservation.admission_income_id && (
                       <div className="flex justify-between items-center p-2 bg-green-50 rounded-lg">
-                        <span className="text-sm font-medium">Admission Fee Income ID:</span>
+                        <span className="text-sm font-medium">
+                          Admission Fee Income ID:
+                        </span>
                         <Badge variant="outline" className="font-mono">
                           {viewReservation.admission_income_id}
                         </Badge>
@@ -1053,17 +1059,12 @@ export default function ReservationNew() {
             >
               Close
             </Button>
-            <Button
-              type="button"
-              onClick={submitEdit}
-              disabled={!editForm}
-            >
+            <Button type="button" onClick={submitEdit} disabled={!editForm}>
               Update Reservation
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
 
       {/* Delete Reservation Confirmation */}
       <AlertDialog
@@ -1200,7 +1201,6 @@ export default function ReservationNew() {
         reservation={selectedReservationForConcession}
         onUpdateConcession={handleConcessionUpdate}
       />
-
     </div>
   );
 }

@@ -1,35 +1,52 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolExamsService } from "@/lib/services/school/exams.service";
 import { SchoolTestsService } from "@/lib/services/school/tests.service";
-import type { SchoolExamCreate, SchoolExamRead, SchoolExamUpdate, SchoolTestCreate, SchoolTestRead, SchoolTestUpdate } from "@/lib/types/school";
+import type {
+  SchoolExamCreate,
+  SchoolExamRead,
+  SchoolExamUpdate,
+  SchoolTestCreate,
+  SchoolTestRead,
+  SchoolTestUpdate,
+} from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
 
-export function useSchoolExams() {
+export function useSchoolExams(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: schoolKeys.exams.list(),
     queryFn: () => SchoolExamsService.list() as Promise<SchoolExamRead[]>,
+    enabled: options?.enabled !== false,
   });
 }
 
 export function useSchoolExam(examId: number | null | undefined) {
   return useQuery({
-    queryKey: typeof examId === "number" ? schoolKeys.exams.detail(examId) : [...schoolKeys.exams.root(), "detail", "nil"],
-    queryFn: () => SchoolExamsService.getById(examId as number) as Promise<SchoolExamRead>,
+    queryKey:
+      typeof examId === "number"
+        ? schoolKeys.exams.detail(examId)
+        : [...schoolKeys.exams.root(), "detail", "nil"],
+    queryFn: () =>
+      SchoolExamsService.getById(examId as number) as Promise<SchoolExamRead>,
     enabled: typeof examId === "number" && examId > 0,
   });
 }
 
-export function useSchoolTests() {
+export function useSchoolTests(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: schoolKeys.tests.list(),
     queryFn: () => SchoolTestsService.list() as Promise<SchoolTestRead[]>,
+    enabled: options?.enabled !== false,
   });
 }
 
 export function useSchoolTest(testId: number | null | undefined) {
   return useQuery({
-    queryKey: typeof testId === "number" ? schoolKeys.tests.detail(testId) : [...schoolKeys.tests.root(), "detail", "nil"],
-    queryFn: () => SchoolTestsService.getById(testId as number) as Promise<SchoolTestRead>,
+    queryKey:
+      typeof testId === "number"
+        ? schoolKeys.tests.detail(testId)
+        : [...schoolKeys.tests.root(), "detail", "nil"],
+    queryFn: () =>
+      SchoolTestsService.getById(testId as number) as Promise<SchoolTestRead>,
     enabled: typeof testId === "number" && testId > 0,
   });
 }
@@ -38,7 +55,8 @@ export function useSchoolTest(testId: number | null | undefined) {
 export function useCreateSchoolExam() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: SchoolExamCreate) => SchoolExamsService.create(payload) as Promise<SchoolExamRead>,
+    mutationFn: (payload: SchoolExamCreate) =>
+      SchoolExamsService.create(payload) as Promise<SchoolExamRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
     },
@@ -48,7 +66,8 @@ export function useCreateSchoolExam() {
 export function useUpdateSchoolExam(examId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: SchoolExamUpdate) => SchoolExamsService.update(examId, payload) as Promise<SchoolExamRead>,
+    mutationFn: (payload: SchoolExamUpdate) =>
+      SchoolExamsService.update(examId, payload) as Promise<SchoolExamRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.exams.detail(examId) });
       qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
@@ -59,19 +78,20 @@ export function useUpdateSchoolExam(examId: number) {
 export function useDeleteSchoolExam() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (examId: number) => SchoolExamsService.delete(examId) as Promise<void>,
+    mutationFn: (examId: number) =>
+      SchoolExamsService.delete(examId) as Promise<void>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
     },
   });
 }
 
-
 // Mutations: Tests
 export function useCreateSchoolTest() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: SchoolTestCreate) => SchoolTestsService.create(payload) as Promise<SchoolTestRead>,
+    mutationFn: (payload: SchoolTestCreate) =>
+      SchoolTestsService.create(payload) as Promise<SchoolTestRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
     },
@@ -81,7 +101,8 @@ export function useCreateSchoolTest() {
 export function useUpdateSchoolTest(testId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: SchoolTestUpdate) => SchoolTestsService.update(testId, payload) as Promise<SchoolTestRead>,
+    mutationFn: (payload: SchoolTestUpdate) =>
+      SchoolTestsService.update(testId, payload) as Promise<SchoolTestRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.tests.detail(testId) });
       qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
@@ -92,11 +113,10 @@ export function useUpdateSchoolTest(testId: number) {
 export function useDeleteSchoolTest() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (testId: number) => SchoolTestsService.delete(testId) as Promise<void>,
+    mutationFn: (testId: number) =>
+      SchoolTestsService.delete(testId) as Promise<void>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
     },
   });
 }
-
-

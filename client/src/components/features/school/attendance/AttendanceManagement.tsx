@@ -1,18 +1,24 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Check, X, Download, Clock, TrendingUp, Eye, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { TabSwitcher } from '@/components/shared';
-import type { TabItem } from '@/components/shared/TabSwitcher';
-import AttendanceView from './AttendanceView';
-import AttendanceCreate from './AttendanceCreate';
- 
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Check, X, Download, Clock, TrendingUp, Eye, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { TabSwitcher } from "@/components/shared";
+import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
+import AttendanceView from "./AttendanceView";
+import AttendanceCreate from "./AttendanceCreate";
 
 const AttendanceManagement = () => {
   const [selectedDate] = useState<Date | undefined>(new Date());
-  const [activeTab, setActiveTab] = useState('view');
-  const attendanceStats = { totalRecords: 0, presentCount: 0, absentCount: 0, lateCount: 0, presentPercentage: '0', absentPercentage: '0' };
+  const { activeTab, setActiveTab } = useTabNavigation("view");
+  const attendanceStats = {
+    totalRecords: 0,
+    presentCount: 0,
+    absentCount: 0,
+    lateCount: 0,
+    presentPercentage: "0",
+    absentPercentage: "0",
+  };
 
   return (
     <div className="flex flex-col h-full bg-slate-50/30">
@@ -25,12 +31,16 @@ const AttendanceManagement = () => {
             className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
           >
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Attendance Management</h1>
-              <p className="text-slate-600 mt-1">Mark daily student attendance in a simple table</p>
+              <h1 className="text-3xl font-bold text-slate-900">
+                Attendance Management
+              </h1>
+              <p className="text-slate-600 mt-1">
+                Mark daily student attendance in a simple table
+              </p>
             </div>
             <div className="flex gap-3">
               <Button
-                onClick={() => console.log('Export attendance data')}
+                onClick={() => console.log("Export attendance data")}
                 variant="outline"
                 className="hover-elevate"
                 data-testid="button-export-attendance"
@@ -55,9 +65,15 @@ const AttendanceManagement = () => {
                     <Check className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-600">Present</p>
-                    <p className="text-2xl font-bold text-slate-900">{attendanceStats.presentCount}</p>
-                    <p className="text-xs text-green-600">{attendanceStats.presentPercentage}%</p>
+                    <p className="text-sm font-medium text-slate-600">
+                      Present
+                    </p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {attendanceStats.presentCount}
+                    </p>
+                    <p className="text-xs text-green-600">
+                      {attendanceStats.presentPercentage}%
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -70,8 +86,12 @@ const AttendanceManagement = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-slate-600">Absent</p>
-                    <p className="text-2xl font-bold text-slate-900">{attendanceStats.absentCount}</p>
-                    <p className="text-xs text-red-600">{attendanceStats.absentPercentage}%</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {attendanceStats.absentCount}
+                    </p>
+                    <p className="text-xs text-red-600">
+                      {attendanceStats.absentPercentage}%
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -84,7 +104,9 @@ const AttendanceManagement = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-slate-600">Late</p>
-                    <p className="text-2xl font-bold text-slate-900">{attendanceStats.lateCount}</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {attendanceStats.lateCount}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -96,8 +118,12 @@ const AttendanceManagement = () => {
                     <TrendingUp className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-600">Total Records</p>
-                    <p className="text-2xl font-bold text-slate-900">{attendanceStats.totalRecords}</p>
+                    <p className="text-sm font-medium text-slate-600">
+                      Total Records
+                    </p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {attendanceStats.totalRecords}
+                    </p>
                   </div>
                 </div>
               </CardContent>

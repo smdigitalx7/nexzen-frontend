@@ -1,9 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeExamsService } from "@/lib/services/college/exams.service";
-import type { CollegeExamCreate, CollegeExamRead, CollegeExamResponse, CollegeExamUpdate } from "@/lib/types/college/index.ts";
+import type {
+  CollegeExamCreate,
+  CollegeExamRead,
+  CollegeExamResponse,
+  CollegeExamUpdate,
+} from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 
-export function useCollegeExams() {
+export function useCollegeExams(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: collegeKeys.exams.list(),
     queryFn: async () => {
@@ -11,24 +16,33 @@ export function useCollegeExams() {
         return await CollegeExamsService.list();
       } catch (error: any) {
         // Handle 404 errors by returning empty array
-        console.log('Exams API error:', error);
-        if (error?.message?.includes('404') || 
-            error?.message?.includes('Exams not found') ||
-            error?.message?.includes('Not Found') ||
-            error?.status === 404 ||
-            error?.message === 'Exams not found') {
+        console.log("Exams API error:", error);
+        if (
+          error?.message?.includes("404") ||
+          error?.message?.includes("Exams not found") ||
+          error?.message?.includes("Not Found") ||
+          error?.status === 404 ||
+          error?.message === "Exams not found"
+        ) {
           return [];
         }
         throw error;
       }
     },
+    enabled: options?.enabled !== false,
   });
 }
 
 export function useCollegeExam(examId: number | null | undefined) {
   return useQuery({
-    queryKey: typeof examId === "number" ? collegeKeys.exams.detail(examId) : [...collegeKeys.exams.root(), "detail", "nil"],
-    queryFn: () => CollegeExamsService.getById(examId as number) as Promise<CollegeExamResponse>,
+    queryKey:
+      typeof examId === "number"
+        ? collegeKeys.exams.detail(examId)
+        : [...collegeKeys.exams.root(), "detail", "nil"],
+    queryFn: () =>
+      CollegeExamsService.getById(
+        examId as number
+      ) as Promise<CollegeExamResponse>,
     enabled: typeof examId === "number" && examId > 0,
   });
 }
@@ -36,7 +50,8 @@ export function useCollegeExam(examId: number | null | undefined) {
 export function useCreateCollegeExam() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CollegeExamCreate) => CollegeExamsService.create(payload) as Promise<CollegeExamResponse>,
+    mutationFn: (payload: CollegeExamCreate) =>
+      CollegeExamsService.create(payload) as Promise<CollegeExamResponse>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
     },
@@ -46,7 +61,11 @@ export function useCreateCollegeExam() {
 export function useUpdateCollegeExam(examId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CollegeExamUpdate) => CollegeExamsService.update(examId, payload) as Promise<CollegeExamResponse>,
+    mutationFn: (payload: CollegeExamUpdate) =>
+      CollegeExamsService.update(
+        examId,
+        payload
+      ) as Promise<CollegeExamResponse>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.exams.detail(examId) });
       qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
@@ -63,5 +82,3 @@ export function useDeleteCollegeExam() {
     },
   });
 }
-
-

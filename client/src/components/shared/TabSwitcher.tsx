@@ -96,7 +96,7 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
                 disabled={tab.disabled}
                 className={cn(
                   "flex items-center gap-2 font-semibold transition-all duration-300 ease-in-out",
-                  "hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50",
+                  "hover:text-gray-800 dark:hover:text-gray-200  dark:hover:bg-gray-800/50",
                   "focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none",
                   "data-[state=inactive]:text-gray-600 dark:text-gray-400",
                   "data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300 data-[state=active]:font-bold",

@@ -1,14 +1,25 @@
 import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
-import { PayrollsService } from '@/lib/services/general/payrolls.service';
+import { useTabNavigation } from "../use-tab-navigation";
+import { PayrollsService } from "@/lib/services/general/payrolls.service";
 import { useEmployeesByBranch } from "@/lib/hooks/general/useEmployees";
-import type { PayrollRead, PayrollCreate, PayrollUpdate, PayrollQuery, PayrollDashboardStats, RecentPayroll } from "@/lib/types/general/payrolls";
-import { PayrollStatusEnum, PaymentMethodEnum } from "@/lib/types/general/payrolls";
+import type {
+  PayrollRead,
+  PayrollCreate,
+  PayrollUpdate,
+  PayrollQuery,
+  PayrollDashboardStats,
+  RecentPayroll,
+} from "@/lib/types/general/payrolls";
+import {
+  PayrollStatusEnum,
+  PaymentMethodEnum,
+} from "@/lib/types/general/payrolls";
 import { formatCurrency } from "@/lib/utils";
 
 // Extended interface that includes employee information
-interface PayrollWithEmployee extends Omit<PayrollRead, 'payroll_month'> {
+interface PayrollWithEmployee extends Omit<PayrollRead, "payroll_month"> {
   employee_name: string;
   employee_type?: string;
   payroll_month: number; // Changed from string to number to match API
@@ -17,38 +28,38 @@ interface PayrollWithEmployee extends Omit<PayrollRead, 'payroll_month'> {
 
 // Query keys for payroll operations
 const payrollKeys = {
-  all: ['payrolls'] as const,
-  lists: () => [...payrollKeys.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...payrollKeys.lists(), { filters }] as const,
-  details: () => [...payrollKeys.all, 'detail'] as const,
+  all: ["payrolls"] as const,
+  lists: () => [...payrollKeys.all, "list"] as const,
+  list: (filters: Record<string, any>) =>
+    [...payrollKeys.lists(), { filters }] as const,
+  details: () => [...payrollKeys.all, "detail"] as const,
   detail: (id: number) => [...payrollKeys.details(), id] as const,
-  byBranch: () => [...payrollKeys.all, 'by-branch'] as const,
-  dashboard: () => [...payrollKeys.all, 'dashboard'] as const,
-  recent: (limit?: number) => [...payrollKeys.all, 'recent', { limit }] as const,
+  byBranch: () => [...payrollKeys.all, "by-branch"] as const,
+  dashboard: () => [...payrollKeys.all, "dashboard"] as const,
+  recent: (limit?: number) =>
+    [...payrollKeys.all, "recent", { limit }] as const,
 };
 
 // Basic payroll hooks (moved from usePayrolls.ts)
 export const usePayrolls = (query?: PayrollQuery) => {
   return useQuery({
     queryKey: payrollKeys.list(query || {}),
-    queryFn: () => PayrollsService.listAll(
-      query?.month,
-      query?.year,
-      query?.status
-    ),
+    queryFn: () =>
+      PayrollsService.listAll(query?.month, query?.year, query?.status),
   });
 };
 
 export const usePayrollsByBranch = (query?: PayrollQuery) => {
   return useQuery({
     queryKey: [...payrollKeys.byBranch(), query || {}],
-    queryFn: () => PayrollsService.listByBranch(
-      query?.limit || 10,
-      1,
-      query?.month,
-      query?.year,
-      query?.status
-    ),
+    queryFn: () =>
+      PayrollsService.listByBranch(
+        query?.limit || 10,
+        1,
+        query?.month,
+        query?.year,
+        query?.status
+      ),
   });
 };
 
@@ -62,7 +73,7 @@ export const usePayroll = (id: number) => {
 
 export const useCreatePayroll = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (payload: PayrollCreate) => PayrollsService.create(payload),
     onSuccess: () => {
@@ -74,28 +85,32 @@ export const useCreatePayroll = () => {
 
 export const useUpdatePayroll = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: PayrollUpdate }) => 
+    mutationFn: ({ id, payload }: { id: number; payload: PayrollUpdate }) =>
       PayrollsService.update(id, payload),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: payrollKeys.lists() });
       queryClient.invalidateQueries({ queryKey: payrollKeys.byBranch() });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.detail(variables.id) });
+      queryClient.invalidateQueries({
+        queryKey: payrollKeys.detail(variables.id),
+      });
     },
   });
 };
 
 export const useUpdatePayrollStatus = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ id, new_status }: { id: number; new_status: string }) => 
+    mutationFn: ({ id, new_status }: { id: number; new_status: string }) =>
       PayrollsService.updateStatus(id, new_status),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: payrollKeys.lists() });
       queryClient.invalidateQueries({ queryKey: payrollKeys.byBranch() });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.detail(variables.id) });
+      queryClient.invalidateQueries({
+        queryKey: payrollKeys.detail(variables.id),
+      });
     },
   });
 };
@@ -116,8 +131,9 @@ export const useRecentPayrolls = (limit: number = 5) => {
 
 export const usePayrollManagement = () => {
   const { user, currentBranch } = useAuthStore();
+  const { activeTab, setActiveTab } = useTabNavigation("payrolls");
   const queryClient = useQueryClient();
-  
+
   // UI State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
@@ -126,30 +142,35 @@ export const usePayrollManagement = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [showPayslipDialog, setShowPayslipDialog] = useState(false);
-  const [selectedPayroll, setSelectedPayroll] = useState<PayrollWithEmployee | null>(null);
-  const [activeTab, setActiveTab] = useState("payrolls");
+  const [selectedPayroll, setSelectedPayroll] =
+    useState<PayrollWithEmployee | null>(null);
 
   // API Hooks - Always fetch all data, do client-side filtering
   // This ensures we have data to work with regardless of API filtering capabilities
-  const { data: payrollsResp, isLoading: payrollsLoading, error } = usePayrolls({});
-  
-  const { data: employees = [], isLoading: employeesLoading } = useEmployeesByBranch();
-  
+  const {
+    data: payrollsResp,
+    isLoading: payrollsLoading,
+    error,
+  } = usePayrolls({});
+
+  const { data: employees = [], isLoading: employeesLoading } =
+    useEmployeesByBranch();
+
   // Additional API hooks for enhanced features
   const { data: dashboardStats } = useQuery({
-    queryKey: ['payrolls', 'dashboard'],
+    queryKey: ["payrolls", "dashboard"],
     queryFn: () => PayrollsService.getDashboard(),
   });
-  
+
   const { data: pendingCount } = useQuery({
-    queryKey: ['payrolls', 'pending-count'],
+    queryKey: ["payrolls", "pending-count"],
     queryFn: () => PayrollsService.getPendingCount(),
   });
-  
+
   const createPayrollMutation = useCreatePayroll();
   const updatePayrollMutation = useUpdatePayroll();
   const updatePayrollStatusMutation = useUpdatePayrollStatus();
-  
+
   // Bulk operations mutation
   const bulkCreateMutation = useMutation({
     mutationFn: (data: any[]) => PayrollsService.bulkCreate(data),
@@ -163,31 +184,38 @@ export const usePayrollManagement = () => {
   // Computed values - Flatten nested payroll data structure and enrich with employee names
   const currentPayrolls = useMemo(() => {
     // Flatten the nested structure: data -> monthGroups -> payrolls
-    const flattenedPayrolls = payrollsResp?.data?.flatMap((monthGroup: any) =>
-      monthGroup.payrolls || []
-    ) || [];
-    
+    const flattenedPayrolls =
+      payrollsResp?.data?.flatMap(
+        (monthGroup: any) => monthGroup.payrolls || []
+      ) || [];
+
     // Enrich payroll data with employee names
     const enrichedPayrolls = flattenedPayrolls.map((payrollRecord: any) => {
-      const employee = employees.find(emp => emp.employee_id === payrollRecord.employee_id);
-      
+      const employee = employees.find(
+        (emp) => emp.employee_id === payrollRecord.employee_id
+      );
+
       // Better fallback logic for employee names
-      let employeeName = 'Unknown Employee';
+      let employeeName = "Unknown Employee";
       if (employee?.employee_name) {
         employeeName = employee.employee_name;
-      } else if (payrollRecord.employee_name && payrollRecord.employee_name !== 'Unknown Employee') {
+      } else if (
+        payrollRecord.employee_name &&
+        payrollRecord.employee_name !== "Unknown Employee"
+      ) {
         employeeName = payrollRecord.employee_name;
       } else {
         employeeName = `Employee #${payrollRecord.employee_id}`;
       }
-      
+
       return {
         ...payrollRecord,
         employee_name: employeeName,
-        employee_type: employee?.employee_type || payrollRecord.employee_type || 'Unknown'
+        employee_type:
+          employee?.employee_type || payrollRecord.employee_type || "Unknown",
       };
     });
-    
+
     return enrichedPayrolls;
   }, [payrollsResp, employees]);
 
@@ -200,28 +228,35 @@ export const usePayrollManagement = () => {
   }, [payrollsLoading, employeesLoading]);
 
   const filteredPayrolls = useMemo(() => {
-    
     return currentPayrolls.filter((payroll: any) => {
       // Search filter
-      const matchesSearch = !searchQuery || 
-        (payroll.employee_name && payroll.employee_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (payroll.employee_id && payroll.employee_id.toString().includes(searchQuery));
+      const matchesSearch =
+        !searchQuery ||
+        (payroll.employee_name &&
+          payroll.employee_name
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase())) ||
+        (payroll.employee_id &&
+          payroll.employee_id.toString().includes(searchQuery));
 
       // Month/Year filter - handle both numeric and date formats
       let matchesMonth = true;
       let matchesYear = true;
-      
+
       if (selectedMonth || selectedYear) {
         // Try to get month/year from payroll data
         let month, year;
-        
+
         // First try direct numeric values
         if (payroll.payroll_month && payroll.payroll_year) {
           month = payroll.payroll_month;
           year = payroll.payroll_year;
-        } 
+        }
         // Try string date format
-        else if (payroll.payroll_month && typeof payroll.payroll_month === 'string') {
+        else if (
+          payroll.payroll_month &&
+          typeof payroll.payroll_month === "string"
+        ) {
           const date = new Date(payroll.payroll_month);
           month = date.getMonth() + 1;
           year = date.getFullYear();
@@ -237,7 +272,7 @@ export const usePayrollManagement = () => {
           month = new Date().getMonth() + 1;
           year = new Date().getFullYear();
         }
-        
+
         // Fix invalid years (1970) by using generated_at date
         if (!year || year === 1970 || year < 2000) {
           if (payroll.generated_at) {
@@ -247,33 +282,44 @@ export const usePayrollManagement = () => {
             year = new Date().getFullYear();
           }
         }
-        
+
         // Also fix month if it's invalid - some records might have wrong month data
         if (!month || month < 1 || month > 12) {
           month = new Date().getMonth() + 1;
         }
-        
+
         matchesMonth = !selectedMonth || month === selectedMonth;
         matchesYear = !selectedYear || year === selectedYear;
       }
 
       // Status filter
-      const matchesStatus = !selectedStatus || payroll.status === selectedStatus;
+      const matchesStatus =
+        !selectedStatus || payroll.status === selectedStatus;
 
       return matchesSearch && matchesMonth && matchesYear && matchesStatus;
     });
-  }, [currentPayrolls, searchQuery, selectedMonth, selectedYear, selectedStatus]);
+  }, [
+    currentPayrolls,
+    searchQuery,
+    selectedMonth,
+    selectedYear,
+    selectedStatus,
+  ]);
 
   // Transform payrolls to include employee information
   const payrollsWithEmployee = useMemo(() => {
     return filteredPayrolls.map((payroll: any) => {
-      const employee = currentEmployees.find(emp => emp.employee_id === payroll.employee_id);
-      const date = payroll.payroll_month ? new Date(payroll.payroll_month) : new Date();
+      const employee = currentEmployees.find(
+        (emp) => emp.employee_id === payroll.employee_id
+      );
+      const date = payroll.payroll_month
+        ? new Date(payroll.payroll_month)
+        : new Date();
       const year = date.getFullYear();
-      
+
       return {
         ...payroll,
-        employee_name: employee?.employee_name || 'Unknown Employee',
+        employee_name: employee?.employee_name || "Unknown Employee",
         payroll_year: year,
       };
     });
@@ -282,13 +328,19 @@ export const usePayrollManagement = () => {
   // Statistics
   const totalPayrolls = currentPayrolls.length;
   const totalAmount = useMemo(() => {
-    return currentPayrolls.reduce((sum: number, payroll: any) => sum + (payroll.gross_pay || 0), 0);
+    return currentPayrolls.reduce(
+      (sum: number, payroll: any) => sum + (payroll.gross_pay || 0),
+      0
+    );
   }, [currentPayrolls]);
 
   const paidAmount = useMemo(() => {
     return currentPayrolls
       .filter((payroll: any) => payroll.status === PayrollStatusEnum.PAID)
-      .reduce((sum: number, payroll: any) => sum + (payroll.paid_amount || 0), 0);
+      .reduce(
+        (sum: number, payroll: any) => sum + (payroll.paid_amount || 0),
+        0
+      );
   }, [currentPayrolls]);
 
   const pendingAmount = useMemo(() => {
@@ -338,7 +390,10 @@ export const usePayrollManagement = () => {
   const handleFormSubmit = async (data: PayrollCreate | PayrollUpdate) => {
     if (selectedPayroll) {
       // Update existing payroll
-      await handleUpdatePayroll(selectedPayroll.payroll_id, data as PayrollUpdate);
+      await handleUpdatePayroll(
+        selectedPayroll.payroll_id,
+        data as PayrollUpdate
+      );
     } else {
       // Create new payroll
       await handleCreatePayroll(data as PayrollCreate);
@@ -358,9 +413,11 @@ export const usePayrollManagement = () => {
     try {
       // Implement export functionality
       const data = currentPayrolls;
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `payrolls-${new Date().toISOString().slice(0, 10)}.json`;
       document.body.appendChild(a);
@@ -402,7 +459,7 @@ export const usePayrollManagement = () => {
     // Data
     payrolls: payrollsWithEmployee,
     employees: currentEmployees,
-    
+
     // Statistics
     totalPayrolls,
     totalAmount,
@@ -410,7 +467,7 @@ export const usePayrollManagement = () => {
     pendingAmount,
     pendingCount: pendingCount || 0,
     dashboardStats,
-    
+
     // UI State
     searchQuery,
     setSearchQuery,
@@ -430,10 +487,10 @@ export const usePayrollManagement = () => {
     setSelectedPayroll,
     activeTab,
     setActiveTab,
-    
+
     // Loading states
     isLoading,
-    
+
     // Handlers
     handleCreatePayroll,
     handleUpdatePayroll,
@@ -441,16 +498,16 @@ export const usePayrollManagement = () => {
     handleViewPayslip,
     handleEditPayroll,
     handleFormSubmit,
-    
+
     // Bulk operations
     handleBulkCreate,
     handleBulkExport,
-    
+
     // Utilities
     formatCurrency,
     getStatusColor,
     getStatusText,
-    
+
     // User context
     user,
     currentBranch,

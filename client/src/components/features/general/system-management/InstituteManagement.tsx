@@ -51,7 +51,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TabSwitcher } from "@/components/shared";
-import type { TabItem } from "@/components/shared/TabSwitcher";
+import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 import { useAuthStore } from "@/store/authStore";
 
 // Mock data for institutes and branches
@@ -147,6 +147,7 @@ const mockBranches = [
 
 const InstituteManagement = () => {
   const { user } = useAuthStore();
+  const { activeTab, setActiveTab } = useTabNavigation("fees");
   const [institutes, setInstitutes] = useState(mockInstitutes);
   const [branches, setBranches] = useState(mockBranches);
   const [selectedInstitute, setSelectedInstitute] = useState<any>(null);
@@ -598,13 +599,15 @@ const InstituteManagement = () => {
                         <div className="p-3 border rounded-lg">
                           <div className="font-medium">Class 8</div>
                           <div className="text-sm">
-                            Books: ₹4500 • Term1: ₹7800 • Term2: ₹7800 • Term3: ₹7900
+                            Books: ₹4500 • Term1: ₹7800 • Term2: ₹7800 • Term3:
+                            ₹7900
                           </div>
                         </div>
                         <div className="p-3 border rounded-lg">
                           <div className="font-medium">Class 9</div>
                           <div className="text-sm">
-                            Books: ₹4000 • Term1: ₹8700 • Term2: ₹8700 • Term3: ₹8600
+                            Books: ₹4000 • Term1: ₹8700 • Term2: ₹8700 • Term3:
+                            ₹8600
                           </div>
                         </div>
                       </div>
@@ -650,7 +653,8 @@ const InstituteManagement = () => {
                   content: (
                     <div className="space-y-3">
                       <div className="text-sm text-muted-foreground">
-                        Assign users and roles; enforce unique credentials per role
+                        Assign users and roles; enforce unique credentials per
+                        role
                       </div>
                       <div className="grid gap-3 md:grid-cols-2">
                         <div className="p-3 border rounded-lg">
@@ -676,8 +680,8 @@ const InstituteManagement = () => {
                   ),
                 },
               ]}
-              activeTab="fees"
-              onTabChange={() => {}}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
             />
           </CardContent>
         </Card>

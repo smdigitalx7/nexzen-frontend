@@ -60,143 +60,181 @@ export default function AllReservationsTable({
   statusFilter,
   onStatusFilterChange,
 }: AllReservationsTableProps) {
+  // ✅ ALL HOOKS MUST BE CALLED AT THE TOP LEVEL - NO CONDITIONAL HOOKS
+  // Custom search function to search across multiple fields
+  const customSearchFunction = useMemo(() => {
+    return (row: any, columnId: string, value: string) => {
+      if (!value) return true;
+
+      const searchValue = value.toLowerCase();
+      const reservation = row.original as Reservation;
+
+      // Search across multiple fields
+      return (
+        reservation.studentName?.toLowerCase().includes(searchValue) ||
+        reservation.no?.toLowerCase().includes(searchValue) ||
+        reservation.classAdmission?.toLowerCase().includes(searchValue) ||
+        reservation.id?.toLowerCase().includes(searchValue)
+      );
+    };
+  }, []);
+
   // Column definitions for EnhancedDataTable
-  const reservationColumns: ColumnDef<Reservation>[] = useMemo(() => [
-    {
-      accessorKey: "no",
-      header: "Reservation No",
-      cell: ({ row }) => (
-        <div className="font-medium">{row.getValue("no")}</div>
-      ),
-    },
-    {
-      accessorKey: "studentName",
-      header: "Student Name",
-      cell: ({ row }) => (
-        <div className="max-w-[200px] truncate">{row.getValue("studentName")}</div>
-      ),
-    },
-    {
-      accessorKey: "classAdmission",
-      header: "Class",
-      cell: ({ row }) => (
-        <div className="max-w-[100px] truncate">{row.getValue("classAdmission") || "-"}</div>
-      ),
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => {
-        const status = row.getValue("status") as string;
-        return (
-          <Badge
-            variant={
-              status === "PENDING"
-                ? "default"
-                : status === "CANCELLED"
-                ? "destructive"
-                : status === "CONFIRMED"
-                ? "secondary"
-                : "outline"
-            }
-          >
-            {status}
-          </Badge>
-        );
+  const reservationColumns: ColumnDef<Reservation>[] = useMemo(
+    () => [
+      {
+        accessorKey: "no",
+        header: "Reservation No",
+        cell: ({ row }) => (
+          <div className="font-medium">{row.getValue("no")}</div>
+        ),
       },
-    },
-    {
-      accessorKey: "date",
-      header: "Date",
-      cell: ({ row }) => (
-        <div className="text-sm">{row.getValue("date") || "-"}</div>
-      ),
-    },
-    {
-      accessorKey: "application_fee_paid",
-      header: "Application Fee Status",
-      cell: ({ row }) => {
-        const isPaid = row.getValue("application_fee_paid") as boolean;
-        return (
-          <Badge
-            variant={isPaid ? "secondary" : "destructive"}
-            className="text-xs"
-          >
-            {isPaid ? "Paid" : "Not Paid"}
-          </Badge>
-        );
+      {
+        accessorKey: "studentName",
+        header: "Student Name",
+        cell: ({ row }) => (
+          <div className="max-w-[200px] truncate">
+            {row.getValue("studentName")}
+          </div>
+        ),
       },
-    },
-    {
-      accessorKey: "is_enrolled",
-      header: "Enrollment Status",
-      cell: ({ row }) => {
-        const isEnrolled = row.getValue("is_enrolled") as boolean;
-        return (
-          <Badge
-            variant={isEnrolled ? "secondary" : "outline"}
-            className={`text-xs ${isEnrolled ? "bg-green-100 text-green-800" : ""}`}
-          >
-            {isEnrolled ? "Enrolled" : "Not Enrolled"}
-          </Badge>
-        );
+      {
+        accessorKey: "classAdmission",
+        header: "Class",
+        cell: ({ row }) => (
+          <div className="max-w-[100px] truncate">
+            {row.getValue("classAdmission") || "-"}
+          </div>
+        ),
       },
-    },
-  ], []);
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => {
+          const status = row.getValue("status") as string;
+          return (
+            <Badge
+              variant={
+                status === "PENDING"
+                  ? "default"
+                  : status === "CANCELLED"
+                  ? "destructive"
+                  : status === "CONFIRMED"
+                  ? "secondary"
+                  : "outline"
+              }
+            >
+              {status}
+            </Badge>
+          );
+        },
+      },
+      {
+        accessorKey: "date",
+        header: "Date",
+        cell: ({ row }) => (
+          <div className="text-sm">{row.getValue("date") || "-"}</div>
+        ),
+      },
+      {
+        accessorKey: "application_fee_paid",
+        header: "Application Fee Status",
+        cell: ({ row }) => {
+          const isPaid = row.getValue("application_fee_paid") as boolean;
+          return (
+            <Badge
+              variant={isPaid ? "secondary" : "destructive"}
+              className="text-xs"
+            >
+              {isPaid ? "Paid" : "Not Paid"}
+            </Badge>
+          );
+        },
+      },
+      {
+        accessorKey: "is_enrolled",
+        header: "Enrollment Status",
+        cell: ({ row }) => {
+          const isEnrolled = row.getValue("is_enrolled") as boolean;
+          return (
+            <Badge
+              variant={isEnrolled ? "secondary" : "outline"}
+              className={`text-xs ${
+                isEnrolled ? "bg-green-100 text-green-800" : ""
+              }`}
+            >
+              {isEnrolled ? "Enrolled" : "Not Enrolled"}
+            </Badge>
+          );
+        },
+      },
+    ],
+    []
+  );
 
   // Action buttons for EnhancedDataTable
-  const actionButtons = useMemo(() => [
-    {
-      id: "view",
-      label: "View",
-      icon: Eye,
-      variant: "outline" as const,
-      onClick: (row: Reservation) => onView(row),
-    },
-    {
-      id: "edit",
-      label: "Edit",
-      icon: Edit,
-      variant: "outline" as const,
-      onClick: (row: Reservation) => onEdit(row),
-    },
-    {
-      id: "receipt",
-      label: "Receipt",
-      icon: Printer,
-      variant: "outline" as const,
-      onClick: (row: Reservation) => handleRegenerateReceipt(row),
-      show: (row: Reservation) => !!((row.application_income_id || row.income_id) && Number(row.application_income_id || row.income_id) > 0),
-    },
-    {
-      id: "concession",
-      label: "Concession",
-      icon: Percent,
-      variant: "outline" as const,
-      onClick: (row: Reservation) => onUpdateConcession?.(row),
-      show: (row: Reservation) => !row.concession_lock,
-    },
-    {
-      id: "delete",
-      label: "Delete",
-      icon: Trash2,
-      variant: "destructive" as const,
-      onClick: (row: Reservation) => onDelete(row),
-    },
-  ], [onView, onEdit, onUpdateConcession, onDelete]);
+  const actionButtons = useMemo(
+    () => [
+      {
+        id: "view",
+        label: "View",
+        icon: Eye,
+        variant: "outline" as const,
+        onClick: (row: Reservation) => onView(row),
+      },
+      {
+        id: "edit",
+        label: "Edit",
+        icon: Edit,
+        variant: "outline" as const,
+        onClick: (row: Reservation) => onEdit(row),
+      },
+      {
+        id: "receipt",
+        label: "Receipt",
+        icon: Printer,
+        variant: "outline" as const,
+        onClick: (row: Reservation) => handleRegenerateReceipt(row),
+        show: (row: Reservation) =>
+          !!(
+            (row.application_income_id || row.income_id) &&
+            Number(row.application_income_id || row.income_id) > 0
+          ),
+      },
+      {
+        id: "concession",
+        label: "Concession",
+        icon: Percent,
+        variant: "outline" as const,
+        onClick: (row: Reservation) => onUpdateConcession?.(row),
+        show: (row: Reservation) => !row.concession_lock,
+      },
+      {
+        id: "delete",
+        label: "Delete",
+        icon: Trash2,
+        variant: "destructive" as const,
+        onClick: (row: Reservation) => onDelete(row),
+      },
+    ],
+    [onView, onEdit, onUpdateConcession, onDelete]
+  );
 
   // Status filter options
-  const statusFilterOptions = useMemo(() => [
-    { value: "PENDING", label: "Pending" },
-    { value: "CONFIRMED", label: "Confirmed" },
-    { value: "CANCELLED", label: "Cancelled" },
-  ], []);
+  const statusFilterOptions = useMemo(
+    () => [
+      { value: "PENDING", label: "Pending" },
+      { value: "CONFIRMED", label: "Confirmed" },
+      { value: "CANCELLED", label: "Cancelled" },
+    ],
+    []
+  );
 
   // Receipt regeneration handler
   const handleRegenerateReceipt = async (reservation: Reservation) => {
     // Check for application_income_id first, then fallback to income_id
     const incomeId = reservation.application_income_id || reservation.income_id;
-    
+
     if (!incomeId) {
       toast({
         title: "Receipt Not Available",
@@ -208,10 +246,7 @@ export default function AllReservationsTable({
     }
 
     try {
-      console.log(
-        "🔄 Starting receipt regeneration for income ID:",
-        incomeId
-      );
+      console.log("🔄 Starting receipt regeneration for income ID:", incomeId);
       const blobUrl = await regenerateReceiptAPI(incomeId);
       console.log("✅ Receipt blob URL received:", blobUrl);
 
@@ -221,7 +256,7 @@ export default function AllReservationsTable({
       });
 
       // Open receipt in new tab
-      window.open(blobUrl, '_blank');
+      window.open(blobUrl, "_blank");
     } catch (error) {
       console.error("Receipt regeneration failed:", error);
 
@@ -255,34 +290,12 @@ export default function AllReservationsTable({
               : "Failed to load reservations"}
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onRefetch()}
-        >
+        <Button variant="outline" size="sm" onClick={() => onRefetch()}>
           Try Again
         </Button>
       </div>
     );
   }
-
-  // Custom search function to search across multiple fields
-  const customSearchFunction = useMemo(() => {
-    return (row: any, columnId: string, value: string) => {
-      if (!value) return true;
-      
-      const searchValue = value.toLowerCase();
-      const reservation = row.original as Reservation;
-      
-      // Search across multiple fields
-      return (
-        reservation.studentName?.toLowerCase().includes(searchValue) ||
-        reservation.no?.toLowerCase().includes(searchValue) ||
-        reservation.classAdmission?.toLowerCase().includes(searchValue) ||
-        reservation.id?.toLowerCase().includes(searchValue)
-      );
-    };
-  }, []);
 
   return (
     <EnhancedDataTable

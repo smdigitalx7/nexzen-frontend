@@ -6,13 +6,17 @@ import {
   useCollegeReservationDashboard,
 } from "@/lib/hooks/college/use-college-reservations";
 import { useCollegeClasses } from "@/lib/hooks/college/use-college-classes";
-import { useCollegeGroups, useCollegeCourses } from "@/lib/hooks/college/use-college-dropdowns";
+import {
+  useCollegeGroups,
+  useCollegeCourses,
+} from "@/lib/hooks/college/use-college-dropdowns";
 import { useDistanceSlabs } from "@/lib/hooks/general/useDistanceSlabs";
 import { motion } from "framer-motion";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 import {
   Dialog,
   DialogContent,
@@ -47,7 +51,6 @@ import { CollegeReservationStatsCards } from "./CollegeReservationStatsCards";
 import { ConcessionUpdateDialog } from "@/components/shared";
 import { Building2, University } from "lucide-react";
 
-
 export default function ReservationNew() {
   const { academicYear, currentBranch } = useAuthStore();
   const { data: routeNames = [] } = useQuery({
@@ -61,20 +64,34 @@ export default function ReservationNew() {
 
   // Dropdown data hooks - Load classes, groups, courses, and distance slabs from API
   // Classes are loaded independently, groups are loaded independently, courses are loaded based on selected group
-  const { data: classesData, isLoading: classesLoading, error: classesError } = useCollegeClasses();
-  const { data: groupsData, isLoading: groupsLoading, error: groupsError } = useCollegeGroups();
+  const {
+    data: classesData,
+    isLoading: classesLoading,
+    error: classesError,
+  } = useCollegeClasses();
+  const {
+    data: groupsData,
+    isLoading: groupsLoading,
+    error: groupsError,
+  } = useCollegeGroups();
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
-  const { data: coursesData, isLoading: coursesLoading, error: coursesError } = useCollegeCourses(selectedGroupId || 0);
-  const { distanceSlabs, isLoadingDistanceSlabs, distanceSlabsError } = useDistanceSlabs();
+  const {
+    data: coursesData,
+    isLoading: coursesLoading,
+    error: coursesError,
+  } = useCollegeCourses(selectedGroupId || 0);
+  const { distanceSlabs, isLoadingDistanceSlabs, distanceSlabsError } =
+    useDistanceSlabs();
 
-  const [activeTab, setActiveTab] = useState("new");
+  const { activeTab, setActiveTab } = useTabNavigation("new");
   const [reservationNo, setReservationNo] = useState<string>("");
   const [showReceipt, setShowReceipt] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelRemarks, setCancelRemarks] = useState("");
   const [selectedReservation, setSelectedReservation] = useState<any>(null);
   const [showViewDialog, setShowViewDialog] = useState(false);
-  const [viewReservation, setViewReservation] = useState<CollegeReservationView | null>(null);
+  const [viewReservation, setViewReservation] =
+    useState<CollegeReservationView | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -199,45 +216,53 @@ export default function ReservationNew() {
   // Fee calculations based on selected group, course, and transport options
   const groupFee = useMemo(() => {
     if (!selectedGroupId || !groupsData?.items) return 0;
-    const selectedGroup = groupsData.items.find(g => g.group_id === selectedGroupId);
+    const selectedGroup = groupsData.items.find(
+      (g) => g.group_id === selectedGroupId
+    );
     return selectedGroup?.group_fee || 0;
   }, [selectedGroupId, groupsData]);
 
   const courseFee = useMemo(() => {
     if (!coursesData?.items || coursesData.items.length === 0) return 0;
-    
+
     // Get the selected course ID from the form
     const selectedCourseId = Number(form.course || 0);
     if (selectedCourseId && selectedCourseId > 0) {
-      const selectedCourse = coursesData.items.find(c => c.course_id === selectedCourseId);
+      const selectedCourse = coursesData.items.find(
+        (c) => c.course_id === selectedCourseId
+      );
       return selectedCourse?.course_fee || 0;
     }
-    
+
     // Fallback to first course if no specific course is selected
     return coursesData.items[0]?.course_fee || 0;
   }, [coursesData, form.course]);
 
   const bookFee = useMemo(() => {
     if (!selectedGroupId || !groupsData?.items) return 0;
-    const selectedGroup = groupsData.items.find(g => g.group_id === selectedGroupId);
+    const selectedGroup = groupsData.items.find(
+      (g) => g.group_id === selectedGroupId
+    );
     return selectedGroup?.book_fee || 0;
   }, [selectedGroupId, groupsData]);
 
   const transportFee = useMemo(() => {
     if (form.transport !== "Yes") return 0;
-    
+
     const selectedSlabId = Number(form.preferredDistanceSlabId || 0);
     if (selectedSlabId && distanceSlabs) {
-      const selectedSlab = distanceSlabs.find(slab => slab.slab_id === selectedSlabId);
+      const selectedSlab = distanceSlabs.find(
+        (slab) => slab.slab_id === selectedSlabId
+      );
       return selectedSlab?.fee_amount || 0;
     }
-    
+
     return 0;
   }, [form.transport, form.preferredDistanceSlabId, distanceSlabs]);
 
   // Class, group and course change handlers
   const handleClassChange = (classId: number) => {
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       preferredClassId: classId.toString(),
     }));
@@ -246,18 +271,22 @@ export default function ReservationNew() {
   const handleGroupChange = (groupId: number) => {
     setSelectedGroupId(groupId);
     // Reset course selection when group changes
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       preferredGroupId: groupId.toString(),
-      group: groupsData?.items?.find(g => g.group_id === groupId)?.group_name || "",
+      group:
+        groupsData?.items?.find((g) => g.group_id === groupId)?.group_name ||
+        "",
       course: "N/A", // Reset course when group changes
     }));
   };
 
   const handleCourseChange = (courseId: number) => {
-    const selectedCourse = coursesData?.items?.find(c => c.course_id === courseId);
+    const selectedCourse = coursesData?.items?.find(
+      (c) => c.course_id === courseId
+    );
     if (selectedCourse) {
-      setForm(prev => ({
+      setForm((prev) => ({
         ...prev,
         course: courseId.toString(), // Store course ID for fee calculation
         courseName: selectedCourse.course_name, // Store course name for display
@@ -266,9 +295,9 @@ export default function ReservationNew() {
   };
 
   const handleDistanceSlabChange = (slabId: number) => {
-    const selectedSlab = distanceSlabs?.find(slab => slab.slab_id === slabId);
+    const selectedSlab = distanceSlabs?.find((slab) => slab.slab_id === slabId);
     if (selectedSlab) {
-      setForm(prev => ({
+      setForm((prev) => ({
         ...prev,
         preferredDistanceSlabId: slabId.toString(),
       }));
@@ -567,7 +596,9 @@ export default function ReservationNew() {
 
     setLoadingReservation(Number(r.reservation_id));
     try {
-      const data = await CollegeReservationsService.getViewById(Number(r.reservation_id));
+      const data = await CollegeReservationsService.getViewById(
+        Number(r.reservation_id)
+      );
       setViewReservation(data);
       setShowViewDialog(true);
     } catch (e: any) {
@@ -616,7 +647,9 @@ export default function ReservationNew() {
 
     setLoadingReservation(Number(r.reservation_id));
     try {
-      const data: any = await CollegeReservationsService.getById(Number(r.reservation_id));
+      const data: any = await CollegeReservationsService.getById(
+        Number(r.reservation_id)
+      );
       setEditForm(mapApiToForm(data));
       setSelectedReservation({ reservation_id: r.reservation_id });
       setShowEditDialog(true);
@@ -777,17 +810,16 @@ export default function ReservationNew() {
             </Badge>
           )}
           <div className="flex items-center gap-2">
-          <Badge variant="outline" className="gap-1">
-            {currentBranch?.branch_type === "COLLEGE" ? (
-              <University className="h-3 w-3" />
-            ) : (
-              <Building2 className="h-3 w-3" />
-            )}
-            {currentBranch?.branch_name}
-          </Badge>
+            <Badge variant="outline" className="gap-1">
+              {currentBranch?.branch_type === "COLLEGE" ? (
+                <University className="h-3 w-3" />
+              ) : (
+                <Building2 className="h-3 w-3" />
+              )}
+              {currentBranch?.branch_name}
+            </Badge>
+          </div>
         </div>
-        </div>
-        
       </motion.div>
 
       {/* College Reservation Dashboard Stats */}
@@ -806,11 +838,16 @@ export default function ReservationNew() {
             icon: Plus,
             content: (
               <div>
-                {(classesLoading || groupsLoading || coursesLoading || isLoadingDistanceSlabs) && (
+                {(classesLoading ||
+                  groupsLoading ||
+                  coursesLoading ||
+                  isLoadingDistanceSlabs) && (
                   <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="flex items-center gap-2 text-blue-700">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
-                      <span className="text-sm">Loading classes, groups, courses, and distance slabs...</span>
+                      <span className="text-sm">
+                        Loading classes, groups, courses, and distance slabs...
+                      </span>
                     </div>
                   </div>
                 )}
@@ -844,8 +881,11 @@ export default function ReservationNew() {
                     book_fee: bookFee,
                     total_tuition_fee: groupFee + courseFee,
                     transport_required: form.transport === "Yes",
-                    preferred_transport_id: form.transport === "Yes" ? Number(form.busRoute || 0) : 0,
-                    preferred_distance_slab_id: Number(form.preferredDistanceSlabId || 0),
+                    preferred_transport_id:
+                      form.transport === "Yes" ? Number(form.busRoute || 0) : 0,
+                    preferred_distance_slab_id: Number(
+                      form.preferredDistanceSlabId || 0
+                    ),
                     pickup_point: form.pickupPoint,
                     transport_fee: transportFee,
                     book_fee_required: true,
@@ -853,7 +893,9 @@ export default function ReservationNew() {
                     status: "PENDING",
                     referred_by: Number(form.referredBy || 0),
                     remarks: form.remarks,
-                    reservation_date: form.reservationDate || new Date().toISOString().split("T")[0],
+                    reservation_date:
+                      form.reservationDate ||
+                      new Date().toISOString().split("T")[0],
                   }}
                   setForm={(next) => {
                     setForm({
@@ -885,7 +927,8 @@ export default function ReservationNew() {
                       transport: next.transport_required ? "Yes" : "No",
                       busRoute: next.preferred_transport_id.toString(),
                       pickupPoint: next.pickup_point,
-                      preferredDistanceSlabId: next.preferred_distance_slab_id.toString(),
+                      preferredDistanceSlabId:
+                        next.preferred_distance_slab_id.toString(),
                       referredBy: next.referred_by.toString(),
                       remarks: next.remarks,
                       reservationDate: next.reservation_date,
@@ -901,31 +944,41 @@ export default function ReservationNew() {
                       route_name: string;
                     }) => ({
                       id: route.bus_route_id,
-                      name: `${route.route_no || "Route"} - ${route.route_name}`,
+                      name: `${route.route_no || "Route"} - ${
+                        route.route_name
+                      }`,
                       fee: 0, // Route fee will be calculated based on distance slab
                     })
                   )}
-                  groups={groupsData?.items?.map(g => ({
-                    group_id: g.group_id,
-                    group_name: g.group_name,
-                    fee: g.group_fee,
-                  })) || []}
-                  courses={coursesData?.items?.map(c => ({
-                    course_id: c.course_id,
-                    course_name: c.course_name,
-                    fee: c.course_fee,
-                  })) || []}
-                  classes={classesData?.map(c => ({
-                    class_id: c.class_id,
-                    class_name: c.class_name,
-                  })) || []}
-                  distanceSlabs={distanceSlabs?.map(slab => ({
-                    slab_id: slab.slab_id,
-                    slab_name: slab.slab_name,
-                    min_distance: slab.min_distance,
-                    max_distance: slab.max_distance,
-                    fee_amount: slab.fee_amount,
-                  })) || []}
+                  groups={
+                    groupsData?.items?.map((g) => ({
+                      group_id: g.group_id,
+                      group_name: g.group_name,
+                      fee: g.group_fee,
+                    })) || []
+                  }
+                  courses={
+                    coursesData?.items?.map((c) => ({
+                      course_id: c.course_id,
+                      course_name: c.course_name,
+                      fee: c.course_fee,
+                    })) || []
+                  }
+                  classes={
+                    classesData?.map((c) => ({
+                      class_id: c.class_id,
+                      class_name: c.class_name,
+                    })) || []
+                  }
+                  distanceSlabs={
+                    distanceSlabs?.map((slab) => ({
+                      slab_id: slab.slab_id,
+                      slab_name: slab.slab_name,
+                      min_distance: slab.min_distance,
+                      max_distance: slab.max_distance,
+                      fee_amount: slab.fee_amount,
+                    })) || []
+                  }
                   onClassChange={handleClassChange}
                   onGroupChange={handleGroupChange}
                   onCourseChange={handleCourseChange}
@@ -1097,7 +1150,15 @@ export default function ReservationNew() {
               )}
               <div className="flex justify-between font-bold text-lg border-t pt-2">
                 <span>Total:</span>
-                <span>₹{(groupFee + courseFee + bookFee + transportFee).toLocaleString()}</span>
+                <span>
+                  ₹
+                  {(
+                    groupFee +
+                    courseFee +
+                    bookFee +
+                    transportFee
+                  ).toLocaleString()}
+                </span>
               </div>
             </div>
           </div>
@@ -1132,8 +1193,7 @@ export default function ReservationNew() {
                   {viewReservation.reservation_no || "-"}
                 </div>
                 <div>
-                  <strong>Branch:</strong>{" "}
-                  {viewReservation.branch_name || "-"}
+                  <strong>Branch:</strong> {viewReservation.branch_name || "-"}
                 </div>
                 <div>
                   <strong>Academic Year:</strong>{" "}
@@ -1152,7 +1212,9 @@ export default function ReservationNew() {
                 </div>
                 <div>
                   <strong>Created At:</strong>{" "}
-                  {viewReservation.created_at ? new Date(viewReservation.created_at).toLocaleString() : "-"}
+                  {viewReservation.created_at
+                    ? new Date(viewReservation.created_at).toLocaleString()
+                    : "-"}
                 </div>
               </div>
 
@@ -1166,13 +1228,17 @@ export default function ReservationNew() {
                     <strong>Gender:</strong> {viewReservation.gender || "-"}
                   </div>
                   <div>
-                    <strong>DOB:</strong> {viewReservation.dob ? new Date(viewReservation.dob).toLocaleDateString() : "-"}
+                    <strong>DOB:</strong>{" "}
+                    {viewReservation.dob
+                      ? new Date(viewReservation.dob).toLocaleDateString()
+                      : "-"}
                   </div>
                   <div>
                     <strong>Group:</strong> {viewReservation.group_name || "-"}
                   </div>
                   <div>
-                    <strong>Course:</strong> {viewReservation.course_name || "-"}
+                    <strong>Course:</strong>{" "}
+                    {viewReservation.course_name || "-"}
                   </div>
                 </div>
               </div>
@@ -1221,7 +1287,6 @@ export default function ReservationNew() {
                 </div>
               </div>
 
-
               <div className="border-t pt-4">
                 <div className="font-medium mb-2">Contact Details</div>
                 <div className="grid grid-cols-2 gap-4">
@@ -1241,9 +1306,7 @@ export default function ReservationNew() {
                 <div className="space-y-1">
                   <div className="flex justify-between">
                     <span>Application Fee:</span>
-                    <span>
-                      ₹{viewReservation.application_fee || "0"}
-                    </span>
+                    <span>₹{viewReservation.application_fee || "0"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Application Fee Paid:</span>
@@ -1251,33 +1314,23 @@ export default function ReservationNew() {
                   </div>
                   <div className="flex justify-between">
                     <span>Book Fee:</span>
-                    <span>
-                      ₹{viewReservation.book_fee || "0"}
-                    </span>
+                    <span>₹{viewReservation.book_fee || "0"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Group Fee:</span>
-                    <span>
-                      ₹{viewReservation.group_fee || "0"}
-                    </span>
+                    <span>₹{viewReservation.group_fee || "0"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Course Fee:</span>
-                    <span>
-                      ₹{viewReservation.course_fee || "0"}
-                    </span>
+                    <span>₹{viewReservation.course_fee || "0"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Total Tuition Fee:</span>
-                    <span>
-                      ₹{viewReservation.total_tuition_fee || "0"}
-                    </span>
+                    <span>₹{viewReservation.total_tuition_fee || "0"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Tuition Concession:</span>
-                    <span>
-                      ₹{viewReservation.tuition_concession || "0"}
-                    </span>
+                    <span>₹{viewReservation.tuition_concession || "0"}</span>
                   </div>
                   <div className="flex justify-between font-semibold">
                     <span>Payable Tuition Fee:</span>
@@ -1289,9 +1342,7 @@ export default function ReservationNew() {
                     <>
                       <div className="flex justify-between">
                         <span>Transport Fee:</span>
-                        <span>
-                          ₹{viewReservation.transport_fee || "0"}
-                        </span>
+                        <span>₹{viewReservation.transport_fee || "0"}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Transport Concession:</span>
@@ -1319,42 +1370,45 @@ export default function ReservationNew() {
                       {viewReservation.transport_required}
                     </div>
                     <div>
-                      <strong>Route:</strong>{" "}
-                      {viewReservation.route_ || "-"}
+                      <strong>Route:</strong> {viewReservation.route_ || "-"}
                     </div>
                     <div>
-                      <strong>Slab:</strong>{" "}
-                      {viewReservation.slab || "-"}
+                      <strong>Slab:</strong> {viewReservation.slab || "-"}
                     </div>
                   </div>
                 </div>
               )}
 
-              {viewReservation.siblings && viewReservation.siblings.length > 0 && (
-                <div className="border-t pt-4">
-                  <div className="font-medium mb-2">Siblings Information</div>
-                  <div className="space-y-3">
-                    {viewReservation.siblings.map((sibling, index) => (
-                      <div key={index} className="border rounded p-3 bg-gray-50">
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div>
-                            <strong>Name:</strong> {sibling.name || "-"}
-                          </div>
-                          <div>
-                            <strong>Class:</strong> {sibling.class_name || "-"}
-                          </div>
-                          <div>
-                            <strong>Where:</strong> {sibling.where || "-"}
-                          </div>
-                          <div>
-                            <strong>Gender:</strong> {sibling.gender || "-"}
+              {viewReservation.siblings &&
+                viewReservation.siblings.length > 0 && (
+                  <div className="border-t pt-4">
+                    <div className="font-medium mb-2">Siblings Information</div>
+                    <div className="space-y-3">
+                      {viewReservation.siblings.map((sibling, index) => (
+                        <div
+                          key={index}
+                          className="border rounded p-3 bg-gray-50"
+                        >
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <strong>Name:</strong> {sibling.name || "-"}
+                            </div>
+                            <div>
+                              <strong>Class:</strong>{" "}
+                              {sibling.class_name || "-"}
+                            </div>
+                            <div>
+                              <strong>Where:</strong> {sibling.where || "-"}
+                            </div>
+                            <div>
+                              <strong>Gender:</strong> {sibling.gender || "-"}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           )}
           <DialogFooter className="mt-2 bg-background border-t py-3">
@@ -1380,7 +1434,9 @@ export default function ReservationNew() {
                 <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-center gap-2 text-blue-700">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
-                    <span className="text-sm">Loading groups, courses, and distance slabs...</span>
+                    <span className="text-sm">
+                      Loading groups, courses, and distance slabs...
+                    </span>
                   </div>
                 </div>
               )}
@@ -1414,8 +1470,13 @@ export default function ReservationNew() {
                   book_fee: bookFee,
                   total_tuition_fee: groupFee + courseFee,
                   transport_required: editForm.transport === "Yes",
-                  preferred_transport_id: editForm.transport === "Yes" ? Number(editForm.busRoute || 0) : 0,
-                  preferred_distance_slab_id: Number(editForm.preferredDistanceSlabId || 0),
+                  preferred_transport_id:
+                    editForm.transport === "Yes"
+                      ? Number(editForm.busRoute || 0)
+                      : 0,
+                  preferred_distance_slab_id: Number(
+                    editForm.preferredDistanceSlabId || 0
+                  ),
                   pickup_point: editForm.pickupPoint,
                   transport_fee: transportFee,
                   book_fee_required: true,
@@ -1423,7 +1484,9 @@ export default function ReservationNew() {
                   status: "PENDING",
                   referred_by: Number(editForm.referredBy || 0),
                   remarks: editForm.remarks,
-                  reservation_date: editForm.reservationDate || new Date().toISOString().split("T")[0],
+                  reservation_date:
+                    editForm.reservationDate ||
+                    new Date().toISOString().split("T")[0],
                 }}
                 setForm={(next) => {
                   setEditForm({
@@ -1455,7 +1518,8 @@ export default function ReservationNew() {
                     transport: next.transport_required ? "Yes" : "No",
                     busRoute: next.preferred_transport_id.toString(),
                     pickupPoint: next.pickup_point,
-                    preferredDistanceSlabId: next.preferred_distance_slab_id.toString(),
+                    preferredDistanceSlabId:
+                      next.preferred_distance_slab_id.toString(),
                     referredBy: next.referred_by.toString(),
                     remarks: next.remarks,
                     reservationDate: next.reservation_date,
@@ -1475,27 +1539,35 @@ export default function ReservationNew() {
                     fee: 0, // Route fee will be calculated based on distance slab
                   })
                 )}
-                groups={groupsData?.items?.map(g => ({
-                  group_id: g.group_id,
-                  group_name: g.group_name,
-                  fee: g.group_fee,
-                })) || []}
-                courses={coursesData?.items?.map(c => ({
-                  course_id: c.course_id,
-                  course_name: c.course_name,
-                  fee: c.course_fee,
-                })) || []}
-                classes={classesData?.map(c => ({
-                  class_id: c.class_id,
-                  class_name: c.class_name,
-                })) || []}
-                distanceSlabs={distanceSlabs?.map(slab => ({
-                  slab_id: slab.slab_id,
-                  slab_name: slab.slab_name,
-                  min_distance: slab.min_distance,
-                  max_distance: slab.max_distance,
-                  fee_amount: slab.fee_amount,
-                })) || []}
+                groups={
+                  groupsData?.items?.map((g) => ({
+                    group_id: g.group_id,
+                    group_name: g.group_name,
+                    fee: g.group_fee,
+                  })) || []
+                }
+                courses={
+                  coursesData?.items?.map((c) => ({
+                    course_id: c.course_id,
+                    course_name: c.course_name,
+                    fee: c.course_fee,
+                  })) || []
+                }
+                classes={
+                  classesData?.map((c) => ({
+                    class_id: c.class_id,
+                    class_name: c.class_name,
+                  })) || []
+                }
+                distanceSlabs={
+                  distanceSlabs?.map((slab) => ({
+                    slab_id: slab.slab_id,
+                    slab_name: slab.slab_name,
+                    min_distance: slab.min_distance,
+                    max_distance: slab.max_distance,
+                    fee_amount: slab.fee_amount,
+                  })) || []
+                }
                 onClassChange={handleClassChange}
                 onGroupChange={handleGroupChange}
                 onCourseChange={handleCourseChange}
@@ -1509,22 +1581,18 @@ export default function ReservationNew() {
           ) : (
             <div className="p-4">Loading...</div>
           )}
-           <DialogFooter className="mt-2 bg-background border-t py-3">
-             <Button
-               type="button"
-               variant="outline"
-               onClick={() => setShowEditDialog(false)}
-             >
-               Close
-             </Button>
-             <Button
-               type="button"
-               onClick={submitEdit}
-               disabled={!editForm}
-             >
-               Update Reservation
-             </Button>
-           </DialogFooter>
+          <DialogFooter className="mt-2 bg-background border-t py-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowEditDialog(false)}
+            >
+              Close
+            </Button>
+            <Button type="button" onClick={submitEdit} disabled={!editForm}>
+              Update Reservation
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1578,7 +1646,8 @@ export default function ReservationNew() {
             <AlertDialogTitle>Delete Reservation</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete reservation{" "}
-              {reservationToDelete?.reservation_id}? This action cannot be undone.
+              {reservationToDelete?.reservation_id}? This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -1,23 +1,35 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { GraduationCap, ClipboardList, FileText, Calculator, Target, TrophyIcon } from 'lucide-react';
-import { TabSwitcher } from '@/components/shared';
-import { StatsCard } from '@/components/shared/dashboard/StatsCard';
-import { DashboardGrid } from '@/components/shared/dashboard/DashboardGrid';
-import { useCollegeMarksStatistics, type CollegeMarksData } from '@/lib/hooks/college/use-college-marks-statistics';
-import ExamMarksManagement from './ExamMarksManagement';
-import TestMarksManagement from './TestMarksManagement';
+import { useState } from "react";
+import { motion } from "framer-motion";
+import {
+  GraduationCap,
+  ClipboardList,
+  FileText,
+  Calculator,
+  Target,
+  TrophyIcon,
+} from "lucide-react";
+import { TabSwitcher } from "@/components/shared";
+import { StatsCard } from "@/components/shared/dashboard/StatsCard";
+import { DashboardGrid } from "@/components/shared/dashboard/DashboardGrid";
+import {
+  useCollegeMarksStatistics,
+  type CollegeMarksData,
+} from "@/lib/hooks/college/use-college-marks-statistics";
+import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
+import ExamMarksManagement from "./ExamMarksManagement";
+import TestMarksManagement from "./TestMarksManagement";
 import { useAuthStore } from "@/store";
 import { Badge } from "@/components/ui/badge";
 
 const MarksManagement = () => {
   const { currentBranch } = useAuthStore();
-  const [activeTab, setActiveTab] = useState('exam-marks');
+  const { activeTab, setActiveTab } = useTabNavigation("exam-marks");
   const [examMarksData, setExamMarksData] = useState<CollegeMarksData[]>([]);
   const [testMarksData, setTestMarksData] = useState<CollegeMarksData[]>([]);
 
   // Calculate statistics for current active tab
-  const currentMarksData = activeTab === 'exam-marks' ? examMarksData : testMarksData;
+  const currentMarksData =
+    activeTab === "exam-marks" ? examMarksData : testMarksData;
   const statistics = useCollegeMarksStatistics(currentMarksData);
 
   return (
@@ -32,13 +44,14 @@ const MarksManagement = () => {
           >
             <div>
               <h1 className="text-3xl font-bold text-slate-900">
-                {activeTab === 'exam-marks' ? 'Marks Management' : 'Tests Management'}
+                {activeTab === "exam-marks"
+                  ? "Marks Management"
+                  : "Tests Management"}
               </h1>
               <p className="text-slate-600 mt-1">
-                {activeTab === 'exam-marks' 
-                  ? 'Track exam results and manage academic performance' 
-                  : 'Track test results and manage academic performance'
-                }
+                {activeTab === "exam-marks"
+                  ? "Track exam results and manage academic performance"
+                  : "Track test results and manage academic performance"}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -57,7 +70,9 @@ const MarksManagement = () => {
           >
             <DashboardGrid columns={4} gap="md">
               <StatsCard
-                title={`Total ${activeTab === 'exam-marks' ? 'Marks' : 'Tests'}`}
+                title={`Total ${
+                  activeTab === "exam-marks" ? "Marks" : "Tests"
+                }`}
                 value={statistics.totalMarks}
                 icon={FileText}
                 color="blue"
@@ -98,18 +113,21 @@ const MarksManagement = () => {
                 value: "exam-marks",
                 label: "Marks",
                 icon: GraduationCap,
-                content: <ExamMarksManagement onDataChange={setExamMarksData} />,
+                content: (
+                  <ExamMarksManagement onDataChange={setExamMarksData} />
+                ),
               },
               {
                 value: "test-marks",
                 label: "Tests",
                 icon: ClipboardList,
-                content: <TestMarksManagement onDataChange={setTestMarksData} />,
+                content: (
+                  <TestMarksManagement onDataChange={setTestMarksData} />
+                ),
               },
             ]}
             activeTab={activeTab}
             onTabChange={setActiveTab}
-
           />
         </div>
       </div>

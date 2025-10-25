@@ -4,7 +4,13 @@ import { Bus, Route, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
 import { useAuthStore } from "@/store/authStore";
-import { useBusRoutes, useDeleteBusRoute, useCreateBusRoute, useUpdateBusRoute } from "@/lib/hooks/general/useTransport";
+import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
+import {
+  useBusRoutes,
+  useDeleteBusRoute,
+  useCreateBusRoute,
+  useUpdateBusRoute,
+} from "@/lib/hooks/general/useTransport";
 import { useDistanceSlabs } from "@/lib/hooks/general/useDistanceSlabs";
 import type { BusRouteRead } from "@/lib/types/general/transport";
 import TransportOverview from "./TransportOverview";
@@ -13,12 +19,23 @@ import DistanceSlabsTab from "./DistanceSlabsTab";
 
 const TransportManagement = () => {
   const { user, currentBranch } = useAuthStore();
-  const { data: routesData = [], isLoading: routesLoading, error: routesError } = useBusRoutes();
-  const { distanceSlabs: slabsData = [], isLoadingDistanceSlabs: feesLoading, distanceSlabsError: feesError, createDistanceSlab: createFeeMutation, updateDistanceSlab: updateFeeMutation } = useDistanceSlabs();
+  const { activeTab, setActiveTab } = useTabNavigation("routes");
+  const {
+    data: routesData = [],
+    isLoading: routesLoading,
+    error: routesError,
+  } = useBusRoutes();
+  const {
+    distanceSlabs: slabsData = [],
+    isLoadingDistanceSlabs: feesLoading,
+    distanceSlabsError: feesError,
+    createDistanceSlab: createFeeMutation,
+    updateDistanceSlab: updateFeeMutation,
+  } = useDistanceSlabs();
   const deleteRouteMutation = useDeleteBusRoute();
   const createRouteMutation = useCreateBusRoute();
   const updateRouteMutation = useUpdateBusRoute();
-  
+
   const busRoutes = routesData.map((r: BusRouteRead) => ({
     id: r.bus_route_id,
     route_number: r.route_no || "-",
@@ -37,7 +54,6 @@ const TransportManagement = () => {
     maintenance_cost: 0, // Not available in current schema
   }));
 
-  const [activeTab, setActiveTab] = useState("routes");
   const [searchTerm, setSearchTerm] = useState("");
   const [isTabSwitching, setIsTabSwitching] = useState(false);
 
@@ -49,11 +65,24 @@ const TransportManagement = () => {
   };
 
   // Calculate overview metrics
-  const totalStudents = busRoutes.reduce((sum, route) => sum + route.students_count, 0);
-  const totalCapacity = busRoutes.reduce((sum, route) => sum + route.vehicle_capacity, 0);
-  const overallUtilization = totalCapacity > 0 ? (totalStudents / totalCapacity) * 100 : 0;
-  const totalFuelCost = busRoutes.reduce((sum, route) => sum + (route.fuel_cost || 0), 0);
-  const totalMaintenanceCost = busRoutes.reduce((sum, route) => sum + (route.maintenance_cost || 0), 0);
+  const totalStudents = busRoutes.reduce(
+    (sum, route) => sum + route.students_count,
+    0
+  );
+  const totalCapacity = busRoutes.reduce(
+    (sum, route) => sum + route.vehicle_capacity,
+    0
+  );
+  const overallUtilization =
+    totalCapacity > 0 ? (totalStudents / totalCapacity) * 100 : 0;
+  const totalFuelCost = busRoutes.reduce(
+    (sum, route) => sum + (route.fuel_cost || 0),
+    0
+  );
+  const totalMaintenanceCost = busRoutes.reduce(
+    (sum, route) => sum + (route.maintenance_cost || 0),
+    0
+  );
   const activeRoutes = busRoutes.filter((r) => r.active).length;
 
   return (

@@ -5,40 +5,66 @@ import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
 import { DollarSign, TrendingUp, PieChart } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
-import { useCollegeIncomeList, useCollegeIncomeDashboard, useCollegeIncome } from "@/lib/hooks/college/use-college-income";
-import { useCollegeExpenditureList, useCollegeExpenditureDashboard } from "@/lib/hooks/college/use-college-expenditure";
+import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
+import {
+  useCollegeIncomeList,
+  useCollegeIncomeDashboard,
+  useCollegeIncome,
+} from "@/lib/hooks/college/use-college-income";
+import {
+  useCollegeExpenditureList,
+  useCollegeExpenditureDashboard,
+} from "@/lib/hooks/college/use-college-expenditure";
 import { IncomeTable } from "./components/IncomeTable";
 import { ExpenditureTable } from "./components/ExpenditureTable";
 import { AddExpenditureDialog } from "./components/AddExpenditureDialog";
 import { ViewIncomeDialog } from "./components/ViewIncomeDialog";
 import { CollegeIncomeStatsCards } from "../income/CollegeIncomeStatsCards";
 import { CollegeExpenditureStatsCards } from "../expenditure/CollegeExpenditureStatsCards";
-import { CollegeFinanceReportButtons } from './components/CollegeFinanceReportButtons';
+import { CollegeFinanceReportButtons } from "./components/CollegeFinanceReportButtons";
 import { CollegeFinancialAnalytics } from "./components/CollegeFinancialAnalytics";
-
 
 export const CollegeReportsTemplate = () => {
   const { currentBranch } = useAuthStore();
-  const [showAddExpenditureDialog, setShowAddExpenditureDialog] = useState(false);
+  const { activeTab, setActiveTab } = useTabNavigation("income");
+  const [showAddExpenditureDialog, setShowAddExpenditureDialog] =
+    useState(false);
   const [showViewIncomeDialog, setShowViewIncomeDialog] = useState(false);
   const [selectedIncomeId, setSelectedIncomeId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState("income");
-
 
   // Fetch real income and expenditure data
-  const { data: incomeData = [], isLoading: incomeLoading, error: incomeError } = useCollegeIncomeList();
-  const { data: expenditureData = [], isLoading: expenditureLoading, error: expenditureError } = useCollegeExpenditureList();
-  
+  const {
+    data: incomeData = [],
+    isLoading: incomeLoading,
+    error: incomeError,
+  } = useCollegeIncomeList();
+  const {
+    data: expenditureData = [],
+    isLoading: expenditureLoading,
+    error: expenditureError,
+  } = useCollegeExpenditureList();
+
   // Define income params for the IncomeTable component
   const incomeParams = {};
 
   // Fetch dashboard data for financial stats
-  const { data: incomeDashboard, error: incomeDashboardError, isLoading: incomeDashboardLoading } = useCollegeIncomeDashboard();
-  const { data: expenditureDashboard, error: expenditureDashboardError, isLoading: expenditureDashboardLoading } = useCollegeExpenditureDashboard();
+  const {
+    data: incomeDashboard,
+    error: incomeDashboardError,
+    isLoading: incomeDashboardLoading,
+  } = useCollegeIncomeDashboard();
+  const {
+    data: expenditureDashboard,
+    error: expenditureDashboardError,
+    isLoading: expenditureDashboardLoading,
+  } = useCollegeExpenditureDashboard();
 
   // Fetch individual income data for view dialog
-  const { data: selectedIncome, error: selectedIncomeError, isLoading: selectedIncomeLoading } = useCollegeIncome(selectedIncomeId);
-
+  const {
+    data: selectedIncome,
+    error: selectedIncomeError,
+    isLoading: selectedIncomeLoading,
+  } = useCollegeIncome(selectedIncomeId);
 
   // Handlers
   const handleViewIncome = (income: any) => {
@@ -55,7 +81,9 @@ export const CollegeReportsTemplate = () => {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Financial Reports</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Financial Reports
+          </h1>
           <p className="text-muted-foreground">
             Comprehensive financial analytics and reporting
           </p>
@@ -70,7 +98,7 @@ export const CollegeReportsTemplate = () => {
       </motion.div>
 
       {/* Detailed Income Stats Cards - Only show when income tab is active */}
-      {activeTab === 'income' && incomeDashboard && (
+      {activeTab === "income" && incomeDashboard && (
         <CollegeIncomeStatsCards
           stats={incomeDashboard}
           loading={incomeDashboardLoading}
@@ -78,7 +106,7 @@ export const CollegeReportsTemplate = () => {
       )}
 
       {/* Detailed Expenditure Stats Cards - Only show when expenditure tab is active */}
-      {activeTab === 'expenditure' && expenditureDashboard && (
+      {activeTab === "expenditure" && expenditureDashboard && (
         <CollegeExpenditureStatsCards
           stats={expenditureDashboard}
           loading={expenditureDashboardLoading}
@@ -98,7 +126,9 @@ export const CollegeReportsTemplate = () => {
               </div>
             ) : incomeError ? (
               <div className="text-center py-8">
-                <p className="text-red-600">Error loading income data: {incomeError.message}</p>
+                <p className="text-red-600">
+                  Error loading income data: {incomeError.message}
+                </p>
               </div>
             ) : (
               <IncomeTable
@@ -117,7 +147,9 @@ export const CollegeReportsTemplate = () => {
               </div>
             ) : expenditureError ? (
               <div className="text-center py-8">
-                <p className="text-red-600">Error loading expenditure data: {expenditureError.message}</p>
+                <p className="text-red-600">
+                  Error loading expenditure data: {expenditureError.message}
+                </p>
               </div>
             ) : (
               <ExpenditureTable

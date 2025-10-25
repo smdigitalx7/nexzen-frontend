@@ -22,30 +22,42 @@ import {
 } from "@/components/ui/dialog";
 import { DollarSign, TrendingUp, Eye, PieChart } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
+import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 import { useSchoolIncomeDashboard } from "@/lib/hooks/school/use-school-income-expenditure";
-import { useSchoolExpenditureList, useSchoolExpenditureDashboard } from "@/lib/hooks/school/use-school-income-expenditure";
+import {
+  useSchoolExpenditureList,
+  useSchoolExpenditureDashboard,
+} from "@/lib/hooks/school/use-school-income-expenditure";
 import { IncomeSummaryTable } from "@/components/features/school/reports/components/IncomeSummaryTable";
 import { ExpenditureTable } from "@/components/features/school/reports/components/ExpenditureTable";
 import { AddExpenditureDialog } from "@/components/features/school/reports/components/AddExpenditureDialog";
 import { SchoolIncomeStatsCards } from "../income/SchoolIncomeStatsCards";
 import { SchoolExpenditureStatsCards } from "../expenditure/SchoolExpenditureStatsCards";
-import { SchoolFinanceReportButtons } from '../reports/components/SchoolFinanceReportButtons';
+import { SchoolFinanceReportButtons } from "../reports/components/SchoolFinanceReportButtons";
 import { SchoolFinancialAnalytics } from "./components/SchoolFinancialAnalytics";
-
 
 export const SchoolReportsTemplate = () => {
   const { currentBranch } = useAuthStore();
-  const [showAddExpenditureDialog, setShowAddExpenditureDialog] = useState(false);
-  const [activeTab, setActiveTab] = useState("income");
+  const { activeTab, setActiveTab } = useTabNavigation("income");
+  const [showAddExpenditureDialog, setShowAddExpenditureDialog] =
+    useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportFormat, setExportFormat] = useState("pdf");
 
   // Fetch real expenditure data
   const { data: expenditureData = [] } = useSchoolExpenditureList();
-  
+
   // Fetch dashboard data for financial stats
-  const { data: incomeDashboard, error: incomeDashboardError, isLoading: incomeDashboardLoading } = useSchoolIncomeDashboard();
-  const { data: expenditureDashboard, error: expenditureDashboardError, isLoading: expenditureDashboardLoading } = useSchoolExpenditureDashboard();
+  const {
+    data: incomeDashboard,
+    error: incomeDashboardError,
+    isLoading: incomeDashboardLoading,
+  } = useSchoolIncomeDashboard();
+  const {
+    data: expenditureDashboard,
+    error: expenditureDashboardError,
+    isLoading: expenditureDashboardLoading,
+  } = useSchoolExpenditureDashboard();
 
   // Handlers
   const handleExportReport = () => {
@@ -63,7 +75,9 @@ export const SchoolReportsTemplate = () => {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Financial Reports</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Financial Reports
+          </h1>
           <p className="text-muted-foreground">
             Comprehensive financial analytics and reporting
           </p>
@@ -75,7 +89,7 @@ export const SchoolReportsTemplate = () => {
           </Badge>
           <SchoolFinanceReportButtons />
         </div>
-      </motion.div>        
+      </motion.div>
 
       {/* API Error Messages */}
       {(incomeDashboardError || expenditureDashboardError) && (
@@ -89,7 +103,7 @@ export const SchoolReportsTemplate = () => {
       )}
 
       {/* Detailed Income Stats Cards - Only show when income tab is active */}
-      {activeTab === 'income' && incomeDashboard && (
+      {activeTab === "income" && incomeDashboard && (
         <SchoolIncomeStatsCards
           stats={incomeDashboard}
           loading={incomeDashboardLoading}
@@ -97,7 +111,7 @@ export const SchoolReportsTemplate = () => {
       )}
 
       {/* Detailed Expenditure Stats Cards - Only show when expenditure tab is active */}
-      {activeTab === 'expenditure' && expenditureDashboard && (
+      {activeTab === "expenditure" && expenditureDashboard && (
         <SchoolExpenditureStatsCards
           stats={expenditureDashboard}
           loading={expenditureDashboardLoading}
@@ -111,11 +125,7 @@ export const SchoolReportsTemplate = () => {
             value: "income",
             label: "Income",
             icon: DollarSign,
-            content: (
-              <IncomeSummaryTable
-                onExportCSV={() => {}}
-              />
-            ),
+            content: <IncomeSummaryTable onExportCSV={() => {}} />,
           },
           {
             value: "expenditure",
@@ -163,9 +173,15 @@ export const SchoolReportsTemplate = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem key="pdf" value="pdf">PDF Document</SelectItem>
-                  <SelectItem key="excel" value="excel">Excel Spreadsheet</SelectItem>
-                  <SelectItem key="csv" value="csv">CSV File</SelectItem>
+                  <SelectItem key="pdf" value="pdf">
+                    PDF Document
+                  </SelectItem>
+                  <SelectItem key="excel" value="excel">
+                    Excel Spreadsheet
+                  </SelectItem>
+                  <SelectItem key="csv" value="csv">
+                    CSV File
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -176,15 +192,24 @@ export const SchoolReportsTemplate = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem key="3months" value="3months">Last 3 Months</SelectItem>
-                  <SelectItem key="6months" value="6months">Last 6 Months</SelectItem>
-                  <SelectItem key="1year" value="1year">Last Year</SelectItem>
+                  <SelectItem key="3months" value="3months">
+                    Last 3 Months
+                  </SelectItem>
+                  <SelectItem key="6months" value="6months">
+                    Last 6 Months
+                  </SelectItem>
+                  <SelectItem key="1year" value="1year">
+                    Last Year
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowExportDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowExportDialog(false)}
+            >
               Cancel
             </Button>
             <Button onClick={handleExportReport}>
