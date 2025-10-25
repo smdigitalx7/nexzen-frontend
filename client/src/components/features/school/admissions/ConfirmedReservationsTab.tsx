@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,578 @@ import {
 } from "@/lib/api";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { SchoolReservationListItem } from "@/lib/types/school/reservations";
+
+// Memoized status badge component
+const StatusBadge = memo(({ status }: { status: string }) => {
+  const getStatusVariant = (status: string) => {
+    if (status === "CONFIRMED") return "secondary";
+    if (status === "PENDING") return "default";
+    return "destructive";
+  };
+
+  return (
+    <Badge variant={getStatusVariant(status)}>
+      {status || "Unknown"}
+    </Badge>
+  );
+});
+
+StatusBadge.displayName = "StatusBadge";
+
+// Memoized payment status badge component
+const PaymentStatusBadge = memo(({ fee }: { fee: number }) => (
+  <Badge
+    variant={fee && fee > 0 ? "secondary" : "destructive"}
+    className="text-xs"
+  >
+    {fee && fee > 0 ? "✓ Paid" : "Unpaid"}
+  </Badge>
+));
+
+PaymentStatusBadge.displayName = "PaymentStatusBadge";
+
+// Memoized enroll button component
+const EnrollButton = memo(({ 
+  reservationId, 
+  onEnrollStudent 
+}: { 
+  reservationId: number;
+  onEnrollStudent: (id: number) => void;
+}) => (
+  <Button
+    size="sm"
+    onClick={() => onEnrollStudent(reservationId)}
+    className="flex items-center gap-2"
+  >
+    <UserCheck className="h-4 w-4" />
+    Enroll Student
+  </Button>
+));
+
+EnrollButton.displayName = "EnrollButton";
+
+// Memoized enrolled badge component
+const EnrolledBadge = memo(() => (
+  <Badge
+    variant="secondary"
+    className="flex items-center gap-1 w-fit"
+  >
+    <CheckCircle className="h-3 w-3" />
+    Enrolled
+  </Badge>
+));
+
+EnrolledBadge.displayName = "EnrolledBadge";
+
+// Memoized form field component
+const FormField = memo(({
+  label,
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+  rows,
+  options,
+  isEditMode
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  placeholder?: string;
+  rows?: number;
+  options?: Array<{ value: string; label: string }>;
+  isEditMode: boolean;
+}) => (
+  <div>
+    <Label>{label}</Label>
+    {isEditMode ? (
+      type === "textarea" ? (
+        <Textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          rows={rows}
+          placeholder={placeholder}
+        />
+      ) : type === "select" ? (
+        <Select value={value} onValueChange={onChange}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {options?.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : (
+        <Input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+        />
+      )
+    ) : (
+      <p className="text-sm font-medium mt-1">
+        {value || "-"}
+      </p>
+    )}
+  </div>
+));
+
+FormField.displayName = "FormField";
+
+// Memoized reservation info component
+const ReservationInfo = memo(({ reservation }: { reservation: Reservation }) => (
+  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+    <div className="grid grid-cols-2 gap-4 text-sm">
+      <div>
+        <span className="font-semibold text-blue-900 dark:text-blue-100">
+          Reservation No:
+        </span>{" "}
+        {reservation.reservation_no}
+      </div>
+      <div>
+        <span className="font-semibold text-blue-900 dark:text-blue-100">
+          Date:
+        </span>{" "}
+        {reservation.reservation_date}
+      </div>
+      <div>
+        <span className="font-semibold text-blue-900 dark:text-blue-100">
+          Class:
+        </span>{" "}
+        {reservation.class_name}
+      </div>
+      <div>
+        <span className="font-semibold text-blue-900 dark:text-blue-100">
+          Status:
+        </span>{" "}
+        <StatusBadge status={reservation.status} />
+      </div>
+    </div>
+  </div>
+));
+
+ReservationInfo.displayName = "ReservationInfo";
+
+// Memoized student info section component
+const StudentInfoSection = memo(({ 
+  editForm, 
+  isEditMode, 
+  onFieldChange 
+}: { 
+  editForm: Reservation;
+  isEditMode: boolean;
+  onFieldChange: (field: string, value: string) => void;
+}) => (
+  <div className="border-t pt-4">
+    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+      <UserCheck className="h-5 w-5" />
+      Student Information
+    </h3>
+    <div className="grid grid-cols-2 gap-4">
+      <FormField
+        label="Student Name"
+        value={editForm.student_name}
+        onChange={(value) => onFieldChange("student_name", value)}
+        isEditMode={isEditMode}
+      />
+      <FormField
+        label="Aadhar Number"
+        value={editForm.aadhar_no}
+        onChange={(value) => onFieldChange("aadhar_no", value)}
+        isEditMode={isEditMode}
+      />
+      <FormField
+        label="Gender"
+        value={editForm.gender}
+        onChange={(value) => onFieldChange("gender", value)}
+        type="select"
+        options={[
+          { value: "MALE", label: "Male" },
+          { value: "FEMALE", label: "Female" },
+          { value: "OTHER", label: "Other" }
+        ]}
+        isEditMode={isEditMode}
+      />
+      <FormField
+        label="Date of Birth"
+        value={editForm.dob}
+        onChange={(value) => onFieldChange("dob", value)}
+        type="date"
+        isEditMode={isEditMode}
+      />
+      <FormField
+        label="Previous Class"
+        value={editForm.previous_class}
+        onChange={(value) => onFieldChange("previous_class", value)}
+        isEditMode={isEditMode}
+      />
+      <FormField
+        label="Previous School"
+        value={editForm.previous_school_details}
+        onChange={(value) => onFieldChange("previous_school_details", value)}
+        isEditMode={isEditMode}
+      />
+    </div>
+  </div>
+));
+
+StudentInfoSection.displayName = "StudentInfoSection";
+
+// Memoized parent info section component
+const ParentInfoSection = memo(({ 
+  editForm, 
+  isEditMode, 
+  onFieldChange 
+}: { 
+  editForm: Reservation;
+  isEditMode: boolean;
+  onFieldChange: (field: string, value: string) => void;
+}) => (
+  <div className="border-t pt-4">
+    <h3 className="text-lg font-semibold mb-3">
+      Parent/Guardian Information
+    </h3>
+    <div className="grid grid-cols-2 gap-4">
+      <FormField
+        label="Father/Guardian Name"
+        value={editForm.father_or_guardian_name}
+        onChange={(value) => onFieldChange("father_or_guardian_name", value)}
+        isEditMode={isEditMode}
+      />
+      <FormField
+        label="Father/Guardian Aadhar"
+        value={editForm.father_or_guardian_aadhar_no}
+        onChange={(value) => onFieldChange("father_or_guardian_aadhar_no", value)}
+        isEditMode={isEditMode}
+      />
+      <FormField
+        label="Father/Guardian Mobile"
+        value={editForm.father_or_guardian_mobile}
+        onChange={(value) => onFieldChange("father_or_guardian_mobile", value)}
+        isEditMode={isEditMode}
+      />
+      <FormField
+        label="Father/Guardian Occupation"
+        value={editForm.father_or_guardian_occupation}
+        onChange={(value) => onFieldChange("father_or_guardian_occupation", value)}
+        isEditMode={isEditMode}
+      />
+      <FormField
+        label="Mother/Guardian Name"
+        value={editForm.mother_or_guardian_name}
+        onChange={(value) => onFieldChange("mother_or_guardian_name", value)}
+        isEditMode={isEditMode}
+      />
+      <FormField
+        label="Mother/Guardian Aadhar"
+        value={editForm.mother_or_guardian_aadhar_no}
+        onChange={(value) => onFieldChange("mother_or_guardian_aadhar_no", value)}
+        isEditMode={isEditMode}
+      />
+      <FormField
+        label="Mother/Guardian Mobile"
+        value={editForm.mother_or_guardian_mobile}
+        onChange={(value) => onFieldChange("mother_or_guardian_mobile", value)}
+        isEditMode={isEditMode}
+      />
+      <FormField
+        label="Mother/Guardian Occupation"
+        value={editForm.mother_or_guardian_occupation}
+        onChange={(value) => onFieldChange("mother_or_guardian_occupation", value)}
+        isEditMode={isEditMode}
+      />
+    </div>
+  </div>
+));
+
+ParentInfoSection.displayName = "ParentInfoSection";
+
+// Memoized address info section component
+const AddressInfoSection = memo(({ 
+  editForm, 
+  isEditMode, 
+  onFieldChange 
+}: { 
+  editForm: Reservation;
+  isEditMode: boolean;
+  onFieldChange: (field: string, value: string) => void;
+}) => (
+  <div className="border-t pt-4">
+    <h3 className="text-lg font-semibold mb-3">
+      Address Information
+    </h3>
+    <div className="grid grid-cols-1 gap-4">
+      <FormField
+        label="Present Address"
+        value={editForm.present_address}
+        onChange={(value) => onFieldChange("present_address", value)}
+        type="textarea"
+        rows={2}
+        isEditMode={isEditMode}
+      />
+      <FormField
+        label="Permanent Address"
+        value={editForm.permanent_address}
+        onChange={(value) => onFieldChange("permanent_address", value)}
+        type="textarea"
+        rows={2}
+        isEditMode={isEditMode}
+      />
+    </div>
+  </div>
+));
+
+AddressInfoSection.displayName = "AddressInfoSection";
+
+// Memoized fee table row component
+const FeeTableRow = memo(({ 
+  feeType, 
+  amount, 
+  concession, 
+  payable, 
+  status, 
+  isPaid 
+}: { 
+  feeType: string;
+  amount: number;
+  concession: number;
+  payable: number;
+  status: string;
+  isPaid: boolean;
+}) => (
+  <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+    <td className="py-3 px-4 font-medium">{feeType}</td>
+    <td className="text-right py-3 px-4 font-semibold">
+      ₹{amount.toLocaleString()}
+    </td>
+    <td className="text-right py-3 px-4">
+      {concession > 0 ? (
+        <span className="text-orange-600 font-semibold">
+          -₹{concession.toLocaleString()}
+        </span>
+      ) : (
+        <span className="text-muted-foreground">-</span>
+      )}
+    </td>
+    <td className="text-right py-3 px-4 font-semibold text-blue-600">
+      ₹{payable.toLocaleString()}
+    </td>
+    <td className="text-center py-3 px-4">
+      <Badge
+        variant={isPaid ? "secondary" : "destructive"}
+        className="text-xs"
+      >
+        {isPaid ? "✓ Paid" : status}
+      </Badge>
+    </td>
+  </tr>
+));
+
+FeeTableRow.displayName = "FeeTableRow";
+
+// Memoized fee structure component
+const FeeStructure = memo(({ editForm }: { editForm: Reservation }) => (
+  <div className="border-t pt-4">
+    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+      <DollarSign className="h-5 w-5" />
+      Fee Structure & Payment Details
+    </h3>
+
+    <div className="border rounded-lg overflow-hidden">
+      <table className="w-full">
+        <thead className="bg-slate-50 dark:bg-slate-800">
+          <tr>
+            <th className="text-left py-3 px-4 font-semibold text-sm">Fee Type</th>
+            <th className="text-right py-3 px-4 font-semibold text-sm">Amount</th>
+            <th className="text-right py-3 px-4 font-semibold text-sm">Concession</th>
+            <th className="text-right py-3 px-4 font-semibold text-sm">Payable</th>
+            <th className="text-center py-3 px-4 font-semibold text-sm">Status</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          <FeeTableRow
+            feeType="Application Fee"
+            amount={editForm.application_fee}
+            concession={0}
+            payable={editForm.application_fee}
+            status="Unpaid"
+            isPaid={!!editForm.application_fee_paid}
+          />
+          <FeeTableRow
+            feeType="Tuition Fee"
+            amount={editForm.tuition_fee}
+            concession={editForm.tuition_concession}
+            payable={editForm.tuition_fee - editForm.tuition_concession}
+            status="Pending"
+            isPaid={false}
+          />
+          <FeeTableRow
+            feeType="Book Fee"
+            amount={editForm.book_fee}
+            concession={0}
+            payable={editForm.book_fee}
+            status="Pending"
+            isPaid={false}
+          />
+          {editForm.transport_required && (
+            <FeeTableRow
+              feeType="Transport Fee"
+              amount={editForm.transport_fee}
+              concession={editForm.transport_concession}
+              payable={editForm.transport_fee - editForm.transport_concession}
+              status="Pending"
+              isPaid={false}
+            />
+          )}
+        </tbody>
+      </table>
+    </div>
+
+    {editForm.concession_lock && (
+      <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-3">
+        <div className="text-red-600">
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+            />
+          </svg>
+        </div>
+        <div>
+          <p className="font-semibold text-red-900 dark:text-red-100">
+            Fee Structure Locked
+          </p>
+          <p className="text-sm text-red-700 dark:text-red-300">
+            Tuition and Transport fees (including concessions) are locked and cannot be modified.
+          </p>
+        </div>
+      </div>
+    )}
+  </div>
+));
+
+FeeStructure.displayName = "FeeStructure";
+
+// Memoized admission fee section component
+const AdmissionFeeSection = memo(({ 
+  editForm, 
+  admissionFee, 
+  onAdmissionFeeChange 
+}: { 
+  editForm: Reservation;
+  admissionFee: number;
+  onAdmissionFeeChange: (fee: number) => void;
+}) => (
+  <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+    <div className="flex items-center justify-between mb-3">
+      <div>
+        <Label className="text-base font-semibold text-green-900 dark:text-green-100">
+          {editForm.admission_income_id
+            ? "Admission Fee Status"
+            : "Admission Fee to Collect Now"}
+        </Label>
+        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+          {editForm.admission_income_id
+            ? "Admission fee has already been paid"
+            : "This is a one-time payment required during enrollment"}
+        </p>
+      </div>
+    </div>
+    {editForm.admission_income_id ? (
+      <div className="flex items-center gap-3 p-4 bg-white dark:bg-slate-950 rounded-lg border-2 border-green-400">
+        <CheckCircle className="h-8 w-8 text-green-600" />
+        <div>
+          <p className="text-lg font-bold text-green-600">
+            Admission Fee Paid
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Payment has been successfully processed
+          </p>
+        </div>
+      </div>
+    ) : (
+      <div className="flex items-center gap-4">
+        <div className="flex-1">
+          <Input
+            type="number"
+            value={admissionFee}
+            onChange={(e) => onAdmissionFeeChange(Number(e.target.value))}
+            placeholder="Enter admission fee"
+            className="text-xl font-bold h-12 bg-white dark:bg-slate-950 border-green-300 focus:border-green-500"
+          />
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-muted-foreground">Default Amount</p>
+          <p className="text-lg font-bold text-green-600">₹3,000</p>
+        </div>
+      </div>
+    )}
+  </div>
+));
+
+AdmissionFeeSection.displayName = "AdmissionFeeSection";
+
+// Memoized payment dialog component
+const PaymentDialog = memo(({ 
+  isOpen, 
+  onClose, 
+  admissionNo, 
+  admissionFee, 
+  onPaymentProcess 
+}: { 
+  isOpen: boolean;
+  onClose: () => void;
+  admissionNo: string;
+  admissionFee: number;
+  onPaymentProcess: () => void;
+}) => (
+  <Dialog open={isOpen} onOpenChange={onClose}>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Collect Admission Fee</DialogTitle>
+        <DialogDescription>
+          Student enrolled successfully with admission number: {admissionNo}
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-4">
+        <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg text-center">
+          <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-2" />
+          <p className="text-lg font-semibold text-green-900 dark:text-green-100">
+            Enrollment Successful!
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Admission No: {admissionNo}
+          </p>
+        </div>
+
+        <div className="border-t pt-4">
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-lg font-medium">Admission Fee:</span>
+            <span className="text-2xl font-bold text-green-600">
+              ₹{admissionFee.toLocaleString()}
+            </span>
+          </div>
+
+          <Button onClick={onPaymentProcess} className="w-full" size="lg">
+            <DollarSign className="h-5 w-5 mr-2" />
+            Collect Payment & Print Receipt
+          </Button>
+        </div>
+      </div>
+    </DialogContent>
+  </Dialog>
+));
+
+PaymentDialog.displayName = "PaymentDialog";
 
 interface Reservation {
   reservation_id: number;
@@ -87,10 +659,9 @@ interface Reservation {
   admission_income_id?: number;
 }
 
-const ConfirmedReservationsTab = () => {
+const ConfirmedReservationsTabComponent = () => {
   const [statusFilter, setStatusFilter] = useState<string>("CONFIRMED");
-  const [selectedReservation, setSelectedReservation] =
-    useState<Reservation | null>(null);
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -98,8 +669,6 @@ const ConfirmedReservationsTab = () => {
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string>("");
   const [createdAdmissionNo, setCreatedAdmissionNo] = useState<string>("");
   const [admissionFee, setAdmissionFee] = useState<number>(0);
-
-  // Edit form state
   const [editForm, setEditForm] = useState<Reservation | null>(null);
 
   const {
@@ -112,23 +681,20 @@ const ConfirmedReservationsTab = () => {
     status: statusFilter,
   });
 
-  // Process reservations data
+  // Memoized data processing
   const allReservations = useMemo(() => {
     if (!reservationsData?.reservations) return [];
     if (!Array.isArray(reservationsData.reservations)) return [];
-
     return reservationsData.reservations;
   }, [reservationsData]);
 
-  const handleEnrollStudent = async (reservationId: number) => {
+  // Memoized handlers
+  const handleEnrollStudent = useCallback(async (reservationId: number) => {
     try {
-      // Fetch full reservation details
-      const reservationDetails = await SchoolReservationsService.getById(
-        reservationId
-      );
+      const reservationDetails = await SchoolReservationsService.getById(reservationId);
       setSelectedReservation(reservationDetails as unknown as Reservation);
       setEditForm(reservationDetails as unknown as Reservation);
-      setAdmissionFee(3000); // Set default admission fee to 3000
+      setAdmissionFee(3000);
       setIsEditMode(false);
       setShowDetailsDialog(true);
     } catch (error) {
@@ -139,18 +705,27 @@ const ConfirmedReservationsTab = () => {
         variant: "destructive",
       });
     }
-  };
+  }, []);
 
-  const handleEditDetails = () => {
+  const handleEditDetails = useCallback(() => {
     setIsEditMode(true);
-  };
+  }, []);
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setEditForm(selectedReservation);
     setIsEditMode(false);
-  };
+  }, [selectedReservation]);
 
-  const handleSaveEdit = async () => {
+  const handleFieldChange = useCallback((field: string, value: string) => {
+    if (!editForm) return;
+    setEditForm({ ...editForm, [field]: value });
+  }, [editForm]);
+
+  const handleAdmissionFeeChange = useCallback((fee: number) => {
+    setAdmissionFee(fee);
+  }, []);
+
+  const handleSaveEdit = useCallback(async () => {
     if (!editForm || !selectedReservation) return;
 
     try {
@@ -185,15 +760,9 @@ const ConfirmedReservationsTab = () => {
         reservation_date: editForm.reservation_date,
       };
 
-      await SchoolReservationsService.update(
-        selectedReservation.reservation_id,
-        payload
-      );
+      await SchoolReservationsService.update(selectedReservation.reservation_id, payload);
 
-      // Reload the reservation details
-      const updatedReservation = await SchoolReservationsService.getById(
-        selectedReservation.reservation_id
-      );
+      const updatedReservation = await SchoolReservationsService.getById(selectedReservation.reservation_id);
       setSelectedReservation(updatedReservation as unknown as Reservation);
       setEditForm(updatedReservation as unknown as Reservation);
       setIsEditMode(false);
@@ -206,19 +775,16 @@ const ConfirmedReservationsTab = () => {
       console.error("Failed to update reservation:", error);
       toast({
         title: "Update Failed",
-        description:
-          error?.message ||
-          "Failed to update reservation details. Please try again.",
+        description: error?.message || "Failed to update reservation details. Please try again.",
         variant: "destructive",
       });
     }
-  };
+  }, [editForm, selectedReservation]);
 
-  const handleEnrollConfirm = async () => {
+  const handleEnrollConfirm = useCallback(async () => {
     if (!selectedReservation) return;
 
     try {
-      // Create student from reservation
       const payload = {
         reservation_id: selectedReservation.reservation_id,
         student_name: selectedReservation.student_name,
@@ -226,39 +792,26 @@ const ConfirmedReservationsTab = () => {
         gender: selectedReservation.gender,
         dob: selectedReservation.dob,
         father_or_guardian_name: selectedReservation.father_or_guardian_name,
-        father_or_guardian_aadhar_no:
-          selectedReservation.father_or_guardian_aadhar_no,
-        father_or_guardian_mobile:
-          selectedReservation.father_or_guardian_mobile,
-        father_or_guardian_occupation:
-          selectedReservation.father_or_guardian_occupation,
+        father_or_guardian_aadhar_no: selectedReservation.father_or_guardian_aadhar_no,
+        father_or_guardian_mobile: selectedReservation.father_or_guardian_mobile,
+        father_or_guardian_occupation: selectedReservation.father_or_guardian_occupation,
         mother_or_guardian_name: selectedReservation.mother_or_guardian_name,
-        mother_or_guardian_aadhar_no:
-          selectedReservation.mother_or_guardian_aadhar_no,
-        mother_or_guardian_mobile:
-          selectedReservation.mother_or_guardian_mobile,
-        mother_or_guardian_occupation:
-          selectedReservation.mother_or_guardian_occupation,
+        mother_or_guardian_aadhar_no: selectedReservation.mother_or_guardian_aadhar_no,
+        mother_or_guardian_mobile: selectedReservation.mother_or_guardian_mobile,
+        mother_or_guardian_occupation: selectedReservation.mother_or_guardian_occupation,
         present_address: selectedReservation.present_address,
         permanent_address: selectedReservation.permanent_address,
         admission_fee: admissionFee,
       };
 
-      const studentResponse = await SchoolStudentsService.createFromReservation(
-        payload
-      );
-
-      // Handle nested response structure - safely access admission_no
-      const admissionNo =
-        (studentResponse as any)?.data?.admission_no ||
-        (studentResponse as any)?.admission_no;
+      const studentResponse = await SchoolStudentsService.createFromReservation(payload);
+      const admissionNo = (studentResponse as any)?.data?.admission_no || (studentResponse as any)?.admission_no;
 
       if (!admissionNo) {
         console.error("Student response:", studentResponse);
         toast({
           title: "Enrollment Error",
-          description:
-            "Student created but admission number not received from server.",
+          description: "Student created but admission number not received from server.",
           variant: "destructive",
         });
         throw new Error("Student created but no admission number received");
@@ -276,14 +829,13 @@ const ConfirmedReservationsTab = () => {
       console.error("Enrollment failed:", error);
       toast({
         title: "Enrollment Failed",
-        description:
-          error?.message || "Failed to enroll student. Please try again.",
+        description: error?.message || "Failed to enroll student. Please try again.",
         variant: "destructive",
       });
     }
-  };
+  }, [selectedReservation, admissionFee]);
 
-  const handlePaymentProcess = async () => {
+  const handlePaymentProcess = useCallback(async () => {
     if (!createdAdmissionNo) return;
 
     try {
@@ -320,15 +872,13 @@ const ConfirmedReservationsTab = () => {
       console.error("Payment failed:", error);
       toast({
         title: "Payment Failed",
-        description:
-          error?.message ||
-          "Failed to process admission fee payment. Please try again.",
+        description: error?.message || "Failed to process admission fee payment. Please try again.",
         variant: "destructive",
       });
     }
-  };
+  }, [createdAdmissionNo, admissionFee, refetch]);
 
-  const handleCloseReceiptModal = () => {
+  const handleCloseReceiptModal = useCallback(() => {
     setShowReceiptModal(false);
     if (receiptBlobUrl) {
       URL.revokeObjectURL(receiptBlobUrl);
@@ -337,7 +887,7 @@ const ConfirmedReservationsTab = () => {
     setCreatedAdmissionNo("");
     setAdmissionFee(0);
     setSelectedReservation(null);
-  };
+  }, [receiptBlobUrl]);
 
   // Column definitions for the enhanced table
   const columns: ColumnDef<SchoolReservationListItem>[] = useMemo(() => [
@@ -363,14 +913,7 @@ const ConfirmedReservationsTab = () => {
       header: "Payment Status",
       cell: ({ row }) => {
         const fee = row.getValue("reservation_fee") as number;
-        return (
-          <Badge
-            variant={fee && fee > 0 ? "secondary" : "destructive"}
-            className="text-xs"
-          >
-            {fee && fee > 0 ? "✓ Paid" : "Unpaid"}
-          </Badge>
-        );
+        return <PaymentStatusBadge fee={fee} />;
       },
     },
     {
@@ -383,19 +926,7 @@ const ConfirmedReservationsTab = () => {
       header: "Status",
       cell: ({ row }) => {
         const status = row.getValue("status") as string;
-        return (
-          <Badge
-            variant={
-              status === "CONFIRMED"
-                ? "secondary"
-                : status === "PENDING"
-                ? "default"
-                : "destructive"
-            }
-          >
-            {status || "Unknown"}
-          </Badge>
-        );
+        return <StatusBadge status={status} />;
       },
     },
     {
@@ -403,25 +934,14 @@ const ConfirmedReservationsTab = () => {
       header: "Actions",
       cell: ({ row }) => {
         const reservation = row.original;
-        // Check if enrolled based on some indicator - we'll need to add this logic
         const isEnrolled = false; // This would need to be determined based on actual data
         return isEnrolled ? (
-          <Badge
-            variant="secondary"
-            className="flex items-center gap-1 w-fit"
-          >
-            <CheckCircle className="h-3 w-3" />
-            Enrolled
-          </Badge>
+          <EnrolledBadge />
         ) : (
-          <Button
-            size="sm"
-            onClick={() => handleEnrollStudent(reservation.reservation_id)}
-            className="flex items-center gap-2"
-          >
-            <UserCheck className="h-4 w-4" />
-            Enroll Student
-          </Button>
+          <EnrollButton
+            reservationId={reservation.reservation_id}
+            onEnrollStudent={handleEnrollStudent}
+          />
         );
       },
     },
@@ -484,629 +1004,29 @@ const ConfirmedReservationsTab = () => {
 
           {editForm && (
             <div className="space-y-6">
-              {/* Reservation Information */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-semibold text-blue-900 dark:text-blue-100">
-                      Reservation No:
-                    </span>{" "}
-                    {editForm.reservation_no}
+              <ReservationInfo reservation={editForm} />
+              <StudentInfoSection
+                editForm={editForm}
+                isEditMode={isEditMode}
+                onFieldChange={handleFieldChange}
+              />
+              <ParentInfoSection
+                editForm={editForm}
+                isEditMode={isEditMode}
+                onFieldChange={handleFieldChange}
+              />
+              <AddressInfoSection
+                editForm={editForm}
+                isEditMode={isEditMode}
+                onFieldChange={handleFieldChange}
+              />
+              <FeeStructure editForm={editForm} />
+              <AdmissionFeeSection
+                editForm={editForm}
+                admissionFee={admissionFee}
+                onAdmissionFeeChange={handleAdmissionFeeChange}
+              />
                   </div>
-                  <div>
-                    <span className="font-semibold text-blue-900 dark:text-blue-100">
-                      Date:
-                    </span>{" "}
-                    {editForm.reservation_date}
-                  </div>
-                  <div>
-                    <span className="font-semibold text-blue-900 dark:text-blue-100">
-                      Class:
-                    </span>{" "}
-                    {editForm.class_name}
-                  </div>
-                  <div>
-                    <span className="font-semibold text-blue-900 dark:text-blue-100">
-                      Status:
-                    </span>{" "}
-                    <Badge variant="secondary">{editForm.status}</Badge>
-                  </div>
-                </div>
-              </div>
-
-              {/* Student Information */}
-              <div className="border-t pt-4">
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <UserCheck className="h-5 w-5" />
-                  Student Information
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Student Name</Label>
-                    {isEditMode ? (
-                      <Input
-                        value={editForm.student_name}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            student_name: e.target.value,
-                          })
-                        }
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">
-                        {editForm.student_name}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Aadhar Number</Label>
-                    {isEditMode ? (
-                      <Input
-                        value={editForm.aadhar_no}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            aadhar_no: e.target.value,
-                          })
-                        }
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">
-                        {editForm.aadhar_no}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Gender</Label>
-                    {isEditMode ? (
-                      <Select
-                        value={editForm.gender}
-                        onValueChange={(value) =>
-                          setEditForm({ ...editForm, gender: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="MALE">Male</SelectItem>
-                          <SelectItem value="FEMALE">Female</SelectItem>
-                          <SelectItem value="OTHER">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <p className="text-sm font-medium mt-1">
-                        {editForm.gender}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Date of Birth</Label>
-                    {isEditMode ? (
-                      <Input
-                        type="date"
-                        value={editForm.dob}
-                        onChange={(e) =>
-                          setEditForm({ ...editForm, dob: e.target.value })
-                        }
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">{editForm.dob}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Previous Class</Label>
-                    {isEditMode ? (
-                      <Input
-                        value={editForm.previous_class}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            previous_class: e.target.value,
-                          })
-                        }
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">
-                        {editForm.previous_class || "-"}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Previous School</Label>
-                    {isEditMode ? (
-                      <Input
-                        value={editForm.previous_school_details}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            previous_school_details: e.target.value,
-                          })
-                        }
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">
-                        {editForm.previous_school_details || "-"}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Parent/Guardian Information */}
-              <div className="border-t pt-4">
-                <h3 className="text-lg font-semibold mb-3">
-                  Parent/Guardian Information
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Father/Guardian Name</Label>
-                    {isEditMode ? (
-                      <Input
-                        value={editForm.father_or_guardian_name}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            father_or_guardian_name: e.target.value,
-                          })
-                        }
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">
-                        {editForm.father_or_guardian_name}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Father/Guardian Aadhar</Label>
-                    {isEditMode ? (
-                      <Input
-                        value={editForm.father_or_guardian_aadhar_no}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            father_or_guardian_aadhar_no: e.target.value,
-                          })
-                        }
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">
-                        {editForm.father_or_guardian_aadhar_no}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Father/Guardian Mobile</Label>
-                    {isEditMode ? (
-                      <Input
-                        value={editForm.father_or_guardian_mobile}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            father_or_guardian_mobile: e.target.value,
-                          })
-                        }
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">
-                        {editForm.father_or_guardian_mobile}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Father/Guardian Occupation</Label>
-                    {isEditMode ? (
-                      <Input
-                        value={editForm.father_or_guardian_occupation}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            father_or_guardian_occupation: e.target.value,
-                          })
-                        }
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">
-                        {editForm.father_or_guardian_occupation}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Mother/Guardian Name</Label>
-                    {isEditMode ? (
-                      <Input
-                        value={editForm.mother_or_guardian_name}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            mother_or_guardian_name: e.target.value,
-                          })
-                        }
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">
-                        {editForm.mother_or_guardian_name}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Mother/Guardian Aadhar</Label>
-                    {isEditMode ? (
-                      <Input
-                        value={editForm.mother_or_guardian_aadhar_no}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            mother_or_guardian_aadhar_no: e.target.value,
-                          })
-                        }
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">
-                        {editForm.mother_or_guardian_aadhar_no}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Mother/Guardian Mobile</Label>
-                    {isEditMode ? (
-                      <Input
-                        value={editForm.mother_or_guardian_mobile}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            mother_or_guardian_mobile: e.target.value,
-                          })
-                        }
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">
-                        {editForm.mother_or_guardian_mobile}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Mother/Guardian Occupation</Label>
-                    {isEditMode ? (
-                      <Input
-                        value={editForm.mother_or_guardian_occupation}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            mother_or_guardian_occupation: e.target.value,
-                          })
-                        }
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">
-                        {editForm.mother_or_guardian_occupation}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Address Information */}
-              <div className="border-t pt-4">
-                <h3 className="text-lg font-semibold mb-3">
-                  Address Information
-                </h3>
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <Label>Present Address</Label>
-                    {isEditMode ? (
-                      <Textarea
-                        value={editForm.present_address}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            present_address: e.target.value,
-                          })
-                        }
-                        rows={2}
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">
-                        {editForm.present_address}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Permanent Address</Label>
-                    {isEditMode ? (
-                      <Textarea
-                        value={editForm.permanent_address}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            permanent_address: e.target.value,
-                          })
-                        }
-                        rows={2}
-                      />
-                    ) : (
-                      <p className="text-sm font-medium mt-1">
-                        {editForm.permanent_address}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Fee Information */}
-              <div className="border-t pt-4">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Fee Structure & Payment Details
-                </h3>
-
-                {/* Fee Breakdown Table */}
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-slate-50 dark:bg-slate-800">
-                      <tr>
-                        <th className="text-left py-3 px-4 font-semibold text-sm">
-                          Fee Type
-                        </th>
-                        <th className="text-right py-3 px-4 font-semibold text-sm">
-                          Amount
-                        </th>
-                        <th className="text-right py-3 px-4 font-semibold text-sm">
-                          Concession
-                        </th>
-                        <th className="text-right py-3 px-4 font-semibold text-sm">
-                          Payable
-                        </th>
-                        <th className="text-center py-3 px-4 font-semibold text-sm">
-                          Status
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {/* Application Fee */}
-                      <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                        <td className="py-3 px-4 font-medium">
-                          Application Fee
-                        </td>
-                        <td className="text-right py-3 px-4 font-semibold">
-                          ₹{editForm.application_fee.toLocaleString()}
-                        </td>
-                        <td className="text-right py-3 px-4 text-muted-foreground">
-                          -
-                        </td>
-                        <td className="text-right py-3 px-4 font-semibold">
-                          ₹{editForm.application_fee.toLocaleString()}
-                        </td>
-                        <td className="text-center py-3 px-4">
-                          <Badge
-                            variant={
-                              editForm.application_fee_paid
-                                ? "secondary"
-                                : "destructive"
-                            }
-                            className="text-xs"
-                          >
-                            {editForm.application_fee_paid
-                              ? "✓ Paid"
-                              : "Unpaid"}
-                          </Badge>
-                        </td>
-                      </tr>
-
-                      {/* Tuition Fee */}
-                      <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                        <td className="py-3 px-4 font-medium">Tuition Fee</td>
-                        <td className="text-right py-3 px-4 font-semibold">
-                          ₹{editForm.tuition_fee.toLocaleString()}
-                        </td>
-                        <td className="text-right py-3 px-4">
-                          {editForm.tuition_concession > 0 ? (
-                            <span className="text-orange-600 font-semibold">
-                              -₹{editForm.tuition_concession.toLocaleString()}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </td>
-                        <td className="text-right py-3 px-4 font-semibold text-blue-600">
-                          ₹
-                          {(
-                            editForm.tuition_fee - editForm.tuition_concession
-                          ).toLocaleString()}
-                        </td>
-                        <td className="text-center py-3 px-4">
-                          <Badge variant="outline" className="text-xs">
-                            Pending
-                          </Badge>
-                        </td>
-                      </tr>
-
-                      {/* Book Fee */}
-                      <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                        <td className="py-3 px-4 font-medium">Book Fee</td>
-                        <td className="text-right py-3 px-4 font-semibold">
-                          ₹{editForm.book_fee.toLocaleString()}
-                        </td>
-                        <td className="text-right py-3 px-4 text-muted-foreground">
-                          -
-                        </td>
-                        <td className="text-right py-3 px-4 font-semibold text-purple-600">
-                          ₹{editForm.book_fee.toLocaleString()}
-                        </td>
-                        <td className="text-center py-3 px-4">
-                          <Badge variant="outline" className="text-xs">
-                            Pending
-                          </Badge>
-                        </td>
-                      </tr>
-
-                      {/* Transport Fee (if required) */}
-                      {editForm.transport_required && (
-                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                          <td className="py-3 px-4 font-medium">
-                            Transport Fee
-                          </td>
-                          <td className="text-right py-3 px-4 font-semibold">
-                            ₹{editForm.transport_fee.toLocaleString()}
-                          </td>
-                          <td className="text-right py-3 px-4">
-                            {editForm.transport_concession > 0 ? (
-                              <span className="text-orange-600 font-semibold">
-                                -₹
-                                {editForm.transport_concession.toLocaleString()}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </td>
-                          <td className="text-right py-3 px-4 font-semibold text-orange-600">
-                            ₹
-                            {(
-                              editForm.transport_fee -
-                              editForm.transport_concession
-                            ).toLocaleString()}
-                          </td>
-                          <td className="text-center py-3 px-4">
-                            <Badge variant="outline" className="text-xs">
-                              Pending
-                            </Badge>
-                          </td>
-                        </tr>
-                      )}
-
-                      {/* Total Row */}
-                      <tr className="bg-slate-100 dark:bg-slate-800 font-bold">
-                        <td className="py-3 px-4 text-base">
-                          Total Annual Fee
-                        </td>
-                        <td className="text-right py-3 px-4">
-                          ₹
-                          {(
-                            editForm.application_fee +
-                            editForm.tuition_fee +
-                            editForm.book_fee +
-                            (editForm.transport_required
-                              ? editForm.transport_fee
-                              : 0)
-                          ).toLocaleString()}
-                        </td>
-                        <td className="text-right py-3 px-4 text-orange-600">
-                          -₹
-                          {(
-                            editForm.tuition_concession +
-                            editForm.transport_concession
-                          ).toLocaleString()}
-                        </td>
-                        <td className="text-right py-3 px-4 text-green-600 text-lg">
-                          ₹
-                          {(
-                            editForm.application_fee +
-                            editForm.tuition_fee +
-                            editForm.book_fee +
-                            (editForm.transport_required
-                              ? editForm.transport_fee
-                              : 0) -
-                            editForm.tuition_concession -
-                            editForm.transport_concession
-                          ).toLocaleString()}
-                        </td>
-                        <td className="text-center py-3 px-4">
-                          <Badge variant="outline" className="text-xs">
-                            {editForm.application_fee_paid
-                              ? "Partial"
-                              : "Unpaid"}
-                          </Badge>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Concession Lock Warning */}
-                {editForm.concession_lock && (
-                  <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-3">
-                    <div className="text-red-600">
-                      <svg
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-red-900 dark:text-red-100">
-                        Fee Structure Locked
-                      </p>
-                      <p className="text-sm text-red-700 dark:text-red-300">
-                        Tuition and Transport fees (including concessions) are
-                        locked and cannot be modified.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Admission Fee Section */}
-                <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <Label className="text-base font-semibold text-green-900 dark:text-green-100">
-                        {editForm.admission_income_id
-                          ? "Admission Fee Status"
-                          : "Admission Fee to Collect Now"}
-                      </Label>
-                      <p className="text-xs text-green-700 dark:text-green-300 mt-1">
-                        {editForm.admission_income_id
-                          ? "Admission fee has already been paid"
-                          : "This is a one-time payment required during enrollment"}
-                      </p>
-                    </div>
-                  </div>
-                  {editForm.admission_income_id ? (
-                    <div className="flex items-center gap-3 p-4 bg-white dark:bg-slate-950 rounded-lg border-2 border-green-400">
-                      <CheckCircle className="h-8 w-8 text-green-600" />
-                      <div>
-                        <p className="text-lg font-bold text-green-600">
-                          Admission Fee Paid
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Payment has been successfully processed
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1">
-                        <Input
-                          type="number"
-                          value={admissionFee}
-                          onChange={(e) =>
-                            setAdmissionFee(Number(e.target.value))
-                          }
-                          placeholder="Enter admission fee"
-                          className="text-xl font-bold h-12 bg-white dark:bg-slate-950 border-green-300 focus:border-green-500"
-                        />
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground">
-                          Default Amount
-                        </p>
-                        <p className="text-lg font-bold text-green-600">
-                          ₹3,000
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
           )}
 
           <DialogFooter>
@@ -1145,47 +1065,13 @@ const ConfirmedReservationsTab = () => {
       </Dialog>
 
       {/* Payment Dialog */}
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Collect Admission Fee</DialogTitle>
-            <DialogDescription>
-              Student enrolled successfully with admission number:{" "}
-              {createdAdmissionNo}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg text-center">
-              <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-2" />
-              <p className="text-lg font-semibold text-green-900 dark:text-green-100">
-                Enrollment Successful!
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Admission No: {createdAdmissionNo}
-              </p>
-            </div>
-
-            <div className="border-t pt-4">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-lg font-medium">Admission Fee:</span>
-                <span className="text-2xl font-bold text-green-600">
-                  ₹{admissionFee.toLocaleString()}
-                </span>
-              </div>
-
-              <Button
-                onClick={handlePaymentProcess}
-                className="w-full"
-                size="lg"
-              >
-                <DollarSign className="h-5 w-5 mr-2" />
-                Collect Payment & Print Receipt
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <PaymentDialog
+        isOpen={showPaymentDialog}
+        onClose={() => setShowPaymentDialog(false)}
+        admissionNo={createdAdmissionNo}
+        admissionFee={admissionFee}
+        onPaymentProcess={handlePaymentProcess}
+      />
 
       {/* Receipt Modal */}
       {showReceiptModal && receiptBlobUrl && (
@@ -1199,4 +1085,5 @@ const ConfirmedReservationsTab = () => {
   );
 };
 
-export default ConfirmedReservationsTab;
+export const ConfirmedReservationsTab = ConfirmedReservationsTabComponent;
+export default ConfirmedReservationsTabComponent;

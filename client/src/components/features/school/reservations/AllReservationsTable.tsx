@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, memo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Edit, Trash2, Percent, Printer } from "lucide-react";
@@ -47,7 +47,80 @@ export type AllReservationsTableProps = {
   onStatusFilterChange: (value: string) => void;
 };
 
-export default function AllReservationsTable({
+// Memoized status badge component
+const StatusBadge = memo(({ status }: { status: string }) => (
+  <Badge
+    variant={
+      status === "PENDING"
+        ? "default"
+        : status === "CANCELLED"
+        ? "destructive"
+        : status === "CONFIRMED"
+        ? "secondary"
+        : "outline"
+    }
+  >
+    {status}
+  </Badge>
+));
+
+StatusBadge.displayName = "StatusBadge";
+
+// Memoized application fee status badge component
+const ApplicationFeeBadge = memo(({ isPaid }: { isPaid: boolean }) => (
+  <Badge
+    variant={isPaid ? "secondary" : "destructive"}
+    className="text-xs"
+  >
+    {isPaid ? "Paid" : "Not Paid"}
+  </Badge>
+));
+
+ApplicationFeeBadge.displayName = "ApplicationFeeBadge";
+
+// Memoized enrollment status badge component
+const EnrollmentStatusBadge = memo(({ isEnrolled }: { isEnrolled: boolean }) => (
+  <Badge
+    variant={isEnrolled ? "secondary" : "outline"}
+    className={`text-xs ${
+      isEnrolled ? "bg-green-100 text-green-800" : ""
+    }`}
+  >
+    {isEnrolled ? "Enrolled" : "Not Enrolled"}
+  </Badge>
+));
+
+EnrollmentStatusBadge.displayName = "EnrollmentStatusBadge";
+
+// Memoized loading component
+const LoadingState = memo(() => (
+  <div className="p-6 text-sm text-muted-foreground text-center">
+    Loading reservations…
+  </div>
+));
+
+LoadingState.displayName = "LoadingState";
+
+// Memoized error component
+const ErrorState = memo(({ error, onRefetch }: { error?: any; onRefetch: () => void }) => (
+  <div className="p-6 text-center">
+    <div className="text-red-600 mb-2">
+      <h3 className="font-medium">Connection Error</h3>
+      <p className="text-sm text-muted-foreground">
+        {error?.message?.includes("Bad Gateway")
+          ? "Backend server is not responding (502 Bad Gateway)"
+          : "Failed to load reservations"}
+      </p>
+    </div>
+    <Button variant="outline" size="sm" onClick={onRefetch}>
+      Try Again
+    </Button>
+  </div>
+));
+
+ErrorState.displayName = "ErrorState";
+
+const AllReservationsTableComponent = ({
   reservations,
   isLoading,
   isError,
@@ -59,9 +132,8 @@ export default function AllReservationsTable({
   onUpdateConcession,
   statusFilter,
   onStatusFilterChange,
-}: AllReservationsTableProps) {
-  // ✅ ALL HOOKS MUST BE CALLED AT THE TOP LEVEL - NO CONDITIONAL HOOKS
-  // Custom search function to search across multiple fields
+}: AllReservationsTableProps) => {
+  // Memoized custom search function
   const customSearchFunction = useMemo(() => {
     return (row: any, columnId: string, value: string) => {
       if (!value) return true;
@@ -79,7 +151,48 @@ export default function AllReservationsTable({
     };
   }, []);
 
-  // Column definitions for EnhancedDataTable
+  // Memoized receipt regeneration handler
+  const handleRegenerateReceipt = useCallback(async (reservation: Reservation) => {
+    // Check for application_income_id first, then fallback to income_id
+    const incomeId = reservation.application_income_id || reservation.income_id;
+
+    if (!incomeId) {
+      toast({
+        title: "Receipt Not Available",
+        description:
+          "This reservation does not have an associated income record for receipt generation.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      console.log("🔄 Starting receipt regeneration for income ID:", incomeId);
+      const blobUrl = await regenerateReceiptAPI(incomeId);
+      console.log("✅ Receipt blob URL received:", blobUrl);
+
+      toast({
+        title: "Receipt Generated",
+        description: "Receipt has been generated and is ready for viewing.",
+      });
+
+      // Open receipt in new tab
+      window.open(blobUrl, "_blank");
+    } catch (error) {
+      console.error("Receipt regeneration failed:", error);
+
+      toast({
+        title: "Receipt Generation Failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    }
+  }, []);
+
+  // Memoized column definitions for EnhancedDataTable
   const reservationColumns: ColumnDef<Reservation>[] = useMemo(
     () => [
       {
@@ -112,21 +225,7 @@ export default function AllReservationsTable({
         header: "Status",
         cell: ({ row }) => {
           const status = row.getValue("status") as string;
-          return (
-            <Badge
-              variant={
-                status === "PENDING"
-                  ? "default"
-                  : status === "CANCELLED"
-                  ? "destructive"
-                  : status === "CONFIRMED"
-                  ? "secondary"
-                  : "outline"
-              }
-            >
-              {status}
-            </Badge>
-          );
+          return <StatusBadge status={status} />;
         },
       },
       {
@@ -141,14 +240,7 @@ export default function AllReservationsTable({
         header: "Application Fee Status",
         cell: ({ row }) => {
           const isPaid = row.getValue("application_fee_paid") as boolean;
-          return (
-            <Badge
-              variant={isPaid ? "secondary" : "destructive"}
-              className="text-xs"
-            >
-              {isPaid ? "Paid" : "Not Paid"}
-            </Badge>
-          );
+          return <ApplicationFeeBadge isPaid={isPaid} />;
         },
       },
       {
@@ -156,23 +248,14 @@ export default function AllReservationsTable({
         header: "Enrollment Status",
         cell: ({ row }) => {
           const isEnrolled = row.getValue("is_enrolled") as boolean;
-          return (
-            <Badge
-              variant={isEnrolled ? "secondary" : "outline"}
-              className={`text-xs ${
-                isEnrolled ? "bg-green-100 text-green-800" : ""
-              }`}
-            >
-              {isEnrolled ? "Enrolled" : "Not Enrolled"}
-            </Badge>
-          );
+          return <EnrollmentStatusBadge isEnrolled={isEnrolled} />;
         },
       },
     ],
     []
   );
 
-  // Action buttons for EnhancedDataTable
+  // Memoized action buttons for EnhancedDataTable
   const actionButtons = useMemo(
     () => [
       {
@@ -217,10 +300,10 @@ export default function AllReservationsTable({
         onClick: (row: Reservation) => onDelete(row),
       },
     ],
-    [onView, onEdit, onUpdateConcession, onDelete]
+    [onView, onEdit, onUpdateConcession, onDelete, handleRegenerateReceipt]
   );
 
-  // Status filter options
+  // Memoized status filter options
   const statusFilterOptions = useMemo(
     () => [
       { value: "PENDING", label: "Pending" },
@@ -230,71 +313,12 @@ export default function AllReservationsTable({
     []
   );
 
-  // Receipt regeneration handler
-  const handleRegenerateReceipt = async (reservation: Reservation) => {
-    // Check for application_income_id first, then fallback to income_id
-    const incomeId = reservation.application_income_id || reservation.income_id;
-
-    if (!incomeId) {
-      toast({
-        title: "Receipt Not Available",
-        description:
-          "This reservation does not have an associated income record for receipt generation.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      console.log("🔄 Starting receipt regeneration for income ID:", incomeId);
-      const blobUrl = await regenerateReceiptAPI(incomeId);
-      console.log("✅ Receipt blob URL received:", blobUrl);
-
-      toast({
-        title: "Receipt Generated",
-        description: "Receipt has been generated and is ready for viewing.",
-      });
-
-      // Open receipt in new tab
-      window.open(blobUrl, "_blank");
-    } catch (error) {
-      console.error("Receipt regeneration failed:", error);
-
-      toast({
-        title: "Receipt Generation Failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "An unexpected error occurred.",
-        variant: "destructive",
-      });
-    }
-  };
-
   if (isLoading) {
-    return (
-      <div className="p-6 text-sm text-muted-foreground text-center">
-        Loading reservations…
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (isError) {
-    return (
-      <div className="p-6 text-center">
-        <div className="text-red-600 mb-2">
-          <h3 className="font-medium">Connection Error</h3>
-          <p className="text-sm text-muted-foreground">
-            {error?.message?.includes("Bad Gateway")
-              ? "Backend server is not responding (502 Bad Gateway)"
-              : "Failed to load reservations"}
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => onRefetch()}>
-          Try Again
-        </Button>
-      </div>
-    );
+    return <ErrorState error={error} onRefetch={onRefetch} />;
   }
 
   return (
@@ -321,4 +345,7 @@ export default function AllReservationsTable({
       className="w-full"
     />
   );
-}
+};
+
+export const AllReservationsTable = AllReservationsTableComponent;
+export default AllReservationsTableComponent;

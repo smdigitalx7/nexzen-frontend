@@ -144,7 +144,6 @@ export const SubjectsTab = ({
 
   // Define columns for the data table using column factories
   const columns: ColumnDef<any>[] = useMemo(() => [
-    { accessorKey: "subject_id", header: "Subject ID" },
     createIconTextColumn<any>("subject_name", { 
       icon: BookOpen, 
       header: "Subject Name" 

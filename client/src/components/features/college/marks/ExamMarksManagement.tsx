@@ -294,11 +294,11 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
                                   <SelectValue placeholder="Select student" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                {students.map((student: any) => (
-                                  <SelectItem key={student.student_id} value={student.student_id?.toString() || ''}>
-                                    {student.student_name} ({student.admission_no})
-                                  </SelectItem>
-                                ))}
+                                  {students.map((student: any) => (
+                                    <SelectItem key={student.student_id} value={student.student_id?.toString() || ''}>
+                                      {student.student_name} ({student.admission_no})
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                             </FormControl>

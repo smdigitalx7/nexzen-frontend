@@ -375,24 +375,24 @@ const TestMarksManagementComponent = ({ onDataChange }: TestMarksManagementProps
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Student</FormLabel>
-                              <FormControl>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={!!editingTestMark}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select student" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                              {students.map((student: any) => (
-                                <SelectItem key={student.student_id} value={student.student_id?.toString() || ''}>
-                                  {student.student_name} ({student.admission_no})
-                                    </SelectItem>
-                                  ))}
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                          <FormControl>
+                            <Select onValueChange={field.onChange} value={field.value} disabled={!!editingTestMark}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select student" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {students.map((student: any) => (
+                                  <SelectItem key={student.student_id} value={student.student_id?.toString() || ''}>
+                                    {student.student_name} ({student.admission_no})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                         control={testMarkForm.control}

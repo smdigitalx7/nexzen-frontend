@@ -153,7 +153,6 @@ const SubjectsTabComponent = ({
 
   // Memoized columns definition
   const columns: ColumnDef<SchoolSubjectRead>[] = useMemo(() => [
-    { accessorKey: "subject_id", header: "Subject ID" },
     createIconTextColumn<SchoolSubjectRead>("subject_name", { 
       icon: BookOpen, 
       header: "Subject Name" 

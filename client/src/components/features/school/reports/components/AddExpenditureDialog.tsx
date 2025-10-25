@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo, useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -39,23 +39,144 @@ interface AddExpenditureDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export const AddExpenditureDialog = ({ open, onOpenChange }: AddExpenditureDialogProps) => {
+// Initial form values - moved outside component for better performance
+const initialFormValues: ExpenditureFormData = {
+  expenditure_purpose: "",
+  amount: 0.01,
+  bill_date: new Date().toISOString().split('T')[0],
+  payment_method: "",
+  payment_date: "",
+  remarks: "",
+};
+
+// Memoized form field component
+const FormFieldWrapper = memo(({ 
+  control, 
+  name, 
+  label, 
+  placeholder, 
+  type = "text", 
+  step, 
+  rows,
+  onChange 
+}: { 
+  control: any;
+  name: keyof ExpenditureFormData;
+  label: string;
+  placeholder: string;
+  type?: string;
+  step?: string;
+  rows?: number;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) => (
+  <FormField
+    control={control}
+    name={name}
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>{label}</FormLabel>
+        <FormControl>
+          {type === "textarea" ? (
+            <Textarea
+              placeholder={placeholder}
+              rows={rows}
+              {...field}
+            />
+          ) : (
+            <Input
+              type={type}
+              step={step}
+              placeholder={placeholder}
+              {...field}
+              onChange={onChange ? onChange : field.onChange}
+            />
+          )}
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+));
+
+FormFieldWrapper.displayName = "FormFieldWrapper";
+
+// Memoized dialog header component
+const DialogHeaderContent = memo(() => (
+  <DialogHeader>
+    <DialogTitle>Add New Expenditure Record</DialogTitle>
+    <DialogDescription>
+      Create a new expenditure record for the school.
+    </DialogDescription>
+  </DialogHeader>
+));
+
+DialogHeaderContent.displayName = "DialogHeaderContent";
+
+// Memoized dialog footer component
+const DialogFooterContent = memo(({ 
+  isSubmitting, 
+  onCancel 
+}: { 
+  isSubmitting: boolean;
+  onCancel: () => void;
+}) => (
+  <DialogFooter>
+    <Button
+      type="button"
+      variant="outline"
+      onClick={onCancel}
+      disabled={isSubmitting}
+    >
+      Cancel
+    </Button>
+    <Button type="submit" disabled={isSubmitting}>
+      {isSubmitting ? "Creating..." : "Create Expenditure"}
+    </Button>
+  </DialogFooter>
+));
+
+DialogFooterContent.displayName = "DialogFooterContent";
+
+// Memoized amount field component
+const AmountField = memo(({ control }: { control: any }) => (
+  <FormField
+    control={control}
+    name="amount"
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Amount</FormLabel>
+        <FormControl>
+          <Input
+            type="number"
+            step="0.01"
+            placeholder="0.00"
+            {...field}
+            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+          />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+));
+
+AmountField.displayName = "AmountField";
+
+const AddExpenditureDialogComponent = ({ open, onOpenChange }: AddExpenditureDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const createExpenditureMutation = useCreateSchoolExpenditure();
 
   const form = useForm<ExpenditureFormData>({
     resolver: zodResolver(expenditureSchema),
-    defaultValues: {
-      expenditure_purpose: "",
-      amount: 0.01,
-      bill_date: new Date().toISOString().split('T')[0],
-      payment_method: "",
-      payment_date: "",
-      remarks: "",
-    },
+    defaultValues: initialFormValues,
   });
 
-  const onSubmit = async (data: ExpenditureFormData) => {
+  // Memoized handlers
+  const handleCancel = useCallback(() => {
+    onOpenChange(false);
+  }, [onOpenChange]);
+
+  const onSubmit = useCallback(async (data: ExpenditureFormData) => {
     setIsSubmitting(true);
     try {
       const payload = {
@@ -74,122 +195,59 @@ export const AddExpenditureDialog = ({ open, onOpenChange }: AddExpenditureDialo
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [createExpenditureMutation, form, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add New Expenditure Record</DialogTitle>
-          <DialogDescription>
-            Create a new expenditure record for the school.
-          </DialogDescription>
-        </DialogHeader>
+        <DialogHeaderContent />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
+            <FormFieldWrapper
               control={form.control}
               name="expenditure_purpose"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Purpose</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Office Supplies, Maintenance" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Purpose"
+              placeholder="e.g., Office Supplies, Maintenance"
             />
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
+            <AmountField control={form.control} />
+            <FormFieldWrapper
               control={form.control}
               name="bill_date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Bill Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Bill Date"
+              type="date"
+              placeholder=""
             />
-            <FormField
+            <FormFieldWrapper
               control={form.control}
               name="payment_method"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Method (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Cash, Bank Transfer, Cheque" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Payment Method (Optional)"
+              placeholder="e.g., Cash, Bank Transfer, Cheque"
             />
-            <FormField
+            <FormFieldWrapper
               control={form.control}
               name="payment_date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Date (Optional)</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Payment Date (Optional)"
+              type="date"
+              placeholder=""
             />
-            <FormField
+            <FormFieldWrapper
               control={form.control}
               name="remarks"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Remarks (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Additional details about this expenditure"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Remarks (Optional)"
+              type="textarea"
+              placeholder="Additional details about this expenditure"
+              rows={3}
             />
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Creating..." : "Create Expenditure"}
-              </Button>
-            </DialogFooter>
+            <DialogFooterContent
+              isSubmitting={isSubmitting}
+              onCancel={handleCancel}
+            />
           </form>
         </Form>
       </DialogContent>
     </Dialog>
   );
 };
+
+export const AddExpenditureDialog = AddExpenditureDialogComponent;
+export default AddExpenditureDialogComponent;
