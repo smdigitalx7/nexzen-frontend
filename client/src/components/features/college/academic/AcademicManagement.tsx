@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { School, Building2, Users, Layers, BookOpen, GraduationCap, FileText, Calendar, Settings } from "lucide-react";
+import { School, Building2, Users, Layers, BookOpen, GraduationCap, FileText, Calendar, Settings, UserCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
 import { useAuthStore } from "@/store/authStore";
@@ -17,6 +17,7 @@ import { ExamsTab } from "@/components/features/college/academic/exams/ExamsTab"
 import { TestTab } from "@/components/features/college/academic/tests/TestTab";
 import { GroupsTab } from "@/components/features/college/academic/groups/GroupsTab";
 import { CoursesTab } from "@/components/features/college/academic/courses/CoursesTab";
+import { TeachersTab } from "@/components/features/college/academic/teachers/TeachersTab";
 import { AcademicOverviewCards } from "@/components/features/college/academic/AcademicOverviewCards";
 
 const AcademicManagement = () => {
@@ -84,6 +85,11 @@ const AcademicManagement = () => {
         return {
           title: 'Courses Management',
           description: 'Manage academic courses and their curriculum'
+        };
+      case 'teachers':
+        return {
+          title: 'Teachers Management',
+          description: 'Manage teaching staff and their assignments'
         };
       case 'subjects':
         return {
@@ -207,6 +213,12 @@ const AcademicManagement = () => {
                 errorMessage={(coursesErrObj as any)?.message}
               />
             ),
+          },
+          {
+            value: "teachers",
+            label: "Teachers",
+            icon: UserCheck,
+            content: <TeachersTab />,
           },
           {
             value: "subjects",

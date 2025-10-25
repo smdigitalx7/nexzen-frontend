@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, memo, useCallback } from "react";
 import { FileText, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +25,15 @@ export interface TestTabProps {
   errorMessage?: string;
 }
 
-export const TestTab = ({
+// Initial form data
+const initialTestFormData = { 
+  test_name: "", 
+  test_date: "", 
+  pass_marks: "",
+  max_marks: ""
+};
+
+const TestTabComponent = ({
   searchTerm,
   setSearchTerm,
   tests,
@@ -34,15 +42,19 @@ export const TestTab = ({
   hasError = false,
   errorMessage,
 }: TestTabProps) => {
-  // Debug: Log test data
-  // removed debug log
-  const createTest = useCreateSchoolTest();
-  const [selectedTest, setSelectedTest] = useState<SchoolTestRead | null>(null);
-  const updateTest = useUpdateSchoolTest(selectedTest?.test_id || 0);
-  const deleteTest = useDeleteSchoolTest();
+  // Dialog states
   const [isAddTestOpen, setIsAddTestOpen] = useState(false);
   const [isEditTestOpen, setIsEditTestOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  
+  // Selected test state
+  const [selectedTest, setSelectedTest] = useState<SchoolTestRead | null>(null);
+
+  // Hooks
+  const { toast } = useToast();
+  const createTest = useCreateSchoolTest();
+  const updateTest = useUpdateSchoolTest(selectedTest?.test_id || 0);
+  const deleteTest = useDeleteSchoolTest();
   
   // Using shared form state management for new test
   const {
@@ -51,12 +63,7 @@ export const TestTab = ({
     updateField: updateNewTestField,
     resetForm: resetNewTest,
   } = useFormState({
-    initialData: { 
-      test_name: "", 
-      test_date: "", 
-      pass_marks: "",
-      max_marks: ""
-    }
+    initialData: initialTestFormData
   });
   
   // Using shared form state management for edit test
@@ -66,29 +73,51 @@ export const TestTab = ({
     updateField: updateEditTestField,
     resetForm: resetEditTest,
   } = useFormState({
-    initialData: { 
-      test_name: "", 
-      test_date: "", 
-      pass_marks: "",
-      max_marks: ""
-    }
+    initialData: initialTestFormData
   });
 
-  const { toast } = useToast();
-
-  const handleCreateTest = async () => {
-    if (!newTest.test_name?.trim()) {
+  // Memoized validation functions
+  const validateTestForm = useCallback((form: Partial<typeof initialTestFormData>) => {
+    if (!form.test_name?.trim()) {
       toast({
         title: "Error",
         description: "Test name is required",
         variant: "destructive",
       });
-      return;
+      return false;
     }
+
+    const passMarks = parseInt(form.pass_marks || "50");
+    const maxMarks = parseInt(form.max_marks || "50");
+
+    if (passMarks < 0 || maxMarks < 0) {
+      toast({
+        title: "Error",
+        description: "Marks cannot be negative",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (passMarks > maxMarks) {
+      toast({
+        title: "Error",
+        description: "Pass marks cannot be greater than max marks",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  }, [toast]);
+
+  // Memoized mutation handlers
+  const handleCreateTest = useCallback(async () => {
+    if (!validateTestForm(newTest)) return;
 
     try {
       const payload: SchoolTestCreate = {
-        test_name: newTest.test_name.trim(),
+        test_name: newTest.test_name!.trim(),
         test_date: newTest.test_date || "",
         pass_marks: parseInt(newTest.pass_marks || "50") || 50,
         max_marks: parseInt(newTest.max_marks || "50") || 50,
@@ -109,17 +138,10 @@ export const TestTab = ({
         variant: "destructive",
       });
     }
-  };
+  }, [newTest, validateTestForm, createTest, toast, resetNewTest]);
 
-  const handleUpdateTest = async () => {
-    if (!editTest.test_name?.trim() || !selectedTest) {
-      toast({
-        title: "Error",
-        description: "Test name is required",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleUpdateTest = useCallback(async () => {
+    if (!validateTestForm(editTest) || !selectedTest) return;
 
     try {
       const updatePayload: SchoolTestUpdate = {
@@ -145,9 +167,9 @@ export const TestTab = ({
         variant: "destructive",
       });
     }
-  };
+  }, [editTest, selectedTest, validateTestForm, updateTest, toast, resetEditTest]);
 
-  const handleDeleteTest = async () => {
+  const handleDeleteTest = useCallback(async () => {
     if (!selectedTest) return;
 
     try {
@@ -167,9 +189,10 @@ export const TestTab = ({
         variant: "destructive",
       });
     }
-  };
+  }, [selectedTest, deleteTest, toast]);
 
-  const handleEditClick = (test: SchoolTestRead) => {
+  // Memoized action handlers
+  const handleEditClick = useCallback((test: SchoolTestRead) => {
     setSelectedTest(test);
     setEditTest({ 
       test_name: test.test_name,
@@ -178,14 +201,14 @@ export const TestTab = ({
       max_marks: test.max_marks?.toString() || "50"
     });
     setIsEditTestOpen(true);
-  };
+  }, [setEditTest]);
 
-  const handleDeleteClick = (test: SchoolTestRead) => {
+  const handleDeleteClick = useCallback((test: SchoolTestRead) => {
     setSelectedTest(test);
     setIsDeleteDialogOpen(true);
-  };
+  }, []);
 
-  // Define columns for the data table using column factories
+  // Memoized columns definition
   const columns: ColumnDef<SchoolTestRead>[] = useMemo(() => [
     createIconTextColumn<SchoolTestRead>("test_name", { 
       icon: FileText, 
@@ -204,17 +227,39 @@ export const TestTab = ({
     })
   ], []);
 
-  // Action button groups for EnhancedDataTable
+  // Memoized action button groups
   const actionButtonGroups = useMemo(() => [
     {
       type: 'edit' as const,
-      onClick: (row: SchoolTestRead) => handleEditClick(row)
+      onClick: handleEditClick
     },
     {
       type: 'delete' as const,
-      onClick: (row: SchoolTestRead) => handleDeleteClick(row)
+      onClick: handleDeleteClick
     }
-  ], []);
+  ], [handleEditClick, handleDeleteClick]);
+
+  // Memoized dialog close handlers
+  const closeAddDialog = useCallback(() => {
+    setIsAddTestOpen(false);
+    resetNewTest();
+  }, [resetNewTest]);
+
+  const closeEditDialog = useCallback(() => {
+    setIsEditTestOpen(false);
+    resetEditTest();
+    setSelectedTest(null);
+  }, [resetEditTest]);
+
+  const closeDeleteDialog = useCallback(() => {
+    setIsDeleteDialogOpen(false);
+    setSelectedTest(null);
+  }, []);
+
+  // Memoized empty state handler
+  const handleCreateFirstTest = useCallback(() => {
+    setIsAddTestOpen(true);
+  }, []);
 
   if (hasError) {
     return (
@@ -243,7 +288,7 @@ export const TestTab = ({
             <p className="text-sm">Get started by creating your first test.</p>
           </div>
           <button
-            onClick={() => setIsAddTestOpen(true)}
+            onClick={handleCreateFirstTest}
             className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
             Create First Test
@@ -276,12 +321,10 @@ export const TestTab = ({
         title="Add New Test"
         description="Create a new academic test"
         onSave={handleCreateTest}
-        onCancel={() => {
-          setIsAddTestOpen(false);
-          resetNewTest();
-        }}
+        onCancel={closeAddDialog}
         saveText="Create Test"
         cancelText="Cancel"
+        disabled={createTest.isPending}
       >
         <div className="space-y-4">
           <div className="space-y-2">
@@ -331,13 +374,10 @@ export const TestTab = ({
         title="Edit Test"
         description="Update test information"
         onSave={handleUpdateTest}
-        onCancel={() => {
-          setIsEditTestOpen(false);
-          resetEditTest();
-          setSelectedTest(null);
-        }}
+        onCancel={closeEditDialog}
         saveText="Update Test"
         cancelText="Cancel"
+        disabled={updateTest.isPending}
       >
         <div className="space-y-4">
           <div className="space-y-2">
@@ -387,13 +427,12 @@ export const TestTab = ({
         title="Delete Test"
         description={`Are you sure you want to delete the test "${selectedTest?.test_name}"? This action cannot be undone.`}
         onConfirm={handleDeleteTest}
-        onCancel={() => {
-          setIsDeleteDialogOpen(false);
-          setSelectedTest(null);
-        }}
+        onCancel={closeDeleteDialog}
         confirmText="Delete"
         variant="destructive"
       />
     </div>
   );
 };
+
+export const TestTab = TestTabComponent;

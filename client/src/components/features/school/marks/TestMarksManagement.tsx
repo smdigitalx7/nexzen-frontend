@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, memo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ClipboardList, Eye, Edit, Trash2 } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -22,9 +22,8 @@ import {
   useUpdateSchoolTestMark,
   useDeleteSchoolTestMark
 } from '@/lib/hooks/school/use-school-test-marks';
-import { useSchoolClasses, useSchoolSections, useSchoolSubjects } from '@/lib/hooks/school/use-school-dropdowns';
+import { useSchoolClasses, useSchoolSections, useSchoolSubjects, useSchoolTests } from '@/lib/hooks/school/use-school-dropdowns';
 import { useSchoolStudentsList } from '@/lib/hooks/school/use-school-students';
-import { useSchoolTests } from '@/lib/hooks/school/use-school-exams-tests';
 import type { TestMarkWithDetails, TestMarksQuery } from '@/lib/types/school/test-marks';
 import {
   createStudentColumn,
@@ -34,7 +33,7 @@ import {
   createTestDateColumn,
 } from "@/lib/utils/columnFactories.tsx";
 
-// Utility functions for grade calculation
+// Utility functions for grade calculation - moved outside component for better performance
 const calculateGrade = (percentage: number): string => {
   if (percentage >= 90) return 'A+';
   if (percentage >= 80) return 'A';
@@ -49,6 +48,18 @@ const calculateGrade = (percentage: number): string => {
 const calculatePercentage = (marksObtained: number, maxMarks: number = 100): number => {
   return Math.round((marksObtained / maxMarks) * 100 * 10) / 10; // Round to 1 decimal place
 };
+
+// Grade colors mapping - moved outside component for better performance
+const GRADE_COLORS = {
+  'A+': 'bg-green-600',
+  'A': 'bg-green-500',
+  'B+': 'bg-blue-500',
+  'B': 'bg-blue-400',
+  'C+': 'bg-yellow-500',
+  'C': 'bg-yellow-400',
+  'D': 'bg-orange-500',
+  'F': 'bg-red-500',
+} as const;
 
 const testMarkFormSchema = z.object({
   enrollment_id: z.string().min(1, "Student is required"),
@@ -65,12 +76,13 @@ interface TestMarksManagementProps {
   onDataChange?: (data: TestMarkWithDetails[]) => void;
 }
 
-const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
-  
+const TestMarksManagementComponent = ({ onDataChange }: TestMarksManagementProps) => {
+  // State management
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSection, setSelectedSection] = useState('all');
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [selectedGrade, setSelectedGrade] = useState('all');
+  const [selectedTest, setSelectedTest] = useState('all');
   
   // Dialog states
   const [showTestMarkDialog, setShowTestMarkDialog] = useState(false);
@@ -79,19 +91,25 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
   const [viewingTestMarkId, setViewingTestMarkId] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
-  // API hooks
+  // Memoized class ID for API calls
+  const classId = useMemo(() => 
+    selectedClass ? parseInt(selectedClass) : 0,
+    [selectedClass]
+  );
+
+  // API hooks with memoized parameters
   const { data: classesData, isLoading: classesLoading, error: classesError } = useSchoolClasses();
-  const { data: sectionsData, isLoading: sectionsLoading, error: sectionsError } = useSchoolSections(selectedClass ? parseInt(selectedClass) : 0);
-  const { data: subjectsData, isLoading: subjectsLoading, error: subjectsError } = useSchoolSubjects(selectedClass ? parseInt(selectedClass) : 0);
+  const { data: sectionsData, isLoading: sectionsLoading, error: sectionsError } = useSchoolSections(classId);
+  const { data: subjectsData, isLoading: subjectsLoading, error: subjectsError } = useSchoolSubjects(classId);
   const { data: studentsData } = useSchoolStudentsList();
-  const students = studentsData?.data || [];
   const { data: testsData } = useSchoolTests();
 
-  // Extract items from response data
-  const classes = classesData?.items || [];
-  const sections = sectionsData?.items || [];
-  const subjects = subjectsData?.items || [];
-  const tests = testsData || [];
+  // Memoized extracted data
+  const classes = useMemo(() => classesData?.items || [], [classesData]);
+  const sections = useMemo(() => sectionsData?.items || [], [sectionsData]);
+  const subjects = useMemo(() => subjectsData?.items || [], [subjectsData]);
+  const students = useMemo(() => studentsData?.data || [], [studentsData]);
+  const tests = useMemo(() => testsData?.items || [], [testsData]);
 
   // Auto-select first class when available
   useEffect(() => {
@@ -100,10 +118,11 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
     }
   }, [selectedClass, classes]);
 
-  // Reset section and subject when class changes
+  // Reset section, subject, and test when class changes
   useEffect(() => {
     setSelectedSection('all');
     setSelectedSubject('all');
+    setSelectedTest('all');
   }, [selectedClass]);
 
   // Single test mark view data (enabled only when an id is set)
@@ -147,8 +166,29 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
     },
   });
 
-  // Form handling functions
-  const handleTestMarkSubmit = (values: any) => {
+  // Memoized handlers
+  const handleClassChange = useCallback((value: string) => {
+    setSelectedClass(value === 'all' ? '' : value);
+  }, []);
+
+  const handleSectionChange = useCallback((value: string) => {
+    setSelectedSection(value);
+  }, []);
+
+  const handleSubjectChange = useCallback((value: string) => {
+    setSelectedSubject(value);
+  }, []);
+
+  const handleGradeChange = useCallback((value: string) => {
+    setSelectedGrade(value);
+  }, []);
+
+  const handleTestChange = useCallback((value: string) => {
+    setSelectedTest(value);
+  }, []);
+
+  // Memoized form handling functions
+  const handleTestMarkSubmit = useCallback((values: any) => {
     const markData = {
       enrollment_id: parseInt(values.enrollment_id),
       test_id: parseInt(values.test_id),
@@ -175,9 +215,9 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
     testMarkForm.reset();
     setEditingTestMark(null);
     setShowTestMarkDialog(false);
-  };
+  }, [editingTestMark, updateTestMarkMutation, createTestMarkMutation, testMarkForm]);
 
-  const handleEditTestMark = (mark: TestMarkWithDetails) => {
+  const handleEditTestMark = useCallback((mark: TestMarkWithDetails) => {
     setEditingTestMark(mark);
     testMarkForm.reset({
       enrollment_id: mark.enrollment_id.toString(),
@@ -190,16 +230,39 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
       remarks: mark.remarks || '',
     });
     setShowTestMarkDialog(true);
-  };
+  }, [testMarkForm]);
 
-  const handleDeleteTestMark = (markId: number) => {
+  const handleDeleteTestMark = useCallback((markId: number) => {
     setConfirmDeleteId(markId);
-  };
+  }, []);
 
-  const handleViewTestMark = (markId: number) => {
+  const handleViewTestMark = useCallback((markId: number) => {
     setViewingTestMarkId(markId);
     setShowViewTestMarkDialog(true);
-  };
+  }, []);
+
+  // Memoized dialog handlers
+  const closeTestMarkDialog = useCallback(() => {
+    testMarkForm.reset();
+    setEditingTestMark(null);
+    setShowTestMarkDialog(false);
+  }, [testMarkForm]);
+
+  const closeViewDialog = useCallback(() => {
+    setShowViewTestMarkDialog(false);
+    setViewingTestMarkId(null);
+  }, []);
+
+  const closeDeleteDialog = useCallback(() => {
+    setConfirmDeleteId(null);
+  }, []);
+
+  const confirmDelete = useCallback(() => {
+    if (confirmDeleteId) {
+      deleteTestMarkMutation.mutate(confirmDeleteId);
+      setConfirmDeleteId(null);
+    }
+  }, [confirmDeleteId, deleteTestMarkMutation]);
 
   // Process and filter data - flatten grouped response from backend
   const flattenedMarks = useMemo(() => {
@@ -241,8 +304,13 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
       filtered = filtered.filter(mark => mark.grade === selectedGrade);
     }
     
+    // Apply test filter (client-side)
+    if (selectedTest !== 'all') {
+      filtered = filtered.filter(mark => mark.test_name === selectedTest);
+    }
+    
     return filtered;
-  }, [flattenedMarks, selectedSection, selectedSubject, selectedGrade]);
+  }, [flattenedMarks, selectedSection, selectedSubject, selectedGrade, selectedTest]);
 
   const { searchTerm, setSearchTerm, filteredItems: testMarks } = useSearchFilters<TestMarkWithDetails>(
     filteredMarks,
@@ -258,24 +326,12 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
 
 
 
-  // Grade colors mapping
-  const gradeColors = {
-    'A+': 'bg-green-600',
-    'A': 'bg-green-500',
-    'B+': 'bg-blue-500',
-    'B': 'bg-blue-400',
-    'C+': 'bg-yellow-500',
-    'C': 'bg-yellow-400',
-    'D': 'bg-orange-500',
-    'F': 'bg-red-500',
-  };
-
   // Table columns for test marks using column factories
   const testMarkColumns: ColumnDef<TestMarkWithDetails>[] = useMemo(() => [
     createStudentColumn<TestMarkWithDetails>("student_name", "roll_number", "section_name", { header: "Student" }),
     createSubjectColumn<TestMarkWithDetails>("subject_name", "test_name", { header: "Subject" }),
     createMarksColumn<TestMarkWithDetails>("marks_obtained", "max_marks", "percentage", { header: "Marks" }),
-    createGradeColumn<TestMarkWithDetails>("grade", gradeColors, { header: "Grade" }),
+    createGradeColumn<TestMarkWithDetails>("grade", GRADE_COLORS, { header: "Grade" }),
     createTestDateColumn<TestMarkWithDetails>("conducted_at", { header: "Test Date" }),
   ], []);
 
@@ -319,20 +375,20 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Student</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!editingTestMark}>
-                                <FormControl>
-                              <SelectTrigger >
-                                <SelectValue placeholder="Select student" />
+                              <FormControl>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={!!editingTestMark}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select student" />
                                   </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
+                                  <SelectContent>
                               {students.map((student: any) => (
                                 <SelectItem key={student.student_id} value={student.student_id?.toString() || ''}>
                                   {student.student_name} ({student.admission_no})
                                     </SelectItem>
                                   ))}
-                                </SelectContent>
-                              </Select>
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -344,20 +400,20 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
                           render={({ field }) => (
                             <FormItem>
                             <FormLabel>Test</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!editingTestMark}>
-                              <FormControl>
-                                <SelectTrigger >
+                            <FormControl>
+                              <Select onValueChange={field.onChange} value={field.value} disabled={!!editingTestMark}>
+                                <SelectTrigger>
                                   <SelectValue placeholder="Select test" />
                                 </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
+                                <SelectContent>
                                 {tests.map((test: any) => (
                                   <SelectItem key={test.test_id || test.id} value={(test.test_id || test.id)?.toString() || ''}>
                                     {test.test_name}
                                   </SelectItem>
                                 ))}
-                              </SelectContent>
-                            </Select>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -368,20 +424,20 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
                           render={({ field }) => (
                             <FormItem>
                             <FormLabel>Subject</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!editingTestMark}>
-                              <FormControl>
-                                <SelectTrigger >
+                            <FormControl>
+                              <Select onValueChange={field.onChange} value={field.value} disabled={!!editingTestMark}>
+                                <SelectTrigger>
                                   <SelectValue placeholder="Select subject" />
                                 </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
+                                <SelectContent>
                                 {subjects.map((subject: any) => (
                                   <SelectItem key={subject.subject_id} value={subject.subject_id?.toString() || ''}>
                                     {subject.subject_name}
                                   </SelectItem>
                                 ))}
-                              </SelectContent>
-                            </Select>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -438,13 +494,12 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Grade</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
+                              <FormControl>
+                                <Select onValueChange={field.onChange} value={field.value}>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select grade" />
                                   </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
+                                  <SelectContent>
                                   <SelectItem value="A+">A+</SelectItem>
                                   <SelectItem value="A">A</SelectItem>
                                   <SelectItem value="B+">B+</SelectItem>
@@ -453,8 +508,9 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
                                   <SelectItem value="C">C</SelectItem>
                                   <SelectItem value="D">D</SelectItem>
                                   <SelectItem value="F">F</SelectItem>
-                                </SelectContent>
-                              </Select>
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -490,11 +546,7 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
                         <Button 
                           type="button" 
                           variant="outline" 
-                          onClick={() => {
-                          testMarkForm.reset();
-                          setEditingTestMark(null);
-                          setShowTestMarkDialog(false);
-                        }}
+                          onClick={closeTestMarkDialog}
                         >
                           Cancel
                         </Button>
@@ -521,7 +573,7 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
             <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-2">
                   <label className="text-sm font-medium">Class:</label>
-                  <Select value={selectedClass || 'all'} onValueChange={(value) => setSelectedClass(value === 'all' ? '' : value)}>
+                  <Select value={selectedClass || 'all'} onValueChange={handleClassChange}>
                     <SelectTrigger className="w-48">
                       <SelectValue placeholder="Select class" />
                     </SelectTrigger>
@@ -538,7 +590,7 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
                 
                 <div className="flex items-center gap-2">
                   <label className="text-sm font-medium">Section:</label>
-                  <Select value={selectedSection} onValueChange={setSelectedSection}>
+                  <Select value={selectedSection} onValueChange={handleSectionChange}>
                     <SelectTrigger className="w-40">
                       <SelectValue placeholder="All Sections" />
                     </SelectTrigger>
@@ -555,7 +607,7 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
                 
                 <div className="flex items-center gap-2">
                   <label className="text-sm font-medium">Subject:</label>
-                  <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                  <Select value={selectedSubject} onValueChange={handleSubjectChange}>
                     <SelectTrigger className="w-40">
                       <SelectValue placeholder="All Subjects" />
                     </SelectTrigger>
@@ -572,7 +624,7 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
                 
                 <div className="flex items-center gap-2">
                   <label className="text-sm font-medium">Grade:</label>
-                  <Select value={selectedGrade} onValueChange={setSelectedGrade}>
+                  <Select value={selectedGrade} onValueChange={handleGradeChange}>
                     <SelectTrigger className="w-32">
                       <SelectValue placeholder="All Grades" />
                     </SelectTrigger>
@@ -586,6 +638,23 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
                       <SelectItem value="C">C</SelectItem>
                       <SelectItem value="D">D</SelectItem>
                       <SelectItem value="F">F</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">Test:</label>
+                  <Select value={selectedTest} onValueChange={handleTestChange}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="All Tests" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Tests</SelectItem>
+                      {tests.map((test: any) => (
+                        <SelectItem key={test.test_id} value={test.test_name}>
+                          {test.test_name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -654,7 +723,7 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
             ))}
 
             {/* View Test Mark Dialog */}
-            <Dialog open={showViewTestMarkDialog} onOpenChange={setShowViewTestMarkDialog}>
+            <Dialog open={showViewTestMarkDialog} onOpenChange={closeViewDialog}>
               <DialogContent className="sm:max-w-[520px]">
                 <DialogHeader>
                   <DialogTitle>Test Mark Details</DialogTitle>
@@ -718,7 +787,7 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
         </div>
       </div>
       {/* Confirm Delete Test Mark */}
-      <AlertDialog open={confirmDeleteId !== null} onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}>
+      <AlertDialog open={confirmDeleteId !== null} onOpenChange={closeDeleteDialog}>
         <AlertDialogContent>
           <AlertHeader>
             <AlertDialogTitle>Delete Test Mark</AlertDialogTitle>
@@ -728,7 +797,7 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
           </AlertHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => { if (confirmDeleteId) deleteTestMarkMutation.mutate(confirmDeleteId); setConfirmDeleteId(null); }}>Delete</AlertDialogAction>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={confirmDelete}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -736,4 +805,4 @@ const TestMarksManagement = ({ onDataChange }: TestMarksManagementProps) => {
   );
 };
 
-export default TestMarksManagement;
+export default TestMarksManagementComponent;

@@ -1,17 +1,12 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, memo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { GraduationCap, Eye, Edit, Trash2 } from 'lucide-react';
+import { GraduationCap } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader as AlertHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { EnhancedDataTable } from '@/components/shared';
 import { 
   useSchoolExamMarksList, 
@@ -20,9 +15,7 @@ import {
   useUpdateSchoolExamMark, 
   useDeleteSchoolExamMark
 } from '@/lib/hooks/school/use-school-exam-marks';
-import { useSchoolClasses, useSchoolSections, useSchoolSubjects } from '@/lib/hooks/school/use-school-dropdowns';
-import { useSchoolStudentsList } from '@/lib/hooks/school/use-school-students';
-import { useSchoolExams } from '@/lib/hooks/school/use-school-exams-tests';
+import { useSchoolClasses, useSchoolSections, useSchoolSubjects, useSchoolExams } from '@/lib/hooks/school/use-school-dropdowns';
 import type { ExamMarkWithDetails, ExamMarksQuery } from '@/lib/types/school/exam-marks';
 import {
   createStudentColumn,
@@ -31,44 +24,32 @@ import {
   createGradeColumn,
   createTestDateColumn
 } from "@/lib/utils/columnFactories.tsx";
+import AddExamMarkForm from './AddExamMarkForm';
 
-// Utility functions for grade calculation
-const calculateGrade = (percentage: number): string => {
-  if (percentage >= 90) return 'A+';
-  if (percentage >= 80) return 'A';
-  if (percentage >= 70) return 'B+';
-  if (percentage >= 60) return 'B';
-  if (percentage >= 50) return 'C+';
-  if (percentage >= 40) return 'C';
-  if (percentage >= 35) return 'D';
-  return 'F';
-};
-
-const calculatePercentage = (marksObtained: number, maxMarks: number = 100): number => {
-  return Math.round((marksObtained / maxMarks) * 100 * 10) / 10; // Round to 1 decimal place
-};
-
-const examMarkFormSchema = z.object({
-  enrollment_id: z.string().min(1, "Student is required"),
-  exam_id: z.string().min(1, "Exam is required"),
-  subject_id: z.string().min(1, "Subject is required"),
-  marks_obtained: z.string().min(1, "Marks obtained is required"),
-  percentage: z.string().min(1, "Percentage is required"),
-  grade: z.string().min(1, "Grade is required"),
-  conducted_at: z.string().min(1, "Exam date is required"),
-  remarks: z.string().optional(),
-});
 
 interface ExamMarksManagementProps {
   onDataChange?: (data: ExamMarkWithDetails[]) => void;
 }
 
-const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
-  // State
+// Grade colors mapping - moved outside component for better performance
+const GRADE_COLORS = {
+  'A+': 'bg-green-600',
+  'A': 'bg-green-500',
+  'B+': 'bg-blue-500',
+  'B': 'bg-blue-400',
+  'C+': 'bg-yellow-500',
+  'C': 'bg-yellow-400',
+  'D': 'bg-orange-500',
+  'F': 'bg-red-500',
+} as const;
+
+const ExamMarksManagementComponent = ({ onDataChange }: ExamMarksManagementProps) => {
+  // State management
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSection, setSelectedSection] = useState('all');
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [selectedGrade, setSelectedGrade] = useState('all');
+  const [selectedExam, setSelectedExam] = useState('all');
   
   // Dialog states
   const [showExamMarkDialog, setShowExamMarkDialog] = useState(false);
@@ -77,19 +58,23 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
   const [viewingExamMarkId, setViewingExamMarkId] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
-  // API hooks
-  const { data: classesData, isLoading: classesLoading, error: classesError } = useSchoolClasses();
-  const { data: sectionsData, isLoading: sectionsLoading, error: sectionsError } = useSchoolSections(selectedClass ? parseInt(selectedClass) : 0);
-  const { data: subjectsData, isLoading: subjectsLoading, error: subjectsError } = useSchoolSubjects(selectedClass ? parseInt(selectedClass) : 0);
-  const { data: studentsData } = useSchoolStudentsList();
-  const students = studentsData?.data || [];
-  const { data: examsData } = useSchoolExams();
+  // Memoized class ID for API calls
+  const classId = useMemo(() => 
+    selectedClass ? parseInt(selectedClass) : 0,
+    [selectedClass]
+  );
 
-  // Extract items from response data
-  const classes = classesData?.items || [];
-  const sections = sectionsData?.items || [];
-  const subjects = subjectsData?.items || [];
-  const exams = examsData || [];
+  // API hooks with memoized parameters
+  const { data: classesData, isLoading: classesLoading, error: classesError } = useSchoolClasses();
+  const { data: sectionsData, isLoading: sectionsLoading, error: sectionsError } = useSchoolSections(classId);
+  const { data: subjectsData, isLoading: subjectsLoading, error: subjectsError } = useSchoolSubjects(classId);
+  const { data: examsData, isLoading: examsLoading, error: examsError } = useSchoolExams();
+
+  // Memoized extracted data
+  const classes = useMemo(() => classesData?.items || [], [classesData]);
+  const sections = useMemo(() => sectionsData?.items || [], [sectionsData]);
+  const subjects = useMemo(() => subjectsData?.items || [], [subjectsData]);
+  const exams = useMemo(() => examsData?.items || [], [examsData]);
 
 
   // Auto-select first class when available
@@ -99,10 +84,11 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
     }
   }, [selectedClass, classes]);
 
-  // Reset section and subject when class changes
+  // Reset section, subject, and exam when class changes
   useEffect(() => {
     setSelectedSection('all');
     setSelectedSubject('all');
+    setSelectedExam('all');
   }, [selectedClass]);
 
   // Single exam mark view data (enabled only when an id is set)
@@ -131,34 +117,29 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
   const updateExamMarkMutation = useUpdateSchoolExamMark(editingExamMark?.mark_id || 0);
   const deleteExamMarkMutation = useDeleteSchoolExamMark();
 
-  // Form
-  const examMarkForm = useForm({
-    resolver: zodResolver(examMarkFormSchema),
-    defaultValues: {
-      enrollment_id: '',
-      exam_id: '',
-      subject_id: '',
-      marks_obtained: '',
-      percentage: '',
-      grade: '',
-      conducted_at: '',
-      remarks: '',
-    },
-  });
+  // Memoized handlers
+  const handleClassChange = useCallback((value: string) => {
+    setSelectedClass(value === 'all' ? '' : value);
+  }, []);
 
-  // Form handling functions
-  const handleExamMarkSubmit = (values: any) => {
-    const markData = {
-      enrollment_id: parseInt(values.enrollment_id),
-      exam_id: parseInt(values.exam_id),
-      subject_id: parseInt(values.subject_id),
-      marks_obtained: parseFloat(values.marks_obtained),
-      percentage: parseFloat(values.percentage),
-      grade: values.grade,
-      conducted_at: values.conducted_at,
-      remarks: values.remarks || '',
-    };
+  const handleSectionChange = useCallback((value: string) => {
+    setSelectedSection(value);
+  }, []);
 
+  const handleSubjectChange = useCallback((value: string) => {
+    setSelectedSubject(value);
+  }, []);
+
+  const handleGradeChange = useCallback((value: string) => {
+    setSelectedGrade(value);
+  }, []);
+
+  const handleExamChange = useCallback((value: string) => {
+    setSelectedExam(value);
+  }, []);
+
+  // Memoized form handling functions
+  const handleExamMarkSubmit = useCallback((markData: any) => {
     if (editingExamMark) {
       updateExamMarkMutation.mutate({
         marks_obtained: markData.marks_obtained,
@@ -171,34 +152,45 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
       createExamMarkMutation.mutate(markData);
     }
 
-    examMarkForm.reset();
     setEditingExamMark(null);
     setShowExamMarkDialog(false);
-  };
+  }, [editingExamMark, updateExamMarkMutation, createExamMarkMutation]);
 
-  const handleEditExamMark = (mark: ExamMarkWithDetails) => {
+  const handleEditExamMark = useCallback((mark: ExamMarkWithDetails) => {
     setEditingExamMark(mark);
-    examMarkForm.reset({
-      enrollment_id: mark.enrollment_id.toString(),
-      exam_id: mark.exam_id?.toString() || '',
-      subject_id: mark.subject_id?.toString() || '',
-      marks_obtained: mark.marks_obtained?.toString() || '0',
-      percentage: mark.percentage?.toString() || '0',
-      grade: mark.grade || '',
-      conducted_at: mark.conducted_at || '',
-      remarks: mark.remarks || '',
-    });
     setShowExamMarkDialog(true);
-  };
+  }, []);
 
-  const handleDeleteExamMark = (markId: number) => {
+  const handleDeleteExamMark = useCallback((markId: number) => {
     setConfirmDeleteId(markId);
-  };
+  }, []);
 
-  const handleViewExamMark = (markId: number) => {
+  const handleViewExamMark = useCallback((markId: number) => {
     setViewingExamMarkId(markId);
     setShowViewExamMarkDialog(true);
-  };
+  }, []);
+
+  // Memoized dialog handlers
+  const closeExamMarkDialog = useCallback(() => {
+    setShowExamMarkDialog(false);
+    setEditingExamMark(null);
+  }, []);
+
+  const closeViewDialog = useCallback(() => {
+    setShowViewExamMarkDialog(false);
+    setViewingExamMarkId(null);
+  }, []);
+
+  const closeDeleteDialog = useCallback(() => {
+    setConfirmDeleteId(null);
+  }, []);
+
+  const confirmDelete = useCallback(() => {
+    if (confirmDeleteId) {
+      deleteExamMarkMutation.mutate(confirmDeleteId);
+      setConfirmDeleteId(null);
+    }
+  }, [confirmDeleteId, deleteExamMarkMutation]);
 
   // Process data - flatten grouped response, then apply shared search filter
   const flattenedMarks = useMemo(() => {
@@ -240,8 +232,13 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
       filtered = filtered.filter(mark => mark.grade === selectedGrade);
     }
     
+    // Apply exam filter (client-side)
+    if (selectedExam !== 'all') {
+      filtered = filtered.filter(mark => mark.exam_name === selectedExam);
+    }
+    
     return filtered;
-  }, [flattenedMarks, selectedSection, selectedSubject, selectedGrade]);
+  }, [flattenedMarks, selectedSection, selectedSubject, selectedGrade, selectedExam]);
 
   // Use filtered marks for the table
   const examMarks = filteredMarks;
@@ -254,24 +251,12 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
   }, [examMarks, onDataChange]);
 
 
-  // Grade colors mapping
-  const gradeColors = {
-    'A+': 'bg-green-600',
-    'A': 'bg-green-500',
-    'B+': 'bg-blue-500',
-    'B': 'bg-blue-400',
-    'C+': 'bg-yellow-500',
-    'C': 'bg-yellow-400',
-    'D': 'bg-orange-500',
-    'F': 'bg-red-500',
-  };
-
   // Table columns for exam marks using column factories
   const examMarkColumns: ColumnDef<ExamMarkWithDetails>[] = useMemo(() => [
     createStudentColumn<ExamMarkWithDetails>("student_name", "roll_number", "section_name", { header: "Student" }),
     createSubjectColumn<ExamMarkWithDetails>("subject_name", "exam_name", { header: "Subject" }),
     createMarksColumn<ExamMarkWithDetails>("marks_obtained", "max_marks", "percentage", { header: "Marks" }),
-    createGradeColumn<ExamMarkWithDetails>("grade", gradeColors, { header: "Grade" }),
+    createGradeColumn<ExamMarkWithDetails>("grade", GRADE_COLORS, { header: "Grade" }),
     createTestDateColumn<ExamMarkWithDetails>("conducted_at", { header: "Exam Date" })
   ], []);
 
@@ -297,216 +282,6 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
     <div className="flex flex-col h-full bg-slate-50/30">
       <div className="flex-1 overflow-auto">
         <div className="p-2 space-y-2">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
-          >
-            <div className="flex gap-3">
-              <Dialog open={showExamMarkDialog} onOpenChange={setShowExamMarkDialog}>
-                <DialogContent className="sm:max-w-[600px]">
-                  <DialogHeader>
-                    <DialogTitle>{editingExamMark ? 'Edit Exam Mark' : 'Add New Exam Mark'}</DialogTitle>
-                  </DialogHeader>
-                  <Form {...examMarkForm}>
-                    <form onSubmit={examMarkForm.handleSubmit(handleExamMarkSubmit)} className="space-y-4">
-                      <FormField
-                        control={examMarkForm.control}
-                        name="enrollment_id"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Student</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!editingExamMark}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select student" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {students.map((student: any) => (
-                                  <SelectItem key={student.student_id} value={student.student_id?.toString() || ''}>
-                                    {student.student_name} ({student.admission_no})
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={examMarkForm.control}
-                          name="exam_id"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Exam</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!editingExamMark}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select exam" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {exams.map((exam) => (
-                                    <SelectItem key={exam.exam_id} value={exam.exam_id?.toString() || ''}>
-                                      {exam.exam_name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={examMarkForm.control}
-                          name="subject_id"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Subject</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!editingExamMark}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select subject" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {subjects.map((subject) => (
-                                    <SelectItem key={subject.subject_id} value={subject.subject_id?.toString() || ''}>
-                                      {subject.subject_name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                        <FormField
-                        control={examMarkForm.control}
-                        name="marks_obtained"
-                          render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Marks Obtained</FormLabel>
-                                <FormControl>
-                              <Input 
-                                type="number" 
-                                placeholder="85" 
-                                {...field}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  field.onChange(value);
-                                  
-                                  // Auto-calculate percentage and grade
-                                  if (value && !isNaN(Number(value))) {
-                                    const marks = Number(value);
-                                    const percentage = calculatePercentage(marks);
-                                    const grade = calculateGrade(percentage);
-                                    
-                                    examMarkForm.setValue('percentage', percentage.toString());
-                                    examMarkForm.setValue('grade', grade);
-                                  }
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={examMarkForm.control}
-                          name="percentage"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Percentage</FormLabel>
-                              <FormControl>
-                                <Input type="number" placeholder="85.5" step="0.1" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={examMarkForm.control}
-                          name="grade"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Grade</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select grade" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="A+">A+</SelectItem>
-                                  <SelectItem value="A">A</SelectItem>
-                                  <SelectItem value="B+">B+</SelectItem>
-                                  <SelectItem value="B">B</SelectItem>
-                                  <SelectItem value="C+">C+</SelectItem>
-                                  <SelectItem value="C">C</SelectItem>
-                                  <SelectItem value="D">D</SelectItem>
-                                  <SelectItem value="F">F</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <FormField
-                        control={examMarkForm.control}
-                        name="conducted_at"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Exam Date</FormLabel>
-                            <FormControl>
-                              <Input type="date" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={examMarkForm.control}
-                        name="remarks"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Remarks (Optional)</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Additional comments..." {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="flex justify-end space-x-2">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          onClick={() => {
-                            examMarkForm.reset();
-                            setEditingExamMark(null);
-                            setShowExamMarkDialog(false);
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                        <Button type="submit" >
-                          {editingExamMark ? 'Update' : 'Add'} Exam Mark
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </motion.div>
-
 
           {/* Main Content */}
           <motion.div
@@ -569,7 +344,7 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
                 <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                     <div className="flex items-center gap-2">
                       <label className="text-sm font-medium">Class:</label>
-                      <Select value={selectedClass || 'all'} onValueChange={(value) => setSelectedClass(value === 'all' ? '' : value)}>
+                      <Select value={selectedClass || 'all'} onValueChange={handleClassChange}>
                         <SelectTrigger className="w-48">
                           <SelectValue placeholder="Select class" />
                         </SelectTrigger>
@@ -586,7 +361,7 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
                     
                     <div className="flex items-center gap-2">
                       <label className="text-sm font-medium">Section:</label>
-                      <Select value={selectedSection} onValueChange={setSelectedSection}>
+                      <Select value={selectedSection} onValueChange={handleSectionChange}>
                         <SelectTrigger className="w-40">
                           <SelectValue placeholder="All Sections" />
                         </SelectTrigger>
@@ -603,7 +378,7 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
                     
                     <div className="flex items-center gap-2">
                       <label className="text-sm font-medium">Subject:</label>
-                      <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                      <Select value={selectedSubject} onValueChange={handleSubjectChange}>
                         <SelectTrigger className="w-40">
                           <SelectValue placeholder="All Subjects" />
                         </SelectTrigger>
@@ -620,7 +395,7 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
                     
                     <div className="flex items-center gap-2">
                       <label className="text-sm font-medium">Grade:</label>
-                      <Select value={selectedGrade} onValueChange={setSelectedGrade}>
+                      <Select value={selectedGrade} onValueChange={handleGradeChange}>
                         <SelectTrigger className="w-32">
                           <SelectValue placeholder="All Grades" />
                         </SelectTrigger>
@@ -634,6 +409,23 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
                           <SelectItem value="C">C</SelectItem>
                           <SelectItem value="D">D</SelectItem>
                           <SelectItem value="F">F</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium">Exam:</label>
+                      <Select value={selectedExam} onValueChange={handleExamChange}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue placeholder="All Exams" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Exams</SelectItem>
+                          {exams.map((exam: any) => (
+                            <SelectItem key={exam.exam_id} value={exam.exam_name}>
+                              {exam.exam_name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -657,7 +449,7 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
             ))}
 
             {/* View Exam Mark Dialog */}
-            <Dialog open={showViewExamMarkDialog} onOpenChange={setShowViewExamMarkDialog}>
+            <Dialog open={showViewExamMarkDialog} onOpenChange={closeViewDialog}>
               <DialogContent className="sm:max-w-[520px]">
                 <DialogHeader>
                   <DialogTitle>Exam Mark Details</DialogTitle>
@@ -719,7 +511,7 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
             </Dialog>
 
             {/* Confirm Delete Exam Mark */}
-            <AlertDialog open={confirmDeleteId !== null} onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}>
+            <AlertDialog open={confirmDeleteId !== null} onOpenChange={closeDeleteDialog}>
               <AlertDialogContent>
                 <AlertHeader>
                   <AlertDialogTitle>Delete Exam Mark</AlertDialogTitle>
@@ -729,10 +521,19 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
                 </AlertHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => { if (confirmDeleteId) deleteExamMarkMutation.mutate(confirmDeleteId); setConfirmDeleteId(null); }}>Delete</AlertDialogAction>
+                  <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={confirmDelete}>Delete</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+
+            {/* Add/Edit Exam Mark Form */}
+            <AddExamMarkForm
+              isOpen={showExamMarkDialog}
+              onClose={closeExamMarkDialog}
+              onSubmit={handleExamMarkSubmit}
+              editingExamMark={editingExamMark}
+              selectedClass={selectedClass}
+            />
           </motion.div>
         </div>
       </div>
@@ -740,4 +541,4 @@ const ExamMarksManagement = ({ onDataChange }: ExamMarksManagementProps) => {
   );
 };
 
-export default ExamMarksManagement;
+export default ExamMarksManagementComponent;

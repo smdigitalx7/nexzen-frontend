@@ -89,7 +89,13 @@ export const FormDialog: React.FC<FormDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={DIALOG_SIZES[size]}>
+      <DialogContent 
+        className={DIALOG_SIZES[size]}
+        onOpenAutoFocus={(e) => {
+          // Prevent auto-focus to avoid aria-hidden conflicts
+          e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && (
@@ -97,7 +103,12 @@ export const FormDialog: React.FC<FormDialogProps> = ({
           )}
         </DialogHeader>
         
-        <div className="max-h-[70vh] overflow-y-auto">
+        <div 
+          className="max-h-[70vh] overflow-y-auto" 
+          role="main" 
+          aria-label="Form content"
+          tabIndex={-1}
+        >
           {children}
           
           {/* Status Update Section */}
@@ -134,7 +145,11 @@ export const FormDialog: React.FC<FormDialogProps> = ({
           
           {/* Error Display */}
           {showErrors && Object.keys(errors).length > 0 && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <div 
+              className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md"
+              role="alert"
+              aria-live="polite"
+            >
               <div className="text-sm text-red-800">
                 <strong>Please fix the following errors:</strong>
                 <ul className="mt-2 list-disc list-inside space-y-1">

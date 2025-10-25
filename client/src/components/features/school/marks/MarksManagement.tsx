@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { GraduationCap, ClipboardList, FileText, Calculator, Target, Building2, TrophyIcon } from 'lucide-react' ;
 import { Badge } from '@/components/ui/badge';
@@ -10,15 +10,92 @@ import ExamMarksManagement from './ExamMarksManagement';
 import TestMarksManagement from './TestMarksManagement';
 import { useAuthStore } from '@/store/authStore';
 
-const MarksManagement = () => {
+const MarksManagementComponent = () => {
   const { currentBranch } = useAuthStore();
+  
+  // State management
   const [activeTab, setActiveTab] = useState('exam-marks');
   const [examMarksData, setExamMarksData] = useState<MarksData[]>([]);
   const [testMarksData, setTestMarksData] = useState<MarksData[]>([]);
 
+  // Memoized current marks data
+  const currentMarksData = useMemo(() => 
+    activeTab === 'exam-marks' ? examMarksData : testMarksData,
+    [activeTab, examMarksData, testMarksData]
+  );
+
   // Calculate statistics for current active tab
-  const currentMarksData = activeTab === 'exam-marks' ? examMarksData : testMarksData;
   const statistics = useMarksStatistics(currentMarksData);
+
+  // Memoized tab change handler
+  const handleTabChange = useCallback((value: string) => {
+    setActiveTab(value);
+  }, []);
+
+  // Memoized exam marks data handler
+  const handleExamMarksDataChange = useCallback((data: MarksData[]) => {
+    setExamMarksData(data);
+  }, []);
+
+  // Memoized test marks data handler
+  const handleTestMarksDataChange = useCallback((data: MarksData[]) => {
+    setTestMarksData(data);
+  }, []);
+
+  // Memoized header content
+  const headerContent = useMemo(() => {
+    const isExamMarks = activeTab === 'exam-marks';
+    return {
+      title: isExamMarks ? 'Marks Management' : 'Tests Management',
+      description: isExamMarks 
+        ? 'Track exam results and manage academic performance' 
+        : 'Track test results and manage academic performance'
+    };
+  }, [activeTab]);
+
+  // Memoized statistics cards
+  const statisticsCards = useMemo(() => [
+    {
+      title: `Total ${activeTab === 'exam-marks' ? 'Marks' : 'Tests'}`,
+      value: statistics.totalMarks,
+      icon: FileText,
+      color: "blue" as const,
+    },
+    {
+      title: "Avg Score",
+      value: `${statistics.avgPercentage}%`,
+      icon: Calculator,
+      color: "green" as const,
+    },
+    {
+      title: "Pass Rate",
+      value: `${statistics.passPercentage}%`,
+      icon: Target,
+      color: "purple" as const,
+    },
+    {
+      title: "Top Score",
+      value: `${statistics.topScore}%`,
+      icon: TrophyIcon,
+      color: "orange" as const,
+    },
+  ], [activeTab, statistics]);
+
+  // Memoized tabs configuration
+  const tabsConfig = useMemo(() => [
+    {
+      value: "exam-marks",
+      label: "Marks",
+      icon: GraduationCap,
+      content: <ExamMarksManagement onDataChange={handleExamMarksDataChange} />,
+    },
+    {
+      value: "test-marks",
+      label: "Tests",
+      icon: ClipboardList,
+      content: <TestMarksManagement onDataChange={handleTestMarksDataChange} />,
+    },
+  ], [handleExamMarksDataChange, handleTestMarksDataChange]);
 
   return (
     <div className="flex flex-col h-full bg-slate-50/30">
@@ -32,13 +109,10 @@ const MarksManagement = () => {
           >
             <div>
               <h1 className="text-3xl font-bold text-slate-900">
-                {activeTab === 'exam-marks' ? 'Marks Management' : 'Tests Management'}
+                {headerContent.title}
               </h1>
               <p className="text-slate-600 mt-1">
-                {activeTab === 'exam-marks' 
-                  ? 'Track exam results and manage academic performance' 
-                  : 'Track test results and manage academic performance'
-                }
+                {headerContent.description}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -60,59 +134,25 @@ const MarksManagement = () => {
             transition={{ delay: 0.1 }}
           >
             <DashboardGrid columns={4} gap="md">
-              <StatsCard
-                title={`Total ${activeTab === 'exam-marks' ? 'Marks' : 'Tests'}`}
-                value={statistics.totalMarks}
-                icon={FileText}
-                color="blue"
-                variant="elevated"
-                size="md"
-              />
-              <StatsCard
-                title="Avg Score"
-                value={`${statistics.avgPercentage}%`}
-                icon={Calculator}
-                color="green"
-                variant="elevated"
-                size="md"
-              />
-              <StatsCard
-                title="Pass Rate"
-                value={`${statistics.passPercentage}%`}
-                icon={Target}
-                color="purple"
-                variant="elevated"
-                size="md"
-              />
-              <StatsCard
-                title="Top Score"
-                value={`${statistics.topScore}%`}
-                icon={TrophyIcon}
-                color="orange"
-                variant="elevated"
-                size="md"
-              />
+              {statisticsCards.map((card, index) => (
+                <StatsCard
+                  key={`${card.title}-${index}`}
+                  title={card.title}
+                  value={card.value}
+                  icon={card.icon}
+                  color={card.color}
+                  variant="elevated"
+                  size="md"
+                />
+              ))}
             </DashboardGrid>
           </motion.div>
 
           {/* Main Content */}
           <TabSwitcher
-            tabs={[
-              {
-                value: "exam-marks",
-                label: "Marks",
-                icon: GraduationCap,
-                content: <ExamMarksManagement onDataChange={setExamMarksData} />,
-              },
-              {
-                value: "test-marks",
-                label: "Tests",
-                icon: ClipboardList,
-                content: <TestMarksManagement onDataChange={setTestMarksData} />,
-              },
-            ]}
+            tabs={tabsConfig}
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={handleTabChange}
           />
         </div>
       </div>
@@ -120,4 +160,4 @@ const MarksManagement = () => {
   );
 };
 
-export default MarksManagement;
+export default MarksManagementComponent;

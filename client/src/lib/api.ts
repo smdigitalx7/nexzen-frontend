@@ -1,4 +1,5 @@
 import { useAuthStore } from "@/store/authStore";
+import { useCacheStore } from "@/store/cacheStore";
 
 // For the simple API, we need to use /api/v1 since the proxy forwards /api to the external server
 // and the external server expects /v1 paths
@@ -17,7 +18,21 @@ export interface ApiRequestOptions {
   noAuth?: boolean;
   // internal flag to avoid infinite refresh loops
   _isRetry?: boolean;
+  // Cache options
+  cache?: boolean;
+  cacheKey?: string;
+  cacheTTL?: number;
+  // Request deduplication
+  dedupe?: boolean;
+  // Request timeout
+  timeout?: number;
 }
+
+// Request deduplication object (avoiding Map for Immer compatibility)
+const pendingRequests: Record<string, Promise<any>> = {};
+
+// Request timeout default
+const DEFAULT_TIMEOUT = 30000; // 30 seconds
 
 function buildQuery(query?: ApiRequestOptions["query"]) {
   if (!query) return "";
@@ -28,6 +43,55 @@ function buildQuery(query?: ApiRequestOptions["query"]) {
   });
   const s = params.toString();
   return s ? `?${s}` : "";
+}
+
+// Generate cache key from request options
+function generateCacheKey(options: ApiRequestOptions): string {
+  if (options.cacheKey) return options.cacheKey;
+  
+  const { method = "GET", path, query } = options;
+  const queryString = buildQuery(query);
+  return `${method}:${path}${queryString}`;
+}
+
+// Check if request should be cached
+function shouldCache(options: ApiRequestOptions): boolean {
+  return options.cache !== false && options.method === "GET";
+}
+
+// Get cached data
+function getCachedData<T>(cacheKey: string): T | null {
+  const cache = useCacheStore.getState();
+  return cache.get<T>(cacheKey);
+}
+
+// Set cached data
+function setCachedData<T>(cacheKey: string, data: T, ttl?: number): void {
+  const cache = useCacheStore.getState();
+  cache.set(cacheKey, data, { ttl });
+}
+
+// Request deduplication
+function getDedupeKey(options: ApiRequestOptions): string {
+  const { method = "GET", path, query, body } = options;
+  const queryString = buildQuery(query);
+  const bodyString = body ? JSON.stringify(body) : "";
+  return `${method}:${path}${queryString}:${bodyString}`;
+}
+
+// Check if request is already pending
+function getPendingRequest<T>(dedupeKey: string): Promise<T> | null {
+  return pendingRequests[dedupeKey] || null;
+}
+
+// Set pending request
+function setPendingRequest<T>(dedupeKey: string, request: Promise<T>): void {
+  pendingRequests[dedupeKey] = request;
+}
+
+// Clear pending request
+function clearPendingRequest(dedupeKey: string): void {
+  delete pendingRequests[dedupeKey];
 }
 
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -108,104 +172,233 @@ export async function api<T = unknown>({
   headers = {},
   noAuth = false,
   _isRetry = false,
+  cache = true,
+  cacheKey,
+  cacheTTL,
+  dedupe = true,
+  timeout = DEFAULT_TIMEOUT,
 }: ApiRequestOptions): Promise<T> {
-  const state = useAuthStore.getState();
-  const token = state.token;
-
-  const url = `${API_BASE_URL}${path}${buildQuery(query)}`;
-
-  if (token) {
-    // Check token expiry
-    if (state.tokenExpireAt) {
-      const isExpired = Date.now() > state.tokenExpireAt;
+  // Generate cache key and check cache for GET requests
+  const cacheKeyGenerated = generateCacheKey({ method, path, query, cacheKey });
+  
+  if (shouldCache({ method, path, cache })) {
+    const cachedData = getCachedData<T>(cacheKeyGenerated);
+    if (cachedData) {
+      return cachedData;
     }
   }
 
-  const requestHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...headers,
+  // Check for request deduplication
+  const dedupeKey = getDedupeKey({ method, path, query, body });
+  if (dedupe) {
+    const pendingRequest = getPendingRequest<T>(dedupeKey);
+    if (pendingRequest) {
+      return pendingRequest;
+    }
+  }
+
+  // Create the actual request
+  const makeRequest = async (): Promise<T> => {
+    const state = useAuthStore.getState();
+    const token = state.token;
+
+    const url = `${API_BASE_URL}${path}${buildQuery(query)}`;
+
+    if (token) {
+      // Check token expiry
+      if (state.tokenExpireAt) {
+        const isExpired = Date.now() > state.tokenExpireAt;
+      }
+    }
+
+    const requestHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...headers,
+    };
+
+    if (!noAuth && token) {
+      requestHeaders["Authorization"] = `Bearer ${token}`;
+    } else if (!noAuth && !token) {
+      console.warn(`⚠️ No token available for authenticated request to ${path}`);
+    }
+
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: requestHeaders,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        credentials: "include",
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      const contentType = res.headers.get("content-type") || "";
+      const isJson = contentType.includes("application/json");
+      const data = isJson ? await res.json() : ((await res.text()) as unknown as T);
+
+      // If this was a login call, store token and schedule proactive refresh
+      if (path === "/auth/login" && res.ok && isJson) {
+        const access = (data as any)?.access_token as string | undefined;
+        const expireIso = (data as any)?.expiretime as string | undefined;
+        if (access && expireIso) {
+          useAuthStore
+            .getState()
+            .setTokenAndExpiry(access, new Date(expireIso).getTime());
+          scheduleProactiveRefresh();
+        }
+      }
+
+      // Attempt refresh on 401 or 403 once for authenticated calls
+      // 403 can also indicate token expiration in some API implementations
+      if (!noAuth && (res.status === 401 || res.status === 403) && !_isRetry) {
+        const refreshed = await tryRefreshToken(token);
+        if (refreshed) {
+          return api<T>({
+            method,
+            path,
+            body,
+            query,
+            headers,
+            noAuth,
+            _isRetry: true,
+            cache,
+            cacheKey,
+            cacheTTL,
+            dedupe,
+            timeout,
+          });
+        }
+      }
+
+      if (!res.ok) {
+        const message =
+          (isJson && ((data as any)?.detail || (data as any)?.message)) ||
+          res.statusText ||
+          "Request failed";
+        const error = new Error(message as string);
+        (error as any).status = res.status;
+        throw error;
+      }
+
+      // Cache successful GET requests
+      if (shouldCache({ method, path, cache }) && res.ok) {
+        setCachedData(cacheKeyGenerated, data, cacheTTL);
+      }
+
+      return data as T;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error(`Request timeout after ${timeout}ms`);
+      }
+      
+      throw error;
+    } finally {
+      // Clear pending request
+      if (dedupe) {
+        clearPendingRequest(dedupeKey);
+      }
+    }
   };
 
-  if (!noAuth && token) {
-    requestHeaders["Authorization"] = `Bearer ${token}`;
-  } else if (!noAuth && !token) {
-    console.warn(`⚠️ No token available for authenticated request to ${path}`);
+  // Set pending request for deduplication
+  if (dedupe) {
+    const requestPromise = makeRequest();
+    setPendingRequest(dedupeKey, requestPromise);
+    return requestPromise;
   }
 
-  const res = await fetch(url, {
-    method,
-    headers: requestHeaders,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-    credentials: "include",
-  });
-
-  const contentType = res.headers.get("content-type") || "";
-  const isJson = contentType.includes("application/json");
-  const data = isJson ? await res.json() : ((await res.text()) as unknown as T);
-
-  // If this was a login call, store token and schedule proactive refresh
-  if (path === "/auth/login" && res.ok && isJson) {
-    const access = (data as any)?.access_token as string | undefined;
-    const expireIso = (data as any)?.expiretime as string | undefined;
-    if (access && expireIso) {
-      useAuthStore
-        .getState()
-        .setTokenAndExpiry(access, new Date(expireIso).getTime());
-      scheduleProactiveRefresh();
-    }
-  }
-
-  // Attempt refresh on 401 or 403 once for authenticated calls
-  // 403 can also indicate token expiration in some API implementations
-  if (!noAuth && (res.status === 401 || res.status === 403) && !_isRetry) {
-    const refreshed = await tryRefreshToken(token);
-    if (refreshed) {
-      return api<T>({
-        method,
-        path,
-        body,
-        query,
-        headers,
-        noAuth,
-        _isRetry: true,
-      });
-    }
-  }
-
-  if (!res.ok) {
-    const message =
-      (isJson && ((data as any)?.detail || (data as any)?.message)) ||
-      res.statusText ||
-      "Request failed";
-    const error = new Error(message as string);
-    (error as any).status = res.status;
-    throw error;
-  }
-
-  return data as T;
+  return makeRequest();
 }
 
 export const Api = {
   get: <T>(
     path: string,
     query?: ApiRequestOptions["query"],
-    headers?: Record<string, string>
-  ) => api<T>({ method: "GET", path, query, headers }),
+    headers?: Record<string, string>,
+    opts?: Partial<ApiRequestOptions>
+  ) => api<T>({ 
+    method: "GET", 
+    path, 
+    query, 
+    headers, 
+    cache: opts?.cache ?? true,
+    cacheKey: opts?.cacheKey,
+    cacheTTL: opts?.cacheTTL,
+    dedupe: opts?.dedupe ?? true,
+    timeout: opts?.timeout
+  }),
   post: <T>(
     path: string,
     body?: unknown,
     headers?: Record<string, string>,
     opts?: Partial<ApiRequestOptions>
-  ) => api<T>({ method: "POST", path, body, headers, noAuth: opts?.noAuth }),
-  put: <T>(path: string, body?: unknown, headers?: Record<string, string>) =>
-    api<T>({ method: "PUT", path, body, headers }),
-  patch: <T>(path: string, body?: unknown, headers?: Record<string, string>) =>
-    api<T>({ method: "PATCH", path, body, headers }),
+  ) => api<T>({ 
+    method: "POST", 
+    path, 
+    body, 
+    headers, 
+    noAuth: opts?.noAuth,
+    cache: opts?.cache ?? false,
+    cacheKey: opts?.cacheKey,
+    cacheTTL: opts?.cacheTTL,
+    dedupe: opts?.dedupe ?? true,
+    timeout: opts?.timeout
+  }),
+  put: <T>(
+    path: string, 
+    body?: unknown, 
+    headers?: Record<string, string>,
+    opts?: Partial<ApiRequestOptions>
+  ) => api<T>({ 
+    method: "PUT", 
+    path, 
+    body, 
+    headers,
+    cache: opts?.cache ?? false,
+    cacheKey: opts?.cacheKey,
+    cacheTTL: opts?.cacheTTL,
+    dedupe: opts?.dedupe ?? true,
+    timeout: opts?.timeout
+  }),
+  patch: <T>(
+    path: string, 
+    body?: unknown, 
+    headers?: Record<string, string>,
+    opts?: Partial<ApiRequestOptions>
+  ) => api<T>({ 
+    method: "PATCH", 
+    path, 
+    body, 
+    headers,
+    cache: opts?.cache ?? false,
+    cacheKey: opts?.cacheKey,
+    cacheTTL: opts?.cacheTTL,
+    dedupe: opts?.dedupe ?? true,
+    timeout: opts?.timeout
+  }),
   delete: <T>(
     path: string,
     query?: ApiRequestOptions["query"],
-    headers?: Record<string, string>
-  ) => api<T>({ method: "DELETE", path, query, headers }),
+    headers?: Record<string, string>,
+    opts?: Partial<ApiRequestOptions>
+  ) => api<T>({ 
+    method: "DELETE", 
+    path, 
+    query, 
+    headers,
+    cache: opts?.cache ?? false,
+    cacheKey: opts?.cacheKey,
+    cacheTTL: opts?.cacheTTL,
+    dedupe: opts?.dedupe ?? true,
+    timeout: opts?.timeout
+  }),
 
   // FormData helper (avoids JSON content-type)
   postForm: async <T>(
@@ -312,8 +505,6 @@ export async function handlePayAndPrint(
   const url = `${API_BASE_URL}/school/income/pay-fee/${admissionNo}`;
 
   try {
-    console.log("💰 Processing payment for admission:", admissionNo);
-
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -342,14 +533,9 @@ export async function handlePayAndPrint(
       throw new Error(errorMessage);
     }
 
-    console.log(
-      "✅ Payment successful! Content-Type:",
-      response.headers.get("content-type")
-    );
 
     // Parse JSON response to get income_id
     const paymentData = await response.json();
-    console.log("📦 Payment response data:", paymentData);
 
     const income_id = paymentData.context?.income_id;
 
@@ -357,10 +543,8 @@ export async function handlePayAndPrint(
       throw new Error("Payment successful but income_id not found in response context");
     }
 
-    console.log("🆔 Income ID received:", income_id);
 
     // Now call regenerate receipt endpoint to get PDF
-    console.log("📄 Generating receipt for income_id:", income_id);
     const blobUrl = await handleRegenerateReceipt(income_id);
 
     // Return the blobUrl for the caller to handle (e.g., in modal)
@@ -391,7 +575,6 @@ export async function handleAdmissionPayment(
   const url = `${API_BASE_URL}/school/income/pay-fee/${admissionNo}`;
 
   try {
-    console.log("💰 Processing admission payment for:", admissionNo);
 
     const response = await fetch(url, {
       method: "POST",
@@ -421,14 +604,9 @@ export async function handleAdmissionPayment(
       throw new Error(errorMessage);
     }
 
-    console.log(
-      "✅ Admission payment successful! Content-Type:",
-      response.headers.get("content-type")
-    );
 
     // Parse JSON response to get income_id
     const paymentData = await response.json();
-    console.log("📦 Payment response data:", paymentData);
 
     const income_id = paymentData.context?.income_id;
 
@@ -436,10 +614,8 @@ export async function handleAdmissionPayment(
       throw new Error("Payment successful but income_id not found in response context");
     }
 
-    console.log("🆔 Income ID received:", income_id);
 
     // Now call regenerate receipt endpoint to get PDF
-    console.log("📄 Generating receipt for income_id:", income_id);
     const blobUrl = await handleRegenerateReceipt(income_id);
 
     return {
@@ -512,7 +688,6 @@ export async function handleRegenerateReceipt(
 
     // Step 3: Get the PDF as binary data (blob)
     const pdfBlob = await response.blob();
-    console.log("📄 Receipt PDF Blob received. Size:", pdfBlob.size, "bytes");
 
     // Verify we received a PDF
     if (!pdfBlob.type.includes("pdf") && pdfBlob.size === 0) {
@@ -522,7 +697,6 @@ export async function handleRegenerateReceipt(
     // Step 4: Create a Blob URL for the PDF
     const pdfBlobWithType = new Blob([pdfBlob], { type: "application/pdf" });
     const blobUrl = URL.createObjectURL(pdfBlobWithType);
-    console.log("🔗 Receipt Blob URL created:", blobUrl);
 
     // Return the blobUrl for the caller to handle (e.g., in modal)
     return blobUrl;
@@ -574,8 +748,6 @@ export async function handlePayByReservation(
   const url = `${API_BASE_URL}/school/income/pay-fee-by-reservation/${reservationNo}`;
 
   try {
-    console.log("💰 Processing reservation payment for:", reservationNo);
-    console.log("📦 Payment payload:", payload);
 
     const response = await fetch(url, {
       method: "POST",
@@ -605,14 +777,9 @@ export async function handlePayByReservation(
       throw new Error(errorMessage);
     }
 
-    console.log(
-      "✅ Payment successful! Content-Type:",
-      response.headers.get("content-type")
-    );
 
     // Parse JSON response to get income_id
     const paymentData = await response.json();
-    console.log("📦 Payment response data:", paymentData);
 
     const income_id = paymentData.data?.context?.income_id || paymentData.context?.income_id;
 
@@ -620,15 +787,10 @@ export async function handlePayByReservation(
       throw new Error("Payment successful but income_id not found in response context");
     }
 
-    console.log("🆔 Income ID received:", income_id);
 
     // Now call regenerate receipt endpoint to get PDF
-    console.log("📄 Generating receipt for income_id:", income_id);
     const blobUrl = await handleRegenerateReceipt(income_id);
     
-    console.log("📄 Receipt blob URL generated:", blobUrl);
-    console.log("📄 Blob URL type:", typeof blobUrl);
-    console.log("📄 Blob URL length:", blobUrl?.length);
 
     return { blobUrl, income_id, paymentData };
   } catch (error) {
@@ -683,8 +845,6 @@ export async function handlePayByAdmission(
   const url = `${API_BASE_URL}/school/income/pay-fee/${admissionNo}`;
 
   try {
-    console.log("💰 Processing admission payment for:", admissionNo);
-    console.log("📦 Payment payload:", payload);
 
     const response = await fetch(url, {
       method: "POST",
@@ -714,14 +874,9 @@ export async function handlePayByAdmission(
       throw new Error(errorMessage);
     }
 
-    console.log(
-      "✅ Payment successful! Content-Type:",
-      response.headers.get("content-type")
-    );
 
     // Parse JSON response to get income_id
     const paymentData = await response.json();
-    console.log("📦 Payment response data:", paymentData);
 
     const income_id = paymentData.data?.context?.income_id || paymentData.context?.income_id;
 
@@ -729,10 +884,8 @@ export async function handlePayByAdmission(
       throw new Error("Payment successful but income_id not found in response context");
     }
 
-    console.log("🆔 Income ID received:", income_id);
 
     // Now call regenerate receipt endpoint to get PDF
-    console.log("📄 Generating receipt for income_id:", income_id);
     const blobUrl = await handleRegenerateReceipt(income_id);
 
     return blobUrl;
@@ -791,8 +944,6 @@ export async function handlePayByAdmissionWithIncomeId(
   const url = `${API_BASE_URL}/${institutionType}/income/pay-fee/${admissionNo}`;
 
   try {
-    console.log(`💰 Processing ${institutionType} admission payment for:`, admissionNo);
-    console.log("📦 Payment payload:", payload);
 
     // Add timeout to prevent hanging requests
     const controller = new AbortController();
@@ -829,14 +980,9 @@ export async function handlePayByAdmissionWithIncomeId(
       throw new Error(errorMessage);
     }
 
-    console.log(
-      "✅ Payment successful! Content-Type:",
-      response.headers.get("content-type")
-    );
 
     // Parse JSON response to get income_id
     const paymentData = await response.json();
-    console.log("📦 Payment response data:", paymentData);
 
     const income_id = paymentData.data?.context?.income_id || paymentData.context?.income_id;
 
@@ -844,15 +990,10 @@ export async function handlePayByAdmissionWithIncomeId(
       throw new Error("Payment successful but income_id not found in response context");
     }
 
-    console.log("🆔 Income ID received:", income_id);
 
     // Now call regenerate receipt endpoint to get PDF
-    console.log("📄 Generating receipt for income_id:", income_id);
     const blobUrl = await handleRegenerateReceipt(income_id);
     
-    console.log("📄 Receipt blob URL generated:", blobUrl);
-    console.log("📄 Blob URL type:", typeof blobUrl);
-    console.log("📄 Blob URL length:", blobUrl?.length);
 
     const result = {
       income_id,
@@ -860,7 +1001,6 @@ export async function handlePayByAdmissionWithIncomeId(
       paymentData, // Include full payment data for debugging/additional info
     };
     
-    console.log("📄 Final result object:", result);
     return result;
   } catch (error) {
     console.error("❌ Payment processing failed:", error);
@@ -877,6 +1017,121 @@ export async function handlePayByAdmissionWithIncomeId(
     throw error;
   }
 }
+
+// Batch request utility
+export async function batchRequests<T>(
+  requests: Array<() => Promise<T>>,
+  options?: {
+    maxConcurrency?: number;
+    timeout?: number;
+  }
+): Promise<T[]> {
+  const { maxConcurrency = 5, timeout = 30000 } = options || {};
+  const results: T[] = [];
+  const errors: Error[] = [];
+
+  // Process requests in batches
+  for (let i = 0; i < requests.length; i += maxConcurrency) {
+    const batch = requests.slice(i, i + maxConcurrency);
+    
+    const batchPromises = batch.map(async (request, index) => {
+      try {
+        const result = await Promise.race([
+          request(),
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('Request timeout')), timeout)
+          )
+        ]);
+        return { index: i + index, result, error: null };
+      } catch (error) {
+        return { 
+          index: i + index, 
+          result: null, 
+          error: error instanceof Error ? error : new Error('Unknown error') 
+        };
+      }
+    });
+
+    const batchResults = await Promise.all(batchPromises);
+    
+    batchResults.forEach(({ index, result, error }) => {
+      if (error) {
+        errors[index] = error;
+      } else {
+        results[index] = result as T;
+      }
+    });
+  }
+
+  if (errors.length > 0) {
+    console.warn('Some batch requests failed:', errors);
+  }
+
+  return results;
+}
+
+// Cache management utilities
+export const CacheUtils = {
+  // Clear cache by pattern
+  clearByPattern: (pattern: string | RegExp) => {
+    const cache = useCacheStore.getState();
+    cache.invalidate(pattern);
+  },
+  
+  // Clear cache by tag
+  clearByTag: (tag: string) => {
+    const cache = useCacheStore.getState();
+    cache.clearByTag(tag);
+  },
+  
+  // Clear all cache
+  clearAll: () => {
+    const cache = useCacheStore.getState();
+    cache.clear();
+  },
+  
+  // Get cache statistics
+  getStats: () => {
+    const cache = useCacheStore.getState();
+    return cache.getCacheStats();
+  },
+  
+  // Preload data
+  preload: async <T>(
+    key: string,
+    fetcher: () => Promise<T>,
+    options?: { ttl?: number; tags?: string[] }
+  ) => {
+    const cache = useCacheStore.getState();
+    try {
+      const data = await fetcher();
+      cache.set(key, data, options);
+      return data;
+    } catch (error) {
+      console.error('Preload failed:', error);
+      throw error;
+    }
+  }
+};
+
+// Request deduplication utilities
+export const DedupeUtils = {
+  // Clear all pending requests
+  clearAll: () => {
+    Object.keys(pendingRequests).forEach(key => delete pendingRequests[key]);
+  },
+  
+  // Get pending request count
+  getPendingCount: () => {
+    return Object.keys(pendingRequests).length;
+  },
+  
+  // Check if request is pending
+  isPending: (options: ApiRequestOptions) => {
+    const dedupeKey = getDedupeKey(options);
+    return dedupeKey in pendingRequests;
+  }
+};
 
 // Expose helpers for lifecycle
 export const AuthTokenTimers = {

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, memo, useCallback } from "react";
 import { BookOpen, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,9 +10,10 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { 
   createIconTextColumn
 } from "@/lib/utils/columnFactories";
+import type { SchoolSubjectRead } from "@/lib/types/school";
 
 interface SubjectsTabProps {
-  backendSubjects: import("@/lib/types/school").SchoolSubjectRead[];
+  backendSubjects: SchoolSubjectRead[];
   subjectsLoading: boolean;
   currentBranch: any;
   searchTerm: string;
@@ -21,7 +22,12 @@ interface SubjectsTabProps {
   setSelectedBranchType: (type: string) => void; 
 }
 
-export const SubjectsTab = ({
+// Initial form state
+const initialSubjectForm = { 
+  subject_name: "", 
+};
+
+const SubjectsTabComponent = ({
   backendSubjects,
   subjectsLoading,
   currentBranch,
@@ -30,30 +36,39 @@ export const SubjectsTab = ({
   selectedBranchType: _selectedBranchType,
   setSelectedBranchType: _setSelectedBranchType,
 }: SubjectsTabProps) => {
+  // Dialog states
   const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
   const [isEditSubjectOpen, setIsEditSubjectOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState<import("@/lib/types/school").SchoolSubjectRead | null>(null);
-  const [newSubject, setNewSubject] = useState({ 
-    subject_name: "", 
-  });
-  const [editSubject, setEditSubject] = useState({ 
-    subject_name: "", 
-  });
+  
+  // Selected subject state
+  const [selectedSubject, setSelectedSubject] = useState<SchoolSubjectRead | null>(null);
+  
+  // Form states
+  const [newSubject, setNewSubject] = useState(initialSubjectForm);
+  const [editSubject, setEditSubject] = useState(initialSubjectForm);
 
+  // Hooks
   const { toast } = useToast();
   const createSubjectMutation = useCreateSchoolSubject();
   const updateSubjectMutation = useUpdateSchoolSubject(selectedSubject?.subject_id || 0);
 
-  const handleCreateSubject = async () => {
-    if (!newSubject.subject_name.trim()) {
+  // Memoized validation functions
+  const validateSubjectForm = useCallback((form: typeof initialSubjectForm) => {
+    if (!form.subject_name.trim()) {
       toast({
         title: "Error",
         description: "Subject name is required",
         variant: "destructive",
       });
-      return;
+      return false;
     }
+    return true;
+  }, [toast]);
+
+  // Memoized mutation handlers
+  const handleCreateSubject = useCallback(async () => {
+    if (!validateSubjectForm(newSubject)) return;
 
     try {
       await createSubjectMutation.mutateAsync({
@@ -65,7 +80,7 @@ export const SubjectsTab = ({
         description: "Subject created successfully",
       });
       
-      setNewSubject({ subject_name: "" });
+      setNewSubject(initialSubjectForm);
       setIsAddSubjectOpen(false);
     } catch (error) {
       toast({
@@ -74,17 +89,10 @@ export const SubjectsTab = ({
         variant: "destructive",
       });
     }
-  };
+  }, [newSubject, validateSubjectForm, createSubjectMutation, toast]);
 
-  const handleUpdateSubject = async () => {
-    if (!editSubject.subject_name.trim() || !selectedSubject) {
-      toast({
-        title: "Error",
-        description: "Subject name is required",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleUpdateSubject = useCallback(async () => {
+    if (!validateSubjectForm(editSubject) || !selectedSubject) return;
 
     try {
       await updateSubjectMutation.mutateAsync({
@@ -96,7 +104,7 @@ export const SubjectsTab = ({
         description: "Subject updated successfully",
       });
       
-      setEditSubject({ subject_name: "" });
+      setEditSubject(initialSubjectForm);
       setSelectedSubject(null);
       setIsEditSubjectOpen(false);
     } catch (error) {
@@ -106,9 +114,9 @@ export const SubjectsTab = ({
         variant: "destructive",
       });
     }
-  };
+  }, [editSubject, selectedSubject, validateSubjectForm, updateSubjectMutation, toast]);
 
-  const handleDeleteSubject = async () => {
+  const handleDeleteSubject = useCallback(async () => {
     if (!selectedSubject) return;
 
     try {
@@ -127,41 +135,68 @@ export const SubjectsTab = ({
         variant: "destructive",
       });
     }
-  };
+  }, [selectedSubject, toast]);
 
-  const handleEditClick = (subject: import("@/lib/types/school").SchoolSubjectRead) => {
+  // Memoized action handlers
+  const handleEditClick = useCallback((subject: SchoolSubjectRead) => {
     setSelectedSubject(subject);
     setEditSubject({ 
       subject_name: subject.subject_name,
     });
     setIsEditSubjectOpen(true);
-  };
+  }, []);
 
-  const handleDeleteClick = (subject: any) => {
+  const handleDeleteClick = useCallback((subject: SchoolSubjectRead) => {
     setSelectedSubject(subject);
     setIsDeleteDialogOpen(true);
-  };
+  }, []);
 
-  // Define columns for the data table using column factories
-  const columns: ColumnDef<any>[] = useMemo(() => [
+  // Memoized columns definition
+  const columns: ColumnDef<SchoolSubjectRead>[] = useMemo(() => [
     { accessorKey: "subject_id", header: "Subject ID" },
-    createIconTextColumn<any>("subject_name", { 
+    createIconTextColumn<SchoolSubjectRead>("subject_name", { 
       icon: BookOpen, 
       header: "Subject Name" 
     }),
   ], []);
 
-  // Action button groups for EnhancedDataTable
+  // Memoized action button groups
   const actionButtonGroups = useMemo(() => [
     {
       type: 'edit' as const,
-      onClick: (subject: any) => handleEditClick(subject)
+      onClick: handleEditClick
     },
     {
       type: 'delete' as const,
-      onClick: (subject: any) => handleDeleteClick(subject)
+      onClick: handleDeleteClick
     }
-  ], []);
+  ], [handleEditClick, handleDeleteClick]);
+
+  // Memoized dialog close handlers
+  const closeAddDialog = useCallback(() => {
+    setIsAddSubjectOpen(false);
+    setNewSubject(initialSubjectForm);
+  }, []);
+
+  const closeEditDialog = useCallback(() => {
+    setIsEditSubjectOpen(false);
+    setEditSubject(initialSubjectForm);
+    setSelectedSubject(null);
+  }, []);
+
+  const closeDeleteDialog = useCallback(() => {
+    setIsDeleteDialogOpen(false);
+    setSelectedSubject(null);
+  }, []);
+
+  // Memoized form update handlers
+  const updateNewSubject = useCallback((value: string) => {
+    setNewSubject(prev => ({ ...prev, subject_name: value }));
+  }, []);
+
+  const updateEditSubject = useCallback((value: string) => {
+    setEditSubject(prev => ({ ...prev, subject_name: value }));
+  }, []);
 
   if (subjectsLoading) {
     return (
@@ -194,10 +229,7 @@ export const SubjectsTab = ({
         title="Add New Subject"
         description="Create a new academic subject"
         onSave={handleCreateSubject}
-        onCancel={() => {
-          setIsAddSubjectOpen(false);
-          setNewSubject({ subject_name: "" });
-        }}
+        onCancel={closeAddDialog}
         saveText="Create Subject"
         cancelText="Cancel"
         disabled={createSubjectMutation.isPending}
@@ -208,7 +240,7 @@ export const SubjectsTab = ({
             <Input
               id="subject_name"
               value={newSubject.subject_name}
-              onChange={(e) => setNewSubject({ ...newSubject, subject_name: e.target.value })}
+              onChange={(e) => updateNewSubject(e.target.value)}
               placeholder="Enter subject name"
             />
           </div>
@@ -222,11 +254,7 @@ export const SubjectsTab = ({
         title="Edit Subject"
         description="Update subject information"
         onSave={handleUpdateSubject}
-        onCancel={() => {
-          setIsEditSubjectOpen(false);
-          setEditSubject({ subject_name: "" });
-          setSelectedSubject(null);
-        }}
+        onCancel={closeEditDialog}
         saveText="Update Subject"
         cancelText="Cancel"
         disabled={updateSubjectMutation.isPending}
@@ -237,7 +265,7 @@ export const SubjectsTab = ({
             <Input
               id="edit_subject_name"
               value={editSubject.subject_name}
-              onChange={(e) => setEditSubject({ ...editSubject, subject_name: e.target.value })}
+              onChange={(e) => updateEditSubject(e.target.value)}
               placeholder="Enter subject name"
             />
           </div>
@@ -251,13 +279,12 @@ export const SubjectsTab = ({
         title="Delete Subject"
         description={`Are you sure you want to delete the subject "${selectedSubject?.subject_name}"? This action cannot be undone.`}
         onConfirm={handleDeleteSubject}
-        onCancel={() => {
-          setIsDeleteDialogOpen(false);
-          setSelectedSubject(null);
-        }}
+        onCancel={closeDeleteDialog}
         confirmText="Delete"
         variant="destructive"
       />
     </div>
   );
 };
+
+export const SubjectsTab = SubjectsTabComponent;

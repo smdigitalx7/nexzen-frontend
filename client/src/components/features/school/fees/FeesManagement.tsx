@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useMemo } from "react";
+import { useMemo, memo, useCallback } from "react";
 import { CreditCard, DollarSign, Building2, Truck } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import { useSchoolFeesManagement } from "@/lib/hooks/school/use-school-fees-management";
@@ -9,12 +9,39 @@ import { CollectFee } from "./collect-fee/CollectFee";
 import { useAuthStore } from "@/store/authStore";
 import { Badge } from "@/components/ui/badge";
 
-export const FeesManagement = () => {
-  const { currentBranch } = useAuthStore();
-  const { activeTab, setActiveTab } = useSchoolFeesManagement();
+// Memoized header content component
+const HeaderContent = memo(({ currentBranch }: { currentBranch: any }) => (
+  <motion.div
+    initial={{ opacity: 0, y: -20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="flex items-center justify-between"
+  >
+    <div>
+      <h1 className="text-3xl font-bold tracking-tight">Fee Management</h1>
+      <p className="text-muted-foreground">
+        Comprehensive fee structure management and payment tracking
+      </p>
+    </div>
+    <div className="flex items-center gap-2">
+      <Badge variant="outline" className="gap-1">
+        {currentBranch?.branch_type === "SCHOOL" ? (
+          <DollarSign className="h-3 w-3" />
+        ) : (
+          <Building2 className="h-3 w-3" />
+        )}
+        {currentBranch?.branch_name}
+      </Badge>
+    </div>
+  </motion.div>
+));
 
-  // Build rows for "Collect Fees" from tuition balances
-  const { tuitionBalances } = useSchoolFeesManagement();
+HeaderContent.displayName = "HeaderContent";
+
+const FeesManagementComponent = () => {
+  const { currentBranch } = useAuthStore();
+  const { activeTab, setActiveTab, tuitionBalances } = useSchoolFeesManagement();
+
+  // Memoized data transformation
   const filteredStudentBalances = useMemo(() => {
     return (tuitionBalances || []).map((t: any) => {
       const paidTotal = (t.term1_paid || 0) + (t.term2_paid || 0) + (t.term3_paid || 0) + (t.book_paid || 0);
@@ -41,65 +68,62 @@ export const FeesManagement = () => {
     });
   }, [tuitionBalances]);
 
-  const exportBalancesCSV = () => {
+  // Memoized handlers
+  const handleViewStudent = useCallback(() => {
+    // Placeholder handler
+  }, []);
+
+  const handleExportCSV = useCallback(() => {
     // Placeholder export; integrate real export as needed
     void filteredStudentBalances;
-  };
+  }, [filteredStudentBalances]);
+
+  // Memoized tabs configuration
+  const tabsConfig = useMemo(() => [
+    {
+      value: "collect",
+      label: "Collect Fees",
+      icon: CreditCard,
+      content: <CollectFee />,
+    },
+    {
+      value: "tuition-balances",
+      label: "Tuition Fee Balances",
+      icon: DollarSign,
+      content: (
+        <TuitionFeeBalancesPanel 
+          onViewStudent={handleViewStudent} 
+          onExportCSV={handleExportCSV} 
+        />
+      ),
+    },
+    {
+      value: "transport-balances",
+      label: "Transport Fee Balances",
+      icon: Truck,
+      content: (
+        <TransportFeeBalancesPanel 
+          onViewStudent={handleViewStudent} 
+          onExportCSV={handleExportCSV} 
+        />
+      ),
+    },
+  ], [handleViewStudent, handleExportCSV]);
 
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
-      >
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Fee Management</h1>
-          <p className="text-muted-foreground">
-            Comprehensive fee structure management and payment tracking
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="gap-1">
-            {currentBranch?.branch_type === "SCHOOL" ? (
-              <DollarSign className="h-3 w-3" />
-            ) : (
-              <Building2 className="h-3 w-3" />
-            )}
-            {currentBranch?.branch_name}
-          </Badge>
-        </div>
-      </motion.div>
+      <HeaderContent currentBranch={currentBranch} />
 
       {/* Main Content Tabs */}
       <TabSwitcher
-        tabs={[
-          {
-            value: "collect",
-            label: "Collect Fees",
-            icon: CreditCard,
-            content: <CollectFee />,
-          },
-          {
-            value: "tuition-balances",
-            label: "Tuition Fee Balances",
-            icon: DollarSign,
-            content: <TuitionFeeBalancesPanel onViewStudent={() => {}} onExportCSV={() => {}} />,
-          },
-          {
-            value: "transport-balances",
-            label: "Transport Fee Balances",
-            icon: Truck,
-            content: <TransportFeeBalancesPanel onViewStudent={() => {}} onExportCSV={() => {}} />,
-          },
-        ]}
+        tabs={tabsConfig}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
-
     </div>
   );
 };
 
-export default FeesManagement;
+export const FeesManagement = FeesManagementComponent;
+export default FeesManagementComponent;

@@ -1,9 +1,13 @@
 export interface SchoolClassCreate {
   class_name: string;
+  book_fee: number;
+  tuition_fee: number;
 }
 
 export interface SchoolClassUpdate {
   class_name?: string;
+  book_fee?: number;
+  tuition_fee?: number;
 }
 
 export interface SchoolClassRead {

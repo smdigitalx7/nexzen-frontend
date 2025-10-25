@@ -751,6 +751,7 @@ const Dashboard = () => {
       {role === "institute_admin" && <AdminView />}
       {role === "accountant" && <AccountantView />}
       {role === "academic" && <AcademicView />}
+      
     </div>
   );
 };

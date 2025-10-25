@@ -24,7 +24,7 @@ import {
 import { useCollegeClasses } from '@/lib/hooks/college/use-college-classes';
 import { useCollegeStudentsList } from '@/lib/hooks/college/use-college-students';
 import { useCollegeSubjects } from '@/lib/hooks/college/use-college-subjects';
-import { useCollegeTests } from '@/lib/hooks/college/use-college-tests';
+import { useCollegeTests } from '@/lib/hooks/college/use-college-dropdowns';
 import { useCollegeGroups } from '@/lib/hooks/college/use-college-groups';
 import { useCollegeCourses } from '@/lib/hooks/college/use-college-courses';
 import type { CollegeTestMarkMinimalRead } from '@/lib/types/college/test-marks';
@@ -94,7 +94,8 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
   const { data: studentsData } = useCollegeStudentsList();
   const students = studentsData?.data || [];
   const { data: subjects = [] } = useCollegeSubjects();
-  const { data: tests = [] } = useCollegeTests();
+  const { data: testsData } = useCollegeTests();
+  const tests = testsData?.items || [];
   const { data: groups = [] } = useCollegeGroups();
   const { data: courses = [] } = useCollegeCourses();
 
@@ -284,20 +285,20 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Student</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!editingTestMark}>
-                                <FormControl>
-                              <SelectTrigger >
-                                <SelectValue placeholder="Select student" />
+                              <FormControl>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={!!editingTestMark}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select student" />
                                   </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
+                                  <SelectContent>
                               {students.map((student: any) => (
                                   <SelectItem key={student.student_id} value={student.student_id?.toString() || ''}>
                                   {student.student_name} ({student.admission_no})
                                     </SelectItem>
                                   ))}
-                                </SelectContent>
-                              </Select>
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -309,20 +310,20 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                           render={({ field }) => (
                             <FormItem>
                             <FormLabel>Test</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!editingTestMark}>
-                              <FormControl>
-                                <SelectTrigger >
+                            <FormControl>
+                              <Select onValueChange={field.onChange} value={field.value} disabled={!!editingTestMark}>
+                                <SelectTrigger>
                                   <SelectValue placeholder="Select test" />
                                 </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
+                                <SelectContent>
                                 {tests.map((test: any) => (
                                   <SelectItem key={test.test_id || test.id} value={(test.test_id || test.id)?.toString() || ''}>
                                     {test.test_name}
                                   </SelectItem>
                                 ))}
-                              </SelectContent>
-                            </Select>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -333,20 +334,20 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                           render={({ field }) => (
                             <FormItem>
                             <FormLabel>Subject</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!editingTestMark}>
-                              <FormControl>
-                                <SelectTrigger >
+                            <FormControl>
+                              <Select onValueChange={field.onChange} value={field.value} disabled={!!editingTestMark}>
+                                <SelectTrigger>
                                   <SelectValue placeholder="Select subject" />
                                 </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
+                                <SelectContent>
                                 {subjects.map((subject: any) => (
                                   <SelectItem key={subject.subject_id} value={subject.subject_id?.toString() || ''}>
                                     {subject.subject_name}
                                   </SelectItem>
                                 ))}
-                              </SelectContent>
-                            </Select>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -403,13 +404,12 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Grade</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
+                              <FormControl>
+                                <Select onValueChange={field.onChange} value={field.value}>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select grade" />
                                   </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
+                                  <SelectContent>
                                   <SelectItem value="A+">A+</SelectItem>
                                   <SelectItem value="A">A</SelectItem>
                                   <SelectItem value="B+">B+</SelectItem>
@@ -418,8 +418,9 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                                   <SelectItem value="C">C</SelectItem>
                                   <SelectItem value="D">D</SelectItem>
                                   <SelectItem value="F">F</SelectItem>
-                                </SelectContent>
-                              </Select>
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}

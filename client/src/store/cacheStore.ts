@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
+import { enableMapSet } from 'immer';
 
 export interface CacheEntry<T = any> {
   data: T;
@@ -78,6 +79,9 @@ interface CacheState {
 const DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
 const DEFAULT_MAX_SIZE = 1000;
 const DEFAULT_CLEANUP_INTERVAL = 60 * 1000; // 1 minute
+
+// Enable MapSet plugin for Immer
+enableMapSet();
 
 export const useCacheStore = create<CacheState>()(
   subscribeWithSelector(

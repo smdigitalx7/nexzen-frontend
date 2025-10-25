@@ -23,7 +23,7 @@ import {
 import { useCollegeClasses } from '@/lib/hooks/college/use-college-classes';
 import { useCollegeStudentsList } from '@/lib/hooks/college/use-college-students';
 import { useCollegeSubjects } from '@/lib/hooks/college/use-college-subjects';
-import { useCollegeExams } from '@/lib/hooks/college/use-college-exams';
+import { useCollegeExams } from '@/lib/hooks/college/use-college-dropdowns';
 import { useCollegeGroups } from '@/lib/hooks/college/use-college-groups';
 import { useCollegeCourses } from '@/lib/hooks/college/use-college-courses';
 import type { CollegeExamMarkMinimalRead, CollegeExamMarkFullReadResponse } from '@/lib/types/college/exam-marks';
@@ -94,7 +94,8 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
   const { data: studentsData } = useCollegeStudentsList();
   const students = studentsData?.data || [];
   const { data: subjects = [] } = useCollegeSubjects();
-  const { data: exams = [] } = useCollegeExams();
+  const { data: examsData } = useCollegeExams();
+  const exams = examsData?.items || [];
   const { data: groups = [] } = useCollegeGroups();
   const { data: courses = [] } = useCollegeCourses();
 
@@ -287,20 +288,20 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Student</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!editingExamMark}>
-                              <FormControl>
+                            <FormControl>
+                              <Select onValueChange={field.onChange} value={field.value} disabled={!!editingExamMark}>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select student" />
                                 </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
+                                <SelectContent>
                                 {students.map((student: any) => (
                                   <SelectItem key={student.student_id} value={student.student_id?.toString() || ''}>
                                     {student.student_name} ({student.admission_no})
                                   </SelectItem>
                                 ))}
-                              </SelectContent>
-                            </Select>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -312,20 +313,20 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Exam</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!editingExamMark}>
-                                <FormControl>
+                              <FormControl>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={!!editingExamMark}>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select exam" />
                                   </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
+                                  <SelectContent>
                                   {exams.map((exam: any) => (
                                     <SelectItem key={exam.exam_id || exam.id} value={(exam.exam_id || exam.id)?.toString() || ''}>
                                       {exam.exam_name}
                                     </SelectItem>
                                   ))}
-                                </SelectContent>
-                              </Select>
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -336,20 +337,20 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Subject</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!editingExamMark}>
-                                <FormControl>
+                              <FormControl>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={!!editingExamMark}>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select subject" />
                                   </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
+                                  <SelectContent>
                                   {subjects.map((subject: any) => (
                                     <SelectItem key={subject.subject_id} value={subject.subject_id?.toString() || ''}>
                                       {subject.subject_name}
                                     </SelectItem>
                                   ))}
-                                </SelectContent>
-                              </Select>
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -406,13 +407,12 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Grade</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
+                              <FormControl>
+                                <Select onValueChange={field.onChange} value={field.value}>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select grade" />
                                   </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
+                                  <SelectContent>
                                   <SelectItem value="A+">A+</SelectItem>
                                   <SelectItem value="A">A</SelectItem>
                                   <SelectItem value="B+">B+</SelectItem>
@@ -421,8 +421,9 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
                                   <SelectItem value="C">C</SelectItem>
                                   <SelectItem value="D">D</SelectItem>
                                   <SelectItem value="F">F</SelectItem>
-                                </SelectContent>
-                              </Select>
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}

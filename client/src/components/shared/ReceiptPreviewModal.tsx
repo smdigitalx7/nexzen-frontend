@@ -20,39 +20,19 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   onClose,
   blobUrl,
 }) => {
-  console.log("🔍 ReceiptPreviewModal render:", { isOpen, blobUrl: !!blobUrl });
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  // Debug logging for modal state changes
-  useEffect(() => {
-    console.log("🔍 ReceiptPreviewModal state changed:", { isOpen, blobUrl: !!blobUrl });
-    if (isOpen && blobUrl) {
-      console.log("🎯 ReceiptPreviewModal should be visible!");
-    }
-  }, [isOpen, blobUrl]);
-
-  // Debug component lifecycle
-  useEffect(() => {
-    console.log("🔍 ReceiptPreviewModal mounted/updated");
-    return () => {
-      console.log("🔍 ReceiptPreviewModal unmounting");
-    };
-  });
-
   useEffect(() => {
     if (isOpen && blobUrl) {
-      console.log("📄 Modal opened with blob URL, starting loading state");
       setIsLoading(true);
       setHasError(false);
 
       // Reduced delay to ensure modal shows faster
       setTimeout(() => {
         setIsLoading(false);
-        console.log("📄 Modal loading completed");
       }, 200);
     } else if (isOpen && !blobUrl) {
-      console.log("📄 Modal opened but no blob URL provided");
       setHasError(true);
       setIsLoading(false);
     }
@@ -107,7 +87,6 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
 
 
   const handleConfirmClose = () => {
-    console.log("🔍 handleConfirmClose called");
     setIsLoading(false);
     setHasError(false);
     onClose();
@@ -116,26 +95,19 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
 
   // Allow modal to close on backdrop click
   const handleBackdropClick = () => {
-    console.log("🔍 Backdrop clicked, closing modal");
     handleConfirmClose();
   };
 
   if (!isOpen) {
-    console.log("🔍 ReceiptPreviewModal not open, returning null");
     return null;
   }
-
-  console.log("🔍 ReceiptPreviewModal is open, rendering dialog");
-  console.log("🔍 ReceiptPreviewModal props:", { isOpen, blobUrl: !!blobUrl, blobUrlValue: blobUrl });
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => {
-        console.log("🔍 Dialog onOpenChange called with:", open);
         if (!open) {
           // Don't call handleClose here as it shows confirmation dialog
           // Instead, directly call onClose to avoid conflicts
-          console.log("🔍 Dialog closing, calling onClose directly");
           onClose();
         }
       }} modal={false}>
@@ -143,7 +115,6 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
           className="max-w-3xl w-full h-[95vh] p-0 z-[9999]"
           onPointerDownOutside={handleBackdropClick}
           onEscapeKeyDown={() => {
-            console.log("🔍 Escape key pressed, calling onClose directly");
             handleConfirmClose();
           }}
           showCloseButton={false}
@@ -171,7 +142,6 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
                 Print
               </Button>
               <Button onClick={() => {
-                console.log("🔍 Close button clicked");
                 handleConfirmClose();
               }} variant="outline" size="sm">
                 <X className="h-4 w-4" />
@@ -204,11 +174,9 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
                 title="Receipt Preview"
                 style={{ minHeight: "700px" }}
                 onLoad={() => {
-                  console.log("📄 PDF loaded in iframe");
                   setIsLoading(false);
                 }}
                 onError={() => {
-                  console.error("❌ Failed to load PDF");
                   setIsLoading(false);
                   setHasError(true);
                 }}

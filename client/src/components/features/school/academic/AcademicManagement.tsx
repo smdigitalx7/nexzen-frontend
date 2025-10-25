@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { School, Building2, Users, GraduationCap, Layers, Calendar, FileText, Settings } from "lucide-react";
+import { School, Building2, Users, GraduationCap, Layers, Calendar, FileText, Settings, UserCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
 import { useSchoolClasses } from '@/lib/hooks/school/use-school-classes';
@@ -12,6 +12,7 @@ import AcademicYearManagement from "@/components/features/school/academic/academ
 import { ClassesTab } from "@/components/features/school/academic/classes/ClassesTab";
 import { SubjectsTab } from "@/components/features/school/academic/subjects/SubjectsTab";
 import { SectionsTab } from "@/components/features/school/academic/sections/SectionsTab";
+import { TeachersTab } from "@/components/features/school/academic/teachers/TeachersTab";
 import { ExamsTab } from "@/components/features/school/academic/exams/ExamsTab";
 import { TestTab } from "@/components/features/school/academic/tests/TestTab";
 import { AcademicOverviewCards } from "@/components/features/school/academic/AcademicOverviewCards";
@@ -20,16 +21,16 @@ import { useAuthStore } from "@/store/authStore";
 const AcademicManagement = () => {
   const { currentBranch } = useAuthStore();
   
-  // New modular school hooks
+  // Data fetching hooks
   const { data: backendClasses = [], isLoading: classesLoading, isError: classesError, error: classesErrObj } = useSchoolClasses();
   const { data: backendSubjects = [], isLoading: subjectsLoading, isError: subjectsError, error: subjectsErrObj } = useSchoolSubjects();
   const { data: exams = [], isLoading: examsLoading, isError: examsError, error: examsErrObj } = useSchoolExams();
-  const { data: tests = [], isLoading: testsLoading, isError: testsError, error: testsErrObj, refetch: refetchTests } = useSchoolTests();
+  const { data: tests = [], isLoading: testsLoading, isError: testsError, error: testsErrObj } = useSchoolTests();
 
-  // Get effective classes
-  const effectiveClasses = backendClasses;
+  // Memoized effective classes
+  const effectiveClasses = useMemo(() => backendClasses, [backendClasses]);
 
-  // Fetch sections for all classes
+  // Optimized sections fetching with memoized queries
   const sectionsQueries = useQueries({
     queries: effectiveClasses.map((classItem: any) => ({
       queryKey: ['school', 'sections', 'by-class', classItem.class_id],
@@ -38,38 +39,56 @@ const AcademicManagement = () => {
         return SchoolSectionsService.listByClass(classItem.class_id);
       },
       enabled: !!classItem.class_id,
+      staleTime: 5 * 60 * 1000, // 5 minutes cache
     })),
   });
 
-  // Calculate total sections from all fetched sections
-  const totalSections = sectionsQueries.reduce((total: number, query) => {
-    const sections = query.data || [];
-    return total + sections.length;
-  }, 0);
+  // Memoized calculations
+  const academicStats = useMemo(() => {
+    const totalSections = sectionsQueries.reduce((total: number, query) => {
+      const sections = query.data || [];
+      return total + sections.length;
+    }, 0);
 
-  // Calculate statistics
-  const totalClasses = effectiveClasses.length;
-  const totalSubjects = backendSubjects.length;
-  const totalTests = tests.length;
-  
-  const today = new Date();
-  const toDate = (v: any) => { const d = new Date(v); return isNaN(d.getTime()) ? null : d; };
-  const activeExams = exams.filter((exam: any) => {
-    const d = toDate(exam.exam_date);
-    return d ? d >= new Date(today.toDateString()) : false;
-  }).length;
+    const totalClasses = effectiveClasses.length;
+    const totalSubjects = backendSubjects.length;
+    const totalTests = tests.length;
+    
+    const today = new Date();
+    const toDate = (v: any) => { 
+      const d = new Date(v); 
+      return isNaN(d.getTime()) ? null : d; 
+    };
+    
+    const activeExams = exams.filter((exam: any) => {
+      const d = toDate(exam.exam_date);
+      return d ? d >= new Date(today.toDateString()) : false;
+    }).length;
 
-  // Loading states
-  const sectionsLoading = sectionsQueries.some((query) => query.isLoading);
-  const isLoading = classesLoading || subjectsLoading || examsLoading || testsLoading || sectionsLoading;
-  const hasError = classesError || subjectsError || examsError || testsError;
-  const errorMessage = (
-    (classesErrObj as any)?.message ||
-    (subjectsErrObj as any)?.message ||
-    (examsErrObj as any)?.message ||
-    (testsErrObj as any)?.message ||
-    undefined
-  );
+    return {
+      totalClasses,
+      totalSubjects,
+      totalSections,
+      activeExams,
+      totalTests,
+    };
+  }, [effectiveClasses, backendSubjects, exams, tests, sectionsQueries]);
+
+  // Memoized loading and error states
+  const loadingStates = useMemo(() => {
+    const sectionsLoading = sectionsQueries.some((query) => query.isLoading);
+    const isLoading = classesLoading || subjectsLoading || examsLoading || testsLoading || sectionsLoading;
+    const hasError = classesError || subjectsError || examsError || testsError;
+    const errorMessage = (
+      (classesErrObj as any)?.message ||
+      (subjectsErrObj as any)?.message ||
+      (examsErrObj as any)?.message ||
+      (testsErrObj as any)?.message ||
+      undefined
+    );
+
+    return { isLoading, hasError, errorMessage };
+  }, [classesLoading, subjectsLoading, examsLoading, testsLoading, sectionsQueries, classesError, subjectsError, examsError, testsError, classesErrObj, subjectsErrObj, examsErrObj, testsErrObj]);
 
   // Local state for filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -77,55 +96,138 @@ const AcademicManagement = () => {
   const [selectedClass, setSelectedClass] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("classes");
 
-  // Dynamic header content based on active tab
-  const getHeaderContent = () => {
-    switch (activeTab) {
-      case 'classes':
-        return {
-          title: 'Classes Management',
-          description: 'Manage academic classes and their subject assignments'
-        };
-      case 'sections':
-        return {
-          title: 'Sections Management',
-          description: 'Manage class sections and student groupings'
-        };
-      case 'subjects':
-        return {
-          title: 'Subjects Management',
-          description: 'Manage academic subjects and their assignments'
-        };
-      case 'exams':
-        return {
-          title: 'Exams Management',
-          description: 'Manage academic examinations and schedules'
-        };
-      case 'tests':
-        return {
-          title: 'Tests Management',
-          description: 'Manage academic tests and assessments'
-        };
-      case 'academic-years':
-        return {
-          title: 'Academic Years Management',
-          description: 'Manage academic years, terms, and academic calendar'
-        };
-      default:
-        return {
-          title: 'Academic Management',
-          description: 'Comprehensive academic structure and performance management'
-        };
-    }
-  };
+  // Memoized header content
+  const headerContent = useMemo(() => {
+    const contentMap = {
+      'classes': {
+        title: 'Classes Management',
+        description: 'Manage academic classes and their subject assignments'
+      },
+      'sections': {
+        title: 'Sections Management',
+        description: 'Manage class sections and student groupings'
+      },
+      'teachers': {
+        title: 'Teachers Management',
+        description: 'Manage teaching staff and their assignments'
+      },
+      'subjects': {
+        title: 'Subjects Management',
+        description: 'Manage academic subjects and their assignments'
+      },
+      'exams': {
+        title: 'Exams Management',
+        description: 'Manage academic examinations and schedules'
+      },
+      'tests': {
+        title: 'Tests Management',
+        description: 'Manage academic tests and assessments'
+      },
+      'academic-years': {
+        title: 'Academic Years Management',
+        description: 'Manage academic years, terms, and academic calendar'
+      },
+    };
 
-  const headerContent = getHeaderContent();
+    return contentMap[activeTab as keyof typeof contentMap] || {
+      title: 'Academic Management',
+      description: 'Comprehensive academic structure and performance management'
+    };
+  }, [activeTab]);
 
-  // Ensure tests are fetched when Tests tab becomes active
-  useEffect(() => {
-    if (activeTab === "tests") {
-      refetchTests();
-    }
-  }, [activeTab, refetchTests]);
+  // Memoized tab configuration
+  const tabsConfig = useMemo(() => [
+    {
+      value: "classes",
+      label: "Classes",
+      icon: Users,
+      content: (
+        <ClassesTab
+          classesWithSubjects={backendClasses}
+          classesLoading={loadingStates.isLoading}
+          hasError={loadingStates.hasError}
+          errorMessage={loadingStates.errorMessage}
+        />
+      ),
+    },
+    {
+      value: "subjects",
+      label: "Subjects",
+      icon: GraduationCap,
+      content: (
+        <SubjectsTab
+          backendSubjects={backendSubjects}
+          subjectsLoading={loadingStates.isLoading}
+          currentBranch={currentBranch}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          selectedBranchType={selectedBranchType}
+          setSelectedBranchType={setSelectedBranchType}
+        />
+      ),
+    },
+    {
+      value: "sections",
+      label: "Sections",
+      icon: Layers,
+      content: <SectionsTab />,
+    },
+    {
+      value: "teachers",
+      label: "Teachers",
+      icon: UserCheck,
+      content: <TeachersTab />,
+    },
+    {
+      value: "exams",
+      label: "Exams",
+      icon: Calendar,
+      content: (
+        <ExamsTab
+          exams={exams}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          isLoading={loadingStates.isLoading}
+          hasError={loadingStates.hasError}
+          errorMessage={loadingStates.errorMessage}
+        />
+      ),
+    },
+    {
+      value: "tests",
+      label: "Tests",
+      icon: FileText,
+      content: (
+        <TestTab
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          tests={tests}
+          isLoading={testsLoading}
+          hasError={testsError}
+          errorMessage={(testsErrObj as any)?.message}
+        />
+      ),
+    },
+    {
+      value: "academic-years",
+      label: "Academic Years",
+      icon: Settings,
+      content: <AcademicYearManagement />,
+    },
+  ], [backendClasses, backendSubjects, currentBranch, searchTerm, selectedBranchType, exams, tests, loadingStates, testsLoading, testsError, testsErrObj]);
+
+  // Memoized callbacks
+  const handleTabChange = useCallback((value: string) => {
+    setActiveTab(value);
+  }, []);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchTerm(value);
+  }, []);
+
+  const handleBranchTypeChange = useCallback((value: string) => {
+    setSelectedBranchType(value);
+  }, []);
 
   return (
     <div className="space-y-6 p-6">
@@ -157,91 +259,19 @@ const AcademicManagement = () => {
 
       {/* Academic Overview Cards */}
       <AcademicOverviewCards
-        totalClasses={totalClasses}
-        totalSubjects={totalSubjects}
-        totalSections={totalSections}
-        activeExams={activeExams}
-        totalTests={totalTests}
-        loading={isLoading}
+        totalClasses={academicStats.totalClasses}
+        totalSubjects={academicStats.totalSubjects}
+        totalSections={academicStats.totalSections}
+        activeExams={academicStats.activeExams}
+        totalTests={academicStats.totalTests}
+        loading={loadingStates.isLoading}
       />
 
       {/* Tabs */}
       <TabSwitcher
-        tabs={[
-          {
-            value: "classes",
-            label: "Classes",
-            icon: Users,
-            content: (
-              <ClassesTab
-                classesWithSubjects={backendClasses}
-                classesLoading={isLoading}
-                hasError={hasError}
-                errorMessage={errorMessage}
-              />
-            ),
-          },
-          {
-            value: "subjects",
-            label: "Subjects",
-            icon: GraduationCap,
-            content: (
-              <SubjectsTab
-                backendSubjects={backendSubjects}
-                subjectsLoading={isLoading}
-                currentBranch={currentBranch}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                selectedBranchType={selectedBranchType}
-                setSelectedBranchType={setSelectedBranchType}
-              />
-            ),
-          },
-          {
-            value: "sections",
-            label: "Sections",
-            icon: Layers,
-            content: <SectionsTab />,
-          },
-          {
-            value: "exams",
-            label: "Exams",
-            icon: Calendar,
-            content: (
-              <ExamsTab
-                exams={exams}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                isLoading={isLoading}
-                hasError={hasError}
-                errorMessage={errorMessage}
-              />
-            ),
-          },
-          {
-            value: "tests",
-            label: "Tests",
-            icon: FileText,
-            content: (
-              <TestTab
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                tests={tests}
-                isLoading={testsLoading}
-                hasError={testsError}
-                errorMessage={(testsErrObj as any)?.message}
-              />
-            ),
-          },
-          {
-            value: "academic-years",
-            label: "Academic Years",
-            icon: Settings,
-            content: <AcademicYearManagement />,
-          },
-        ]}
+        tabs={tabsConfig}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
       />
     </div>
   );
