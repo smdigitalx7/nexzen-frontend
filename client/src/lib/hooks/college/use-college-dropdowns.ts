@@ -14,40 +14,41 @@ export const useCollegeClasses = () => {
 };
 
 /**
- * Hook for fetching college groups
+ * Hook for fetching college groups - only fetches when a valid classId is provided
  */
 export const useCollegeGroups = (classId?: number) => {
   return useQuery({
-    queryKey: ["college-dropdowns", "groups", classId],
-    queryFn: () => CollegeDropdownsService.getGroups(classId),
+    queryKey: classId && classId > 0 ? ["college-dropdowns", "groups", classId] : ["college-dropdowns", "groups", "disabled"],
+    queryFn: () => CollegeDropdownsService.getGroups(classId!),
     staleTime: 5 * 60 * 1000, // 5 minutes - dropdowns don't change often
     gcTime: 10 * 60 * 1000, // 10 minutes
+    enabled: classId !== undefined && classId > 0, // Only fetch when classId is valid
   });
 };
 
 /**
- * Hook for fetching college courses
+ * Hook for fetching college courses - only fetches when a valid groupId is provided
  */
 export const useCollegeCourses = (groupId: number) => {
   return useQuery({
-    queryKey: ["college-dropdowns", "courses", groupId],
+    queryKey: groupId > 0 ? ["college-dropdowns", "courses", groupId] : ["college-dropdowns", "courses", "disabled"],
     queryFn: () => CollegeDropdownsService.getCourses(groupId),
     staleTime: 5 * 60 * 1000, // 5 minutes - dropdowns don't change often
     gcTime: 10 * 60 * 1000, // 10 minutes
-    enabled: !!groupId,
+    enabled: groupId > 0, // Only fetch when groupId is valid
   });
 };
 
 /**
- * Hook for fetching college subjects
+ * Hook for fetching college subjects - only fetches when a valid groupId is provided
  */
 export const useCollegeSubjects = (groupId: number) => {
   return useQuery({
-    queryKey: ["college-dropdowns", "subjects", groupId],
+    queryKey: groupId > 0 ? ["college-dropdowns", "subjects", groupId] : ["college-dropdowns", "subjects", "disabled"],
     queryFn: () => CollegeDropdownsService.getSubjects(groupId),
     staleTime: 5 * 60 * 1000, // 5 minutes - dropdowns don't change often
     gcTime: 10 * 60 * 1000, // 10 minutes
-    enabled: !!groupId,
+    enabled: groupId > 0, // Only fetch when groupId is valid
   });
 };
 

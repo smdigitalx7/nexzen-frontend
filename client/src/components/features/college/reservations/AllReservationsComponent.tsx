@@ -148,6 +148,13 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
     }
   };
 
+  const getStatusBadgeClassName = (status: string) => {
+    if (status.toUpperCase() === "CONFIRMED") {
+      return "bg-green-500 text-white hover:bg-green-600";
+    }
+    return "";
+  };
+
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return "-";
     return new Date(dateString).toLocaleDateString();
@@ -193,7 +200,10 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
       cell: ({ row }) => {
         const status = row.getValue("status") as string;
         return (
-          <Badge variant={getStatusBadgeVariant(status)}>
+          <Badge 
+            variant={getStatusBadgeVariant(status)}
+            className={getStatusBadgeClassName(status)}
+          >
             {status}
           </Badge>
         );

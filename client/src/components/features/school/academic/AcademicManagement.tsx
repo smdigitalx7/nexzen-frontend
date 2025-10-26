@@ -19,8 +19,6 @@ import {
   useSchoolExams,
   useSchoolTests,
 } from "@/lib/hooks/school/use-school-exams-tests";
-import { useSchoolSectionsByClass } from "@/lib/hooks/school/use-school-sections";
-import { useQueries } from "@tanstack/react-query";
 import AcademicYearManagement from "@/components/features/school/academic/academic-years/AcademicYearManagement";
 import { ClassesTab } from "@/components/features/school/academic/classes/ClassesTab";
 import { SubjectsTab } from "@/components/features/school/academic/subjects/SubjectsTab";
@@ -44,7 +42,6 @@ const AcademicManagement = () => {
   const subjectsEnabled = useTabEnabled("subjects");
   const examsEnabled = useTabEnabled("exams");
   const testsEnabled = useTabEnabled("tests");
-  const sectionsEnabled = useTabEnabled("sections");
 
   // ✅ LAZY LOADING: Only fetch data for active tab
   const {
@@ -86,27 +83,9 @@ const AcademicManagement = () => {
   // Memoized effective classes
   const effectiveClasses = useMemo(() => backendClasses, [backendClasses]);
 
-  // ✅ LAZY LOADING: Only fetch sections when sections tab is active
-  const sectionsQueries = useQueries({
-    queries: effectiveClasses.map((classItem: any) => ({
-      queryKey: ["school", "sections", "by-class", classItem.class_id],
-      queryFn: async () => {
-        const { SchoolSectionsService } = await import(
-          "@/lib/services/school/sections.service"
-        );
-        return SchoolSectionsService.listByClass(classItem.class_id);
-      },
-      enabled: sectionsEnabled && !!classItem.class_id,
-      staleTime: 5 * 60 * 1000, // 5 minutes cache
-    })),
-  });
-
   // Memoized calculations
   const academicStats = useMemo(() => {
-    const totalSections = sectionsQueries.reduce((total: number, query) => {
-      const sections = query.data || [];
-      return total + sections.length;
-    }, 0);
+    const totalSections = 0; // Don't fetch all sections - only fetch when user selects a class in SectionsTab
 
     const totalClasses = effectiveClasses.length;
     const totalSubjects = backendSubjects.length;
@@ -130,17 +109,15 @@ const AcademicManagement = () => {
       activeExams,
       totalTests,
     };
-  }, [effectiveClasses, backendSubjects, exams, tests, sectionsQueries]);
+  }, [effectiveClasses, backendSubjects, exams, tests]);
 
   // Memoized loading and error states
   const loadingStates = useMemo(() => {
-    const sectionsLoading = sectionsQueries.some((query) => query.isLoading);
     const isLoading =
       classesLoading ||
       subjectsLoading ||
       examsLoading ||
-      testsLoading ||
-      sectionsLoading;
+      testsLoading;
     const hasError = classesError || subjectsError || examsError || testsError;
     const errorMessage =
       (classesErrObj as any)?.message ||
@@ -155,7 +132,6 @@ const AcademicManagement = () => {
     subjectsLoading,
     examsLoading,
     testsLoading,
-    sectionsQueries,
     classesError,
     subjectsError,
     examsError,

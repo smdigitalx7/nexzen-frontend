@@ -386,6 +386,11 @@ const ConfirmedReservationsTab = () => {
                 ? "default"
                 : "destructive"
             }
+            className={
+              status === "CONFIRMED"
+                ? "bg-green-500 text-white hover:bg-green-600"
+                : ""
+            }
           >
             {status}
           </Badge>

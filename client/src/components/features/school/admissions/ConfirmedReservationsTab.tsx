@@ -47,8 +47,18 @@ const StatusBadge = memo(({ status }: { status: string }) => {
     return "destructive";
   };
 
+  const getStatusClassName = (status: string) => {
+    if (status === "CONFIRMED") {
+      return "bg-green-500 text-white hover:bg-green-600";
+    }
+    return "";
+  };
+
   return (
-    <Badge variant={getStatusVariant(status)}>
+    <Badge 
+      variant={getStatusVariant(status)}
+      className={getStatusClassName(status)}
+    >
       {status || "Unknown"}
     </Badge>
   );

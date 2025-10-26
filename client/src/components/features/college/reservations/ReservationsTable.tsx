@@ -266,6 +266,11 @@ export default function ReservationsTable({
                         ? "secondary"
                         : "outline"
                     }
+                    className={
+                      reservation.status === "CONFIRMED"
+                        ? "bg-green-500 text-white hover:bg-green-600"
+                        : ""
+                    }
                   >
                     {reservation.status}
                   </Badge>

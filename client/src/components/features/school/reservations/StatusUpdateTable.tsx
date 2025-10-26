@@ -46,6 +46,11 @@ const StatusBadge = memo(({ status }: { status: string }) => {
           ? "secondary"
           : "outline"
       }
+      className={
+        current === "CONFIRMED"
+          ? "bg-green-500 text-white hover:bg-green-600"
+          : ""
+      }
     >
       {current}
     </Badge>

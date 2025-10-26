@@ -18,26 +18,16 @@ const initialSectionForm = {
 const SectionsTabComponent = () => {
   const { data: classes = [] } = useSchoolClasses();
   
-  // Memoized initial class ID
-  const initialClassId = useMemo(() => classes[0]?.class_id, [classes]);
-  
   // State management
-  const [selectedClassId, setSelectedClassId] = useState<number | undefined>(initialClassId);
+  const [selectedClassId, setSelectedClassId] = useState<number | undefined>(undefined);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedSection, setSelectedSection] = useState<SchoolSectionRead | null>(null);
   const [newSection, setNewSection] = useState(initialSectionForm);
   const [editSection, setEditSection] = useState(initialSectionForm);
 
-  // Auto-select first class when classes load
-  useEffect(() => {
-    if (!selectedClassId && classes.length > 0) {
-      setSelectedClassId(classes[0].class_id);
-    }
-  }, [classes, selectedClassId]);
-
-  // Data fetching
-  const { data: sections = [], isLoading } = useSchoolSectionsByClass(selectedClassId as number);
+  // Data fetching - only fetch when a class is selected
+  const { data: sections = [], isLoading } = useSchoolSectionsByClass(selectedClassId);
 
   // Hooks
   const createSection = useCreateSchoolSection((selectedClassId || 0) as number);
@@ -110,7 +100,8 @@ const SectionsTabComponent = () => {
   }, []);
 
   const handleClassChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedClassId(parseInt(e.target.value));
+    const classId = e.target.value ? parseInt(e.target.value) : undefined;
+    setSelectedClassId(classId);
   }, []);
 
   // Memoized action button groups
@@ -151,25 +142,32 @@ const SectionsTabComponent = () => {
           value={selectedClassId || ""}
           onChange={handleClassChange}
         >
+          <option value="">Select a class...</option>
           {classes.map((c: SchoolClassRead) => (
             <option key={c.class_id} value={c.class_id}>{c.class_name}</option>
           ))}
         </select>
       </div>
 
-      <EnhancedDataTable
-        data={sections}
-        columns={columns}
-        title="Sections"
-        searchKey="section_name"
-        exportable={true}
-        onAdd={() => setIsAddOpen(true)}
-        addButtonText="Add Section"
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
-      />
+      {!selectedClassId ? (
+        <div className="flex items-center justify-center h-64 text-muted-foreground">
+          Please select a class to view sections
+        </div>
+      ) : (
+          <EnhancedDataTable
+          data={sections}
+          columns={columns}
+          title="Sections"
+          searchKey="section_name"
+          exportable={true}
+          onAdd={() => setIsAddOpen(true)}
+          addButtonText="Add Section"
+          showActions={true}
+          actionButtonGroups={actionButtonGroups}
+          actionColumnHeader="Actions"
+          showActionLabels={true}
+        />
+      )}
 
       <FormDialog
         open={isAddOpen}
@@ -180,7 +178,7 @@ const SectionsTabComponent = () => {
         onCancel={closeAddDialog}
         saveText="Create Section"
         cancelText="Cancel"
-        disabled={createSection.isPending}
+        disabled={createSection.isPending || !selectedClassId}
       >
         <div className="space-y-4">
           <div className="space-y-2">

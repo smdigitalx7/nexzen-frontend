@@ -128,6 +128,13 @@ const StatusUpdateComponent: React.FC<StatusUpdateComponentProps> = ({
     }
   };
 
+  const getStatusBadgeClassName = (status: string) => {
+    if (status.toUpperCase() === "CONFIRMED") {
+      return "bg-green-500 text-white hover:bg-green-600";
+    }
+    return "";
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-32">
@@ -172,7 +179,10 @@ const StatusUpdateComponent: React.FC<StatusUpdateComponentProps> = ({
                   </TableCell>
                   <TableCell>{reservation.student_name}</TableCell>
                   <TableCell>
-                    <Badge variant={getStatusBadgeVariant(currentStatus)}>
+                    <Badge 
+                      variant={getStatusBadgeVariant(currentStatus)}
+                      className={getStatusBadgeClassName(currentStatus)}
+                    >
                       {currentStatus}
                     </Badge>
                   </TableCell>
