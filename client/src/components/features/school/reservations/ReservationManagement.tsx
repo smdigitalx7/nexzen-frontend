@@ -1,9 +1,11 @@
 import { useMemo, useState, useEffect, memo, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useSchoolReservationsList,
   useDeleteSchoolReservation,
   useSchoolReservationsDashboard,
+  useCreateSchoolReservation,
+  useUpdateSchoolReservation,
 } from "@/lib/hooks/school/use-school-reservations";
 import { useSchoolClasses } from "@/lib/hooks/school/use-school-dropdowns";
 import { useSchoolClass } from "@/lib/hooks/school/use-school-class";
@@ -383,8 +385,9 @@ const ViewDialogContent = memo(({
 ViewDialogContent.displayName = "ViewDialogContent";
 
 const ReservationManagementComponent = () => {
+  const queryClient = useQueryClient();
   const { currentBranch } = useAuthStore();
-  
+
   // Memoized route names query
   const { data: routeNames = [] } = useQuery({
     queryKey: ["public", "bus-routes", "names"],
@@ -397,6 +400,9 @@ const ReservationManagementComponent = () => {
   const [reservationNo, setReservationNo] = useState<string>("");
   const [showReceipt, setShowReceipt] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<any>(null);
+
+  // Initialize mutation hooks (after state is defined)
+  const createReservationMutation = useCreateSchoolReservation();
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [viewReservation, setViewReservation] = useState<any>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -733,12 +739,28 @@ const ReservationManagementComponent = () => {
     };
 
     try {
-      const res: SchoolReservationRead = await SchoolReservationsService.create(
-        payload
-      );
+      // Convert payload to FormData as required by the service
+      const formData = new FormData();
+      Object.keys(payload).forEach(key => {
+        const value = payload[key as keyof typeof payload];
+        if (value !== undefined && value !== null) {
+          if (Array.isArray(value)) {
+            formData.append(key, JSON.stringify(value));
+          } else {
+            formData.append(key, String(value));
+          }
+        }
+      });
+
+      // Use mutation hook which handles cache invalidation automatically
+      const res: SchoolReservationRead = await createReservationMutation.mutateAsync(formData);
+      
       console.log("Reservation creation response:", res);
       // Use backend reservation_id to display receipt number
       setReservationNo(String(res?.reservation_id || ""));
+
+      // Invalidate cache to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
 
       if (withPayment) {
         // Prepare payment data for the payment processor
@@ -759,22 +781,11 @@ const ReservationManagementComponent = () => {
       } else {
         setShowReceipt(true);
       }
-
-      // Refresh list after creating
-      if (activeTab === "all") {
-        refetchReservations();
-      }
     } catch (e: any) {
       console.error("Failed to create reservation:", e);
-      toast({
-        title: "Reservation Creation Failed",
-        description:
-          e?.message ||
-          "Unable to create reservation. Please check your inputs and try again.",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
-  }, [form, getPreferredClassId, getPreferredDistanceSlabId, transportFee, activeTab, refetchReservations]);
+  }, [form, getPreferredClassId, getPreferredDistanceSlabId, transportFee, createReservationMutation, queryClient]);
 
   const mapApiToForm = (r: any) => ({
     student_name: r.student_name || "",
@@ -996,22 +1007,38 @@ const ReservationManagementComponent = () => {
         reservation_date: editForm.reservation_date || "",
       };
 
+      // Convert payload to FormData
+      const formData = new FormData();
+      Object.keys(payload).forEach(key => {
+        const value = payload[key as keyof typeof payload];
+        if (value !== undefined && value !== null) {
+          if (Array.isArray(value)) {
+            formData.append(key, JSON.stringify(value));
+          } else {
+            formData.append(key, String(value));
+          }
+        }
+      });
+
+      // Use service directly and invalidate cache
       await SchoolReservationsService.update(
         Number(selectedReservation.id),
-        payload
+        formData
       );
+
+      // Invalidate cache to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
+      
+      toast({
+        title: "Reservation Updated",
+        description: "Reservation details have been updated successfully.",
+      });
       setShowEditDialog(false);
-      refetchReservations();
     } catch (e: any) {
       console.error("Failed to update reservation:", e);
-      toast({
-        title: "Update Failed",
-        description:
-          e?.message || "Could not update reservation. Please try again.",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
-  }, [selectedReservation, editForm, getPreferredClassId, getPreferredDistanceSlabId, editTransportFee, refetchReservations]);
+  }, [selectedReservation, editForm, getPreferredClassId, getPreferredDistanceSlabId, editTransportFee, queryClient]);
 
   // Handle reservations errors
   useEffect(() => {

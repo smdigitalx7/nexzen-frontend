@@ -63,9 +63,8 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
         class_id: classIdNum,
         group_id: groupIdNum 
       });
-      refetch();
+      // Cache invalidation handled by mutation hook
       setBulkCreateOpen(false);
-      // Toast handled by mutation hook
     } catch (error) {
       // Error toast handled by mutation hook
     }

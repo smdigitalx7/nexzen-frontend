@@ -8,17 +8,20 @@ import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { useSchoolAttendance } from '@/lib/hooks/school/use-school-attendance';
+import { useSchoolAttendance, useUpdateSchoolAttendance, useDeleteSchoolAttendance } from '@/lib/hooks/school/use-school-attendance';
 import { useToast } from '@/hooks/use-toast';
 import { useSchoolClasses } from '@/lib/hooks/school/use-school-classes';
 import { useSchoolSectionsByClass } from '@/lib/hooks/school/use-school-sections';
 import { useSchoolAttendanceAllStudents } from '@/lib/hooks/school/use-school-attendance';
 import { SchoolStudentAttendanceService } from '@/lib/services/school/student-attendance.service';
 import type { SchoolStudentAttendanceMonthlyGroupedResponse, SchoolClassRead, SchoolSectionRead } from '@/lib/types/school';
+import { useQueryClient } from '@tanstack/react-query';
 
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 export default function AttendanceView() {
+  const queryClient = useQueryClient();
+  const deleteAttendanceMutation = useDeleteSchoolAttendance();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const classesQuery = useSchoolClasses();
   const classes = (classesQuery.data as any[]) || [];
@@ -71,13 +74,13 @@ export default function AttendanceView() {
       return;
     }
     try {
-      await SchoolStudentAttendanceService.delete(rowToDelete.attendance_id);
-      await studentsQuery.refetch();
-      toast({ title: 'Deleted', description: 'Attendance record removed' });
+      await deleteAttendanceMutation.mutateAsync(rowToDelete.attendance_id);
+      
+      // Cache invalidation handled by mutation hook
       setDeleteOpen(false);
       setRowToDelete(null);
     } catch {
-      toast({ title: 'Error', description: 'Failed to delete record', variant: 'destructive' });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -204,8 +207,12 @@ export default function AttendanceView() {
                 return;
               }
               try {
+                // Use service directly with cache invalidation
                 await SchoolStudentAttendanceService.update(editingRow.attendance_id, { absent_days: absent, remarks: editRemarks || null });
-                await studentsQuery.refetch();
+                
+                // Invalidate cache to refresh the list
+                queryClient.invalidateQueries({ queryKey: ["school", "attendance"] });
+                
                 toast({ title: 'Updated', description: 'Attendance updated' });
                 setEditOpen(false);
               } catch (err: unknown) {

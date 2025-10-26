@@ -43,9 +43,8 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
 
     try {
       await bulkCreateMutation.mutateAsync({ class_id: classIdNum });
-      refetch();
+      // Cache invalidation handled by mutation hook
       setBulkCreateOpen(false);
-      // Toast handled by mutation hook
     } catch (error) {
       // Error toast handled by mutation hook
     }

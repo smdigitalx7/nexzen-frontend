@@ -27,10 +27,12 @@ import {
   CheckCircle,
   DollarSign,
 } from "lucide-react";
-import { useCollegeReservationsList } from "@/lib/hooks/college/use-college-reservations";
+import { useCollegeReservationsList, useUpdateCollegeReservation, useUpdateCollegeReservationStatus } from "@/lib/hooks/college/use-college-reservations";
+import { useCreateCollegeStudent } from "@/lib/hooks/college/use-college-students";
 import { CollegeReservationsService } from "@/lib/services/college/reservations.service";
 import { CollegeStudentsService } from "@/lib/services/college/students.service";
 import { toast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import { ReceiptPreviewModal } from "@/components/shared";
 import {
   handleRegenerateReceipt,
@@ -87,6 +89,7 @@ type Reservation = CollegeReservationMinimalRead & {
 }
 
 const ConfirmedReservationsTab = () => {
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>("CONFIRMED");
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -109,6 +112,11 @@ const ConfirmedReservationsTab = () => {
     page_size: 100,
     status: statusFilter,
   });
+
+  // Initialize mutation hooks
+  const createStudentMutation = useCreateCollegeStudent();
+  const updateReservationMutation = useUpdateCollegeReservation(selectedReservation?.reservation_id ?? 0);
+  const updateStatusMutation = useUpdateCollegeReservationStatus(selectedReservation?.reservation_id ?? 0);
 
   // Process reservations data
   const allReservations = useMemo(() => {
@@ -174,22 +182,24 @@ const ConfirmedReservationsTab = () => {
         reservation_date: reservationDetails.reservation_date,
       };
 
-      const response = await CollegeStudentsService.create(studentData);
+      // Use mutation hook which handles cache invalidation automatically
+      const response = await createStudentMutation.mutateAsync(studentData);
       
       if (response) {
-        // Mark reservation as enrolled
-        await CollegeReservationsService.updateStatus(reservationId, {
+        // Mark reservation as enrolled using mutation hook
+        await updateStatusMutation.mutateAsync({
           status: "CONFIRMED",
           remarks: "Student enrolled successfully",
         });
+
+        // Invalidate cache to refresh both students and reservations
+        queryClient.invalidateQueries({ queryKey: ["college", "students"] });
+        queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
 
         // Set admission details for payment dialog
         setCreatedAdmissionNo(response.admission_no || "");
         setAdmissionFee(3000); // Default admission fee
         setShowPaymentDialog(true);
-        
-        // Refresh data
-        refetch();
         
         toast({
           title: "Enrollment Successful",
@@ -265,13 +275,17 @@ const ConfirmedReservationsTab = () => {
         remarks: editForm.remarks,
         reservation_date: editForm.reservation_date,
       };
-      await CollegeReservationsService.update(editForm.reservation_id, updatePayload);
+      // Use mutation hook which handles cache invalidation automatically
+      await updateReservationMutation.mutateAsync(updatePayload);
+
+      // Additional invalidation
+      queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
+      
       toast({
         title: "Reservation Updated",
         description: "Reservation details have been updated successfully.",
       });
       handleCancelEdit();
-      refetch();
     } catch (error: any) {
       console.error("Update error:", error);
       toast({

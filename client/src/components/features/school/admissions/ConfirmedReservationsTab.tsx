@@ -27,7 +27,7 @@ import {
   CheckCircle,
   DollarSign,
 } from "lucide-react";
-import { useSchoolReservationsList } from "@/lib/hooks/school/use-school-reservations";
+import { useSchoolReservationsList, useUpdateSchoolReservation } from "@/lib/hooks/school/use-school-reservations";
 import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
 import { SchoolStudentsService } from "@/lib/services/school/students.service";
 import { toast } from "@/hooks/use-toast";
@@ -38,6 +38,7 @@ import {
 } from "@/lib/api";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { SchoolReservationListItem } from "@/lib/types/school/reservations";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Memoized status badge component
 const StatusBadge = memo(({ status }: { status: string }) => {
@@ -674,6 +675,7 @@ interface Reservation {
 }
 
 const ConfirmedReservationsTabComponent = () => {
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>("CONFIRMED");
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -694,6 +696,11 @@ const ConfirmedReservationsTabComponent = () => {
     page_size: 100,
     status: statusFilter,
   });
+
+  // Get update mutation hook (we'll use this properly)
+  const updateReservationMutation = useUpdateSchoolReservation(
+    selectedReservation?.reservation_id ?? 0
+  );
 
   // Memoized data processing
   const allReservations = useMemo(() => {
@@ -743,57 +750,65 @@ const ConfirmedReservationsTabComponent = () => {
     if (!editForm || !selectedReservation) return;
 
     try {
-      const payload = {
-        student_name: editForm.student_name,
-        aadhar_no: editForm.aadhar_no,
-        gender: editForm.gender,
-        dob: editForm.dob,
-        father_or_guardian_name: editForm.father_or_guardian_name,
-        father_or_guardian_aadhar_no: editForm.father_or_guardian_aadhar_no,
-        father_or_guardian_mobile: editForm.father_or_guardian_mobile,
-        father_or_guardian_occupation: editForm.father_or_guardian_occupation,
-        mother_or_guardian_name: editForm.mother_or_guardian_name,
-        mother_or_guardian_aadhar_no: editForm.mother_or_guardian_aadhar_no,
-        mother_or_guardian_mobile: editForm.mother_or_guardian_mobile,
-        mother_or_guardian_occupation: editForm.mother_or_guardian_occupation,
-        siblings: editForm.siblings || [],
-        previous_class: editForm.previous_class,
-        previous_school_details: editForm.previous_school_details,
-        present_address: editForm.present_address,
-        permanent_address: editForm.permanent_address,
-        application_fee: editForm.application_fee,
-        application_fee_paid: editForm.application_fee_paid,
-        preferred_class_id: editForm.preferred_class_id,
-        preferred_transport_id: editForm.preferred_transport_id,
-        preferred_distance_slab_id: editForm.preferred_distance_slab_id,
-        pickup_point: editForm.pickup_point,
-        transport_fee: editForm.transport_fee,
-        status: editForm.status,
-        referred_by: editForm.referred_by,
-        remarks: editForm.remarks,
-        reservation_date: editForm.reservation_date,
-      };
+      // Convert payload to FormData as required by the service
+      const formData = new FormData();
+      formData.append("student_name", editForm.student_name);
+      formData.append("aadhar_no", editForm.aadhar_no);
+      formData.append("gender", editForm.gender);
+      formData.append("dob", editForm.dob);
+      formData.append("father_or_guardian_name", editForm.father_or_guardian_name);
+      formData.append("father_or_guardian_aadhar_no", editForm.father_or_guardian_aadhar_no);
+      formData.append("father_or_guardian_mobile", editForm.father_or_guardian_mobile);
+      formData.append("father_or_guardian_occupation", editForm.father_or_guardian_occupation);
+      formData.append("mother_or_guardian_name", editForm.mother_or_guardian_name);
+      formData.append("mother_or_guardian_aadhar_no", editForm.mother_or_guardian_aadhar_no);
+      formData.append("mother_or_guardian_mobile", editForm.mother_or_guardian_mobile);
+      formData.append("mother_or_guardian_occupation", editForm.mother_or_guardian_occupation);
+      if (editForm.siblings && editForm.siblings.length > 0) {
+        formData.append("siblings", JSON.stringify(editForm.siblings));
+      }
+      formData.append("previous_class", editForm.previous_class);
+      formData.append("previous_school_details", editForm.previous_school_details);
+      formData.append("present_address", editForm.present_address);
+      formData.append("permanent_address", editForm.permanent_address);
+      formData.append("application_fee", editForm.application_fee.toString());
+      formData.append("application_fee_paid", editForm.application_fee_paid);
+      formData.append("preferred_class_id", editForm.preferred_class_id.toString());
+      if (editForm.preferred_transport_id) {
+        formData.append("preferred_transport_id", editForm.preferred_transport_id.toString());
+      }
+      if (editForm.preferred_distance_slab_id) {
+        formData.append("preferred_distance_slab_id", editForm.preferred_distance_slab_id.toString());
+      }
+      if (editForm.pickup_point) {
+        formData.append("pickup_point", editForm.pickup_point);
+      }
+      formData.append("transport_fee", editForm.transport_fee.toString());
+      formData.append("status", editForm.status);
+      if (editForm.referred_by) {
+        formData.append("referred_by", editForm.referred_by.toString());
+      }
+      if (editForm.remarks) {
+        formData.append("remarks", editForm.remarks);
+      }
+      formData.append("reservation_date", editForm.reservation_date);
 
-      await SchoolReservationsService.update(selectedReservation.reservation_id, payload);
+      // Use mutation hook which handles cache invalidation automatically
+      await updateReservationMutation.mutateAsync(formData);
 
+      // Invalidating queries to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
+
+      // Refresh reservation details
       const updatedReservation = await SchoolReservationsService.getById(selectedReservation.reservation_id);
       setSelectedReservation(updatedReservation as unknown as Reservation);
       setEditForm(updatedReservation as unknown as Reservation);
       setIsEditMode(false);
-
-      toast({
-        title: "Details Updated",
-        description: "Reservation details have been updated successfully",
-      });
     } catch (error: any) {
+      // Error toast is handled by mutation hook
       console.error("Failed to update reservation:", error);
-      toast({
-        title: "Update Failed",
-        description: error?.message || "Failed to update reservation details. Please try again.",
-        variant: "destructive",
-      });
     }
-  }, [editForm, selectedReservation]);
+  }, [editForm, selectedReservation, updateReservationMutation, queryClient]);
 
   const handleEnrollConfirm = useCallback(async () => {
     if (!selectedReservation) return;
@@ -881,7 +896,8 @@ const ConfirmedReservationsTabComponent = () => {
         description: "Admission fee payment processed successfully",
       });
 
-      refetch();
+      // Invalidate reservations cache to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
     } catch (error: any) {
       console.error("Payment failed:", error);
       toast({
@@ -890,7 +906,7 @@ const ConfirmedReservationsTabComponent = () => {
         variant: "destructive",
       });
     }
-  }, [createdAdmissionNo, admissionFee, refetch]);
+  }, [createdAdmissionNo, admissionFee, refetch, queryClient]);
 
   const handleCloseReceiptModal = useCallback(() => {
     setShowReceiptModal(false);

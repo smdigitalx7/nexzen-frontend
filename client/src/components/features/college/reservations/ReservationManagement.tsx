@@ -1,9 +1,11 @@
 import { useMemo, useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useCollegeReservationsList,
   useDeleteCollegeReservation,
   useCollegeReservationDashboard,
+  useCreateCollegeReservation,
+  useUpdateCollegeReservation,
 } from "@/lib/hooks/college/use-college-reservations";
 import { useCollegeClasses } from "@/lib/hooks/college/use-college-classes";
 import {
@@ -52,7 +54,11 @@ import { ConcessionUpdateDialog } from "@/components/shared";
 import { Building2, University } from "lucide-react";
 
 export default function ReservationNew() {
+  const queryClient = useQueryClient();
   const { academicYear, currentBranch } = useAuthStore();
+
+  // Initialize mutation hooks
+  const createReservationMutation = useCreateCollegeReservation();
   const { data: routeNames = [] } = useQuery({
     queryKey: ["public", "bus-routes", "names"],
     queryFn: () => TransportService.getRouteNames(),
@@ -454,23 +460,18 @@ export default function ReservationNew() {
     };
 
     try {
-      const res: any = await CollegeReservationsService.create(payload);
+      // Use mutation hook which handles cache invalidation automatically
+      const res: any = await createReservationMutation.mutateAsync(payload);
+      
+      // Invalidate cache to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
+      
       // Use backend reservation_id to display receipt number
       setReservationNo(String(res?.reservation_id || ""));
       if (withPayment) setShowReceipt(true);
-      // Refresh list after creating
-      if (activeTab === "all") {
-        refetchReservations();
-      }
     } catch (e: any) {
       console.error("Failed to create reservation:", e);
-      toast({
-        title: "Reservation Creation Failed",
-        description:
-          e?.message ||
-          "Unable to create reservation. Please check your inputs and try again.",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -687,20 +688,24 @@ export default function ReservationNew() {
     if (!selectedReservation?.reservation_id || !editForm) return;
     try {
       const payload = buildPayloadFromForm(editForm);
+      
+      // Use service directly and invalidate cache
       await CollegeReservationsService.update(
         Number(selectedReservation.reservation_id),
         payload
       );
+      
+      // Invalidate cache to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
+      
+      toast({
+        title: "Reservation Updated",
+        description: "Reservation details have been updated successfully.",
+      });
       setShowEditDialog(false);
-      refetchReservations();
     } catch (e: any) {
       console.error("Failed to update reservation:", e);
-      toast({
-        title: "Update Failed",
-        description:
-          e?.message || "Could not update reservation. Please try again.",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 

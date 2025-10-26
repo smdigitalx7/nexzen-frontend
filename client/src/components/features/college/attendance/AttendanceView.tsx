@@ -10,16 +10,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useCollegeAttendance } from '@/lib/hooks/college/use-college-attendance';
+import { useCollegeAttendance, useUpdateCollegeAttendance, useDeleteCollegeAttendance } from '@/lib/hooks/college/use-college-attendance';
 import { useToast } from '@/hooks/use-toast';
 import { useCollegeClasses, useCollegeClassGroups } from '@/lib/hooks/college/use-college-classes';
 import { CollegeAttendanceService } from '@/lib/services/college/attendance.service';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CollegeClassResponse, CollegeGroupResponse } from '@/lib/types/college';
 
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 export default function AttendanceView() {
+  const queryClient = useQueryClient();
+  const deleteAttendanceMutation = useDeleteCollegeAttendance();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const classesQuery = useCollegeClasses();
   const classes = (classesQuery.data as any[]) || [];
@@ -65,9 +67,11 @@ export default function AttendanceView() {
     }
     const nextAbsent = (student.absent_days ?? 0) + (status === 'absent' ? 1 : -1);
     try {
+      // Use service directly with cache invalidation
       await CollegeAttendanceService.update(student.attendance_id, { absent_days: Math.max(0, nextAbsent) });
-      await studentsQuery.refetch();
-      toast({ title: 'Updated', description: `${student.student_name} marked ${status}` });
+      
+      // Invalidate cache to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["college", "attendance"] });
     } catch {
       toast({ title: 'Error', description: 'Failed to update attendance', variant: 'destructive' });
     }
@@ -126,11 +130,9 @@ export default function AttendanceView() {
                   <AlertDialogAction onClick={async () => {
                     if (!student.attendance_id) { toast({ title: 'Not found', description: 'No attendance record to delete', variant: 'destructive' }); return; }
                     try {
-                      await CollegeAttendanceService.delete(student.attendance_id);
-                      await studentsQuery.refetch();
-                      toast({ title: 'Deleted', description: 'Attendance record removed' });
+                      await deleteAttendanceMutation.mutateAsync(student.attendance_id);
                     } catch {
-                      toast({ title: 'Error', description: 'Failed to delete record', variant: 'destructive' });
+                      // Error toast is handled by mutation hook
                     }
                   }}>Delete</AlertDialogAction>
                 </AlertDialogFooter>
@@ -251,8 +253,12 @@ export default function AttendanceView() {
                 return;
               }
               try {
+                // Use service directly with cache invalidation
                 await CollegeAttendanceService.update(editingRow.attendance_id, { absent_days: absent, remarks: editRemarks || null });
-                await studentsQuery.refetch();
+                
+                // Invalidate cache to refresh the list
+                queryClient.invalidateQueries({ queryKey: ["college", "attendance"] });
+                
                 toast({ title: 'Updated', description: 'Attendance updated' });
                 setEditOpen(false);
               } catch (err: unknown) {

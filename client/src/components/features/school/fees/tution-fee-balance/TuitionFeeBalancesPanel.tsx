@@ -244,13 +244,12 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
 
     try {
       await bulkCreateMutation.mutateAsync({ class_id: classIdNum });
-      refetch();
+      // Cache invalidation handled by mutation hook
       setBulkCreateOpen(false);
-      // Toast handled by mutation hook
     } catch (error) {
       // Error toast handled by mutation hook
     }
-  }, [classIdNum, bulkCreateMutation, toast, refetch]);
+  }, [classIdNum, bulkCreateMutation, toast]);
 
   const handleViewStudent = useCallback((student: StudentRow) => {
     setSelectedBalanceId(student.id);
