@@ -16,15 +16,15 @@ export interface SchoolStudentAttendanceUpdate {
 export interface SchoolStudentAttendanceRead {
   attendance_id: number;
   enrollment_id: number;
-  attendance_month?: number | null; // month number per backend response
-  attendance_year?: number | null;  // year per backend response
+  attendance_month: number;
+  attendance_year: number;
   admission_no: string;
   roll_number: string;
   student_name: string;
   section_name: string;
-  total_working_days?: number | null;
-  present_days?: number | null;
-  absent_days?: number | null;
+  total_working_days: number;
+  present_days: number;
+  absent_days: number;
   remarks?: string | null;
 }
 

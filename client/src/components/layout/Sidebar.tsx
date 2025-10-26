@@ -188,13 +188,6 @@ const Sidebar = () => {
     } else if (currentBranch?.branch_type === "COLLEGE") {
       return [
         {
-          title: "Academic",
-          href: "/college/academic",
-          icon: FileText,
-          description: "Academic structure & performance",
-          roles: ["institute_admin", "academic"],
-        },
-        {
           title: "Reservations",
           href: "/college/reservations/new",
           icon: ClipboardList,
@@ -214,6 +207,13 @@ const Sidebar = () => {
           href: "/college/students",
           icon: GraduationCap,
           description: "Student records",
+          roles: ["institute_admin", "academic"],
+        },
+        {
+          title: "Academic",
+          href: "/college/academic",
+          icon: FileText,
+          description: "Academic structure & performance",
           roles: ["institute_admin", "academic"],
         },
         {
