@@ -7,12 +7,15 @@ import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/shared";
 import { ColumnDef } from "@tanstack/react-table";
 import { EnhancedDataTable } from "@/components/shared";
+import { useToast } from "@/hooks/use-toast";
 import {
   createTextColumn,
   createBadgeColumn
 } from "@/lib/utils/columnFactories";
 import RouteFormDialog from "./RouteFormDialog";
 import RouteDetailsDialog from "./RouteDetailsDialog";
+import AssignDriverDialog from "./AssignDriverDialog";
+import { useAssignDriverToRoute, useRemoveDriverFromRoute } from "@/lib/hooks/general/useTransport";
 
 interface BusRoutesTabProps {
   routesData: any[];
@@ -49,6 +52,15 @@ const BusRoutesTab = ({
   const [routeEditingId, setRouteEditingId] = useState<number | null>(null);
   const [viewRouteId, setViewRouteId] = useState<number | null>(null);
   const [confirmRouteDeleteId, setConfirmRouteDeleteId] = useState<number | null>(null);
+  const [isAssignDriverOpen, setIsAssignDriverOpen] = useState(false);
+  const [assignDriverRouteId, setAssignDriverRouteId] = useState<number | null>(null);
+  
+  // Driver management mutations
+  const assignDriverMutation = useAssignDriverToRoute();
+  const removeDriverMutation = useRemoveDriverFromRoute();
+  
+  // Toast hook
+  const { toast } = useToast();
 
   const handleViewRoute = (route: any) => {
     setViewRouteId(route.id);
@@ -185,6 +197,56 @@ const BusRoutesTab = ({
     deleteRouteMutation.mutate(id);
     setConfirmRouteDeleteId(null);
   };
+  
+  const handleAssignDriver = () => {
+    setIsAssignDriverOpen(true);
+    setAssignDriverRouteId(viewRouteId);
+  };
+  
+  const handleRemoveDriver = () => {
+    if (!viewRouteId) return;
+    
+    removeDriverMutation.mutate(viewRouteId, {
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Driver removed successfully",
+        });
+      },
+      onError: (error: any) => {
+        toast({
+          title: "Error",
+          description: error?.response?.data?.detail || "Failed to remove driver",
+          variant: "destructive",
+        });
+      },
+    });
+  };
+  
+  const handleAssignDriverConfirm = (driverEmployeeId: number) => {
+    if (!assignDriverRouteId) return;
+    
+    assignDriverMutation.mutate(
+      { id: assignDriverRouteId, driverEmployeeId },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Success",
+            description: "Driver assigned successfully",
+          });
+          setIsAssignDriverOpen(false);
+          setAssignDriverRouteId(null);
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Error",
+            description: error?.response?.data?.detail || "Failed to assign driver",
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -233,6 +295,21 @@ const BusRoutesTab = ({
         routeData={viewRouteData}
         isLoading={isLoading}
         error={error}
+        onAssignDriver={handleAssignDriver}
+        onRemoveDriver={handleRemoveDriver}
+        isAssigning={assignDriverMutation.isPending}
+        isRemoving={removeDriverMutation.isPending}
+      />
+      
+      {/* Assign Driver Dialog */}
+      <AssignDriverDialog
+        isOpen={isAssignDriverOpen}
+        onClose={() => {
+          setIsAssignDriverOpen(false);
+          setAssignDriverRouteId(null);
+        }}
+        onAssign={handleAssignDriverConfirm}
+        isAssigning={assignDriverMutation.isPending}
       />
 
       {/* Confirm Route Delete */}

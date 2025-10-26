@@ -7,7 +7,7 @@ export const SchoolClassesService = {
   },
 
   getById(class_id: number) {
-    return Api.get<SchoolClassRead>(`/school/classes/${class_id}`);
+    return Api.get<SchoolClassWithSubjects>(`/school/classes/${class_id}`);
   },
 
   create(payload: SchoolClassCreate) {

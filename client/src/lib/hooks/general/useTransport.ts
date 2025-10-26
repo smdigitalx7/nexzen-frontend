@@ -101,3 +101,34 @@ export const useDeleteBusRoute = () => {
   });
 };
 
+export const useAssignDriverToRoute = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, driverEmployeeId }: { id: number; driverEmployeeId: number }) =>
+      TransportService.assignDriverToRoute(id, driverEmployeeId),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: transportKeys.routes() });
+      queryClient.invalidateQueries({ queryKey: transportKeys.route(id) });
+      queryClient.invalidateQueries({ queryKey: transportKeys.routeNames() });
+      queryClient.invalidateQueries({ queryKey: transportKeys.dashboard() });
+      queryClient.invalidateQueries({ queryKey: transportKeys.recent() });
+    },
+  });
+};
+
+export const useRemoveDriverFromRoute = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: number) => TransportService.removeDriverFromRoute(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: transportKeys.routes() });
+      queryClient.invalidateQueries({ queryKey: transportKeys.route(id) });
+      queryClient.invalidateQueries({ queryKey: transportKeys.routeNames() });
+      queryClient.invalidateQueries({ queryKey: transportKeys.dashboard() });
+      queryClient.invalidateQueries({ queryKey: transportKeys.recent() });
+    },
+  });
+};
+

@@ -17,6 +17,7 @@ export interface SchoolClassRead {
   tuition_fee: number;
   created_by?: number | null;
   updated_by?: number | null;
+  subjects?: { subject_id: number; subject_name: string }[];
 }
 
 export interface SchoolClassWithSubjects extends SchoolClassRead {

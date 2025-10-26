@@ -87,6 +87,7 @@ export const schoolKeys = {
   teacherClassSubjects: {
     root: () => [...schoolKeys.root, "teacher-class-subjects"] as const,
     list: () => [...schoolKeys.teacherClassSubjects.root(), "list"] as const,
+    hierarchical: () => [...schoolKeys.teacherClassSubjects.root(), "hierarchical"] as const,
   },
 };
 

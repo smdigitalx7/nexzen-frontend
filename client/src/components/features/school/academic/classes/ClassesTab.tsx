@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { useCreateSchoolClass, useUpdateSchoolClass, useSchoolClassSubjects, useDeleteSchoolClassSubject } from '@/lib/hooks/school/use-school-classes';
+import { useCreateSchoolClass, useUpdateSchoolClass, useSchoolClassById, useDeleteSchoolClassSubject } from '@/lib/hooks/school/use-school-classes';
 import { useSchoolSubjects } from '@/lib/hooks/school/use-school-subjects';
 import { useCreateSchoolClassSubject } from '@/lib/hooks/school/use-school-class-subjects';
 import { useToast } from '@/hooks/use-toast';
@@ -19,28 +19,9 @@ import {
 import type { SchoolClassRead } from "@/lib/types/school";
 
 // Component to display subjects for a specific class
-const ClassSubjectsCell = memo(({ classId }: { classId: number }) => {
-  const { data: classWithSubjects, isLoading, isError } = useSchoolClassSubjects(classId);
-
+const ClassSubjectsCell = memo(({ subjects }: { subjects?: { subject_id: number; subject_name: string }[] }) => {
   const subjectsContent = useMemo(() => {
-    if (isLoading) {
-      return (
-        <div className="flex items-center gap-1">
-          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
-          <span className="text-sm text-muted-foreground">Loading...</span>
-        </div>
-      );
-    }
-
-    if (isError || !classWithSubjects?.subjects) {
-      return (
-        <span className="text-sm text-muted-foreground">No subjects</span>
-      );
-    }
-
-    const subjects = classWithSubjects.subjects;
-
-    if (subjects.length === 0) {
+    if (!subjects || subjects.length === 0) {
       return (
         <span className="text-sm text-muted-foreground">No subjects assigned</span>
       );
@@ -60,7 +41,7 @@ const ClassSubjectsCell = memo(({ classId }: { classId: number }) => {
         )}
       </div>
     );
-  }, [isLoading, isError, classWithSubjects?.subjects]);
+  }, [subjects]);
 
   return subjectsContent;
 });
@@ -69,7 +50,7 @@ ClassSubjectsCell.displayName = "ClassSubjectsCell";
 
 // Component to display subjects in the view dialog
 const ClassSubjectsView = memo(({ classId }: { classId: number }) => {
-  const { data: classWithSubjects, isLoading, isError } = useSchoolClassSubjects(classId);
+  const { data: classWithSubjects, isLoading, isError } = useSchoolClassById(classId);
 
   const subjectsContent = useMemo(() => {
     if (isLoading) {
@@ -166,7 +147,7 @@ export const ClassesTab = memo(({
   
   // Subject management hooks
   const { data: allSubjects = [] } = useSchoolSubjects();
-  const { data: classWithSubjects } = useSchoolClassSubjects(selectedClass?.class_id || null);
+  const { data: classWithSubjects } = useSchoolClassById(selectedClass?.class_id || null);
   const createClassSubjectMutation = useCreateSchoolClassSubject();
   const deleteClassSubjectMutation = useDeleteSchoolClassSubject();
 
@@ -366,8 +347,8 @@ export const ClassesTab = memo(({
       id: "subjects",
       header: "Subjects",
       cell: ({ row }) => {
-        const classId = row.original.class_id;
-        return <ClassSubjectsCell classId={classId} />;
+        const subjects = row.original.subjects;
+        return <ClassSubjectsCell subjects={subjects} />;
       },
     },
   ], []);

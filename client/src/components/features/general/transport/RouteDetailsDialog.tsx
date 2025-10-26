@@ -1,6 +1,7 @@
-import { Bus, Route } from "lucide-react";
+import { Bus, Route, UserPlus, UserMinus, User } from "lucide-react";
 import { FormDialog } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface RouteDetailsDialogProps {
@@ -9,9 +10,13 @@ interface RouteDetailsDialogProps {
   routeData: any;
   isLoading: boolean;
   error: any;
+  onAssignDriver?: () => void;
+  onRemoveDriver?: () => void;
+  isAssigning?: boolean;
+  isRemoving?: boolean;
 }
 
-const RouteDetailsDialog = ({ isOpen, onClose, routeData, isLoading, error }: RouteDetailsDialogProps) => {
+const RouteDetailsDialog = ({ isOpen, onClose, routeData, isLoading, error, onAssignDriver, onRemoveDriver, isAssigning, isRemoving }: RouteDetailsDialogProps) => {
   return (
     <FormDialog
       open={isOpen}
@@ -71,9 +76,56 @@ const RouteDetailsDialog = ({ isOpen, onClose, routeData, isLoading, error }: Ro
                     <span className="text-sm text-muted-foreground">Capacity:</span>
                     <span className="font-medium">{routeData.vehicle_capacity} students</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Driver ID:</span>
-                    <span className="font-medium">{routeData.driver_employee_id ? `#${routeData.driver_employee_id}` : "Not Assigned"}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Driver:</span>
+                    <div className="flex items-center gap-2">
+                      {routeData.driver_employee_id ? (
+                        <Badge variant="default" className="gap-1">
+                          <User className="h-3 w-3" />
+                          {routeData.driver_details?.employee_name || `Driver #${routeData.driver_employee_id}`}
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">Not Assigned</Badge>
+                      )}
+                    </div>
+                  </div>
+                  {routeData.driver_employee_id && routeData.driver_details && (
+                    <div className="flex flex-col gap-2 p-3 bg-muted/50 rounded-lg mt-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Mobile:</span>
+                        <span className="font-medium">{routeData.driver_details.mobile_no || "N/A"}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Status:</span>
+                        <Badge variant={routeData.driver_details.status === "ACTIVE" ? "default" : "secondary"}>
+                          {routeData.driver_details.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
+                  {/* Driver Actions */}
+                  <div className="flex gap-2 mt-4">
+                    {!routeData.driver_employee_id ? (
+                      <Button
+                        onClick={onAssignDriver}
+                        className="w-full"
+                        variant="outline"
+                        disabled={isAssigning}
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        {isAssigning ? "Assigning..." : "Assign Driver"}
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={onRemoveDriver}
+                        className="w-full"
+                        variant="destructive"
+                        disabled={isRemoving}
+                      >
+                        <UserMinus className="h-4 w-4 mr-2" />
+                        {isRemoving ? "Removing..." : "Remove Driver"}
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -90,10 +142,6 @@ const RouteDetailsDialog = ({ isOpen, onClose, routeData, isLoading, error }: Ro
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Start Location:</span>
                     <span className="font-medium">{routeData.start_location}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">End Location:</span>
-                    <span className="font-medium">{routeData.end_location || "Not Set"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Distance:</span>

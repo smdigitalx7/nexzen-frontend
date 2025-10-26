@@ -1,3 +1,9 @@
+export interface DriverDetails {
+  employee_name: string;
+  mobile_no?: string | null;
+  status: string;
+}
+
 export interface BusRouteRead {
   bus_route_id: number;
   vehicle_number?: string | null;
@@ -5,6 +11,7 @@ export interface BusRouteRead {
   registration_number?: string | null;
   driver_employee_id?: number | null;
   driver_name?: string | null;
+  driver_details?: DriverDetails | null;
   route_no?: string | null;
   route_name?: string | null;
   start_location?: string | null;

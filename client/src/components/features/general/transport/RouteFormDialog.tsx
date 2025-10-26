@@ -24,7 +24,6 @@ interface RouteFormData {
   route_no: string;
   route_name: string;
   start_location: string;
-  end_location: string;
   total_distance: string;
   estimated_duration: string;
   is_active: boolean;
@@ -39,7 +38,6 @@ const RouteFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingRoute }:
     route_no: "",
     route_name: "",
     start_location: "",
-    end_location: "",
     total_distance: "",
     estimated_duration: "",
     is_active: true,
@@ -62,7 +60,6 @@ const RouteFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingRoute }:
         route_no: "",
         route_name: "",
         start_location: "",
-        end_location: "",
         total_distance: "",
         estimated_duration: "",
         is_active: true,
@@ -83,11 +80,9 @@ const RouteFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingRoute }:
         routeForm.vehicle_number,
         routeForm.vehicle_capacity,
         routeForm.registration_number,
-        routeForm.driver_employee_id,
         routeForm.route_no,
         routeForm.route_name,
         routeForm.start_location,
-        routeForm.end_location,
         routeForm.total_distance,
         routeForm.estimated_duration,
       ];
@@ -97,11 +92,10 @@ const RouteFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingRoute }:
         vehicle_number: routeForm.vehicle_number,
         vehicle_capacity: parseInt(routeForm.vehicle_capacity),
         registration_number: routeForm.registration_number,
-        driver_employee_id: parseInt(routeForm.driver_employee_id),
+        driver_employee_id: routeForm.driver_employee_id ? parseInt(routeForm.driver_employee_id) : undefined,
         route_no: routeForm.route_no,
         route_name: routeForm.route_name,
         start_location: routeForm.start_location,
-        end_location: routeForm.end_location,
         total_distance: parseFloat(routeForm.total_distance),
         estimated_duration: parseInt(routeForm.estimated_duration),
         is_active: routeForm.is_active,
@@ -189,33 +183,14 @@ const RouteFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingRoute }:
                 placeholder="45" 
               />
             </div>
-            <div>
-              <Label htmlFor="driver_employee_id">Driver Employee ID</Label>
-              <Input 
-                id="driver_employee_id" 
-                value={routeForm.driver_employee_id} 
-                onChange={(e) => setRouteForm({ ...routeForm, driver_employee_id: e.target.value })} 
-                placeholder="25" 
-              />
-            </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="start_location">Start Location</Label>
-              <Input 
-                id="start_location" 
-                value={routeForm.start_location} 
-                onChange={(e) => setRouteForm({ ...routeForm, start_location: e.target.value })} 
-              />
-            </div>
-            <div>
-              <Label htmlFor="end_location">End Location</Label>
-              <Input 
-                id="end_location" 
-                value={routeForm.end_location} 
-                onChange={(e) => setRouteForm({ ...routeForm, end_location: e.target.value })} 
-              />
-            </div>
+          <div>
+            <Label htmlFor="start_location">Start Location</Label>
+            <Input 
+              id="start_location" 
+              value={routeForm.start_location} 
+              onChange={(e) => setRouteForm({ ...routeForm, start_location: e.target.value })} 
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

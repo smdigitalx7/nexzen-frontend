@@ -92,4 +92,23 @@ export const TransportService = {
     return Api.delete<void>(`/bus-routes/${id}`);
   },
 
+  /**
+   * Assign a driver to a route
+   * @param id - Route ID
+   * @param driverEmployeeId - Driver employee ID
+   * @returns Promise<BusRouteRead> - Updated route details
+   */
+  assignDriverToRoute(id: number, driverEmployeeId: number): Promise<BusRouteRead> {
+    return Api.post<BusRouteRead>(`/bus-routes/${id}/assign-driver`, { driver_employee_id: driverEmployeeId });
+  },
+
+  /**
+   * Remove driver from a route
+   * @param id - Route ID
+   * @returns Promise<BusRouteRead> - Updated route details
+   */
+  removeDriverFromRoute(id: number): Promise<BusRouteRead> {
+    return Api.delete<BusRouteRead>(`/bus-routes/${id}/remove-driver`);
+  },
+
 };

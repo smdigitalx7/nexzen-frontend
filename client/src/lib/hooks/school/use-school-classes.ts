@@ -39,6 +39,14 @@ export function useUpdateSchoolClass(classId: number) {
   });
 }
 
+export function useSchoolClassById(classId: number | null | undefined) {
+  return useQuery({
+    queryKey: schoolKeys.classes.detail(classId || 0),
+    queryFn: () => SchoolClassesService.getById(classId as number),
+    enabled: typeof classId === "number" && classId > 0,
+  });
+}
+
 export function useSchoolClassSubjects(classId: number | null | undefined) {
   return useQuery({
     queryKey:
