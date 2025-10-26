@@ -273,8 +273,9 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
   // Memoized data transformation
   const rows = useMemo<StudentRow[]>(() => {
     return (tuitionResp?.data || []).map((t: SchoolTuitionFeeBalanceRead) => {
+      const totalFee = (t.total_fee || 0) + (t.book_fee || 0); // Include book_fee in total
       const paidTotal = (t.term1_paid || 0) + (t.term2_paid || 0) + (t.term3_paid || 0) + (t.book_paid || 0);
-      const outstanding = Math.max(0, (t.total_fee || 0) - ((t.term1_paid || 0) + (t.term2_paid || 0) + (t.term3_paid || 0)));
+      const outstanding = Math.max(0, totalFee - paidTotal);
       return {
         id: t.enrollment_id,
         student_id: t.admission_no,
@@ -282,7 +283,7 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
         class_name: t.class_name || "Unknown",
         section_name: t.section_name || "Unknown",
         academic_year: "",
-        total_fee: t.total_fee,
+        total_fee: totalFee,
         paid_amount: paidTotal,
         outstanding_amount: outstanding,
         admission_paid: true,
@@ -311,6 +312,7 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
         onExportCSV={onExportCSV}
         onBulkCreate={handleOpenBulkCreate}
         showHeader={false}
+        classes={classes}
       />
 
       {/* Details Dialog */}

@@ -21,7 +21,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { SchoolTeacherDetail, SchoolClassDetail, SchoolSectionDetail } from "@/lib/types/school";
 
 export const TeachersTab = () => {
   const { data: teachersList = [], error } = useTeachersByBranch();

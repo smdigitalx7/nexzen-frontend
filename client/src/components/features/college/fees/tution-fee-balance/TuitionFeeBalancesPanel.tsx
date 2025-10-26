@@ -72,15 +72,16 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
 
   const rows = useMemo<StudentRow[]>(() => {
     return (tuitionResp?.data || []).map((t: CollegeTuitionFeeBalanceRead, index: number) => {
+      const totalFee = (t.total_fee || 0) + (t.book_fee || 0); // Include book_fee in total
       const paidTotal = (t.term1_paid || 0) + (t.term2_paid || 0) + (t.term3_paid || 0) + (t.book_paid || 0);
-      const outstanding = Math.max(0, (t.total_fee || 0) - ((t.term1_paid || 0) + (t.term2_paid || 0) + (t.term3_paid || 0)));
+      const outstanding = Math.max(0, totalFee - paidTotal);
       return {
         id: index + 1, // Use index as ID since enrollment_id is not available in list response
         student_id: t.admission_no,
         student_name: t.student_name,
         class_name: t.course_name || "", // Use course_name as class_name since class_name is not available
         academic_year: "",
-        total_fee: t.total_fee,
+        total_fee: totalFee,
         paid_amount: paidTotal,
         outstanding_amount: outstanding,
         admission_paid: true,

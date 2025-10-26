@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useMemo, memo, useCallback } from "react";
+import React, { useMemo, memo, useCallback } from "react";
 import { CreditCard, DollarSign, Building2, Truck } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import { useSchoolFeesManagement } from "@/lib/hooks/school/use-school-fees-management";
@@ -8,6 +8,36 @@ import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeB
 import { CollectFee } from "./collect-fee/CollectFee";
 import { useAuthStore } from "@/store/authStore";
 import { Badge } from "@/components/ui/badge";
+
+interface StudentFeeDetails {
+  student: any;
+  tuitionBalance: any;
+  transportBalance: any;
+}
+
+// Wrapper component to pass state to CollectFee
+const CollectFeeWithState = memo(({ 
+  searchResults, 
+  setSearchResults, 
+  searchQuery, 
+  setSearchQuery 
+}: { 
+  searchResults: StudentFeeDetails[];
+  setSearchResults: React.Dispatch<React.SetStateAction<StudentFeeDetails[]>>;
+  searchQuery: string;
+  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
+}) => {
+  return (
+    <CollectFee 
+      searchResults={searchResults}
+      setSearchResults={setSearchResults}
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+    />
+  );
+});
+
+CollectFeeWithState.displayName = "CollectFeeWithState";
 
 // Memoized header content component
 const HeaderContent = memo(({ currentBranch }: { currentBranch: any }) => (
@@ -40,6 +70,10 @@ HeaderContent.displayName = "HeaderContent";
 const FeesManagementComponent = () => {
   const { currentBranch } = useAuthStore();
   const { activeTab, setActiveTab, tuitionBalances } = useSchoolFeesManagement();
+  
+  // State for collect fee search persistence across tab switches
+  const [collectFeeSearchResults, setCollectFeeSearchResults] = React.useState<any[]>([]);
+  const [collectFeeSearchQuery, setCollectFeeSearchQuery] = React.useState("");
 
   // Memoized data transformation
   const filteredStudentBalances = useMemo(() => {
@@ -84,7 +118,14 @@ const FeesManagementComponent = () => {
       value: "collect",
       label: "Collect Fees",
       icon: CreditCard,
-      content: <CollectFee />,
+      content: (
+        <CollectFeeWithState 
+          searchResults={collectFeeSearchResults}
+          setSearchResults={setCollectFeeSearchResults}
+          searchQuery={collectFeeSearchQuery}
+          setSearchQuery={setCollectFeeSearchQuery}
+        />
+      ),
     },
     {
       value: "tuition-balances",
@@ -108,7 +149,7 @@ const FeesManagementComponent = () => {
         />
       ),
     },
-  ], [handleViewStudent, handleExportCSV]);
+  ], [handleViewStudent, handleExportCSV, collectFeeSearchResults, collectFeeSearchQuery]);
 
   return (
     <div className="space-y-6 p-6">

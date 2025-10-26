@@ -91,8 +91,9 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      e.preventDefault();
       handleSearch();
     }
   };
@@ -122,21 +123,26 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter admission number or student name to search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="flex-1"
-            />
-            <Button 
-              onClick={handleSearch} 
-              disabled={isSearching || !searchQuery.trim()}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {isSearching ? "Searching..." : "Search"}
-            </Button>
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter admission number or student name to search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="flex-1"
+              />
+              <Button 
+                onClick={handleSearch} 
+                disabled={isSearching || !searchQuery.trim()}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {isSearching ? "Searching..." : "Search"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground text-center">
+              Press Enter to search or click the Search button
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -176,6 +182,7 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
                       <p><span className="font-medium">Name:</span> {studentDetails.student.student_name}</p>
                       <p><span className="font-medium">Admission No:</span> {studentDetails.student.admission_no}</p>
                       <p><span className="font-medium">Class:</span> {studentDetails.student.class_name || "N/A"}</p>
+                      <p><span className="font-medium">Group:</span> {studentDetails.student.group_name || "N/A"}</p>
                       <p><span className="font-medium">Gender:</span> {studentDetails.student.gender || "N/A"}</p>
                     </div>
                   </div>

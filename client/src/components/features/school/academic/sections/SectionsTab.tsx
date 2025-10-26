@@ -2,11 +2,11 @@ import { useMemo, useState, useEffect, memo, useCallback } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FormDialog } from "@/components/shared";
+import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { Edit, Trash2 } from "lucide-react";
 import { useSchoolClasses } from "@/lib/hooks/school/use-school-classes";
-import { useSchoolSectionsByClass, useCreateSchoolSection, useUpdateSchoolSection } from "@/lib/hooks/school/use-school-sections";
+import { useSchoolSectionsByClass, useCreateSchoolSection, useUpdateSchoolSection, useDeleteSchoolSection } from "@/lib/hooks/school/use-school-sections";
 import type { SchoolSectionRead, SchoolClassRead } from "@/lib/types/school";
 
 // Initial form state
@@ -22,7 +22,9 @@ const SectionsTabComponent = () => {
   const [selectedClassId, setSelectedClassId] = useState<number | undefined>(undefined);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedSection, setSelectedSection] = useState<SchoolSectionRead | null>(null);
+  const [sectionToDelete, setSectionToDelete] = useState<SchoolSectionRead | null>(null);
   const [newSection, setNewSection] = useState(initialSectionForm);
   const [editSection, setEditSection] = useState(initialSectionForm);
 
@@ -32,6 +34,7 @@ const SectionsTabComponent = () => {
   // Hooks
   const createSection = useCreateSchoolSection((selectedClassId || 0) as number);
   const updateSection = useUpdateSchoolSection((selectedClassId || 0) as number, selectedSection?.section_id || 0);
+  const deleteSection = useDeleteSchoolSection((selectedClassId || 0) as number);
 
   // Memoized validation functions
   const validateSectionForm = useCallback((form: typeof initialSectionForm) => {
@@ -99,6 +102,28 @@ const SectionsTabComponent = () => {
     setIsEditOpen(true);
   }, []);
 
+  const handleDeleteClick = useCallback((row: SchoolSectionRead) => {
+    setSectionToDelete(row);
+    setIsDeleteDialogOpen(true);
+  }, []);
+
+  const handleDeleteSection = useCallback(async () => {
+    if (!sectionToDelete || !selectedClassId) return;
+
+    try {
+      await deleteSection.mutateAsync(sectionToDelete.section_id);
+      setIsDeleteDialogOpen(false);
+      setSectionToDelete(null);
+    } catch (error) {
+      // Error toast is handled by mutation hook
+    }
+  }, [sectionToDelete, selectedClassId, deleteSection]);
+
+  const closeDeleteDialog = useCallback(() => {
+    setIsDeleteDialogOpen(false);
+    setSectionToDelete(null);
+  }, []);
+
   const handleClassChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const classId = e.target.value ? parseInt(e.target.value) : undefined;
     setSelectedClassId(classId);
@@ -109,8 +134,12 @@ const SectionsTabComponent = () => {
     {
       type: 'edit' as const,
       onClick: handleEditClick
+    },
+    {
+      type: 'delete' as const,
+      onClick: handleDeleteClick
     }
-  ], [handleEditClick]);
+  ], [handleEditClick, handleDeleteClick]);
 
   // Memoized dialog close handlers
   const closeAddDialog = useCallback(() => {
@@ -236,6 +265,18 @@ const SectionsTabComponent = () => {
           </div>
         </div>
       </FormDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Delete Section"
+        description={`Are you sure you want to delete the section "${sectionToDelete?.section_name}"? This action cannot be undone.`}
+        onConfirm={handleDeleteSection}
+        onCancel={closeDeleteDialog}
+        confirmText="Delete"
+        variant="destructive"
+      />
     </div>
   );
 };

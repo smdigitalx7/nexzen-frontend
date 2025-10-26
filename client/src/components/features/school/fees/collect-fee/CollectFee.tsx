@@ -12,7 +12,14 @@ interface StudentFeeDetails {
   transportBalance: any;
 }
 
-export const CollectFee = () => {
+interface CollectFeeProps {
+  searchResults: StudentFeeDetails[];
+  setSearchResults: React.Dispatch<React.SetStateAction<StudentFeeDetails[]>>;
+  searchQuery: string;
+  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
+}
+
+export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSearchQuery }: CollectFeeProps) => {
   const { toast } = useToast();
   const [selectedStudent, setSelectedStudent] = useState<StudentFeeDetails | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -145,6 +152,10 @@ export const CollectFee = () => {
           onStudentSelected={() => {}} 
           paymentMode={paymentMode}
           onStartPayment={handleStartPayment}
+          searchResults={searchResults}
+          setSearchResults={setSearchResults}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
         />
       )}
 

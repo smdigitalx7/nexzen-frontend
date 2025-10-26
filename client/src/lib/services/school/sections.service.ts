@@ -17,6 +17,10 @@ export const SchoolSectionsService = {
   update(class_id: number, section_id: number, payload: SchoolSectionUpdate) {
     return Api.put<SchoolSectionRead>(`/school/classes/${class_id}/sections/${section_id}`, payload);
   },
+
+  delete(class_id: number, section_id: number) {
+    return Api.delete<{ message: string }>(`/school/classes/${class_id}/sections/${section_id}`);
+  },
 };
 
 

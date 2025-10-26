@@ -11,6 +11,7 @@ import {
   createCurrencyColumn,
   createDateColumn,
 } from "@/lib/utils/columnFactories";
+import type { SchoolClassRead } from "@/lib/types/school";
 
 interface StudentFeeBalance {
   id: number;
@@ -41,6 +42,7 @@ interface StudentFeeBalancesTableProps {
   description?: string;
   showHeader?: boolean;
   loading?: boolean;
+  classes?: SchoolClassRead[];
 }
 
 // Status color mapping - moved outside component for better performance
@@ -105,11 +107,16 @@ const StudentFeeBalancesTableComponent = ({
   description = "Track individual student fee payments and outstanding amounts",
   showHeader = true,
   loading = false,
+  classes = [],
 }: StudentFeeBalancesTableProps) => {
-  // Memoized unique classes for filter options
+  // Filter state
+  const [classFilter, setClassFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  // Memoized unique classes for filter options from API
   const uniqueClasses = useMemo(() => 
-    Array.from(new Set(studentBalances.map(s => s.class_name).filter(className => className && className.trim() !== ''))),
-    [studentBalances]
+    (classes || []).map(c => c.class_name).filter(Boolean),
+    [classes]
   );
 
   // Memoized columns definition
@@ -169,9 +176,9 @@ const StudentFeeBalancesTableComponent = ({
       key: 'class_name',
       label: 'Class',
       options: uniqueClasses.map(className => ({ value: className, label: className })),
-      value: 'all',
+      value: classFilter,
       onChange: (value: string) => {
-        // This will be handled by EnhancedDataTable's built-in filtering
+        setClassFilter(value);
       }
     },
     {
@@ -182,12 +189,12 @@ const StudentFeeBalancesTableComponent = ({
         { value: 'PARTIAL', label: 'Partial' },
         { value: 'OUTSTANDING', label: 'Outstanding' }
       ],
-      value: 'all',
+      value: statusFilter,
       onChange: (value: string) => {
-        // This will be handled by EnhancedDataTable's built-in filtering
+        setStatusFilter(value);
       }
     }
-  ], [uniqueClasses]);
+  ], [uniqueClasses, classFilter, statusFilter]);
 
   return (
     <motion.div

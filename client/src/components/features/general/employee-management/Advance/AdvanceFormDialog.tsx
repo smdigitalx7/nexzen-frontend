@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { formatCurrency } from "@/lib/utils";
 
 interface AdvanceFormData {
   employee_id: number;
@@ -69,7 +70,12 @@ const AdvanceFormDialog = ({ open, onOpenChange, isEditing, employees, formData,
                   <SelectContent>
                     {employees.map((employee) => (
                       <SelectItem key={employee.employee_id} value={employee.employee_id.toString()}>
-                        {employee.employee_name}
+                        <div className="flex items-center justify-between w-full">
+                          <span>{employee.employee_name}</span>
+                          <span className="text-xs text-muted-foreground ml-2">
+                            Salary: {formatCurrency(employee.salary || 0)}
+                          </span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>

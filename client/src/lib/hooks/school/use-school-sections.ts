@@ -33,4 +33,14 @@ export function useUpdateSchoolSection(classId: number, sectionId: number) {
   }, "Section updated successfully");
 }
 
+export function useDeleteSchoolSection(classId: number) {
+  const qc = useQueryClient();
+  return useMutationWithSuccessToast({
+    mutationFn: (sectionId: number) => SchoolSectionsService.delete(classId, sectionId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) });
+    },
+  }, "Section deleted successfully");
+}
+
 

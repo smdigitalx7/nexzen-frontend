@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search, User, GraduationCap, DollarSign, CreditCard } from "lucide-react";
+import { Search, DollarSign, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,12 +22,14 @@ interface CollectFeeSearchProps {
   onStudentSelected: (studentDetails: StudentFeeDetails) => void;
   paymentMode: 'single' | 'multiple';
   onStartPayment: (studentDetails: StudentFeeDetails) => void;
+  searchResults: StudentFeeDetails[];
+  setSearchResults: React.Dispatch<React.SetStateAction<StudentFeeDetails[]>>;
+  searchQuery: string;
+  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPayment }: CollectFeeSearchProps) => {
-  const [searchQuery, setSearchQuery] = useState("");
+export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPayment, searchResults, setSearchResults, searchQuery, setSearchQuery }: CollectFeeSearchProps) => {
   const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<StudentFeeDetails[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentFeeDetails | null>(null);
 
   // Direct service calls for search functionality
@@ -103,8 +105,9 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      e.preventDefault();
       handleSearch();
     }
   };
@@ -142,19 +145,24 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
       accessorKey: "student.student_name",
       header: "Student Name",
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <User className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium">{row.original.student.student_name}</span>
-        </div>
+        <span className="font-medium">{row.original.student.student_name}</span>
       ),
     },
     {
-      accessorKey: "student.section_name",
+      accessorKey: "tuitionBalance.class_name",
       header: "Class",
       cell: ({ row }) => (
         <Badge variant="outline">
-          <GraduationCap className="h-3 w-3 mr-1" />
-          {row.original.student.section_name || "N/A"}
+          {row.original.tuitionBalance?.class_name || "N/A"}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "tuitionBalance.section_name",
+      header: "Section",
+      cell: ({ row }) => (
+        <Badge variant="outline">
+          {row.original.tuitionBalance?.section_name || "N/A"}
         </Badge>
       ),
     },
@@ -250,24 +258,29 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
           </CardTitle>
         </CardHeader>
         <CardContent className="w-full px-6">
-          <div className="flex items-center gap-3 w-full">
-            <div className="flex-1 min-w-0">
-              <Input
-                placeholder="Enter admission number or student name to search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="w-full"
-              />
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 w-full">
+              <div className="flex-1 min-w-0">
+                <Input
+                  placeholder="Enter admission number or student name to search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="w-full"
+                />
+              </div>
+              <Button 
+                onClick={handleSearch} 
+                disabled={isSearching || !searchQuery.trim()}
+                className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
+              >
+                <Search className="h-4 w-4 mr-2" />
+                {isSearching ? "Searching..." : "Search"}
+              </Button>
             </div>
-            <Button 
-              onClick={handleSearch} 
-              disabled={isSearching || !searchQuery.trim()}
-              className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
-            >
-              <Search className="h-4 w-4 mr-2" />
-              {isSearching ? "Searching..." : "Search"}
-            </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              Press Enter to search or click the Search button
+            </p>
           </div>
         </CardContent>
       </Card>

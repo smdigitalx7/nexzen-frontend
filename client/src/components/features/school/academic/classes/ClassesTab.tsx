@@ -1,5 +1,5 @@
 import { useState, memo, useMemo, useCallback } from "react";
-import { BookOpen, Plus, Edit, Trash2, Users, DollarSign, Eye, Settings } from "lucide-react";
+import { BookOpen, Plus, Edit, Trash2, Users, Eye, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -291,20 +291,14 @@ export const ClassesTab = memo(({
       id: "book_fee",
       header: "Book Fee",
       cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <DollarSign className="h-4 w-4 text-green-600" />
-          <span className="font-medium">₹{row.original.book_fee}</span>
-        </div>
+        <span className="font-medium text-green-600">₹{row.original.book_fee}</span>
       ),
     },
     {
       id: "tuition_fee", 
       header: "Tuition Fee",
       cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <DollarSign className="h-4 w-4 text-blue-600" />
-          <span className="font-medium">₹{row.original.tuition_fee}</span>
-        </div>
+        <span className="font-medium text-blue-600">₹{row.original.tuition_fee}</span>
       ),
     },
     {
@@ -536,15 +530,13 @@ export const ClassesTab = memo(({
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground">Book Fee</Label>
                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-green-600" />
-                    <span className="font-medium">₹{selectedClass.book_fee}</span>
+                    <span className="font-medium text-green-600">₹{selectedClass.book_fee}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground">Tuition Fee</Label>
                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-blue-600" />
-                    <span className="font-medium">₹{selectedClass.tuition_fee}</span>
+                    <span className="font-medium text-blue-600">₹{selectedClass.tuition_fee}</span>
                   </div>
                 </div>
               </div>
