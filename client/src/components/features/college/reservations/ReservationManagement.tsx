@@ -1185,10 +1185,6 @@ export default function ReservationNew() {
             <div className="space-y-6 text-sm flex-1 overflow-y-auto pr-1">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <strong>Reservation ID:</strong>{" "}
-                  {viewReservation.reservation_id}
-                </div>
-                <div>
                   <strong>Reservation No:</strong>{" "}
                   {viewReservation.reservation_no || "-"}
                 </div>

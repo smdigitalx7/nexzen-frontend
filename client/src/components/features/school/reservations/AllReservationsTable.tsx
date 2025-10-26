@@ -72,14 +72,17 @@ const StatusBadge = memo(({ status }: { status: string }) => (
 StatusBadge.displayName = "StatusBadge";
 
 // Memoized application fee status badge component
-const ApplicationFeeBadge = memo(({ isPaid }: { isPaid: boolean }) => (
-  <Badge
-    variant={isPaid ? "secondary" : "destructive"}
-    className="text-xs"
-  >
-    {isPaid ? "Paid" : "Not Paid"}
-  </Badge>
-));
+const ApplicationFeeBadge = memo(({ applicationIncomeId }: { applicationIncomeId?: number | null }) => {
+  const isPaid = applicationIncomeId !== null && applicationIncomeId !== undefined;
+  return (
+    <Badge
+      variant={isPaid ? "secondary" : "destructive"}
+      className="text-xs"
+    >
+      {isPaid ? "Paid" : "Not Paid"}
+    </Badge>
+  );
+});
 
 ApplicationFeeBadge.displayName = "ApplicationFeeBadge";
 
@@ -241,11 +244,11 @@ const AllReservationsTableComponent = ({
         ),
       },
       {
-        accessorKey: "application_fee_paid",
+        accessorKey: "application_income_id",
         header: "Application Fee Status",
         cell: ({ row }) => {
-          const isPaid = row.getValue("application_fee_paid") as boolean;
-          return <ApplicationFeeBadge isPaid={isPaid} />;
+          const applicationIncomeId = row.getValue("application_income_id") as number | null | undefined;
+          return <ApplicationFeeBadge applicationIncomeId={applicationIncomeId} />;
         },
       },
       {

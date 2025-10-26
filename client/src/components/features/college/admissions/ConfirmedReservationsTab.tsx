@@ -352,20 +352,20 @@ const ConfirmedReservationsTab = () => {
       cell: ({ row }) => <span>{row.getValue("course_name") || "-"}</span>,
     },
     {
-      accessorKey: "application_fee_paid",
+      accessorKey: "application_income_id",
       header: "Payment Status",
-      cell: ({ row }) => (
-        <Badge
-          variant={
-            row.getValue("application_fee_paid")
-              ? "secondary"
-              : "destructive"
-          }
-          className="text-xs"
-        >
-          {row.getValue("application_fee_paid") ? "✓ Paid" : "Unpaid"}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const applicationIncomeId = row.getValue("application_income_id");
+        const isPaid = applicationIncomeId !== null && applicationIncomeId !== undefined;
+        return (
+          <Badge
+            variant={isPaid ? "secondary" : "destructive"}
+            className="text-xs"
+          >
+            {isPaid ? "✓ Paid" : "Unpaid"}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: "reservation_date",

@@ -67,14 +67,17 @@ const StatusBadge = memo(({ status }: { status: string }) => {
 StatusBadge.displayName = "StatusBadge";
 
 // Memoized payment status badge component
-const PaymentStatusBadge = memo(({ fee }: { fee: number }) => (
-  <Badge
-    variant={fee && fee > 0 ? "secondary" : "destructive"}
-    className="text-xs"
-  >
-    {fee && fee > 0 ? "✓ Paid" : "Unpaid"}
-  </Badge>
-));
+const PaymentStatusBadge = memo(({ applicationIncomeId }: { applicationIncomeId?: number | null }) => {
+  const isPaid = applicationIncomeId !== null && applicationIncomeId !== undefined;
+  return (
+    <Badge
+      variant={isPaid ? "secondary" : "destructive"}
+      className="text-xs"
+    >
+      {isPaid ? "✓ Paid" : "Unpaid"}
+    </Badge>
+  );
+});
 
 PaymentStatusBadge.displayName = "PaymentStatusBadge";
 
@@ -449,7 +452,7 @@ const FeeStructure = memo(({ editForm }: { editForm: Reservation }) => (
             concession={0}
             payable={editForm.application_fee}
             status="Unpaid"
-            isPaid={!!editForm.application_fee_paid}
+            isPaid={!!editForm.application_income_id}
           />
           <FeeTableRow
             feeType="Tuition Fee"
@@ -648,6 +651,7 @@ interface Reservation {
   permanent_address: string;
   application_fee: number;
   application_fee_paid: string;
+  application_income_id?: number | null;
   preferred_class_id: number;
   class_name: string;
   tuition_fee: number;
@@ -919,11 +923,11 @@ const ConfirmedReservationsTabComponent = () => {
       cell: ({ row }) => <span>{row.getValue("admit_into") || "-"}</span>,
     },
     {
-      accessorKey: "reservation_fee",
+      accessorKey: "application_income_id",
       header: "Payment Status",
       cell: ({ row }) => {
-        const fee = row.getValue("reservation_fee") as number;
-        return <PaymentStatusBadge fee={fee} />;
+        const applicationIncomeId = row.getValue("application_income_id") as number | null | undefined;
+        return <PaymentStatusBadge applicationIncomeId={applicationIncomeId} />;
       },
     },
     {
