@@ -23,6 +23,7 @@ export interface SchoolEnrollmentRead {
   student_name: string;
   roll_number: string;
   class_id: number;
+  class_name?: string;
   section_id: number;
   section_name: string;
 }
