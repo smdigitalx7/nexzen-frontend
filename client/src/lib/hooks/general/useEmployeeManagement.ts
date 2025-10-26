@@ -46,7 +46,7 @@ import {
   EmployeeLeaveUpdate,
   EmployeeLeaveReject,
 } from "@/lib/types/general/employee-leave";
-import { AdvanceCreate, AdvanceUpdate } from "@/lib/types/general/advances";
+import { AdvanceCreate, AdvanceUpdate, AdvanceStatusUpdate, AdvanceAmountPaidUpdate } from "@/lib/types/general/advances";
 
 // Types
 export interface EmployeeRead {
@@ -84,24 +84,19 @@ export interface EmployeeAttendanceRead {
 export interface EmployeeLeaveRead {
   leave_id: number;
   employee_id: number;
-  leave_type:
-    | "SICK"
-    | "CASUAL"
-    | "ANNUAL"
-    | "EMERGENCY"
-    | "MATERNITY"
-    | "PATERNITY";
+  leave_type: "PAID" | "UNPAID";
   from_date: string;
   to_date: string;
-  days: number;
+  total_days: number;
   reason: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  leave_status: "PENDING" | "APPROVED" | "REJECTED";
   applied_date: string;
   approved_date?: string;
   rejected_date?: string;
   approved_by?: number;
   rejected_by?: number;
   notes?: string;
+  rejection_reason?: string;
   created_at: string;
   updated_at: string;
 }
@@ -221,9 +216,10 @@ export const useEmployeeManagement = (
   const [leaveToReject, setLeaveToReject] = useState<EmployeeLeaveRead | null>(
     null
   );
+  const [rejectionReason, setRejectionReason] = useState<string>("");
   const [leaveFormData, setLeaveFormData] = useState<EmployeeLeaveCreate>({
     employee_id: 0,
-    leave_type: "CASUAL",
+    leave_type: "PAID",
     from_date: new Date().toISOString().split("T")[0],
     to_date: new Date().toISOString().split("T")[0],
     reason: "",
@@ -245,6 +241,8 @@ export const useEmployeeManagement = (
   const [advanceToUpdate, setAdvanceToUpdate] = useState<AdvanceRead | null>(
     null
   );
+  const [advanceStatus, setAdvanceStatus] = useState<string>("");
+  const [advanceStatusReason, setAdvanceStatusReason] = useState<string>("");
   const [advanceFormData, setAdvanceFormData] = useState<AdvanceCreate>({
     employee_id: 0,
     advance_date: new Date().toISOString().split("T")[0],
@@ -451,10 +449,16 @@ export const useEmployeeManagement = (
     }
   };
 
-  const handleUpdateAdvanceStatus = async (id: number, status: string) => {
+  const handleUpdateAdvanceStatus = async (id: number, status: string, reason?: string) => {
     try {
-      await updateAdvanceStatusMutation.mutateAsync({ id, status });
+      const payload: AdvanceStatusUpdate = { 
+        status,
+        ...(reason && { reason })
+      };
+      await updateAdvanceStatusMutation.mutateAsync({ id, payload });
       setShowAdvanceStatusDialog(false);
+      setAdvanceStatus("");
+      setAdvanceStatusReason("");
     } catch (error) {
       console.error("Error updating advance status:", error);
     }
@@ -462,9 +466,10 @@ export const useEmployeeManagement = (
 
   const handleUpdateAdvanceAmountPaid = async (id: number, amount: number) => {
     try {
+      const payload: AdvanceAmountPaidUpdate = { amount_paid: amount };
       await updateAdvanceAmountPaidMutation.mutateAsync({
         id,
-        amount_paid: amount,
+        payload,
       });
       setShowAdvanceAmountDialog(false);
     } catch (error) {
@@ -559,6 +564,8 @@ export const useEmployeeManagement = (
     setLeaveToApprove,
     leaveToReject,
     setLeaveToReject,
+    rejectionReason,
+    setRejectionReason,
     leaveFormData,
     setLeaveFormData,
 
@@ -581,6 +588,10 @@ export const useEmployeeManagement = (
     setShowAdvanceAmountDialog,
     advanceToUpdate,
     setAdvanceToUpdate,
+    advanceStatus,
+    setAdvanceStatus,
+    advanceStatusReason,
+    setAdvanceStatusReason,
     advanceFormData,
     setAdvanceFormData,
 

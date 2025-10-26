@@ -3,6 +3,8 @@ import type {
   AdvanceRead, 
   AdvanceCreate, 
   AdvanceUpdate,
+  AdvanceStatusUpdate,
+  AdvanceAmountPaidUpdate,
   AdvanceListResponse,
   AdvanceDashboardStats,
   RecentAdvance
@@ -113,20 +115,20 @@ export const AdvancesService = {
   /**
    * Update advance status
    * @param id - Advance ID
-   * @param status - New status
+   * @param payload - Status update data (status and optional reason)
    * @returns Promise<AdvanceRead> - Updated advance details
    */
-  updateStatus(id: number, status: string): Promise<AdvanceRead> {
-    return Api.put<AdvanceRead>(`/advances/${id}/status`, { status });
+  updateStatus(id: number, payload: AdvanceStatusUpdate): Promise<AdvanceRead> {
+    return Api.put<AdvanceRead>(`/advances/${id}/status`, payload);
   },
 
   /**
    * Update amount paid for advance
    * @param id - Advance ID
-   * @param amountPaid - Amount paid
+   * @param payload - Amount paid update data
    * @returns Promise<AdvanceRead> - Updated advance details
    */
-  updateAmountPaid(id: number, amountPaid: number): Promise<AdvanceRead> {
-    return Api.put<AdvanceRead>(`/advances/${id}/amount-paid`, { amount_paid: amountPaid });
+  updateAmountPaid(id: number, payload: AdvanceAmountPaidUpdate): Promise<AdvanceRead> {
+    return Api.put<AdvanceRead>(`/advances/${id}/amount-paid`, payload);
   },
 };

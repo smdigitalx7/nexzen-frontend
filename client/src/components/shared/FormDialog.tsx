@@ -118,11 +118,11 @@ export const FormDialog: React.FC<FormDialogProps> = ({
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Current Status</label>
-                  <p className="text-lg font-semibold">
+                  <div className="text-lg font-semibold">
                     <Badge className={getStatusColor(currentStatus)}>
                       {currentStatus}
                     </Badge>
-                  </p>
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-slate-600 dark:text-slate-400">New Status</label>

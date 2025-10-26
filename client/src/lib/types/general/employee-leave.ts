@@ -1,6 +1,6 @@
 export interface EmployeeLeaveCreate {
   employee_id: number;
-  leave_type: string;
+  leave_type: "PAID" | "UNPAID";
   from_date: string; // YYYY-MM-DD format
   to_date: string; // YYYY-MM-DD format
   reason: string;
@@ -9,7 +9,7 @@ export interface EmployeeLeaveCreate {
 }
 
 export interface EmployeeLeaveUpdate {
-  leave_type?: string;
+  leave_type?: "PAID" | "UNPAID";
   from_date?: string;
   to_date?: string;
   reason?: string;
@@ -21,11 +21,11 @@ export interface EmployeeLeaveRead {
   leave_id: number;
   employee_id: number;
   employee_name: string;
-  leave_type: string;
+  leave_type: "PAID" | "UNPAID";
   from_date: string;
   to_date: string;
   reason: string;
-  leave_status: string;
+  leave_status: "PENDING" | "APPROVED" | "REJECTED";
   total_days: number;
   applied_date: string;
   approved_by?: number;
@@ -82,10 +82,10 @@ export interface RecentLeave {
   leave_id: number;
   employee_id: number;
   employee_name: string;
-  leave_type: string;
+  leave_type: "PAID" | "UNPAID";
   from_date: string;
   to_date: string;
   total_days: number;
-  leave_status: string;
+  leave_status: "PENDING" | "APPROVED" | "REJECTED";
   applied_date: string;
 }

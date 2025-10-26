@@ -24,7 +24,19 @@ export interface AdvanceCreate {
   request_reason: string;
 }
 
-export type AdvanceUpdate = Partial<AdvanceCreate>;
+export interface AdvanceUpdate {
+  advance_amount?: number;
+  request_reason?: string;
+}
+
+export interface AdvanceStatusUpdate {
+  status: string;
+  reason?: string;
+}
+
+export interface AdvanceAmountPaidUpdate {
+  amount_paid: number;
+}
 
 export interface AdvanceListResponse {
   data: AdvanceRead[];

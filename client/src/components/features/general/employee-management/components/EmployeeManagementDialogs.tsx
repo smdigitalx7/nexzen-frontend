@@ -65,6 +65,8 @@ interface EmployeeManagementDialogsProps {
   setLeaveToApprove: (leave: any) => void;
   leaveToReject: any;
   setLeaveToReject: (leave: any) => void;
+  rejectionReason: string;
+  setRejectionReason: (reason: string) => void;
   leaveFormData: any;
   setLeaveFormData: (data: any) => void;
   
@@ -86,6 +88,10 @@ interface EmployeeManagementDialogsProps {
   setShowAdvanceAmountDialog: (show: boolean) => void;
   advanceToUpdate: any;
   setAdvanceToUpdate: (advance: any) => void;
+  advanceStatus: string;
+  setAdvanceStatus: (status: string) => void;
+  advanceStatusReason: string;
+  setAdvanceStatusReason: (reason: string) => void;
   advanceFormData: any;
   setAdvanceFormData: (data: any) => void;
   
@@ -104,7 +110,7 @@ interface EmployeeManagementDialogsProps {
   handleRejectLeave: (id: number, reason: string) => Promise<void>;
   handleCreateAdvance: (data: any) => Promise<void>;
   handleUpdateAdvance: (id: number, data: any) => Promise<void>;
-  handleUpdateAdvanceStatus: (id: number, status: string) => Promise<void>;
+  handleUpdateAdvanceStatus: (id: number, status: string, reason?: string) => Promise<void>;
   handleUpdateAdvanceAmountPaid: (id: number, amount: number) => Promise<void>;
   handleCreateAttendance: (data: any) => Promise<void>;
   handleUpdateAttendance: (id: number, data: any) => Promise<void>;
@@ -162,6 +168,8 @@ export const EmployeeManagementDialogs = ({
   setLeaveToApprove,
   leaveToReject,
   setLeaveToReject,
+  rejectionReason,
+  setRejectionReason,
   leaveFormData,
   setLeaveFormData,
   
@@ -183,6 +191,10 @@ export const EmployeeManagementDialogs = ({
   setShowAdvanceAmountDialog,
   advanceToUpdate,
   setAdvanceToUpdate,
+  advanceStatus,
+  setAdvanceStatus,
+  advanceStatusReason,
+  setAdvanceStatusReason,
   advanceFormData,
   setAdvanceFormData,
   
@@ -238,6 +250,16 @@ export const EmployeeManagementDialogs = ({
         onOpenChange={setShowLeaveViewDialog}
         leave={leaveToView}
         employee={leaveToView ? employees.find((e: any) => e.employee_id === leaveToView.employee_id) : null}
+        onApprove={(id) => {
+          setLeaveToApprove({ ...leaveToView, leave_id: id });
+          setShowLeaveViewDialog(false);
+          setShowLeaveApproveDialog(true);
+        }}
+        onReject={(id) => {
+          setLeaveToReject({ ...leaveToView, leave_id: id });
+          setShowLeaveViewDialog(false);
+          setShowLeaveRejectDialog(true);
+        }}
       />
       
       {/* Leave Form Dialog */}
@@ -281,13 +303,12 @@ export const EmployeeManagementDialogs = ({
       <LeaveRejectDialog
         open={showLeaveRejectDialog}
         onOpenChange={setShowLeaveRejectDialog}
-        reason=""
-        onReasonChange={(reason) => {
-          // You can add state for rejection reason if needed
-        }}
+        reason={rejectionReason}
+        onReasonChange={setRejectionReason}
         onReject={async () => {
           if (leaveToReject) {
-            await handleRejectLeave(leaveToReject.leave_id, "Rejected by admin");
+            await handleRejectLeave(leaveToReject.leave_id, rejectionReason);
+            setRejectionReason(""); // Reset after rejection
           }
         }}
       />
@@ -303,7 +324,11 @@ export const EmployeeManagementDialogs = ({
         onSubmit={async (e) => {
           e.preventDefault();
           if (isEditingAdvance && advanceToUpdate) {
-            await handleUpdateAdvance(advanceToUpdate.advance_id, advanceFormData);
+            // Only send updateable fields for PUT /api/v1/advances/{id}
+            await handleUpdateAdvance(advanceToUpdate.advance_id, {
+              advance_amount: advanceFormData.advance_amount,
+              request_reason: advanceFormData.request_reason
+            });
           } else {
             await handleCreateAdvance(advanceFormData);
           }
@@ -318,15 +343,31 @@ export const EmployeeManagementDialogs = ({
         onOpenChange={setShowAdvanceViewDialog}
         advance={advanceToView}
         employee={advanceToView ? employees.find((e: any) => e.employee_id === advanceToView.employee_id) : null}
+        onChangeStatus={(id) => {
+          setAdvanceToUpdate(advanceToView);
+          setAdvanceStatus(advanceToView?.status || "");
+          setShowAdvanceViewDialog(false);
+          setShowAdvanceStatusDialog(true);
+        }}
+        onUpdateAmount={(id) => {
+          setAdvanceToUpdate(advanceToView);
+          setShowAdvanceViewDialog(false);
+          setShowAdvanceAmountDialog(true);
+        }}
       />
       
       {/* Advance Status Dialog */}
       <AdvanceStatusDialog
         open={showAdvanceStatusDialog}
         onOpenChange={setShowAdvanceStatusDialog}
-        onApprove={async () => {
-          if (advanceToUpdate) {
-            await handleUpdateAdvanceStatus(advanceToUpdate.advance_id, 'APPROVED');
+        status={advanceStatus}
+        onStatusChange={setAdvanceStatus}
+        reason={advanceStatusReason}
+        onReasonChange={setAdvanceStatusReason}
+        onConfirm={async () => {
+          if (advanceToUpdate && advanceStatus) {
+            const reason = (advanceStatus === "REJECTED" || advanceStatus === "CANCELLED") ? advanceStatusReason : undefined;
+            await handleUpdateAdvanceStatus(advanceToUpdate.advance_id, advanceStatus, reason);
           }
         }}
       />

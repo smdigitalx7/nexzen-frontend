@@ -4,6 +4,8 @@ import type {
   AdvanceRead, 
   AdvanceCreate, 
   AdvanceUpdate,
+  AdvanceStatusUpdate,
+  AdvanceAmountPaidUpdate,
   AdvanceListResponse,
   AdvanceDashboardStats,
   RecentAdvance
@@ -89,8 +91,8 @@ export const useUpdateAdvanceStatus = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) => 
-      AdvancesService.updateStatus(id, status),
+    mutationFn: ({ id, payload }: { id: number; payload: AdvanceStatusUpdate }) => 
+      AdvancesService.updateStatus(id, payload),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: advanceKeys.lists() });
       queryClient.invalidateQueries({ queryKey: advanceKeys.detail(id) });
@@ -103,8 +105,8 @@ export const useUpdateAdvanceAmountPaid = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, amount_paid }: { id: number; amount_paid: number }) => 
-      AdvancesService.updateAmountPaid(id, amount_paid),
+    mutationFn: ({ id, payload }: { id: number; payload: AdvanceAmountPaidUpdate }) => 
+      AdvancesService.updateAmountPaid(id, payload),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: advanceKeys.lists() });
       queryClient.invalidateQueries({ queryKey: advanceKeys.detail(id) });

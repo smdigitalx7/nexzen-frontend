@@ -87,9 +87,10 @@ const EmployeeFormDialog = ({ open, onOpenChange, isEditing, formData, onChange,
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="teaching">Teaching</SelectItem>
-                  <SelectItem value="non_teaching">Non-Teaching</SelectItem>
-                  <SelectItem value="administrative">Administrative</SelectItem>
+                  <SelectItem value="TEACHING">Teaching</SelectItem>
+                  <SelectItem value="NON_TEACHING">Non-Teaching</SelectItem>
+                  <SelectItem value="OFFICE">Administrative</SelectItem>
+                  <SelectItem value="DRIVER">Driver</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -191,8 +192,7 @@ const EmployeeFormDialog = ({ open, onOpenChange, isEditing, formData, onChange,
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="ON_LEAVE">On Leave</SelectItem>
-                  <SelectItem value="INACTIVE">Inactive</SelectItem>
+                  <SelectItem value="TERMINATED">Terminated</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -214,5 +214,3 @@ const EmployeeFormDialog = ({ open, onOpenChange, isEditing, formData, onChange,
 };
 
 export default React.memo(EmployeeFormDialog);
-
-

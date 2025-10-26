@@ -105,6 +105,8 @@ export const EmployeeManagementTemplate = () => {
     setLeaveToApprove,
     leaveToReject,
     setLeaveToReject,
+    rejectionReason,
+    setRejectionReason,
     leaveFormData,
     setLeaveFormData,
     
@@ -143,6 +145,10 @@ export const EmployeeManagementTemplate = () => {
     setShowAdvanceAmountDialog,
     advanceToUpdate,
     setAdvanceToUpdate,
+    advanceStatus,
+    setAdvanceStatus,
+    advanceStatusReason,
+    setAdvanceStatusReason,
     advanceFormData,
     setAdvanceFormData,
     
@@ -312,7 +318,7 @@ export const EmployeeManagementTemplate = () => {
                 setShowLeaveForm(true);
                 setLeaveFormData({
                   employee_id: 0,
-                  leave_type: 'CASUAL',
+                  leave_type: 'PAID',
                   from_date: new Date().toISOString().split('T')[0],
                   to_date: new Date().toISOString().split('T')[0],
                   reason: '',
@@ -359,6 +365,7 @@ export const EmployeeManagementTemplate = () => {
               }}
         onApproveAdvance={(advance: any) => {
                 setAdvanceToUpdate(advance);
+                setAdvanceStatus(advance.status || "");
                 setShowAdvanceStatusDialog(true);
               }}
         onEditAdvance={(advance: any) => {
@@ -386,8 +393,9 @@ export const EmployeeManagementTemplate = () => {
               }}
         onRejectAdvance={(advance: any) => {
                 setAdvanceToUpdate(advance);
-                handleUpdateAdvanceStatus(advance.advance_id, 'REJECTED');
-        }}
+                setAdvanceStatus("REJECTED");
+                setShowAdvanceStatusDialog(true);
+              }}
       />
 
       {/* All Dialogs */}
@@ -442,6 +450,8 @@ export const EmployeeManagementTemplate = () => {
         setLeaveToApprove={setLeaveToApprove}
         leaveToReject={leaveToReject}
         setLeaveToReject={setLeaveToReject}
+        rejectionReason={rejectionReason}
+        setRejectionReason={setRejectionReason}
         leaveFormData={leaveFormData}
         setLeaveFormData={setLeaveFormData}
         
@@ -461,10 +471,14 @@ export const EmployeeManagementTemplate = () => {
         setShowAdvanceStatusDialog={setShowAdvanceStatusDialog}
         showAdvanceAmountDialog={showAdvanceAmountDialog}
         setShowAdvanceAmountDialog={setShowAdvanceAmountDialog}
-        advanceToUpdate={advanceToUpdate}
-        setAdvanceToUpdate={setAdvanceToUpdate}
-        advanceFormData={advanceFormData}
-        setAdvanceFormData={setAdvanceFormData}
+    advanceToUpdate={advanceToUpdate}
+    setAdvanceToUpdate={setAdvanceToUpdate}
+    advanceStatus={advanceStatus}
+    setAdvanceStatus={setAdvanceStatus}
+    advanceStatusReason={advanceStatusReason}
+    setAdvanceStatusReason={setAdvanceStatusReason}
+    advanceFormData={advanceFormData}
+    setAdvanceFormData={setAdvanceFormData}
         
         // Data
         employees={employees}

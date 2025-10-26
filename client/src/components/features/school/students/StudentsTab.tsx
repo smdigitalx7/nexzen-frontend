@@ -13,7 +13,7 @@ import {
   createTextColumn,
   createBadgeColumn
 } from '@/lib/utils/columnFactories';
-import { useSchoolStudentsList, useCreateSchoolStudent, useUpdateSchoolStudent } from '@/lib/hooks/school/use-school-students';
+import { useSchoolStudentsList, useCreateSchoolStudent, useUpdateSchoolStudent, useSchoolStudent } from '@/lib/hooks/school/use-school-students';
 import type { SchoolStudentRead, SchoolStudentFullDetails } from '@/lib/types/school';
 import { useAuthStore } from '@/store/authStore';
 import { useForm } from 'react-hook-form';
@@ -249,13 +249,16 @@ AdmissionInfoSection.displayName = "AdmissionInfoSection";
 const StudentsTabComponent = () => {
   // State management
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [viewStudentId, setViewStudentId] = useState<number | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
   // Hooks
   const { currentBranch } = useAuthStore();
   const { toast } = useToast();
   const { data: studentsResp, isLoading, error } = useSchoolStudentsList({ page: 1, page_size: 50 });
+  const { data: viewStudentData, isLoading: isViewLoading } = useSchoolStudent(viewStudentId);
   const createStudentMutation = useCreateSchoolStudent();
   const updateStudentMutation = useUpdateSchoolStudent(selectedStudent?.student_id || 0);
 
@@ -351,13 +354,23 @@ const StudentsTabComponent = () => {
     createBadgeColumn<SchoolStudentRead>('status', { header: 'Status', variant: 'outline', fallback: 'N/A' })
   ], []);
 
+  // View handler
+  const handleViewStudent = useCallback((student: SchoolStudentRead) => {
+    setViewStudentId(student.student_id);
+    setIsViewDialogOpen(true);
+  }, []);
+
   // Memoized action button groups
   const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (row: SchoolStudentRead) => handleViewStudent(row)
+    },
     {
       type: 'edit' as const,
       onClick: (row: SchoolStudentRead) => handleEditStudent(row)
     }
-  ], [handleEditStudent]);
+  ], [handleViewStudent, handleEditStudent]);
 
   return (
     <div className="space-y-4">
@@ -431,6 +444,140 @@ const StudentsTabComponent = () => {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Student Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">Student Details</DialogTitle>
+            <DialogDescription>View complete student information</DialogDescription>
+          </DialogHeader>
+          {isViewLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2 text-sm text-slate-600">Loading student details...</p>
+              </div>
+            </div>
+          ) : viewStudentData ? (
+            <div className="space-y-6">
+              {/* Personal Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">Personal Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">Student Name:</span>
+                      <p className="text-slate-900">{viewStudentData.student_name}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">Admission No:</span>
+                      <p className="text-slate-900">{viewStudentData.admission_no || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">Aadhar Number:</span>
+                      <p className="text-slate-900">{viewStudentData.aadhar_no || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">Gender:</span>
+                      <p className="text-slate-900">{viewStudentData.gender || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">Date of Birth:</span>
+                      <p className="text-slate-900">{viewStudentData.dob ? new Date(viewStudentData.dob).toLocaleDateString() : 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">Status:</span>
+                      <Badge variant="outline">{viewStudentData.status || 'N/A'}</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Parent Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">Parent Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">Father Name:</span>
+                      <p className="text-slate-900">{viewStudentData.father_name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">Father Aadhar:</span>
+                      <p className="text-slate-900">{viewStudentData.father_aadhar_no || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">Father/Guardian Mobile:</span>
+                      <p className="text-slate-900">{viewStudentData.father_or_guardian_mobile || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">Father Occupation:</span>
+                      <p className="text-slate-900">{viewStudentData.father_occupation || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">Mother Name:</span>
+                      <p className="text-slate-900">{viewStudentData.mother_name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">Mother Aadhar:</span>
+                      <p className="text-slate-900">{viewStudentData.mother_aadhar_no || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">Mother/Guardian Mobile:</span>
+                      <p className="text-slate-900">{viewStudentData.mother_or_guardian_mobile || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">Mother Occupation:</span>
+                      <p className="text-slate-900">{viewStudentData.mother_occupation || 'N/A'}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Address Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">Address Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Present Address:</span>
+                    <p className="text-slate-900">{viewStudentData.present_address || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">Permanent Address:</span>
+                    <p className="text-slate-900">{viewStudentData.permanent_address || 'N/A'}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Admission Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">Admission Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">Admission Date:</span>
+                      <p className="text-slate-900">{viewStudentData.admission_date ? new Date(viewStudentData.admission_date).toLocaleDateString() : 'N/A'}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-red-600">
+              <p>Failed to load student details.</p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

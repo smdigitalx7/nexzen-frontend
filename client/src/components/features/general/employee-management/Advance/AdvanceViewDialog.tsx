@@ -1,25 +1,34 @@
 import { FormDialog } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, DollarSign, FileText, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, User, DollarSign, FileText, Clock, CheckCircle, XCircle, X } from "lucide-react";
 
 interface AdvanceViewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   advance: any;
   employee: any;
+  onChangeStatus?: (id: number) => void;
+  onUpdateAmount?: (id: number) => void;
 }
 
-export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee }: AdvanceViewDialogProps) => {
+export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee, onChangeStatus, onUpdateAmount }: AdvanceViewDialogProps) => {
   if (!advance) return null;
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "PENDING":
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "ACTIVE":
+        return "bg-blue-100 text-blue-800 border-blue-200";
       case "APPROVED":
         return "bg-green-100 text-green-800 border-green-200";
       case "REJECTED":
         return "bg-red-100 text-red-800 border-red-200";
+      case "REPAID":
+        return "bg-emerald-100 text-emerald-800 border-emerald-200";
+      case "CANCELLED":
+        return "bg-gray-100 text-gray-800 border-gray-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -46,10 +55,6 @@ export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee }: Adv
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Employee Name</label>
               <p className="text-lg font-semibold">{employee?.employee_name || `Employee ${advance.employee_id}`}</p>
             </div>
-            <div>
-              <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Employee ID</label>
-              <p className="text-lg font-semibold">{advance.employee_id}</p>
-            </div>
           </div>
         </div>
 
@@ -60,10 +65,6 @@ export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee }: Adv
             Advance Information
           </h3>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Advance ID</label>
-              <p className="text-lg font-semibold">{advance.advance_id}</p>
-            </div>
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Status</label>
               <div className="mt-1">
@@ -120,6 +121,50 @@ export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee }: Adv
             <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
               {advance.request_reason}
             </p>
+          </div>
+        )}
+
+        {/* Rejection/Cancellation Reason - Show if status is REJECTED or CANCELLED */}
+        {(advance.status === "REJECTED" || advance.status === "CANCELLED") && (
+          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
+            <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+              <X className="h-4 w-4" />
+              {advance.status === "REJECTED" ? "Rejection Information" : "Cancellation Information"}
+            </h3>
+            <div>
+              <label className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                {advance.status === "REJECTED" ? "Rejection Reason" : "Cancellation Reason"}
+              </label>
+              <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap mt-1">
+                {advance.reason || "No reason provided"}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        {(onChangeStatus || onUpdateAmount) && (
+          <div className="flex items-center justify-end gap-3 pt-4 border-t">
+            {onChangeStatus && (
+              <Button
+                variant="outline"
+                onClick={() => onChangeStatus(advance.advance_id)}
+                className="flex items-center gap-2"
+              >
+                <CheckCircle className="h-4 w-4" />
+                Change Status
+              </Button>
+            )}
+            {onUpdateAmount && (
+              <Button
+                variant="default"
+                onClick={() => onUpdateAmount(advance.advance_id)}
+                className="flex items-center gap-2"
+              >
+                <DollarSign className="h-4 w-4" />
+                Update Amount Paid
+              </Button>
+            )}
           </div>
         )}
       </div>

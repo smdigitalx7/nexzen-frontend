@@ -50,31 +50,51 @@ const AdvanceFormDialog = ({ open, onOpenChange, isEditing, employees, formData,
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="employee_id">Employee</Label>
-              <Select
-                value={formData.employee_id.toString()}
-                onValueChange={(value) => onChange("employee_id", parseInt(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select employee" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map((employee) => (
-                    <SelectItem key={employee.employee_id} value={employee.employee_id.toString()}>
-                      {employee.employee_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isEditing ? (
+                <Input
+                  id="employee_id_display"
+                  value={employees.find(e => e.employee_id === formData.employee_id)?.employee_name || 'Unknown Employee'}
+                  disabled
+                  className="bg-gray-100 dark:bg-gray-800"
+                />
+              ) : (
+                <Select
+                  value={formData.employee_id > 0 ? formData.employee_id.toString() : ""}
+                  onValueChange={(value) => onChange("employee_id", parseInt(value))}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select employee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map((employee) => (
+                      <SelectItem key={employee.employee_id} value={employee.employee_id.toString()}>
+                        {employee.employee_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div>
               <Label htmlFor="advance_date">Advance Date</Label>
-              <Input
-                id="advance_date"
-                type="date"
-                value={formData.advance_date}
-                onChange={(e) => onChange("advance_date", e.target.value)}
-                required
-              />
+              {isEditing ? (
+                <Input
+                  id="advance_date_display"
+                  type="date"
+                  value={formData.advance_date}
+                  disabled
+                  className="bg-gray-100 dark:bg-gray-800"
+                />
+              ) : (
+                <Input
+                  id="advance_date"
+                  type="date"
+                  value={formData.advance_date}
+                  onChange={(e) => onChange("advance_date", e.target.value)}
+                  required
+                />
+              )}
             </div>
           </div>
 
@@ -83,10 +103,10 @@ const AdvanceFormDialog = ({ open, onOpenChange, isEditing, employees, formData,
             <Input
               id="advance_amount"
               type="number"
-              value={formData.advance_amount}
+              value={formData.advance_amount || ''}
               onChange={(e) => onChange("advance_amount", parseFloat(e.target.value) || 0)}
               required
-              min="0"
+              min="1"
               step="0.01"
             />
           </div>

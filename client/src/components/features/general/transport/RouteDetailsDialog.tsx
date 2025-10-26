@@ -42,7 +42,6 @@ const RouteDetailsDialog = ({ isOpen, onClose, routeData, isLoading, error }: Ro
               </div>
               <div>
                 <h3 className="text-xl font-semibold">{routeData.route_no} - {routeData.route_name}</h3>
-                <p className="text-sm text-muted-foreground">Route ID: #{routeData.bus_route_id}</p>
               </div>
               <Badge variant={routeData.is_active ? "default" : "secondary"} className="ml-auto">
                 {routeData.is_active ? "Active" : "Inactive"}

@@ -1,15 +1,18 @@
 import { FormDialog } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, FileText, Clock, CalendarDays } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, User, FileText, Clock, CalendarDays, Check, X } from "lucide-react";
 
 interface LeaveViewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   leave: any;
   employee: any;
+  onApprove?: (id: number) => void;
+  onReject?: (id: number) => void;
 }
 
-export const LeaveViewDialog = ({ open, onOpenChange, leave, employee }: LeaveViewDialogProps) => {
+export const LeaveViewDialog = ({ open, onOpenChange, leave, employee, onApprove, onReject }: LeaveViewDialogProps) => {
   if (!leave) return null;
 
   const getStatusColor = (status: string) => {
@@ -29,18 +32,8 @@ export const LeaveViewDialog = ({ open, onOpenChange, leave, employee }: LeaveVi
     switch (leaveType) {
       case "PAID":
         return "bg-blue-100 text-blue-800 border-blue-200";
-      case "SICK":
-        return "bg-red-100 text-red-800 border-red-200";
-      case "CASUAL":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "ANNUAL":
-        return "bg-purple-100 text-purple-800 border-purple-200";
-      case "EMERGENCY":
-        return "bg-orange-100 text-orange-800 border-orange-200";
-      case "MATERNITY":
-        return "bg-pink-100 text-pink-800 border-pink-200";
-      case "PATERNITY":
-        return "bg-cyan-100 text-cyan-800 border-cyan-200";
+      case "UNPAID":
+        return "bg-gray-100 text-gray-800 border-gray-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -65,7 +58,7 @@ export const LeaveViewDialog = ({ open, onOpenChange, leave, employee }: LeaveVi
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Employee Name</label>
-              <p className="text-lg font-semibold">{employee?.employee_name || `Employee ${leave.employee_id}`}</p>
+              <p className="text-lg font-semibold">{leave.employee_name || employee?.employee_name || `Employee ${leave.employee_id}`}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Employee Code</label>
@@ -82,14 +75,10 @@ export const LeaveViewDialog = ({ open, onOpenChange, leave, employee }: LeaveVi
           </h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Leave ID</label>
-              <p className="text-lg font-semibold">{leave.leave_id}</p>
-            </div>
-            <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Status</label>
               <div className="mt-1">
-                <Badge className={`${getStatusColor(leave.leave_status)}`}>
-                  {leave.leave_status}
+                <Badge className={`${getStatusColor(leave.leave_status || leave.status)}`}>
+                  {leave.leave_status || leave.status}
                 </Badge>
               </div>
             </div>
@@ -104,7 +93,7 @@ export const LeaveViewDialog = ({ open, onOpenChange, leave, employee }: LeaveVi
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Days</label>
               <p className="text-lg font-semibold text-blue-600">
-                {leave.total_days} {leave.total_days === 1 ? 'day' : 'days'}
+                {leave.total_days || leave.days} {(leave.total_days || leave.days) === 1 ? 'day' : 'days'}
               </p>
             </div>
           </div>
@@ -172,16 +161,58 @@ export const LeaveViewDialog = ({ open, onOpenChange, leave, employee }: LeaveVi
                 <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Approved By</label>
                 <p className="text-lg font-semibold">{leave.approved_by}</p>
               </div>
-              {leave.approved_at && (
+              {leave.approved_date && (
                 <div>
                   <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Approved At</label>
                   <p className="text-lg font-semibold flex items-center gap-1">
                     <Clock className="h-4 w-4" />
-                    {new Date(leave.approved_at).toLocaleDateString()}
+                    {new Date(leave.approved_date).toLocaleDateString()}
                   </p>
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Rejection Information */}
+        {leave.rejection_reason && (
+          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
+            <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+              <X className="h-4 w-4" />
+              Rejection Information
+            </h3>
+            <div>
+              <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Rejection Reason</label>
+              <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap mt-1">
+                {leave.rejection_reason}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons - Show only for pending leaves */}
+        {(leave.leave_status === "PENDING" || leave.status === "PENDING") && (onApprove || onReject) && (
+          <div className="flex items-center justify-end gap-3 pt-4 border-t">
+            {onReject && (
+              <Button
+                variant="destructive"
+                onClick={() => onReject(leave.leave_id)}
+                className="flex items-center gap-2"
+              >
+                <X className="h-4 w-4" />
+                Reject
+              </Button>
+            )}
+            {onApprove && (
+              <Button
+                variant="default"
+                onClick={() => onApprove(leave.leave_id)}
+                className="flex items-center gap-2"
+              >
+                <Check className="h-4 w-4" />
+                Approve
+              </Button>
+            )}
           </div>
         )}
       </div>

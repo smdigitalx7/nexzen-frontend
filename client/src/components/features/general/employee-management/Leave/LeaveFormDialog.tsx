@@ -55,8 +55,9 @@ const LeaveFormDialog = ({ open, onOpenChange, isEditing, employees, formData, o
             <div>
               <Label htmlFor="leave_employee_id">Employee *</Label>
               <Select
-                value={formData.employee_id ? formData.employee_id.toString() : ""}
+                value={formData.employee_id && formData.employee_id > 0 ? formData.employee_id.toString() : ""}
                 onValueChange={(value) => onChange("employee_id", parseInt(value))}
+                required
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select employee" />
@@ -81,12 +82,7 @@ const LeaveFormDialog = ({ open, onOpenChange, isEditing, employees, formData, o
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="PAID">Paid Leave</SelectItem>
-                  <SelectItem value="SICK">Sick Leave</SelectItem>
-                  <SelectItem value="CASUAL">Casual Leave</SelectItem>
-                  <SelectItem value="ANNUAL">Annual Leave</SelectItem>
-                  <SelectItem value="EMERGENCY">Emergency Leave</SelectItem>
-                  <SelectItem value="MATERNITY">Maternity Leave</SelectItem>
-                  <SelectItem value="PATERNITY">Paternity Leave</SelectItem>                  
+                  <SelectItem value="UNPAID">Unpaid Leave</SelectItem>
                 </SelectContent>
               </Select>
             </div>
