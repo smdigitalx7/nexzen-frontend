@@ -8,6 +8,7 @@ import type {
   CollegeClassWithGroups,
 } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 export function useCollegeClasses(options?: { enabled?: boolean }) {
   return useQuery({
@@ -28,18 +29,18 @@ export function useCollegeClassesSlim() {
 
 export function useCreateCollegeClass() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeClassCreate) =>
       CollegeClassesService.create(payload) as Promise<CollegeClassResponse>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.classes.root() });
     },
-  });
+  }, "Class created successfully");
 }
 
 export function useUpdateCollegeClass(classId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeClassUpdate) =>
       CollegeClassesService.update(
         classId,
@@ -49,7 +50,7 @@ export function useUpdateCollegeClass(classId: number) {
       qc.invalidateQueries({ queryKey: collegeKeys.classes.detail(classId) });
       qc.invalidateQueries({ queryKey: collegeKeys.classes.root() });
     },
-  });
+  }, "Class updated successfully");
 }
 
 export function useCollegeClassGroups(classId: number | null | undefined) {
@@ -68,7 +69,7 @@ export function useCollegeClassGroups(classId: number | null | undefined) {
 
 export function useRemoveCollegeClassGroup(classId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (groupId: number) =>
       CollegeClassesService.removeGroup(classId, groupId),
     onSuccess: () => {
@@ -76,5 +77,5 @@ export function useRemoveCollegeClassGroup(classId: number) {
         queryKey: [...collegeKeys.classes.detail(classId), "groups"],
       });
     },
-  });
+  }, "Group removed from class successfully");
 }

@@ -95,19 +95,11 @@ export const TestTab = ({
       };
       await createTest.mutateAsync(payload);
       
-      toast({
-        title: "Success",
-        description: "Test created successfully",
-      });
-      
       resetNewTest();
       setIsAddTestOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create test",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -130,20 +122,12 @@ export const TestTab = ({
       };
       await updateTest.mutateAsync(updatePayload);
       
-      toast({
-        title: "Success",
-        description: "Test updated successfully",
-      });
-      
       resetEditTest();
       setSelectedTest(null);
       setIsEditTestOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update test",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -153,19 +137,11 @@ export const TestTab = ({
     try {
       await deleteTest.mutateAsync(selectedTest.test_id);
       
-      toast({
-        title: "Success",
-        description: "Test deleted successfully",
-      });
-      
       setSelectedTest(null);
       setIsDeleteDialogOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete test",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 

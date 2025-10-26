@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolExamMarksService } from "@/lib/services/school/exam-marks.service";
 import type { CreateExamMarkBulk, ExamMarkBulkCreateResult, ExamMarkFullReadResponse, ExamMarksQuery, ExamGroupAndSubjectResponse, ExamMarkCreate, ExamMarkUpdate } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 export function useSchoolExamMarksList(params?: ExamMarksQuery) {
   return useQuery({
@@ -21,43 +22,43 @@ export function useSchoolExamMark(markId: number | null | undefined) {
 
 export function useCreateSchoolExamMark() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: ExamMarkCreate) => SchoolExamMarksService.create(payload) as Promise<ExamMarkFullReadResponse>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.examMarks.root() });
     },
-  });
+  }, "Exam mark created successfully");
 }
 
 export function useUpdateSchoolExamMark(markId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: ExamMarkUpdate) => SchoolExamMarksService.update(markId, payload) as Promise<ExamMarkFullReadResponse>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.examMarks.detail(markId) });
       qc.invalidateQueries({ queryKey: schoolKeys.examMarks.root() });
     },
-  });
+  }, "Exam mark updated successfully");
 }
 
 export function useDeleteSchoolExamMark() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (markId: number) => SchoolExamMarksService.delete(markId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.examMarks.root() });
     },
-  });
+  }, "Exam mark deleted successfully");
 }
 
 export function useBulkCreateSchoolExamMarks() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CreateExamMarkBulk) => SchoolExamMarksService.bulkCreate(payload) as Promise<ExamMarkBulkCreateResult>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.examMarks.root() });
     },
-  });
+  }, "Exam marks created successfully");
 }
 
 

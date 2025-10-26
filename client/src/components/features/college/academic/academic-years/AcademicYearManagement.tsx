@@ -64,19 +64,11 @@ const AcademicYearManagement = () => {
     try {
       await createAcademicYearMutation.mutateAsync(newAcademicYear);
       
-      toast({
-        title: "Success",
-        description: "Academic year created successfully",
-      });
-      
       setNewAcademicYear({ year_name: '', start_date: '', end_date: '', is_active: false });
       setIsAddDialogOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create academic year",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -96,20 +88,12 @@ const AcademicYearManagement = () => {
         data: editAcademicYear,
       });
       
-      toast({
-        title: "Success",
-        description: "Academic year updated successfully",
-      });
-      
       setEditAcademicYear({ year_name: '', start_date: '', end_date: '', is_active: false });
       setSelectedAcademicYear(null);
       setIsEditDialogOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update academic year",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -119,19 +103,11 @@ const AcademicYearManagement = () => {
     try {
       await deleteAcademicYearMutation.mutateAsync(selectedAcademicYear.academic_year_id);
       
-      toast({
-        title: "Success",
-        description: "Academic year deleted successfully",
-      });
-      
       setSelectedAcademicYear(null);
       setIsDeleteDialogOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete academic year",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 

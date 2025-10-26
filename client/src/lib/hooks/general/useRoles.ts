@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RolesService } from '@/lib/services/general/roles.service';
 import type { RoleRead, RoleUpdate } from '@/lib/types/general/roles';
+import { useMutationWithSuccessToast } from '../common/use-mutation-with-toast';
 
 // Query keys
 export const roleKeys = {
@@ -31,12 +32,12 @@ export const useRole = (id: number) => {
 export const useUpdateRole = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: RoleUpdate }) => 
       RolesService.update(id, payload),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: roleKeys.lists() });
       queryClient.invalidateQueries({ queryKey: roleKeys.detail(id) });
     },
-  });
+  }, "Role updated successfully");
 };

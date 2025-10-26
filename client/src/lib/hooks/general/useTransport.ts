@@ -7,6 +7,7 @@ import type {
   TransportDashboardStats,
   RecentRoute,
 } from '@/lib/types/general/transport';
+import { useMutationWithSuccessToast } from '../common/use-mutation-with-toast';
 
 // Query keys
 export const transportKeys = {
@@ -60,7 +61,7 @@ export const useRecentRoutes = (limit: number = 5) => {
 export const useCreateBusRoute = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (data: BusRouteCreate) => TransportService.createRoute(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: transportKeys.routes() });
@@ -68,13 +69,13 @@ export const useCreateBusRoute = () => {
       queryClient.invalidateQueries({ queryKey: transportKeys.dashboard() });
       queryClient.invalidateQueries({ queryKey: transportKeys.recent() });
     },
-  });
+  }, "Bus route created successfully");
 };
 
 export const useUpdateBusRoute = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: BusRouteUpdate }) =>
       TransportService.updateRoute(id, payload),
     onSuccess: (_, { id }) => {
@@ -84,13 +85,13 @@ export const useUpdateBusRoute = () => {
       queryClient.invalidateQueries({ queryKey: transportKeys.dashboard() });
       queryClient.invalidateQueries({ queryKey: transportKeys.recent() });
     },
-  });
+  }, "Bus route updated successfully");
 };
 
 export const useDeleteBusRoute = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (id: number) => TransportService.deleteRoute(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: transportKeys.routes() });
@@ -98,13 +99,13 @@ export const useDeleteBusRoute = () => {
       queryClient.invalidateQueries({ queryKey: transportKeys.dashboard() });
       queryClient.invalidateQueries({ queryKey: transportKeys.recent() });
     },
-  });
+  }, "Bus route deleted successfully");
 };
 
 export const useAssignDriverToRoute = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ id, driverEmployeeId }: { id: number; driverEmployeeId: number }) =>
       TransportService.assignDriverToRoute(id, driverEmployeeId),
     onSuccess: (_, { id }) => {
@@ -114,13 +115,13 @@ export const useAssignDriverToRoute = () => {
       queryClient.invalidateQueries({ queryKey: transportKeys.dashboard() });
       queryClient.invalidateQueries({ queryKey: transportKeys.recent() });
     },
-  });
+  }, "Driver assigned successfully");
 };
 
 export const useRemoveDriverFromRoute = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (id: number) => TransportService.removeDriverFromRoute(id),
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: transportKeys.routes() });
@@ -129,6 +130,6 @@ export const useRemoveDriverFromRoute = () => {
       queryClient.invalidateQueries({ queryKey: transportKeys.dashboard() });
       queryClient.invalidateQueries({ queryKey: transportKeys.recent() });
     },
-  });
+  }, "Driver removed successfully");
 };
 

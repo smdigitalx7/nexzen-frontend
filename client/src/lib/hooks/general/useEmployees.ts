@@ -9,6 +9,7 @@ import type {
   EmployeeDashboardStats,
   RecentEmployee
 } from '@/lib/types/general/employees';
+import { useMutationWithSuccessToast } from '../common/use-mutation-with-toast';
 
 // Query keys
 export const employeeKeys = {
@@ -79,7 +80,7 @@ export const useRecentEmployees = (limit: number = 5) => {
 export const useCreateEmployee = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (data: EmployeeCreate) => EmployeesService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: employeeKeys.lists() });
@@ -87,13 +88,13 @@ export const useCreateEmployee = () => {
       queryClient.invalidateQueries({ queryKey: employeeKeys.dashboard() });
       queryClient.invalidateQueries({ queryKey: employeeKeys.recent() });
     },
-  });
+  }, "Employee created successfully");
 };
 
 export const useUpdateEmployee = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: EmployeeUpdate }) => 
       EmployeesService.update(id, payload),
     onSuccess: (_, { id }) => {
@@ -102,26 +103,26 @@ export const useUpdateEmployee = () => {
       queryClient.invalidateQueries({ queryKey: employeeKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: employeeKeys.dashboard() });
     },
-  });
+  }, "Employee updated successfully");
 };
 
 export const useDeleteEmployee = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (id: number) => EmployeesService.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: employeeKeys.lists() });
       queryClient.invalidateQueries({ queryKey: employeeKeys.byBranch() });
       queryClient.invalidateQueries({ queryKey: employeeKeys.dashboard() });
     },
-  });
+  }, "Employee deleted successfully");
 };
 
 export const useUpdateEmployeeStatus = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ id, status }: { id: number; status: string }) => 
       EmployeesService.updateStatus(id, status),
     onSuccess: (_, { id }) => {
@@ -130,5 +131,5 @@ export const useUpdateEmployeeStatus = () => {
       queryClient.invalidateQueries({ queryKey: employeeKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: employeeKeys.dashboard() });
     },
-  });
+  }, "Employee status updated successfully");
 };

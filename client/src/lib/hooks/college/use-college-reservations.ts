@@ -10,6 +10,7 @@ import type {
   ReservationStatusEnum,
 } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 export function useCollegeReservationsList(params?: {
   group_id?: number;
@@ -39,18 +40,18 @@ export function useCollegeReservation(
 
 export function useCreateCollegeReservation() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeReservationCreate) =>
       CollegeReservationsService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
     },
-  });
+  }, "Reservation created successfully");
 }
 
 export function useUpdateCollegeReservation(reservationId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeReservationUpdate) =>
       CollegeReservationsService.update(reservationId, payload),
     onSuccess: () => {
@@ -59,23 +60,23 @@ export function useUpdateCollegeReservation(reservationId: number) {
       });
       qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
     },
-  });
+  }, "Reservation updated successfully");
 }
 
 export function useDeleteCollegeReservation() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (reservationId: number) =>
       CollegeReservationsService.delete(reservationId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
     },
-  });
+  }, "Reservation deleted successfully");
 }
 
 export function useUpdateCollegeReservationStatus(reservationId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: {
       status: ReservationStatusEnum;
       remarks?: string | null;
@@ -86,12 +87,12 @@ export function useUpdateCollegeReservationStatus(reservationId: number) {
       });
       qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
     },
-  });
+  }, "Reservation status updated successfully");
 }
 
 export function useUpdateCollegeReservationConcessions(reservationId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: {
       tuition_concession?: number | null;
       transport_concession?: number | null;
@@ -102,7 +103,7 @@ export function useUpdateCollegeReservationConcessions(reservationId: number) {
         queryKey: collegeKeys.reservations.detail(reservationId),
       });
     },
-  });
+  }, "Reservation concessions updated successfully");
 }
 
 export function useCollegeReservationDashboard() {

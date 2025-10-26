@@ -55,19 +55,11 @@ export const ClassesTab = memo(({
         class_name: newClass.class_name.trim(),
       });
       
-      toast({
-        title: "Success",
-        description: "Class created successfully",
-      });
-      
       setNewClass({ class_name: "" });
       setIsAddClassOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create class",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -84,20 +76,12 @@ export const ClassesTab = memo(({
     try {
       await updateClassMutation.mutateAsync({ class_name: editClass.class_name.trim() });
       
-      toast({
-        title: "Success",
-        description: "Class updated successfully",
-      });
-      
       setEditClass({ class_name: "" });
       setSelectedClass(null);
       setIsEditClassOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update class",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 

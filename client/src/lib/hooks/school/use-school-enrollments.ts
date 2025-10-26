@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { EnrollmentsService } from "@/lib/services/school/enrollments.service";
 import type { SchoolEnrollmentCreate, SchoolEnrollmentFilterParams, SchoolEnrollmentWithStudentDetails, SchoolEnrollmentsPaginatedResponse } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 export function useSchoolEnrollmentsList(params?: SchoolEnrollmentFilterParams) {
   return useQuery({
@@ -21,33 +22,33 @@ export function useSchoolEnrollment(enrollmentId: number | null | undefined) {
 
 export function useCreateSchoolEnrollment() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolEnrollmentCreate) => EnrollmentsService.create(payload) as Promise<SchoolEnrollmentWithStudentDetails>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
     },
-  });
+  }, "Enrollment created successfully");
 }
 
 export function useUpdateSchoolEnrollment(enrollmentId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: Partial<SchoolEnrollmentCreate>) => EnrollmentsService.update(enrollmentId, payload) as Promise<SchoolEnrollmentWithStudentDetails>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.enrollments.detail(enrollmentId) });
       qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
     },
-  });
+  }, "Enrollment updated successfully");
 }
 
 export function useDeleteSchoolEnrollment() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (enrollmentId: number) => EnrollmentsService.delete(enrollmentId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
     },
-  });
+  }, "Enrollment deleted successfully");
 }
 
 

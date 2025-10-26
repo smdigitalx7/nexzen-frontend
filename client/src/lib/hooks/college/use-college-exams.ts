@@ -7,6 +7,7 @@ import type {
   CollegeExamUpdate,
 } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 export function useCollegeExams(options?: { enabled?: boolean }) {
   return useQuery({
@@ -49,18 +50,18 @@ export function useCollegeExam(examId: number | null | undefined) {
 
 export function useCreateCollegeExam() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeExamCreate) =>
       CollegeExamsService.create(payload) as Promise<CollegeExamResponse>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
     },
-  });
+  }, "Exam created successfully");
 }
 
 export function useUpdateCollegeExam(examId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeExamUpdate) =>
       CollegeExamsService.update(
         examId,
@@ -70,15 +71,15 @@ export function useUpdateCollegeExam(examId: number) {
       qc.invalidateQueries({ queryKey: collegeKeys.exams.detail(examId) });
       qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
     },
-  });
+  }, "Exam updated successfully");
 }
 
 export function useDeleteCollegeExam() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (examId: number) => CollegeExamsService.delete(examId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
     },
-  });
+  }, "Exam deleted successfully");
 }

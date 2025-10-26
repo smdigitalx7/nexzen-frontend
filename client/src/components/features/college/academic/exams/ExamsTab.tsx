@@ -103,19 +103,11 @@ export const ExamsTab = ({
       };
       await createExam.mutateAsync(payload);
       
-      toast({
-        title: "Success",
-        description: "Exam created successfully",
-      });
-      
       resetNewExam();
       setIsAddExamOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create exam",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -150,20 +142,12 @@ export const ExamsTab = ({
       };
       await updateExam.mutateAsync(updatePayload);
       
-      toast({
-        title: "Success",
-        description: "Exam updated successfully",
-      });
-      
       resetEditExam();
       setSelectedExam(null);
       setIsEditExamOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update exam",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -173,19 +157,11 @@ export const ExamsTab = ({
     try {
       await deleteExam.mutateAsync(selectedExam.exam_id);
       
-      toast({
-        title: "Success",
-        description: "Exam deleted successfully",
-      });
-      
       setSelectedExam(null);
       setIsDeleteDialogOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete exam",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 

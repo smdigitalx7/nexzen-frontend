@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { EmployeeLeaveService } from '@/lib/services/general/employee-leave.service';
 import type { 
   EmployeeLeaveRead, 
@@ -9,6 +9,7 @@ import type {
   LeaveDashboardStats,
   RecentLeave
 } from '@/lib/types/general/employee-leave';
+import { useMutationWithSuccessToast } from '../common/use-mutation-with-toast';
 
 // Query keys
 export const employeeLeaveKeys = {
@@ -63,19 +64,19 @@ export const useRecentLeaves = (limit: number = 5) => {
 export const useCreateEmployeeLeave = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (data: EmployeeLeaveCreate) => EmployeeLeaveService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.lists() });
       queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.dashboard() });
     },
-  });
+  }, "Leave request created successfully");
 };
 
 export const useUpdateEmployeeLeave = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ id, data }: { id: number; data: EmployeeLeaveUpdate }) => 
       EmployeeLeaveService.update(id, data),
     onSuccess: (_, { id }) => {
@@ -83,26 +84,26 @@ export const useUpdateEmployeeLeave = () => {
       queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.dashboard() });
     },
-  });
+  }, "Leave request updated successfully");
 };
 
 export const useApproveEmployeeLeave = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (id: number) => EmployeeLeaveService.approve(id),
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.lists() });
       queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.dashboard() });
     },
-  });
+  }, "Leave request approved successfully");
 };
 
 export const useRejectEmployeeLeave = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ id, data }: { id: number; data: EmployeeLeaveReject }) => 
       EmployeeLeaveService.reject(id, data),
     onSuccess: (_, { id }) => {
@@ -110,17 +111,17 @@ export const useRejectEmployeeLeave = () => {
       queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.dashboard() });
     },
-  });
+  }, "Leave request rejected");
 };
 
 export const useDeleteEmployeeLeave = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (id: number) => EmployeeLeaveService.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.lists() });
       queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.dashboard() });
     },
-  });
+  }, "Leave request deleted successfully");
 };

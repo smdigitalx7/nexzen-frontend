@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolTeacherClassSubjectsService } from "@/lib/services/school/teacher-class-subjects.service";
 import type { 
   SchoolTeacherClassSubjectCreate, 
@@ -6,6 +6,7 @@ import type {
   SchoolTeacherDetail 
 } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 export function useTeacherClassSubjectsHierarchical() {
   return useQuery({
@@ -16,22 +17,22 @@ export function useTeacherClassSubjectsHierarchical() {
 
 export function useCreateTeacherClassSubject() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolTeacherClassSubjectCreate) => SchoolTeacherClassSubjectsService.create(payload) as Promise<SchoolTeacherClassSubjectRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
     },
-  });
+  }, "Teacher assignment created successfully");
 }
 
 export function useDeleteTeacherClassSubject() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ teacherId, classId, subjectId, sectionId }: { teacherId: number; classId: number; subjectId: number; sectionId: number }) => {
       return SchoolTeacherClassSubjectsService.delete(teacherId, classId, subjectId, sectionId);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
     },
-  });
+  }, "Teacher assignment removed successfully");
 }

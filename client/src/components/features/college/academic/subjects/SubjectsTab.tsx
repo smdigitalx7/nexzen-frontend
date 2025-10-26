@@ -60,19 +60,11 @@ export const SubjectsTab = ({
         subject_name: newSubject.subject_name.trim(),
       });
       
-      toast({
-        title: "Success",
-        description: "Subject created successfully",
-      });
-      
       setNewSubject({ subject_name: "" });
       setIsAddSubjectOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create subject",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -91,20 +83,12 @@ export const SubjectsTab = ({
         subject_name: editSubject.subject_name.trim(),
       });
       
-      toast({
-        title: "Success",
-        description: "Subject updated successfully",
-      });
-      
       setEditSubject({ subject_name: "" });
       setSelectedSubject(null);
       setIsEditSubjectOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update subject",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -113,19 +97,11 @@ export const SubjectsTab = ({
 
     try {
       // Add delete logic here
-      toast({
-        title: "Success",
-        description: "Subject deleted successfully",
-      });
-      
       setSelectedSubject(null);
       setIsDeleteDialogOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete subject",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 

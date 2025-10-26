@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolStudentAttendanceService } from "@/lib/services/school/student-attendance.service";
 import type { SchoolBulkCreateAttendanceResult, SchoolBulkStudentAttendanceCreate, SchoolStudentAttendanceCreate, SchoolStudentAttendancePaginatedResponse, SchoolStudentAttendanceRead, SchoolStudentAttendanceUpdate } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 export function useSchoolAttendanceList(params?: { page?: number; page_size?: number; admission_no?: string }) {
   return useQuery({
@@ -28,43 +29,43 @@ export function useSchoolAttendanceByAdmission(admissionNo: string | null | unde
 
 export function useCreateSchoolAttendance() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolStudentAttendanceCreate) => SchoolStudentAttendanceService.create(payload) as Promise<SchoolStudentAttendanceRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.attendance.root() });
     },
-  });
+  }, "Attendance created successfully");
 }
 
 export function useBulkCreateSchoolAttendance() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolBulkStudentAttendanceCreate) => SchoolStudentAttendanceService.bulkCreate(payload) as Promise<SchoolBulkCreateAttendanceResult>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.attendance.root() });
     },
-  });
+  }, "Attendance records created successfully");
 }
 
 export function useUpdateSchoolAttendance(attendanceId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolStudentAttendanceUpdate) => SchoolStudentAttendanceService.update(attendanceId, payload) as Promise<SchoolStudentAttendanceRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.attendance.detail(attendanceId) });
       qc.invalidateQueries({ queryKey: schoolKeys.attendance.root() });
     },
-  });
+  }, "Attendance updated successfully");
 }
 
 export function useDeleteSchoolAttendance() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (attendanceId: number) => SchoolStudentAttendanceService.delete(attendanceId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.attendance.root() });
     },
-  });
+  }, "Attendance deleted successfully");
 }
 
 export function useSchoolAttendanceAllStudents(params: { class_id: number; section_id?: number | null; month?: number | null; year?: number | null; } | null) {
@@ -77,10 +78,10 @@ export function useSchoolAttendanceAllStudents(params: { class_id: number; secti
 
 export function useBulkUpdateSchoolAttendance() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: any) => SchoolStudentAttendanceService.bulkUpdate(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.attendance.root() });
     },
-  });
+  }, "Attendance records updated successfully");
 }

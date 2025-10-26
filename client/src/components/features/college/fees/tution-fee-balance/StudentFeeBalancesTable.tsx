@@ -197,17 +197,10 @@ export const StudentFeeBalancesTable = ({
     
     try {
       await updateMutation.mutateAsync(editForm);
-      toast({
-        title: "Success",
-        description: "Tuition fee balance updated successfully.",
-      });
       setEditOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update tuition fee balance.",
-        variant: "destructive",
-      });
+      // Error toast handled by mutation hook
     }
   };
 
@@ -216,18 +209,11 @@ export const StudentFeeBalancesTable = ({
     
     try {
       await deleteMutation.mutateAsync(selectedStudent.id);
-      toast({
-        title: "Success",
-        description: "Tuition fee balance deleted successfully.",
-      });
       setDeleteOpen(false);
       setSelectedStudent(null);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete tuition fee balance.",
-        variant: "destructive",
-      });
+      // Error toast handled by mutation hook
     }
   };
 

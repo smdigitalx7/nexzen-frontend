@@ -8,7 +8,6 @@ import { Edit, Trash2 } from "lucide-react";
 import { useSchoolClasses } from "@/lib/hooks/school/use-school-classes";
 import { useSchoolSectionsByClass, useCreateSchoolSection, useUpdateSchoolSection } from "@/lib/hooks/school/use-school-sections";
 import type { SchoolSectionRead, SchoolClassRead } from "@/lib/types/school";
-import { useToast } from "@/hooks/use-toast";
 
 // Initial form state
 const initialSectionForm = { 
@@ -41,32 +40,21 @@ const SectionsTabComponent = () => {
   const { data: sections = [], isLoading } = useSchoolSectionsByClass(selectedClassId as number);
 
   // Hooks
-  const { toast } = useToast();
   const createSection = useCreateSchoolSection((selectedClassId || 0) as number);
   const updateSection = useUpdateSchoolSection((selectedClassId || 0) as number, selectedSection?.section_id || 0);
 
   // Memoized validation functions
   const validateSectionForm = useCallback((form: typeof initialSectionForm) => {
     if (!form.section_name.trim()) {
-      toast({
-        title: "Error",
-        description: "Section name is required",
-        variant: "destructive",
-      });
       return false;
     }
 
     if (form.current_enrollment < 0) {
-      toast({
-        title: "Error",
-        description: "Enrollment cannot be negative",
-        variant: "destructive",
-      });
       return false;
     }
 
     return true;
-  }, [toast]);
+  }, []);
 
   // Memoized mutation handlers
   const handleCreateSection = useCallback(async () => {
@@ -79,21 +67,13 @@ const SectionsTabComponent = () => {
         is_active: true,
       });
       
-      toast({ 
-        title: "Success", 
-        description: "Section created successfully" 
-      });
-      
       setNewSection(initialSectionForm);
       setIsAddOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({ 
-        title: "Error", 
-        description: "Failed to create section", 
-        variant: "destructive" 
-      });
+      // Error toast is handled by mutation hook
     }
-  }, [newSection, validateSectionForm, createSection, toast]);
+  }, [newSection, validateSectionForm, createSection]);
 
   const handleUpdateSection = useCallback(async () => {
     if (!validateSectionForm(editSection) || !selectedSection) return;
@@ -104,21 +84,13 @@ const SectionsTabComponent = () => {
         current_enrollment: Number(editSection.current_enrollment) || 0,
       });
       
-      toast({ 
-        title: "Success", 
-        description: "Section updated successfully" 
-      });
-      
       setIsEditOpen(false);
       setSelectedSection(null);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({ 
-        title: "Error", 
-        description: "Failed to update section", 
-        variant: "destructive" 
-      });
+      // Error toast is handled by mutation hook
     }
-  }, [editSection, selectedSection, validateSectionForm, updateSection, toast]);
+  }, [editSection, selectedSection, validateSectionForm, updateSection]);
 
   // Memoized columns definition
   const columns: ColumnDef<SchoolSectionRead>[] = useMemo(() => [

@@ -1,5 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PaymentReceiptsService, PaymentReceiptData, PaymentReceiptResponse, PaymentReceiptListResponse } from "@/lib/services/general/payment-receipts.service";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 // Query keys for payment receipts
 export const paymentReceiptKeys = {
@@ -18,22 +19,22 @@ export const paymentReceiptKeys = {
  */
 export function useGeneratePaymentReceipt() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (paymentData: PaymentReceiptData) =>
       PaymentReceiptsService.generateReceipt(paymentData) as Promise<PaymentReceiptResponse>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: paymentReceiptKeys.all });
     },
-  });
+  }, "Payment receipt generated successfully");
 }
 
 /**
  * Download a payment receipt
  */
 export function useDownloadPaymentReceipt() {
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (receiptId: string) => PaymentReceiptsService.downloadReceipt(receiptId),
-  });
+  }, "Receipt downloaded successfully");
 }
 
 /**
@@ -85,10 +86,10 @@ export function useStudentPaymentReceipts(studentId: string | null | undefined, 
  * Send receipt via email
  */
 export function useSendReceiptEmail() {
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ receiptId, email }: { receiptId: string; email: string }) =>
       PaymentReceiptsService.sendReceiptEmail(receiptId, email),
-  });
+  }, "Receipt sent via email successfully");
 }
 
 /**

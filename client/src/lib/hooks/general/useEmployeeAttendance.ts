@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { EmployeeAttendanceService } from '@/lib/services/general/employee-attendance.service';
 import type { 
   EmployeeAttendanceRead, 
@@ -7,6 +7,7 @@ import type {
   AttendanceListResponse,
   AttendanceDashboardStats
 } from '@/lib/types/general/employee-attendance';
+import { useMutationWithSuccessToast } from '../common/use-mutation-with-toast';
 
 // Query keys
 export const employeeAttendanceKeys = {
@@ -53,19 +54,19 @@ export const useAttendanceDashboard = () => {
 export const useCreateAttendance = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (data: EmployeeAttendanceCreate) => EmployeeAttendanceService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: employeeAttendanceKeys.lists() });
       queryClient.invalidateQueries({ queryKey: employeeAttendanceKeys.dashboard() });
     },
-  });
+  }, "Attendance record created successfully");
 };
 
 export const useUpdateAttendance = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: EmployeeAttendanceUpdate }) => 
       EmployeeAttendanceService.update(id, payload),
     onSuccess: (_, { id }) => {
@@ -73,17 +74,17 @@ export const useUpdateAttendance = () => {
       queryClient.invalidateQueries({ queryKey: employeeAttendanceKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: employeeAttendanceKeys.dashboard() });
     },
-  });
+  }, "Attendance record updated successfully");
 };
 
 export const useDeleteAttendance = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (id: number) => EmployeeAttendanceService.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: employeeAttendanceKeys.lists() });
       queryClient.invalidateQueries({ queryKey: employeeAttendanceKeys.dashboard() });
     },
-  });
+  }, "Attendance record deleted successfully");
 };

@@ -24,11 +24,11 @@ export default function BranchesManagement() {
   const onDelete = async (id: number) => {
     try {
       await del.mutateAsync(id);
-      toast({ title: "Branch deleted" });
       setDeleteDialogOpen(false);
       setSelectedBranch(null);
+      // Toast handled by mutation hook
     } catch (e: any) {
-      toast({ title: "Failed to delete", description: e?.message || "", variant: "destructive" });
+      // Error toast is handled by mutation hook
     }
   };
 

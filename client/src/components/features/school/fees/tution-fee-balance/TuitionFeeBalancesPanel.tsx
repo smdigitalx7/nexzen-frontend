@@ -244,18 +244,11 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
 
     try {
       await bulkCreateMutation.mutateAsync({ class_id: classIdNum });
-      toast({
-        title: "Success",
-        description: "Tuition fee balances created successfully for the selected class",
-      });
       refetch();
       setBulkCreateOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create tuition fee balances",
-        variant: "destructive",
-      });
+      // Error toast handled by mutation hook
     }
   }, [classIdNum, bulkCreateMutation, toast, refetch]);
 

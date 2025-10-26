@@ -98,9 +98,9 @@ export default function AttendanceCreate() {
                     absent_days: parseInt(singleAbsentDays) || 0,
                     remarks: singleRemarks || null,
                   } as any);
-                  toast({ title: 'Created', description: 'Attendance record added' });
+                  // Toast handled by mutation hook
                 } catch {
-                  toast({ title: 'Error', description: 'Failed to create record', variant: 'destructive' });
+                  // Error toast handled by mutation hook
                 }
               }}
             >
@@ -200,10 +200,10 @@ export default function AttendanceCreate() {
                 attendance_year: bulkYear,
                 total_working_days: bulkWorkingDays,
               });
-              toast({ title: 'Created', description: 'Monthly attendance records initialized' });
               setBulkOpen(false);
+              // Toast handled by mutation hook
             } catch (err: any) {
-              toast({ title: 'Error', description: err?.response?.data?.detail || 'Failed to create monthly attendance', variant: 'destructive' });
+              // Error toast handled by mutation hook
             }
           }}>Create</Button>
         </DialogFooter>

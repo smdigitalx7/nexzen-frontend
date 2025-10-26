@@ -76,19 +76,11 @@ export const CoursesTab = memo(({
         group_id: newCourse.group_id,
       });
       
-      toast({
-        title: "Success",
-        description: "Course created successfully",
-      });
-      
       setNewCourse({ course_name: "", course_fee: 0, group_id: 0 });
       setIsAddCourseOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create course",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -117,20 +109,12 @@ export const CoursesTab = memo(({
         course_fee: editCourse.course_fee,
       });
       
-      toast({
-        title: "Success",
-        description: "Course updated successfully",
-      });
-      
       setEditCourse({ course_name: "", course_fee: 0, group_id: 0 });
       setSelectedCourse(null);
       setIsEditCourseOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update course",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -140,19 +124,11 @@ export const CoursesTab = memo(({
     try {
       await deleteCourseMutation.mutateAsync(selectedCourse.course_id);
       
-      toast({
-        title: "Success",
-        description: "Course deleted successfully",
-      });
-      
       setSelectedCourse(null);
       setIsDeleteDialogOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete course",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 

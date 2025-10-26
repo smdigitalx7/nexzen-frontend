@@ -47,6 +47,24 @@ const Login = () => {
     e.preventDefault();
     setError("");
 
+    // Validate email and password
+    if (!email || !email.trim()) {
+      setError("Email address is required");
+      return;
+    }
+
+    if (!password || !password.trim()) {
+      setError("Password is required");
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
     try {
       const result = await loginMutation.mutateAsync({
         identifier: email,
@@ -238,7 +256,7 @@ const Login = () => {
               <Button
                 type="submit"
                 className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl "
-                disabled={loginMutation.isPending}
+                disabled={loginMutation.isPending || !email.trim() || !password.trim()}
                 data-testid="button-login"
               >
                 {loginMutation.isPending ? (

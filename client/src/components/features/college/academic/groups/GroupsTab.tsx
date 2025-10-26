@@ -67,19 +67,11 @@ export const GroupsTab = memo(({
         group_fee: newGroup.group_fee,
       });
       
-      toast({
-        title: "Success",
-        description: "Group created successfully",
-      });
-      
       setNewGroup({ group_name: "", book_fee: 0, group_fee: 0 });
       setIsAddGroupOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create group",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -109,20 +101,12 @@ export const GroupsTab = memo(({
         group_fee: editGroup.group_fee,
       });
       
-      toast({
-        title: "Success",
-        description: "Group updated successfully",
-      });
-      
       setEditGroup({ group_name: "", book_fee: 0, group_fee: 0 });
       setSelectedGroup(null);
       setIsEditGroupOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update group",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -132,19 +116,11 @@ export const GroupsTab = memo(({
     try {
       await deleteGroupMutation.mutateAsync(selectedGroup.group_id);
       
-      toast({
-        title: "Success",
-        description: "Group deleted successfully",
-      });
-      
       setSelectedGroup(null);
       setIsDeleteDialogOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete group",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 

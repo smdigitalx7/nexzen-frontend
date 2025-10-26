@@ -6,6 +6,7 @@ import type {
   SchoolReservationStatusEnum,
 } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 export function useSchoolReservationsList(params?: {
   page?: number;
@@ -40,17 +41,17 @@ export function useSchoolReservation(reservationId: number | null | undefined) {
 
 export function useCreateSchoolReservation() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (form: FormData) => SchoolReservationsService.create(form),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
     },
-  });
+  }, "Reservation created successfully");
 }
 
 export function useUpdateSchoolReservation(reservationId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (form: FormData) =>
       SchoolReservationsService.update(reservationId, form),
     onSuccess: () => {
@@ -59,23 +60,23 @@ export function useUpdateSchoolReservation(reservationId: number) {
       });
       qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
     },
-  });
+  }, "Reservation updated successfully");
 }
 
 export function useDeleteSchoolReservation() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (reservationId: number) =>
       SchoolReservationsService.delete(reservationId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
     },
-  });
+  }, "Reservation deleted successfully");
 }
 
 export function useUpdateSchoolReservationStatus(reservationId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({
       status,
       remarks,
@@ -90,7 +91,7 @@ export function useUpdateSchoolReservationStatus(reservationId: number) {
       });
       qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
     },
-  });
+  }, "Reservation status updated successfully");
 }
 
 export function useSchoolReservationsDashboard() {
@@ -109,7 +110,7 @@ export function useSchoolReservationsRecent(limit?: number) {
 
 export function useUpdateSchoolReservationConcession(reservationId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: any) =>
       SchoolReservationsService.updateConcession(reservationId, payload),
     onSuccess: () => {
@@ -118,5 +119,5 @@ export function useUpdateSchoolReservationConcession(reservationId: number) {
       });
       qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
     },
-  });
+  }, "Reservation concession updated successfully");
 }

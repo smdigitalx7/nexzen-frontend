@@ -8,6 +8,7 @@ import type {
   UserWithAccesses,
   UserDashboardStats 
 } from '@/lib/types/general/users';
+import { useMutationWithSuccessToast } from '../common/use-mutation-with-toast';
 
 // Query keys
 export const userKeys = {
@@ -54,20 +55,20 @@ export const useUserDashboard = () => {
 export const useCreateUser = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (data: UserCreate) => UsersService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
       queryClient.invalidateQueries({ queryKey: userKeys.rolesAndBranches() });
       queryClient.invalidateQueries({ queryKey: userKeys.dashboard() });
     },
-  });
+  }, "User created successfully");
 };
 
 export const useUpdateUser = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: UserUpdate }) => 
       UsersService.update(id, payload),
     onSuccess: (_, { id }) => {
@@ -76,26 +77,26 @@ export const useUpdateUser = () => {
       queryClient.invalidateQueries({ queryKey: userKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: userKeys.dashboard() });
     },
-  });
+  }, "User updated successfully");
 };
 
 export const useDeleteUser = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (id: number) => UsersService.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
       queryClient.invalidateQueries({ queryKey: userKeys.rolesAndBranches() });
       queryClient.invalidateQueries({ queryKey: userKeys.dashboard() });
     },
-  });
+  }, "User deleted successfully");
 };
 
 export const useCreateUserAccess = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: { user_id: number; branch_id: number; role_id: number; is_default?: boolean; access_notes?: string; is_active?: boolean }) => 
       UsersService.createAccess(payload),
     onSuccess: (_, payload) => {
@@ -104,13 +105,13 @@ export const useCreateUserAccess = () => {
       queryClient.invalidateQueries({ queryKey: userKeys.detail(payload.user_id) });
       queryClient.invalidateQueries({ queryKey: userKeys.dashboard() });
     },
-  });
+  }, "Access granted successfully");
 };
 
 export const useRevokeUserAccess = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ accessId, payload }: { accessId: number; payload: { user_id: number; access_notes?: string } }) => 
       UsersService.revokeAccess(accessId, payload),
     onSuccess: (_, { payload }) => {
@@ -119,5 +120,5 @@ export const useRevokeUserAccess = () => {
       queryClient.invalidateQueries({ queryKey: userKeys.detail(payload.user_id) });
       queryClient.invalidateQueries({ queryKey: userKeys.dashboard() });
     },
-  });
+  }, "Access revoked successfully");
 };

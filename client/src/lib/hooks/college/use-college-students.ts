@@ -8,6 +8,7 @@ import type {
   CollegeStudentsPaginatedResponse,
 } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 export function useCollegeStudentsList(params?: { page?: number; pageSize?: number }) {
   return useQuery({
@@ -26,34 +27,34 @@ export function useCollegeStudent(studentId: number | null | undefined) {
 
 export function useCreateCollegeStudent() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeStudentCreate) => CollegeStudentsService.create(payload) as Promise<CollegeStudentFullDetails>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.students.root() });
     },
-  });
+  }, "Student created successfully");
 }
 
 export function useUpdateCollegeStudent(studentId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeStudentUpdate) =>
       CollegeStudentsService.update(studentId, payload) as Promise<CollegeStudentFullDetails>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.students.detail(studentId) });
       qc.invalidateQueries({ queryKey: collegeKeys.students.root() });
     },
-  });
+  }, "Student updated successfully");
 }
 
 export function useDeleteCollegeStudent() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (studentId: number) => CollegeStudentsService.delete(studentId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.students.root() });
     },
-  });
+  }, "Student deleted successfully");
 }
 
 

@@ -1166,41 +1166,12 @@ const ReservationManagementComponent = () => {
                   await deleteReservation.mutateAsync(
                     reservationToDelete.reservation_id
                   );
-                  toast({
-                    title: "Reservation Deleted Successfully",
-                    description: `Reservation ${reservationToDelete.reservation_id} has been deleted successfully.`,
-                  });
-                  // Success - dialog will close automatically due to onSuccess in hook
+                  // Toast handled by mutation hook
                   setShowDeleteDialog(false);
                   setReservationToDelete(null);
                 } catch (e: any) {
                   console.error("Failed to delete reservation:", e);
-                  if (e?.response?.status === 409) {
-                    toast({
-                      title: "Cannot Delete Reservation",
-                      description:
-                        "This reservation has associated income records. Please remove the income records first or change the status to CANCELLED instead.",
-                      variant: "destructive",
-                    });
-                  } else if (e?.response?.status === 404) {
-                    toast({
-                      title: "Reservation Not Found",
-                      description:
-                        "The reservation may have already been deleted.",
-                      variant: "destructive",
-                    });
-                    setShowDeleteDialog(false);
-                    setReservationToDelete(null);
-                  } else {
-                    toast({
-                      title: "Deletion Failed",
-                      description:
-                        e?.response?.data?.detail ||
-                        e?.message ||
-                        "Failed to delete reservation",
-                      variant: "destructive",
-                    });
-                  }
+                  // Error toasts handled by mutation hook
                 }
               }}
               disabled={deleteReservation.isPending}

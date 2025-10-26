@@ -7,7 +7,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EnhancedDataTable } from '@/components/shared';
-import { useToast } from '@/hooks/use-toast';
 import { 
   createAvatarColumn,
   createTextColumn,
@@ -18,7 +17,6 @@ import { useAuthStore } from '@/store/authStore';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Badge } from '@/components/ui/badge';
 import type { CollegeStudentFullDetails, CollegeStudentRead } from '@/lib/types/college/students';
 
 const studentFormSchema = z.object({
@@ -44,7 +42,6 @@ type StudentFormData = z.infer<typeof studentFormSchema>;
 
 export const StudentsTab = () => {
   const { currentBranch } = useAuthStore();
-  const { toast } = useToast();
   const { data: studentsResp, isLoading, error } = useCollegeStudentsList({ page: 1, pageSize: 50 });
   const students: CollegeStudentRead[] = studentsResp?.data ?? [];
   const deleteStudentMutation = useDeleteCollegeStudent();
@@ -108,17 +105,9 @@ export const StudentsTab = () => {
   const handleDeleteStudent = async (studentId: number) => {
     try {
       await deleteStudentMutation.mutateAsync(studentId);
-      toast({
-        title: "Student Deleted Successfully",
-        description: "Student has been deleted successfully.",
-      });
+      // Toast handled by mutation hook
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred while deleting the student.';
-      toast({
-        title: "Deletion Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -126,27 +115,14 @@ export const StudentsTab = () => {
     try {
       if (selectedStudent) {
         await updateStudentMutation.mutateAsync(data as any);
-        toast({
-          title: "Student Updated Successfully",
-          description: `${data.student_name} has been updated successfully.`,
-        });
         setIsEditDialogOpen(false);
       } else {
         await createStudentMutation.mutateAsync(data as any);
-        toast({
-          title: "Student Created Successfully",
-          description: `${data.student_name} has been created successfully.`,
-        });
         setIsAddDialogOpen(false);
       }
       form.reset();
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred while saving the student.';
-      toast({
-        title: "Operation Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 

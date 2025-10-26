@@ -43,18 +43,11 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
 
     try {
       await bulkCreateMutation.mutateAsync({ class_id: classIdNum });
-      toast({
-        title: "Success",
-        description: "Transport fee balances created successfully for the selected class",
-      });
       refetch();
       setBulkCreateOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create transport fee balances",
-        variant: "destructive",
-      });
+      // Error toast handled by mutation hook
     }
   };
 

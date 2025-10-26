@@ -63,18 +63,11 @@ export function TuitionFeeBalancesPanel({ onViewStudent, onExportCSV }: { onView
         class_id: classIdNum,
         group_id: groupIdNum 
       });
-      toast({
-        title: "Success",
-        description: "Tuition fee balances created successfully for the selected class and group",
-      });
       refetch();
       setBulkCreateOpen(false);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create tuition fee balances",
-        variant: "destructive",
-      });
+      // Error toast handled by mutation hook
     }
   };
 

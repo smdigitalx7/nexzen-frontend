@@ -95,28 +95,15 @@ export const TeachersTab = () => {
 
   const handleDelete = async (teacherId: number, classId: number, subjectId: number, sectionId: number) => {
     try {
-      toast({
-        title: "Deleting...",
-        description: "Please wait while we delete the assignment",
-      });
-
       await deleteMutation.mutateAsync({
         teacherId,
         classId,
         subjectId,
         sectionId,
       });
-
-      toast({
-        title: "Success",
-        description: "Teacher assignment deleted successfully",
-      });
+      // Toast handled by mutation hook
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error?.response?.data?.detail || error?.message || "Failed to delete teacher assignment",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -131,11 +118,6 @@ export const TeachersTab = () => {
     }
 
     try {
-      toast({
-        title: "Creating...",
-        description: "Please wait while we create the assignment",
-      });
-
       await createMutation.mutateAsync({
         teacher_id: parseInt(selectedTeacherId),
         class_id: parseInt(selectedClassId),
@@ -147,16 +129,9 @@ export const TeachersTab = () => {
 
       resetForm();
       setIsAddOpen(false);
-      toast({
-        title: "Success",
-        description: "Teacher assignment created successfully",
-      });
+      // Toast handled by mutation hook
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error?.response?.data?.detail || "Failed to create teacher assignment",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -362,10 +337,6 @@ export const TeachersTab = () => {
           setIsAddOpen(open);
           if (!open) {
             resetForm();
-          toast({ 
-              title: "Cancelled",
-              description: "Assignment creation cancelled",
-          });
           }
         }}
         title="Assign Teacher to Subject"
@@ -374,10 +345,6 @@ export const TeachersTab = () => {
         onCancel={() => {
           setIsAddOpen(false);
           resetForm();
-          toast({
-            title: "Cancelled",
-            description: "Assignment creation cancelled",
-          });
         }}
         saveText="Assign"
         cancelText="Cancel"

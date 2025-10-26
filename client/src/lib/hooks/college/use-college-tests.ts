@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeTestsService } from "@/lib/services/college/tests.service";
 import type { CollegeTestCreate, CollegeTestRead, CollegeTestResponse, CollegeTestUpdate } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 export function useCollegeTests() {
   return useQuery({
@@ -35,31 +36,31 @@ export function useCollegeTest(testId: number | null | undefined) {
 
 export function useCreateCollegeTest() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeTestCreate) => CollegeTestsService.create(payload) as Promise<CollegeTestResponse>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });
     },
-  });
+  }, "Test created successfully");
 }
 
 export function useUpdateCollegeTest(testId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeTestUpdate) => CollegeTestsService.update(testId, payload) as Promise<CollegeTestResponse>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.tests.detail(testId) });
       qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });
     },
-  });
+  }, "Test updated successfully");
 }
 
 export function useDeleteCollegeTest() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (testId: number) => CollegeTestsService.delete(testId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });
     },
-  });
+  }, "Test deleted successfully");
 }

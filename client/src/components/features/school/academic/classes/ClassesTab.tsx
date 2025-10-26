@@ -185,21 +185,12 @@ export const ClassesTab = memo(({
         tuition_fee: newClass.tuition_fee,
       });
       
-      toast({
-        title: "Success",
-        description: "Class created successfully",
-      });
-      
       setNewClass(initialClassForm);
       setIsAddClassOpen(false);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create class",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
-  }, [newClass, validateClassForm, createClassMutation, toast]);
+  }, [newClass, validateClassForm, createClassMutation]);
 
   const handleUpdateClass = useCallback(async () => {
     if (!validateClassForm(editClass) || !selectedClass) return;
@@ -211,22 +202,13 @@ export const ClassesTab = memo(({
         tuition_fee: editClass.tuition_fee,
       });
       
-      toast({
-        title: "Success",
-        description: "Class updated successfully",
-      });
-      
       setEditClass(initialClassForm);
       setSelectedClass(null);
       setIsEditClassOpen(false);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update class",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
-  }, [editClass, selectedClass, validateClassForm, updateClassMutation, toast]);
+  }, [editClass, selectedClass, validateClassForm, updateClassMutation]);
 
   const handleDeleteClass = useCallback(async () => {
     if (!selectedClass) return;
@@ -284,19 +266,10 @@ export const ClassesTab = memo(({
         class_id: selectedClass.class_id,
         subject_id: subjectId,
       });
-      
-      toast({
-        title: "Success",
-        description: "Subject assigned to class successfully",
-      });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to assign subject to class",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
-  }, [selectedClass, createClassSubjectMutation, toast]);
+  }, [selectedClass, createClassSubjectMutation]);
 
   const handleRemoveSubject = useCallback(async (subjectId: number) => {
     if (!selectedClass) return;
@@ -306,19 +279,10 @@ export const ClassesTab = memo(({
         classId: selectedClass.class_id,
         subjectId: subjectId,
       });
-      
-      toast({
-        title: "Success",
-        description: "Subject removed from class successfully",
-      });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to remove subject from class",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
-  }, [selectedClass, deleteClassSubjectMutation, toast]);
+  }, [selectedClass, deleteClassSubjectMutation]);
 
   // Memoized columns definition
   const columns: ColumnDef<SchoolClassRead>[] = useMemo(() => [

@@ -7,7 +7,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EnhancedDataTable } from '@/components/shared';
-import { useToast } from '@/hooks/use-toast';
 import { 
   createAvatarColumn, 
   createTextColumn,
@@ -256,7 +255,6 @@ const StudentsTabComponent = () => {
 
   // Hooks
   const { currentBranch } = useAuthStore();
-  const { toast } = useToast();
   const { data: studentsResp, isLoading, error } = useSchoolStudentsList({ page: 1, page_size: 50 });
   const { data: viewStudentData, isLoading: isViewLoading } = useSchoolStudent(viewStudentId);
   const createStudentMutation = useCreateSchoolStudent();
@@ -309,29 +307,16 @@ const StudentsTabComponent = () => {
     try {
       if (selectedStudent) {
         await updateStudentMutation.mutateAsync(data as any);
-        toast({
-          title: "Student Updated Successfully",
-          description: `${data.student_name} has been updated successfully.`,
-        });
         setIsEditDialogOpen(false);
       } else {
         await createStudentMutation.mutateAsync(data as any);
-        toast({
-          title: "Student Created Successfully",
-          description: `${data.student_name} has been created successfully.`,
-        });
         setIsAddDialogOpen(false);
       }
       form.reset();
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred while saving the student.';
-      toast({
-        title: "Operation Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
-  }, [selectedStudent, updateStudentMutation, createStudentMutation, toast, form]);
+  }, [selectedStudent, updateStudentMutation, createStudentMutation, form]);
 
   // Memoized dialog close handlers
   const closeAddDialog = useCallback(() => {

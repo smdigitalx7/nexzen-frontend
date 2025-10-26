@@ -10,6 +10,7 @@ import type {
   CollegeUpdateSubject,
 } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 export function useCollegeSubjects(options?: { enabled?: boolean }) {
   return useQuery({
@@ -30,18 +31,18 @@ export function useCollegeSubjectsSlim() {
 
 export function useCreateCollegeSubject() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeCreateSubject) =>
       CollegeSubjectsService.create(payload) as Promise<CollegeSubjectResponse>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.subjects.root() });
     },
-  });
+  }, "Subject created successfully");
 }
 
 export function useUpdateCollegeSubject(subjectId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeUpdateSubject) =>
       CollegeSubjectsService.update(
         subjectId,
@@ -53,12 +54,12 @@ export function useUpdateCollegeSubject(subjectId: number) {
       });
       qc.invalidateQueries({ queryKey: collegeKeys.subjects.root() });
     },
-  });
+  }, "Subject updated successfully");
 }
 
 export function useAddSubjectToGroup(subjectId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeGroupSubjectCreate) =>
       CollegeSubjectsService.addToGroup(
         subjectId,
@@ -69,7 +70,7 @@ export function useAddSubjectToGroup(subjectId: number) {
         queryKey: [...collegeKeys.subjects.detail(subjectId), "groups"],
       });
     },
-  });
+  }, "Subject added to group successfully");
 }
 
 export function useUpdateSubjectGroupRelation(
@@ -77,7 +78,7 @@ export function useUpdateSubjectGroupRelation(
   groupId: number
 ) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeGroupSubjectUpdate) =>
       CollegeSubjectsService.updateGroupRelation(
         subjectId,
@@ -89,5 +90,5 @@ export function useUpdateSubjectGroupRelation(
         queryKey: [...collegeKeys.subjects.detail(subjectId), "groups"],
       });
     },
-  });
+  }, "Subject group relation updated successfully");
 }

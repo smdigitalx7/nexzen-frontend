@@ -10,6 +10,7 @@ import type {
   AdvanceDashboardStats,
   RecentAdvance
 } from '@/lib/types/general/advances';
+import { useMutationWithSuccessToast } from '../common/use-mutation-with-toast';
 
 // Query keys
 export const advanceKeys = {
@@ -64,19 +65,19 @@ export const useRecentAdvances = (limit: number = 5) => {
 export const useCreateAdvance = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (data: AdvanceCreate) => AdvancesService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: advanceKeys.lists() });
       queryClient.invalidateQueries({ queryKey: advanceKeys.dashboard() });
     },
-  });
+  }, "Advance created successfully");
 };
 
 export const useUpdateAdvance = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: AdvanceUpdate }) => 
       AdvancesService.update(id, payload),
     onSuccess: (_, { id }) => {
@@ -84,13 +85,13 @@ export const useUpdateAdvance = () => {
       queryClient.invalidateQueries({ queryKey: advanceKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: advanceKeys.dashboard() });
     },
-  });
+  }, "Advance updated successfully");
 };
 
 export const useUpdateAdvanceStatus = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: AdvanceStatusUpdate }) => 
       AdvancesService.updateStatus(id, payload),
     onSuccess: (_, { id }) => {
@@ -98,13 +99,13 @@ export const useUpdateAdvanceStatus = () => {
       queryClient.invalidateQueries({ queryKey: advanceKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: advanceKeys.dashboard() });
     },
-  });
+  }, "Advance status updated successfully");
 };
 
 export const useUpdateAdvanceAmountPaid = () => {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: AdvanceAmountPaidUpdate }) => 
       AdvancesService.updateAmountPaid(id, payload),
     onSuccess: (_, { id }) => {
@@ -112,5 +113,5 @@ export const useUpdateAdvanceAmountPaid = () => {
       queryClient.invalidateQueries({ queryKey: advanceKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: advanceKeys.dashboard() });
     },
-  });
+  }, "Advance payment updated successfully");
 };

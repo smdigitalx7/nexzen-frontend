@@ -7,7 +7,6 @@ import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/shared";
 import { ColumnDef } from "@tanstack/react-table";
 import { EnhancedDataTable } from "@/components/shared";
-import { useToast } from "@/hooks/use-toast";
 import {
   createTextColumn,
   createBadgeColumn
@@ -58,9 +57,6 @@ const BusRoutesTab = ({
   // Driver management mutations
   const assignDriverMutation = useAssignDriverToRoute();
   const removeDriverMutation = useRemoveDriverFromRoute();
-  
-  // Toast hook
-  const { toast } = useToast();
 
   const handleViewRoute = (route: any) => {
     setViewRouteId(route.id);
@@ -206,21 +202,8 @@ const BusRoutesTab = ({
   const handleRemoveDriver = () => {
     if (!viewRouteId) return;
     
-    removeDriverMutation.mutate(viewRouteId, {
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "Driver removed successfully",
-        });
-      },
-      onError: (error: any) => {
-        toast({
-          title: "Error",
-          description: error?.response?.data?.detail || "Failed to remove driver",
-          variant: "destructive",
-        });
-      },
-    });
+    removeDriverMutation.mutate(viewRouteId);
+    // Toast handled by mutation hook
   };
   
   const handleAssignDriverConfirm = (driverEmployeeId: number) => {
@@ -230,19 +213,9 @@ const BusRoutesTab = ({
       { id: assignDriverRouteId, driverEmployeeId },
       {
         onSuccess: () => {
-          toast({
-            title: "Success",
-            description: "Driver assigned successfully",
-          });
           setIsAssignDriverOpen(false);
           setAssignDriverRouteId(null);
-        },
-        onError: (error: any) => {
-          toast({
-            title: "Error",
-            description: error?.response?.data?.detail || "Failed to assign driver",
-            variant: "destructive",
-          });
+          // Toast handled by mutation hook
         },
       }
     );

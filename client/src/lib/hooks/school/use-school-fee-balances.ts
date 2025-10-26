@@ -1,8 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolTuitionFeeBalancesService } from "@/lib/services/school/tuition-fee-balances.service";
 import { SchoolTransportFeeBalancesService } from "@/lib/services/school/transport-fee-balances.service";
 import type { SchoolBookFeePaymentUpdate, SchoolTermPaymentUpdate, SchoolTransportBalanceBulkCreate, SchoolTransportBalanceBulkCreateResult, SchoolTransportFeeBalanceFullRead, SchoolTransportFeeBalanceListRead, SchoolTransportPaginatedResponse, SchoolTransportTermPaymentUpdate, SchoolTuitionBalanceBulkCreate, SchoolTuitionBalanceBulkCreateResult, SchoolTuitionFeeBalanceFullRead, SchoolTuitionFeeBalanceRead, SchoolTuitionPaginatedResponse } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 // Tuition
 export function useSchoolTuitionBalancesList(params?: { page?: number; page_size?: number; class_id?: number; section_id?: number }) {
@@ -60,65 +61,65 @@ export function useSchoolTransportBalanceByAdmission(admissionNo: string | null 
 
 export function useCreateSchoolTuitionBalance() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: any) => SchoolTuitionFeeBalancesService.create(payload) as Promise<SchoolTuitionFeeBalanceFullRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
     },
-  });
+  }, "Tuition balance created successfully");
 }
 
 export function useUpdateSchoolTuitionBalance(enrollmentId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: any) => SchoolTuitionFeeBalancesService.update(enrollmentId, payload) as Promise<SchoolTuitionFeeBalanceFullRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
       qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
     },
-  });
+  }, "Tuition balance updated successfully");
 }
 
 export function useDeleteSchoolTuitionBalance() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (enrollmentId: number) => SchoolTuitionFeeBalancesService.delete(enrollmentId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
     },
-  });
+  }, "Tuition balance deleted successfully");
 }
 
 export function useBulkCreateSchoolTuitionBalances() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolTuitionBalanceBulkCreate) => SchoolTuitionFeeBalancesService.bulkCreate(payload) as Promise<SchoolTuitionBalanceBulkCreateResult>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
     },
-  });
+  }, "Tuition balances created successfully");
 }
 
 export function useUpdateSchoolTuitionTermPayment(enrollmentId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolTermPaymentUpdate) => SchoolTuitionFeeBalancesService.updateTermPayment(enrollmentId, payload) as Promise<SchoolTuitionFeeBalanceFullRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
       qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
     },
-  });
+  }, "Tuition payment updated successfully");
 }
 
 export function useUpdateSchoolBookFeePayment(enrollmentId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolBookFeePaymentUpdate) => SchoolTuitionFeeBalancesService.updateBookPayment(enrollmentId, payload) as Promise<SchoolTuitionFeeBalanceFullRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
       qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
     },
-  });
+  }, "Book fee payment updated successfully");
 }
 
 // Transport
@@ -140,54 +141,54 @@ export function useSchoolTransportBalance(enrollmentId: number | null | undefine
 
 export function useCreateSchoolTransportBalance() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: any) => SchoolTransportFeeBalancesService.create(payload) as Promise<SchoolTransportFeeBalanceFullRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
     },
-  });
+  }, "Transport balance created successfully");
 }
 
 export function useUpdateSchoolTransportBalance(enrollmentId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: any) => SchoolTransportFeeBalancesService.update(enrollmentId, payload) as Promise<SchoolTransportFeeBalanceFullRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.transport.detail(enrollmentId) });
       qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
     },
-  });
+  }, "Transport balance updated successfully");
 }
 
 export function useDeleteSchoolTransportBalance() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (enrollmentId: number) => SchoolTransportFeeBalancesService.delete(enrollmentId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
     },
-  });
+  }, "Transport balance deleted successfully");
 }
 
 export function useBulkCreateSchoolTransportBalances() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolTransportBalanceBulkCreate) => SchoolTransportFeeBalancesService.bulkCreate(payload) as Promise<SchoolTransportBalanceBulkCreateResult>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
     },
-  });
+  }, "Transport balances created successfully");
 }
 
 export function useUpdateSchoolTransportTermPayment(enrollmentId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolTransportTermPaymentUpdate) => SchoolTransportFeeBalancesService.updateTermPayment(enrollmentId, payload) as Promise<SchoolTransportFeeBalanceFullRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.transport.detail(enrollmentId) });
       qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
     },
-  });
+  }, "Transport payment updated successfully");
 }
 
 

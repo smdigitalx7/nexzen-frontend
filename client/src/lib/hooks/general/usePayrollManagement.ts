@@ -17,6 +17,7 @@ import {
   PaymentMethodEnum,
 } from "@/lib/types/general/payrolls";
 import { formatCurrency } from "@/lib/utils";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 // Extended interface that includes employee information
 interface PayrollWithEmployee extends Omit<PayrollRead, "payroll_month"> {
@@ -74,19 +75,19 @@ export const usePayroll = (id: number) => {
 export const useCreatePayroll = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: PayrollCreate) => PayrollsService.create(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: payrollKeys.lists() });
       queryClient.invalidateQueries({ queryKey: payrollKeys.byBranch() });
     },
-  });
+  }, "Payroll created successfully");
 };
 
 export const useUpdatePayroll = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: PayrollUpdate }) =>
       PayrollsService.update(id, payload),
     onSuccess: (data, variables) => {
@@ -96,13 +97,13 @@ export const useUpdatePayroll = () => {
         queryKey: payrollKeys.detail(variables.id),
       });
     },
-  });
+  }, "Payroll updated successfully");
 };
 
 export const useUpdatePayrollStatus = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ id, new_status }: { id: number; new_status: string }) =>
       PayrollsService.updateStatus(id, new_status),
     onSuccess: (data, variables) => {
@@ -112,7 +113,7 @@ export const useUpdatePayrollStatus = () => {
         queryKey: payrollKeys.detail(variables.id),
       });
     },
-  });
+  }, "Payroll status updated successfully");
 };
 
 export const usePayrollDashboard = () => {

@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeIncomeService } from "@/lib/services/college/income.service";
 import type { CollegeIncomeCreate, CollegeIncomeCreateReservation, CollegeIncomeRead, CollegeIncomeUpdate, CollegeIncomeDashboardStats, CollegeRecentIncome, CollegeFinanceReport, CollegeFinanceReportParams, CollegeIncomeSummaryParams } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 export function useCollegeIncomeList(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string }) {
   return useQuery({
@@ -20,34 +21,34 @@ export function useCollegeIncome(incomeId: number | null | undefined) {
 
 export function useCreateCollegeIncomeByAdmission() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (input: { admission_no: string; payload: CollegeIncomeCreate }) =>
       CollegeIncomeService.createByAdmission(input.admission_no, input.payload) as Promise<CollegeIncomeRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.income.root() });
     },
-  });
+  }, "Income record created successfully");
 }
 
 export function useUpdateCollegeIncome(incomeId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeIncomeUpdate) => CollegeIncomeService.update(incomeId, payload) as Promise<CollegeIncomeRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.income.detail(incomeId) });
       qc.invalidateQueries({ queryKey: collegeKeys.income.root() });
     },
-  });
+  }, "Income record updated successfully");
 }
 
 export function useCreateCollegeIncomeByReservation() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeIncomeCreateReservation) => CollegeIncomeService.createByReservation(payload) as Promise<CollegeIncomeRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.income.root() });
     },
-  });
+  }, "Income record created successfully");
 }
 
 export function useCollegeIncomeDashboard() {

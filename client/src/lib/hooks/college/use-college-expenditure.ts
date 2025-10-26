@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeExpenditureService } from "@/lib/services/college/expenditure.service";
 import type { CollegeExpenditureCreate, CollegeExpenditureRead, CollegeExpenditureUpdate, CollegeExpenditureDashboardStats, CollegeRecentExpenditure } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 export function useCollegeExpenditureList(params?: { start_date?: string; end_date?: string }) {
   return useQuery({
@@ -20,33 +21,33 @@ export function useCollegeExpenditure(expenditureId: number | null | undefined) 
 
 export function useCreateCollegeExpenditure() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeExpenditureCreate) => CollegeExpenditureService.create(payload) as Promise<CollegeExpenditureRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
     },
-  });
+  }, "Expenditure record created successfully");
 }
 
 export function useUpdateCollegeExpenditure(expenditureId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeExpenditureUpdate) => CollegeExpenditureService.update(expenditureId, payload) as Promise<CollegeExpenditureRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.expenditure.detail(expenditureId) });
       qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
     },
-  });
+  }, "Expenditure record updated successfully");
 }
 
 export function useDeleteCollegeExpenditure() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (expenditureId: number) => CollegeExpenditureService.delete(expenditureId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
     },
-  });
+  }, "Expenditure record deleted successfully");
 }
 
 export function useCollegeExpenditureDashboard() {

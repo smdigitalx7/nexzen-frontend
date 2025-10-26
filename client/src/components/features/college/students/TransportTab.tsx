@@ -77,18 +77,11 @@ export const TransportTab = () => {
   const handleCreate = async () => {
     try {
       await createMutation.mutateAsync(formData);
-      toast({
-        title: "Success",
-        description: "Transport assignment created successfully.",
-      });
       setShowCreateDialog(false);
       resetForm();
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create transport assignment.",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -104,18 +97,11 @@ export const TransportTab = () => {
         is_active: formData.is_active,
       };
       await updateMutation.mutateAsync({ assignmentId: editingAssignmentId, payload: updateData });
-      toast({
-        title: "Success",
-        description: "Transport assignment updated successfully.",
-      });
       setShowEditDialog(false);
       resetForm();
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update transport assignment.",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 
@@ -123,18 +109,11 @@ export const TransportTab = () => {
     if (!selectedStudent) return;
     try {
       await deleteMutation.mutateAsync(selectedStudent.transport_assignment_id);
-      toast({
-        title: "Success",
-        description: "Transport assignment deleted successfully.",
-      });
       setShowDeleteDialog(false);
       setSelectedStudent(null);
+      // Toast handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete transport assignment.",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
   };
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, X, Download, Clock, TrendingUp, Eye, Plus } from "lucide-react";
+import { Check, X, Download, TrendingUp, Eye, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TabSwitcher } from "@/components/shared";
@@ -56,7 +56,7 @@ const AttendanceManagement = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           >
             <Card className="hover-elevate transition-all duration-200">
               <CardContent className="p-4">
@@ -91,21 +91,6 @@ const AttendanceManagement = () => {
                     </p>
                     <p className="text-xs text-red-600">
                       {attendanceStats.absentPercentage}%
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center">
-                    <Clock className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Late</p>
-                    <p className="text-2xl font-bold text-slate-900">
-                      {attendanceStats.lateCount}
                     </p>
                   </div>
                 </div>

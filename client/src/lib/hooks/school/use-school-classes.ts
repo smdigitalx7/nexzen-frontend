@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolClassesService } from "@/lib/services/school/classes.service";
 import type {
   SchoolClassCreate,
@@ -7,6 +7,7 @@ import type {
   SchoolClassWithSubjects,
 } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 export function useSchoolClasses(options?: { enabled?: boolean }) {
   return useQuery({
@@ -18,25 +19,25 @@ export function useSchoolClasses(options?: { enabled?: boolean }) {
 
 export function useCreateSchoolClass() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolClassCreate) =>
       SchoolClassesService.create(payload) as Promise<SchoolClassRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
     },
-  });
+  }, "Class created successfully");
 }
 
 export function useUpdateSchoolClass(classId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolClassUpdate) =>
       SchoolClassesService.update(classId, payload) as Promise<SchoolClassRead>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.classes.detail(classId) });
       qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
     },
-  });
+  }, "Class updated successfully");
 }
 
 export function useSchoolClassById(classId: number | null | undefined) {
@@ -63,7 +64,7 @@ export function useSchoolClassSubjects(classId: number | null | undefined) {
 
 export function useDeleteSchoolClassSubject() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({
       classId,
       subjectId,
@@ -74,5 +75,5 @@ export function useDeleteSchoolClassSubject() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
     },
-  });
+  }, "Subject removed from class successfully");
 }

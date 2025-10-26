@@ -75,21 +75,12 @@ const SubjectsTabComponent = ({
         subject_name: newSubject.subject_name.trim(),
       });
       
-      toast({
-        title: "Success",
-        description: "Subject created successfully",
-      });
-      
       setNewSubject(initialSubjectForm);
       setIsAddSubjectOpen(false);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create subject",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
-  }, [newSubject, validateSubjectForm, createSubjectMutation, toast]);
+  }, [newSubject, validateSubjectForm, createSubjectMutation]);
 
   const handleUpdateSubject = useCallback(async () => {
     if (!validateSubjectForm(editSubject) || !selectedSubject) return;
@@ -99,22 +90,13 @@ const SubjectsTabComponent = ({
         subject_name: editSubject.subject_name.trim(),
       });
       
-      toast({
-        title: "Success",
-        description: "Subject updated successfully",
-      });
-      
       setEditSubject(initialSubjectForm);
       setSelectedSubject(null);
       setIsEditSubjectOpen(false);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update subject",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
-  }, [editSubject, selectedSubject, validateSubjectForm, updateSubjectMutation, toast]);
+  }, [editSubject, selectedSubject, validateSubjectForm, updateSubjectMutation]);
 
   const handleDeleteSubject = useCallback(async () => {
     if (!selectedSubject) return;

@@ -8,6 +8,7 @@ import type {
   CollegeEnrollmentsPaginatedResponse,
 } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 export function useCollegeEnrollmentsList(params?: CollegeEnrollmentFilterParams) {
   return useQuery({
@@ -34,34 +35,34 @@ export function useCollegeEnrollmentByAdmission(admissionNo: string | null | und
 
 export function useCreateCollegeEnrollment() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeEnrollmentCreate) => CollegeEnrollmentsService.create(payload) as Promise<CollegeEnrollmentWithStudentDetails>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.enrollments.root() });
     },
-  });
+  }, "Enrollment created successfully");
 }
 
 export function useUpdateCollegeEnrollment(enrollmentId: number) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeEnrollmentUpdate) =>
       CollegeEnrollmentsService.update(enrollmentId, payload) as Promise<CollegeEnrollmentWithStudentDetails>,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.enrollments.detail(enrollmentId) });
       qc.invalidateQueries({ queryKey: collegeKeys.enrollments.root() });
     },
-  });
+  }, "Enrollment updated successfully");
 }
 
 export function useDeleteCollegeEnrollment() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (enrollmentId: number) => CollegeEnrollmentsService.delete(enrollmentId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.enrollments.root() });
     },
-  });
+  }, "Enrollment deleted successfully");
 }
 
 

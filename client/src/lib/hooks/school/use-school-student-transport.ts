@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { StudentTransportService } from "@/lib/services/school/student-transport.service";
 import type { SchoolStudentTransportAssignmentCreate, SchoolStudentTransportAssignmentUpdate, SchoolStudentTransportRouteWiseResponse, SchoolStudentTransportAssignmentRead } from "@/lib/types/school";
 import type { SchoolTransportDashboardStats } from "@/lib/types/school/student-transport-assignments";
+import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
 const keys = {
   root: ["school", "student-transport"] as const,
@@ -19,23 +20,23 @@ export function useSchoolStudentTransport(params: { class_id: number; section_id
 
 export function useCreateSchoolStudentTransport() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolStudentTransportAssignmentCreate) => StudentTransportService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.root });
     },
-  });
+  }, "Student transport assigned successfully");
 }
 
 export function useUpdateSchoolStudentTransport() {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: SchoolStudentTransportAssignmentUpdate }) => StudentTransportService.update(id, payload),
     onSuccess: (_data, { id }) => {
       qc.invalidateQueries({ queryKey: keys.root });
       qc.invalidateQueries({ queryKey: keys.detail(id) });
     },
-  });
+  }, "Student transport updated successfully");
 }
 
 export function useSchoolStudentTransportDashboard() {
