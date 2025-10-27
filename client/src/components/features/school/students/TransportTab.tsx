@@ -1,8 +1,14 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Eye } from 'lucide-react';
 import { EnhancedDataTable } from '@/components/shared';
 import { useSchoolStudentTransport } from '@/lib/hooks/school/use-school-student-transport';
+import { useSchoolClasses } from '@/lib/hooks/school/use-school-dropdowns';
+import { useSchoolSections } from '@/lib/hooks/school/use-school-dropdowns';
+import { useBusRoutes } from '@/lib/hooks/general/useTransport';
 import type { ColumnDef } from '@tanstack/react-table';
 
 const TransportTabComponent = () => {
@@ -12,6 +18,15 @@ const TransportTabComponent = () => {
     section_id: '', 
     bus_route_id: '' 
   });
+
+  // Fetch dropdown data
+  const { data: classesData } = useSchoolClasses();
+  const { data: sectionsData } = useSchoolSections(Number(query.class_id) || 0);
+  const { data: routesData } = useBusRoutes();
+  
+  const classes = classesData?.items || [];
+  const sections = sectionsData?.items || [];
+  const busRoutes = Array.isArray(routesData) ? routesData : [];
 
   // Memoized API parameters
   const apiParams = useMemo(() => {
@@ -34,6 +49,19 @@ const TransportTabComponent = () => {
   // Memoized handlers
   const handleQueryChange = useCallback((field: string, value: any) => {
     setQuery(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleClear = useCallback(() => {
+    setQuery({ class_id: '', section_id: '', bus_route_id: '' });
+  }, []);
+
+  // Handle class change - reset section when class changes
+  const handleClassChange = useCallback((value: string) => {
+    setQuery(prev => ({ 
+      ...prev, 
+      class_id: value ? Number(value) : '', 
+      section_id: '' // Reset section when class changes
+    }));
   }, []);
 
   // Flatten transport data for table
@@ -109,33 +137,74 @@ const TransportTabComponent = () => {
     <div className="space-y-4">
       {/* Search Form */}
       <div className="border rounded-lg p-4 bg-gray-50">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div>
-            <label className="text-sm font-medium text-slate-700">Class ID (optional)</label>
-            <Input 
-              type="number" 
-              placeholder="Enter class ID" 
-              value={query.class_id} 
-              onChange={(e) => handleQueryChange('class_id', e.target.value === '' ? '' : Number(e.target.value))} 
-            />
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Class</label>
+              <Select
+                value={query.class_id ? String(query.class_id) : ''}
+                onValueChange={handleClassChange}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((cls: any) => (
+                    <SelectItem key={cls.class_id} value={String(cls.class_id)}>
+                      {cls.class_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Section</label>
+              <Select
+                value={query.section_id ? String(query.section_id) : ''}
+                onValueChange={(value) => handleQueryChange('section_id', value ? Number(value) : '')}
+                disabled={!query.class_id}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={query.class_id ? "Select section (optional)" : "Select class first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {sections.map((sec: any) => (
+                    <SelectItem key={sec.section_id} value={String(sec.section_id)}>
+                      {sec.section_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Bus Route</label>
+              <Select
+                value={query.bus_route_id ? String(query.bus_route_id) : ''}
+                onValueChange={(value) => handleQueryChange('bus_route_id', value ? Number(value) : '')}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select bus route (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {busRoutes.map((route: any) => (
+                    <SelectItem key={route.bus_route_id} value={String(route.bus_route_id)}>
+                      {route.route_name} {route.route_no ? `(${route.route_no})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div>
-            <label className="text-sm font-medium text-slate-700">Section ID (optional)</label>
-            <Input 
-              type="number" 
-              placeholder="Enter section ID" 
-              value={query.section_id ?? ''} 
-              onChange={(e) => handleQueryChange('section_id', e.target.value === '' ? '' : Number(e.target.value))} 
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-slate-700">Bus Route ID (optional)</label>
-            <Input 
-              type="number" 
-              placeholder="Enter bus route ID" 
-              value={query.bus_route_id ?? ''} 
-              onChange={(e) => handleQueryChange('bus_route_id', e.target.value === '' ? '' : Number(e.target.value))} 
-            />
+
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleClear}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              Clear
+            </Button>
           </div>
         </div>
       </div>

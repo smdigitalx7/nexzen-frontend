@@ -1,74 +1,135 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Eye } from 'lucide-react';
 import { useCollegeEnrollmentsList } from '@/lib/hooks/college/use-college-enrollments';
+import { useCollegeClasses, useCollegeGroups, useCollegeCourses } from '@/lib/hooks/college/use-college-dropdowns';
 import type { CollegeEnrollmentWithClassGroupCourseDetails, CollegeEnrollmentRead } from '@/lib/types/college/enrollments';
 
 export const EnrollmentsTab = () => {
   const [query, setQuery] = useState<{ class_id: number | ''; group_id?: number | ''; course_id?: number | '' }>({ class_id: '', group_id: '', course_id: '' });
-  const result = useCollegeEnrollmentsList(
-    query.class_id
+  
+  // Fetch dropdown data
+  const { data: classesData } = useCollegeClasses();
+  const { data: groupsData } = useCollegeGroups(Number(query.class_id) || 0);
+  const { data: coursesData } = useCollegeCourses(Number(query.group_id) || 0);
+  
+  const classes = classesData?.items || [];
+  const groups = groupsData?.items || [];
+  const courses = coursesData?.items || [];
+  
+  const apiParams = useMemo(() => {
+    return query.class_id
       ? {
           class_id: Number(query.class_id),
           group_id: query.group_id ? Number(query.group_id) : undefined,
           course_id: query.course_id ? Number(query.course_id) : undefined,
         }
-      : undefined
-  );
+      : undefined;
+  }, [query.class_id, query.group_id, query.course_id]);
+  
+  const result = useCollegeEnrollmentsList(apiParams);
+
+  // Handle class change - reset group and course when class changes
+  const handleClassChange = useCallback((value: string) => {
+    setQuery(prev => ({ 
+      ...prev, 
+      class_id: value ? Number(value) : '', 
+      group_id: '', // Reset group when class changes
+      course_id: '' // Reset course when class changes
+    }));
+  }, []);
+
+  // Handle group change - reset course when group changes
+  const handleGroupChange = useCallback((value: string) => {
+    setQuery(prev => ({ 
+      ...prev, 
+      group_id: value ? Number(value) : '', 
+      course_id: '' // Reset course when group changes
+    }));
+  }, []);
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div>
-          <label className="text-sm font-medium text-slate-700">Class ID</label>
-          <Input
-            type="number"
-            placeholder="Enter class ID"
-            value={query.class_id}
-            onChange={(e) => setQuery((q) => ({ ...q, class_id: e.target.value === '' ? '' : Number(e.target.value) }))}
-          />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-slate-700">Group ID (optional)</label>
-          <Input
-            type="number"
-            placeholder="Enter group ID"
-            value={query.group_id ?? ''}
-            onChange={(e) => setQuery((q) => ({ ...q, group_id: e.target.value === '' ? '' : Number(e.target.value) }))}
-          />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-slate-700">Course ID (optional)</label>
-          <Input
-            type="number"
-            placeholder="Enter course ID"
-            value={query.course_id ?? ''}
-            onChange={(e) => setQuery((q) => ({ ...q, course_id: e.target.value === '' ? '' : Number(e.target.value) }))}
-          />
-        </div>
-      </div>
+      {/* Filters */}
+      <div className="border rounded-lg p-4 bg-gray-50">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Class</label>
+              <Select
+                value={query.class_id ? String(query.class_id) : ''}
+                onValueChange={handleClassChange}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((cls: any) => (
+                    <SelectItem key={cls.class_id} value={String(cls.class_id)}>
+                      {cls.class_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Group</label>
+              <Select
+                value={query.group_id ? String(query.group_id) : ''}
+                onValueChange={handleGroupChange}
+                disabled={!query.class_id}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={query.class_id ? "Select group (optional)" : "Select class first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {groups.map((grp: any) => (
+                    <SelectItem key={grp.group_id} value={String(grp.group_id)}>
+                      {grp.group_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Course</label>
+              <Select
+                value={query.course_id ? String(query.course_id) : ''}
+                onValueChange={(value) => setQuery(prev => ({ ...prev, course_id: value ? Number(value) : '' }))}
+                disabled={!query.group_id}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={query.group_id ? "Select course (optional)" : "Select group first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses.map((crs: any) => (
+                    <SelectItem key={crs.course_id} value={String(crs.course_id)}>
+                      {crs.course_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-      <div className="flex gap-2">
-        <Button 
-          onClick={() => {}} 
-          disabled={!query.class_id}
-          className="flex items-center gap-2"
-        >
-          <Eye className="w-4 h-4" />
-          Search Enrollments
-        </Button>
-        <Button 
-          variant="outline"
-          onClick={() => setQuery({ class_id: '', group_id: '', course_id: '' })}
-        >
-          Clear
-        </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => setQuery({ class_id: '', group_id: '', course_id: '' })}
+              className="flex items-center gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              Clear
+            </Button>
+          </div>
+        </div>
       </div>
 
       {query.class_id === '' ? (
-        <div className="text-sm text-slate-600">Enter a class ID to load enrollments.</div>
+        <div className="text-sm text-slate-600">Select a class to load enrollments.</div>
       ) : result.isLoading ? (
         <div className="text-sm text-slate-600">Loading enrollments...</div>
       ) : result.isError ? (

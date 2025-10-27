@@ -7,6 +7,17 @@ export interface SchoolTeacherClassSubjectCreate {
   is_active?: boolean;
 }
 
+export interface ClassTeacherCreate {
+  teacher_id: number;
+  class_id: number;
+  section_id?: number;
+}
+
+export interface ClassTeacherDelete {
+  class_id: number;
+  section_id?: number;
+}
+
 export interface SchoolTeacherClassSubjectRead {
   id: number;
   teacher_id: number;

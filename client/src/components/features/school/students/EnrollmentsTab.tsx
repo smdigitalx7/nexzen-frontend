@@ -2,8 +2,11 @@ import { useState, useMemo, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EnhancedDataTable } from '@/components/shared';
 import { useSchoolEnrollmentsList } from '@/lib/hooks/school/use-school-enrollments';
+import { useSchoolClasses } from '@/lib/hooks/school/use-school-dropdowns';
+import { useSchoolSections } from '@/lib/hooks/school/use-school-dropdowns';
 import type { SchoolEnrollmentRead } from '@/lib/types/school/enrollments';
 import type { ColumnDef } from '@tanstack/react-table';
 
@@ -14,6 +17,13 @@ const EnrollmentsTabComponent = () => {
     section_id: '', 
     admission_no: '' 
   });
+
+  // Fetch dropdown data
+  const { data: classesData } = useSchoolClasses();
+  const { data: sectionsData } = useSchoolSections(Number(query.class_id) || 0);
+  
+  const classes = classesData?.items || [];
+  const sections = sectionsData?.items || [];
 
   // Memoized API parameters
   const apiParams = useMemo(() => {
@@ -40,6 +50,15 @@ const EnrollmentsTabComponent = () => {
     setQuery({ class_id: '', section_id: '', admission_no: '' });
   }, []);
 
+  // Handle class change - reset section when class changes
+  const handleClassChange = useCallback((value: string) => {
+    setQuery(prev => ({ 
+      ...prev, 
+      class_id: value ? Number(value) : '', 
+      section_id: '' // Reset section when class changes
+    }));
+  }, []);
+
   // Flatten enrollments data for table
   const flatData = useMemo(() => {
     if (!result.data?.enrollments) return [];
@@ -57,11 +76,11 @@ const EnrollmentsTabComponent = () => {
 
   // Define columns
   const columns: ColumnDef<SchoolEnrollmentRead>[] = useMemo(() => [
-    {
-      accessorKey: 'enrollment_id',
-      header: 'Enrollment ID',
-      cell: ({ row }) => <span className="font-mono text-sm">{row.original.enrollment_id}</span>,
-    },
+    // {
+    //   accessorKey: 'enrollment_id',
+    //   header: 'Enrollment ID',
+    //   cell: ({ row }) => <span className="font-mono text-sm">{row.original.enrollment_id}</span>,
+    // },
     {
       accessorKey: 'admission_no',
       header: 'Admission No',
@@ -96,27 +115,46 @@ const EnrollmentsTabComponent = () => {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="text-sm font-medium text-slate-700">Class ID (optional)</label>
-              <Input
-                type="number"
-                placeholder="Enter class ID"
-                value={query.class_id}
-                onChange={(e) => handleQueryChange('class_id', e.target.value === '' ? '' : Number(e.target.value))}
-              />
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Class</label>
+              <Select
+                value={query.class_id ? String(query.class_id) : ''}
+                onValueChange={handleClassChange}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((cls: any) => (
+                    <SelectItem key={cls.class_id} value={String(cls.class_id)}>
+                      {cls.class_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700">Section ID (optional)</label>
-              <Input
-                type="number"
-                placeholder="Enter section ID"
-                value={query.section_id ?? ''}
-                onChange={(e) => handleQueryChange('section_id', e.target.value === '' ? '' : Number(e.target.value))}
-              />
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Section</label>
+              <Select
+                value={query.section_id ? String(query.section_id) : ''}
+                onValueChange={(value) => handleQueryChange('section_id', value ? Number(value) : '')}
+                disabled={!query.class_id}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={query.class_id ? "Select section (optional)" : "Select class first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {sections.map((sec: any) => (
+                    <SelectItem key={sec.section_id} value={String(sec.section_id)}>
+                      {sec.section_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700">Admission No (optional)</label>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Admission No (optional)</label>
               <Input
-                placeholder="Admission no"
+                placeholder="Enter admission number"
                 value={query.admission_no ?? ''}
                 onChange={(e) => handleQueryChange('admission_no', e.target.value)}
               />
