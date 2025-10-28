@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { CreditCard, DollarSign } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import type { TabItem } from "@/components/shared/TabSwitcher";
@@ -11,8 +11,18 @@ import { CollegeTuitionFeeBalanceStatsCards } from "../tuition-fee-balances/Coll
 import { useAuthStore } from "@/store";
 import { Badge } from "@/components/ui/badge";
 
+interface StudentFeeDetails {
+  student: any;
+  tuitionBalance: any;
+  transportBalance?: any;
+}
+
 export const FeesManagement = () => {
   const { currentBranch } = useAuthStore();
+  
+  // State for collect fee search
+  const [searchResults, setSearchResults] = useState<StudentFeeDetails[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   // Dashboard stats hooks
   const { data: tuitionDashboardStats, isLoading: tuitionDashboardLoading } = useCollegeTuitionFeeBalancesDashboard();
   
@@ -92,7 +102,14 @@ export const FeesManagement = () => {
             value: "collect",
             label: "Collect Fees",
             icon: CreditCard,
-            content: <CollectFee />,
+            content: (
+              <CollectFee 
+                searchResults={searchResults}
+                setSearchResults={setSearchResults}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+              />
+            ),
           },
           {
             value: "tuition-balances",

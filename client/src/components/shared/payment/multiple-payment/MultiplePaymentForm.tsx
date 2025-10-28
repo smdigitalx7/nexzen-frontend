@@ -194,7 +194,7 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
       }
       
       // Generate receipt blob URL
-      const blobUrl = await handleRegenerateReceipt(incomeId);
+      const blobUrl = await handleRegenerateReceipt(incomeId, config.institutionType);
       
       // Validate blob URL
       if (!blobUrl || typeof blobUrl !== 'string') {

@@ -16,7 +16,7 @@ export const CollegeStudentsService = {
   },
 
   getByAdmission(admission_no: string) {
-    return Api.get<CollegeStudentFullDetails>(`/college/students/admission-no/${admission_no}`);
+    return Api.get<CollegeStudentFullDetails>(`/college/students/by-admission/${admission_no}`);
   },
 
   create(payload: CollegeStudentCreate) {

@@ -34,10 +34,8 @@ import { CollegeStudentsService } from "@/lib/services/college/students.service"
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { ReceiptPreviewModal } from "@/components/shared";
-import {
-  handleRegenerateReceipt,
-  handlePayByAdmissionWithIncomeId,
-} from "@/lib/api";
+import { handleRegenerateReceipt } from "@/lib/api";
+import { handleCollegePayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/lib/api-college";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 
 // Use the actual API types instead of custom interface
@@ -313,7 +311,7 @@ const ConfirmedReservationsTab = () => {
           payment_method: "CASH",
         }],
         remarks: "Admission fee payment",
-      }, 'college');
+      });
 
       if (result.blobUrl) {
         setReceiptBlobUrl(result.blobUrl);

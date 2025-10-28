@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { handlePayByReservation } from "@/lib/api";
+import { handlePayByReservation } from "@/lib/api-school";
 import type {
   SchoolIncomeCreateReservation,
   SchoolIncomeRead,

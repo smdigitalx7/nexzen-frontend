@@ -1,10 +1,15 @@
 import { Api } from "@/lib/api";
-import { CollegeTeacherCourseSubjectCreate, CollegeTeacherCourseSubjectRead, CollegeTeacherCourseSubjectUpdate } from "@/lib/types/college";
+import { CollegeTeacherCourseSubjectCreate, CollegeTeacherCourseSubjectRead, CollegeTeacherCourseSubjectUpdate, CollegeTeacherCourseSubjectGroupedRead } from "@/lib/types/college";
+
+export interface CollegeTeacherCourseSubjectListParams {
+  group_id?: number | null;
+  course_id?: number | null;
+}
 
 export const CollegeTeacherCourseSubjectsService = {
   // GET /api/v1/college/teacher-course-subjects
-  list() {
-    return Api.get<CollegeTeacherCourseSubjectRead[]>(`/college/teacher-course-subjects`);
+  list(params?: CollegeTeacherCourseSubjectListParams) {
+    return Api.get<CollegeTeacherCourseSubjectGroupedRead[]>(`/college/teacher-course-subjects`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
 
   // POST /api/v1/college/teacher-course-subjects

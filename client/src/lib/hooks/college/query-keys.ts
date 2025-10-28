@@ -102,7 +102,7 @@ export const collegeKeys = {
   },
   teacherCourseSubjects: {
     root: () => [...collegeKeys.root, "teacher-course-subjects"] as const,
-    list: () => [...collegeKeys.teacherCourseSubjects.root(), "list"] as const,
+    list: (params?: { group_id?: number | null; course_id?: number | null }) => [...collegeKeys.teacherCourseSubjects.root(), "list", params ?? {}] as const,
   },
 };
 

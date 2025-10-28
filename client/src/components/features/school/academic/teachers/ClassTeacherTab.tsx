@@ -1,23 +1,28 @@
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
+import React, { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Plus } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { FormDialog } from "@/components/shared";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ColumnDef } from "@tanstack/react-table";
+import { EnhancedDataTable } from "@/components/shared";
+import { createTextColumn } from "@/lib/utils/columnFactories";
 import { useClassTeachers, useCreateClassTeacher, useDeleteClassTeacher } from "@/lib/hooks/school/use-teacher-class-subjects";
 import { useEmployeesByBranch } from "@/lib/hooks/general/useEmployees";
 import { useSchoolClasses } from "@/lib/hooks/school/use-school-classes";
 import { useSchoolSectionsByClass } from "@/lib/hooks/school/use-school-sections";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
+interface ClassTeacherData {
+  teacher_id: number;
+  teacher_name: string;
+  class_id: number;
+  class_name: string;
+  section_id?: number;
+  section_name?: string;
+  subject_id?: number;
+  created_at?: string;
+}
 
 export const ClassTeacherTab = () => {
   const { data: classTeachers = [], isLoading: assignmentsLoading } = useClassTeachers();
@@ -70,7 +75,7 @@ export const ClassTeacherTab = () => {
     }
   };
 
-  const handleDelete = async (ct: any) => {
+  const handleDelete = async (ct: ClassTeacherData) => {
     try {
       await deleteClassTeacherMutation.mutateAsync({
         class_id: ct.class_id,
@@ -81,79 +86,57 @@ export const ClassTeacherTab = () => {
     }
   };
 
+  // Memoized columns definition
+  const columns: ColumnDef<ClassTeacherData>[] = useMemo(
+    () => [
+      {
+        id: "teacher_name",
+        header: "Teacher",
+        cell: ({ row }) => (
+          <div className="font-medium text-base">{row.original.teacher_name}</div>
+        ),
+      },
+      {
+        id: "class_name",
+        header: "Class",
+        cell: ({ row }) => (
+          <span className="text-green-700 font-semibold">{row.original.class_name}</span>
+        ),
+      },
+      createTextColumn<ClassTeacherData>("section_name", { 
+        header: "Section",
+      }),
+    ],
+    []
+  );
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold text-green-700">Class Teacher Assignments</h3>
-        </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="outline" className="text-sm bg-green-50 text-green-700 border-green-200">
-            {classTeachers.length} {classTeachers.length === 1 ? 'Class Teacher' : 'Class Teachers'}
-          </Badge>
-          <Button
-            onClick={handleAddClick}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Assign Subject
-          </Button>
-        </div>
-      </div>
-      <div className="border-t pt-4">
-        {assignmentsLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-              <p className="text-sm text-muted-foreground">Loading class teachers...</p>
-            </div>
-          </div>
-        ) : classTeachers.length === 0 ? (
-          <div className="text-center py-12 border rounded-lg bg-muted/30">
-            <p className="text-muted-foreground">No class teacher assignments found</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="font-medium">Teacher</TableHead>
-                  <TableHead className="font-medium">Class</TableHead>
-                  <TableHead className="font-medium">Section</TableHead>
-                  <TableHead className="w-[100px] text-center font-medium">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {classTeachers.map((ct: any) => (
-                  <TableRow key={`${ct.teacher_id}-${ct.class_id}-${ct.section_id}`} className="hover:bg-muted/30">
-                    <TableCell className="font-medium">
-                      <span className="font-semibold">{ct.teacher_name}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-green-700">{ct.class_name}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span>{ct.section_name}</span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={() => handleDelete(ct)}
-                        title={`Remove class teacher for ${ct.class_name}${ct.section_name ? ` - ${ct.section_name}` : ''}`}
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Delete
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
+    <React.Fragment>
+      <EnhancedDataTable
+        data={classTeachers as ClassTeacherData[]}
+        columns={columns}
+        title="Class Teacher Assignments"
+        searchKey="teacher_name"
+        searchPlaceholder="Search by teacher name..."
+        loading={assignmentsLoading}
+        exportable={true}
+        onAdd={handleAddClick}
+        addButtonText="Assign Class Teacher"
+        actionButtons={[
+          {
+            id: "delete",
+            label: "Delete",
+            icon: Trash2,
+            variant: "destructive" as const,
+            size: "sm" as const,
+            onClick: (row) => handleDelete(row as ClassTeacherData),
+            className: "text-red-600 hover:text-red-700 hover:bg-red-50",
+          },
+        ]}
+        actionColumnHeader="Actions"
+        showActions={true}
+        showActionLabels={true}
+      />
 
       <FormDialog
         open={isAddOpen}
@@ -249,7 +232,7 @@ export const ClassTeacherTab = () => {
           </div>
         </div>
       </FormDialog>
-    </div>
+    </React.Fragment>
   );
 };
 

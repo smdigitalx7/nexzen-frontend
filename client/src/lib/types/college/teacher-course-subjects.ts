@@ -30,4 +30,20 @@ export interface CollegeTeacherCourseSubjectListResponse {
   current_page: number;
 }
 
+// Response from GET /college/teacher-course-subjects with grouped data
+export interface CollegeTeacherCourseSubjectTeacherInfo {
+  teacher_id: number;
+  teacher_name: string;
+  subject_id: number;
+  subject_name: string;
+}
+
+export interface CollegeTeacherCourseSubjectGroupedRead {
+  course_id: number;
+  course_name: string;
+  group_id: number;
+  group_name: string;
+  teachers: CollegeTeacherCourseSubjectTeacherInfo[];
+}
+
 

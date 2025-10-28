@@ -448,7 +448,7 @@ const ReservationsTableComponent = ({
         "🔄 Starting receipt regeneration for income ID:",
         reservation.income_id
       );
-      const blobUrl = await regenerateReceiptAPI(reservation.income_id);
+      const blobUrl = await regenerateReceiptAPI(reservation.income_id, 'school');
       console.log("✅ Receipt blob URL received:", blobUrl);
 
       setReceiptBlobUrl(blobUrl);

@@ -1,9 +1,6 @@
 import { Api } from "@/lib/api";
-import {
-  handlePayAndPrint,
-  handleRegenerateReceipt,
-  handleAdmissionPayment,
-} from "@/lib/api";
+import { handleRegenerateReceipt } from "@/lib/api";
+import { handleAdmissionPayment } from "@/lib/api-school";
 import type {
   SchoolReservationListResponse,
   SchoolReservationRead,

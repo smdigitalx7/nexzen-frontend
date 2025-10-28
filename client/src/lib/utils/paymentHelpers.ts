@@ -5,12 +5,12 @@
  * with automatic receipt printing functionality using modal display.
  */
 
+import { handleRegenerateReceipt } from "@/lib/api";
 import {
   handlePayAndPrint,
-  handleRegenerateReceipt,
   handlePayByReservation,
   handlePayByAdmission,
-} from "@/lib/api";
+} from "@/lib/api-school";
 import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
 
 /**

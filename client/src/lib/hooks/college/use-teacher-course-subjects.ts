@@ -1,13 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CollegeTeacherCourseSubjectsService } from "@/lib/services/college/teacher-course-subjects.service";
-import type { CollegeTeacherCourseSubjectCreate, CollegeTeacherCourseSubjectRead } from "@/lib/types/college/index.ts";
+import { CollegeTeacherCourseSubjectsService, type CollegeTeacherCourseSubjectListParams } from "@/lib/services/college/teacher-course-subjects.service";
+import type { CollegeTeacherCourseSubjectCreate, CollegeTeacherCourseSubjectRead, CollegeTeacherCourseSubjectGroupedRead } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
-export function useTeacherCourseSubjectsList() {
+export function useTeacherCourseSubjectsList(params?: CollegeTeacherCourseSubjectListParams) {
   return useQuery({
-    queryKey: collegeKeys.teacherCourseSubjects.list(),
-    queryFn: () => CollegeTeacherCourseSubjectsService.list() as Promise<CollegeTeacherCourseSubjectRead[]>,
+    queryKey: collegeKeys.teacherCourseSubjects.list(params),
+    queryFn: () => CollegeTeacherCourseSubjectsService.list(params) as Promise<CollegeTeacherCourseSubjectGroupedRead[]>,
   });
 }
 
@@ -29,4 +29,15 @@ export function useDeleteTeacherCourseSubject() {
       qc.invalidateQueries({ queryKey: collegeKeys.teacherCourseSubjects.root() });
     },
   }, "Teacher assignments removed successfully");
+}
+
+export function useDeleteTeacherCourseSubjectRelation() {
+  const qc = useQueryClient();
+  return useMutationWithSuccessToast({
+    mutationFn: ({ teacherId, courseId, subjectId }: { teacherId: number; courseId: number; subjectId: number }) => 
+      CollegeTeacherCourseSubjectsService.deleteRelation(teacherId, courseId, subjectId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: collegeKeys.teacherCourseSubjects.root() });
+    },
+  }, "Teacher assignment removed successfully");
 }

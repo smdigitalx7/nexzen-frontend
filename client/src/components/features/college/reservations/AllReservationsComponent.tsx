@@ -2,7 +2,6 @@ import React, { useState, useMemo, useCallback } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -16,14 +15,13 @@ import {
   Trash2,
   DollarSign,
   Download,
-  MoreHorizontal,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { CollegeReservationsService } from "@/lib/services/college/reservations.service";
 import { CollegeIncomeService } from "@/lib/services/college/income.service";
 import { ReceiptPreviewModal } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { ReservationStatusEnum } from "@/lib/types/college/reservations";
+import { handleRegenerateReceipt } from "@/lib/api";
 
 // Define the reservation type for this component
 export type ReservationForAllReservations = {

@@ -9,7 +9,7 @@ import {
   CollegeReservationView,
   ReservationStatusEnum,
 } from "@/lib/types/college";
-import { handlePayAndPrint, handleAdmissionPayment } from "@/lib/api";
+import { handleCollegePayByAdmissionWithIncomeId as handleAdmissionPayment } from "@/lib/api-college";
 
 export interface CollegeReservationsListParams {
   group_id?: number;

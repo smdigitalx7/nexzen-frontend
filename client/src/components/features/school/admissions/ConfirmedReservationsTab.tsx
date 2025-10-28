@@ -32,10 +32,8 @@ import { SchoolReservationsService } from "@/lib/services/school/reservations.se
 import { SchoolStudentsService } from "@/lib/services/school/students.service";
 import { toast } from "@/hooks/use-toast";
 import { ReceiptPreviewModal } from "@/components/shared";
-import {
-  handleRegenerateReceipt,
-  handlePayByAdmissionWithIncomeId,
-} from "@/lib/api";
+import { handleRegenerateReceipt } from "@/lib/api";
+import { handleSchoolPayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/lib/api-school";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { SchoolReservationListItem } from "@/lib/types/school/reservations";
 import { useQueryClient } from "@tanstack/react-query";
@@ -879,8 +877,7 @@ const ConfirmedReservationsTabComponent = () => {
             },
           ],
           remarks: "Admission fee payment",
-        },
-        'school'
+        }
       );
 
       const { blobUrl } = paymentResponse;

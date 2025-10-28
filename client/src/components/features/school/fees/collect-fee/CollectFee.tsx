@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { CollectFeeSearch } from "./CollectFeeSearch";
 import { SchoolMultiplePaymentForm } from "../multiple-payment/SchoolMultiplePaymentForm";
 import type { StudentInfo, FeeBalance, MultiplePaymentData } from "@/components/shared/payment/types/PaymentTypes";
-import { handlePayByAdmissionWithIncomeId } from "@/lib/api";
+import { handleSchoolPayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/lib/api-school";
 import { useToast } from "@/hooks/use-toast";
 
 interface StudentFeeDetails {
@@ -58,7 +58,7 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
       };
 
       // Use the specialized API function that handles income_id extraction and receipt generation
-      const result = await handlePayByAdmissionWithIncomeId(paymentData.admissionNo, apiPayload, 'school');
+      const result = await handlePayByAdmissionWithIncomeId(paymentData.admissionNo, apiPayload);
       
       // Handle successful payment
       console.log('Multiple payment completed successfully:', result);
