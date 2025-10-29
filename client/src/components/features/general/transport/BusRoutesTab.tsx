@@ -85,7 +85,7 @@ const BusRoutesTab = ({
           </div>
           <div>
             <div className="font-medium">{row.original.route_name}</div>
-            <div className="text-sm text-muted-foreground">{row.original.route_number}</div>
+            <div className="text-sm text-muted-foreground">{row.original.route_number || row.original.route_no || '-'}</div>
           </div>
         </div>
       ),
@@ -94,7 +94,17 @@ const BusRoutesTab = ({
       id: 'route_number',
       accessorKey: 'route_number',
       header: 'Route Number',
-      cell: ({ row }) => row.original.route_number,
+      cell: ({ row }) => row.original.route_number || row.original.route_no || '-',
+    },
+    {
+      id: 'via',
+      accessorKey: 'via',
+      header: 'Via',
+      cell: ({ row }) => (
+        <div className="max-w-[200px]">
+          <span className="text-sm">{row.original.via || '-'}</span>
+        </div>
+      ),
     },
     {
       id: 'vehicle_number',
@@ -121,11 +131,11 @@ const BusRoutesTab = ({
         <div className="space-y-1">
           <div className="flex items-center gap-1 text-sm">
             <MapPin className="h-3 w-3 text-muted-foreground" />
-            <span>{row.original.distance_km} km</span>
+            <span>{row.original.distance_km ?? row.original.total_distance ?? 0} km</span>
           </div>
           <div className="flex items-center gap-1 text-sm">
             <Clock className="h-3 w-3 text-muted-foreground" />
-            <span>{row.original.estimated_duration} min</span>
+            <span>{row.original.estimated_duration ?? 0} min</span>
           </div>
         </div>
       ),
@@ -236,7 +246,7 @@ const BusRoutesTab = ({
           onSubmit={isEditingRoute ? handleUpdateRoute : handleAddRoute}
           isEditing={isEditingRoute}
           editingRoute={isEditingRoute && routeEditingId ? 
-            busRoutes.find(r => r.id === routeEditingId) : undefined
+            (routesData.find(r => r.bus_route_id === routeEditingId) || busRoutes.find(r => r.id === routeEditingId)) : undefined
           }
         />
       </Dialog>

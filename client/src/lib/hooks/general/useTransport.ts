@@ -123,9 +123,9 @@ export const useRemoveDriverFromRoute = () => {
   
   return useMutationWithSuccessToast({
     mutationFn: (id: number) => TransportService.removeDriverFromRoute(id),
-    onSuccess: (_, id) => {
+    onSuccess: (_, routeId) => {
       queryClient.invalidateQueries({ queryKey: transportKeys.routes() });
-      queryClient.invalidateQueries({ queryKey: transportKeys.route(id) });
+      queryClient.invalidateQueries({ queryKey: transportKeys.route(routeId) });
       queryClient.invalidateQueries({ queryKey: transportKeys.routeNames() });
       queryClient.invalidateQueries({ queryKey: transportKeys.dashboard() });
       queryClient.invalidateQueries({ queryKey: transportKeys.recent() });

@@ -3,11 +3,12 @@ import { FormDialog } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { BusRouteRead } from "@/lib/types/general/transport";
 
 interface RouteDetailsDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  routeData: any;
+  routeData: BusRouteRead | null;
   isLoading: boolean;
   error: any;
   onAssignDriver?: () => void;
@@ -141,7 +142,11 @@ const RouteDetailsDialog = ({ isOpen, onClose, routeData, isLoading, error, onAs
                 <CardContent className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Start Location:</span>
-                    <span className="font-medium">{routeData.start_location}</span>
+                    <span className="font-medium">{routeData.start_location || "Not Set"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Via:</span>
+                    <span className="font-medium">{routeData.via || "Not Set"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Distance:</span>
@@ -153,7 +158,7 @@ const RouteDetailsDialog = ({ isOpen, onClose, routeData, isLoading, error, onAs
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Route Number:</span>
-                    <span className="font-medium">{routeData.route_no}</span>
+                    <span className="font-medium">{routeData.route_no || "Not Set"}</span>
                   </div>
                 </CardContent>
               </Card>

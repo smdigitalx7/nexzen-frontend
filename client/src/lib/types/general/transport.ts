@@ -14,6 +14,7 @@ export interface BusRouteRead {
   driver_details?: DriverDetails | null;
   route_no?: string | null;
   route_name?: string | null;
+  via?: string | null;
   start_location?: string | null;
   end_location?: string | null;
   total_distance?: number | null;
@@ -29,11 +30,10 @@ export interface BusRouteCreate {
   vehicle_number: string;
   vehicle_capacity: number;
   registration_number: string;
-  driver_employee_id: number;
   route_no: string;
   route_name: string;
+  via?: string;
   start_location: string;
-  end_location: string;
   total_distance: number;
   estimated_duration: number;
   is_active?: boolean;

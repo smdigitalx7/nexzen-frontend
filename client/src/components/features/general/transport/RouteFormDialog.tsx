@@ -10,9 +10,17 @@ interface RouteFormDialogProps {
   isEditing: boolean;
   editingRoute?: {
     id: number;
-    route_number: string;
-    route_name: string;
-    is_active: boolean;
+    route_number?: string;
+    route_no?: string;
+    route_name?: string;
+    via?: string;
+    vehicle_number?: string;
+    vehicle_capacity?: number;
+    registration_number?: string;
+    start_location?: string;
+    total_distance?: number;
+    estimated_duration?: number;
+    is_active?: boolean;
   };
 }
 
@@ -20,9 +28,9 @@ interface RouteFormData {
   vehicle_number: string;
   vehicle_capacity: string;
   registration_number: string;
-  driver_employee_id: string;
   route_no: string;
   route_name: string;
+  via: string;
   start_location: string;
   total_distance: string;
   estimated_duration: string;
@@ -34,9 +42,9 @@ const RouteFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingRoute }:
     vehicle_number: "",
     vehicle_capacity: "",
     registration_number: "",
-    driver_employee_id: "",
     route_no: "",
     route_name: "",
+    via: "",
     start_location: "",
     total_distance: "",
     estimated_duration: "",
@@ -46,19 +54,25 @@ const RouteFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingRoute }:
   useEffect(() => {
     if (isEditing && editingRoute) {
       setRouteForm({
-        ...routeForm,
-        route_no: editingRoute.route_number || "",
+        vehicle_number: editingRoute.vehicle_number || "",
+        vehicle_capacity: editingRoute.vehicle_capacity?.toString() || "",
+        registration_number: editingRoute.registration_number || "",
+        route_no: editingRoute.route_no || editingRoute.route_number || "",
         route_name: editingRoute.route_name || "",
-        is_active: editingRoute.is_active,
+        via: editingRoute.via || "",
+        start_location: editingRoute.start_location || "",
+        total_distance: editingRoute.total_distance?.toString() || "",
+        estimated_duration: editingRoute.estimated_duration?.toString() || "",
+        is_active: editingRoute.is_active ?? true,
       });
     } else {
       setRouteForm({
         vehicle_number: "",
         vehicle_capacity: "",
         registration_number: "",
-        driver_employee_id: "",
         route_no: "",
         route_name: "",
+        via: "",
         start_location: "",
         total_distance: "",
         estimated_duration: "",
@@ -71,8 +85,15 @@ const RouteFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingRoute }:
     if (isEditing) {
       onSubmit({
         id: editingRoute!.id,
+        vehicle_number: routeForm.vehicle_number,
+        vehicle_capacity: parseInt(routeForm.vehicle_capacity),
+        registration_number: routeForm.registration_number,
         route_no: routeForm.route_no,
         route_name: routeForm.route_name,
+        via: routeForm.via || undefined,
+        start_location: routeForm.start_location,
+        total_distance: parseFloat(routeForm.total_distance),
+        estimated_duration: parseInt(routeForm.estimated_duration),
         is_active: routeForm.is_active,
       } as any);
     } else {
@@ -92,9 +113,9 @@ const RouteFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingRoute }:
         vehicle_number: routeForm.vehicle_number,
         vehicle_capacity: parseInt(routeForm.vehicle_capacity),
         registration_number: routeForm.registration_number,
-        driver_employee_id: routeForm.driver_employee_id ? parseInt(routeForm.driver_employee_id) : undefined,
         route_no: routeForm.route_no,
         route_name: routeForm.route_name,
+        via: routeForm.via || undefined,
         start_location: routeForm.start_location,
         total_distance: parseFloat(routeForm.total_distance),
         estimated_duration: parseInt(routeForm.estimated_duration),
@@ -113,7 +134,7 @@ const RouteFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingRoute }:
       open={isOpen}
       onOpenChange={onClose}
       title={isEditing ? "Edit Bus Route" : "Add New Bus Route"}
-      description={isEditing ? "Update route details" : "Create a new transport route with vehicle and driver details"}
+      description={isEditing ? "Update route details" : "Create a new transport route with vehicle details. Drivers can be assigned separately after creation."}
       size="LARGE"
       onSave={handleSave}
       saveText={isEditing ? "Update Route" : "Add Route"}
@@ -190,6 +211,16 @@ const RouteFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingRoute }:
               id="start_location" 
               value={routeForm.start_location} 
               onChange={(e) => setRouteForm({ ...routeForm, start_location: e.target.value })} 
+              placeholder="Starting point"
+            />
+          </div>
+          <div>
+            <Label htmlFor="via">Via (Optional)</Label>
+            <Input 
+              id="via" 
+              value={routeForm.via} 
+              onChange={(e) => setRouteForm({ ...routeForm, via: e.target.value })} 
+              placeholder="Intermediate stops/locations"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">

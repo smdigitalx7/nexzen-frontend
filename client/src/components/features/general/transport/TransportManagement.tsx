@@ -40,15 +40,23 @@ const TransportManagement = () => {
     id: r.bus_route_id,
     route_number: r.route_no || "-",
     route_name: r.route_name || "-",
+    route_no: r.route_no || "-",
+    via: r.via || "",
     vehicle_number: r.vehicle_number || "-",
     vehicle_capacity: r.vehicle_capacity ?? 0,
+    registration_number: r.registration_number || "-",
     driver_id: r.driver_employee_id ? String(r.driver_employee_id) : "-",
-    driver_name: "-", // This would need to be fetched from employee service
+    driver_name: r.driver_details?.employee_name || "-",
+    driver_employee_id: r.driver_employee_id,
+    driver_details: r.driver_details,
     distance_km: r.total_distance ?? 0,
+    total_distance: r.total_distance ?? 0,
     estimated_duration: r.estimated_duration ?? 0,
+    start_location: r.start_location || "-",
     pickup_time: "-", // Not available in current schema
     drop_time: "-", // Not available in current schema
     active: r.is_active ?? true,
+    is_active: r.is_active ?? true,
     students_count: 0, // This would need to be calculated from student transport assignments
     fuel_cost: 0, // Not available in current schema
     maintenance_cost: 0, // Not available in current schema
