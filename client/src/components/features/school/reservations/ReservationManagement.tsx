@@ -98,289 +98,268 @@ const initialFormState = {
 };
 
 // Memoized header component
-const ReservationHeader = memo(({ 
-  currentBranch, 
-  reservationNo 
-}: { 
-  currentBranch: any; 
-  reservationNo: string; 
-}) => (
-  <motion.div
-    initial={{ opacity: 0, y: -20 }}
-    animate={{ opacity: 1, y: 0 }}
-  >
-    <div className="flex items-start justify-between">
-      <div>
-        <h1 className="text-3xl font-bold">Reservations</h1>
-        <p className="text-muted-foreground">Manage student reservations</p>
+const ReservationHeader = memo(
+  ({
+    currentBranch,
+    reservationNo,
+  }: {
+    currentBranch: any;
+    reservationNo: string;
+  }) => (
+    <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Reservations</h1>
+          <p className="text-muted-foreground">Manage student reservations</p>
+        </div>
+        {reservationNo && (
+          <Badge variant="outline" className="text-lg px-4 py-2">
+            Reservation No: {reservationNo}
+          </Badge>
+        )}
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="gap-1">
+            {currentBranch?.branch_type === "SCHOOL" ? (
+              <School className="h-3 w-3" />
+            ) : (
+              <Building2 className="h-3 w-3" />
+            )}
+            {currentBranch?.branch_name}
+          </Badge>
+        </div>
       </div>
-      {reservationNo && (
-        <Badge variant="outline" className="text-lg px-4 py-2">
-          Reservation No: {reservationNo}
-        </Badge>
-      )}
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" className="gap-1">
-          {currentBranch?.branch_type === "SCHOOL" ? (
-            <School className="h-3 w-3" />
-          ) : (
-            <Building2 className="h-3 w-3" />
-          )}
-          {currentBranch?.branch_name}
-        </Badge>
-      </div>
-    </div>
-  </motion.div>
-));
+    </motion.div>
+  )
+);
 
 ReservationHeader.displayName = "ReservationHeader";
 
 // Memoized view dialog content component
-const ViewDialogContent = memo(({ 
-  viewReservation 
-}: { 
-  viewReservation: any; 
-}) => (
-  <div className="space-y-6 text-sm flex-1 overflow-y-auto pr-1">
-    <div className="grid grid-cols-2 gap-4">
-      <div>
-        <strong>Reservation No:</strong>{" "}
-        {viewReservation.reservation_no || "-"}
-      </div>
-      <div>
-        <strong>Date:</strong>{" "}
-        {viewReservation.reservation_date || "-"}
-      </div>
-      <div>
-        <strong>Status:</strong> {viewReservation.status || "-"}
-      </div>
-      <div>
-        <strong>Referred By (ID):</strong>{" "}
-        {viewReservation.referred_by ?? "-"}
-      </div>
-      <div>
-        <strong>Enrollment Status:</strong>{" "}
-        {viewReservation.is_enrolled ? (
-          <Badge
-            variant="secondary"
-            className="bg-green-100 text-green-800"
-          >
-            Enrolled
-          </Badge>
-        ) : (
-          <Badge variant="outline">Not Enrolled</Badge>
-        )}
-      </div>
-    </div>
-
-    <div className="border-t pt-4">
-      <div className="font-medium mb-2">Student Details</div>
+const ViewDialogContent = memo(
+  ({ viewReservation }: { viewReservation: any }) => (
+    <div className="space-y-6 text-sm flex-1 overflow-y-auto pr-1">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <strong>Name:</strong> {viewReservation.student_name || "-"}
+          <strong>Reservation No:</strong>{" "}
+          {viewReservation.reservation_no || "-"}
         </div>
         <div>
-          <strong>Aadhar No:</strong>{" "}
-          {viewReservation.aadhar_no || "-"}
+          <strong>Date:</strong> {viewReservation.reservation_date || "-"}
         </div>
         <div>
-          <strong>Gender:</strong> {viewReservation.gender || "-"}
+          <strong>Status:</strong> {viewReservation.status || "-"}
         </div>
         <div>
-          <strong>DOB:</strong> {viewReservation.dob || "-"}
+          <strong>Referred By (ID):</strong>{" "}
+          {viewReservation.referred_by ?? "-"}
+        </div>
+        <div>
+          <strong>Enrollment Status:</strong>{" "}
+          {viewReservation.is_enrolled ? (
+            <Badge variant="secondary" className="bg-green-100 text-green-800">
+              Enrolled
+            </Badge>
+          ) : (
+            <Badge variant="outline">Not Enrolled</Badge>
+          )}
         </div>
       </div>
-    </div>
 
-    <div className="border-t pt-4">
-      <div className="font-medium mb-2">Parent Details</div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <strong>Father/Guardian Name:</strong>{" "}
-          {viewReservation.father_or_guardian_name || "-"}
-        </div>
-        <div>
-          <strong>Father/Guardian Aadhar:</strong>{" "}
-          {viewReservation.father_or_guardian_aadhar_no || "-"}
-        </div>
-        <div>
-          <strong>Father/Guardian Mobile:</strong>{" "}
-          {viewReservation.father_or_guardian_mobile || "-"}
-        </div>
-        <div>
-          <strong>Father/Guardian Occupation:</strong>{" "}
-          {viewReservation.father_or_guardian_occupation || "-"}
-        </div>
-        <div>
-          <strong>Mother/Guardian Name:</strong>{" "}
-          {viewReservation.mother_or_guardian_name || "-"}
-        </div>
-        <div>
-          <strong>Mother/Guardian Aadhar:</strong>{" "}
-          {viewReservation.mother_or_guardian_aadhar_no || "-"}
-        </div>
-        <div>
-          <strong>Mother/Guardian Mobile:</strong>{" "}
-          {viewReservation.mother_or_guardian_mobile || "-"}
-        </div>
-        <div>
-          <strong>Mother/Guardian Occupation:</strong>{" "}
-          {viewReservation.mother_or_guardian_occupation || "-"}
-        </div>
-      </div>
-    </div>
-
-    <div className="border-t pt-4">
-      <div className="font-medium mb-2">Academic Details</div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <strong>Preferred Class:</strong>{" "}
-          {viewReservation.class_name ||
-            viewReservation.preferred_class_id ||
-            "-"}
-        </div>
-        <div>
-          <strong>Previous Class:</strong>{" "}
-          {viewReservation.previous_class || "-"}
-        </div>
-        <div>
-          <strong>Previous School:</strong>{" "}
-          {viewReservation.previous_school_details || "-"}
-        </div>
-      </div>
-    </div>
-
-    <div className="border-t pt-4">
-      <div className="font-medium mb-2">Contact Details</div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <strong>Present Address:</strong>{" "}
-          {viewReservation.present_address || "-"}
-        </div>
-        <div>
-          <strong>Permanent Address:</strong>{" "}
-          {viewReservation.permanent_address || "-"}
-        </div>
-      </div>
-    </div>
-
-    <div className="border-t pt-4">
-      <div className="font-medium mb-2">Fees</div>
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span>Application Fee:</span>
-          <span>
-            ₹
-            {Number(
-              viewReservation.application_fee || 0
-            ).toLocaleString()}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span>Application Fee Paid:</span>
-          <span>
-            {viewReservation.application_fee_paid ? "Yes" : "No"}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span>Tuition Fee:</span>
-          <span>
-            ₹
-            {Number(
-              viewReservation.tuition_fee || 0
-            ).toLocaleString()}
-          </span>
-        </div>
-        {viewReservation.book_fee != null && (
-          <div className="flex justify-between">
-            <span>Book Fee:</span>
-            <span>
-              ₹
-              {Number(viewReservation.book_fee || 0).toLocaleString()}
-            </span>
-          </div>
-        )}
-        {viewReservation.transport_fee != null && (
-          <div className="flex justify-between">
-            <span>Transport Fee:</span>
-            <span>
-              ₹
-              {Number(
-                viewReservation.transport_fee || 0
-              ).toLocaleString()}
-            </span>
-          </div>
-        )}
-        {viewReservation.transport_concession != null && (
-          <div className="flex justify-between">
-            <span>Transport Concession:</span>
-            <span>
-              ₹
-              {Number(
-                viewReservation.transport_concession || 0
-              ).toLocaleString()}
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
-
-    {/* Income Records Section */}
-    {(viewReservation.application_income_id ||
-      viewReservation.admission_income_id) && (
       <div className="border-t pt-4">
-        <div className="font-medium mb-2">Income Records</div>
-        <div className="space-y-2">
-          {viewReservation.application_income_id && (
-            <div className="flex justify-between items-center p-2 bg-blue-50 rounded-lg">
-              <span className="text-sm font-medium">
-                Application Fee Income ID:
+        <div className="font-medium mb-2">Student Details</div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <strong>Name:</strong> {viewReservation.student_name || "-"}
+          </div>
+          <div>
+            <strong>Aadhar No:</strong> {viewReservation.aadhar_no || "-"}
+          </div>
+          <div>
+            <strong>Gender:</strong> {viewReservation.gender || "-"}
+          </div>
+          <div>
+            <strong>DOB:</strong> {viewReservation.dob || "-"}
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t pt-4">
+        <div className="font-medium mb-2">Parent Details</div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <strong>Father/Guardian Name:</strong>{" "}
+            {viewReservation.father_or_guardian_name || "-"}
+          </div>
+          <div>
+            <strong>Father/Guardian Aadhar:</strong>{" "}
+            {viewReservation.father_or_guardian_aadhar_no || "-"}
+          </div>
+          <div>
+            <strong>Father/Guardian Mobile:</strong>{" "}
+            {viewReservation.father_or_guardian_mobile || "-"}
+          </div>
+          <div>
+            <strong>Father/Guardian Occupation:</strong>{" "}
+            {viewReservation.father_or_guardian_occupation || "-"}
+          </div>
+          <div>
+            <strong>Mother/Guardian Name:</strong>{" "}
+            {viewReservation.mother_or_guardian_name || "-"}
+          </div>
+          <div>
+            <strong>Mother/Guardian Aadhar:</strong>{" "}
+            {viewReservation.mother_or_guardian_aadhar_no || "-"}
+          </div>
+          <div>
+            <strong>Mother/Guardian Mobile:</strong>{" "}
+            {viewReservation.mother_or_guardian_mobile || "-"}
+          </div>
+          <div>
+            <strong>Mother/Guardian Occupation:</strong>{" "}
+            {viewReservation.mother_or_guardian_occupation || "-"}
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t pt-4">
+        <div className="font-medium mb-2">Academic Details</div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <strong>Preferred Class:</strong>{" "}
+            {viewReservation.class_name ||
+              viewReservation.preferred_class_id ||
+              "-"}
+          </div>
+          <div>
+            <strong>Previous Class:</strong>{" "}
+            {viewReservation.previous_class || "-"}
+          </div>
+          <div>
+            <strong>Previous School:</strong>{" "}
+            {viewReservation.previous_school_details || "-"}
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t pt-4">
+        <div className="font-medium mb-2">Contact Details</div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <strong>Present Address:</strong>{" "}
+            {viewReservation.present_address || "-"}
+          </div>
+          <div>
+            <strong>Permanent Address:</strong>{" "}
+            {viewReservation.permanent_address || "-"}
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t pt-4">
+        <div className="font-medium mb-2">Fees</div>
+        <div className="space-y-1">
+          <div className="flex justify-between">
+            <span>Application Fee:</span>
+            <span>
+              ₹{Number(viewReservation.application_fee || 0).toLocaleString()}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>Application Fee Paid:</span>
+            <span>{viewReservation.application_fee_paid ? "Yes" : "No"}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Tuition Fee:</span>
+            <span>
+              ₹{Number(viewReservation.tuition_fee || 0).toLocaleString()}
+            </span>
+          </div>
+          {viewReservation.book_fee != null && (
+            <div className="flex justify-between">
+              <span>Book Fee:</span>
+              <span>
+                ₹{Number(viewReservation.book_fee || 0).toLocaleString()}
               </span>
-              <Badge variant="outline" className="font-mono">
-                {viewReservation.application_income_id}
-              </Badge>
             </div>
           )}
-          {viewReservation.admission_income_id && (
-            <div className="flex justify-between items-center p-2 bg-green-50 rounded-lg">
-              <span className="text-sm font-medium">
-                Admission Fee Income ID:
+          {viewReservation.transport_fee != null && (
+            <div className="flex justify-between">
+              <span>Transport Fee:</span>
+              <span>
+                ₹{Number(viewReservation.transport_fee || 0).toLocaleString()}
               </span>
-              <Badge variant="outline" className="font-mono">
-                {viewReservation.admission_income_id}
-              </Badge>
+            </div>
+          )}
+          {viewReservation.transport_concession != null && (
+            <div className="flex justify-between">
+              <span>Transport Concession:</span>
+              <span>
+                ₹
+                {Number(
+                  viewReservation.transport_concession || 0
+                ).toLocaleString()}
+              </span>
             </div>
           )}
         </div>
       </div>
-    )}
 
-    <div className="border-t pt-4">
-      <div className="font-medium mb-2">Preferences</div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <strong>Preferred Class ID:</strong>{" "}
-          {viewReservation.preferred_class_id ?? "-"}
+      {/* Income Records Section */}
+      {(viewReservation.application_income_id ||
+        viewReservation.admission_income_id) && (
+        <div className="border-t pt-4">
+          <div className="font-medium mb-2">Income Records</div>
+          <div className="space-y-2">
+            {viewReservation.application_income_id && (
+              <div className="flex justify-between items-center p-2 bg-blue-50 rounded-lg">
+                <span className="text-sm font-medium">
+                  Application Fee Income ID:
+                </span>
+                <Badge variant="outline" className="font-mono">
+                  {viewReservation.application_income_id}
+                </Badge>
+              </div>
+            )}
+            {viewReservation.admission_income_id && (
+              <div className="flex justify-between items-center p-2 bg-green-50 rounded-lg">
+                <span className="text-sm font-medium">
+                  Admission Fee Income ID:
+                </span>
+                <Badge variant="outline" className="font-mono">
+                  {viewReservation.admission_income_id}
+                </Badge>
+              </div>
+            )}
+          </div>
         </div>
-        <div>
-          <strong>Preferred Transport ID:</strong>{" "}
-          {viewReservation.preferred_transport_id ?? "-"}
-        </div>
-        <div>
-          <strong>Preferred Distance Slab ID:</strong>{" "}
-          {viewReservation.preferred_distance_slab_id ?? "-"}
-        </div>
-        <div>
-          <strong>Pickup Point:</strong>{" "}
-          {viewReservation.pickup_point || "-"}
-        </div>
-        <div>
-          <strong>Remarks:</strong> {viewReservation.remarks || "-"}
+      )}
+
+      <div className="border-t pt-4">
+        <div className="font-medium mb-2">Preferences</div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <strong>Preferred Class ID:</strong>{" "}
+            {viewReservation.preferred_class_id ?? "-"}
+          </div>
+          <div>
+            <strong>Preferred Transport ID:</strong>{" "}
+            {viewReservation.preferred_transport_id ?? "-"}
+          </div>
+          <div>
+            <strong>Preferred Distance Slab ID:</strong>{" "}
+            {viewReservation.preferred_distance_slab_id ?? "-"}
+          </div>
+          <div>
+            <strong>Pickup Point:</strong> {viewReservation.pickup_point || "-"}
+          </div>
+          <div>
+            <strong>Remarks:</strong> {viewReservation.remarks || "-"}
+          </div>
         </div>
       </div>
     </div>
-  </div>
-));
+  )
+);
 
 ViewDialogContent.displayName = "ViewDialogContent";
 
@@ -388,14 +367,8 @@ const ReservationManagementComponent = () => {
   const queryClient = useQueryClient();
   const { currentBranch } = useAuthStore();
 
-  // Memoized route names query
-  const { data: routeNames = [] } = useQuery({
-    queryKey: ["public", "bus-routes", "names"],
-    queryFn: () => TransportService.getRouteNames(),
-  });
-
   const { activeTab, setActiveTab } = useTabNavigation("new");
-  
+
   // State management
   const [reservationNo, setReservationNo] = useState<string>("");
   const [showReceipt, setShowReceipt] = useState(false);
@@ -430,12 +403,47 @@ const ReservationManagementComponent = () => {
     setSelectedReservationForConcession,
   ] = useState<any>(null);
 
-  // Classes dropdown from API
-  const { data: classesData } = useSchoolClasses();
+  // Track dropdown opens for lazy loading
+  const [dropdownsOpened, setDropdownsOpened] = useState({
+    classes: false,
+    distanceSlabs: false,
+    routes: false,
+  });
+
+  // Classes dropdown from API - Load on-demand when dropdown is opened
+  const { data: classesData, isLoading: classesLoading } = useQuery({
+    queryKey: ["school-dropdowns", "classes"],
+    queryFn: () =>
+      import("@/lib/services/school/dropdowns.service").then((m) =>
+        m.SchoolDropdownsService.getClasses()
+      ),
+    enabled: dropdownsOpened.classes,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
   const classes = classesData?.items || [];
 
-  // Distance slabs dropdown from API
-  const { distanceSlabs } = useDistanceSlabs();
+  // Distance slabs dropdown from API - Load on-demand when dropdown is opened
+  const { data: distanceSlabs = [], isLoading: isLoadingDistanceSlabs } =
+    useQuery({
+      queryKey: ["distance-slabs"],
+      queryFn: () =>
+        import("@/lib/services/general/distance-slabs.service").then((m) =>
+          m.DistanceSlabsService.listDistanceSlabs()
+        ),
+      enabled: dropdownsOpened.distanceSlabs,
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+    });
+
+  // Routes dropdown - Load on-demand when dropdown is opened
+  const { data: routeNames = [], isLoading: routesLoading } = useQuery({
+    queryKey: ["public", "bus-routes", "names"],
+    queryFn: () => TransportService.getRouteNames(),
+    enabled: dropdownsOpened.routes,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
 
   // Fetch selected class details with fees
   const { classData: selectedClassData } = useSchoolClass(selectedClassId);
@@ -446,14 +454,21 @@ const ReservationManagementComponent = () => {
   const { data: dashboardStats, isLoading: dashboardLoading } =
     useSchoolReservationsDashboard();
 
-  // Use React Query hook for reservations
+  // Use React Query hook for reservations - Only fetch when All Reservations tab is active
   const {
     data: reservationsData,
     isLoading: isLoadingReservations,
     isError: reservationsError,
     error: reservationsErrObj,
     refetch: refetchReservations,
-  } = useSchoolReservationsList({ page: 1, page_size: 20 });
+  } = useQuery({
+    queryKey: ["school", "reservations", { page: 1, page_size: 20 }],
+    queryFn: () =>
+      import("@/lib/services/school/reservations.service").then((m) =>
+        m.SchoolReservationsService.list({ page: 1, page_size: 20 })
+      ),
+    enabled: activeTab === "all",
+  });
 
   // Delete reservation hook
   const deleteReservation = useDeleteSchoolReservation();
@@ -496,76 +511,94 @@ const ReservationManagementComponent = () => {
   const [form, setForm] = useState(initialFormState);
 
   // Memoized handlers
-  const handleClassChange = useCallback((classId: string) => {
-    const selectedClass = classes.find(
-      (c) => c.class_id.toString() === classId
-    );
-    if (selectedClass) {
-      setSelectedClassId(selectedClass.class_id);
-      setForm((prev) => ({
-        ...prev,
-        class_name: selectedClass.class_name,
-        // Auto-set preferred_class_id based on selected class
-        preferred_class_id: selectedClass.class_id.toString(),
-      }));
-    }
-  }, [classes]);
+  const handleClassChange = useCallback(
+    (classId: string) => {
+      const selectedClass = classes.find(
+        (c) => c.class_id.toString() === classId
+      );
+      if (selectedClass) {
+        setSelectedClassId(selectedClass.class_id);
+        setForm((prev) => ({
+          ...prev,
+          class_name: selectedClass.class_name,
+          // Auto-set preferred_class_id based on selected class
+          preferred_class_id: selectedClass.class_id.toString(),
+        }));
+      }
+    },
+    [classes]
+  );
 
   // Auto-set preferred_distance_slab_id when distance slab is selected
-  const handleDistanceSlabChange = useCallback((slabId: string) => {
-    const selectedSlab = distanceSlabs?.find(
-      (s) => s.slab_id.toString() === slabId
-    );
-    if (selectedSlab) {
-      setForm((prev) => ({
-        ...prev,
-        preferred_distance_slab_id: selectedSlab.slab_id.toString(),
-      }));
-    }
-  }, [distanceSlabs]);
+  const handleDistanceSlabChange = useCallback(
+    (slabId: string) => {
+      const selectedSlab = distanceSlabs?.find(
+        (s) => s.slab_id.toString() === slabId
+      );
+      if (selectedSlab) {
+        setForm((prev) => ({
+          ...prev,
+          preferred_distance_slab_id: selectedSlab.slab_id.toString(),
+        }));
+      }
+    },
+    [distanceSlabs]
+  );
 
   // Edit mode handlers
-  const handleEditClassChange = useCallback((classId: string) => {
-    const selectedClass = classes.find(
-      (c) => c.class_id.toString() === classId
-    );
-    if (selectedClass) {
-      setEditSelectedClassId(selectedClass.class_id);
-      setEditForm((prev: any) => ({
-        ...prev,
-        class_name: selectedClass.class_name,
-        preferred_class_id: selectedClass.class_id.toString(),
-      }));
-    }
-  }, [classes]);
+  const handleEditClassChange = useCallback(
+    (classId: string) => {
+      const selectedClass = classes.find(
+        (c) => c.class_id.toString() === classId
+      );
+      if (selectedClass) {
+        setEditSelectedClassId(selectedClass.class_id);
+        setEditForm((prev: any) => ({
+          ...prev,
+          class_name: selectedClass.class_name,
+          preferred_class_id: selectedClass.class_id.toString(),
+        }));
+      }
+    },
+    [classes]
+  );
 
-  const handleEditDistanceSlabChange = useCallback((slabId: string) => {
-    const selectedSlab = distanceSlabs?.find(
-      (s) => s.slab_id.toString() === slabId
-    );
-    if (selectedSlab) {
-      setEditForm((prev: any) => ({
-        ...prev,
-        preferred_distance_slab_id: selectedSlab.slab_id.toString(),
-      }));
-    }
-  }, [distanceSlabs]);
+  const handleEditDistanceSlabChange = useCallback(
+    (slabId: string) => {
+      const selectedSlab = distanceSlabs?.find(
+        (s) => s.slab_id.toString() === slabId
+      );
+      if (selectedSlab) {
+        setEditForm((prev: any) => ({
+          ...prev,
+          preferred_distance_slab_id: selectedSlab.slab_id.toString(),
+        }));
+      }
+    },
+    [distanceSlabs]
+  );
 
   // Get preferred_class_id from form (for API submission)
-  const getPreferredClassId = useCallback((formState = form) => {
-    const selectedClass = classes.find(
-      (c) => c.class_name === formState.class_name
-    );
-    return selectedClass ? selectedClass.class_id : 0;
-  }, [classes, form]);
+  const getPreferredClassId = useCallback(
+    (formState = form) => {
+      const selectedClass = classes.find(
+        (c) => c.class_name === formState.class_name
+      );
+      return selectedClass ? selectedClass.class_id : 0;
+    },
+    [classes, form]
+  );
 
   // Get preferred_distance_slab_id from form (for API submission)
-  const getPreferredDistanceSlabId = useCallback((formState = form) => {
-    const selectedSlab = distanceSlabs?.find(
-      (s) => s.slab_id.toString() === formState.preferred_distance_slab_id
-    );
-    return selectedSlab ? selectedSlab.slab_id : 0;
-  }, [distanceSlabs, form]);
+  const getPreferredDistanceSlabId = useCallback(
+    (formState = form) => {
+      const selectedSlab = distanceSlabs?.find(
+        (s) => s.slab_id.toString() === formState.preferred_distance_slab_id
+      );
+      return selectedSlab ? selectedSlab.slab_id : 0;
+    },
+    [distanceSlabs, form]
+  );
 
   // Update form with fees when class data is fetched
   useEffect(() => {
@@ -642,39 +675,42 @@ const ReservationManagementComponent = () => {
     }
   }, []);
 
-  const handleConcessionUpdate = useCallback(async (
-    reservationId: number,
-    tuitionConcession: number,
-    transportConcession: number,
-    remarks: string
-  ) => {
-    try {
-      await SchoolReservationsService.updateConcession(reservationId, {
-        tuition_concession: tuitionConcession,
-        transport_concession: transportConcession,
-        remarks: remarks || null,
-      });
+  const handleConcessionUpdate = useCallback(
+    async (
+      reservationId: number,
+      tuitionConcession: number,
+      transportConcession: number,
+      remarks: string
+    ) => {
+      try {
+        await SchoolReservationsService.updateConcession(reservationId, {
+          tuition_concession: tuitionConcession,
+          transport_concession: transportConcession,
+          remarks: remarks || null,
+        });
 
-      toast({
-        title: "Concession Updated",
-        description: "Concession amounts have been updated successfully.",
-      });
+        toast({
+          title: "Concession Updated",
+          description: "Concession amounts have been updated successfully.",
+        });
 
-      // Refresh the reservations list
-      refetchReservations();
-    } catch (error: any) {
-      console.error("Failed to update concession:", error);
-      toast({
-        title: "Update Failed",
-        description:
-          error?.response?.data?.detail ||
-          error?.message ||
-          "Failed to update concession.",
-        variant: "destructive",
-      });
-      throw error; // Re-throw to let the dialog handle it
-    }
-  }, [refetchReservations]);
+        // Refresh the reservations list
+        refetchReservations();
+      } catch (error: any) {
+        console.error("Failed to update concession:", error);
+        toast({
+          title: "Update Failed",
+          description:
+            error?.response?.data?.detail ||
+            error?.message ||
+            "Failed to update concession.",
+          variant: "destructive",
+        });
+        throw error; // Re-throw to let the dialog handle it
+      }
+    },
+    [refetchReservations]
+  );
 
   // Memoized route mapping
   const mappedRoutes = useMemo(() => {
@@ -685,9 +721,7 @@ const ReservationManagementComponent = () => {
         route_name: string;
       }) => ({
         id: route.bus_route_id?.toString() || "",
-        name: `${route.route_no || "Route"} - ${
-          route.route_name
-        }`,
+        name: `${route.route_no || "Route"} - ${route.route_name}`,
         fee: 0,
       })
     );
@@ -695,97 +729,108 @@ const ReservationManagementComponent = () => {
 
   // Memoized tabs configuration - moved after handlers are defined
 
-  const handleSave = useCallback(async (withPayment: boolean) => {
-    // Map form fields to backend schema as JSON object
-    const payload = {
-      student_name: form.student_name,
-      aadhar_no: form.aadhar_no || "",
-      gender: (form.gender || "OTHER").toUpperCase(),
-      dob: form.dob || "",
-      father_or_guardian_name: form.father_or_guardian_name || "",
-      father_or_guardian_aadhar_no: form.father_or_guardian_aadhar_no || "",
-      father_or_guardian_mobile: form.father_or_guardian_mobile || "",
-      father_or_guardian_occupation: form.father_or_guardian_occupation || "",
-      mother_or_guardian_name: form.mother_or_guardian_name || "",
-      mother_or_guardian_aadhar_no: form.mother_or_guardian_aadhar_no || "",
-      mother_or_guardian_mobile: form.mother_or_guardian_mobile || "",
-      mother_or_guardian_occupation: form.mother_or_guardian_occupation || "",
-      siblings: form.siblings.length > 0 ? form.siblings : [],
-      previous_class: form.previous_class || "",
-      previous_school_details: form.previous_school_details || "",
-      present_address: form.present_address || "",
-      permanent_address: form.permanent_address || "",
-      application_fee: Number(form.application_fee || 0),
-      application_fee_paid: form.application_fee_paid,
-      preferred_class_id: getPreferredClassId(),
-      class_name: form.class_name || "",
-      tuition_fee: Number(form.tuition_fee || 0),
-      book_fee: Number(form.book_fee || 0),
-      transport_required: form.transport_required,
-      preferred_transport_id:
-        form.transport_required && form.preferred_transport_id
-          ? Number(form.preferred_transport_id)
-          : 0,
-      preferred_distance_slab_id:
-        form.transport_required && form.preferred_distance_slab_id
-          ? getPreferredDistanceSlabId()
-          : 0,
-      pickup_point: form.transport_required ? form.pickup_point || "" : "",
-      transport_fee: form.transport_required ? Number(transportFee || 0) : 0,
-      status: "PENDING",
-      referred_by: form.referred_by ? Number(form.referred_by) : 0,
-      remarks: form.remarks || "",
-      reservation_date: form.reservation_date || "",
-    };
+  const handleSave = useCallback(
+    async (withPayment: boolean) => {
+      // Map form fields to backend schema as JSON object
+      const payload = {
+        student_name: form.student_name,
+        aadhar_no: form.aadhar_no || "",
+        gender: (form.gender || "OTHER").toUpperCase(),
+        dob: form.dob || "",
+        father_or_guardian_name: form.father_or_guardian_name || "",
+        father_or_guardian_aadhar_no: form.father_or_guardian_aadhar_no || "",
+        father_or_guardian_mobile: form.father_or_guardian_mobile || "",
+        father_or_guardian_occupation: form.father_or_guardian_occupation || "",
+        mother_or_guardian_name: form.mother_or_guardian_name || "",
+        mother_or_guardian_aadhar_no: form.mother_or_guardian_aadhar_no || "",
+        mother_or_guardian_mobile: form.mother_or_guardian_mobile || "",
+        mother_or_guardian_occupation: form.mother_or_guardian_occupation || "",
+        siblings: form.siblings.length > 0 ? form.siblings : [],
+        previous_class: form.previous_class || "",
+        previous_school_details: form.previous_school_details || "",
+        present_address: form.present_address || "",
+        permanent_address: form.permanent_address || "",
+        application_fee: Number(form.application_fee || 0),
+        application_fee_paid: form.application_fee_paid,
+        preferred_class_id: getPreferredClassId(),
+        class_name: form.class_name || "",
+        tuition_fee: Number(form.tuition_fee || 0),
+        book_fee: Number(form.book_fee || 0),
+        transport_required: form.transport_required,
+        preferred_transport_id:
+          form.transport_required && form.preferred_transport_id
+            ? Number(form.preferred_transport_id)
+            : 0,
+        preferred_distance_slab_id:
+          form.transport_required && form.preferred_distance_slab_id
+            ? getPreferredDistanceSlabId()
+            : 0,
+        pickup_point: form.transport_required ? form.pickup_point || "" : "",
+        transport_fee: form.transport_required ? Number(transportFee || 0) : 0,
+        status: "PENDING",
+        referred_by: form.referred_by ? Number(form.referred_by) : 0,
+        remarks: form.remarks || "",
+        reservation_date: form.reservation_date || "",
+      };
 
-    try {
-      // Convert payload to FormData as required by the service
-      const formData = new FormData();
-      Object.keys(payload).forEach(key => {
-        const value = payload[key as keyof typeof payload];
-        if (value !== undefined && value !== null) {
-          if (Array.isArray(value)) {
-            formData.append(key, JSON.stringify(value));
-          } else {
-            formData.append(key, String(value));
+      try {
+        // Convert payload to FormData as required by the service
+        const formData = new FormData();
+        Object.keys(payload).forEach((key) => {
+          const value = payload[key as keyof typeof payload];
+          if (value !== undefined && value !== null) {
+            if (Array.isArray(value)) {
+              formData.append(key, JSON.stringify(value));
+            } else {
+              formData.append(key, String(value));
+            }
           }
+        });
+
+        // Use mutation hook which handles cache invalidation automatically
+        const res: SchoolReservationRead =
+          await createReservationMutation.mutateAsync(formData);
+
+        console.log("Reservation creation response:", res);
+        // Use backend reservation_id to display receipt number
+        setReservationNo(String(res?.reservation_id || ""));
+
+        // Invalidate cache to refresh the list
+        queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
+
+        if (withPayment) {
+          // Prepare payment data for the payment processor
+          const paymentData: ReservationPaymentData = {
+            reservationId: res.reservation_id,
+            reservationNo: res.reservation_no || String(res.reservation_id), // Try reservation_no first, fallback to reservation_id
+            studentName: form.student_name,
+            className: form.class_name,
+            reservationFee: Number(form.application_fee || 0), // Only reservation/application fee
+            totalAmount: Number(form.application_fee || 0), // Only reservation/application fee
+            paymentMethod: "CASH", // Default payment method
+            purpose: "Reservation Fee Payment",
+            note: `Payment for reservation ${res.reservation_id}`,
+          };
+
+          setPaymentData(paymentData);
+          setShowPaymentProcessor(true);
+        } else {
+          setShowReceipt(true);
         }
-      });
-
-      // Use mutation hook which handles cache invalidation automatically
-      const res: SchoolReservationRead = await createReservationMutation.mutateAsync(formData);
-      
-      console.log("Reservation creation response:", res);
-      // Use backend reservation_id to display receipt number
-      setReservationNo(String(res?.reservation_id || ""));
-
-      // Invalidate cache to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
-
-      if (withPayment) {
-        // Prepare payment data for the payment processor
-        const paymentData: ReservationPaymentData = {
-          reservationId: res.reservation_id,
-          reservationNo: res.reservation_no || String(res.reservation_id), // Try reservation_no first, fallback to reservation_id
-          studentName: form.student_name,
-          className: form.class_name,
-          reservationFee: Number(form.application_fee || 0), // Only reservation/application fee
-          totalAmount: Number(form.application_fee || 0), // Only reservation/application fee
-          paymentMethod: "CASH", // Default payment method
-          purpose: "Reservation Fee Payment",
-          note: `Payment for reservation ${res.reservation_id}`,
-        };
-
-        setPaymentData(paymentData);
-        setShowPaymentProcessor(true);
-      } else {
-        setShowReceipt(true);
+      } catch (e: any) {
+        console.error("Failed to create reservation:", e);
+        // Error toast is handled by mutation hook
       }
-    } catch (e: any) {
-      console.error("Failed to create reservation:", e);
-      // Error toast is handled by mutation hook
-    }
-  }, [form, getPreferredClassId, getPreferredDistanceSlabId, transportFee, createReservationMutation, queryClient]);
+    },
+    [
+      form,
+      getPreferredClassId,
+      getPreferredDistanceSlabId,
+      transportFee,
+      createReservationMutation,
+      queryClient,
+    ]
+  );
 
   const mapApiToForm = (r: any) => ({
     student_name: r.student_name || "",
@@ -843,119 +888,140 @@ const ReservationManagementComponent = () => {
     }
   }, []);
 
-  const handleEdit = useCallback(async (r: any) => {
-    try {
-      const data: SchoolReservationRead =
-        await SchoolReservationsService.getById(r.reservation_id);
-      const mappedForm = mapApiToForm(data);
-      setEditForm(mappedForm);
+  const handleEdit = useCallback(
+    async (r: any) => {
+      try {
+        const data: SchoolReservationRead =
+          await SchoolReservationsService.getById(r.reservation_id);
+        const mappedForm = mapApiToForm(data);
+        setEditForm(mappedForm);
 
-      // Set the edit selected class ID to fetch class details
-      if (mappedForm.class_name) {
-        const selectedClass = classes.find(
-          (c) => c.class_name === mappedForm.class_name
-        );
-        if (selectedClass) {
-          setEditSelectedClassId(selectedClass.class_id);
+        // Set the edit selected class ID to fetch class details
+        if (mappedForm.class_name) {
+          const selectedClass = classes.find(
+            (c) => c.class_name === mappedForm.class_name
+          );
+          if (selectedClass) {
+            setEditSelectedClassId(selectedClass.class_id);
+          }
         }
-      }
 
-      setSelectedReservation({ id: r.reservation_id });
-      setShowEditDialog(true);
-    } catch (e: any) {
-      console.error("Failed to load reservation for edit:", e);
-      toast({
-        title: "Failed to Load Reservation",
-        description:
-          e?.message ||
-          "Could not load reservation for editing. Please try again.",
-        variant: "destructive",
-      });
-    }
-  }, [classes]);
+        setSelectedReservation({ id: r.reservation_id });
+        setShowEditDialog(true);
+      } catch (e: any) {
+        console.error("Failed to load reservation for edit:", e);
+        toast({
+          title: "Failed to Load Reservation",
+          description:
+            e?.message ||
+            "Could not load reservation for editing. Please try again.",
+          variant: "destructive",
+        });
+      }
+    },
+    [classes]
+  );
 
   // Memoized tabs configuration - now defined after all handlers
-  const tabsConfig = useMemo(() => [
-    {
-      value: "new",
-      label: "New Reservations",
-      icon: Plus,
-      content: (
-        <div>
-          <ReservationForm
-            form={form as any}
-            setForm={(next) => setForm(next as any)}
-            classFee={classFee}
-            transportFee={transportFee}
-            routes={mappedRoutes}
-            classes={classes}
-            distanceSlabs={distanceSlabs || []}
-            onClassChange={handleClassChange}
-            onDistanceSlabChange={handleDistanceSlabChange}
-            onSave={handleSave}
+  const tabsConfig = useMemo(
+    () => [
+      {
+        value: "new",
+        label: "New Reservations",
+        icon: Plus,
+        content: (
+          <div>
+            <ReservationForm
+              form={form as any}
+              setForm={(next) => setForm(next as any)}
+              classFee={classFee}
+              transportFee={transportFee}
+              routes={mappedRoutes}
+              classes={classes}
+              distanceSlabs={distanceSlabs || []}
+              onClassChange={handleClassChange}
+              onDistanceSlabChange={handleDistanceSlabChange}
+              onSave={handleSave}
+              isLoadingClasses={classesLoading}
+              isLoadingDistanceSlabs={isLoadingDistanceSlabs}
+              isLoadingRoutes={routesLoading}
+              onDropdownOpen={(dropdown) => {
+                setDropdownsOpened((prev) => ({ ...prev, [dropdown]: true }));
+              }}
+            />
+          </div>
+        ),
+      },
+      {
+        value: "all",
+        label: "All Reservations",
+        icon: List,
+        content: isLoadingReservations ? (
+          <div className="flex items-center justify-center p-12">
+            <div className="flex flex-col items-center gap-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="text-sm text-muted-foreground">
+                Loading reservations...
+              </p>
+            </div>
+          </div>
+        ) : (
+          <AllReservationsTable
+            reservations={allReservations}
+            isLoading={isLoadingReservations}
+            isError={reservationsError}
+            error={reservationsErrObj}
+            onRefetch={refetchReservations}
+            onView={handleView}
+            onEdit={handleEdit}
+            onDelete={(reservation) => {
+              setReservationToDelete(reservation);
+              setShowDeleteDialog(true);
+            }}
+            onUpdateConcession={handleUpdateConcession}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
           />
-        </div>
-      ),
-    },
-    {
-      value: "all",
-      label: "All Reservations",
-      icon: List,
-      content: (
-        <AllReservationsTable
-          reservations={allReservations}
-          isLoading={isLoadingReservations}
-          isError={reservationsError}
-          error={reservationsErrObj}
-          onRefetch={refetchReservations}
-          onView={handleView}
-          onEdit={handleEdit}
-          onDelete={(reservation) => {
-            setReservationToDelete(reservation);
-            setShowDeleteDialog(true);
-          }}
-          onUpdateConcession={handleUpdateConcession}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-        />
-      ),
-    },
-    {
-      value: "status",
-      label: "Status",
-      icon: BarChart3,
-      content: (
-        <StatusUpdateTable
-          reservations={allReservations}
-          isLoading={isLoadingReservations}
-          isError={reservationsError}
-          error={reservationsErrObj}
-          onRefetch={refetchReservations}
-          totalCount={reservationsData?.total_count}
-        />
-      ),
-    },
-  ], [
-    form,
-    classFee,
-    transportFee,
-    mappedRoutes,
-    classes,
-    distanceSlabs,
-    handleClassChange,
-    handleDistanceSlabChange,
-    handleSave,
-    allReservations,
-    isLoadingReservations,
-    reservationsError,
-    reservationsErrObj,
-    refetchReservations,
-    handleView,
-    handleEdit,
-    handleUpdateConcession,
-    statusFilter,
-    reservationsData?.total_count,
-  ]);
+        ),
+      },
+      {
+        value: "status",
+        label: "Status",
+        icon: BarChart3,
+        content: (
+          <StatusUpdateTable
+            reservations={allReservations}
+            isLoading={isLoadingReservations}
+            isError={reservationsError}
+            error={reservationsErrObj}
+            onRefetch={refetchReservations}
+            totalCount={reservationsData?.total_count}
+          />
+        ),
+      },
+    ],
+    [
+      form,
+      classFee,
+      transportFee,
+      mappedRoutes,
+      classes,
+      distanceSlabs,
+      handleClassChange,
+      handleDistanceSlabChange,
+      handleSave,
+      allReservations,
+      isLoadingReservations,
+      reservationsError,
+      reservationsErrObj,
+      refetchReservations,
+      handleView,
+      handleEdit,
+      handleUpdateConcession,
+      statusFilter,
+      reservationsData?.total_count,
+    ]
+  );
 
   const submitEdit = useCallback(async () => {
     if (!selectedReservation?.id || !editForm) return;
@@ -1009,7 +1075,7 @@ const ReservationManagementComponent = () => {
 
       // Convert payload to FormData
       const formData = new FormData();
-      Object.keys(payload).forEach(key => {
+      Object.keys(payload).forEach((key) => {
         const value = payload[key as keyof typeof payload];
         if (value !== undefined && value !== null) {
           if (Array.isArray(value)) {
@@ -1028,7 +1094,7 @@ const ReservationManagementComponent = () => {
 
       // Invalidate cache to refresh the list
       queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
-      
+
       toast({
         title: "Reservation Updated",
         description: "Reservation details have been updated successfully.",
@@ -1038,7 +1104,14 @@ const ReservationManagementComponent = () => {
       console.error("Failed to update reservation:", e);
       // Error toast is handled by mutation hook
     }
-  }, [selectedReservation, editForm, getPreferredClassId, getPreferredDistanceSlabId, editTransportFee, queryClient]);
+  }, [
+    selectedReservation,
+    editForm,
+    getPreferredClassId,
+    getPreferredDistanceSlabId,
+    editTransportFee,
+    queryClient,
+  ]);
 
   // Handle reservations errors
   useEffect(() => {
@@ -1049,9 +1122,9 @@ const ReservationManagementComponent = () => {
 
   return (
     <div className="space-y-6 p-6">
-      <ReservationHeader 
-        currentBranch={currentBranch} 
-        reservationNo={reservationNo} 
+      <ReservationHeader
+        currentBranch={currentBranch}
+        reservationNo={reservationNo}
       />
 
       {/* Reservation Dashboard Stats */}

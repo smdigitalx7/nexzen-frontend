@@ -1,0 +1,33 @@
+# Dependencies
+node_modules
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build outputs
+dist
+build
+.next
+out
+
+# Logs
+*.log
+
+# Temporary files
+.temp
+.cache
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated files
+*.generated.*
+coverage
+
+
+

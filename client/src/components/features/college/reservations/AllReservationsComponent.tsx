@@ -9,13 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Eye,
-  Edit,
-  Trash2,
-  DollarSign,
-  Download,
-} from "lucide-react";
+import { Eye, Edit, Trash2, DollarSign, Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { CollegeIncomeService } from "@/lib/services/college/income.service";
 import { ReceiptPreviewModal } from "@/components/shared";
@@ -70,7 +64,9 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
   isLoading = false,
 }) => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [regeneratingReceipts, setRegeneratingReceipts] = useState<Set<number>>(new Set());
+  const [regeneratingReceipts, setRegeneratingReceipts] = useState<Set<number>>(
+    new Set()
+  );
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
 
@@ -80,7 +76,9 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
     return reservations.filter((r) => r.status === statusFilter.toUpperCase());
   }, [reservations, statusFilter]);
 
-  const handleRegenerateReceipt = async (reservation: ReservationForAllReservations) => {
+  const handleRegenerateReceipt = async (
+    reservation: ReservationForAllReservations
+  ) => {
     if (!reservation.income_id) {
       toast({
         title: "No Receipt Available",
@@ -90,10 +88,14 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
       return;
     }
 
-    setRegeneratingReceipts((prev) => new Set(prev).add(reservation.reservation_id));
+    setRegeneratingReceipts((prev) =>
+      new Set(prev).add(reservation.reservation_id)
+    );
 
     try {
-      const blob = await CollegeIncomeService.regenerateReceipt(reservation.income_id);
+      const blob = await CollegeIncomeService.regenerateReceipt(
+        reservation.income_id
+      );
       const url = URL.createObjectURL(blob);
       setReceiptBlobUrl(url);
       setShowReceiptModal(true);
@@ -101,7 +103,8 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
       console.error("Failed to regenerate receipt:", error);
       toast({
         title: "Receipt Generation Failed",
-        description: error?.message || "Could not regenerate receipt. Please try again.",
+        description:
+          error?.message || "Could not regenerate receipt. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -121,13 +124,16 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
     }
   };
 
-  const handleConcessionUpdate = (reservation: ReservationForAllReservations) => {
+  const handleConcessionUpdate = (
+    reservation: ReservationForAllReservations
+  ) => {
     if (onUpdateConcession) {
       onUpdateConcession(reservation);
     } else {
       toast({
         title: "Concession Update",
-        description: "Concession update functionality is not available for this reservation.",
+        description:
+          "Concession update functionality is not available for this reservation.",
         variant: "destructive",
       });
     }
@@ -159,127 +165,133 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
   };
 
   // Column definitions for the enhanced table
-  const columns: ColumnDef<ReservationForAllReservations>[] = useMemo(() => [
-    {
-      accessorKey: "reservation_no",
-      header: "Reservation No",
-      cell: ({ row }) => (
-        <span className="font-medium">{row.original.reservation_no || 'N/A'}</span>
-      ),
-    },
-    {
-      accessorKey: "student_name",
-      header: "Student Name",
-      cell: ({ row }) => <span>{row.getValue("student_name")}</span>,
-    },
-    {
-      accessorKey: "group_name",
-      header: "Group",
-      cell: ({ row }) => <span>{row.getValue("group_name") || "-"}</span>,
-    },
-    {
-      accessorKey: "course_name",
-      header: "Course",
-      cell: ({ row }) => <span>{row.getValue("course_name") || "-"}</span>,
-    },
-    {
-      accessorKey: "father_name",
-      header: "Father Name",
-      cell: ({ row }) => <span>{row.getValue("father_name") || "-"}</span>,
-    },
-    {
-      accessorKey: "father_mobile",
-      header: "Mobile",
-      cell: ({ row }) => <span>{row.getValue("father_mobile") || "-"}</span>,
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => {
-        const status = row.getValue("status") as string;
-        return (
-          <Badge 
-            variant={getStatusBadgeVariant(status)}
-            className={getStatusBadgeClassName(status)}
-          >
-            {status}
-          </Badge>
-        );
+  const columns: ColumnDef<ReservationForAllReservations>[] = useMemo(
+    () => [
+      {
+        accessorKey: "reservation_no",
+        header: "Reservation No",
+        cell: ({ row }) => (
+          <span className="font-medium">
+            {row.original.reservation_no || "N/A"}
+          </span>
+        ),
       },
-    },
-    {
-      accessorKey: "reservation_date",
-      header: "Date",
-      cell: ({ row }) => <span>{formatDate(row.getValue("reservation_date"))}</span>,
-    },
-    {
-      id: "actions",
-      header: "Actions",
-      cell: ({ row }) => {
-        const reservation = row.original;
-        const isRegenerating = regeneratingReceipts.has(reservation.reservation_id);
+      {
+        accessorKey: "student_name",
+        header: "Student Name",
+        cell: ({ row }) => <span>{row.getValue("student_name")}</span>,
+      },
+      {
+        accessorKey: "group_name",
+        header: "Group",
+        cell: ({ row }) => <span>{row.getValue("group_name") || "-"}</span>,
+      },
+      {
+        accessorKey: "course_name",
+        header: "Course",
+        cell: ({ row }) => <span>{row.getValue("course_name") || "-"}</span>,
+      },
+      // {
+      //   accessorKey: "father_name",
+      //   header: "Father Name",
+      //   cell: ({ row }) => <span>{row.getValue("father_name") || "-"}</span>,
+      // },
+      {
+        accessorKey: "father_mobile",
+        header: "Mobile",
+        cell: ({ row }) => <span>{row.getValue("father_mobile") || "-"}</span>,
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => {
+          const status = row.getValue("status") as string;
+          return (
+            <Badge
+              variant={getStatusBadgeVariant(status)}
+              className={getStatusBadgeClassName(status)}
+            >
+              {status}
+            </Badge>
+          );
+        },
+      },
+      {
+        accessorKey: "reservation_date",
+        header: "Date",
+        cell: ({ row }) => (
+          <span>{formatDate(row.getValue("reservation_date"))}</span>
+        ),
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }) => {
+          const reservation = row.original;
+          const isRegenerating = regeneratingReceipts.has(
+            reservation.reservation_id
+          );
 
-        return (
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onView(reservation)}
-              className="flex items-center gap-1"
-            >
-              <Eye className="h-4 w-4" />
-              View
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onEdit(reservation)}
-              className="flex items-center gap-1"
-            >
-              <Edit className="h-4 w-4" />
-              Edit
-            </Button>
-            {reservation.income_id && (
+          return (
+            <div className="flex items-center gap-2">
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => handleRegenerateReceipt(reservation)}
-                disabled={isRegenerating}
+                onClick={() => onView(reservation)}
                 className="flex items-center gap-1"
               >
-                {isRegenerating ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-                Receipt
+                <Eye className="h-4 w-4" />
               </Button>
-            )}
-            {onUpdateConcession && (
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => handleConcessionUpdate(reservation)}
+                onClick={() => onEdit(reservation)}
                 className="flex items-center gap-1"
               >
-                <DollarSign className="h-4 w-4" />
-                Concession
+                <Edit className="h-4 w-4" />
               </Button>
-            )}
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => onDelete(reservation)}
-              className="flex items-center gap-1"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </Button>
-          </div>
-        );
+              {reservation.income_id && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleRegenerateReceipt(reservation)}
+                  disabled={isRegenerating}
+                  className="flex items-center gap-1"
+                >
+                  {isRegenerating ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  Receipt
+                </Button>
+              )}
+              {onUpdateConcession && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleConcessionUpdate(reservation)}
+                  className="flex items-center gap-1"
+                >
+                  <DollarSign className="h-4 w-4" />
+                  Concession
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => onDelete(reservation)}
+                className="flex items-center gap-1"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          );
+        },
       },
-    },
-  ], [onView, onEdit, onDelete, onUpdateConcession, regeneratingReceipts]);
+    ],
+    [onView, onEdit, onDelete, onUpdateConcession, regeneratingReceipts]
+  );
 
   const handleExport = useCallback(() => {
     // Export functionality can be implemented here
@@ -329,7 +341,6 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
         onClose={handleCloseReceiptModal}
         blobUrl={receiptBlobUrl}
       />
-
     </div>
   );
 };

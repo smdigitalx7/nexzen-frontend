@@ -1,11 +1,12 @@
-import React, { useEffect, Suspense } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import { Toaster } from '@/components/ui/toaster';
-import ProductionErrorBoundary from './ProductionErrorBoundary';
-import { config, configUtils } from '@/lib/config/production';
-import { productionUtils } from '@/lib/utils/production-optimizations';
-import { LoadingStates } from '@/components/ui/loading';
+import React, { useEffect, Suspense } from "react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/query";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/toaster";
+import ProductionErrorBoundary from "./ProductionErrorBoundary";
+import { config, configUtils } from "@/lib/config/production";
+import { productionUtils } from "@/lib/utils/production-optimizations";
+import { LoadingStates } from "@/components/ui/loading";
 
 // Loading component
 const LoadingFallback = () => (
@@ -16,7 +17,7 @@ const LoadingFallback = () => (
         <div className="w-12 h-12 border-4 border-primary/20 rounded-full"></div>
         <div className="absolute top-0 left-0 w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
-      
+
       {/* Message */}
       <p className="text-sm font-medium text-muted-foreground">
         Loading application...
@@ -26,12 +27,21 @@ const LoadingFallback = () => (
 );
 
 // Error fallback component
-const ErrorFallback = ({ error, resetError }: { error: Error; resetError: () => void }) => (
+const ErrorFallback = ({
+  error,
+  resetError,
+}: {
+  error: Error;
+  resetError: () => void;
+}) => (
   <div className="min-h-screen flex items-center justify-center bg-background p-4">
     <div className="text-center max-w-md">
-      <h1 className="text-2xl font-bold text-destructive mb-4">Application Error</h1>
+      <h1 className="text-2xl font-bold text-destructive mb-4">
+        Application Error
+      </h1>
       <p className="text-muted-foreground mb-6">
-        Something went wrong while loading the application. Please try refreshing the page.
+        Something went wrong while loading the application. Please try
+        refreshing the page.
       </p>
       <div className="space-x-4">
         <button
@@ -67,25 +77,26 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
     // Setup performance monitoring
     if (config.monitoring.enablePerformanceMonitoring) {
       // Initialize performance monitoring
-      console.log('Performance monitoring enabled');
+      console.log("Performance monitoring enabled");
     }
 
     // Setup analytics
     if (config.monitoring.enableAnalytics) {
       // Initialize analytics
-      console.log('Analytics enabled');
+      console.log("Analytics enabled");
     }
 
     // Setup service worker
     if (config.features.enableServiceWorker) {
       // Register service worker
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
-          .then(registration => {
-            console.log('Service Worker registered:', registration);
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("/sw.js")
+          .then((registration) => {
+            console.log("Service Worker registered:", registration);
           })
-          .catch(error => {
-            console.error('Service Worker registration failed:', error);
+          .catch((error) => {
+            console.error("Service Worker registration failed:", error);
           });
       }
     }
@@ -98,7 +109,7 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
         // '/css/critical.css', // Uncomment when you create this file
         // '/fonts/inter.woff2', // Uncomment when you add local fonts
       ];
-      
+
       // Only add hints if there are resources to preload
       if (criticalResources.length > 0) {
         productionUtils.bundle.addResourceHints(criticalResources);
@@ -110,7 +121,7 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
       const checkMemory = () => {
         const memory = productionUtils.performance.getMemoryUsage();
         if (memory && memory.used > config.performance.memoryWarningThreshold) {
-          console.warn('High memory usage detected:', memory);
+          console.warn("High memory usage detected:", memory);
         }
       };
 
@@ -119,35 +130,21 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
     }
   }, []);
 
-  // Create QueryClient with production optimizations
-  const queryClient = React.useMemo(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: config.api.cacheStaleTime,
-        gcTime: config.api.defaultCacheTTL,
-        retry: config.api.retryAttempts,
-        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: true,
-      },
-      mutations: {
-        retry: config.error.maxRetries,
-        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-      },
-    },
-  }), []);
-
   return (
     <ProductionErrorBoundary
       onError={(error, errorInfo) => {
         // Log error for debugging
-        console.error('Production Error Boundary caught error:', error, errorInfo);
-        
+        console.error(
+          "Production Error Boundary caught error:",
+          error,
+          errorInfo
+        );
+
         // Report error if enabled
         if (config.error.enableErrorReporting) {
           productionUtils.error.reportError(error, {
             componentStack: errorInfo.componentStack,
-            errorBoundary: 'ProductionApp',
+            errorBoundary: "ProductionApp",
           });
         }
       }}
@@ -174,20 +171,25 @@ export const withProductionOptimizations = <P extends object>(
   Component: React.ComponentType<P>
 ) => {
   const OptimizedComponent = React.memo(Component);
-  
+
   // Add performance monitoring if enabled
   if (config.monitoring.enablePerformanceMonitoring) {
     // Wrap component with performance monitoring
     const WrappedComponent = React.forwardRef<any, P>((props, ref) => {
       const startTime = performance.now();
       const result = React.createElement(OptimizedComponent, { ...props, ref });
-      productionUtils.performance.measureRender(Component.displayName || Component.name, startTime);
+      productionUtils.performance.measureRender(
+        Component.displayName || Component.name,
+        startTime
+      );
       return result;
     });
-    WrappedComponent.displayName = `withPerformanceMonitoring(${Component.displayName || Component.name})`;
+    WrappedComponent.displayName = `withPerformanceMonitoring(${
+      Component.displayName || Component.name
+    })`;
     return WrappedComponent;
   }
-  
+
   return OptimizedComponent;
 };
 

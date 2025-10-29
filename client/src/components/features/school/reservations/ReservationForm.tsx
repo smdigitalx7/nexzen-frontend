@@ -74,6 +74,12 @@ export type ReservationFormProps = {
   onDistanceSlabChange: (slabId: string) => void;
   onSave: (withPayment: boolean) => void;
   isEdit?: boolean;
+  // Loading states for dropdowns
+  isLoadingClasses?: boolean;
+  isLoadingDistanceSlabs?: boolean;
+  isLoadingRoutes?: boolean;
+  // Handlers to trigger dropdown data fetching
+  onDropdownOpen?: (dropdown: "classes" | "distanceSlabs" | "routes") => void;
 };
 
 // Initial form state - moved outside component for better performance
@@ -111,116 +117,63 @@ const initialFormState: ReservationFormState = {
 };
 
 // Memoized sibling row component
-const SiblingRow = memo(({ 
-  sibling, 
-  index, 
-  onUpdate, 
-  onRemove 
-}: { 
-  sibling: { name: string; class_name: string; where: string; gender: string };
-  index: number;
-  onUpdate: (index: number, field: "name" | "class_name" | "where" | "gender", value: string) => void;
-  onRemove: (index: number) => void;
-}) => (
-  <div
-    key={index}
-    className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end"
-  >
-    <div className="md:col-span-2">
-      <Label htmlFor={`sibling-name-${index}`}>Name</Label>
-      <Input
-        id={`sibling-name-${index}`}
-        value={sibling.name || ""}
-        onChange={(e) => onUpdate(index, "name", e.target.value)}
-      />
-    </div>
-    <div>
-      <Label htmlFor={`sibling-class-${index}`}>Class</Label>
-      <Input
-        id={`sibling-class-${index}`}
-        value={sibling.class_name || ""}
-        onChange={(e) => onUpdate(index, "class_name", e.target.value)}
-      />
-    </div>
-    <div>
-      <Label htmlFor={`sibling-where-${index}`}>Where</Label>
-      <Input
-        id={`sibling-where-${index}`}
-        value={sibling.where || ""}
-        onChange={(e) => onUpdate(index, "where", e.target.value)}
-      />
-    </div>
-    <div>
-      <Label htmlFor={`sibling-gender-${index}`}>Gender</Label>
-      <Select
-        value={sibling.gender || "MALE"}
-        onValueChange={(value) => onUpdate(index, "gender", value)}
-      >
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="MALE">MALE</SelectItem>
-          <SelectItem value="FEMALE">FEMALE</SelectItem>
-          <SelectItem value="OTHER">OTHER</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-    <div>
-      <Button
-        type="button"
-        variant="destructive"
-        onClick={() => onRemove(index)}
-      >
-        Remove
-      </Button>
-    </div>
-  </div>
-));
-
-SiblingRow.displayName = "SiblingRow";
-
-// Memoized form section components
-const StudentInfoSection = memo(({ 
-  form, 
-  setForm 
-}: { 
-  form: ReservationFormState;
-  setForm: (next: ReservationFormState) => void;
-}) => (
-  <div className="space-y-4">
-    <h3 className="text-lg font-semibold border-b pb-2">
-      Student Information
-    </h3>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <Label htmlFor="student_name">Student Name *</Label>
+const SiblingRow = memo(
+  ({
+    sibling,
+    index,
+    onUpdate,
+    onRemove,
+  }: {
+    sibling: {
+      name: string;
+      class_name: string;
+      where: string;
+      gender: string;
+    };
+    index: number;
+    onUpdate: (
+      index: number,
+      field: "name" | "class_name" | "where" | "gender",
+      value: string
+    ) => void;
+    onRemove: (index: number) => void;
+  }) => (
+    <div
+      key={index}
+      className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end"
+    >
+      <div className="md:col-span-2">
+        <Label htmlFor={`sibling-name-${index}`}>Name</Label>
         <Input
-          id="student_name"
-          value={form.student_name}
-          onChange={(e) =>
-            setForm({ ...form, student_name: e.target.value })
-          }
+          id={`sibling-name-${index}`}
+          value={sibling.name || ""}
+          onChange={(e) => onUpdate(index, "name", e.target.value)}
         />
       </div>
       <div>
-        <Label htmlFor="aadhar_no">Aadhar No</Label>
+        <Label htmlFor={`sibling-class-${index}`}>Class</Label>
         <Input
-          id="aadhar_no"
-          value={form.aadhar_no}
-          onChange={(e) =>
-            setForm({ ...form, aadhar_no: e.target.value })
-          }
+          id={`sibling-class-${index}`}
+          value={sibling.class_name || ""}
+          onChange={(e) => onUpdate(index, "class_name", e.target.value)}
         />
       </div>
       <div>
-        <Label htmlFor="gender">Gender *</Label>
+        <Label htmlFor={`sibling-where-${index}`}>Where</Label>
+        <Input
+          id={`sibling-where-${index}`}
+          value={sibling.where || ""}
+          onChange={(e) => onUpdate(index, "where", e.target.value)}
+        />
+      </div>
+      <div>
+        <Label htmlFor={`sibling-gender-${index}`}>Gender</Label>
         <Select
-          value={form.gender}
-          onValueChange={(value) => setForm({ ...form, gender: value })}
+          value={sibling.gender || "MALE"}
+          onValueChange={(value) => onUpdate(index, "gender", value)}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select gender" />
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="MALE">MALE</SelectItem>
@@ -230,156 +183,218 @@ const StudentInfoSection = memo(({
         </Select>
       </div>
       <div>
-        <Label htmlFor="dob">Date of Birth</Label>
-        <Input
-          id="dob"
-          type="date"
-          value={form.dob}
-          onChange={(e) => setForm({ ...form, dob: e.target.value })}
-        />
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={() => onRemove(index)}
+        >
+          Remove
+        </Button>
       </div>
-      <div className="md:col-span-2"></div>
     </div>
-  </div>
-));
+  )
+);
+
+SiblingRow.displayName = "SiblingRow";
+
+// Memoized form section components
+const StudentInfoSection = memo(
+  ({
+    form,
+    setForm,
+  }: {
+    form: ReservationFormState;
+    setForm: (next: ReservationFormState) => void;
+  }) => (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold border-b pb-2">
+        Student Information
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <Label htmlFor="student_name">Student Name *</Label>
+          <Input
+            id="student_name"
+            value={form.student_name}
+            onChange={(e) => setForm({ ...form, student_name: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label htmlFor="aadhar_no">Aadhar No</Label>
+          <Input
+            id="aadhar_no"
+            value={form.aadhar_no}
+            onChange={(e) => setForm({ ...form, aadhar_no: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label htmlFor="gender">Gender *</Label>
+          <Select
+            value={form.gender}
+            onValueChange={(value) => setForm({ ...form, gender: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select gender" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="MALE">MALE</SelectItem>
+              <SelectItem value="FEMALE">FEMALE</SelectItem>
+              <SelectItem value="OTHER">OTHER</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="dob">Date of Birth</Label>
+          <Input
+            id="dob"
+            type="date"
+            value={form.dob}
+            onChange={(e) => setForm({ ...form, dob: e.target.value })}
+          />
+        </div>
+        <div className="md:col-span-2"></div>
+      </div>
+    </div>
+  )
+);
 
 StudentInfoSection.displayName = "StudentInfoSection";
 
-const ParentInfoSection = memo(({ 
-  form, 
-  setForm 
-}: { 
-  form: ReservationFormState;
-  setForm: (next: ReservationFormState) => void;
-}) => (
-  <div className="space-y-4">
-    <h3 className="text-lg font-semibold border-b pb-2">
-      Parent/Guardian Information
-    </h3>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <Label htmlFor="father_or_guardian_name">
-          Father/Guardian Name
-        </Label>
-        <Input
-          id="father_or_guardian_name"
-          value={form.father_or_guardian_name}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              father_or_guardian_name: e.target.value,
-            })
-          }
-        />
-      </div>
-      <div>
-        <Label htmlFor="father_or_guardian_aadhar_no">
-          Father/Guardian Aadhar No
-        </Label>
-        <Input
-          id="father_or_guardian_aadhar_no"
-          value={form.father_or_guardian_aadhar_no}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              father_or_guardian_aadhar_no: e.target.value,
-            })
-          }
-        />
-      </div>
-      <div>
-        <Label htmlFor="father_or_guardian_mobile">
-          Father/Guardian Mobile
-        </Label>
-        <Input
-          id="father_or_guardian_mobile"
-          value={form.father_or_guardian_mobile}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              father_or_guardian_mobile: e.target.value,
-            })
-          }
-        />
-      </div>
-      <div>
-        <Label htmlFor="father_or_guardian_occupation">
-          Father/Guardian Occupation
-        </Label>
-        <Input
-          id="father_or_guardian_occupation"
-          value={form.father_or_guardian_occupation}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              father_or_guardian_occupation: e.target.value,
-            })
-          }
-        />
-      </div>
-      <div>
-        <Label htmlFor="mother_or_guardian_name">
-          Mother/Guardian Name *
-        </Label>
-        <Input
-          id="mother_or_guardian_name"
-          value={form.mother_or_guardian_name}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              mother_or_guardian_name: e.target.value,
-            })
-          }
-        />
-      </div>
-      <div>
-        <Label htmlFor="mother_or_guardian_aadhar_no">
-          Mother/Guardian Aadhar No *
-        </Label>
-        <Input
-          id="mother_or_guardian_aadhar_no"
-          value={form.mother_or_guardian_aadhar_no}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              mother_or_guardian_aadhar_no: e.target.value,
-            })
-          }
-        />
-      </div>
-      <div>
-        <Label htmlFor="mother_or_guardian_mobile">
-          Mother/Guardian Mobile *
-        </Label>
-        <Input
-          id="mother_or_guardian_mobile"
-          value={form.mother_or_guardian_mobile}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              mother_or_guardian_mobile: e.target.value,
-            })
-          }
-        />
-      </div>
-      <div>
-        <Label htmlFor="mother_or_guardian_occupation">
-          Mother/Guardian Occupation *
-        </Label>
-        <Input
-          id="mother_or_guardian_occupation"
-          value={form.mother_or_guardian_occupation}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              mother_or_guardian_occupation: e.target.value,
-            })
-          }
-        />
+const ParentInfoSection = memo(
+  ({
+    form,
+    setForm,
+  }: {
+    form: ReservationFormState;
+    setForm: (next: ReservationFormState) => void;
+  }) => (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold border-b pb-2">
+        Parent/Guardian Information
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <Label htmlFor="father_or_guardian_name">Father/Guardian Name</Label>
+          <Input
+            id="father_or_guardian_name"
+            value={form.father_or_guardian_name}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                father_or_guardian_name: e.target.value,
+              })
+            }
+          />
+        </div>
+        <div>
+          <Label htmlFor="father_or_guardian_aadhar_no">
+            Father/Guardian Aadhar No
+          </Label>
+          <Input
+            id="father_or_guardian_aadhar_no"
+            value={form.father_or_guardian_aadhar_no}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                father_or_guardian_aadhar_no: e.target.value,
+              })
+            }
+          />
+        </div>
+        <div>
+          <Label htmlFor="father_or_guardian_mobile">
+            Father/Guardian Mobile
+          </Label>
+          <Input
+            id="father_or_guardian_mobile"
+            value={form.father_or_guardian_mobile}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                father_or_guardian_mobile: e.target.value,
+              })
+            }
+          />
+        </div>
+        <div>
+          <Label htmlFor="father_or_guardian_occupation">
+            Father/Guardian Occupation
+          </Label>
+          <Input
+            id="father_or_guardian_occupation"
+            value={form.father_or_guardian_occupation}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                father_or_guardian_occupation: e.target.value,
+              })
+            }
+          />
+        </div>
+        <div>
+          <Label htmlFor="mother_or_guardian_name">
+            Mother/Guardian Name *
+          </Label>
+          <Input
+            id="mother_or_guardian_name"
+            value={form.mother_or_guardian_name}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                mother_or_guardian_name: e.target.value,
+              })
+            }
+          />
+        </div>
+        <div>
+          <Label htmlFor="mother_or_guardian_aadhar_no">
+            Mother/Guardian Aadhar No *
+          </Label>
+          <Input
+            id="mother_or_guardian_aadhar_no"
+            value={form.mother_or_guardian_aadhar_no}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                mother_or_guardian_aadhar_no: e.target.value,
+              })
+            }
+          />
+        </div>
+        <div>
+          <Label htmlFor="mother_or_guardian_mobile">
+            Mother/Guardian Mobile *
+          </Label>
+          <Input
+            id="mother_or_guardian_mobile"
+            value={form.mother_or_guardian_mobile}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                mother_or_guardian_mobile: e.target.value,
+              })
+            }
+          />
+        </div>
+        <div>
+          <Label htmlFor="mother_or_guardian_occupation">
+            Mother/Guardian Occupation *
+          </Label>
+          <Input
+            id="mother_or_guardian_occupation"
+            value={form.mother_or_guardian_occupation}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                mother_or_guardian_occupation: e.target.value,
+              })
+            }
+          />
+        </div>
       </div>
     </div>
-  </div>
-));
+  )
+);
 
 ParentInfoSection.displayName = "ParentInfoSection";
 
@@ -395,6 +410,10 @@ const ReservationFormComponent = ({
   onDistanceSlabChange,
   onSave,
   isEdit = false,
+  isLoadingClasses = false,
+  isLoadingDistanceSlabs = false,
+  isLoadingRoutes = false,
+  onDropdownOpen,
 }: ReservationFormProps) => {
   // Memoized validation
   const isSaveDisabled = useMemo(
@@ -504,7 +523,14 @@ const ReservationFormComponent = ({
     if (distanceSlabs.length > 0) {
       onDistanceSlabChange(distanceSlabs[0].slab_id.toString());
     }
-  }, [setForm, classes, routes, distanceSlabs, onClassChange, onDistanceSlabChange]);
+  }, [
+    setForm,
+    classes,
+    routes,
+    distanceSlabs,
+    onClassChange,
+    onDistanceSlabChange,
+  ]);
 
   const handleClearForm = useCallback(() => {
     setForm(initialFormState);
@@ -518,25 +544,31 @@ const ReservationFormComponent = ({
     setForm({ ...form, siblings: next });
   }, [form.siblings, setForm]);
 
-  const updateSibling = useCallback((
-    index: number,
-    field: "name" | "class_name" | "where" | "gender",
-    value: string
-  ) => {
-    const next = form.siblings.map((s, i) =>
-      i === index ? { ...s, [field]: value } : s
-    );
-    setForm({ ...form, siblings: next });
-  }, [form.siblings, setForm]);
+  const updateSibling = useCallback(
+    (
+      index: number,
+      field: "name" | "class_name" | "where" | "gender",
+      value: string
+    ) => {
+      const next = form.siblings.map((s, i) =>
+        i === index ? { ...s, [field]: value } : s
+      );
+      setForm({ ...form, siblings: next });
+    },
+    [form.siblings, setForm]
+  );
 
-  const removeSibling = useCallback((index: number) => {
-    const next = form.siblings.filter((_, i) => i !== index);
-    setForm({ ...form, siblings: next });
-  }, [form.siblings, setForm]);
+  const removeSibling = useCallback(
+    (index: number) => {
+      const next = form.siblings.filter((_, i) => i !== index);
+      setForm({ ...form, siblings: next });
+    },
+    [form.siblings, setForm]
+  );
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-6 p-4">
         <div className="flex justify-between items-start">
           <div>
             <h2 className="text-2xl font-semibold">
@@ -554,17 +586,9 @@ const ReservationFormComponent = ({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleAutofill}
-              >
-                🧪 Autofill Test Data
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
                 onClick={handleClearForm}
               >
-                🗑️ Clear Form
+                Clear Form
               </Button>
             </div>
           )}
@@ -637,6 +661,11 @@ const ReservationFormComponent = ({
                 <Label htmlFor="class_name">Class Name *</Label>
                 <Select
                   value={form.class_name}
+                  onOpenChange={(open) => {
+                    if (open && onDropdownOpen) {
+                      onDropdownOpen("classes");
+                    }
+                  }}
                   onValueChange={(value) => {
                     const selectedClass = classes.find(
                       (c) => c.class_name === value
@@ -647,15 +676,32 @@ const ReservationFormComponent = ({
                     }
                   }}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select class" />
+                  <SelectTrigger disabled={isLoadingClasses}>
+                    <SelectValue
+                      placeholder={
+                        isLoadingClasses ? "Loading..." : "Select class"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {classes.map((cls) => (
-                      <SelectItem key={cls.class_id} value={cls.class_name}>
-                        {cls.class_name}
-                      </SelectItem>
-                    ))}
+                    {isLoadingClasses ? (
+                      <div className="flex items-center justify-center p-4">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        <span className="ml-2 text-sm text-muted-foreground">
+                          Loading classes...
+                        </span>
+                      </div>
+                    ) : classes.length === 0 ? (
+                      <div className="p-4 text-sm text-muted-foreground text-center">
+                        No classes available
+                      </div>
+                    ) : (
+                      classes.map((cls) => (
+                        <SelectItem key={cls.class_id} value={cls.class_name}>
+                          {cls.class_name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -744,19 +790,43 @@ const ReservationFormComponent = ({
                     </Label>
                     <Select
                       value={form.preferred_transport_id}
+                      onOpenChange={(open) => {
+                        if (open && onDropdownOpen) {
+                          onDropdownOpen("routes");
+                        }
+                      }}
                       onValueChange={(value) =>
                         setForm({ ...form, preferred_transport_id: value })
                       }
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select transport route" />
+                      <SelectTrigger disabled={isLoadingRoutes}>
+                        <SelectValue
+                          placeholder={
+                            isLoadingRoutes
+                              ? "Loading..."
+                              : "Select transport route"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        {routes.map((route) => (
-                          <SelectItem key={route.id} value={route.id}>
-                            {route.name}
-                          </SelectItem>
-                        ))}
+                        {isLoadingRoutes ? (
+                          <div className="flex items-center justify-center p-4">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                            <span className="ml-2 text-sm text-muted-foreground">
+                              Loading routes...
+                            </span>
+                          </div>
+                        ) : routes.length === 0 ? (
+                          <div className="p-4 text-sm text-muted-foreground text-center">
+                            No routes available
+                          </div>
+                        ) : (
+                          routes.map((route) => (
+                            <SelectItem key={route.id} value={route.id}>
+                              {route.name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -766,27 +836,51 @@ const ReservationFormComponent = ({
                     </Label>
                     <Select
                       value={form.preferred_distance_slab_id}
+                      onOpenChange={(open) => {
+                        if (open && onDropdownOpen) {
+                          onDropdownOpen("distanceSlabs");
+                        }
+                      }}
                       onValueChange={(value) => {
                         setForm({ ...form, preferred_distance_slab_id: value });
                         onDistanceSlabChange(value);
                       }}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select distance slab" />
+                      <SelectTrigger disabled={isLoadingDistanceSlabs}>
+                        <SelectValue
+                          placeholder={
+                            isLoadingDistanceSlabs
+                              ? "Loading..."
+                              : "Select distance slab"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        {distanceSlabs.map((slab) => (
-                          <SelectItem
-                            key={slab.slab_id}
-                            value={slab.slab_id.toString()}
-                          >
-                            {slab.slab_name} - {slab.min_distance}km
-                            {slab.max_distance
-                              ? `-${slab.max_distance}km`
-                              : "+"}{" "}
-                            (₹{slab.fee_amount})
-                          </SelectItem>
-                        ))}
+                        {isLoadingDistanceSlabs ? (
+                          <div className="flex items-center justify-center p-4">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                            <span className="ml-2 text-sm text-muted-foreground">
+                              Loading distance slabs...
+                            </span>
+                          </div>
+                        ) : distanceSlabs.length === 0 ? (
+                          <div className="p-4 text-sm text-muted-foreground text-center">
+                            No distance slabs available
+                          </div>
+                        ) : (
+                          distanceSlabs.map((slab) => (
+                            <SelectItem
+                              key={slab.slab_id}
+                              value={slab.slab_id.toString()}
+                            >
+                              {slab.slab_name} - {slab.min_distance}km
+                              {slab.max_distance
+                                ? `-${slab.max_distance}km`
+                                : "+"}{" "}
+                              (₹{slab.fee_amount})
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>

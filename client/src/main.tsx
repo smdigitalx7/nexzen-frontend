@@ -8,18 +8,18 @@ import { useAuthStore } from "./store/authStore";
 import "./lib/react-utils";
 
 // Runtime check to ensure React.forwardRef is available
-if (typeof window !== "undefined") {
-  try {
-    // Test if React.forwardRef is available
-    if (typeof React.forwardRef !== "function") {
-      console.error("❌ React.forwardRef is not available!");
-    } else {
-      console.log("✅ React.forwardRef is available");
-    }
-  } catch (error) {
-    console.error("❌ React check failed:", error);
-  }
-}
+// if (typeof window !== "undefined") {
+//   try {
+//     // Test if React.forwardRef is available
+//     if (typeof React.forwardRef !== "function") {
+//       console.error("❌ React.forwardRef is not available!");
+//     } else {
+//     //  console.log("✅ React.forwardRef is available");
+//     }
+//   } catch (error) {
+//     console.error("❌ React check failed:", error);
+//   }
+// }
 
 // Initialize clean architecture services
 // Use proxy for development to avoid CORS issues

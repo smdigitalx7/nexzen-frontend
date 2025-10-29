@@ -89,6 +89,16 @@ export type ReservationFormProps = {
   onDistanceSlabChange: (slabId: number) => void;
   onSave: (withPayment: boolean) => void;
   isEdit?: boolean;
+  // Loading states for dropdowns
+  isLoadingClasses?: boolean;
+  isLoadingGroups?: boolean;
+  isLoadingCourses?: boolean;
+  isLoadingDistanceSlabs?: boolean;
+  isLoadingRoutes?: boolean;
+  // Handlers to trigger dropdown data fetching
+  onDropdownOpen?: (
+    dropdown: "classes" | "groups" | "courses" | "distanceSlabs" | "routes"
+  ) => void;
 };
 
 export default function ReservationForm({
@@ -108,10 +118,26 @@ export default function ReservationForm({
   onDistanceSlabChange,
   onSave,
   isEdit = false,
+  isLoadingClasses = false,
+  isLoadingGroups = false,
+  isLoadingCourses = false,
+  isLoadingDistanceSlabs = false,
+  isLoadingRoutes = false,
+  onDropdownOpen,
 }: ReservationFormProps) {
   const isSaveDisabled = useMemo(
-    () => !form.student_name?.trim() || !form.preferred_class_id || form.preferred_class_id === 0 || !form.group_name?.trim() || !form.course_name?.trim(),
-    [form.student_name, form.preferred_class_id, form.group_name, form.course_name]
+    () =>
+      !form.student_name?.trim() ||
+      !form.preferred_class_id ||
+      form.preferred_class_id === 0 ||
+      !form.group_name?.trim() ||
+      !form.course_name?.trim(),
+    [
+      form.student_name,
+      form.preferred_class_id,
+      form.group_name,
+      form.course_name,
+    ]
   );
 
   // Confirmation dialog states
@@ -190,25 +216,31 @@ export default function ReservationForm({
       present_address: "123 Main Street, Downtown Area, City - 123456",
       permanent_address: "123 Main Street, Downtown Area, City - 123456",
       application_fee: 500,
-      preferred_class_id: (classes && classes.length > 0) ? classes[0].class_id : 0,
-      preferred_group_id: (groups && groups.length > 0) ? groups[0].group_id : 0,
-      group_name: (groups && groups.length > 0) ? groups[0].group_name : "",
-      preferred_course_id: (courses && courses.length > 0) ? courses[0].course_id : 0,
-      course_name: (courses && courses.length > 0) ? courses[0].course_name : "",
-      group_fee: (groups && groups.length > 0) ? groups[0].fee : 0,
-      course_fee: (courses && courses.length > 0) ? courses[0].fee : 0,
+      preferred_class_id:
+        classes && classes.length > 0 ? classes[0].class_id : 0,
+      preferred_group_id: groups && groups.length > 0 ? groups[0].group_id : 0,
+      group_name: groups && groups.length > 0 ? groups[0].group_name : "",
+      preferred_course_id:
+        courses && courses.length > 0 ? courses[0].course_id : 0,
+      course_name: courses && courses.length > 0 ? courses[0].course_name : "",
+      group_fee: groups && groups.length > 0 ? groups[0].fee : 0,
+      course_fee: courses && courses.length > 0 ? courses[0].fee : 0,
       book_fee: 3000,
       total_tuition_fee: 0, // Will be calculated
       transport_required: true,
-      preferred_transport_id: (routes && routes.length > 0) ? routes[0].id : 0,
-      preferred_distance_slab_id: (distanceSlabs && distanceSlabs.length > 0) ? distanceSlabs[0].slab_id : 0,
+      preferred_transport_id: routes && routes.length > 0 ? routes[0].id : 0,
+      preferred_distance_slab_id:
+        distanceSlabs && distanceSlabs.length > 0
+          ? distanceSlabs[0].slab_id
+          : 0,
       pickup_point: "Near City Mall",
       transport_fee: 2000,
       book_fee_required: true,
       course_required: true,
       status: "PENDING",
       referred_by: 0,
-      remarks: "Student is interested in science subjects and extracurricular activities.",
+      remarks:
+        "Student is interested in science subjects and extracurricular activities.",
       reservation_date: new Date().toISOString().split("T")[0],
     });
 
@@ -317,17 +349,9 @@ export default function ReservationForm({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleAutofill}
-              >
-                🧪 Autofill Test Data
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
                 onClick={handleClearForm}
               >
-                🗑️ Clear Form
+                Clear Form
               </Button>
             </div>
           )}
@@ -608,28 +632,53 @@ export default function ReservationForm({
                 <Label htmlFor="preferred_class_id">Preferred Class *</Label>
                 <Select
                   value={form.preferred_class_id.toString()}
+                  onOpenChange={(open) => {
+                    if (open && onDropdownOpen) {
+                      onDropdownOpen("classes");
+                    }
+                  }}
                   onValueChange={(value) => {
                     const selectedClass = classes.find(
                       (c) => c.class_id.toString() === value
                     );
                     if (selectedClass) {
-                      setForm({ 
-                        ...form, 
-                        preferred_class_id: selectedClass.class_id
+                      setForm({
+                        ...form,
+                        preferred_class_id: selectedClass.class_id,
                       });
                       onClassChange(selectedClass.class_id);
                     }
                   }}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select class" />
+                  <SelectTrigger disabled={isLoadingClasses}>
+                    <SelectValue
+                      placeholder={
+                        isLoadingClasses ? "Loading..." : "Select class"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {(classes || []).map((classItem) => (
-                      <SelectItem key={classItem.class_id} value={classItem.class_id.toString()}>
-                        {classItem.class_name}
-                      </SelectItem>
-                    ))}
+                    {isLoadingClasses ? (
+                      <div className="flex items-center justify-center p-4">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        <span className="ml-2 text-sm text-muted-foreground">
+                          Loading classes...
+                        </span>
+                      </div>
+                    ) : (classes || []).length === 0 ? (
+                      <div className="p-4 text-sm text-muted-foreground text-center">
+                        No classes available
+                      </div>
+                    ) : (
+                      (classes || []).map((classItem) => (
+                        <SelectItem
+                          key={classItem.class_id}
+                          value={classItem.class_id.toString()}
+                        >
+                          {classItem.class_name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -662,30 +711,55 @@ export default function ReservationForm({
                 <Label htmlFor="group_name">Group Name *</Label>
                 <Select
                   value={form.group_name}
+                  onOpenChange={(open) => {
+                    if (open && onDropdownOpen) {
+                      onDropdownOpen("groups");
+                    }
+                  }}
                   onValueChange={(value) => {
                     const selectedGroup = groups.find(
                       (g) => g.group_name === value
                     );
                     if (selectedGroup) {
-                      setForm({ 
-                        ...form, 
+                      setForm({
+                        ...form,
                         group_name: value,
                         preferred_group_id: selectedGroup.group_id,
-                        group_fee: selectedGroup.fee
+                        group_fee: selectedGroup.fee,
                       });
                       onGroupChange(selectedGroup.group_id);
                     }
                   }}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select group" />
+                  <SelectTrigger disabled={isLoadingGroups}>
+                    <SelectValue
+                      placeholder={
+                        isLoadingGroups ? "Loading..." : "Select group"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {(groups || []).map((group) => (
-                      <SelectItem key={group.group_id} value={group.group_name}>
-                        {group.group_name}
-                      </SelectItem>
-                    ))}
+                    {isLoadingGroups ? (
+                      <div className="flex items-center justify-center p-4">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        <span className="ml-2 text-sm text-muted-foreground">
+                          Loading groups...
+                        </span>
+                      </div>
+                    ) : (groups || []).length === 0 ? (
+                      <div className="p-4 text-sm text-muted-foreground text-center">
+                        No groups available
+                      </div>
+                    ) : (
+                      (groups || []).map((group) => (
+                        <SelectItem
+                          key={group.group_id}
+                          value={group.group_name}
+                        >
+                          {group.group_name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -693,30 +767,55 @@ export default function ReservationForm({
                 <Label htmlFor="course_name">Course Name *</Label>
                 <Select
                   value={form.course_name}
+                  onOpenChange={(open) => {
+                    if (open && onDropdownOpen) {
+                      onDropdownOpen("courses");
+                    }
+                  }}
                   onValueChange={(value) => {
                     const selectedCourse = courses.find(
                       (c) => c.course_name === value
                     );
                     if (selectedCourse) {
-                      setForm({ 
-                        ...form, 
+                      setForm({
+                        ...form,
                         course_name: value,
                         preferred_course_id: selectedCourse.course_id,
-                        course_fee: selectedCourse.fee
+                        course_fee: selectedCourse.fee,
                       });
                       onCourseChange(selectedCourse.course_id);
                     }
                   }}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select course" />
+                  <SelectTrigger disabled={isLoadingCourses}>
+                    <SelectValue
+                      placeholder={
+                        isLoadingCourses ? "Loading..." : "Select course"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {(courses || []).map((course) => (
-                      <SelectItem key={course.course_id} value={course.course_name}>
-                        {course.course_name}
-                      </SelectItem>
-                    ))}
+                    {isLoadingCourses ? (
+                      <div className="flex items-center justify-center p-4">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        <span className="ml-2 text-sm text-muted-foreground">
+                          Loading courses...
+                        </span>
+                      </div>
+                    ) : (courses || []).length === 0 ? (
+                      <div className="p-4 text-sm text-muted-foreground text-center">
+                        No courses available
+                      </div>
+                    ) : (
+                      (courses || []).map((course) => (
+                        <SelectItem
+                          key={course.course_id}
+                          value={course.course_name}
+                        >
+                          {course.course_name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -826,19 +925,49 @@ export default function ReservationForm({
                     </Label>
                     <Select
                       value={form.preferred_transport_id.toString()}
+                      onOpenChange={(open) => {
+                        if (open && onDropdownOpen) {
+                          onDropdownOpen("routes");
+                        }
+                      }}
                       onValueChange={(value) =>
-                        setForm({ ...form, preferred_transport_id: Number(value) })
+                        setForm({
+                          ...form,
+                          preferred_transport_id: Number(value),
+                        })
                       }
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select transport route" />
+                      <SelectTrigger disabled={isLoadingRoutes}>
+                        <SelectValue
+                          placeholder={
+                            isLoadingRoutes
+                              ? "Loading..."
+                              : "Select transport route"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        {(routes || []).map((route) => (
-                          <SelectItem key={route.id} value={route.id.toString()}>
-                            {route.name}
-                          </SelectItem>
-                        ))}
+                        {isLoadingRoutes ? (
+                          <div className="flex items-center justify-center p-4">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                            <span className="ml-2 text-sm text-muted-foreground">
+                              Loading routes...
+                            </span>
+                          </div>
+                        ) : (routes || []).length === 0 ? (
+                          <div className="p-4 text-sm text-muted-foreground text-center">
+                            No routes available
+                          </div>
+                        ) : (
+                          (routes || []).map((route) => (
+                            <SelectItem
+                              key={route.id}
+                              value={route.id.toString()}
+                            >
+                              {route.name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -848,27 +977,54 @@ export default function ReservationForm({
                     </Label>
                     <Select
                       value={form.preferred_distance_slab_id.toString()}
+                      onOpenChange={(open) => {
+                        if (open && onDropdownOpen) {
+                          onDropdownOpen("distanceSlabs");
+                        }
+                      }}
                       onValueChange={(value) => {
-                        setForm({ ...form, preferred_distance_slab_id: Number(value) });
+                        setForm({
+                          ...form,
+                          preferred_distance_slab_id: Number(value),
+                        });
                         onDistanceSlabChange(Number(value));
                       }}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select distance slab" />
+                      <SelectTrigger disabled={isLoadingDistanceSlabs}>
+                        <SelectValue
+                          placeholder={
+                            isLoadingDistanceSlabs
+                              ? "Loading..."
+                              : "Select distance slab"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        {(distanceSlabs || []).map((slab) => (
-                          <SelectItem
-                            key={slab.slab_id}
-                            value={slab.slab_id.toString()}
-                          >
-                            {slab.slab_name} - {slab.min_distance}km
-                            {slab.max_distance
-                              ? `-${slab.max_distance}km`
-                              : "+"}{" "}
-                            (₹{slab.fee_amount})
-                          </SelectItem>
-                        ))}
+                        {isLoadingDistanceSlabs ? (
+                          <div className="flex items-center justify-center p-4">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                            <span className="ml-2 text-sm text-muted-foreground">
+                              Loading distance slabs...
+                            </span>
+                          </div>
+                        ) : (distanceSlabs || []).length === 0 ? (
+                          <div className="p-4 text-sm text-muted-foreground text-center">
+                            No distance slabs available
+                          </div>
+                        ) : (
+                          (distanceSlabs || []).map((slab) => (
+                            <SelectItem
+                              key={slab.slab_id}
+                              value={slab.slab_id.toString()}
+                            >
+                              {slab.slab_name} - {slab.min_distance}km
+                              {slab.max_distance
+                                ? `-${slab.max_distance}km`
+                                : "+"}{" "}
+                              (₹{slab.fee_amount})
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -996,7 +1152,10 @@ export default function ReservationForm({
                   type="number"
                   value={form.application_fee}
                   onChange={(e) =>
-                    setForm({ ...form, application_fee: Number(e.target.value) })
+                    setForm({
+                      ...form,
+                      application_fee: Number(e.target.value),
+                    })
                   }
                   className="w-full mb-5"
                 />

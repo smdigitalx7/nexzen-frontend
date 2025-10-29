@@ -1,12 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import React, { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, X, Download, AlertCircle } from "lucide-react";
+import { Printer, X, Download, AlertCircle, ExternalLink } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface ReceiptPreviewModalProps {
@@ -23,6 +17,12 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
+  const handleConfirmClose = useCallback(() => {
+    setIsLoading(false);
+    setHasError(false);
+    onClose();
+  }, [onClose]);
+
   useEffect(() => {
     if (isOpen && blobUrl) {
       setIsLoading(true);
@@ -37,6 +37,33 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
       setIsLoading(false);
     }
   }, [isOpen, blobUrl]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
+  // Handle Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        handleConfirmClose();
+      }
+    };
+    if (isOpen) {
+      document.addEventListener("keydown", handleEscape);
+    }
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isOpen, handleConfirmClose]);
 
   const handlePrint = () => {
     if (blobUrl) {
@@ -85,17 +112,14 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
     }
   };
 
-
-  const handleConfirmClose = () => {
-    setIsLoading(false);
-    setHasError(false);
-    onClose();
-  };
-
-
-  // Allow modal to close on backdrop click
-  const handleBackdropClick = () => {
-    handleConfirmClose();
+  const handleOpenInNewTab = () => {
+    if (blobUrl) {
+      window.open(blobUrl, "_blank");
+      toast({
+        title: "Opened in New Tab",
+        description: "Receipt has been opened in a new browser tab.",
+      });
+    }
   };
 
   if (!isOpen) {
@@ -103,119 +127,131 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   }
 
   return (
-    <>
-      <Dialog open={isOpen} onOpenChange={(open) => {
-        if (!open) {
-          // Don't call handleClose here as it shows confirmation dialog
-          // Instead, directly call onClose to avoid conflicts
-          onClose();
-        }
-      }} modal={false}>
-        <DialogContent
-          className="max-w-3xl w-full h-[95vh] p-0 z-[9999]"
-          onPointerDownOutside={handleBackdropClick}
-          onEscapeKeyDown={() => {
-            handleConfirmClose();
-          }}
-          showCloseButton={false}
-          aria-describedby="receipt-preview-description"
-          aria-modal="true"
-          role="dialog"
-        >
-        <DialogHeader className="p-4 border-b flex items-center justify-between">
-          <div className="flex items-center justify-between w-full">
-            <div>
-              <DialogTitle className="text-lg font-semibold">
-                Receipt Preview
-              </DialogTitle>
-              <div id="receipt-preview-description" className="sr-only">
-                Payment receipt preview with options to print, download, or close
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button onClick={handleDownload} variant="default" size="sm">
-                <Download className="h-4 w-4" />
-                Download
-              </Button>
-              <Button onClick={handlePrint} variant="default" size="sm">
-                <Printer className="h-4 w-4 " />
-                Print
-              </Button>
-              <Button onClick={() => {
-                handleConfirmClose();
-              }} variant="outline" size="sm">
-                <X className="h-4 w-4" />
-                Close
-              </Button>
+    <div
+      className="fixed inset-0 z-[9999] bg-background flex flex-col"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="receipt-preview-title"
+      aria-describedby="receipt-preview-description"
+    >
+      {/* Header Bar */}
+      <div className="flex items-center justify-between p-4 border-b bg-background shadow-sm">
+        <div className="flex items-center gap-4">
+          <h2 id="receipt-preview-title" className="text-xl font-semibold">
+            Receipt Preview
+          </h2>
+          <div id="receipt-preview-description" className="sr-only">
+            Payment receipt preview with options to print, download, open in new
+            tab, or close
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleOpenInNewTab}
+            variant="outline"
+            size="sm"
+            disabled={!blobUrl}
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Open in New Tab
+          </Button>
+          <Button
+            onClick={handleDownload}
+            variant="default"
+            size="sm"
+            disabled={!blobUrl}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Download
+          </Button>
+          <Button
+            onClick={handlePrint}
+            variant="default"
+            size="sm"
+            disabled={!blobUrl}
+          >
+            <Printer className="h-4 w-4 mr-2" />
+            Print
+          </Button>
+          <Button onClick={handleConfirmClose} variant="outline" size="sm">
+            <X className="h-4 w-4 mr-2" />
+            Close
+          </Button>
+        </div>
+      </div>
+
+      {/* Content Area - Full Screen */}
+      <div className="flex-1 relative overflow-hidden bg-muted/30">
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/95 z-20">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-lg text-muted-foreground">
+                Loading receipt...
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Please wait while the PDF loads
+              </p>
             </div>
           </div>
-        </DialogHeader>
+        )}
 
-        <div className="flex-1 p-4 overflow-hidden relative">
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/90 z-20">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-lg text-muted-foreground">
-                  Loading receipt...
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Please wait while the PDF loads
-                </p>
-              </div>
+        {blobUrl ? (
+          <div className="w-full h-full">
+            <iframe
+              src={blobUrl}
+              className="w-full h-full border-0"
+              title="Receipt Preview"
+              onLoad={() => {
+                setIsLoading(false);
+              }}
+              onError={() => {
+                setIsLoading(false);
+                setHasError(true);
+              }}
+            />
+          </div>
+        ) : (
+          <div className="h-full flex items-center justify-center text-muted-foreground">
+            <div className="text-center">
+              <AlertCircle className="h-16 w-16 mx-auto mb-4" />
+              <p className="text-lg">No receipt available</p>
+              <p className="text-sm mt-2">
+                Please try regenerating the receipt
+              </p>
             </div>
-          )}
+          </div>
+        )}
 
-          {blobUrl ? (
-            <div className="w-full h-full">
-              <iframe
-                src={blobUrl}
-                className="w-full h-full border-0 rounded-md"
-                title="Receipt Preview"
-                style={{ minHeight: "700px" }}
-                onLoad={() => {
-                  setIsLoading(false);
-                }}
-                onError={() => {
-                  setIsLoading(false);
-                  setHasError(true);
-                }}
-              />
-            </div>
-          ) : (
-            <div className="h-full flex items-center justify-center text-muted-foreground">
-              <div className="text-center">
-                <AlertCircle className="h-16 w-16 mx-auto mb-4" />
-                <p className="text-lg">No receipt available</p>
-                <p className="text-sm mt-2">
-                  Please try regenerating the receipt
-                </p>
-              </div>
-            </div>
-          )}
-
-          {hasError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/90 z-20">
-              <div className="text-center">
-                <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
-                <p className="text-lg text-muted-foreground mb-4">
-                  Failed to display PDF
-                </p>
-                <p className="text-sm text-muted-foreground mb-6">
-                  You can still download the PDF
-                </p>
-                <Button onClick={handleDownload} variant="outline" size="lg">
+        {hasError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/95 z-20">
+            <div className="text-center">
+              <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
+              <p className="text-lg text-muted-foreground mb-4">
+                Failed to display PDF
+              </p>
+              <p className="text-sm text-muted-foreground mb-6">
+                You can still download the PDF or open it in a new tab
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <Button
+                  onClick={handleOpenInNewTab}
+                  variant="outline"
+                  size="lg"
+                >
+                  <ExternalLink className="h-5 w-5 mr-2" />
+                  Open in New Tab
+                </Button>
+                <Button onClick={handleDownload} variant="default" size="lg">
                   <Download className="h-5 w-5 mr-2" />
                   Download PDF
                 </Button>
               </div>
             </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-
-    </>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
