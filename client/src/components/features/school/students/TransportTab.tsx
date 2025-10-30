@@ -1,15 +1,27 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Eye } from 'lucide-react';
+import { ConfirmDialog } from '@/components/shared';
 import { EnhancedDataTable } from '@/components/shared';
-import { useSchoolStudentTransport } from '@/lib/hooks/school/use-school-student-transport';
+import {
+  TransportSearchForm,
+  TransportCreateDialog,
+  TransportEditDialog,
+  TransportViewDialog,
+} from './transport';
+import { 
+  useSchoolStudentTransport, 
+  useCreateSchoolStudentTransport,
+  useUpdateSchoolStudentTransport,
+  useDeleteSchoolStudentTransport,
+  useSchoolStudentTransportById 
+} from '@/lib/hooks/school/use-school-student-transport';
 import { useSchoolClasses } from '@/lib/hooks/school/use-school-dropdowns';
 import { useSchoolSections } from '@/lib/hooks/school/use-school-dropdowns';
 import { useBusRoutes } from '@/lib/hooks/general/useTransport';
+import { useDistanceSlabs } from '@/lib/hooks/general/useDistanceSlabs';
+import { useSchoolEnrollmentsList } from '@/lib/hooks/school/use-school-enrollments';
 import type { ColumnDef } from '@tanstack/react-table';
+import type { SchoolStudentTransportAssignmentCreate, SchoolStudentTransportAssignmentUpdate } from '@/lib/types/school';
 
 const TransportTabComponent = () => {
   // State management
@@ -23,10 +35,14 @@ const TransportTabComponent = () => {
   const { data: classesData } = useSchoolClasses();
   const { data: sectionsData } = useSchoolSections(Number(query.class_id) || 0);
   const { data: routesData } = useBusRoutes();
+  const { distanceSlabs } = useDistanceSlabs();
+  const { data: enrollmentsData } = useSchoolEnrollmentsList({ page: 1, page_size: 1000 });
   
   const classes = classesData?.items || [];
   const sections = sectionsData?.items || [];
   const busRoutes = Array.isArray(routesData) ? routesData : [];
+  const enrollments = enrollmentsData?.enrollments || [];
+  const slabs = distanceSlabs || [];
 
   // Memoized API parameters
   const apiParams = useMemo(() => {
@@ -45,10 +61,159 @@ const TransportTabComponent = () => {
 
   // API hook with memoized parameters
   const result = useSchoolStudentTransport(apiParams);
+  const createMutation = useCreateSchoolStudentTransport();
+  const updateMutation = useUpdateSchoolStudentTransport();
+  const deleteMutation = useDeleteSchoolStudentTransport();
+
+  // Dialog state
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<number | null>(null);
+  const [viewAssignmentId, setViewAssignmentId] = useState<number | null>(null);
+  
+  // Fetch selected assignment for editing/viewing
+  const { data: selectedAssignment } = useSchoolStudentTransportById(selectedAssignmentId);
+  const { data: viewAssignment, isLoading: isLoadingView } = useSchoolStudentTransportById(viewAssignmentId);
+  
+  const [formData, setFormData] = useState<SchoolStudentTransportAssignmentCreate>({
+    enrollment_id: 0,
+    bus_route_id: 0,
+    slab_id: 0,
+    pickup_point: '',
+    start_date: new Date().toISOString().split('T')[0],
+    end_date: null,
+    is_active: true,
+  });
+
+  const [editFormData, setEditFormData] = useState({
+    bus_route_id: 0,
+    slab_id: 0,
+    pickup_point: '',
+    start_date: '',
+    end_date: null as string | null,
+    is_active: true,
+  });
+
+  // Reset form
+  const resetForm = useCallback(() => {
+    setFormData({
+      enrollment_id: 0,
+      bus_route_id: 0,
+      slab_id: 0,
+      pickup_point: '',
+      start_date: new Date().toISOString().split('T')[0],
+      end_date: null,
+      is_active: true,
+    });
+  }, []);
+
+  const resetEditForm = useCallback(() => {
+    setEditFormData({
+      bus_route_id: 0,
+      slab_id: 0,
+      pickup_point: '',
+      start_date: '',
+      end_date: null,
+      is_active: true,
+    });
+  }, []);
+
+  // Handle create
+  const handleCreate = useCallback(async () => {
+    if (!formData.enrollment_id || !formData.bus_route_id || !formData.slab_id || !formData.start_date) {
+      return;
+    }
+    try {
+      await createMutation.mutateAsync(formData);
+      setIsCreateDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      // Error handled by mutation hook
+    }
+  }, [formData, createMutation, resetForm]);
+
+  // Handle view
+  const handleView = useCallback((assignment: any) => {
+    setViewAssignmentId(assignment.transport_assignment_id);
+    setIsViewDialogOpen(true);
+  }, []);
+
+  // Handle edit
+  const handleEdit = useCallback((assignment: any) => {
+    setSelectedAssignmentId(assignment.transport_assignment_id);
+    setIsEditDialogOpen(true);
+  }, []);
+
+  // Handle delete
+  const handleDelete = useCallback((assignment: any) => {
+    setSelectedAssignmentId(assignment.transport_assignment_id);
+    setIsDeleteDialogOpen(true);
+  }, []);
+
+  // Handle update
+  const handleUpdate = useCallback(async () => {
+    if (!selectedAssignmentId || !selectedAssignment) return;
+    
+    const updatePayload: SchoolStudentTransportAssignmentUpdate = {
+      bus_route_id: editFormData.bus_route_id || undefined,
+      slab_id: editFormData.slab_id || undefined,
+      pickup_point: editFormData.pickup_point || undefined,
+      start_date: editFormData.start_date || undefined,
+      end_date: editFormData.end_date || undefined,
+      is_active: editFormData.is_active ?? undefined,
+    };
+    
+    try {
+      await updateMutation.mutateAsync({ id: selectedAssignmentId, payload: updatePayload });
+      setIsEditDialogOpen(false);
+      setSelectedAssignmentId(null);
+      resetEditForm();
+    } catch (error) {
+      // Error handled by mutation hook
+    }
+  }, [selectedAssignmentId, selectedAssignment, editFormData, updateMutation, resetEditForm]);
+
+  // Handle delete confirm
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!selectedAssignmentId) return;
+    try {
+      await deleteMutation.mutateAsync(selectedAssignmentId);
+      setIsDeleteDialogOpen(false);
+      setSelectedAssignmentId(null);
+    } catch (error) {
+      // Error handled by mutation hook
+    }
+  }, [selectedAssignmentId, deleteMutation]);
+
+  // Populate form when assignment is loaded for editing
+  useEffect(() => {
+    if (isEditDialogOpen && selectedAssignment) {
+      setEditFormData({
+        bus_route_id: selectedAssignment.bus_route_id,
+        slab_id: selectedAssignment.slab_id,
+        pickup_point: selectedAssignment.pickup_point || '',
+        start_date: selectedAssignment.start_date,
+        end_date: selectedAssignment.end_date || null,
+        is_active: selectedAssignment.is_active,
+      });
+    }
+  }, [isEditDialogOpen, selectedAssignment]);
 
   // Memoized handlers
-  const handleQueryChange = useCallback((field: string, value: any) => {
-    setQuery(prev => ({ ...prev, [field]: value }));
+  const handleSectionChange = useCallback((value: string) => {
+    setQuery(prev => ({ 
+      ...prev, 
+      section_id: value ? Number(value) : '' 
+    }));
+  }, []);
+
+  const handleBusRouteChange = useCallback((value: string) => {
+    setQuery(prev => ({ 
+      ...prev, 
+      bus_route_id: value ? Number(value) : '' 
+    }));
   }, []);
 
   const handleClear = useCallback(() => {
@@ -85,6 +250,22 @@ const TransportTabComponent = () => {
     });
     return flattened;
   }, [result.data]);
+
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (row: any) => handleView(row)
+    },
+    {
+      type: 'edit' as const,
+      onClick: (row: any) => handleEdit(row)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: any) => handleDelete(row)
+    }
+  ], [handleView, handleEdit, handleDelete]);
 
   // Define columns
   const columns: ColumnDef<any>[] = useMemo(() => [
@@ -136,78 +317,16 @@ const TransportTabComponent = () => {
   return (
     <div className="space-y-4">
       {/* Search Form */}
-      <div className="border rounded-lg p-4 bg-gray-50">
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">Class</label>
-              <Select
-                value={query.class_id ? String(query.class_id) : ''}
-                onValueChange={handleClassChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((cls: any) => (
-                    <SelectItem key={cls.class_id} value={String(cls.class_id)}>
-                      {cls.class_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">Section</label>
-              <Select
-                value={query.section_id ? String(query.section_id) : ''}
-                onValueChange={(value) => handleQueryChange('section_id', value ? Number(value) : '')}
-                disabled={!query.class_id}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={query.class_id ? "Select section (optional)" : "Select class first"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {sections.map((sec: any) => (
-                    <SelectItem key={sec.section_id} value={String(sec.section_id)}>
-                      {sec.section_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">Bus Route</label>
-              <Select
-                value={query.bus_route_id ? String(query.bus_route_id) : ''}
-                onValueChange={(value) => handleQueryChange('bus_route_id', value ? Number(value) : '')}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select bus route (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {busRoutes.map((route: any) => (
-                    <SelectItem key={route.bus_route_id} value={String(route.bus_route_id)}>
-                      {route.route_name} {route.route_no ? `(${route.route_no})` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button 
-              onClick={handleClear}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Eye className="w-4 h-4" />
-              Clear
-            </Button>
-          </div>
-        </div>
-      </div>
+      <TransportSearchForm
+        query={query}
+        classes={classes}
+        sections={sections}
+        busRoutes={busRoutes}
+        onClassChange={handleClassChange}
+        onSectionChange={handleSectionChange}
+        onBusRouteChange={handleBusRouteChange}
+        onClear={handleClear}
+      />
 
       {/* Enhanced Data Table */}
       <EnhancedDataTable
@@ -217,6 +336,83 @@ const TransportTabComponent = () => {
         searchKey="student_name"
         searchPlaceholder="Search by student name..."
         loading={result.isLoading}
+        onAdd={() => setIsCreateDialogOpen(true)}
+        addButtonText="Add Transport Assignment"
+        addButtonVariant="default"
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
+      />
+
+      {/* Create Transport Assignment Dialog */}
+      <TransportCreateDialog
+        open={isCreateDialogOpen}
+        onOpenChange={(open) => {
+          setIsCreateDialogOpen(open);
+          if (!open) resetForm();
+        }}
+        isLoading={createMutation.isPending}
+        formData={formData}
+        onFormDataChange={setFormData}
+        onSave={handleCreate}
+        onCancel={() => {
+          setIsCreateDialogOpen(false);
+          resetForm();
+        }}
+        enrollments={enrollments}
+        busRoutes={busRoutes}
+        slabs={slabs}
+      />
+
+      {/* Edit Transport Assignment Dialog */}
+      <TransportEditDialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setSelectedAssignmentId(null);
+            resetEditForm();
+          }
+        }}
+        isLoading={updateMutation.isPending}
+        formData={editFormData}
+        onFormDataChange={setEditFormData}
+        onSave={handleUpdate}
+        onCancel={() => {
+          setIsEditDialogOpen(false);
+          setSelectedAssignmentId(null);
+          resetEditForm();
+        }}
+        busRoutes={busRoutes}
+        slabs={slabs}
+      />
+
+      {/* View Transport Assignment Dialog */}
+      <TransportViewDialog
+        open={isViewDialogOpen}
+        onOpenChange={(open) => {
+          setIsViewDialogOpen(open);
+          if (!open) {
+            setViewAssignmentId(null);
+          }
+        }}
+        viewAssignment={viewAssignment || null}
+        isLoading={isLoadingView}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Delete Transport Assignment"
+        description="Are you sure you want to delete this transport assignment? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+        isLoading={deleteMutation.isPending}
+        loadingText="Deleting..."
+        onConfirm={handleDeleteConfirm}
       />
     </div>
   );

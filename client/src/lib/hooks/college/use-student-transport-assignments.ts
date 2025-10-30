@@ -11,10 +11,10 @@ export function useCollegeStudentTransportAssignments() {
   });
 }
 
-export function useCollegeStudentTransportAssignment(assignmentId: number | null | undefined) {
+export function useCollegeStudentTransportAssignmentById(assignmentId: number | null | undefined) {
   return useQuery({
     queryKey: typeof assignmentId === "number" ? collegeKeys.studentTransport.detail(assignmentId) : [...collegeKeys.studentTransport.root(), "detail", "nil"],
-    queryFn: () => CollegeStudentTransportAssignmentsService.getById(assignmentId as number) as Promise<CollegeTransportAssignmentRead>,
+    queryFn: () => CollegeStudentTransportAssignmentsService.getById(assignmentId as number),
     enabled: typeof assignmentId === "number" && assignmentId > 0,
   });
 }
@@ -29,13 +29,14 @@ export function useCreateCollegeStudentTransportAssignment() {
   }, "Student transport assigned successfully");
 }
 
-export function useUpdateCollegeStudentTransportAssignment(assignmentId: number) {
+export function useUpdateCollegeStudentTransportAssignment() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeTransportAssignmentUpdate) => CollegeStudentTransportAssignmentsService.update(assignmentId, payload) as Promise<CollegeTransportAssignmentRead>,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.detail(assignmentId) });
+    mutationFn: ({ id, payload }: { id: number; payload: CollegeTransportAssignmentUpdate }) =>
+      CollegeStudentTransportAssignmentsService.update(id, payload),
+    onSuccess: (_data, { id }) => {
       qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.root() });
+      qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.detail(id) });
     },
   }, "Student transport updated successfully");
 }
@@ -44,10 +45,11 @@ export function useDeleteCollegeStudentTransportAssignment() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (assignmentId: number) => CollegeStudentTransportAssignmentsService.delete(assignmentId),
-    onSuccess: () => {
+    onSuccess: (_, assignmentId) => {
       qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.root() });
+      qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.detail(assignmentId) });
     },
-  }, "Student transport removed successfully");
+  }, "Student transport assignment deleted successfully");
 }
 
 export function useCollegeStudentTransportDashboard() {

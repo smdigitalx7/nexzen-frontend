@@ -1,14 +1,25 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Eye } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { ConfirmDialog } from '@/components/shared';
 import { EnhancedDataTable } from '@/components/shared';
-import { useSchoolEnrollmentsList } from '@/lib/hooks/school/use-school-enrollments';
+import {
+  EnrollmentSearchForm,
+  EnrollmentCreateDialog,
+  EnrollmentEditDialog,
+  EnrollmentViewDialog,
+} from './enrollments';
+import { 
+  useSchoolEnrollmentsList,
+  useSchoolEnrollment,
+  useCreateSchoolEnrollment,
+  useUpdateSchoolEnrollment,
+  useDeleteSchoolEnrollment,
+} from '@/lib/hooks/school/use-school-enrollments';
 import { useSchoolClasses } from '@/lib/hooks/school/use-school-dropdowns';
 import { useSchoolSections } from '@/lib/hooks/school/use-school-dropdowns';
-import type { SchoolEnrollmentRead } from '@/lib/types/school/enrollments';
+import { useSchoolStudentsList } from '@/lib/hooks/school/use-school-students';
 import type { ColumnDef } from '@tanstack/react-table';
+import type { SchoolEnrollmentCreate, SchoolEnrollmentUpdate, SchoolEnrollmentRead } from '@/lib/types/school';
 
 const EnrollmentsTabComponent = () => {
   // State management
@@ -21,29 +32,173 @@ const EnrollmentsTabComponent = () => {
   // Fetch dropdown data
   const { data: classesData } = useSchoolClasses();
   const { data: sectionsData } = useSchoolSections(Number(query.class_id) || 0);
+  const { data: studentsData } = useSchoolStudentsList({ page: 1, page_size: 1000 });
   
   const classes = classesData?.items || [];
   const sections = sectionsData?.items || [];
+  const students = studentsData?.data || [];
 
-  // Memoized API parameters
+  // Memoized API parameters - class_id is required
   const apiParams = useMemo(() => {
     const params: any = {};
     if (query.class_id) {
       params.class_id = Number(query.class_id);
+      if (query.section_id) {
+        params.section_id = Number(query.section_id);
+      }
     }
-    if (query.section_id) {
-      params.section_id = Number(query.section_id);
-    }
-    // Return params object even if empty - backend supports fetching all enrollments
     return params;
   }, [query.class_id, query.section_id]);
 
-  // API hook with memoized parameters
+  // API hooks
   const result = useSchoolEnrollmentsList(apiParams);
+  const createMutation = useCreateSchoolEnrollment();
+  const updateMutation = useUpdateSchoolEnrollment();
+  const deleteMutation = useDeleteSchoolEnrollment();
+
+  // Dialog state
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<number | null>(null);
+  const [viewEnrollmentId, setViewEnrollmentId] = useState<number | null>(null);
+
+  // Fetch selected enrollment for editing/viewing
+  const { data: selectedEnrollment } = useSchoolEnrollment(selectedEnrollmentId);
+  const { data: viewEnrollment, isLoading: isLoadingView } = useSchoolEnrollment(viewEnrollmentId);
+
+  const [formData, setFormData] = useState<SchoolEnrollmentCreate>({
+    student_id: 0,
+    class_id: 0,
+    section_id: 0,
+    roll_number: '',
+    enrollment_date: new Date().toISOString().split('T')[0],
+    is_active: true,
+  });
+
+  const [editFormData, setEditFormData] = useState({
+    class_id: 0,
+    section_id: 0,
+    roll_number: '',
+    enrollment_date: null as string | null,
+    is_active: true,
+  });
+
+  // Reset form
+  const resetForm = useCallback(() => {
+    setFormData({
+      student_id: 0,
+      class_id: 0,
+      section_id: 0,
+      roll_number: '',
+      enrollment_date: new Date().toISOString().split('T')[0],
+      is_active: true,
+    });
+  }, []);
+
+  const resetEditForm = useCallback(() => {
+    setEditFormData({
+      class_id: 0,
+      section_id: 0,
+      roll_number: '',
+      enrollment_date: null,
+      is_active: true,
+    });
+  }, []);
+
+  // Handle create
+  const handleCreate = useCallback(async () => {
+    if (!formData.student_id || !formData.class_id || !formData.section_id || !formData.roll_number) {
+      return;
+    }
+    try {
+      await createMutation.mutateAsync(formData);
+      setIsCreateDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      // Error handled by mutation hook
+    }
+  }, [formData, createMutation, resetForm]);
+
+  // Handle view
+  const handleView = useCallback((enrollment: any) => {
+    setViewEnrollmentId(enrollment.enrollment_id);
+    setIsViewDialogOpen(true);
+  }, []);
+
+  // Handle edit
+  const handleEdit = useCallback((enrollment: any) => {
+    setSelectedEnrollmentId(enrollment.enrollment_id);
+    setIsEditDialogOpen(true);
+  }, []);
+
+  // Handle delete
+  const handleDelete = useCallback((enrollment: any) => {
+    setSelectedEnrollmentId(enrollment.enrollment_id);
+    setIsDeleteDialogOpen(true);
+  }, []);
+
+  // Handle update
+  const handleUpdate = useCallback(async () => {
+    if (!selectedEnrollmentId || !selectedEnrollment) return;
+    
+    const updatePayload: SchoolEnrollmentUpdate = {
+      class_id: editFormData.class_id || undefined,
+      section_id: editFormData.section_id || undefined,
+      roll_number: editFormData.roll_number || undefined,
+      enrollment_date: editFormData.enrollment_date || undefined,
+      is_active: editFormData.is_active ?? undefined,
+    };
+    
+    try {
+      await updateMutation.mutateAsync({ id: selectedEnrollmentId, payload: updatePayload });
+      setIsEditDialogOpen(false);
+      setSelectedEnrollmentId(null);
+      resetEditForm();
+    } catch (error) {
+      // Error handled by mutation hook
+    }
+  }, [selectedEnrollmentId, selectedEnrollment, editFormData, updateMutation, resetEditForm]);
+
+  // Handle delete confirm
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!selectedEnrollmentId) return;
+    try {
+      await deleteMutation.mutateAsync(selectedEnrollmentId);
+      setIsDeleteDialogOpen(false);
+      setSelectedEnrollmentId(null);
+    } catch (error) {
+      // Error handled by mutation hook
+    }
+  }, [selectedEnrollmentId, deleteMutation]);
+
+  // Populate form when enrollment is loaded for editing
+  useEffect(() => {
+    if (isEditDialogOpen && selectedEnrollment) {
+      setEditFormData({
+        class_id: selectedEnrollment.class_id,
+        section_id: selectedEnrollment.section_id,
+        roll_number: selectedEnrollment.roll_number,
+        enrollment_date: selectedEnrollment.enrollment_date || null,
+        is_active: selectedEnrollment.is_active,
+      });
+    }
+  }, [isEditDialogOpen, selectedEnrollment]);
 
   // Memoized handlers
-  const handleQueryChange = useCallback((field: string, value: any) => {
-    setQuery(prev => ({ ...prev, [field]: value }));
+  const handleSectionChange = useCallback((value: string) => {
+    setQuery(prev => ({ 
+      ...prev, 
+      section_id: value ? Number(value) : '' 
+    }));
+  }, []);
+
+  const handleAdmissionNoChange = useCallback((value: string) => {
+    setQuery(prev => ({ 
+      ...prev, 
+      admission_no: value 
+    }));
   }, []);
 
   const handleClear = useCallback(() => {
@@ -74,13 +229,24 @@ const EnrollmentsTabComponent = () => {
     return flattened;
   }, [result.data?.enrollments]);
 
+  // Action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: 'view' as const,
+      onClick: (row: any) => handleView(row)
+    },
+    {
+      type: 'edit' as const,
+      onClick: (row: any) => handleEdit(row)
+    },
+    {
+      type: 'delete' as const,
+      onClick: (row: any) => handleDelete(row)
+    }
+  ], [handleView, handleEdit, handleDelete]);
+
   // Define columns
   const columns: ColumnDef<SchoolEnrollmentRead>[] = useMemo(() => [
-    // {
-    //   accessorKey: 'enrollment_id',
-    //   header: 'Enrollment ID',
-    //   cell: ({ row }) => <span className="font-mono text-sm">{row.original.enrollment_id}</span>,
-    // },
     {
       accessorKey: 'admission_no',
       header: 'Admission No',
@@ -111,68 +277,15 @@ const EnrollmentsTabComponent = () => {
   return (
     <div className="space-y-4">
       {/* Search Form */}
-      <div className="border rounded-lg p-4 bg-gray-50">
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">Class</label>
-              <Select
-                value={query.class_id ? String(query.class_id) : ''}
-                onValueChange={handleClassChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((cls: any) => (
-                    <SelectItem key={cls.class_id} value={String(cls.class_id)}>
-                      {cls.class_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">Section</label>
-              <Select
-                value={query.section_id ? String(query.section_id) : ''}
-                onValueChange={(value) => handleQueryChange('section_id', value ? Number(value) : '')}
-                disabled={!query.class_id}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={query.class_id ? "Select section (optional)" : "Select class first"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {sections.map((sec: any) => (
-                    <SelectItem key={sec.section_id} value={String(sec.section_id)}>
-                      {sec.section_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">Admission No (optional)</label>
-              <Input
-                placeholder="Enter admission number"
-                value={query.admission_no ?? ''}
-                onChange={(e) => handleQueryChange('admission_no', e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button 
-              onClick={handleClear}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Eye className="w-4 h-4" />
-              Clear
-            </Button>
-          </div>
-        </div>
-      </div>
+      <EnrollmentSearchForm
+        query={query}
+        classes={classes}
+        sections={sections}
+        onClassChange={handleClassChange}
+        onSectionChange={handleSectionChange}
+        onAdmissionNoChange={handleAdmissionNoChange}
+        onClear={handleClear}
+      />
 
       {/* Enhanced Data Table */}
       <EnhancedDataTable
@@ -182,6 +295,85 @@ const EnrollmentsTabComponent = () => {
         searchKey="student_name"
         searchPlaceholder="Search by student name..."
         loading={result.isLoading}
+        onAdd={() => setIsCreateDialogOpen(true)}
+        addButtonText="Add Enrollment"
+        addButtonVariant="default"
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={false}
+      />
+
+      {/* Create Enrollment Dialog */}
+      <EnrollmentCreateDialog
+        open={isCreateDialogOpen}
+        onOpenChange={(open) => {
+          setIsCreateDialogOpen(open);
+          if (!open) resetForm();
+        }}
+        isLoading={createMutation.isPending}
+        formData={formData}
+        onFormDataChange={setFormData}
+        onSave={handleCreate}
+        onCancel={() => {
+          setIsCreateDialogOpen(false);
+          resetForm();
+        }}
+        students={students}
+        classes={classes}
+        sections={sections}
+      />
+
+      {/* Edit Enrollment Dialog */}
+      <EnrollmentEditDialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setSelectedEnrollmentId(null);
+            resetEditForm();
+          }
+        }}
+        isLoading={updateMutation.isPending}
+        formData={editFormData}
+        onFormDataChange={setEditFormData}
+        onSave={handleUpdate}
+        onCancel={() => {
+          setIsEditDialogOpen(false);
+          setSelectedEnrollmentId(null);
+          resetEditForm();
+        }}
+        classes={classes}
+        sections={sections}
+      />
+
+      {/* View Enrollment Dialog */}
+      <EnrollmentViewDialog
+        open={isViewDialogOpen}
+        onOpenChange={(open) => {
+          setIsViewDialogOpen(open);
+          if (!open) {
+            setViewEnrollmentId(null);
+          }
+        }}
+        enrollment={viewEnrollment || null}
+        isLoading={isLoadingView}
+        classes={classes}
+        sections={sections}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Delete Enrollment"
+        description="Are you sure you want to delete this enrollment? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+        isLoading={deleteMutation.isPending}
+        loadingText="Deleting..."
+        onConfirm={handleDeleteConfirm}
       />
     </div>
   );

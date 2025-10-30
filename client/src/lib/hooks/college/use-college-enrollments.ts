@@ -43,14 +43,14 @@ export function useCreateCollegeEnrollment() {
   }, "Enrollment created successfully");
 }
 
-export function useUpdateCollegeEnrollment(enrollmentId: number) {
+export function useUpdateCollegeEnrollment() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeEnrollmentUpdate) =>
-      CollegeEnrollmentsService.update(enrollmentId, payload) as Promise<CollegeEnrollmentWithStudentDetails>,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.enrollments.detail(enrollmentId) });
+    mutationFn: ({ id, payload }: { id: number; payload: CollegeEnrollmentUpdate }) =>
+      CollegeEnrollmentsService.update(id, payload),
+    onSuccess: (_data, { id }) => {
       qc.invalidateQueries({ queryKey: collegeKeys.enrollments.root() });
+      qc.invalidateQueries({ queryKey: collegeKeys.enrollments.detail(id) });
     },
   }, "Enrollment updated successfully");
 }
@@ -59,8 +59,9 @@ export function useDeleteCollegeEnrollment() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (enrollmentId: number) => CollegeEnrollmentsService.delete(enrollmentId),
-    onSuccess: () => {
+    onSuccess: (_, enrollmentId) => {
       qc.invalidateQueries({ queryKey: collegeKeys.enrollments.root() });
+      qc.invalidateQueries({ queryKey: collegeKeys.enrollments.detail(enrollmentId) });
     },
   }, "Enrollment deleted successfully");
 }
