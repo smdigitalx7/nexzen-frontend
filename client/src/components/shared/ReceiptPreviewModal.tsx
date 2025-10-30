@@ -16,6 +16,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const handleConfirmClose = useCallback(() => {
     setIsLoading(false);
@@ -76,6 +77,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
             toast({
               title: "Print Started",
               description: "The print dialog should appear now.",
+              variant: "info",
             });
           }, 1000);
         };
@@ -95,20 +97,53 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
     }
   };
 
-  const handleDownload = () => {
-    if (blobUrl) {
+  const handleDownload = async () => {
+    if (!blobUrl) {
+      toast({
+        title: "Download Failed",
+        description: "No PDF available to download.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsDownloading(true);
+
+    try {
+      // Verify the blob is accessible before attempting download
+      const response = await fetch(blobUrl);
+      if (!response.ok) {
+        throw new Error("PDF not ready");
+      }
+
+      // Create and trigger download
       const link = document.createElement("a");
       link.href = blobUrl;
       link.download = `receipt-${Date.now()}.pdf`;
       link.style.display = "none";
       document.body.appendChild(link);
       link.click();
+
+      // Wait a moment to ensure download starts
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       document.body.removeChild(link);
 
+      // Show success notification
       toast({
-        title: "Download Started",
-        description: "The PDF is being downloaded.",
+        title: "Download Complete",
+        description: "Receipt PDF has been downloaded successfully.",
+        variant: "success",
       });
+    } catch (error) {
+      console.error("Download failed:", error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to download the PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -118,6 +153,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
       toast({
         title: "Opened in New Tab",
         description: "Receipt has been opened in a new browser tab.",
+        variant: "info",
       });
     }
   };
@@ -156,13 +192,22 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
             Open in New Tab
           </Button>
           <Button
-            onClick={handleDownload}
+            onClick={() => void handleDownload()}
             variant="default"
             size="sm"
-            disabled={!blobUrl}
+            disabled={!blobUrl || isDownloading}
           >
-            <Download className="h-4 w-4 mr-2" />
-            Download
+            {isDownloading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Downloading...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </>
+            )}
           </Button>
           <Button
             onClick={handlePrint}
@@ -242,9 +287,23 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
                   <ExternalLink className="h-5 w-5 mr-2" />
                   Open in New Tab
                 </Button>
-                <Button onClick={handleDownload} variant="default" size="lg">
-                  <Download className="h-5 w-5 mr-2" />
-                  Download PDF
+                <Button
+                  onClick={() => void handleDownload()}
+                  variant="default"
+                  size="lg"
+                  disabled={isDownloading}
+                >
+                  {isDownloading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-5 w-5 mr-2" />
+                      Download PDF
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
