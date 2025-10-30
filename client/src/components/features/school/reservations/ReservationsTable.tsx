@@ -142,7 +142,14 @@ const ActionButtons = memo(({
             reservation.income_id
           )}
         >
-          Receipt
+          {regeneratingReceipts.has(reservation.income_id) ? (
+            <>
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-2"></div>
+              Loading...
+            </>
+          ) : (
+            "Receipt"
+          )}
         </Button>
       )}
     {onUpdateConcession && (

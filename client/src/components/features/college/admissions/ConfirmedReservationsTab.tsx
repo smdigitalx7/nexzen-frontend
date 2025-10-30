@@ -97,6 +97,7 @@ const ConfirmedReservationsTab = () => {
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string>("");
   const [createdAdmissionNo, setCreatedAdmissionNo] = useState<string>("");
   const [admissionFee, setAdmissionFee] = useState<number>(0);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Edit form state
   const [editForm, setEditForm] = useState<Reservation | null>(null);
@@ -303,6 +304,8 @@ const ConfirmedReservationsTab = () => {
   const handlePaymentProcess = async () => {
     if (!createdAdmissionNo) return;
 
+    setIsProcessingPayment(true);
+
     try {
       const result = await handlePayByAdmissionWithIncomeId(createdAdmissionNo, {
         details: [{
@@ -325,18 +328,23 @@ const ConfirmedReservationsTab = () => {
         description: error?.message || "Could not process payment. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
   const handleCloseReceiptModal = () => {
     setShowReceiptModal(false);
-    if (receiptBlobUrl) {
-      URL.revokeObjectURL(receiptBlobUrl);
+    // Clean up blob URL after a delay to ensure modal has time to use it
+    setTimeout(() => {
+      if (receiptBlobUrl) {
+        URL.revokeObjectURL(receiptBlobUrl);
+      }
       setReceiptBlobUrl("");
-    }
-    setCreatedAdmissionNo("");
-    setAdmissionFee(0);
-    setSelectedReservation(null);
+      setCreatedAdmissionNo("");
+      setAdmissionFee(0);
+      setSelectedReservation(null);
+    }, 100);
   };
 
   // Column definitions for the enhanced table
@@ -580,9 +588,19 @@ const ConfirmedReservationsTab = () => {
                 onClick={handlePaymentProcess}
                 className="w-full"
                 size="lg"
+                disabled={isProcessingPayment}
               >
-                <DollarSign className="h-5 w-5 mr-2" />
-                Collect Payment & Print Receipt
+                {isProcessingPayment ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Processing Payment...
+                  </>
+                ) : (
+                  <>
+                    <DollarSign className="h-5 w-5 mr-2" />
+                    Collect Payment & Print Receipt
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -590,13 +608,11 @@ const ConfirmedReservationsTab = () => {
       </Dialog>
 
       {/* Receipt Modal */}
-      {showReceiptModal && receiptBlobUrl && (
-        <ReceiptPreviewModal
-          isOpen={showReceiptModal}
-          onClose={handleCloseReceiptModal}
-          blobUrl={receiptBlobUrl}
-        />
-      )}
+      <ReceiptPreviewModal
+        isOpen={showReceiptModal}
+        onClose={handleCloseReceiptModal}
+        blobUrl={receiptBlobUrl}
+      />
     </div>
   );
 };

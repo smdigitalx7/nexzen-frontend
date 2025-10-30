@@ -2,11 +2,11 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { visualizer } from "rollup-plugin-visualizer";
+import viteCompression from "vite-plugin-compression";
 
 export default defineConfig({
   plugins: [
     react({
-      // Optimize React for production
       babel: {
         plugins: [
           ...(process.env.NODE_ENV === "production"
@@ -15,8 +15,7 @@ export default defineConfig({
         ],
       },
     }),
-
-    // Optional: Visualize bundle when ANALYZE=true
+    viteCompression({ algorithm: "brotliCompress", ext: ".br" }),
     ...(process.env.ANALYZE === "true"
       ? [
           visualizer({
@@ -29,14 +28,12 @@ export default defineConfig({
       : []),
   ],
 
-  // Resolve @ alias to client/src
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "client", "src"),
     },
   },
 
-  // Dependency optimization for faster dev
   optimizeDeps: {
     include: [
       "react",
@@ -58,7 +55,6 @@ export default defineConfig({
     devSourcemap: process.env.NODE_ENV === "development",
   },
 
-  // Project root and output directories
   root: path.resolve(__dirname, "client"),
 
   build: {
@@ -68,10 +64,15 @@ export default defineConfig({
     minify: "terser",
     sourcemap: process.env.NODE_ENV === "development",
     chunkSizeWarningLimit: 1000,
+    assetsInlineLimit: 4096,
 
-    // ✅ Automatic chunking (no manual chunk config)
     rollupOptions: {
       output: {
+        manualChunks: {
+          vendor: ["react", "react-dom", "wouter"],
+          ui: ["lucide-react", "framer-motion", "clsx", "tailwind-merge"],
+          state: ["zustand", "@tanstack/react-query", "@tanstack/react-table"],
+        },
         entryFileNames: "js/[name]-[hash].js",
         chunkFileNames: "js/[name]-[hash].js",
         assetFileNames: (assetInfo) => {
@@ -85,10 +86,8 @@ export default defineConfig({
       preserveEntrySignatures: "strict",
     },
 
-    // ✅ Preload dependencies safely
     modulePreload: { polyfill: true },
 
-    // ✅ Terser cleanup for production
     terserOptions: {
       compress: {
         drop_console: process.env.NODE_ENV === "production",
@@ -103,33 +102,15 @@ export default defineConfig({
     },
   },
 
-  // Dev server setup (local development)
   server: {
     port: 7000,
-    fs: { strict: true, deny: ["**/.*"] },
+    fs: { strict: true, deny: ["/.*"] },
     proxy: {
       "/api": {
         target: "https://erpapi.velonex.in",
         changeOrigin: true,
         secure: true,
         rewrite: (path) => path,
-        configure: (proxy) => {
-          proxy.on("error", (err) => {
-            console.log("❌ Proxy error:", err);
-          });
-          proxy.on("proxyReq", (proxyReq, req) => {
-            console.log("🔄 Proxying request:", req.method, req.url);
-          });
-          proxy.on("proxyRes", (proxyRes, req) => {
-            console.log("✅ Proxy response:", proxyRes.statusCode, req.url);
-            proxyRes.headers["Access-Control-Allow-Origin"] = "*";
-            proxyRes.headers["Access-Control-Allow-Methods"] =
-              "GET, POST, PUT, DELETE, OPTIONS";
-            proxyRes.headers["Access-Control-Allow-Headers"] =
-              "Content-Type, Authorization";
-            proxyRes.headers["Access-Control-Allow-Credentials"] = "true";
-          });
-        },
       },
     },
   },

@@ -7,6 +7,7 @@ import {
   useCreateCollegeReservation,
   useUpdateCollegeReservation,
 } from "@/lib/hooks/college/use-college-reservations";
+import { collegeKeys } from "@/lib/hooks/college/query-keys";
 import { useCollegeClasses } from "@/lib/hooks/college/use-college-classes";
 import {
   useCollegeGroups,
@@ -44,6 +45,7 @@ import ReservationsTable from "../reservations/ReservationsTable";
 import { TransportService } from "@/lib/services/general/transport.service";
 import { toast } from "@/hooks/use-toast";
 import { CollegeReservationsService } from "@/lib/services/college/reservations.service";
+import { CollegeDropdownsService } from "@/lib/services/college/dropdowns.service";
 import type { CollegeReservationView } from "@/lib/types/college/reservations";
 import { Plus, List, BarChart3, Save } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
@@ -59,35 +61,86 @@ export default function ReservationNew() {
 
   // Initialize mutation hooks
   const createReservationMutation = useCreateCollegeReservation();
-  const { data: routeNames = [] } = useQuery({
-    queryKey: ["public", "bus-routes", "names"],
-    queryFn: () => TransportService.getRouteNames(),
+
+  // Track dropdown opens for lazy loading
+  const [dropdownsOpened, setDropdownsOpened] = useState({
+    classes: false,
+    groups: false,
+    courses: false,
+    distanceSlabs: false,
+    routes: false,
   });
 
   // Dashboard stats hook
   const { data: dashboardStats, isLoading: dashboardLoading } =
     useCollegeReservationDashboard();
 
-  // Dropdown data hooks - Load classes, groups, courses, and distance slabs from API
-  // Classes are loaded independently, groups are loaded independently, courses are loaded based on selected group
+  // Dropdown data hooks - Load on-demand when dropdown is opened
   const {
     data: classesData,
     isLoading: classesLoading,
     error: classesError,
-  } = useCollegeClasses();
+  } = useQuery({
+    queryKey: ["college-dropdowns", "classes"],
+    queryFn: () => CollegeDropdownsService.getClasses(),
+    enabled: dropdownsOpened.classes,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+
   const {
     data: groupsData,
     isLoading: groupsLoading,
     error: groupsError,
-  } = useCollegeGroups();
+  } = useQuery({
+    queryKey: ["college-dropdowns", "groups"],
+    queryFn: () => CollegeDropdownsService.getGroups(),
+    enabled: dropdownsOpened.groups,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const {
     data: coursesData,
     isLoading: coursesLoading,
     error: coursesError,
-  } = useCollegeCourses(selectedGroupId || 0);
-  const { distanceSlabs, isLoadingDistanceSlabs, distanceSlabsError } =
-    useDistanceSlabs();
+  } = useQuery({
+    queryKey:
+      selectedGroupId && selectedGroupId > 0
+        ? ["college-dropdowns", "courses", selectedGroupId]
+        : ["college-dropdowns", "courses", "disabled"],
+    queryFn: () => CollegeDropdownsService.getCourses(selectedGroupId!),
+    enabled:
+      selectedGroupId !== null &&
+      selectedGroupId > 0 &&
+      dropdownsOpened.courses,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+
+  const {
+    data: distanceSlabs = [],
+    isLoading: isLoadingDistanceSlabs,
+    error: distanceSlabsError,
+  } = useQuery({
+    queryKey: ["distance-slabs"],
+    queryFn: () =>
+      import("@/lib/services/general/distance-slabs.service").then((m) =>
+        m.DistanceSlabsService.listDistanceSlabs()
+      ),
+    enabled: dropdownsOpened.distanceSlabs,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+
+  const { data: routeNames = [], isLoading: routesLoading } = useQuery({
+    queryKey: ["public", "bus-routes", "names"],
+    queryFn: () => TransportService.getRouteNames(),
+    enabled: dropdownsOpened.routes,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
 
   const { activeTab, setActiveTab } = useTabNavigation("new");
   const [reservationNo, setReservationNo] = useState<string>("");
@@ -113,14 +166,18 @@ export default function ReservationNew() {
     setSelectedReservationForConcession,
   ] = useState<any>(null);
 
-  // Use React Query hook for reservations
+  // Use React Query hook for reservations - Only fetch when All Reservations tab is active
   const {
     data: reservationsData,
     isLoading: isLoadingReservations,
     isError: reservationsError,
     error: reservationsErrObj,
     refetch: refetchReservations,
-  } = useCollegeReservationsList({ page: 1, page_size: 20 });
+  } = useQuery({
+    queryKey: collegeKeys.reservations.list({ page: 1, page_size: 20 }),
+    queryFn: () => CollegeReservationsService.list({ page: 1, page_size: 20 }),
+    enabled: activeTab === "all",
+  });
 
   // Delete reservation hook
   const deleteReservation = useDeleteCollegeReservation();
@@ -462,10 +519,10 @@ export default function ReservationNew() {
     try {
       // Use mutation hook which handles cache invalidation automatically
       const res: any = await createReservationMutation.mutateAsync(payload);
-      
+
       // Invalidate cache to refresh the list
       queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
-      
+
       // Use backend reservation_id to display receipt number
       setReservationNo(String(res?.reservation_id || ""));
       if (withPayment) setShowReceipt(true);
@@ -688,16 +745,16 @@ export default function ReservationNew() {
     if (!selectedReservation?.reservation_id || !editForm) return;
     try {
       const payload = buildPayloadFromForm(editForm);
-      
+
       // Use service directly and invalidate cache
       await CollegeReservationsService.update(
         Number(selectedReservation.reservation_id),
         payload
       );
-      
+
       // Invalidate cache to refresh the list
       queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
-      
+
       toast({
         title: "Reservation Updated",
         description: "Reservation details have been updated successfully.",
@@ -843,19 +900,6 @@ export default function ReservationNew() {
             icon: Plus,
             content: (
               <div>
-                {(classesLoading ||
-                  groupsLoading ||
-                  coursesLoading ||
-                  isLoadingDistanceSlabs) && (
-                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-center gap-2 text-blue-700">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
-                      <span className="text-sm">
-                        Loading classes, groups, courses, and distance slabs...
-                      </span>
-                    </div>
-                  </div>
-                )}
                 <ReservationForm
                   form={{
                     student_name: form.studentName,
@@ -989,6 +1033,17 @@ export default function ReservationNew() {
                   onCourseChange={handleCourseChange}
                   onDistanceSlabChange={handleDistanceSlabChange}
                   onSave={handleSave}
+                  isLoadingClasses={classesLoading}
+                  isLoadingGroups={groupsLoading}
+                  isLoadingCourses={coursesLoading}
+                  isLoadingDistanceSlabs={isLoadingDistanceSlabs}
+                  isLoadingRoutes={routesLoading}
+                  onDropdownOpen={(dropdown) => {
+                    setDropdownsOpened((prev) => ({
+                      ...prev,
+                      [dropdown]: true,
+                    }));
+                  }}
                 />
               </div>
             ),
@@ -1016,6 +1071,15 @@ export default function ReservationNew() {
                     >
                       Try Again
                     </Button>
+                  </div>
+                ) : isLoadingReservations ? (
+                  <div className="flex items-center justify-center p-12">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      <p className="text-sm text-muted-foreground">
+                        Loading reservations...
+                      </p>
+                    </div>
                   </div>
                 ) : (
                   <AllReservationsComponent
