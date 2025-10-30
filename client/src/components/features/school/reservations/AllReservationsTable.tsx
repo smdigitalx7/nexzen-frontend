@@ -8,6 +8,16 @@ import { toast } from "@/hooks/use-toast";
 import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
 import { handleRegenerateReceipt as regenerateReceiptAPI } from "@/lib/api";
 
+// Helper function to format date from ISO format to YYYY-MM-DD
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return "-";
+  // If date is in ISO format (2025-06-09T00:00:00), extract just the date part
+  if (dateString.includes("T")) {
+    return dateString.split("T")[0];
+  }
+  return dateString;
+};
+
 export type Reservation = {
   id: string;
   no: string;
@@ -85,20 +95,6 @@ const ApplicationFeeBadge = memo(({ applicationIncomeId }: { applicationIncomeId
 });
 
 ApplicationFeeBadge.displayName = "ApplicationFeeBadge";
-
-// Memoized enrollment status badge component
-const EnrollmentStatusBadge = memo(({ isEnrolled }: { isEnrolled: boolean }) => (
-  <Badge
-    variant={isEnrolled ? "secondary" : "outline"}
-    className={`text-xs ${
-      isEnrolled ? "bg-green-100 text-green-800" : ""
-    }`}
-  >
-    {isEnrolled ? "Enrolled" : "Not Enrolled"}
-  </Badge>
-));
-
-EnrollmentStatusBadge.displayName = "EnrollmentStatusBadge";
 
 // Memoized loading component
 const LoadingState = memo(() => (
@@ -240,7 +236,7 @@ const AllReservationsTableComponent = ({
         accessorKey: "date",
         header: "Date",
         cell: ({ row }) => (
-          <div className="text-sm">{row.getValue("date") || "-"}</div>
+          <div className="text-sm">{formatDate(row.getValue("date") as string)}</div>
         ),
       },
       {
@@ -249,14 +245,6 @@ const AllReservationsTableComponent = ({
         cell: ({ row }) => {
           const applicationIncomeId = row.getValue("application_income_id") as number | null | undefined;
           return <ApplicationFeeBadge applicationIncomeId={applicationIncomeId} />;
-        },
-      },
-      {
-        accessorKey: "is_enrolled",
-        header: "Enrollment Status",
-        cell: ({ row }) => {
-          const isEnrolled = row.getValue("is_enrolled") as boolean;
-          return <EnrollmentStatusBadge isEnrolled={isEnrolled} />;
         },
       },
     ],

@@ -43,6 +43,7 @@ export interface EmployeeCreate {
   bank_account_number?: string | null;
   bank_name?: string | null;
   bank_ifsc_code?: string | null;
+  branch_id: number; // Required for employee creation
 }
 
 export interface EmployeeUpdate {

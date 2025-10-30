@@ -404,4 +404,5 @@ const TransportTabComponent = () => {
   );
 };
 
+export const TransportTab = TransportTabComponent;
 export default TransportTabComponent;

@@ -512,58 +512,29 @@ function EnhancedDataTableComponent<TData>({
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet(title || "Data Export");
 
-      // Set up professional worksheet properties
-      worksheet.properties.defaultRowHeight = 22;
-      worksheet.properties.defaultColWidth = 15;
+      // Professional worksheet properties
+      worksheet.properties.defaultRowHeight = 20;
+      worksheet.properties.defaultColWidth = 18;
 
-      // Add title row with enhanced corporate styling
-      if (title) {
-        const titleRow = worksheet.addRow([title]);
-        titleRow.font = {
-          bold: true,
-          size: 18,
-          color: { argb: "FF1A252F" },
-          name: "Segoe UI",
-        };
-        titleRow.height = 40;
-        titleRow.alignment = {
-          horizontal: "center",
-          vertical: "middle",
-          wrapText: true,
-        };
-        titleRow.fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "FFF8F9FA" },
-        };
-        titleRow.border = {
-          top: { style: "thick", color: { argb: "FF2C3E50" } },
-          bottom: { style: "thick", color: { argb: "FF2C3E50" } },
-          left: { style: "thick", color: { argb: "FF2C3E50" } },
-          right: { style: "thick", color: { argb: "FF2C3E50" } },
-        };
-        worksheet.addRow([]); // Empty row
-      }
-
-      // Add export metadata with enhanced styling
-      const exportDate = new Date().toLocaleString();
-      const metadataRow = worksheet.addRow([`Generated on: ${exportDate}`]);
-      metadataRow.font = {
-        size: 11,
-        color: { argb: "FF6C757D" },
-        italic: true,
-        name: "Segoe UI",
+      // Professional color scheme
+      const colors = {
+        primary: { argb: "FF2563EB" }, // Blue-600
+        primaryDark: { argb: "FF1E40AF" }, // Blue-700
+        secondary: { argb: "FFF8F9FA" }, // Gray-50
+        text: { argb: "FF1F2937" }, // Gray-800
+        textSecondary: { argb: "FF6B7280" }, // Gray-500
+        border: { argb: "FFE5E7EB" }, // Gray-200
+        borderDark: { argb: "FFD1D5DB" }, // Gray-300
+        success: { argb: "FF059669" }, // Green-600
+        warning: { argb: "FFD97706" }, // Amber-600
+        error: { argb: "FFDC2626" }, // Red-600
+        white: { argb: "FFFFFFFF" },
+        headerBg: { argb: "FF1E3A8A" }, // Blue-800
+        headerText: { argb: "FFFFFFFF" },
+        alternateRow: { argb: "FFF9FAFB" }, // Gray-50
       };
-      metadataRow.height = 20;
-      metadataRow.alignment = { horizontal: "right", vertical: "middle" };
-      metadataRow.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFF1F3F4" },
-      };
-      worksheet.addRow([]); // Empty row
 
-      // Filter out action columns (columns without accessorKey or with id containing 'action')
+      // Filter out action columns
       const exportableColumns = columns.filter((col) => {
         const hasAccessorKey = !!(col as any).accessorKey;
         const isActionColumn =
@@ -573,158 +544,338 @@ function EnhancedDataTableComponent<TData>({
         return hasAccessorKey && !isActionColumn;
       });
 
-      // Add headers with professional styling
+      // Add professional title section
+      if (title) {
+        const titleRow = worksheet.addRow([title]);
+        titleRow.height = 32;
+        titleRow.font = {
+          bold: true,
+          size: 20,
+          color: colors.headerText,
+          name: "Segoe UI",
+        };
+        titleRow.alignment = {
+          horizontal: "center",
+          vertical: "middle",
+        };
+        titleRow.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: colors.headerBg,
+        };
+        
+        // Merge title cells
+        worksheet.mergeCells(1, 1, 1, exportableColumns.length);
+        
+        // Add border to title
+        const titleCell = worksheet.getCell(1, 1);
+        titleCell.border = {
+          top: { style: "medium", color: colors.headerBg },
+          bottom: { style: "medium", color: colors.headerBg },
+          left: { style: "medium", color: colors.headerBg },
+          right: { style: "medium", color: colors.headerBg },
+        };
+        
+        worksheet.addRow([]); // Empty row for spacing
+      }
+
+      // Add export metadata with professional styling
+      const exportDate = new Date().toLocaleString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const metadataRow = worksheet.addRow([
+        `Generated on: ${exportDate}`,
+        "",
+        "",
+        `Total Records: ${memoizedFilteredData.length}`,
+      ]);
+      metadataRow.height = 22;
+      metadataRow.font = {
+        size: 10,
+        color: colors.textSecondary,
+        italic: true,
+        name: "Segoe UI",
+      };
+      metadataRow.alignment = {
+        horizontal: "left",
+        vertical: "middle",
+      };
+      
+      // Merge metadata cells
+      worksheet.mergeCells(
+        title ? 3 : 1,
+        1,
+        title ? 3 : 1,
+        exportableColumns.length
+      );
+      
+      const metadataCell = worksheet.getCell(title ? 3 : 1, 1);
+      metadataCell.alignment = {
+        horizontal: "right",
+        vertical: "middle",
+      };
+      metadataCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: colors.secondary,
+      };
+      metadataCell.border = {
+        bottom: { style: "thin", color: colors.border },
+      };
+
+      worksheet.addRow([]); // Empty row for spacing
+
+      // Add professional headers
       const headers = exportableColumns.map((col) => {
         if (typeof col.header === "string") return col.header;
         if (typeof col.header === "function") return col.id;
         return (col as any).accessorKey || col.id;
       });
 
+      const headerRowIndex = title ? 5 : 3;
       const headerRow = worksheet.addRow(headers);
+      headerRow.height = 28;
       headerRow.font = {
         bold: true,
-        size: 12,
-        color: { argb: "FFFFFFFF" },
+        size: 11,
+        color: colors.headerText,
         name: "Segoe UI",
       };
-      headerRow.height = 32;
       headerRow.alignment = {
-        horizontal: "center",
+        horizontal: "left",
         vertical: "middle",
         wrapText: true,
       };
       headerRow.fill = {
         type: "pattern",
         pattern: "solid",
-        fgColor: { argb: "FF1A252F" },
-      };
-      headerRow.border = {
-        top: { style: "medium", color: { argb: "FF2C3E50" } },
-        bottom: { style: "medium", color: { argb: "FF2C3E50" } },
-        left: { style: "medium", color: { argb: "FF2C3E50" } },
-        right: { style: "medium", color: { argb: "FF2C3E50" } },
+        fgColor: colors.headerBg,
       };
 
-      // Add data rows with professional alternating styling
+      // Apply professional header styling to each cell
+      headerRow.eachCell((cell, colNumber) => {
+        cell.border = {
+          top: { style: "medium", color: colors.headerBg },
+          bottom: { style: "medium", color: colors.headerBg },
+          left: { style: "thin", color: colors.borderDark },
+          right: { style: "thin", color: colors.borderDark },
+        };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: colors.headerBg,
+        };
+      });
+
+      // Add data rows with professional styling
       memoizedFilteredData.forEach((row, index) => {
         const rowData = exportableColumns.map((col) => {
           const key = (col as any).accessorKey;
           if (key) {
             const value = (row as any)[key];
-            // Handle different data types
-            if (value === null || value === undefined) return "";
-            if (typeof value === "object") return JSON.stringify(value);
-            return value;
+            // Professional data formatting
+            if (value === null || value === undefined) return "-";
+            if (typeof value === "boolean") return value ? "Yes" : "No";
+            if (typeof value === "object") {
+              // Handle dates
+              if (value instanceof Date) {
+                return value.toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                });
+              }
+              // Handle objects and arrays
+              try {
+                return JSON.stringify(value).replace(/[{}"]/g, "").slice(0, 50);
+              } catch {
+                return String(value);
+              }
+            }
+            // Format numbers with commas
+            if (typeof value === "number") {
+              if (Number.isInteger(value)) {
+                return value.toLocaleString("en-US");
+              }
+              return value.toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              });
+            }
+            return String(value).trim();
           }
           return "";
         });
 
         const dataRow = worksheet.addRow(rowData);
-        dataRow.height = 24;
+        dataRow.height = 22;
         dataRow.alignment = { vertical: "middle" };
 
-        // Enhanced alternating row colors
-        if (index % 2 === 0) {
-          dataRow.fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: { argb: "FFFFFFFF" },
-          };
-        } else {
-          dataRow.fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: { argb: "FFF8F9FA" },
-          };
-        }
+        // Professional alternating row colors
+        const isEvenRow = index % 2 === 0;
+        const rowFillColor = isEvenRow ? colors.white : colors.alternateRow;
 
-        // Enhanced cell styling
+        // Apply professional cell styling
         dataRow.eachCell((cell, colNumber) => {
           cell.font = {
-            size: 11,
-            color: { argb: "FF1A252F" },
+            size: 10,
+            color: colors.text,
             name: "Segoe UI",
           };
           cell.alignment = {
             vertical: "middle",
-            horizontal: "left",
+            horizontal: colNumber === 1 ? "left" : "left",
             wrapText: true,
           };
-          cell.border = {
-            top: { style: "thin", color: { argb: "FFDEE2E6" } },
-            left: { style: "thin", color: { argb: "FFDEE2E6" } },
-            bottom: { style: "thin", color: { argb: "FFDEE2E6" } },
-            right: { style: "thin", color: { argb: "FFDEE2E6" } },
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: rowFillColor,
           };
+          cell.border = {
+            top: { style: "thin", color: colors.border },
+            left: { style: "thin", color: colors.border },
+            bottom: { style: "thin", color: colors.border },
+            right: { style: "thin", color: colors.border },
+          };
+
+          // Right-align numeric values
+          const value = cell.value;
+          if (typeof value === "number" || (!isNaN(Number(value)) && value !== "")) {
+            cell.alignment = {
+              ...cell.alignment,
+              horizontal: "right",
+            };
+            cell.numFmt = typeof value === "number" && !Number.isInteger(value)
+              ? "#,##0.00"
+              : "#,##0";
+          }
         });
       });
 
-      // Auto-fit columns
-      worksheet.columns.forEach((column) => {
+      // Auto-fit columns with maximum width limit
+      worksheet.columns.forEach((column, index) => {
         if (column && column.eachCell) {
-          let maxLength = 0;
-          column.eachCell({ includeEmpty: true }, (cell) => {
+          let maxLength = 10;
+          column.eachCell({ includeEmpty: false }, (cell) => {
             if (cell && cell.value) {
-              const columnLength = String(cell.value).length;
-              if (columnLength > maxLength) {
-                maxLength = columnLength;
-              }
-            } else {
-              if (10 > maxLength) {
-                maxLength = 10;
+              const cellValue = String(cell.value);
+              const cellLength = cellValue.length;
+              if (cellLength > maxLength) {
+                maxLength = Math.min(cellLength, 60); // Cap at 60 characters
               }
             }
           });
-          column.width = Math.min(maxLength + 2, 50);
+
+          // Set column width with reasonable limits
+          column.width = Math.max(Math.min(maxLength + 3, 50), 12);
+          
+          // Set alignment for header
+          if (headerRow.getCell(index + 1)) {
+            headerRow.getCell(index + 1).alignment = {
+              horizontal: "left",
+              vertical: "middle",
+            };
+          }
         }
       });
 
-      // Add enhanced summary footer
-      const totalRows = memoizedFilteredData.length;
-      const summaryRow = worksheet.addRow([`Total Records: ${totalRows}`]);
+      // Add professional summary footer
+      const summaryRowIndex = worksheet.rowCount + 1;
+      const summaryRow = worksheet.addRow([
+        `Total Records: ${memoizedFilteredData.length}`,
+      ]);
+      summaryRow.height = 26;
       summaryRow.font = {
         bold: true,
-        size: 12,
-        color: { argb: "FF1A252F" },
+        size: 11,
+        color: colors.headerText,
         name: "Segoe UI",
       };
-      summaryRow.height = 28;
-      summaryRow.alignment = { horizontal: "right", vertical: "middle" };
+      summaryRow.alignment = {
+        horizontal: "right",
+        vertical: "middle",
+      };
       summaryRow.fill = {
         type: "pattern",
         pattern: "solid",
-        fgColor: { argb: "FFF1F3F4" },
+        fgColor: colors.headerBg,
       };
-      summaryRow.border = {
-        top: { style: "thick", color: { argb: "FF2C3E50" } },
-        bottom: { style: "thick", color: { argb: "FF2C3E50" } },
-        left: { style: "thick", color: { argb: "FF2C3E50" } },
-        right: { style: "thick", color: { argb: "FF2C3E50" } },
+
+      // Merge summary cells
+      worksheet.mergeCells(
+        summaryRowIndex,
+        1,
+        summaryRowIndex,
+        exportableColumns.length
+      );
+
+      const summaryCell = worksheet.getCell(summaryRowIndex, 1);
+      summaryCell.border = {
+        top: { style: "medium", color: colors.headerBg },
+        bottom: { style: "medium", color: colors.headerBg },
+        left: { style: "medium", color: colors.headerBg },
+        right: { style: "medium", color: colors.headerBg },
       };
 
       // Add freeze panes for better navigation
       if (title) {
-        worksheet.views = [{ state: "frozen", ySplit: 4 }]; // Freeze title, metadata, and header rows
+        worksheet.views = [
+          {
+            state: "frozen",
+            ySplit: headerRowIndex,
+            xSplit: 0,
+            topLeftCell: `A${headerRowIndex + 1}`,
+            activeCell: `A${headerRowIndex + 1}`,
+            showGridLines: true,
+          },
+        ];
       } else {
-        worksheet.views = [{ state: "frozen", ySplit: 2 }]; // Freeze metadata and header rows
+        worksheet.views = [
+          {
+            state: "frozen",
+            ySplit: headerRowIndex - 1,
+            xSplit: 0,
+            topLeftCell: `A${headerRowIndex}`,
+            activeCell: `A${headerRowIndex}`,
+            showGridLines: true,
+          },
+        ];
       }
 
-      // Set professional page setup
+      // Professional page setup
       worksheet.pageSetup = {
         orientation: "landscape",
         paperSize: 9, // A4
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0,
         margins: {
-          left: 0.7,
-          right: 0.7,
+          left: 0.5,
+          right: 0.5,
           top: 0.75,
           bottom: 0.75,
           header: 0.3,
           footer: 0.3,
         },
+        printArea: `A1:${String.fromCharCode(64 + exportableColumns.length)}${worksheet.rowCount}`,
       };
 
-      // Add print titles
-      worksheet.pageSetup.printTitlesRow = "1:3"; // Repeat first 3 rows on each page
+      // Add print titles (repeat header on each page)
+      worksheet.pageSetup.printTitlesRow = `${headerRowIndex}:${headerRowIndex}`;
+
+      // Professional header and footer
+      worksheet.headerFooter = {
+        oddHeader: `&C&B&"Segoe UI,Regular"&14${title || "Data Export"}`,
+        oddFooter: `&L&"Segoe UI,Regular"&10Generated on ${new Date().toLocaleDateString()}&R&"Segoe UI,Regular"&10Page &P of &N`,
+        evenHeader: `&C&B&"Segoe UI,Regular"&14${title || "Data Export"}`,
+        evenFooter: `&L&"Segoe UI,Regular"&10Generated on ${new Date().toLocaleDateString()}&R&"Segoe UI,Regular"&10Page &P of &N`,
+      };
 
       // Generate Excel file
       const buffer = await workbook.xlsx.writeBuffer();
@@ -735,7 +886,10 @@ function EnhancedDataTableComponent<TData>({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${title || "data"}.xlsx`;
+      const sanitizedTitle = (title || "data")
+        .replace(/[^a-z0-9]/gi, "_")
+        .toLowerCase();
+      link.download = `${sanitizedTitle}_${new Date().toISOString().split("T")[0]}.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -743,15 +897,29 @@ function EnhancedDataTableComponent<TData>({
     } catch (error) {
       console.error("Export failed:", error);
       // Fallback to CSV if Excel export fails
+      const exportableColumns = columns.filter((col: any) => {
+        const hasAccessorKey = !!(col as any).accessorKey;
+        const isActionColumn =
+          col.id?.toLowerCase().includes("action") ||
+          col.id?.toLowerCase().includes("actions") ||
+          (col as any).header?.toString().toLowerCase().includes("action");
+        return hasAccessorKey && !isActionColumn;
+      });
+
       const csvContent = [
-        columns
-          .map((col) => (col as any).header || (col as any).accessorKey)
+        exportableColumns
+          .map((col: any) => (col as any).header || (col as any).accessorKey)
           .join(","),
         ...memoizedFilteredData.map((row) =>
-          columns
-            .map((col) => {
+          exportableColumns
+            .map((col: any) => {
               const key = (col as any).accessorKey;
-              return key ? (row as any)[key] : "";
+              if (key) {
+                const value = (row as any)[key];
+                if (value === null || value === undefined) return "";
+                return String(value).replace(/"/g, '""');
+              }
+              return "";
             })
             .join(",")
         ),
@@ -761,7 +929,10 @@ function EnhancedDataTableComponent<TData>({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${title || "data"}.csv`;
+      const sanitizedTitle = (title || "data")
+        .replace(/[^a-z0-9]/gi, "_")
+        .toLowerCase();
+      link.download = `${sanitizedTitle}_${new Date().toISOString().split("T")[0]}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

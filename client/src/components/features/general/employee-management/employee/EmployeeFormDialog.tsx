@@ -9,6 +9,8 @@ interface EmployeeFormData {
   employee_name: string;
   employee_type: string;
   employee_code: string;
+  gender?: string;
+  date_of_birth?: string;
   aadhar_no?: string;
   mobile_no?: string;
   email?: string;
@@ -17,8 +19,11 @@ interface EmployeeFormData {
   designation: string;
   qualification?: string;
   experience_years?: number;
-  status: string;
+  status?: string; // Only for edit/view, not for create
   salary: number;
+  bank_account_number?: string;
+  bank_name?: string;
+  bank_ifsc_code?: string;
 }
 
 interface EmployeeFormDialogProps {
@@ -60,7 +65,7 @@ const EmployeeFormDialog = ({ open, onOpenChange, isEditing, formData, onChange,
               <Label htmlFor="employee_name">Employee Name *</Label>
               <Input
                 id="employee_name"
-                value={formData.employee_name}
+                value={formData.employee_name || ''}
                 onChange={(e) => onChange("employee_name", e.target.value)}
                 required
               />
@@ -69,7 +74,7 @@ const EmployeeFormDialog = ({ open, onOpenChange, isEditing, formData, onChange,
               <Label htmlFor="employee_code">Employee Code *</Label>
               <Input
                 id="employee_code"
-                value={formData.employee_code}
+                value={formData.employee_code || ''}
                 onChange={(e) => onChange("employee_code", e.target.value)}
                 required
               />
@@ -80,7 +85,7 @@ const EmployeeFormDialog = ({ open, onOpenChange, isEditing, formData, onChange,
             <div className="space-y-2">
               <Label htmlFor="employee_type">Employee Type *</Label>
               <Select
-                value={formData.employee_type}
+                value={formData.employee_type || ''}
                 onValueChange={(value) => onChange("employee_type", value)}
               >
                 <SelectTrigger>
@@ -95,12 +100,40 @@ const EmployeeFormDialog = ({ open, onOpenChange, isEditing, formData, onChange,
               </Select>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="gender">Gender</Label>
+              <Select
+                value={formData.gender || ''}
+                onValueChange={(value) => onChange("gender", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MALE">Male</SelectItem>
+                  <SelectItem value="FEMALE">Female</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="designation">Designation *</Label>
               <Input
                 id="designation"
-                value={formData.designation}
+                value={formData.designation || ''}
                 onChange={(e) => onChange("designation", e.target.value)}
                 required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="date_of_birth">Date of Birth</Label>
+              <Input
+                id="date_of_birth"
+                value={formData.date_of_birth || ''}
+                onChange={(e) => onChange("date_of_birth", e.target.value)}
+                type="date"
               />
             </div>
           </div>
@@ -139,7 +172,7 @@ const EmployeeFormDialog = ({ open, onOpenChange, isEditing, formData, onChange,
               <Label htmlFor="date_of_joining">Date of Joining *</Label>
               <Input
                 id="date_of_joining"
-                value={formData.date_of_joining}
+                value={formData.date_of_joining || ''}
                 onChange={(e) => onChange("date_of_joining", e.target.value)}
                 type="date"
                 required
@@ -173,28 +206,63 @@ const EmployeeFormDialog = ({ open, onOpenChange, isEditing, formData, onChange,
               <Label htmlFor="salary">Salary *</Label>
               <Input
                 id="salary"
-                value={formData.salary}
+                value={formData.salary || 0}
                 onChange={(e) => onChange("salary", parseFloat(e.target.value) || 0)}
                 type="number"
                 min="0"
-                step="0.01"
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status *</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => onChange("status", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="TERMINATED">Terminated</SelectItem>
-                </SelectContent>
-              </Select>
+            {isEditing && (
+              <div className="space-y-2">
+                <Label htmlFor="status">Status *</Label>
+                <Select
+                  value={formData.status || 'ACTIVE'}
+                  onValueChange={(value) => onChange("status", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ACTIVE">Active</SelectItem>
+                    <SelectItem value="TERMINATED">Terminated</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          {/* Bank Details Section */}
+          <div className="space-y-4 border-t pt-4">
+            <h3 className="text-lg font-semibold">Bank Details</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bank_account_number">Bank Account Number</Label>
+                <Input
+                  id="bank_account_number"
+                  value={formData.bank_account_number || ''}
+                  onChange={(e) => onChange("bank_account_number", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bank_name">Bank Name</Label>
+                <Input
+                  id="bank_name"
+                  value={formData.bank_name || ''}
+                  onChange={(e) => onChange("bank_name", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bank_ifsc_code">Bank IFSC Code</Label>
+                <Input
+                  id="bank_ifsc_code"
+                  value={formData.bank_ifsc_code || ''}
+                  onChange={(e) => onChange("bank_ifsc_code", e.target.value)}
+                  placeholder="e.g., ABCD0123456"
+                />
+              </div>
             </div>
           </div>
 

@@ -286,27 +286,20 @@ const EnrollmentsTabComponent = () => {
     },
   ], []);
 
-  // Action buttons
+  // Action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => [
     {
-      id: 'view',
-      label: 'View',
-      onClick: handleView,
-      variant: 'ghost' as const,
+      type: 'view' as const,
+      onClick: (row: any) => handleView(row)
     },
     {
-      id: 'edit',
-      label: 'Edit',
-      onClick: handleEdit,
-      variant: 'ghost' as const,
+      type: 'edit' as const,
+      onClick: (row: any) => handleEdit(row)
     },
     {
-      id: 'delete',
-      label: 'Delete',
-      onClick: handleDelete,
-      variant: 'ghost' as const,
-      className: 'text-red-600 hover:text-red-700',
-    },
+      type: 'delete' as const,
+      onClick: (row: any) => handleDelete(row)
+    }
   ], [handleView, handleEdit, handleDelete]);
 
   return (
@@ -354,7 +347,10 @@ const EnrollmentsTabComponent = () => {
           data={flattenedEnrollments}
           columns={columns}
           searchKey="student_name"
+          showActions={true}
           actionButtonGroups={actionButtonGroups}
+          actionColumnHeader="Actions"
+          showActionLabels={false}
         />
       )}
 
@@ -434,4 +430,5 @@ const EnrollmentsTabComponent = () => {
   );
 };
 
+export const EnrollmentsTab = EnrollmentsTabComponent;
 export default EnrollmentsTabComponent;

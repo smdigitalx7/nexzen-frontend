@@ -27,6 +27,7 @@ import {
 import { formatCurrency } from '@/lib/utils';
 import { CollegeFinanceReport } from '@/lib/types/college/income';
 import { exportFinanceReportToExcel, generateExportFilename } from '@/lib/utils/export-utils';
+import { Loading } from '@/components/ui/loading';
 
 interface CollegeFinanceReportDialogProps {
   open: boolean;
@@ -41,6 +42,34 @@ export const CollegeFinanceReportDialog: React.FC<CollegeFinanceReportDialogProp
   reportData,
   loading = false,
 }) => {
+  // Show loader when loading
+  if (loading) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Finance Report
+            </DialogTitle>
+            <DialogDescription>
+              Generating finance report...
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex items-center justify-center py-12">
+            <Loading 
+              size="lg" 
+              variant="spinner" 
+              context="data" 
+              message="Loading finance report data..."
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   if (!reportData || reportData.length === 0) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
