@@ -126,6 +126,7 @@ const StudentFeeBalancesTableComponent = ({
       header: 'Student',
       cell: ({ row }) => <StudentInfoCell student={row.original} />,
     },
+    createTextColumn<StudentFeeBalance>("class_name", { header: "Class" }),
     createTextColumn<StudentFeeBalance>("section_name", { header: "Section" }),
     createCurrencyColumn<StudentFeeBalance>("total_fee", { header: "Total Fee" }),
     {
