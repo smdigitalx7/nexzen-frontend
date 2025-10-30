@@ -28,6 +28,8 @@ import { formatCurrency } from '@/lib/utils';
 import { CollegeFinanceReport } from '@/lib/types/college/income';
 import { exportFinanceReportToExcel, generateExportFilename } from '@/lib/utils/export-utils';
 import { Loading } from '@/components/ui/loading';
+import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
+import { ColumnDef } from '@tanstack/react-table';
 
 interface CollegeFinanceReportDialogProps {
   open: boolean;
@@ -133,7 +135,7 @@ export const CollegeFinanceReportDialog: React.FC<CollegeFinanceReportDialogProp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] !overflow-visible">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -160,7 +162,7 @@ export const CollegeFinanceReportDialog: React.FC<CollegeFinanceReportDialogProp
           </div>
         </div>
 
-        <ScrollArea className="h-[70vh]">
+        <ScrollArea className="h-[calc(90vh-140px)]">
           <div className="space-y-6">
             {reportData.map((report, index) => (
               <motion.div
@@ -259,49 +261,41 @@ export const CollegeFinanceReportDialog: React.FC<CollegeFinanceReportDialogProp
                       <Receipt className="h-5 w-5 text-green-600" />
                       Income Details ({report.income_object.income_count} transactions)
                     </h4>
-                    
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse" style={{ minWidth: '800px' }}>
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left p-1 font-medium text-xs">S.No</th>
-                            <th className="text-left p-1 font-medium text-xs">Receipt No</th>
-                            <th className="text-left p-1 font-medium text-xs">Student</th>
-                            <th className="text-left p-1 font-medium text-xs">ID No</th>
-                            <th className="text-left p-1 font-medium text-xs">Purpose</th>
-                            <th className="text-left p-1 font-medium text-xs">Payment Method</th>
-                            <th className="text-right p-1 font-medium text-xs">Amount</th>
-                            <th className="text-left p-1 font-medium text-xs">Created By</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {report.income_object.income_list.map((income, idx) => (
-                            <tr key={idx} className="border-b hover:bg-gray-50">
-                              <td className="p-1 text-xs">{income.sNo}</td>
-                              <td className="p-1 font-mono text-xs">{income.receipt_no}</td>
-                              <td className="p-1 text-xs">{income.student_name}</td>
-                              <td className="p-1 font-mono text-xs">{income.identity_no}</td>
-                              <td className="p-1">
-                                <Badge variant="outline" className="text-xs">
-                                  {income.purpose}
-                                </Badge>
-                              </td>
-                              <td className="p-1">
-                                <Badge variant="secondary" className="text-xs">
-                                  {income.payment_method}
-                                </Badge>
-                              </td>
-                              <td className="p-1 text-right font-medium text-green-700 text-xs">
-                                {formatCurrency(income.amount)}
-                              </td>
-                              <td className="p-1 text-xs text-muted-foreground">
-                                {income.created_by}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    {(() => {
+                      type Row = typeof report.income_object.income_list[number];
+                      const columns: ColumnDef<Row>[] = [
+                        { accessorKey: 'sNo', header: 'S.No' },
+                        { accessorKey: 'receipt_no', header: 'Receipt No' },
+                        { accessorKey: 'student_name', header: 'Student' },
+                        { accessorKey: 'identity_no', header: 'ID No' },
+                        { accessorKey: 'purpose', header: 'Purpose',
+                          cell: ({ getValue }) => (
+                            <Badge variant="outline" className="text-xs">{String(getValue())}</Badge>
+                          )
+                        },
+                        { accessorKey: 'payment_method', header: 'Payment Method',
+                          cell: ({ getValue }) => (
+                            <Badge variant="secondary" className="text-xs">{String(getValue())}</Badge>
+                          )
+                        },
+                        { accessorKey: 'amount', header: 'Amount',
+                          cell: ({ getValue }) => (
+                            <span className="font-medium text-green-700">{formatCurrency(Number(getValue()))}</span>
+                          )
+                        },
+                        { accessorKey: 'created_by', header: 'Created By' },
+                      ];
+                      return (
+                        <EnhancedDataTable<Row>
+                          data={report.income_object.income_list}
+                          columns={columns}
+                          title={undefined}
+                          searchKey={'student_name' as keyof Row}
+                          exportable={false}
+                          showSearch={true}
+                        />
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -312,45 +306,40 @@ export const CollegeFinanceReportDialog: React.FC<CollegeFinanceReportDialogProp
                       <CreditCard className="h-5 w-5 text-red-600" />
                       Expenditure Details ({report.expenditure_object.expenditure_count} transactions)
                     </h4>
-                    
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse" style={{ minWidth: '800px' }}>
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left p-1 font-medium text-xs">S.No</th>
-                            <th className="text-left p-1 font-medium text-xs">Voucher No</th>
-                            <th className="text-left p-1 font-medium text-xs">Bill Date</th>
-                            <th className="text-left p-1 font-medium text-xs">Purpose</th>
-                            <th className="text-left p-1 font-medium text-xs">Payment Method</th>
-                            <th className="text-right p-1 font-medium text-xs">Amount</th>
-                            <th className="text-left p-1 font-medium text-xs">Created By</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {report.expenditure_object.expenditure_list.map((expenditure, idx) => (
-                            <tr key={idx} className="border-b hover:bg-gray-50">
-                              <td className="p-1 text-xs">{expenditure.sNo}</td>
-                              <td className="p-1 font-mono text-xs">{expenditure.voucher_no}</td>
-                              <td className="p-1 text-xs">
-                                {new Date(expenditure.bill_date).toLocaleDateString()}
-                              </td>
-                              <td className="p-1 text-xs">{expenditure.purpose}</td>
-                              <td className="p-1">
-                                <Badge variant="secondary" className="text-xs">
-                                  {expenditure.payment_method}
-                                </Badge>
-                              </td>
-                              <td className="p-1 text-right font-medium text-red-700 text-xs">
-                                {formatCurrency(expenditure.amount)}
-                              </td>
-                              <td className="p-1 text-xs text-muted-foreground">
-                                {expenditure.created_by}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    {(() => {
+                      type Row = typeof report.expenditure_object.expenditure_list[number];
+                      const columns: ColumnDef<Row>[] = [
+                        { accessorKey: 'sNo', header: 'S.No' },
+                        { accessorKey: 'voucher_no', header: 'Voucher No' },
+                        { accessorKey: 'bill_date', header: 'Bill Date',
+                          cell: ({ getValue }) => (
+                            <span>{new Date(String(getValue())).toLocaleDateString()}</span>
+                          )
+                        },
+                        { accessorKey: 'purpose', header: 'Purpose' },
+                        { accessorKey: 'payment_method', header: 'Payment Method',
+                          cell: ({ getValue }) => (
+                            <Badge variant="secondary" className="text-xs">{String(getValue())}</Badge>
+                          )
+                        },
+                        { accessorKey: 'amount', header: 'Amount',
+                          cell: ({ getValue }) => (
+                            <span className="font-medium text-red-700">{formatCurrency(Number(getValue()))}</span>
+                          )
+                        },
+                        { accessorKey: 'created_by', header: 'Created By' },
+                      ];
+                      return (
+                        <EnhancedDataTable<Row>
+                          data={report.expenditure_object.expenditure_list}
+                          columns={columns}
+                          title={undefined}
+                          searchKey={'purpose' as keyof Row}
+                          exportable={false}
+                          showSearch={true}
+                        />
+                      );
+                    })()}
                   </div>
                 )}
               </motion.div>
