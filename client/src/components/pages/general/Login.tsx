@@ -106,7 +106,7 @@ const Login = () => {
     <div
       className="min-h-screen flex items-center justify-center p-4 relative"
       style={{
-        backgroundImage: `url('/assets/loginbg.jpg')`,
+        backgroundImage: `url('/assets/institiute-bgg.jpg')`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
@@ -153,17 +153,30 @@ const Login = () => {
           <CardHeader className="space-y-2 text-center pb-6">
             {/* Logos inside card */}
             <div className="flex justify-center items-center gap-4 ">
-              <img
-                src="/assets/nexzen-logo.png"
-                alt="Nexzen Logo"
-                className="h-28 w-auto object-contain opacity-100"
-              />
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
+              >
+                <img
+                  src="/assets/nexzen-logo.png"
+                  alt="Nexzen Logo"
+                  className="h-28 w-auto object-contain opacity-100"
+                />
+              </motion.div>
+
               <div className="h-8 w-px bg-gray-400/80"></div>
-              <img
-                src="/assets/Velocity-logo.png"
-                alt="Velocity Logo"
-                className="h-28 w-auto object-contain opacity-100"
-              />
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
+              >
+                <img
+                  src="/assets/Velocity-logo.png"
+                  alt="Velocity Logo"
+                  className="h-28 w-auto object-contain opacity-100"
+                />
+              </motion.div>
             </div>
 
             <div className="space-y-1 mt-2">
@@ -256,7 +269,9 @@ const Login = () => {
               <Button
                 type="submit"
                 className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl "
-                disabled={loginMutation.isPending || !email.trim() || !password.trim()}
+                disabled={
+                  loginMutation.isPending || !email.trim() || !password.trim()
+                }
                 data-testid="button-login"
               >
                 {loginMutation.isPending ? (

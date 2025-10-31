@@ -131,6 +131,7 @@ export function useLogin() {
       toast({
         title: "Login successful",
         description: `Welcome back, ${data.user.email}!`,
+        variant: "success",
       });
     },
     onError: (error: any) => {
