@@ -13,6 +13,7 @@ import { AdvanceViewDialog } from "../Advance/AdvanceViewDialog";
 import AdvanceStatusDialog from "../Advance/AdvanceStatusDialog";
 import AdvanceAmountDialog from "../Advance/AdvanceAmountDialog";
 import AdvanceDeleteDialog from "../Advance/AdvanceDeleteDialog";
+import { useAuthStore } from "@/store/authStore";
 
 interface EmployeeManagementDialogsProps {
   // Employee dialogs
@@ -115,6 +116,10 @@ interface EmployeeManagementDialogsProps {
   handleCreateAttendance: (data: any) => Promise<void>;
   handleUpdateAttendance: (id: number, data: any) => Promise<void>;
   handleDeleteAttendance: (id: number) => Promise<void>;
+  
+  // Loading states
+  createEmployeePending?: boolean;
+  updateEmployeePending?: boolean;
 }
 
 export const EmployeeManagementDialogs = ({
@@ -218,6 +223,8 @@ export const EmployeeManagementDialogs = ({
   handleCreateAttendance,
   handleUpdateAttendance,
   handleDeleteAttendance,
+  createEmployeePending = false,
+  updateEmployeePending = false,
 }: EmployeeManagementDialogsProps) => {
   return (
     <>
@@ -398,24 +405,56 @@ export const EmployeeManagementDialogs = ({
       {/* Employee Form Dialog */}
       <EmployeeFormDialog
         open={showEmployeeForm}
-        onOpenChange={setShowEmployeeForm}
-        isEditing={isEditingEmployee}
-        formData={selectedEmployee as any || {}}
-        onChange={(field, value) => {
-          if (selectedEmployee) {
-            setSelectedEmployee({ ...selectedEmployee, [field]: value } as any);
+        onOpenChange={(open) => {
+          setShowEmployeeForm(open);
+          if (!open) {
+            setSelectedEmployee(null);
           }
+        }}
+        isEditing={isEditingEmployee}
+        formData={selectedEmployee || {
+          employee_name: '',
+          employee_code: '',
+          employee_type: '',
+          designation: '',
+          date_of_joining: new Date().toISOString().split('T')[0],
+          salary: 0,
+          gender: '',
+          date_of_birth: '',
+          aadhar_no: '',
+          mobile_no: '',
+          email: '',
+          address: '',
+          qualification: '',
+          experience_years: 0,
+          bank_account_number: '',
+          bank_name: '',
+          bank_ifsc_code: '',
+        }}
+        onChange={(field, value) => {
+          setSelectedEmployee((prev: any) => ({
+            ...(prev || {}),
+            [field]: value,
+          }));
         }}
         onSubmit={async (e) => {
           e.preventDefault();
-          if (isEditingEmployee && selectedEmployee) {
-            await handleUpdateEmployee(selectedEmployee.employee_id, selectedEmployee as any);
+          const { currentBranch } = useAuthStore.getState();
+          if (isEditingEmployee && selectedEmployee?.employee_id) {
+            // For update, exclude status and employee_id from payload (status is managed separately)
+            const { status, employee_id, ...updateData } = selectedEmployee;
+            await handleUpdateEmployee(selectedEmployee.employee_id, updateData);
           } else {
-            await handleCreateEmployee(selectedEmployee as any);
+            // For create, add branch_id and exclude status
+            const { status, employee_id, ...createData } = selectedEmployee;
+            await handleCreateEmployee({
+              ...createData,
+              branch_id: currentBranch?.branch_id || 1, // Fallback to 1 if no branch selected
+            });
           }
         }}
-        isCreatePending={false}
-        isUpdatePending={false}
+        isCreatePending={createEmployeePending}
+        isUpdatePending={updateEmployeePending}
       />
       
       {/* Employee Detail Dialog */}

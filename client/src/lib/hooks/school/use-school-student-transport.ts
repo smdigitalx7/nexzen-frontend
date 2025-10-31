@@ -13,7 +13,7 @@ const keys = {
 export function useSchoolStudentTransport(params: { class_id: number; section_id?: number; bus_route_id?: number }) {
   return useQuery({
     queryKey: keys.byClass(params.class_id, params.section_id, params.bus_route_id),
-    queryFn: () => StudentTransportService.list(params) as Promise<SchoolStudentTransportRouteWiseResponse[]>,
+    queryFn: () => StudentTransportService.list(params),
     enabled: Number.isFinite(params.class_id) && params.class_id > 0,
   });
 }
@@ -28,6 +28,14 @@ export function useCreateSchoolStudentTransport() {
   }, "Student transport assigned successfully");
 }
 
+export function useSchoolStudentTransportById(assignmentId: number | null | undefined) {
+  return useQuery({
+    queryKey: assignmentId ? keys.detail(assignmentId) : [...keys.root, "detail", "nil"],
+    queryFn: () => StudentTransportService.getById(assignmentId as number),
+    enabled: typeof assignmentId === "number" && assignmentId > 0,
+  });
+}
+
 export function useUpdateSchoolStudentTransport() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
@@ -37,6 +45,17 @@ export function useUpdateSchoolStudentTransport() {
       qc.invalidateQueries({ queryKey: keys.detail(id) });
     },
   }, "Student transport updated successfully");
+}
+
+export function useDeleteSchoolStudentTransport() {
+  const qc = useQueryClient();
+  return useMutationWithSuccessToast({
+    mutationFn: (id: number) => StudentTransportService.delete(id),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: keys.root });
+      qc.invalidateQueries({ queryKey: keys.detail(id) });
+    },
+  }, "Student transport assignment deleted successfully");
 }
 
 export function useSchoolStudentTransportDashboard() {

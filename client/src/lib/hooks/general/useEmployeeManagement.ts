@@ -618,5 +618,9 @@ export const useEmployeeManagement = (
     // User context
     user,
     currentBranch,
+    
+    // Mutation loading states
+    createEmployeePending: createEmployeeMutation.isPending,
+    updateEmployeePending: updateEmployeeMutation.isPending,
   };
 };

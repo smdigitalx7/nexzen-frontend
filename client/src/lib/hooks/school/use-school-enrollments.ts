@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { EnrollmentsService } from "@/lib/services/school/enrollments.service";
-import type { SchoolEnrollmentCreate, SchoolEnrollmentFilterParams, SchoolEnrollmentWithStudentDetails, SchoolEnrollmentsPaginatedResponse } from "@/lib/types/school";
+import type { SchoolEnrollmentCreate, SchoolEnrollmentUpdate, SchoolEnrollmentFilterParams, SchoolEnrollmentWithStudentDetails, SchoolEnrollmentsPaginatedResponse } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
@@ -30,13 +30,13 @@ export function useCreateSchoolEnrollment() {
   }, "Enrollment created successfully");
 }
 
-export function useUpdateSchoolEnrollment(enrollmentId: number) {
+export function useUpdateSchoolEnrollment() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: Partial<SchoolEnrollmentCreate>) => EnrollmentsService.update(enrollmentId, payload) as Promise<SchoolEnrollmentWithStudentDetails>,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.detail(enrollmentId) });
+    mutationFn: ({ id, payload }: { id: number; payload: SchoolEnrollmentUpdate }) => EnrollmentsService.update(id, payload),
+    onSuccess: (_data, { id }) => {
       qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.detail(id) });
     },
   }, "Enrollment updated successfully");
 }
@@ -45,8 +45,9 @@ export function useDeleteSchoolEnrollment() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (enrollmentId: number) => EnrollmentsService.delete(enrollmentId),
-    onSuccess: () => {
+    onSuccess: (_, enrollmentId) => {
       qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
+      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.detail(enrollmentId) });
     },
   }, "Enrollment deleted successfully");
 }

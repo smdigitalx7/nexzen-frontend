@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Receipt, Eye, Edit, Trash2 } from "lucide-react";
+import { Receipt, Eye, Edit, Trash2, Printer } from "lucide-react";
 import { SchoolIncomeService } from "@/lib/services/school/income.service";
 import type { SchoolIncomeSummary, SchoolIncomeSummaryParams } from "@/lib/types/school/income";
 import { ViewIncomeDialog } from "./ViewIncomeDialog";
@@ -11,6 +11,9 @@ import { createCurrencyColumn } from "@/lib/utils/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { handleRegenerateReceipt } from "@/lib/api";
+import { ReceiptPreviewModal } from "@/components/shared";
+import { toast } from "@/hooks/use-toast";
 
 interface IncomeSummaryTableProps {
   onExportCSV?: () => void;
@@ -24,6 +27,10 @@ export const IncomeSummaryTable = ({
   // View dialog state
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [viewIncomeId, setViewIncomeId] = useState<number | null>(null);
+  
+  // Receipt modal state
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
   
   // Build query parameters
   const queryParams: SchoolIncomeSummaryParams = {};
@@ -56,6 +63,44 @@ export const IncomeSummaryTable = ({
     setViewIncomeId(income.income_id);
     setShowViewDialog(true);
   };
+
+  // Handle print receipt action
+  const handlePrintReceipt = useCallback(async (income: SchoolIncomeSummary) => {
+    if (!income || !income.income_id) {
+      toast({
+        title: "Receipt Not Available",
+        description: "This income record does not have a valid income ID.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const blobUrl = await handleRegenerateReceipt(income.income_id, 'school');
+      setReceiptBlobUrl(blobUrl);
+      setShowReceiptModal(true);
+      
+      toast({
+        title: "Receipt Generated",
+        description: "Receipt has been generated and is ready for viewing.",
+      });
+    } catch (error) {
+      console.error("Receipt regeneration failed:", error);
+      toast({
+        title: "Receipt Generation Failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    }
+  }, []);
+
+  const handleCloseReceiptModal = useCallback(() => {
+    setShowReceiptModal(false);
+    if (receiptBlobUrl) {
+      URL.revokeObjectURL(receiptBlobUrl);
+      setReceiptBlobUrl(null);
+    }
+  }, [receiptBlobUrl]);
 
 
   // Define columns for EnhancedDataTable
@@ -111,6 +156,17 @@ export const IncomeSummaryTable = ({
       }
     }
   ], []);
+
+  // Action buttons for EnhancedDataTable (including print receipt)
+  const actionButtons = useMemo(() => [
+    {
+      id: 'print-receipt',
+      label: 'Print Receipt',
+      icon: Printer,
+      variant: 'outline' as const,
+      onClick: (income: SchoolIncomeSummary) => handlePrintReceipt(income),
+    }
+  ], [handlePrintReceipt]);
 
 
   return (
@@ -173,6 +229,7 @@ export const IncomeSummaryTable = ({
         loading={isLoading}
         showActions={true}
         actionButtonGroups={actionButtonGroups}
+        actionButtons={actionButtons}
         actionColumnHeader="Actions"
         showActionLabels={false}
       />
@@ -192,6 +249,13 @@ export const IncomeSummaryTable = ({
           error={viewError}
         />
       )}
+
+      {/* Receipt Preview Modal */}
+      <ReceiptPreviewModal
+        isOpen={showReceiptModal}
+        onClose={handleCloseReceiptModal}
+        blobUrl={receiptBlobUrl || null}
+      />
     </motion.div>
   );
 };

@@ -96,18 +96,41 @@ const DistanceSlabsTab = ({
   ], []);
 
   const handleAddSlab = (data: any) => {
-    createFeeMutation.mutate(data);
+    createFeeMutation(data);
     setIsAddFeeOpen(false);
   };
 
   const handleUpdateSlab = (data: any) => {
-    updateFeeMutation.mutate(data);
+    if (!data.id) {
+      console.error("Slab ID is missing for update");
+      return;
+    }
+    
+    const { id, data: updateData } = data;
+    
+    // Filter out undefined, null, NaN, and empty string values
+    // Note: false and 0 are valid values and will be included
+    const payload: any = {};
+    Object.keys(updateData).forEach((key) => {
+      const value = updateData[key];
+      if (value !== undefined && value !== null && value !== '' && !Number.isNaN(value)) {
+        payload[key] = value;
+      }
+    });
+    
+    // Ensure payload is not empty
+    if (Object.keys(payload).length === 0) {
+      console.error("Update payload is empty");
+      return;
+    }
+    
+    updateFeeMutation({ id, data: payload });
     setIsEditFeeOpen(false);
     setEditFeeId(null);
   };
 
   const handleEditSlab = (slab: any) => {
-    setEditFeeId(slab.id);
+    setEditFeeId(slab.slab_id || slab.id);
     setIsEditFeeOpen(true);
   };
 
@@ -147,7 +170,10 @@ const DistanceSlabsTab = ({
         }}
         onSubmit={handleUpdateSlab}
         isEditing={true}
-        editingSlab={editFeeId ? slabsData.find(s => s.id === editFeeId) : undefined}
+        editingSlab={editFeeId ? (() => {
+          const slab = slabsData.find(s => s.slab_id === editFeeId || s.id === editFeeId);
+          return slab ? { ...slab, id: slab.id || slab.slab_id } : undefined;
+        })() : undefined}
       />
     </div>
   );

@@ -21,15 +21,23 @@ export interface CollegeTransportAssignmentRead {
   transport_assignment_id: number;
   enrollment_id: number;
   bus_route_id: number;
+  route_name: string;
   slab_id: number;
-  pickup_point?: string | null;
+  slab_name: string;
+  class_name: string;
+  section_name: string;
+  group_id: number;
+  group_name: string;
+  admission_no: string;
+  student_name: string;
+  roll_number: string;
+  pickup_point: string;
   start_date: string;
-  end_date?: string | null;
+  end_date: string;
   is_active: boolean;
   created_at: string;
-  updated_at?: string | null;
-  created_by?: number | null;
-  updated_by?: number | null;
+  updated_at: string;
+  created_by: number;
 }
 
 export interface CollegeTransportAssignmentListResponse {

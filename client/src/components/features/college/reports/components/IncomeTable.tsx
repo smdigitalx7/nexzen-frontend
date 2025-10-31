@@ -1,13 +1,16 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Eye, Edit, Trash2 } from "lucide-react";
+import { Eye, Edit, Trash2, Printer } from "lucide-react";
 import type { CollegeIncomeSummary, CollegeIncomeSummaryParams } from "@/lib/types/college";
 import { useCollegeIncomeSummary } from "@/lib/hooks/college/use-college-income";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { createTextColumn, createCurrencyColumn } from "@/lib/utils/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
+import { handleRegenerateReceipt } from "@/lib/api";
+import { ReceiptPreviewModal } from "@/components/shared";
+import { toast } from "@/hooks/use-toast";
 
 interface IncomeTableProps {
   onViewIncome?: (income: CollegeIncomeSummary) => void;
@@ -18,6 +21,10 @@ export const IncomeTable = ({
   onViewIncome,
   params = {},
 }: IncomeTableProps) => {
+  // Receipt modal state
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
+
   // Fetch income summary data using the hook
   const { 
     data: incomeResponse, 
@@ -93,6 +100,55 @@ export const IncomeTable = ({
     }] : [])
   ], [onViewIncome]);
 
+  // Handle print receipt action
+  const handlePrintReceipt = useCallback(async (income: CollegeIncomeSummary) => {
+    if (!income || !income.income_id) {
+      toast({
+        title: "Receipt Not Available",
+        description: "This income record does not have a valid income ID.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const blobUrl = await handleRegenerateReceipt(income.income_id, 'college');
+      setReceiptBlobUrl(blobUrl);
+      setShowReceiptModal(true);
+      
+      toast({
+        title: "Receipt Generated",
+        description: "Receipt has been generated and is ready for viewing.",
+      });
+    } catch (error) {
+      console.error("Receipt regeneration failed:", error);
+      toast({
+        title: "Receipt Generation Failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    }
+  }, []);
+
+  const handleCloseReceiptModal = useCallback(() => {
+    setShowReceiptModal(false);
+    if (receiptBlobUrl) {
+      URL.revokeObjectURL(receiptBlobUrl);
+      setReceiptBlobUrl(null);
+    }
+  }, [receiptBlobUrl]);
+
+  // Action buttons for EnhancedDataTable (including print receipt)
+  const actionButtons = useMemo(() => [
+    {
+      id: 'print-receipt',
+      label: 'Print Receipt',
+      icon: Printer,
+      variant: 'outline' as const,
+      onClick: (income: CollegeIncomeSummary) => handlePrintReceipt(income),
+    }
+  ], [handlePrintReceipt]);
+
   // Prepare filter options for EnhancedDataTable
   const filterOptions = [
     {
@@ -154,8 +210,16 @@ export const IncomeTable = ({
         filters={filterOptions}
         showActions={true}
         actionButtonGroups={actionButtonGroups}
+        actionButtons={actionButtons}
         actionColumnHeader="Actions"
         showActionLabels={false}
+      />
+
+      {/* Receipt Preview Modal */}
+      <ReceiptPreviewModal
+        isOpen={showReceiptModal}
+        onClose={handleCloseReceiptModal}
+        blobUrl={receiptBlobUrl || null}
       />
 
     </motion.div>

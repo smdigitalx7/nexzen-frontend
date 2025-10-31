@@ -154,11 +154,28 @@ export const EmployeeManagementTemplate = () => {
     
     // User context
     user,
+    createEmployeePending,
+    updateEmployeePending,
   } = useEmployeeManagement();
 
 
   const handleAddEmployee = () => {
-    setSelectedEmployee(null);
+    // Initialize with default form values
+    setSelectedEmployee({
+      employee_name: '',
+      employee_code: '',
+      employee_type: '',
+      designation: '',
+      date_of_joining: new Date().toISOString().split('T')[0],
+      status: 'ACTIVE',
+      salary: 0,
+      aadhar_no: '',
+      mobile_no: '',
+      email: '',
+      address: '',
+      qualification: '',
+      experience_years: 0,
+    } as any);
     setIsEditingEmployee(false);
     setShowEmployeeForm(true);
   };
@@ -500,6 +517,8 @@ export const EmployeeManagementTemplate = () => {
         handleCreateAttendance={handleCreateAttendance}
         handleUpdateAttendance={handleUpdateAttendance}
         handleDeleteAttendance={handleDeleteAttendance}
+        createEmployeePending={createEmployeePending}
+        updateEmployeePending={updateEmployeePending}
       />
     </div>
   );

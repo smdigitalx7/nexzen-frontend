@@ -41,6 +41,16 @@ import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { SchoolReservationListItem } from "@/lib/types/school/reservations";
 import { useQueryClient } from "@tanstack/react-query";
 
+// Helper function to format date from ISO format to YYYY-MM-DD
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return "-";
+  // If date is in ISO format (2025-06-09T00:00:00), extract just the date part
+  if (dateString.includes("T")) {
+    return dateString.split("T")[0];
+  }
+  return dateString;
+};
+
 // Memoized status badge component
 const StatusBadge = memo(({ status }: { status: string }) => {
   const getStatusVariant = (status: string) => {
@@ -191,7 +201,7 @@ const ReservationInfo = memo(
           <span className="font-semibold text-blue-900 dark:text-blue-100">
             Date:
           </span>{" "}
-          {reservation.reservation_date}
+          {formatDate(reservation.reservation_date)}
         </div>
         <div>
           <span className="font-semibold text-blue-900 dark:text-blue-100">
@@ -1077,7 +1087,7 @@ const ConfirmedReservationsTabComponent = () => {
         accessorKey: "reservation_date",
         header: "Date",
         cell: ({ row }) => (
-          <span>{row.getValue("reservation_date") || "-"}</span>
+          <span>{formatDate(row.getValue("reservation_date") as string)}</span>
         ),
       },
       {
@@ -1093,7 +1103,7 @@ const ConfirmedReservationsTabComponent = () => {
         header: "Actions",
         cell: ({ row }) => {
           const reservation = row.original;
-          const isEnrolled = false; // This would need to be determined based on actual data
+          const isEnrolled = reservation.is_enrolled ?? false;
           return isEnrolled ? (
             <EnrolledBadge />
           ) : (
@@ -1212,13 +1222,15 @@ const ConfirmedReservationsTabComponent = () => {
                 >
                   Cancel
                 </Button>
-                <Button
-                  onClick={handleEnrollConfirm}
-                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-                >
-                  <UserCheck className="h-4 w-4" />
-                  Enroll Student
-                </Button>
+                {!editForm?.is_enrolled && (
+                  <Button
+                    onClick={handleEnrollConfirm}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                  >
+                    <UserCheck className="h-4 w-4" />
+                    Enroll Student
+                  </Button>
+                )}
               </>
             )}
           </DialogFooter>

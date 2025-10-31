@@ -193,7 +193,29 @@ const BusRoutesTab = ({
   };
 
   const handleUpdateRoute = (data: any) => {
-    updateRouteMutation.mutate(data);
+    if (!data.id) {
+      console.error("Route ID is missing for update");
+      return;
+    }
+    const { id, ...rest } = data;
+    
+    // Filter out undefined, null, NaN, and empty string values
+    // Note: false and 0 are valid values and will be included
+    const payload: any = {};
+    Object.keys(rest).forEach((key) => {
+      const value = rest[key];
+      if (value !== undefined && value !== null && value !== '' && !Number.isNaN(value)) {
+        payload[key] = value;
+      }
+    });
+    
+    // Ensure payload is not empty
+    if (Object.keys(payload).length === 0) {
+      console.error("Update payload is empty");
+      return;
+    }
+    
+    updateRouteMutation.mutate({ id, payload });
     setIsAddRouteOpen(false);
     setIsEditingRoute(false);
     setRouteEditingId(null);
@@ -246,7 +268,10 @@ const BusRoutesTab = ({
           onSubmit={isEditingRoute ? handleUpdateRoute : handleAddRoute}
           isEditing={isEditingRoute}
           editingRoute={isEditingRoute && routeEditingId ? 
-            (routesData.find(r => r.bus_route_id === routeEditingId) || busRoutes.find(r => r.id === routeEditingId)) : undefined
+            (() => {
+              const route = routesData.find(r => r.bus_route_id === routeEditingId) || busRoutes.find(r => r.id === routeEditingId);
+              return route ? { ...route, id: route.id || route.bus_route_id } : undefined;
+            })() : undefined
           }
         />
       </Dialog>

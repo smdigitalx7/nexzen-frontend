@@ -83,19 +83,34 @@ const RouteFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingRoute }:
 
   const handleSubmit = () => {
     if (isEditing) {
-      onSubmit({
+      // For updates, only include fields that have been changed/have values
+      const updateData: any = {
         id: editingRoute!.id,
-        vehicle_number: routeForm.vehicle_number,
-        vehicle_capacity: parseInt(routeForm.vehicle_capacity),
-        registration_number: routeForm.registration_number,
-        route_no: routeForm.route_no,
-        route_name: routeForm.route_name,
-        via: routeForm.via || undefined,
-        start_location: routeForm.start_location,
-        total_distance: parseFloat(routeForm.total_distance),
-        estimated_duration: parseInt(routeForm.estimated_duration),
-        is_active: routeForm.is_active,
-      } as any);
+      };
+      
+      // Only include fields that have values (not empty strings)
+      if (routeForm.vehicle_number) updateData.vehicle_number = routeForm.vehicle_number;
+      if (routeForm.vehicle_capacity) {
+        const capacity = parseInt(routeForm.vehicle_capacity);
+        if (!isNaN(capacity)) updateData.vehicle_capacity = capacity;
+      }
+      if (routeForm.registration_number) updateData.registration_number = routeForm.registration_number;
+      if (routeForm.route_no) updateData.route_no = routeForm.route_no;
+      if (routeForm.route_name) updateData.route_name = routeForm.route_name;
+      if (routeForm.via) updateData.via = routeForm.via;
+      if (routeForm.start_location) updateData.start_location = routeForm.start_location;
+      if (routeForm.total_distance) {
+        const distance = parseFloat(routeForm.total_distance);
+        if (!isNaN(distance)) updateData.total_distance = distance;
+      }
+      if (routeForm.estimated_duration) {
+        const duration = parseInt(routeForm.estimated_duration);
+        if (!isNaN(duration)) updateData.estimated_duration = duration;
+      }
+      // Always include is_active since it's a boolean
+      updateData.is_active = routeForm.is_active;
+      
+      onSubmit(updateData);
     } else {
       const required = [
         routeForm.vehicle_number,
