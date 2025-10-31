@@ -18,3 +18,4 @@ export * from "./teacher-class-subjects";
 export * from "./student-transport-assignments";
 export * from "./marks";
 export * from "./transport";
+export * from "./full-student-view";

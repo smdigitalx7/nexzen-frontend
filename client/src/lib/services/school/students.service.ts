@@ -5,6 +5,7 @@ import type {
   SchoolStudentRead,
   SchoolStudentUpdate,
   SchoolStudentsPaginatedResponse,
+  SchoolFullStudentRead,
 } from "@/lib/types/school";
 
 export interface SchoolStudentsListParams {
@@ -69,5 +70,15 @@ export const SchoolStudentsService = {
     admission_fee: number;
   }) {
     return Api.post<SchoolStudentFullDetails>(`/school/students`, payload);
+  },
+
+  /**
+   * Search for a student by admission number using full-student view
+   * Returns complete student details including enrollment, transport, fees, and receipts
+   */
+  searchByAdmissionNo(admission_no: string) {
+    return Api.get<SchoolFullStudentRead>(
+      `/school/full-student/search/${admission_no}`
+    );
   },
 };
