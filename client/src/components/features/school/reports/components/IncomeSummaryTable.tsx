@@ -83,6 +83,7 @@ export const IncomeSummaryTable = ({
       toast({
         title: "Receipt Generated",
         description: "Receipt has been generated and is ready for viewing.",
+        variant: "success",
       });
     } catch (error) {
       console.error("Receipt regeneration failed:", error);

@@ -178,6 +178,7 @@ const AllReservationsTableComponent = ({
       toast({
         title: "Receipt Generated",
         description: "Receipt has been generated and is ready for viewing.",
+        variant: "success",
       });
 
       // Open receipt in new tab

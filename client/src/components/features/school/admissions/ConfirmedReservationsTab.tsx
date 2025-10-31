@@ -1120,8 +1120,8 @@ const ConfirmedReservationsTabComponent = () => {
 
   return (
     <div className="space-y-6">
-      {/* Status Filter */}
-      <div className="flex gap-4 items-center">
+      {/* Status Filter - Commented out, but functionality remains (only CONFIRMED reservations shown) */}
+      {/* <div className="flex gap-4 items-center">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Filter by status" />
@@ -1132,7 +1132,7 @@ const ConfirmedReservationsTabComponent = () => {
             <SelectItem value="CANCELLED">Cancelled</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </div> */}
 
       {/* Enhanced Reservations Table */}
       <EnhancedDataTable

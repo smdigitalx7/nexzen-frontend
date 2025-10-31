@@ -80,7 +80,7 @@ const BranchSwitcher = () => {
             </div>
             <div className="flex flex-col items-start">
               <span
-                className="truncate max-w-[140px] font-semibold text-base text-slate-700"
+                className="truncate max-w-[150px] font-semibold text-base text-slate-700"
                 title={currentBranch?.branch_name}
               >
                 {isBranchSwitching
@@ -97,7 +97,7 @@ const BranchSwitcher = () => {
         </Button>
       </DropdownMenuTrigger>
       <AnimatePresence>
-        <DropdownMenuContent align="center" className="w-[250px]" asChild>
+        <DropdownMenuContent align="center" className="w-[270px]" asChild>
           <motion.div
             initial={{ y: -10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
