@@ -1103,7 +1103,7 @@ export default function ReservationNew() {
             icon: BarChart3,
             content: (
               <div>
-                <div className="mb-6">
+                {/* <div className="mb-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-semibold">Update Status</h3>
@@ -1130,7 +1130,7 @@ export default function ReservationNew() {
                       </Button>
                     </div>
                   </div>
-                </div>
+                </div> */}
                 {isLoadingReservations ? (
                   <div className="p-6 text-sm text-muted-foreground">
                     Loading reservations…
