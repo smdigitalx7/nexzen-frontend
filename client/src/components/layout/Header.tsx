@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
   User,
   Settings,
   LogOut,
-  Users,
   Search,
+  Loader2,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,11 @@ import { Input } from "@/components/ui/input";
 import BranchSwitcher from "./BranchSwitcher";
 import AcademicYearSwitcher from "./AcademicYearSwitcher";
 import { useLocation } from "wouter";
+import { useGlobalSearch } from "@/lib/hooks/common/useGlobalSearch";
+import { SchoolSearchResultCard } from "@/components/shared/SchoolSearchResultCard";
+import { CollegeSearchResultCard } from "@/components/shared/CollegeSearchResultCard";
+import type { SchoolFullStudentRead } from "@/lib/types/school";
+import type { CollegeFullStudentRead } from "@/lib/types/college";
 
 const Header = () => {
   const {
@@ -47,30 +53,138 @@ const Header = () => {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [notifications] = useState(0);
-  const [openSearch, setOpenSearch] = useState(false);
-  const [query, setQuery] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [showResultsDialog, setShowResultsDialog] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const {
+    query,
+    setQuery,
+    searchResult,
+    isSearching,
+    error,
+    clearSearch,
+  } = useGlobalSearch();
 
-  // Get time-based greeting
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
-    return "Good evening";
+  // Show results dialog when there's a result or error
+  useEffect(() => {
+    if (searchResult?.result || (error && query.trim())) {
+      setShowResultsDialog(true);
+    }
+  }, [searchResult, error, query]);
+
+  // Focus input on Ctrl+K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Ctrl+K or Cmd+K (Mac)
+      if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
+        // Prevent browser default (like opening browser search)
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Use requestAnimationFrame to ensure DOM is ready
+        requestAnimationFrame(() => {
+          if (inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.select();
+          } else {
+            // Fallback: find input by data attribute
+            const found = document.querySelector('input[data-testid="global-search-input"]') as HTMLInputElement;
+            if (found) {
+              found.focus();
+              found.select();
+            }
+          }
+        });
+      }
+      
+      // Handle Escape key
+      if (e.key === "Escape" && showResultsDialog) {
+        e.preventDefault();
+        setShowResultsDialog(false);
+        clearSearch();
+      }
+    };
+
+    // Use document with capture phase to catch events early
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [showResultsDialog, clearSearch]);
+
+  // Clear search when dialog closes
+  useEffect(() => {
+    if (!showResultsDialog) {
+      clearSearch();
+    }
+  }, [showResultsDialog, clearSearch]);
+
+  const handleViewStudent = (admissionNo: string) => {
+    // Removed - search results are display-only, no navigation needed
   };
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setOpenSearch(true);
-        setTimeout(() => inputRef.current?.focus(), 0);
+  const renderSearchResults = () => {
+    if (isSearching) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="relative">
+            <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-4" />
+            <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl animate-pulse" />
+          </div>
+          <p className="text-sm font-medium text-slate-700 mt-2">Searching...</p>
+          <p className="text-xs text-slate-400 mt-1">Please wait while we find the student</p>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="rounded-full bg-red-50 p-4 mb-4">
+            <X className="h-8 w-8 text-red-500" />
+          </div>
+          <p className="text-sm font-semibold text-red-700 mb-1">Search Failed</p>
+          <p className="text-xs text-red-600 text-center max-w-sm">{error}</p>
+          <p className="text-xs text-slate-400 mt-3">
+            Please check the admission number and try again
+          </p>
+        </div>
+      );
+    }
+
+    if (!query || query.trim() === "") {
+      return (
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="rounded-full bg-gradient-to-br from-blue-50 to-indigo-50 p-6 mb-4">
+            <Search className="h-12 w-12 text-blue-400" />
+          </div>
+          <h3 className="text-base font-semibold text-slate-700 mb-2">
+            No Results Yet
+          </h3>
+          <p className="text-sm text-slate-500 text-center max-w-sm">
+            Enter an admission number in the search bar to find student details, enrollment information, and fee balances
+          </p>
+        </div>
+      );
+    }
+
+    if (searchResult?.result) {
+      if (searchResult.branchType === "SCHOOL") {
+        return (
+          <SchoolSearchResultCard
+            result={searchResult.result as SchoolFullStudentRead}
+          />
+        );
+      } else {
+        return (
+          <CollegeSearchResultCard
+            result={searchResult.result as CollegeFullStudentRead}
+          />
+        );
       }
-      if (e.key === "Escape") setOpenSearch(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    }
+
+    return null;
+  };
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -166,18 +280,31 @@ const Header = () => {
 
         {/* Right: Search, Year Badge, Notifications and User Menu */}
         <div className="flex items-center justify-end gap-4">
-          <Button
-            variant="outline"
-            className="gap-2 h-12 w-64"
-            onClick={() => {
-              setOpenSearch(true);
-              setTimeout(() => inputRef.current?.focus(), 0);
-            }}
-            title="Global Search (Ctrl/Cmd+K)"
-          >
-            <Search className="h-5 w-5" />
-            <span className="hidden md:inline">Search (Ctrl/Cmd+K)</span>
-          </Button>
+          {/* Inline Search Input */}
+          <div className="relative w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none z-10" />
+            <div className="relative">
+              <Input
+                ref={inputRef}
+                placeholder="Search by admission number (Ctrl+K)..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="pl-9 pr-9 h-10 w-full border-slate-300 focus:border-blue-400 focus:ring-blue-400"
+                data-testid="global-search-input"
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    clearSearch();
+                    inputRef.current?.blur();
+                  }
+                }}
+              />
+              {isSearching && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                </div>
+              )}
+            </div>
+          </div>
           {/* {academicYear && (
             <Badge
               variant="secondary"
@@ -306,34 +433,36 @@ const Header = () => {
           </DropdownMenu>
         </div>
       </div>
-      <Dialog open={openSearch} onOpenChange={setOpenSearch}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Global Search</DialogTitle>
-            <DialogDescription>
-              Search functionality will be implemented soon
+      {/* Results Dialog - Full Screen Modal */}
+      <Dialog open={showResultsDialog} onOpenChange={setShowResultsDialog}>
+        <DialogContent className="max-w-[95vw] w-full max-h-[95vh] h-[95vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+            <DialogTitle className="text-2xl font-bold">Search Results</DialogTitle>
+            <DialogDescription className="text-sm text-slate-500">
+              Complete student information and financial details
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                ref={inputRef}
-                placeholder="Search functionality coming soon..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="pl-9"
-                disabled
-              />
+          <div className="flex-1 overflow-hidden flex flex-col px-6 pt-6 pb-4">
+            <div className="flex-1 overflow-y-auto pr-2">
+              {renderSearchResults()}
             </div>
-            <div className="text-center py-8">
-              <Search className="h-12 w-24 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-500">
-                Search functionality will be implemented soon
-              </p>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Tip: Press Ctrl/Cmd + K to open search • Esc to close
+          </div>
+          <div className="border-t px-6 py-3 bg-slate-50 shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 text-xs text-slate-500">
+                <kbd className="px-2 py-1 bg-white border rounded text-xs font-mono">Ctrl</kbd>
+                <span>+</span>
+                <kbd className="px-2 py-1 bg-white border rounded text-xs font-mono">K</kbd>
+                <span>to focus search</span>
+                <span className="mx-2">•</span>
+                <kbd className="px-2 py-1 bg-white border rounded text-xs font-mono">Esc</kbd>
+                <span>to close</span>
+              </div>
+              {currentBranch && (
+                <Badge variant="outline" className="text-xs font-medium">
+                  {currentBranch.branch_type}
+                </Badge>
+              )}
             </div>
           </div>
         </DialogContent>

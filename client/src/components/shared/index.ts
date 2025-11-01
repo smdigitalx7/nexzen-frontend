@@ -6,6 +6,8 @@ export { TabSwitcher } from "./TabSwitcher";
 export { ReceiptPreviewModal } from "./ReceiptPreviewModal";
 export { ConcessionUpdateDialog } from "./ConcessionUpdateDialog";
 export { default as ViewDialog } from "./ViewDialog";
+export { SchoolSearchResultCard } from "./SchoolSearchResultCard";
+export { CollegeSearchResultCard } from "./CollegeSearchResultCard";
 
 // Dashboard Components
 export * from "./dashboard";

@@ -24,3 +24,4 @@ export * from "./teacher-course-subjects.ts";
 export * from "./teacher-group-subjects.ts";
 export * from "./tuition-fee-structures.ts";
 export * from "./transport-assignments.ts";
+export * from "./full-student-view.ts";
