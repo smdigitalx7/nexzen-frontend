@@ -127,15 +127,9 @@ Note: Dynamic segments are shown in `{curly}` braces.
 - PUT `/api/v1/college/tuition-fee-balances/{balance_id}/book-payment` — Update book payment
 
 
-## Transport Fee Balances (`/api/v1/college/transport-fee-balances`)
-- GET `/api/v1/college/transport-fee-balances/dashboard` - Get Dashboard
-- GET `/api/v1/college/transport-fee-balances` — list (paginated)
-- POST `/api/v1/college/transport-fee-balances` — create transport fee balance
-- GET `/api/v1/college/transport-fee-balances/{balance_id}` — get balance by id
-- PUT `/api/v1/college/transport-fee-balances/{balance_id}` — update balance by id
-- DELETE `/api/v1/college/transport-fee-balances/{balance_id}` — delete balance by id
-- POST `/api/v1/college/transport-fee-balances/bulk-create` — bulk create
-- PUT `/api/v1/college/transport-fee-balances/{balance_id}/term-payment` — update term payment
+## Student Transport Payment Summary (`/api/v1/college/student-transport-payment`)
+- GET `/api/v1/college/student-transport-payment` — Get all student transport payment summaries (automatically filtered by branch_id and academic_year_id from user context, optional filters: class_id, group_id, course_id, bus_route_id)
+- GET `/api/v1/college/student-transport-payment/{admission_no}` — Get student transport payment summary by admission number
 
 ## Income (`/api/v1/college/income`)
 - GET `/api/v1/college/income/dashboard` - Get Dashboard
