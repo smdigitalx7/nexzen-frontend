@@ -31,6 +31,7 @@ interface CollectFeeSearchProps {
 export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPayment, searchResults, setSearchResults, searchQuery, setSearchQuery }: CollectFeeSearchProps) => {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<StudentFeeDetails | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Direct service calls for search functionality
 
@@ -38,6 +39,7 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
+    setHasSearched(true); // Mark that a search has been performed
     try {
       let student = null;
       
@@ -264,7 +266,14 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
                 <Input
                   placeholder="Enter admission number or student name to search..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    // Reset hasSearched when user starts typing a new query
+                    if (hasSearched) {
+                      setHasSearched(false);
+                      setSearchResults([]); // Clear previous results
+                    }
+                  }}
                   onKeyDown={handleKeyDown}
                   className="w-full"
                 />
@@ -305,8 +314,8 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
         </motion.div>
       )}
 
-      {/* No Results */}
-      {searchResults.length === 0 && searchQuery && !isSearching && (
+      {/* No Results - Only show after a search has been performed */}
+      {hasSearched && searchResults.length === 0 && searchQuery && !isSearching && (
         <Card>
           <CardContent className="text-center py-8">
             <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />

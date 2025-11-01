@@ -12,7 +12,6 @@ import {
 import {
   FileSpreadsheet,
   FileText,
-  Eye,
   Download,
   GraduationCap,
 } from "lucide-react";
@@ -46,26 +45,6 @@ const StatusBadge = memo(({ status }: { status: string }) => {
 
 StatusBadge.displayName = "StatusBadge";
 
-// Memoized view button component
-const ViewButton = memo(({ 
-  studentId, 
-  onViewDetails 
-}: { 
-  studentId: number;
-  onViewDetails: (studentId: number) => void;
-}) => (
-  <Button
-    size="sm"
-    variant="ghost"
-    onClick={() => onViewDetails(studentId)}
-    className="flex items-center gap-2"
-  >
-    <Eye className="h-4 w-4" />
-    View
-  </Button>
-));
-
-ViewButton.displayName = "ViewButton";
 
 // Memoized header card component
 const HeaderCard = memo(({ admission }: { admission: SchoolAdmissionDetails }) => (
@@ -435,8 +414,8 @@ const AdmissionsListComponent = () => {
   const { data: selectedAdmission } = useSchoolAdmissionById(selectedStudentId);
 
   // Memoized handlers
-  const handleViewDetails = useCallback((studentId: number) => {
-    setSelectedStudentId(studentId);
+  const handleViewDetails = useCallback((admission: SchoolAdmissionListItem) => {
+    setSelectedStudentId(admission.student_id);
     setShowDetailsDialog(true);
   }, []);
 
@@ -491,6 +470,14 @@ const AdmissionsListComponent = () => {
     }
   }, []);
 
+  // Memoized action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: "view" as const,
+      onClick: (row: SchoolAdmissionListItem) => handleViewDetails(row),
+    },
+  ], [handleViewDetails]);
+
   // Column definitions for the enhanced table
   const columns: ColumnDef<SchoolAdmissionListItem>[] = useMemo(() => [
     {
@@ -538,17 +525,7 @@ const AdmissionsListComponent = () => {
         <span className="text-sm font-mono">{row.getValue("payable_transport_fee")}</span>
       ),
     },
-    {
-      id: "actions",
-      header: "Actions",
-      cell: ({ row }) => (
-        <ViewButton
-          studentId={row.original.student_id}
-          onViewDetails={handleViewDetails}
-        />
-      ),
-    },
-  ], [handleViewDetails]);
+  ], []);
 
   return (
     <div className="space-y-6">
@@ -565,6 +542,10 @@ const AdmissionsListComponent = () => {
         enableDebounce={true}
         debounceDelay={300}
         highlightSearchResults={true}
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={true}
         className="w-full"
       />
 

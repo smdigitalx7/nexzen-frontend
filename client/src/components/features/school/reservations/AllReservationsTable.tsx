@@ -1,12 +1,9 @@
-import { useMemo, memo, useCallback } from "react";
+import { useMemo, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Edit, Trash2, Percent, Printer } from "lucide-react";
+import { Percent } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared";
 import { ColumnDef } from "@tanstack/react-table";
-import { toast } from "@/hooks/use-toast";
-import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
-import { handleRegenerateReceipt as regenerateReceiptAPI } from "@/lib/api";
 
 // Helper function to format date from ISO format to YYYY-MM-DD
 const formatDate = (dateString: string | null | undefined): string => {
@@ -155,48 +152,6 @@ const AllReservationsTableComponent = ({
     };
   }, []);
 
-  // Memoized receipt regeneration handler
-  const handleRegenerateReceipt = useCallback(async (reservation: Reservation) => {
-    // Check for application_income_id first, then fallback to income_id
-    const incomeId = reservation.application_income_id || reservation.income_id;
-
-    if (!incomeId) {
-      toast({
-        title: "Receipt Not Available",
-        description:
-          "This reservation does not have an associated income record for receipt generation.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      console.log("🔄 Starting receipt regeneration for income ID:", incomeId);
-      const blobUrl = await regenerateReceiptAPI(incomeId, 'school');
-      console.log("✅ Receipt blob URL received:", blobUrl);
-
-      toast({
-        title: "Receipt Generated",
-        description: "Receipt has been generated and is ready for viewing.",
-        variant: "success",
-      });
-
-      // Open receipt in new tab
-      window.open(blobUrl, "_blank");
-    } catch (error) {
-      console.error("Receipt regeneration failed:", error);
-
-      toast({
-        title: "Receipt Generation Failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "An unexpected error occurred.",
-        variant: "destructive",
-      });
-    }
-  }, []);
-
   // Memoized column definitions for EnhancedDataTable
   const reservationColumns: ColumnDef<Reservation>[] = useMemo(
     () => [
@@ -253,34 +208,28 @@ const AllReservationsTableComponent = ({
   );
 
   // Memoized action buttons for EnhancedDataTable
-  const actionButtons = useMemo(
+  // Use actionButtonGroups for standard actions (view, edit, delete) to use EnhancedDataTable's built-in icons
+  const actionButtonGroups = useMemo(
     () => [
       {
-        id: "view",
-        label: "View",
-        icon: Eye,
-        variant: "outline" as const,
+        type: "view" as const,
         onClick: (row: Reservation) => onView(row),
       },
       {
-        id: "edit",
-        label: "Edit",
-        icon: Edit,
-        variant: "outline" as const,
+        type: "edit" as const,
         onClick: (row: Reservation) => onEdit(row),
       },
       {
-        id: "receipt",
-        label: "Receipt",
-        icon: Printer,
-        variant: "outline" as const,
-        onClick: (row: Reservation) => handleRegenerateReceipt(row),
-        show: (row: Reservation) =>
-          !!(
-            (row.application_income_id || row.income_id) &&
-            Number(row.application_income_id || row.income_id) > 0
-          ),
+        type: "delete" as const,
+        onClick: (row: Reservation) => onDelete(row),
       },
+    ],
+    [onView, onEdit, onDelete]
+  );
+
+  // Custom action button for concession (no built-in icon available)
+  const actionButtons = useMemo(
+    () => [
       {
         id: "concession",
         label: "Concession",
@@ -289,15 +238,8 @@ const AllReservationsTableComponent = ({
         onClick: (row: Reservation) => onUpdateConcession?.(row),
         show: (row: Reservation) => !row.concession_lock,
       },
-      {
-        id: "delete",
-        label: "Delete",
-        icon: Trash2,
-        variant: "destructive" as const,
-        onClick: (row: Reservation) => onDelete(row),
-      },
     ],
-    [onView, onEdit, onUpdateConcession, onDelete, handleRegenerateReceipt]
+    [onUpdateConcession]
   );
 
   // Memoized status filter options
@@ -328,6 +270,7 @@ const AllReservationsTableComponent = ({
       loading={isLoading}
       showActions={true}
       actionButtons={actionButtons}
+      actionButtonGroups={actionButtonGroups}
       actionColumnHeader="Actions"
       customGlobalFilterFn={customSearchFunction}
       filters={[

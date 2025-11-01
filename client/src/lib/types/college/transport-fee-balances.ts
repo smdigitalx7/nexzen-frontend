@@ -103,3 +103,65 @@ export interface CollegeTransportFeeBalanceDashboardStats {
   average_payment_completion: number;
 }
 
+// Student Transport Payment Summary Types
+export interface CollegeStudentTransportMonthlyPayment {
+  payment_id: number | null;
+  payment_month: string;
+  amount_paid: number | string;
+  payment_status: string;
+  receipt_no: string | null;
+  payment_created_at: string | null;
+}
+
+export interface CollegeStudentTransportExpectedPayment {
+  expected_payment_month: string;
+  payment_status: string;
+}
+
+export interface CollegeStudentTransportPaymentSummary {
+  student_id: number;
+  admission_no: string | null;
+  student_name: string;
+  branch_id: number;
+  enrollment_id: number;
+  academic_year_id: number;
+  academic_year_name: string | null;
+  class_id: number;
+  class_name: string;
+  group_id: number | null;
+  group_name: string | null;
+  course_id: number | null;
+  course_name: string | null;
+  roll_number: string | null;
+  transport_assignment_id: number;
+  bus_route_id: number;
+  bus_route_name: string | null;
+  bus_route_no: string | null;
+  vehicle_number: string | null;
+  pickup_point: string | null;
+  transport_start_date: string;
+  transport_end_date: string | null;
+  transport_assignment_active: boolean;
+  months_paid_count: number;
+  months_pending_count: number;
+  total_amount_paid: number | string;
+  total_amount_pending: number | string;
+  monthly_payments: CollegeStudentTransportMonthlyPayment[];
+  expected_payments: CollegeStudentTransportExpectedPayment[];
+  first_expected_payment_month: string;
+  last_expected_payment_month: string;
+  enrollment_active: boolean;
+  student_status: string;
+}
+
+export interface CollegeStudentTransportPaymentSummaryListResponse {
+  items: CollegeStudentTransportPaymentSummary[];
+}
+
+export interface CollegeStudentTransportPaymentSummaryParams {
+  class_id?: number | null;
+  group_id?: number | null;
+  course_id?: number | null;
+  bus_route_id?: number | null;
+}
+

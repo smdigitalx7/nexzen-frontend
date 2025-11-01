@@ -41,6 +41,14 @@ export function useUpdateSchoolEnrollment() {
   }, "Enrollment updated successfully");
 }
 
+export function useSchoolEnrollmentByAdmission(admissionNo: string | null | undefined) {
+  return useQuery({
+    queryKey: admissionNo ? [...schoolKeys.enrollments.root(), "by-admission", admissionNo] : [...schoolKeys.enrollments.root(), "by-admission", "nil"],
+    queryFn: () => EnrollmentsService.getByAdmission(admissionNo as string) as Promise<SchoolEnrollmentWithStudentDetails>,
+    enabled: Boolean(admissionNo && admissionNo.trim()),
+  });
+}
+
 export function useDeleteSchoolEnrollment() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({

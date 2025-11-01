@@ -11,6 +11,7 @@ import {
 import { 
   useSchoolEnrollmentsList,
   useSchoolEnrollment,
+  useSchoolEnrollmentByAdmission,
   useCreateSchoolEnrollment,
   useUpdateSchoolEnrollment,
   useDeleteSchoolEnrollment,
@@ -32,10 +33,18 @@ const EnrollmentsTabComponent = () => {
   // Fetch dropdown data
   const { data: classesData } = useSchoolClasses();
   const { data: sectionsData } = useSchoolSections(Number(query.class_id) || 0);
+  
+  // Fetch sections for enrollment class when searching by admission_no
+  const admissionNoResult = useSchoolEnrollmentByAdmission(query.admission_no?.trim());
+  const enrollmentClassId = admissionNoResult.data?.class_id;
+  const { data: enrollmentSectionsData } = useSchoolSections(enrollmentClassId || 0);
+  
   const { data: studentsData } = useSchoolStudentsList({ page: 1, page_size: 1000 });
   
   const classes = classesData?.items || [];
   const sections = sectionsData?.items || [];
+  // Use enrollment sections if available, otherwise use regular sections
+  const allSections = enrollmentClassId ? (enrollmentSectionsData?.items || sections) : sections;
   const students = studentsData?.data || [];
 
   // Memoized API parameters - class_id is required
@@ -50,8 +59,14 @@ const EnrollmentsTabComponent = () => {
     return params;
   }, [query.class_id, query.section_id]);
 
-  // API hooks
+  // API hooks - use by-admission endpoint when admission_no is provided, otherwise use list
   const result = useSchoolEnrollmentsList(apiParams);
+  
+  // Determine which data source to use
+  const shouldUseAdmissionNo = Boolean(query.admission_no?.trim());
+  const isLoading = shouldUseAdmissionNo ? admissionNoResult.isLoading : result.isLoading;
+  const isError = shouldUseAdmissionNo ? admissionNoResult.isError : result.isError;
+  
   const createMutation = useCreateSchoolEnrollment();
   const updateMutation = useUpdateSchoolEnrollment();
   const deleteMutation = useDeleteSchoolEnrollment();
@@ -216,6 +231,30 @@ const EnrollmentsTabComponent = () => {
 
   // Flatten enrollments data for table
   const flatData = useMemo(() => {
+    // If admission_no is provided, use the by-admission endpoint result
+    if (shouldUseAdmissionNo && admissionNoResult.data) {
+      // Transform single enrollment to match table format
+      const enrollment = admissionNoResult.data;
+      // Find class name from classes dropdown
+      const classInfo = classes.find(c => c.class_id === enrollment.class_id);
+      // Find section name from sections dropdown
+      const sectionInfo = allSections.find(s => s.section_id === enrollment.section_id);
+      return [{
+        enrollment_id: enrollment.enrollment_id,
+        admission_no: enrollment.admission_no,
+        student_name: enrollment.student_name,
+        roll_number: enrollment.roll_number,
+        class_id: enrollment.class_id,
+        section_id: enrollment.section_id,
+        section_name: sectionInfo?.section_name || '',
+        class_name: classInfo?.class_name || '',
+        enrollment_date: enrollment.enrollment_date || null,
+        student_id: enrollment.student_id,
+        is_active: enrollment.is_active,
+      } as SchoolEnrollmentRead];
+    }
+    
+    // Otherwise, use the list endpoint result
     if (!result.data?.enrollments) return [];
     const flattened: SchoolEnrollmentRead[] = [];
     result.data.enrollments.forEach(classGroup => {
@@ -227,7 +266,7 @@ const EnrollmentsTabComponent = () => {
       }
     });
     return flattened;
-  }, [result.data?.enrollments]);
+  }, [shouldUseAdmissionNo, admissionNoResult.data, result.data?.enrollments, classes, allSections]);
 
   // Action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => [
@@ -294,7 +333,7 @@ const EnrollmentsTabComponent = () => {
         title="Enrollments"
         searchKey="student_name"
         searchPlaceholder="Search by student name..."
-        loading={result.isLoading}
+        loading={isLoading}
         onAdd={() => setIsCreateDialogOpen(true)}
         addButtonText="Add Enrollment"
         addButtonVariant="default"

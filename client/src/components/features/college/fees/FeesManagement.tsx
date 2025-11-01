@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
-import { CreditCard, DollarSign } from "lucide-react";
+import { CreditCard, DollarSign, Truck } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import type { TabItem } from "@/components/shared/TabSwitcher";
 import { useCollegeFeesManagement } from "@/lib/hooks/college/use-college-fees-management";
 import { useCollegeTuitionFeeBalancesDashboard } from "@/lib/hooks/college/use-college-tuition-balances";
 import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalancesPanel";
+import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeBalancesPanel";
 import { CollectFee } from "./collect-fee/CollectFee";
 import { CollegeTuitionFeeBalanceStatsCards } from "../tuition-fee-balances/CollegeTuitionFeeBalanceStatsCards";
 import { useAuthStore } from "@/store";
@@ -116,6 +117,12 @@ export const FeesManagement = () => {
             label: "Tuition Fee Balances",
             icon: DollarSign,
             content: <TuitionFeeBalancesPanel onViewStudent={() => {}} onExportCSV={() => {}} />,
+          },
+          {
+            value: "transport-balances",
+            label: "Transport Fee Balances",
+            icon: Truck,
+            content: <TransportFeeBalancesPanel onViewStudent={() => {}} onExportCSV={() => {}} />,
           },
         ]}
         activeTab={activeTab}

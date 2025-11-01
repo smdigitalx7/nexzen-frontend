@@ -62,6 +62,7 @@ interface StudentFeeBalancesTableProps {
   description?: string;
   showHeader?: boolean;
   loading?: boolean;
+  readOnly?: boolean; // If true, hides edit and delete actions
 }
 
 const getStatusColor = (status: string) => {

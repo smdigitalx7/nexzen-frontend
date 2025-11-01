@@ -487,7 +487,7 @@ const ReservationManagementComponent = () => {
       no: r.reservation_no || r.reservationNo || "", // Add reservation number
       reservation_id: r.reservation_id, // Keep the original reservation_id as number
       studentName: r.student_name,
-      classAdmission: r.admit_into || "",
+      classAdmission: r.class_name || r.admit_into || "",
       status: r.status || "PENDING",
       date: r.reservation_date || "",
       totalFee: Number(r.tuition_fee || 0) + Number(r.transport_fee || 0),
