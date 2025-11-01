@@ -27,8 +27,8 @@ export const EnrollmentsService = {
   },
 
   // GET /api/v1/school/enrollments/by-admission/{admission_no}
-  getByAdmission(admission_no: string): Promise<SchoolEnrollmentWithStudentDetails[]> {
-    return Api.get<SchoolEnrollmentWithStudentDetails[]>(`/school/enrollments/by-admission/${admission_no}`);
+  getByAdmission(admission_no: string): Promise<SchoolEnrollmentWithStudentDetails> {
+    return Api.get<SchoolEnrollmentWithStudentDetails>(`/school/enrollments/by-admission/${admission_no}`);
   },
 
   // POST /api/v1/school/enrollments/
