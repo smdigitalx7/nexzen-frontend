@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Percent } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared";
 import { ColumnDef } from "@tanstack/react-table";
+import { useAuthStore } from "@/store/authStore";
+import { ROLES } from "@/lib/constants/roles";
 
 // Helper function to format date from ISO format to YYYY-MM-DD
 const formatDate = (dateString: string | null | undefined): string => {
@@ -61,15 +63,13 @@ const StatusBadge = memo(({ status }: { status: string }) => (
       status === "PENDING"
         ? "default"
         : status === "CANCELLED"
-        ? "destructive"
-        : status === "CONFIRMED"
-        ? "secondary"
-        : "outline"
+          ? "destructive"
+          : status === "CONFIRMED"
+            ? "secondary"
+            : "outline"
     }
     className={
-      status === "CONFIRMED"
-        ? "bg-green-500 text-white hover:bg-green-600"
-        : ""
+      status === "CONFIRMED" ? "bg-green-500 text-white hover:bg-green-600" : ""
     }
   >
     {status}
@@ -79,17 +79,17 @@ const StatusBadge = memo(({ status }: { status: string }) => (
 StatusBadge.displayName = "StatusBadge";
 
 // Memoized application fee status badge component
-const ApplicationFeeBadge = memo(({ applicationIncomeId }: { applicationIncomeId?: number | null }) => {
-  const isPaid = applicationIncomeId !== null && applicationIncomeId !== undefined;
-  return (
-    <Badge
-      variant={isPaid ? "secondary" : "destructive"}
-      className="text-xs"
-    >
-      {isPaid ? "Paid" : "Not Paid"}
-    </Badge>
-  );
-});
+const ApplicationFeeBadge = memo(
+  ({ applicationIncomeId }: { applicationIncomeId?: number | null }) => {
+    const isPaid =
+      applicationIncomeId !== null && applicationIncomeId !== undefined;
+    return (
+      <Badge variant={isPaid ? "secondary" : "destructive"} className="text-xs">
+        {isPaid ? "Paid" : "Not Paid"}
+      </Badge>
+    );
+  }
+);
 
 ApplicationFeeBadge.displayName = "ApplicationFeeBadge";
 
@@ -103,21 +103,23 @@ const LoadingState = memo(() => (
 LoadingState.displayName = "LoadingState";
 
 // Memoized error component
-const ErrorState = memo(({ error, onRefetch }: { error?: any; onRefetch: () => void }) => (
-  <div className="p-6 text-center">
-    <div className="text-red-600 mb-2">
-      <h3 className="font-medium">Connection Error</h3>
-      <p className="text-sm text-muted-foreground">
-        {error?.message?.includes("Bad Gateway")
-          ? "Backend server is not responding (502 Bad Gateway)"
-          : "Failed to load reservations"}
-      </p>
+const ErrorState = memo(
+  ({ error, onRefetch }: { error?: any; onRefetch: () => void }) => (
+    <div className="p-6 text-center">
+      <div className="text-red-600 mb-2">
+        <h3 className="font-medium">Connection Error</h3>
+        <p className="text-sm text-muted-foreground">
+          {error?.message?.includes("Bad Gateway")
+            ? "Backend server is not responding (502 Bad Gateway)"
+            : "Failed to load reservations"}
+        </p>
+      </div>
+      <Button variant="outline" size="sm" onClick={onRefetch}>
+        Try Again
+      </Button>
     </div>
-    <Button variant="outline" size="sm" onClick={onRefetch}>
-      Try Again
-    </Button>
-  </div>
-));
+  )
+);
 
 ErrorState.displayName = "ErrorState";
 
@@ -134,6 +136,14 @@ const AllReservationsTableComponent = ({
   statusFilter,
   onStatusFilterChange,
 }: AllReservationsTableProps) => {
+  const { user } = useAuthStore();
+
+  // Check if user has permission to view concession button
+  const canViewConcession = useMemo(() => {
+    if (!user?.role) return false;
+    return user.role === ROLES.ADMIN || user.role === ROLES.INSTITUTE_ADMIN;
+  }, [user?.role]);
+
   // Memoized custom search function
   const customSearchFunction = useMemo(() => {
     return (row: any, columnId: string, value: string) => {
@@ -159,7 +169,7 @@ const AllReservationsTableComponent = ({
         accessorKey: "no",
         header: "Reservation No",
         cell: ({ row }) => (
-          <div className="font-medium">{row.getValue("no")}</div>
+          <div className="font-medium max-w-[300px]">{row.getValue("no")}</div>
         ),
       },
       {
@@ -175,7 +185,7 @@ const AllReservationsTableComponent = ({
         accessorKey: "classAdmission",
         header: "Class",
         cell: ({ row }) => (
-          <div className="max-w-[100px] truncate">
+          <div className="max-w-[100px] text-center">
             {row.getValue("classAdmission") || "-"}
           </div>
         ),
@@ -192,15 +202,22 @@ const AllReservationsTableComponent = ({
         accessorKey: "date",
         header: "Date",
         cell: ({ row }) => (
-          <div className="text-sm">{formatDate(row.getValue("date") as string)}</div>
+          <div className="text-sm">
+            {formatDate(row.getValue("date") as string)}
+          </div>
         ),
       },
       {
         accessorKey: "application_income_id",
         header: "Application Fee Status",
         cell: ({ row }) => {
-          const applicationIncomeId = row.getValue("application_income_id") as number | null | undefined;
-          return <ApplicationFeeBadge applicationIncomeId={applicationIncomeId} />;
+          const applicationIncomeId = row.getValue("application_income_id") as
+            | number
+            | null
+            | undefined;
+          return (
+            <ApplicationFeeBadge applicationIncomeId={applicationIncomeId} />
+          );
         },
       },
     ],
@@ -228,6 +245,7 @@ const AllReservationsTableComponent = ({
   );
 
   // Custom action button for concession (no built-in icon available)
+  // Only visible for ADMIN and INSTITUTE_ADMIN roles
   const actionButtons = useMemo(
     () => [
       {
@@ -236,10 +254,10 @@ const AllReservationsTableComponent = ({
         icon: Percent,
         variant: "outline" as const,
         onClick: (row: Reservation) => onUpdateConcession?.(row),
-        show: (row: Reservation) => !row.concession_lock,
+        show: (row: Reservation) => canViewConcession && !row.concession_lock,
       },
     ],
-    [onUpdateConcession]
+    [onUpdateConcession, canViewConcession]
   );
 
   // Memoized status filter options
@@ -282,7 +300,7 @@ const AllReservationsTableComponent = ({
           onChange: onStatusFilterChange,
         },
       ]}
-      className="w-full"
+      className="w-full max-w-full mt-6"
     />
   );
 };

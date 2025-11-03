@@ -1,5 +1,9 @@
 export type SchoolGenderEnum = "MALE" | "FEMALE" | "OTHER" | string;
-export type SchoolReservationStatusEnum = "PENDING" | "CONFIRMED" | "CANCELLED" | string;
+export type SchoolReservationStatusEnum =
+  | "PENDING"
+  | "CONFIRMED"
+  | "CANCELLED"
+  | string;
 
 export interface SchoolReservationSibling {
   name?: string | null;
@@ -92,7 +96,8 @@ export interface SchoolReservationRead {
   is_enrolled?: boolean | null;
 }
 
-export interface SchoolReservationUpdate extends Partial<SchoolReservationCreate> {
+export interface SchoolReservationUpdate
+  extends Partial<SchoolReservationCreate> {
   status: SchoolReservationStatusEnum;
 }
 
@@ -117,6 +122,7 @@ export interface SchoolReservationListItem {
   present_address?: string | null;
   permanent_address?: string | null;
   admit_into?: string | null;
+  class_name?: string | null;
   admission_group?: string | null;
   reservation_fee?: number | null;
   preferred_class_id?: number | null;
@@ -181,5 +187,3 @@ export interface SchoolReservationConcessionUpdate {
   tuition_concession?: number | null;
   remarks?: string | null;
 }
-
-

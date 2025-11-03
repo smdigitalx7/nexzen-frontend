@@ -151,7 +151,7 @@ const UpdateButton = memo(
     const same = selected === current;
 
     return (
-      <div className="flex justify-end">
+      <div className="flex justify-start">
         <Button
           size="sm"
           variant={same ? "outline" : "default"}
@@ -361,6 +361,7 @@ const StatusUpdateTableComponent = ({
               statusChanges={statusChanges}
               statusRemarks={statusRemarks}
               onUpdate={handleStatusUpdate}
+              className="text-center"
             />
           );
         },

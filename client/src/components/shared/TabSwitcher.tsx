@@ -41,31 +41,23 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
     onTabChange(value);
   };
 
-  const getGridCols = () => {
-    const tabCount = tabs.length;
-    if (tabCount <= 2) return "grid-cols-1 sm:grid-cols-2";
-    if (tabCount <= 3) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
-    if (tabCount <= 4) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4";
-    return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5";
-  };
-
   const getSizeClasses = () => {
     switch (size) {
       case "sm":
         return {
-          trigger: "px-4 py-3 text-sm",
+          trigger: "px-3 py-2 text-sm",
           icon: "h-4 w-4",
-          badge: "text-xs px-1.5 py-0.5",
+          badge: "text-xs px-2 py-0.5",
         };
       case "lg":
         return {
-          trigger: "px-8 py-5 text-lg",
+          trigger: "px-3 py-2 text-lg",
           icon: "h-5 w-5",
           badge: "text-sm px-2 py-1",
         };
       default:
         return {
-          trigger: "px-6 py-4 text-base",
+          trigger: "px-3 py-2 text-base",
           icon: "h-4 w-4",
           badge: "text-xs px-2 py-0.5",
         };
@@ -101,7 +93,7 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
                   "data-[state=inactive]:text-gray-600 dark:text-gray-400",
                   "data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300 data-[state=active]:font-bold",
                   "border-b-2 border-transparent data-[state=active]:border-blue-600 dark:data-[state=active]:border-blue-400",
-                  "rounded-none px-6 py-4 mx-2 relative",
+                  "rounded-none mx-0.5 relative",
                   "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent",
                   sizeClasses.trigger,
                   tabTriggerClassName

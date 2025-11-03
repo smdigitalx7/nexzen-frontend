@@ -292,8 +292,16 @@ const Sidebar = () => {
     <Link
       href={item.href}
       onClick={() => {
-        // Mark navigation as from sidebar (for ACCOUNTANT/ACADEMIC route protection)
-        sessionStorage.setItem("navigation_from_sidebar", "true");
+        // Mark navigation as from sidebar with the target path and timestamp
+        // Store path and timestamp to handle timing issues between navigation and route check
+        const navData = {
+          path: item.href,
+          timestamp: Date.now(),
+        };
+        sessionStorage.setItem(
+          "navigation_from_sidebar",
+          JSON.stringify(navData)
+        );
         handleItemClick(item.href, item.title);
       }}
     >

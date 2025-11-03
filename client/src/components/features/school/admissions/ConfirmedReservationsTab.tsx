@@ -1066,9 +1066,13 @@ const ConfirmedReservationsTabComponent = () => {
         cell: ({ row }) => <span>{row.getValue("student_name")}</span>,
       },
       {
-        accessorKey: "admit_into",
+        accessorKey: "class_name",
         header: "Class",
-        cell: ({ row }) => <span>{row.getValue("admit_into") || "-"}</span>,
+        cell: ({ row }) => (
+          <span>
+            {row.getValue("class_name") || row.original.admit_into || "-"}
+          </span>
+        ),
       },
       {
         accessorKey: "application_income_id",

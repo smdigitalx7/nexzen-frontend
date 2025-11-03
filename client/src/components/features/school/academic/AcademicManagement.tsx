@@ -38,10 +38,10 @@ const AcademicManagement = () => {
   const { activeTab, setActiveTab } = useTabNavigation("classes");
 
   // ✅ LAZY LOADING: Get enabled states at the top level to avoid hook order issues
-  const classesEnabled = useTabEnabled(["classes", "sections"]); // Classes needed for sections
-  const subjectsEnabled = useTabEnabled("subjects");
-  const examsEnabled = useTabEnabled("exams");
-  const testsEnabled = useTabEnabled("tests");
+  const classesEnabled = useTabEnabled(["classes", "sections"], "classes"); // Classes needed for sections
+  const subjectsEnabled = useTabEnabled("subjects", "classes");
+  const examsEnabled = useTabEnabled("exams", "classes");
+  const testsEnabled = useTabEnabled("tests", "classes");
 
   // ✅ LAZY LOADING: Only fetch data for active tab
   const {

@@ -98,13 +98,15 @@ export function useTabActive(tabName: string) {
  * Hook for conditional data fetching based on active tab
  * Returns enabled state for React Query hooks
  * This hook directly uses wouter hooks to avoid hook order issues
+ * @param tabName - The tab name(s) to check for
+ * @param defaultTab - The default tab to use if no tab is in the URL (should match useTabNavigation defaultTab)
  */
-export function useTabEnabled(tabName: string | string[]) {
+export function useTabEnabled(tabName: string | string[], defaultTab: string = "overview") {
   const search = useSearch();
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
   const activeTab = useMemo(
-    () => searchParams.get("tab") || "overview",
-    [searchParams]
+    () => searchParams.get("tab") || defaultTab,
+    [searchParams, defaultTab]
   );
 
   if (Array.isArray(tabName)) {

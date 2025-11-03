@@ -310,17 +310,39 @@ function ProtectedRoute({
   const hasAccess = user && roles.includes(user.role);
   
   const Guard = () => {
+    const [location] = useLocation();
+    
     if (!hasAccess) return <NotAuthorized />;
     
     // For ACCOUNTANT and ACADEMIC: Block direct URL access to restricted routes
     if (preventDirectAccess) {
       const isRestrictedRole = user?.role === ROLES.ACCOUNTANT || user?.role === ROLES.ACADEMIC;
       if (isRestrictedRole) {
-        // Check if navigation came from sidebar
-        const fromSidebar = sessionStorage.getItem('navigation_from_sidebar') === 'true';
+        // Check if navigation came from sidebar using path-based check with timestamp
+        // Get the stored navigation path and timestamp
+        const storedNavData = sessionStorage.getItem('navigation_from_sidebar');
+        let fromSidebar = false;
         
-        // Clear the flag after checking
-        sessionStorage.removeItem('navigation_from_sidebar');
+        if (storedNavData) {
+          try {
+            const { path: storedPath, timestamp } = JSON.parse(storedNavData);
+            const currentTime = Date.now();
+            const timeDiff = currentTime - timestamp;
+            
+            // Check if path matches and navigation was recent (within 2 seconds)
+            // This handles timing issues between navigation and route check
+            fromSidebar = storedPath === location && timeDiff < 2000;
+            
+            // Clear the stored data after successful navigation check
+            if (fromSidebar) {
+              // Clear immediately after confirming it's from sidebar
+              sessionStorage.removeItem('navigation_from_sidebar');
+            }
+          } catch (e) {
+            // If parsing fails, treat as not from sidebar
+            sessionStorage.removeItem('navigation_from_sidebar');
+          }
+        }
         
         if (!fromSidebar) {
           // Direct URL access - redirect to dashboard
