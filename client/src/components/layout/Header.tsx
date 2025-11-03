@@ -55,14 +55,8 @@ const Header = () => {
   const [notifications] = useState(0);
   const [showResultsDialog, setShowResultsDialog] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const {
-    query,
-    setQuery,
-    searchResult,
-    isSearching,
-    error,
-    clearSearch,
-  } = useGlobalSearch();
+  const { query, setQuery, searchResult, isSearching, error, clearSearch } =
+    useGlobalSearch();
 
   // Show results dialog when there's a result or error
   useEffect(() => {
@@ -79,7 +73,7 @@ const Header = () => {
         // Prevent browser default (like opening browser search)
         e.preventDefault();
         e.stopPropagation();
-        
+
         // Use requestAnimationFrame to ensure DOM is ready
         requestAnimationFrame(() => {
           if (inputRef.current) {
@@ -87,7 +81,9 @@ const Header = () => {
             inputRef.current.select();
           } else {
             // Fallback: find input by data attribute
-            const found = document.querySelector('input[data-testid="global-search-input"]') as HTMLInputElement;
+            const found = document.querySelector(
+              'input[data-testid="global-search-input"]'
+            ) as HTMLInputElement;
             if (found) {
               found.focus();
               found.select();
@@ -95,7 +91,7 @@ const Header = () => {
           }
         });
       }
-      
+
       // Handle Escape key
       if (e.key === "Escape" && showResultsDialog) {
         e.preventDefault();
@@ -130,8 +126,12 @@ const Header = () => {
             <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-4" />
             <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl animate-pulse" />
           </div>
-          <p className="text-sm font-medium text-slate-700 mt-2">Searching...</p>
-          <p className="text-xs text-slate-400 mt-1">Please wait while we find the student</p>
+          <p className="text-sm font-medium text-slate-700 mt-2">
+            Searching...
+          </p>
+          <p className="text-xs text-slate-400 mt-1">
+            Please wait while we find the student
+          </p>
         </div>
       );
     }
@@ -142,7 +142,9 @@ const Header = () => {
           <div className="rounded-full bg-red-50 p-4 mb-4">
             <X className="h-8 w-8 text-red-500" />
           </div>
-          <p className="text-sm font-semibold text-red-700 mb-1">Search Failed</p>
+          <p className="text-sm font-semibold text-red-700 mb-1">
+            Search Failed
+          </p>
           <p className="text-xs text-red-600 text-center max-w-sm">{error}</p>
           <p className="text-xs text-slate-400 mt-3">
             Please check the admission number and try again
@@ -161,7 +163,8 @@ const Header = () => {
             No Results Yet
           </h3>
           <p className="text-sm text-slate-500 text-center max-w-sm">
-            Enter an admission number in the search bar to find student details, enrollment information, and fee balances
+            Enter an admission number in the search bar to find student details,
+            enrollment information, and fee balances
           </p>
         </div>
       );
@@ -281,7 +284,7 @@ const Header = () => {
         {/* Right: Search, Year Badge, Notifications and User Menu */}
         <div className="flex items-center justify-end gap-4">
           {/* Inline Search Input */}
-          <div className="relative w-80">
+          <div className="relative w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none z-10" />
             <div className="relative">
               <Input
@@ -437,7 +440,9 @@ const Header = () => {
       <Dialog open={showResultsDialog} onOpenChange={setShowResultsDialog}>
         <DialogContent className="max-w-[95vw] w-full max-h-[95vh] h-[95vh] flex flex-col p-0 gap-0">
           <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
-            <DialogTitle className="text-2xl font-bold">Search Results</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">
+              Search Results
+            </DialogTitle>
             <DialogDescription className="text-sm text-slate-500">
               Complete student information and financial details
             </DialogDescription>
@@ -450,12 +455,18 @@ const Header = () => {
           <div className="border-t px-6 py-3 bg-slate-50 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 text-xs text-slate-500">
-                <kbd className="px-2 py-1 bg-white border rounded text-xs font-mono">Ctrl</kbd>
+                <kbd className="px-2 py-1 bg-white border rounded text-xs font-mono">
+                  Ctrl
+                </kbd>
                 <span>+</span>
-                <kbd className="px-2 py-1 bg-white border rounded text-xs font-mono">K</kbd>
+                <kbd className="px-2 py-1 bg-white border rounded text-xs font-mono">
+                  K
+                </kbd>
                 <span>to focus search</span>
                 <span className="mx-2">•</span>
-                <kbd className="px-2 py-1 bg-white border rounded text-xs font-mono">Esc</kbd>
+                <kbd className="px-2 py-1 bg-white border rounded text-xs font-mono">
+                  Esc
+                </kbd>
                 <span>to close</span>
               </div>
               {currentBranch && (

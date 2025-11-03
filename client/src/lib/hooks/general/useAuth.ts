@@ -2,6 +2,8 @@ import { useMutation } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
 import { useToast } from "@/hooks/use-toast";
 import { unifiedApi } from "@/lib/services/general/unified-api.service";
+import { getRoleFromToken, decodeJWT, getTokenExpiration } from "@/lib/utils/jwt";
+import { normalizeRole, ROLES } from "@/lib/constants/roles";
 
 // Types for authentication
 export interface LoginRequest {
@@ -31,11 +33,13 @@ export interface BranchInfo {
   branch_type: "SCHOOL" | "COLLEGE";
 }
 
+import type { UserRole } from "@/lib/constants/roles";
+
 export interface AuthUser {
   user_id: string;
   full_name: string;
   email: string;
-  role: "institute_admin" | "academic" | "accountant";
+  role: UserRole;
   institute_id: string;
   current_branch_id: number;
 }
@@ -59,66 +63,87 @@ export function useLogin() {
         true
       );
 
-      // Step 2: Set token in auth store
-      setTokenAndExpiry(
+      // Step 2: Decode JWT token and extract data
+      const tokenPayload = decodeJWT(tokenRes.access_token);
+      
+      if (!tokenPayload) {
+        throw new Error("Failed to decode authentication token. Please try again.");
+      }
+
+      // Step 3: Extract role from JWT based on current branch
+      // The JWT contains roles array: [{ role: "ADMIN", branch_id: 1 }, ...]
+      const roleFromToken = getRoleFromToken(
         tokenRes.access_token,
-        tokenRes.expiretime ? new Date(tokenRes.expiretime).getTime() : null
+        tokenPayload.current_branch_id
       );
 
-      // Step 3: Get user information
+      if (!roleFromToken) {
+        throw new Error("User role not found in token. Please contact administrator.");
+      }
+
+      const normalizedRole = normalizeRole(roleFromToken);
+      if (!normalizedRole) {
+        throw new Error(`Invalid user role: ${roleFromToken}. Please contact administrator.`);
+      }
+
+      // Step 4: Set token in auth store with expiration from JWT
+      const tokenExpiration = getTokenExpiration(tokenRes.access_token);
+      const expirationTime = tokenExpiration 
+        ? tokenExpiration 
+        : (tokenRes.expiretime ? new Date(tokenRes.expiretime).getTime() : null);
+      
+      setTokenAndExpiry(tokenRes.access_token, expirationTime);
+
+      // Step 5: Get user information (for additional user details)
       const me = await unifiedApi.get<UserInfo>("/auth/me");
 
-      // Step 4: Get user branches
+      // Step 6: Get user branches
       const branches = await unifiedApi.get<BranchInfo[]>("/branches");
 
-      // Step 5: Determine user role
-      const role: "institute_admin" | "academic" | "accountant" = (() => {
-        // First check if user is marked as institute admin
-        if (me.is_institute_admin) {
-          return "institute_admin";
-        }
-        
-        // Then check roles from UserBranchAccess
-        const roleNames = (me.roles || [])
-          .map((r: any) => {
-            if (typeof r === "string") return r;
-            if (r?.role_name) return r.role_name;
-            if (r?.role) return r.role;
-            return undefined;
-          })
-          .filter(Boolean)
-          .map((s: string) => s.toUpperCase());
+      // Step 7: Determine final user role (use JWT role as primary source)
+      const role = normalizedRole;
 
-        if (roleNames.includes("INSTITUTE_ADMIN") || roleNames.includes("ADMIN")) return "institute_admin";
-        if (roleNames.includes("ACCOUNTANT")) return "accountant";
-        if (roleNames.includes("ACADEMIC")) return "academic";
-
-        // Default fallback
-        return "academic";
-      })();
-
-      // Step 6: Create user object
+      // Step 8: Create user object
       const user: AuthUser = {
-        user_id: String(me.user_id),
+        user_id: String(tokenPayload.user_id || me.user_id),
         full_name: "",
         email: identifier,
         role,
-        institute_id: String(me.institute_id),
-        current_branch_id: me.current_branch_id,
+        institute_id: String(tokenPayload.institute_id || me.institute_id),
+        current_branch_id: tokenPayload.current_branch_id || me.current_branch_id,
       };
 
-      // Step 7: Create branch list
+      // Debug logging (only in development)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔐 Login Debug:', {
+          roleFromToken,
+          normalizedRole: role,
+          userRole: user.role,
+          tokenPayload: {
+            user_id: tokenPayload.user_id,
+            current_branch_id: tokenPayload.current_branch_id,
+            roles: tokenPayload.roles,
+            is_institute_admin: tokenPayload.is_institute_admin,
+          },
+        });
+      }
+
+      // Step 9: Create branch list
       const branchList = branches.map((b) => ({
         branch_id: b.branch_id,
         branch_name: b.branch_name,
         branch_type: b.branch_type,
       }));
 
-      // Step 8: Login user
+      // Step 10: Login user
       login(user as any, branchList as any);
 
-      // Step 9: Determine redirect path
-      const redirectPath = role === "institute_admin" ? "/" : role === "accountant" ? "/fees" : "/academic";
+      // Step 11: Determine redirect path
+      const redirectPath = (role === ROLES.ADMIN || role === ROLES.INSTITUTE_ADMIN) 
+        ? "/" 
+        : role === ROLES.ACCOUNTANT 
+        ? "/fees" 
+        : "/academic";
 
       return {
         user,

@@ -3,12 +3,13 @@ import { persist, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { AuthService } from "@/lib/services/general/auth.service";
 import { AuthTokenTimers } from "@/lib/api";
+import { ROLES, type UserRole } from "@/lib/constants/roles";
 
 export interface AuthUser {
   user_id: string;
   full_name: string;
   email: string;
-  role: "institute_admin" | "academic" | "accountant";
+  role: UserRole;
   institute_id: string;
   current_branch_id: number;
   avatar?: string;
@@ -41,21 +42,28 @@ export interface AuthError {
 
 // Permission mapping
 const ROLE_PERMISSIONS: Record<string, string[]> = {
-  institute_admin: ['*'], // All permissions
-  academic: ['students', 'attendance', 'marks', 'reports'],
-  accountant: ['fees', 'payments', 'reports', 'finance'],
+  ADMIN: ['*'], // All permissions
+  INSTITUTE_ADMIN: ['*'], // All permissions
+  ACADEMIC: ['students', 'attendance', 'marks', 'announcements'],
+  ACCOUNTANT: ['reservations', 'admissions', 'students', 'fees', 'financial_reports', 'announcements'],
 };
 
 const MODULE_PERMISSIONS: Record<string, string[]> = {
   dashboard: ['*'],
-  students: ['institute_admin', 'academic'],
-  attendance: ['institute_admin', 'academic'],
-  marks: ['institute_admin', 'academic'],
-  fees: ['institute_admin', 'accountant'],
-  payments: ['institute_admin', 'accountant'],
-  reports: ['institute_admin', 'academic', 'accountant'],
-  finance: ['institute_admin', 'accountant'],
-  settings: ['institute_admin'],
+  students: ['ADMIN', 'INSTITUTE_ADMIN', 'ACADEMIC', 'ACCOUNTANT'],
+  attendance: ['ADMIN', 'INSTITUTE_ADMIN', 'ACADEMIC'],
+  marks: ['ADMIN', 'INSTITUTE_ADMIN', 'ACADEMIC'],
+  academic: ['ADMIN', 'INSTITUTE_ADMIN', 'ACADEMIC'],
+  reservations: ['ADMIN', 'INSTITUTE_ADMIN', 'ACCOUNTANT'],
+  admissions: ['ADMIN', 'INSTITUTE_ADMIN', 'ACCOUNTANT'],
+  fees: ['ADMIN', 'INSTITUTE_ADMIN', 'ACCOUNTANT'],
+  financial_reports: ['ADMIN', 'INSTITUTE_ADMIN', 'ACCOUNTANT'],
+  announcements: ['ADMIN', 'INSTITUTE_ADMIN', 'ACADEMIC', 'ACCOUNTANT'],
+  users: ['ADMIN', 'INSTITUTE_ADMIN'],
+  employees: ['ADMIN', 'INSTITUTE_ADMIN'],
+  payroll: ['ADMIN', 'INSTITUTE_ADMIN'],
+  transport: ['ADMIN', 'INSTITUTE_ADMIN'],
+  audit_log: ['ADMIN', 'INSTITUTE_ADMIN'],
 };
 
 interface AuthState {
@@ -85,6 +93,7 @@ interface AuthState {
   
   // Computed selectors (getters)
   isAdmin: () => boolean;
+  isFullAccess: () => boolean;
   canAccessModule: (module: string) => boolean;
   isTokenExpired: () => boolean;
   isTokenExpiringSoon: () => boolean;
@@ -137,7 +146,12 @@ export const useAuthStore = create<AuthState>()(
         // Computed selectors
         isAdmin: () => {
           const { user } = get();
-          return user?.role === 'institute_admin';
+          return user?.role === ROLES.ADMIN || user?.role === ROLES.INSTITUTE_ADMIN;
+        },
+        
+        isFullAccess: () => {
+          const { user } = get();
+          return user?.role === ROLES.ADMIN || user?.role === ROLES.INSTITUTE_ADMIN;
         },
 
         canAccessModule: (module: string) => {
@@ -338,31 +352,70 @@ export const useAuthStore = create<AuthState>()(
         },
 
         refreshTokenAsync: async () => {
-          const { refreshToken } = get();
-          if (!refreshToken) return false;
-
           set((state) => {
             state.isTokenRefreshing = true;
             state.error = null;
           });
 
           try {
-            const response = await AuthService.refresh() as any;
+            const response = await AuthService.refresh();
             
-            if (response?.access_token) {
-              const expireAtMs = response?.expiretime ? new Date(response.expiretime).getTime() : null;
-              get().setTokenAndExpiry(response.access_token, expireAtMs);
-              
+            if (!response?.access_token) {
               set((state) => {
                 state.isTokenRefreshing = false;
+                state.error = {
+                  code: 'TOKEN_REFRESH_FAILED',
+                  message: 'No access token in refresh response',
+                  timestamp: Date.now(),
+                };
               });
-              
-              return true;
+              return false;
             }
+
+            // Decode new token to extract expiration and update role if needed
+            const { getTokenExpiration, decodeJWT, getRoleFromToken } = await import("@/lib/utils/jwt");
+            const { normalizeRole } = await import("@/lib/constants/roles");
             
-            return false;
+            const tokenPayload = decodeJWT(response.access_token);
+            if (tokenPayload) {
+              // Extract new expiration from token
+              const tokenExpiration = getTokenExpiration(response.access_token);
+              const expireAtMs = tokenExpiration 
+                ? tokenExpiration 
+                : (response.expiretime ? new Date(response.expiretime).getTime() : null);
+              
+              // Update token and expiration
+              get().setTokenAndExpiry(response.access_token, expireAtMs);
+              
+              // Update user role if it changed
+              const currentState = get();
+              if (currentState.user && tokenPayload.current_branch_id) {
+                const newRole = getRoleFromToken(response.access_token, tokenPayload.current_branch_id);
+                const normalizedRole = normalizeRole(newRole);
+                
+                if (normalizedRole && currentState.user.role !== normalizedRole) {
+                  set((state) => {
+                    if (state.user) {
+                      state.user.role = normalizedRole;
+                    }
+                  });
+                }
+              }
+            } else {
+              // Fallback to expiretime from response
+              const expireAtMs = response.expiretime ? new Date(response.expiretime).getTime() : null;
+              get().setTokenAndExpiry(response.access_token, expireAtMs);
+            }
+              
+            set((state) => {
+              state.isTokenRefreshing = false;
+            });
+            
+            return true;
           } catch (error) {
-            console.error("Token refresh failed:", error);
+            if (process.env.NODE_ENV === 'development') {
+              console.error("Token refresh failed:", error);
+            }
             
             set((state) => {
               state.isTokenRefreshing = false;
@@ -372,6 +425,9 @@ export const useAuthStore = create<AuthState>()(
                 timestamp: Date.now(),
               };
             });
+            
+            // If refresh fails, logout user
+            get().logout();
             
             return false;
           }

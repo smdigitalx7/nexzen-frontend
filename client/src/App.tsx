@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import React, { useEffect, Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,12 +12,15 @@ import { queryClient } from "@/lib/query";
 import { LazyLoadingWrapper } from "@/components/shared/LazyLoadingWrapper";
 import { componentPreloader } from "@/lib/utils/preloader";
 import ProductionApp from "@/components/shared/ProductionApp";
+import { ROLES, type UserRole } from "@/lib/constants/roles";
 import { config } from "@/lib/config/production";
 
 // Lazy-loaded General Components
 const Login = lazy(() => import("./components/pages/general/Login"));
 const NotFound = lazy(() => import("./components/pages/general/not-found"));
-const Dashboard = lazy(() => import("./components/pages/general/Dashboard"));
+const AdminDashboard = lazy(() => import("./components/pages/general/AdminDashboard"));
+const AccountantDashboard = lazy(() => import("./components/pages/general/AccountantDashboard"));
+const AcademicDashboard = lazy(() => import("./components/pages/general/AcademicDashboard"));
 const ProfilePage = lazy(() => import("./components/pages/general/ProfilePage"));
 const SettingsPage = lazy(() => import("./components/pages/general/SettingsPage"));
 const UserManagement = lazy(
@@ -129,91 +132,98 @@ function Router() {
     <AuthenticatedLayout>
       <LazyLoadingWrapper>
         <Switch>
-          {/* General */}
-          <Route path="/" component={Dashboard} />
+          {/* Dashboard - Role-specific */}
+          <Route path="/" component={DashboardRouter} />
           <Route path="/profile" component={ProfilePage} />
           <Route path="/settings" component={SettingsPage} />
           {/* Role-guarded routes per PRD and Sidebar roles */}
           <ProtectedRoute
             path="/users"
-            roles={["institute_admin"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN"]}
             component={UserManagement}
           />
           {/* <ProtectedRoute
             path="/institutes"
-            roles={["institute_admin"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN"]}
             component={InstituteManagement}
           /> */}
           {/* <ProtectedRoute
             path="/branches"
-            roles={["institute_admin", "academic", "accountant"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC", "ACCOUNTANT"]}
             component={BranchesManagement}
           /> */}
           <ProtectedRoute
             path="/employees"
-            roles={["institute_admin"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN"]}
             component={EmployeeManagement}
           />
           <ProtectedRoute
             path="/payroll"
-            roles={["institute_admin", "accountant"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN"]}
             component={PayrollManagement}
           />
           <ProtectedRoute
             path="/transport"
-            roles={["institute_admin"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN"]}
             component={TransportManagement}
           />
           <ProtectedRoute
             path="/audit-log"
-            roles={["institute_admin"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN"]}
             component={AuditLog}
           />
 
           {/* School */}
           <ProtectedRoute
             path="/school/academic"
-            roles={["institute_admin", "academic"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"]}
             component={SchoolAcademicManagement}
+            preventDirectAccess={true}
           />
           <ProtectedRoute
             path="/school/reservations/new"
-            roles={["institute_admin", "accountant"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACCOUNTANT"]}
             component={SchoolReservationManagement}
+            preventDirectAccess={true}
           />
           <ProtectedRoute
             path="/school/admissions"
-            roles={["institute_admin", "accountant"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACCOUNTANT"]}
             component={SchoolAdmissionsManagement}
+            preventDirectAccess={true}
           />
           <ProtectedRoute
             path="/school/students"
-            roles={["institute_admin", "academic"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC", "ACCOUNTANT"]}
             component={SchoolStudentsManagement}
           />
           <ProtectedRoute
             path="/school/attendance"
-            roles={["institute_admin", "academic"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"]}
             component={SchoolAttendanceManagement}
+            preventDirectAccess={true}
           />
           <ProtectedRoute
             path="/school/marks"
-            roles={["institute_admin", "academic"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"]}
             component={SchoolMarksManagement}
+            preventDirectAccess={true}
           />
           <ProtectedRoute
             path="/school/fees"
-            roles={["institute_admin", "accountant"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACCOUNTANT"]}
             component={SchoolFeesManagement}
+            preventDirectAccess={true}
           />
           <ProtectedRoute
             path="/school/financial-reports"
-            roles={["institute_admin", "accountant"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACCOUNTANT"]}
             component={SchoolReportsPage}
+            preventDirectAccess={true}
           />
           <ProtectedRoute
             path="/school/announcements"
-            roles={["institute_admin", "academic"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC", "ACCOUNTANT"]}
             component={AnnouncementsManagement}
           />
 
@@ -221,52 +231,59 @@ function Router() {
           <Route path="/college" />
           <ProtectedRoute
             path="/college/academic"
-            roles={["institute_admin", "academic"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"]}
             component={CollegeAcademicManagement}
+            preventDirectAccess={true}
           />
           <ProtectedRoute
             path="/college/reservations/new"
-            roles={["institute_admin", "accountant"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACCOUNTANT"]}
             component={CollegeReservationManagement}
+            preventDirectAccess={true}
           />
           <ProtectedRoute
             path="/college/admissions"
-            roles={["institute_admin", "accountant"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACCOUNTANT"]}
             component={CollegeAdmissionsManagement}
+            preventDirectAccess={true}
           />
           <ProtectedRoute
             path="/college/classes"
-            roles={["institute_admin", "academic"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"]}
             component={CollegeClassesManagement}
           />
           <ProtectedRoute
             path="/college/students"
-            roles={["institute_admin", "academic"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC", "ACCOUNTANT"]}
             component={CollegeStudentsManagement}
           />
           <ProtectedRoute
             path="/college/attendance"
-            roles={["institute_admin", "academic"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"]}
             component={CollegeAttendanceManagement}
+            preventDirectAccess={true}
           />
           <ProtectedRoute
             path="/college/marks"
-            roles={["institute_admin", "academic"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC"]}
             component={CollegeMarksManagement}
+            preventDirectAccess={true}
           />
           <ProtectedRoute
             path="/college/fees"
-            roles={["institute_admin", "accountant"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACCOUNTANT"]}
             component={CollegeFeesManagement}
+            preventDirectAccess={true}
           />
           <ProtectedRoute
             path="/college/financial-reports"
-            roles={["institute_admin", "accountant"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACCOUNTANT"]}
             component={CollegeReportsPage}
+            preventDirectAccess={true}
           />
           <ProtectedRoute
             path="/college/announcements"
-            roles={["institute_admin", "academic"]}
+            roles={["ADMIN", "INSTITUTE_ADMIN", "ACADEMIC", "ACCOUNTANT"]}
             component={AnnouncementsManagement}
           />
           <Route component={NotFound} />
@@ -278,19 +295,84 @@ function Router() {
 
 type ProtectedRouteProps = {
   path: string;
-  roles: Array<"institute_admin" | "academic" | "accountant">;
+  roles: UserRole[];
   component: React.ComponentType<any>;
+  preventDirectAccess?: boolean; // Prevent ACCOUNTANT and ACADEMIC from accessing directly
 };
 
 function ProtectedRoute({
   path,
   roles,
   component: Component,
+  preventDirectAccess = false,
 }: ProtectedRouteProps) {
   const { user } = useAuthStore();
   const hasAccess = user && roles.includes(user.role);
-  const Guard = () => (hasAccess ? <Component /> : <NotAuthorized />);
+  
+  const Guard = () => {
+    if (!hasAccess) return <NotAuthorized />;
+    
+    // For ACCOUNTANT and ACADEMIC: Block direct URL access to restricted routes
+    if (preventDirectAccess) {
+      const isRestrictedRole = user?.role === ROLES.ACCOUNTANT || user?.role === ROLES.ACADEMIC;
+      if (isRestrictedRole) {
+        // Check if navigation came from sidebar
+        const fromSidebar = sessionStorage.getItem('navigation_from_sidebar') === 'true';
+        
+        // Clear the flag after checking
+        sessionStorage.removeItem('navigation_from_sidebar');
+        
+        if (!fromSidebar) {
+          // Direct URL access - redirect to dashboard
+          return <RedirectToDashboard />;
+        }
+      }
+    }
+    
+    return <Component />;
+  };
+  
   return <Route path={path} component={Guard} />;
+}
+
+// Dashboard Router - Shows appropriate dashboard based on role
+function DashboardRouter() {
+  const { user } = useAuthStore();
+  
+  if (user?.role === ROLES.ADMIN || user?.role === ROLES.INSTITUTE_ADMIN) {
+    return <AdminDashboard />;
+  }
+  if (user?.role === ROLES.ACCOUNTANT) {
+    return <AccountantDashboard />;
+  }
+  if (user?.role === ROLES.ACADEMIC) {
+    return <AcademicDashboard />;
+  }
+  
+  // Default fallback
+  return <AdminDashboard />;
+}
+
+// Redirect component for blocked direct access
+function RedirectToDashboard() {
+  const { user } = useAuthStore();
+  const [, setLocation] = useLocation();
+  
+  useEffect(() => {
+    // Redirect to dashboard
+    setLocation("/");
+  }, [setLocation]);
+  
+  return (
+    <div className="flex items-center justify-center h-full">
+      <div className="text-center space-y-2">
+        <p className="text-lg font-semibold">Redirecting to Dashboard...</p>
+        <p className="text-sm text-muted-foreground">
+          Direct URL access is not allowed. Please use the navigation menu.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 function NotAuthorized() {

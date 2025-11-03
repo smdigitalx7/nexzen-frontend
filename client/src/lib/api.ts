@@ -136,27 +136,90 @@ async function tryRefreshToken(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${oldAccessToken}`,
       },
-      credentials: "include",
+      credentials: "include", // Refresh token is in httpOnly cookie
     });
+    
     if (!res.ok) {
       // If refresh fails, clear auth state to prevent infinite loops
-      console.warn("Token refresh failed, clearing auth state");
+      if (process.env.NODE_ENV === 'development') {
+        console.warn("Token refresh failed, clearing auth state");
+      }
       useAuthStore.getState().logout();
       return null;
     }
+    
     const data = await res.json();
     const newToken = (data?.access_token as string) || null;
     const expireIso = (data?.expiretime as string) || null;
-    const expireAtMs = expireIso ? new Date(expireIso).getTime() : null;
-    if (newToken) {
+    
+    if (!newToken) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn("No access token received from refresh endpoint");
+      }
+      useAuthStore.getState().logout();
+      return null;
+    }
+
+    // Decode new token and update user role if changed
+    try {
+      const { decodeJWT, getRoleFromToken, getTokenExpiration } = await import("@/lib/utils/jwt");
+      const { normalizeRole } = await import("@/lib/constants/roles");
+      
+      const newTokenPayload = decodeJWT(newToken);
+      if (newTokenPayload) {
+        // Extract role from new token
+        const newRole = getRoleFromToken(newToken, newTokenPayload.current_branch_id);
+        const normalizedRole = normalizeRole(newRole);
+        
+        // Get expiration from token or API response
+        const tokenExpiration = getTokenExpiration(newToken) ||
+          (expireIso ? new Date(expireIso).getTime() : null);
+        
+        // Update token and expiration
+        useAuthStore.getState().setTokenAndExpiry(newToken, tokenExpiration);
+        
+        // Update user role if it changed (e.g., after branch switch)
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser && normalizedRole && normalizedRole !== currentUser.role) {
+          useAuthStore.setState((state) => {
+            if (state.user) {
+              state.user.role = normalizedRole;
+            }
+          });
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`User role updated after token refresh: ${currentUser.role} → ${normalizedRole}`);
+          }
+        }
+        
+        // Reschedule proactive refresh
+        scheduleProactiveRefresh();
+        return newToken;
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn("Failed to decode refreshed token");
+        }
+        // Still update token even if decode fails (backend might have changed format)
+        const expireAtMs = expireIso ? new Date(expireIso).getTime() : null;
+        useAuthStore.getState().setTokenAndExpiry(newToken, expireAtMs);
+        scheduleProactiveRefresh();
+        return newToken;
+      }
+    } catch (decodeError) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn("Error processing refreshed token:", decodeError);
+      }
+      // Still update token even if decode fails
+      const expireAtMs = expireIso ? new Date(expireIso).getTime() : null;
       useAuthStore.getState().setTokenAndExpiry(newToken, expireAtMs);
       scheduleProactiveRefresh();
+      return newToken;
     }
-    return newToken;
   } catch (error) {
-    console.warn("Token refresh error, clearing auth state:", error);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn("Token refresh error, clearing auth state:", error);
+    }
     useAuthStore.getState().logout();
     return null;
   } finally {

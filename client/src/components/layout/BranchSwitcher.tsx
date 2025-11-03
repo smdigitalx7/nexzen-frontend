@@ -58,7 +58,7 @@ const BranchSwitcher = () => {
         <Button
           variant="outline"
           disabled={isBranchSwitching}
-          className="hover-elevate min-w-[240px] justify-between bg-white/80 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 shadow-sm rounded-xl px-4 py-2.5"
+          className="hover-elevate min-w-[270px] justify-between bg-white/80 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 shadow-sm rounded-xl px-4 py-2.5"
           data-testid="dropdown-branch-switcher"
           aria-label="Select schema and branch"
         >
@@ -80,7 +80,7 @@ const BranchSwitcher = () => {
             </div>
             <div className="flex flex-col items-start">
               <span
-                className="truncate max-w-[150px] font-semibold text-base text-slate-700"
+                className="truncate max-w-[250px] font-semibold text-base text-slate-700"
                 title={currentBranch?.branch_name}
               >
                 {isBranchSwitching
