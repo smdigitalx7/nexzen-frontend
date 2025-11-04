@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { MultiplePaymentForm } from '@/components/shared/payment';
+import { MultiplePaymentForm } from '@/components/shared/payment/multiple-payment/MultiplePaymentForm';
 import { schoolPaymentConfig } from '@/components/shared/payment/config/PaymentConfig';
 import type { StudentInfo, FeeBalance, MultiplePaymentData } from '@/components/shared/payment/types/PaymentTypes';
 

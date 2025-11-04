@@ -44,7 +44,6 @@ export const TransportViewDialog = ({
           iconColor: "purple",
           fields: [
             { label: "Route Name", value: viewAssignment.route_name, type: "text" },
-            { label: "Distance Slab", value: viewAssignment.slab_name, type: "text" },
             { 
               label: "Pickup Point", 
               value: viewAssignment.pickup_point, 

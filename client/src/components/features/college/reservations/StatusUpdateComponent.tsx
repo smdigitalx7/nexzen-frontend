@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState, useMemo, memo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,241 +9,398 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { CollegeReservationsService } from "@/lib/services/college/reservations.service";
-// Define a minimal interface for status update functionality
-interface ReservationForStatusUpdate {
+import { EnhancedDataTable } from "@/components/shared";
+import { ColumnDef } from "@tanstack/react-table";
+
+export type Reservation = {
+  id: string;
+  no: string;
   reservation_id: number;
-  student_name: string;
-  status?: string | null;
-}
+  studentName: string;
+  status: string;
+};
 
-interface StatusUpdateComponentProps {
-  reservations: ReservationForStatusUpdate[];
-  onStatusUpdate: () => void;
-  isLoading?: boolean;
-}
+export type StatusUpdateTableProps = {
+  reservations: Reservation[];
+  isLoading: boolean;
+  isError: boolean;
+  error?: any;
+  onRefetch: () => void;
+  totalCount?: number;
+};
 
-type ReservationStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
+// Memoized status badge component
+const StatusBadge = memo(({ status }: { status: string }) => {
+  const current = status.toUpperCase();
+  return (
+    <Badge
+      variant={
+        current === "PENDING"
+          ? "default"
+          : current === "CANCELLED"
+            ? "destructive"
+            : current === "CONFIRMED"
+              ? "secondary"
+              : "outline"
+      }
+      className={
+        current === "CONFIRMED"
+          ? "bg-green-500 text-white hover:bg-green-600"
+          : ""
+      }
+    >
+      {current}
+    </Badge>
+  );
+});
 
-const StatusUpdateComponent: React.FC<StatusUpdateComponentProps> = ({
+StatusBadge.displayName = "StatusBadge";
+
+// Memoized status select component
+const StatusSelect = memo(
+  ({
+    reservation,
+    statusChanges,
+    onStatusChange,
+  }: {
+    reservation: Reservation;
+    statusChanges: Record<string, "PENDING" | "CONFIRMED" | "CANCELLED">;
+    onStatusChange: (
+      reservationId: string,
+      status: "PENDING" | "CONFIRMED" | "CANCELLED"
+    ) => void;
+  }) => {
+    const current = (reservation.status || "").toUpperCase();
+    const selected = (statusChanges[reservation.id] || current) as
+      | "PENDING"
+      | "CONFIRMED"
+      | "CANCELLED";
+
+    return (
+      <div className="w-48">
+        <Select
+          value={selected}
+          onValueChange={(v) => onStatusChange(reservation.id, v as any)}
+        >
+          <SelectTrigger aria-label="Select status">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="PENDING">Pending</SelectItem>
+            <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+            <SelectItem value="CANCELLED">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  }
+);
+
+StatusSelect.displayName = "StatusSelect";
+
+// Memoized remarks textarea component
+const RemarksTextarea = memo(
+  ({
+    reservation,
+    statusRemarks,
+    onRemarksChange,
+  }: {
+    reservation: Reservation;
+    statusRemarks: Record<string, string>;
+    onRemarksChange: (reservationId: string, remarks: string) => void;
+  }) => (
+    <div className="w-48">
+      <Textarea
+        placeholder="Enter remarks..."
+        value={statusRemarks[reservation.id] || ""}
+        onChange={(e) => onRemarksChange(reservation.id, e.target.value)}
+        rows={1}
+        className="text-sm resize-none"
+      />
+    </div>
+  )
+);
+
+RemarksTextarea.displayName = "RemarksTextarea";
+
+// Memoized update button component
+const UpdateButton = memo(
+  ({
+    reservation,
+    statusChanges,
+    statusRemarks,
+    onUpdate,
+  }: {
+    reservation: Reservation;
+    statusChanges: Record<string, "PENDING" | "CONFIRMED" | "CANCELLED">;
+    statusRemarks: Record<string, string>;
+    onUpdate: (
+      reservation: Reservation,
+      newStatus: "PENDING" | "CONFIRMED" | "CANCELLED",
+      remarks: string
+    ) => void;
+  }) => {
+    const current = (reservation.status || "").toUpperCase();
+    const selected = (statusChanges[reservation.id] || current) as
+      | "PENDING"
+      | "CONFIRMED"
+      | "CANCELLED";
+    const same = selected === current;
+
+    return (
+      <div className="flex justify-start">
+        <Button
+          size="sm"
+          variant={same ? "outline" : "default"}
+          disabled={same}
+          onClick={() => {
+            const to = (statusChanges[reservation.id] || current) as
+              | "PENDING"
+              | "CONFIRMED"
+              | "CANCELLED";
+            const remarks = statusRemarks[reservation.id] || "";
+            onUpdate(reservation, to, remarks);
+          }}
+        >
+          <Save className="h-4 w-4 mr-2" />
+          Update
+        </Button>
+      </div>
+    );
+  }
+);
+
+UpdateButton.displayName = "UpdateButton";
+
+// Memoized header component
+const StatusUpdateHeader = memo(
+  ({
+    reservations,
+    totalCount,
+    isLoading,
+    onRefetch,
+  }: {
+    reservations: Reservation[];
+    totalCount?: number;
+    isLoading: boolean;
+    onRefetch: () => void;
+  }) => (
+    <div className="flex items-center justify-between">
+      {/* <div>
+      <h3 className="text-lg font-semibold">Update Status</h3>
+      <p className="text-sm text-muted-foreground">
+        Modify reservation statuses quickly
+      </p>
+    </div>
+    <div className="flex items-center gap-2">
+      <Badge variant="outline">
+        {reservations.length} items
+      </Badge>
+      {totalCount && (
+        <Badge variant="secondary">
+          Total: {totalCount}
+        </Badge>
+      )}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onRefetch}
+        disabled={isLoading}
+      >
+        Refresh
+      </Button>
+    </div> */}
+    </div>
+  )
+);
+
+StatusUpdateHeader.displayName = "StatusUpdateHeader";
+
+const StatusUpdateTableComponent = ({
   reservations,
-  onStatusUpdate,
-  isLoading = false,
-}) => {
+  isLoading,
+  isError,
+  error,
+  onRefetch,
+  totalCount,
+}: StatusUpdateTableProps) => {
   const [statusChanges, setStatusChanges] = useState<
-    Record<string, ReservationStatus>
+    Record<string, "PENDING" | "CONFIRMED" | "CANCELLED">
   >({});
-  const [statusRemarks, setStatusRemarks] = useState<Record<string, string>>({});
-  const [updatingReservationId, setUpdatingReservationId] = useState<number | null>(null);
+  const [statusRemarks, setStatusRemarks] = useState<Record<string, string>>(
+    {}
+  );
 
-  const handleStatusChange = (reservationId: number, newStatus: ReservationStatus) => {
-    setStatusChanges((prev) => ({
-      ...prev,
-      [reservationId]: newStatus,
-    }));
-  };
+  // Memoized handlers
+  const handleStatusChange = useCallback(
+    (reservationId: string, status: "PENDING" | "CONFIRMED" | "CANCELLED") => {
+      setStatusChanges((prev) => ({
+        ...prev,
+        [reservationId]: status,
+      }));
+    },
+    []
+  );
 
-  const handleRemarksChange = (reservationId: number, remarks: string) => {
-    setStatusRemarks((prev) => ({
-      ...prev,
-      [reservationId]: remarks,
-    }));
-  };
-
-  const handleStatusUpdate = async (reservation: ReservationForStatusUpdate) => {
-    const currentStatus = (reservation.status || "").toUpperCase() as ReservationStatus;
-    const newStatus = statusChanges[reservation.reservation_id] || currentStatus;
-    const remarks = statusRemarks[reservation.reservation_id] || "";
-
-    if (newStatus === currentStatus) {
-      return; // No change needed
-    }
-
-    setUpdatingReservationId(reservation.reservation_id);
-
-    try {
-      const payload = {
-        status: newStatus,
-        remarks: remarks.trim() ? remarks : null,
-      };
-
-      await CollegeReservationsService.updateStatus(
-        Number(reservation.reservation_id),
-        payload
-      );
-
-      // Clear the remarks after successful update
+  const handleRemarksChange = useCallback(
+    (reservationId: string, remarks: string) => {
       setStatusRemarks((prev) => ({
         ...prev,
-        [reservation.reservation_id]: "",
+        [reservationId]: remarks,
       }));
+    },
+    []
+  );
 
-      // Clear the status change
-      setStatusChanges((prev) => {
-        const updated = { ...prev };
-        delete updated[reservation.reservation_id];
-        return updated;
-      });
+  const handleStatusUpdate = useCallback(
+    async (
+      reservation: Reservation,
+      newStatus: "PENDING" | "CONFIRMED" | "CANCELLED",
+      remarks: string
+    ) => {
+      try {
+        const payload = {
+          status: newStatus,
+          remarks: remarks.trim() ? remarks : null,
+        };
 
-      onStatusUpdate();
+        await CollegeReservationsService.updateStatus(
+          reservation.reservation_id,
+          payload
+        );
 
-      toast({
-        title: "Status Updated",
-        description: `Reservation status updated to ${newStatus}`,
-      });
-    } catch (error: any) {
-      console.error("Failed to update status:", error);
-      toast({
-        title: "Status Update Failed",
-        description:
-          error?.message ||
-          "Could not update reservation status. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setUpdatingReservationId(null);
-    }
-  };
+        toast({
+          title: "Status Updated",
+          description: `Reservation ${reservation.no} status updated to ${newStatus}.`,
+        });
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status.toUpperCase()) {
-      case "PENDING":
-        return "default";
-      case "CANCELLED":
-        return "destructive";
-      case "CONFIRMED":
-        return "secondary";
-      default:
-        return "outline";
-    }
-  };
+        // Clear the remarks after successful update
+        setStatusRemarks((prev) => ({
+          ...prev,
+          [reservation.id]: "",
+        }));
 
-  const getStatusBadgeClassName = (status: string) => {
-    if (status.toUpperCase() === "CONFIRMED") {
-      return "bg-green-500 text-white hover:bg-green-600";
-    }
-    return "";
-  };
+        // Refresh the data
+        onRefetch();
+      } catch (e: any) {
+        console.error("Failed to update status:", e);
+        toast({
+          title: "Status Update Failed",
+          description:
+            e?.message ||
+            "Could not update reservation status. Please try again.",
+          variant: "destructive",
+        });
+      }
+    },
+    [onRefetch]
+  );
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (reservations.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">No reservations found</p>
-      </div>
-    );
-  }
+  // Column definitions for EnhancedDataTable
+  const statusColumns: ColumnDef<Reservation>[] = useMemo(
+    () => [
+      {
+        accessorKey: "no",
+        header: "Reservation No",
+        cell: ({ row }) => (
+          <div className="font-medium">{row.getValue("no")}</div>
+        ),
+      },
+      {
+        accessorKey: "studentName",
+        header: "Student",
+        cell: ({ row }) => (
+          <div className="max-w-[200px] truncate">
+            {row.getValue("studentName")}
+          </div>
+        ),
+      },
+      {
+        accessorKey: "status",
+        header: "Current Status",
+        cell: ({ row }) => {
+          const status = row.getValue("status") as string;
+          return <StatusBadge status={status} />;
+        },
+      },
+      {
+        accessorKey: "changeTo",
+        header: "Change To",
+        cell: ({ row }) => {
+          const reservation = row.original as Reservation;
+          return (
+            <StatusSelect
+              reservation={reservation}
+              statusChanges={statusChanges}
+              onStatusChange={handleStatusChange}
+            />
+          );
+        },
+      },
+      {
+        accessorKey: "remarks",
+        header: "Remarks",
+        cell: ({ row }) => {
+          const reservation = row.original as Reservation;
+          return (
+            <RemarksTextarea
+              reservation={reservation}
+              statusRemarks={statusRemarks}
+              onRemarksChange={handleRemarksChange}
+            />
+          );
+        },
+      },
+      {
+        accessorKey: "updateAction",
+        header: "Update",
+        cell: ({ row }) => {
+          const reservation = row.original as Reservation;
+          return (
+            <UpdateButton
+              reservation={reservation}
+              statusChanges={statusChanges}
+              statusRemarks={statusRemarks}
+              onUpdate={handleStatusUpdate}
+            />
+          );
+        },
+      },
+    ],
+    [
+      statusChanges,
+      statusRemarks,
+      handleStatusChange,
+      handleRemarksChange,
+      handleStatusUpdate,
+    ]
+  );
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Student Name</TableHead>
-              <TableHead>Current Status</TableHead>
-              <TableHead>New Status</TableHead>
-              <TableHead>Remarks</TableHead>
-              <TableHead className="text-right">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {reservations.map((reservation) => {
-              const currentStatus = (reservation.status || "").toUpperCase() as ReservationStatus;
-              const selectedStatus = statusChanges[reservation.reservation_id] || currentStatus;
-              const hasChanges = selectedStatus !== currentStatus;
-              const isUpdating = updatingReservationId === reservation.reservation_id;
+      <StatusUpdateHeader
+        reservations={reservations}
+        totalCount={totalCount}
+        isLoading={isLoading}
+        onRefetch={onRefetch}
+      />
 
-              return (
-                <TableRow key={reservation.reservation_id}>
-                  <TableCell className="font-medium">
-                    {reservation.reservation_id}
-                  </TableCell>
-                  <TableCell>{reservation.student_name}</TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={getStatusBadgeVariant(currentStatus)}
-                      className={getStatusBadgeClassName(currentStatus)}
-                    >
-                      {currentStatus}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="w-48">
-                      <Select
-                        value={selectedStatus}
-                        onValueChange={(value) =>
-                          handleStatusChange(reservation.reservation_id, value as ReservationStatus)
-                        }
-                      >
-                        <SelectTrigger aria-label="Select status">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="PENDING">Pending</SelectItem>
-                          <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                          <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="w-48">
-                      <Textarea
-                        placeholder="Enter remarks..."
-                        value={statusRemarks[reservation.reservation_id] || ""}
-                        onChange={(e) =>
-                          handleRemarksChange(reservation.reservation_id, e.target.value)
-                        }
-                        className="text-sm"
-                        rows={2}
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex justify-end">
-                      <Button
-                        size="sm"
-                        variant={hasChanges ? "default" : "outline"}
-                        disabled={!hasChanges || isUpdating}
-                        onClick={() => handleStatusUpdate(reservation)}
-                        className="flex items-center gap-2"
-                      >
-                        {isUpdating ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                        ) : (
-                          <Save className="h-4 w-4" />
-                        )}
-                        {isUpdating ? "Updating..." : "Update"}
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+      <EnhancedDataTable
+        data={reservations}
+        columns={statusColumns}
+        title="Status Updates"
+        searchPlaceholder="Search by student name or reservation number..."
+        exportable={false}
+        loading={isLoading}
+        showActions={false}
+        className="w-full"
+      />
     </div>
   );
 };
 
-export default StatusUpdateComponent;
+export const StatusUpdateTable = StatusUpdateTableComponent;
+export default StatusUpdateTableComponent;

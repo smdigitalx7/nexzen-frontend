@@ -157,6 +157,7 @@ export const ClassesTab = memo(({
         columns={columns}
         title="Classes"
         searchKey="class_name"
+        searchPlaceholder="Search classes..."
         exportable={true}
         onAdd={() => setIsAddClassOpen(true)}
         addButtonText="Add Class"

@@ -153,6 +153,7 @@ export const SubjectsTab = ({
         columns={columns}
         title="Subjects"
         searchKey="subject_name"
+        searchPlaceholder="Search subjects..."
         exportable={true}
         onAdd={() => setIsAddSubjectOpen(true)}
         addButtonText="Add Subject"

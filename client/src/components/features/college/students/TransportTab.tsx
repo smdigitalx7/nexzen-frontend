@@ -215,14 +215,6 @@ const TransportTabComponent = () => {
   // Table columns
   const columns: ColumnDef<any>[] = useMemo(() => [
     {
-      id: 'transport_assignment_id',
-      accessorKey: 'transport_assignment_id',
-      header: 'Assignment ID',
-      cell: ({ row }) => (
-        <div className="font-mono text-sm">{row.original.transport_assignment_id}</div>
-      ),
-    },
-    {
       id: 'admission_no',
       accessorKey: 'admission_no',
       header: 'Admission No',
@@ -254,11 +246,6 @@ const TransportTabComponent = () => {
       id: 'group_name',
       accessorKey: 'group_name',
       header: 'Group',
-    },
-    {
-      id: 'slab_name',
-      accessorKey: 'slab_name',
-      header: 'Distance Slab',
     },
     {
       id: 'pickup_point',

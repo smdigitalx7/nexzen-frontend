@@ -245,7 +245,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
         showActions={true}
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
-        showActionLabels={false}
+        showActionLabels={true}
         loading={isLoading}
         filters={[
           {

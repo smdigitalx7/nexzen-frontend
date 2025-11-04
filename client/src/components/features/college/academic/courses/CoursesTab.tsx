@@ -153,7 +153,7 @@ export const CoursesTab = memo(({
     {
       accessorKey: "course_fee",
       header: "Course Fee",
-      cell: ({ row }) => `$${row.getValue("course_fee")}`,
+      cell: ({ row }) => `₹${row.getValue("course_fee")}`,
     }
   ], []);
 
@@ -192,6 +192,7 @@ export const CoursesTab = memo(({
         columns={columns}
         title="Courses"
         searchKey="course_name"
+        searchPlaceholder="Search courses..."
         exportable={true}
         onAdd={() => setIsAddCourseOpen(true)}
         addButtonText="Add Course"

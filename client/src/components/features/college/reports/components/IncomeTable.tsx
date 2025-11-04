@@ -1,7 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Eye, Edit, Trash2, Printer } from "lucide-react";
+import { Printer } from "lucide-react";
 import type { CollegeIncomeSummary, CollegeIncomeSummaryParams } from "@/lib/types/college";
 import { useCollegeIncomeSummary } from "@/lib/hooks/college/use-college-income";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -213,7 +212,7 @@ export const IncomeTable = ({
         actionButtonGroups={actionButtonGroups}
         actionButtons={actionButtons}
         actionColumnHeader="Actions"
-        showActionLabels={false}
+        showActionLabels={true}
       />
 
       {/* Receipt Preview Modal */}

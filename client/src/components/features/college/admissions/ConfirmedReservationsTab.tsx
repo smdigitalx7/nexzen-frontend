@@ -362,14 +362,17 @@ const ConfirmedReservationsTab = () => {
       cell: ({ row }) => <span>{row.getValue("student_name")}</span>,
     },
     {
-      accessorKey: "group_name",
-      header: "Group",
-      cell: ({ row }) => <span>{row.getValue("group_name") || "-"}</span>,
-    },
-    {
-      accessorKey: "course_name",
-      header: "Course",
-      cell: ({ row }) => <span>{row.getValue("course_name") || "-"}</span>,
+      accessorKey: "group_course",
+      header: "Group/Course",
+      cell: ({ row }) => {
+        const reservation = row.original;
+        const groupCourse = reservation.group_name
+          ? `${reservation.group_name}${reservation.course_name ? ` - ${reservation.course_name}` : ""}`
+          : "-";
+        return (
+          <div className="max-w-[150px] truncate">{groupCourse}</div>
+        );
+      },
     },
     {
       accessorKey: "application_income_id",

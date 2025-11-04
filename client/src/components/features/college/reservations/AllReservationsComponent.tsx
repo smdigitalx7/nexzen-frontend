@@ -1,21 +1,22 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useMemo, memo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Eye, Edit, Trash2, DollarSign, Download } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-import { CollegeIncomeService } from "@/lib/services/college/income.service";
-import { ReceiptPreviewModal } from "@/components/shared";
-import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
+import { Percent } from "lucide-react";
+import { EnhancedDataTable } from "@/components/shared";
+import { useAuthStore } from "@/store/authStore";
+import { ROLES } from "@/lib/constants/roles";
 import type { ReservationStatusEnum } from "@/lib/types/college/reservations";
-import { handleRegenerateReceipt } from "@/lib/api";
+
+// Helper function to format date from ISO format to YYYY-MM-DD
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return "-";
+  // If date is in ISO format (2025-06-09T00:00:00), extract just the date part
+  if (dateString.includes("T")) {
+    return dateString.split("T")[0];
+  }
+  return dateString;
+};
 
 // Define the reservation type for this component
 export type ReservationForAllReservations = {
@@ -37,6 +38,7 @@ export type ReservationForAllReservations = {
   remarks?: string | null;
   // Additional fields for UI functionality
   income_id?: number;
+  application_income_id?: number | null;
   concession_lock?: boolean;
   tuition_fee?: number;
   transport_fee?: number;
@@ -52,8 +54,80 @@ interface AllReservationsComponentProps {
   onEdit: (reservation: ReservationForAllReservations) => void;
   onDelete: (reservation: ReservationForAllReservations) => void;
   onUpdateConcession?: (reservation: ReservationForAllReservations) => void;
-  isLoading?: boolean;
+  isLoading: boolean;
+  isError: boolean;
+  error?: any;
+  onRefetch: () => void;
+  statusFilter: string;
+  onStatusFilterChange: (value: string) => void;
 }
+
+// Memoized status badge component
+const StatusBadge = memo(({ status }: { status: string }) => (
+  <Badge
+    variant={
+      status === "PENDING"
+        ? "default"
+        : status === "CANCELLED"
+          ? "destructive"
+          : status === "CONFIRMED"
+            ? "secondary"
+            : "outline"
+    }
+    className={
+      status === "CONFIRMED" ? "bg-green-500 text-white hover:bg-green-600" : ""
+    }
+  >
+    {status}
+  </Badge>
+));
+
+StatusBadge.displayName = "StatusBadge";
+
+// Memoized application fee status badge component
+const ApplicationFeeBadge = memo(
+  ({ applicationIncomeId }: { applicationIncomeId?: number | null }) => {
+    const isPaid =
+      applicationIncomeId !== null && applicationIncomeId !== undefined;
+    return (
+      <Badge variant={isPaid ? "secondary" : "destructive"} className="text-xs">
+        {isPaid ? "Paid" : "Not Paid"}
+      </Badge>
+    );
+  }
+);
+
+ApplicationFeeBadge.displayName = "ApplicationFeeBadge";
+
+// Memoized loading component
+const LoadingState = memo(() => (
+  <div className="p-6 text-sm text-muted-foreground text-center">
+    Loading reservations…
+  </div>
+));
+
+LoadingState.displayName = "LoadingState";
+
+// Memoized error component
+const ErrorState = memo(
+  ({ error, onRefetch }: { error?: any; onRefetch: () => void }) => (
+    <div className="p-6 text-center">
+      <div className="text-red-600 mb-2">
+        <h3 className="font-medium">Connection Error</h3>
+        <p className="text-sm text-muted-foreground">
+          {error?.message?.includes("Bad Gateway")
+            ? "Backend server is not responding (502 Bad Gateway)"
+            : "Failed to load reservations"}
+        </p>
+      </div>
+      <Button variant="outline" size="sm" onClick={onRefetch}>
+        Try Again
+      </Button>
+    </div>
+  )
+);
+
+ErrorState.displayName = "ErrorState";
 
 const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
   reservations,
@@ -61,14 +135,20 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
   onEdit,
   onDelete,
   onUpdateConcession,
-  isLoading = false,
+  isLoading,
+  isError,
+  error,
+  onRefetch,
+  statusFilter,
+  onStatusFilterChange,
 }) => {
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [regeneratingReceipts, setRegeneratingReceipts] = useState<Set<number>>(
-    new Set()
-  );
-  const [showReceiptModal, setShowReceiptModal] = useState(false);
-  const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
+  const { user } = useAuthStore();
+
+  // Check if user has permission to view concession button
+  const canViewConcession = useMemo(() => {
+    if (!user?.role) return false;
+    return user.role === ROLES.ADMIN || user.role === ROLES.INSTITUTE_ADMIN;
+  }, [user?.role]);
 
   // Filter reservations based on status
   const filteredReservations = useMemo(() => {
@@ -76,272 +156,174 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
     return reservations.filter((r) => r.status === statusFilter.toUpperCase());
   }, [reservations, statusFilter]);
 
-  const handleRegenerateReceipt = async (
-    reservation: ReservationForAllReservations
-  ) => {
-    if (!reservation.income_id) {
-      toast({
-        title: "No Receipt Available",
-        description: "This reservation doesn't have a receipt to regenerate.",
-        variant: "destructive",
-      });
-      return;
-    }
+  // Memoized custom search function
+  const customSearchFunction = useMemo(() => {
+    return (row: any, columnId: string, value: string) => {
+      if (!value) return true;
 
-    setRegeneratingReceipts((prev) =>
-      new Set(prev).add(reservation.reservation_id)
-    );
+      const searchValue = value.toLowerCase();
+      const reservation = row.original as ReservationForAllReservations;
 
-    try {
-      const blob = await CollegeIncomeService.regenerateReceipt(
-        reservation.income_id
+      // Search across multiple fields
+      return (
+        reservation.student_name?.toLowerCase().includes(searchValue) ||
+        reservation.reservation_no?.toLowerCase().includes(searchValue) ||
+        reservation.group_name?.toLowerCase().includes(searchValue) ||
+        reservation.course_name?.toLowerCase().includes(searchValue) ||
+        reservation.father_name?.toLowerCase().includes(searchValue) ||
+        String(reservation.reservation_id).includes(searchValue)
       );
-      const url = URL.createObjectURL(blob);
-      setReceiptBlobUrl(url);
-      setShowReceiptModal(true);
-    } catch (error: any) {
-      console.error("Failed to regenerate receipt:", error);
-      toast({
-        title: "Receipt Generation Failed",
-        description:
-          error?.message || "Could not regenerate receipt. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setRegeneratingReceipts((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(reservation.reservation_id);
-        return newSet;
-      });
-    }
-  };
+    };
+  }, []);
 
-  const handleCloseReceiptModal = () => {
-    setShowReceiptModal(false);
-    if (receiptBlobUrl) {
-      URL.revokeObjectURL(receiptBlobUrl);
-      setReceiptBlobUrl(null);
-    }
-  };
-
-  const handleConcessionUpdate = (
-    reservation: ReservationForAllReservations
-  ) => {
-    if (onUpdateConcession) {
-      onUpdateConcession(reservation);
-    } else {
-      toast({
-        title: "Concession Update",
-        description:
-          "Concession update functionality is not available for this reservation.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status.toUpperCase()) {
-      case "PENDING":
-        return "default";
-      case "CONFIRMED":
-        return "secondary";
-      case "CANCELLED":
-        return "destructive";
-      default:
-        return "outline";
-    }
-  };
-
-  const getStatusBadgeClassName = (status: string) => {
-    if (status.toUpperCase() === "CONFIRMED") {
-      return "bg-green-500 text-white hover:bg-green-600";
-    }
-    return "";
-  };
-
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  // Column definitions for the enhanced table
+  // Column definitions for EnhancedDataTable
   const columns: ColumnDef<ReservationForAllReservations>[] = useMemo(
     () => [
       {
         accessorKey: "reservation_no",
         header: "Reservation No",
         cell: ({ row }) => (
-          <span className="font-medium">
+          <div className="font-medium max-w-[300px]">
             {row.original.reservation_no || "N/A"}
-          </span>
+          </div>
         ),
       },
       {
         accessorKey: "student_name",
         header: "Student Name",
-        cell: ({ row }) => <span>{row.getValue("student_name")}</span>,
+        cell: ({ row }) => (
+          <div className="max-w-[200px] truncate">
+            {row.getValue("student_name")}
+          </div>
+        ),
       },
       {
-        accessorKey: "group_name",
-        header: "Group",
-        cell: ({ row }) => <span>{row.getValue("group_name") || "-"}</span>,
-      },
-      {
-        accessorKey: "course_name",
-        header: "Course",
-        cell: ({ row }) => <span>{row.getValue("course_name") || "-"}</span>,
-      },
-      // {
-      //   accessorKey: "father_name",
-      //   header: "Father Name",
-      //   cell: ({ row }) => <span>{row.getValue("father_name") || "-"}</span>,
-      // },
-      {
-        accessorKey: "father_mobile",
-        header: "Mobile",
-        cell: ({ row }) => <span>{row.getValue("father_mobile") || "-"}</span>,
+        accessorKey: "group_course",
+        header: "Group/Course",
+        cell: ({ row }) => {
+          const reservation = row.original;
+          const groupCourse = reservation.group_name
+            ? `${reservation.group_name}${reservation.course_name ? ` - ${reservation.course_name}` : ""}`
+            : "-";
+          return (
+            <div className="max-w-[150px] truncate">{groupCourse}</div>
+          );
+        },
       },
       {
         accessorKey: "status",
         header: "Status",
         cell: ({ row }) => {
           const status = row.getValue("status") as string;
-          return (
-            <Badge
-              variant={getStatusBadgeVariant(status)}
-              className={getStatusBadgeClassName(status)}
-            >
-              {status}
-            </Badge>
-          );
+          return <StatusBadge status={status} />;
         },
       },
       {
         accessorKey: "reservation_date",
         header: "Date",
         cell: ({ row }) => (
-          <span>{formatDate(row.getValue("reservation_date"))}</span>
+          <div className="text-sm">
+            {formatDate(row.getValue("reservation_date") as string)}
+          </div>
         ),
       },
       {
-        id: "actions",
-        header: "Actions",
+        accessorKey: "application_income_id",
+        header: "Application Fee Status",
         cell: ({ row }) => {
-          const reservation = row.original;
-          const isRegenerating = regeneratingReceipts.has(
-            reservation.reservation_id
-          );
-
+          const applicationIncomeId = row.getValue("application_income_id") as
+            | number
+            | null
+            | undefined;
           return (
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onView(reservation)}
-                className="flex items-center gap-1"
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onEdit(reservation)}
-                className="flex items-center gap-1"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              {reservation.income_id && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleRegenerateReceipt(reservation)}
-                  disabled={isRegenerating}
-                  className="flex items-center gap-1"
-                >
-                  {isRegenerating ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                  Receipt
-                </Button>
-              )}
-              {onUpdateConcession && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleConcessionUpdate(reservation)}
-                  className="flex items-center gap-1"
-                >
-                  <DollarSign className="h-4 w-4" />
-                  Concession
-                </Button>
-              )}
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => onDelete(reservation)}
-                className="flex items-center gap-1"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
+            <ApplicationFeeBadge applicationIncomeId={applicationIncomeId} />
           );
         },
       },
     ],
-    [onView, onEdit, onDelete, onUpdateConcession, regeneratingReceipts]
+    []
   );
 
-  const handleExport = useCallback(() => {
-    // Export functionality can be implemented here
-    toast({
-      title: "Export Started",
-      description: "Reservations data is being exported...",
-    });
-  }, []);
+  // Memoized action buttons for EnhancedDataTable
+  const actionButtonGroups = useMemo(
+    () => [
+      {
+        type: "view" as const,
+        onClick: (row: ReservationForAllReservations) => onView(row),
+      },
+      {
+        type: "edit" as const,
+        onClick: (row: ReservationForAllReservations) => onEdit(row),
+      },
+      {
+        type: "delete" as const,
+        onClick: (row: ReservationForAllReservations) => onDelete(row),
+      },
+    ],
+    [onView, onEdit, onDelete]
+  );
+
+  // Custom action buttons for concession (college-specific)
+  const actionButtons = useMemo(
+    () => [
+      {
+        id: "concession",
+        label: "Concession",
+        icon: Percent,
+        variant: "outline" as const,
+        onClick: (row: ReservationForAllReservations) =>
+          onUpdateConcession?.(row),
+        show: (row: ReservationForAllReservations) =>
+          canViewConcession && !row.concession_lock,
+      },
+    ],
+    [onUpdateConcession, canViewConcession]
+  );
+
+  // Memoized status filter options
+  const statusFilterOptions = useMemo(
+    () => [
+      { value: "PENDING", label: "Pending" },
+      { value: "CONFIRMED", label: "Confirmed" },
+      { value: "CANCELLED", label: "Cancelled" },
+    ],
+    []
+  );
+
+  if (isLoading) {
+    return <LoadingState />;
+  }
+
+  if (isError) {
+    return <ErrorState error={error} onRefetch={onRefetch} />;
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Status Filter */}
-      <div className="flex gap-4 items-center">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="PENDING">Pending</SelectItem>
-            <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-            <SelectItem value="CANCELLED">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Enhanced Reservations Table */}
+    <>
       <EnhancedDataTable
         data={filteredReservations}
         columns={columns}
         title="All Reservations"
-        searchKey="student_name"
-        searchPlaceholder="Search by name, reservation no, group, course, or father name..."
-        loading={isLoading}
-        showSearch={true}
-        enableDebounce={true}
-        debounceDelay={300}
-        highlightSearchResults={true}
+        searchPlaceholder="Search by student name, reservation number, group, course, or father name..."
         exportable={true}
-        onExport={handleExport}
-        className="w-full"
+        loading={isLoading}
+        showActions={true}
+        actionButtons={actionButtons}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        customGlobalFilterFn={customSearchFunction}
+        filters={[
+          {
+            key: "status",
+            label: "Status",
+            options: statusFilterOptions,
+            value: statusFilter,
+            onChange: onStatusFilterChange,
+          },
+        ]}
+        className="w-full max-w-full mt-6"
       />
-
-      {/* Receipt Preview Modal */}
-      <ReceiptPreviewModal
-        isOpen={showReceiptModal}
-        onClose={handleCloseReceiptModal}
-        blobUrl={receiptBlobUrl}
-      />
-    </div>
+    </>
   );
 };
 

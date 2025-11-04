@@ -145,12 +145,12 @@ export const GroupsTab = memo(({
     {
       accessorKey: "book_fee",
       header: "Book Fee",
-      cell: ({ row }) => `$${row.getValue("book_fee")}`,
+      cell: ({ row }) => `₹${row.getValue("book_fee")}`,
     },
     {
       accessorKey: "group_fee", 
       header: "Group Fee",
-      cell: ({ row }) => `$${row.getValue("group_fee")}`,
+      cell: ({ row }) => `₹${row.getValue("group_fee")}`,
     }
   ], []);
 
@@ -189,6 +189,7 @@ export const GroupsTab = memo(({
         columns={columns}
         title="Groups"
         searchKey="group_name"
+        searchPlaceholder="Search groups..."
         exportable={true}
         onAdd={() => setIsAddGroupOpen(true)}
         addButtonText="Add Group"

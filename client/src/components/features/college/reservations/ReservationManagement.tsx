@@ -1,19 +1,12 @@
 import { useMemo, useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  useCollegeReservationsList,
   useDeleteCollegeReservation,
   useCollegeReservationDashboard,
   useCreateCollegeReservation,
-  useUpdateCollegeReservation,
 } from "@/lib/hooks/college/use-college-reservations";
 import { collegeKeys } from "@/lib/hooks/college/query-keys";
-import { useCollegeClasses } from "@/lib/hooks/college/use-college-classes";
-import {
-  useCollegeGroups,
-  useCollegeCourses,
-} from "@/lib/hooks/college/use-college-dropdowns";
-import { useDistanceSlabs } from "@/lib/hooks/general/useDistanceSlabs";
+
 import { motion } from "framer-motion";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -49,7 +42,7 @@ import { CollegeDropdownsService } from "@/lib/services/college/dropdowns.servic
 import type { CollegeReservationView } from "@/lib/types/college/reservations";
 import { Plus, List, BarChart3, Save } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
-import StatusUpdateComponent from "./StatusUpdateComponent";
+import StatusUpdateTable from "./StatusUpdateComponent";
 import AllReservationsComponent from "./AllReservationsComponent";
 import { CollegeReservationStatsCards } from "./CollegeReservationStatsCards";
 import { ConcessionUpdateDialog } from "@/components/shared";
@@ -72,8 +65,12 @@ export default function ReservationNew() {
   });
 
   // Dashboard stats hook
-  const { data: dashboardStats, isLoading: dashboardLoading } =
-    useCollegeReservationDashboard();
+  const { 
+    data: dashboardStats, 
+    isLoading: dashboardLoading,
+    isError: dashboardError,
+    error: dashboardErrObj,
+  } = useCollegeReservationDashboard();
 
   // Dropdown data hooks - Load on-demand when dropdown is opened
   const {
@@ -143,6 +140,7 @@ export default function ReservationNew() {
   });
 
   const { activeTab, setActiveTab } = useTabNavigation("new");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [reservationNo, setReservationNo] = useState<string>("");
   const [showReceipt, setShowReceipt] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -207,6 +205,7 @@ export default function ReservationNew() {
       remarks: r.remarks,
       // Additional fields for UI functionality
       income_id: r.income_id || r.incomeId,
+      application_income_id: r.application_income_id || null,
       tuition_fee: r.total_tuition_fee || 0,
       transport_fee: r.transport_fee || 0,
       book_fee: r.book_fee || 0,
@@ -215,6 +214,17 @@ export default function ReservationNew() {
       transport_concession: r.transport_concession || 0,
     }));
   }, [reservationsData]);
+
+  // Map reservations for StatusUpdateTable (matching school format)
+  const statusTableReservations = useMemo(() => {
+    return allReservations.map((r: any) => ({
+      id: String(r.reservation_id),
+      no: r.reservation_no || String(r.reservation_id),
+      reservation_id: r.reservation_id,
+      studentName: r.student_name,
+      status: r.status || "PENDING",
+    }));
+  }, [allReservations]);
 
   const [form, setForm] = useState({
     // Personal Details
@@ -885,12 +895,24 @@ export default function ReservationNew() {
       </motion.div>
 
       {/* College Reservation Dashboard Stats */}
-      {dashboardStats && (
-        <CollegeReservationStatsCards
-          stats={dashboardStats}
-          loading={dashboardLoading}
-        />
-      )}
+      <CollegeReservationStatsCards
+        stats={dashboardStats || {
+          total_reservations: 0,
+          pending_reservations: 0,
+          confirmed_reservations: 0,
+          cancelled_reservations: 0,
+          total_reservation_fees: 0,
+          total_tuition_fees: 0,
+          total_transport_fees: 0,
+          total_tuition_concessions: 0,
+          total_transport_concessions: 0,
+          reservations_this_month: 0,
+          reservations_this_year: 0,
+          male_students: 0,
+          female_students: 0,
+        }}
+        loading={dashboardLoading}
+      />
 
       <TabSwitcher
         tabs={[
@@ -1014,7 +1036,7 @@ export default function ReservationNew() {
                     })) || []
                   }
                   classes={
-                    classesData?.map((c) => ({
+                    classesData?.items?.map((c) => ({
                       class_id: c.class_id,
                       class_name: c.class_name,
                     })) || []
@@ -1053,48 +1075,22 @@ export default function ReservationNew() {
             label: "All Reservations",
             icon: List,
             content: (
-              <div>
-                {reservationsError ? (
-                  <div className="p-6 text-center">
-                    <div className="text-red-600 mb-2">
-                      <h3 className="font-medium">Connection Error</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {reservationsErrObj?.message?.includes("Bad Gateway")
-                          ? "Backend server is not responding (502 Bad Gateway)"
-                          : "Failed to load reservations"}
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => refetchReservations()}
-                    >
-                      Try Again
-                    </Button>
-                  </div>
-                ) : isLoadingReservations ? (
-                  <div className="flex items-center justify-center p-12">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                      <p className="text-sm text-muted-foreground">
-                        Loading reservations...
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <AllReservationsComponent
-                    reservations={allReservations}
-                    onView={handleView}
-                    onEdit={handleEdit}
-                    onDelete={(r: any) => {
-                      setReservationToDelete(r);
-                      setShowDeleteDialog(true);
-                    }}
-                    onUpdateConcession={handleUpdateConcession}
-                    isLoading={isLoadingReservations}
-                  />
-                )}
-              </div>
+              <AllReservationsComponent
+                reservations={allReservations}
+                onView={handleView}
+                onEdit={handleEdit}
+                onDelete={(r: any) => {
+                  setReservationToDelete(r);
+                  setShowDeleteDialog(true);
+                }}
+                onUpdateConcession={handleUpdateConcession}
+                isLoading={isLoadingReservations}
+                isError={reservationsError}
+                error={reservationsErrObj}
+                onRefetch={refetchReservations}
+                statusFilter={statusFilter}
+                onStatusFilterChange={setStatusFilter}
+              />
             ),
           },
           {
@@ -1102,65 +1098,14 @@ export default function ReservationNew() {
             label: "Status",
             icon: BarChart3,
             content: (
-              <div>
-                {/* <div className="mb-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold">Update Status</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Modify reservation statuses quickly
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">
-                        {allReservations.length} items
-                      </Badge>
-                      {reservationsData && (
-                        <Badge variant="secondary">
-                          Total: {reservationsData.total_count || 0}
-                        </Badge>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => refetchReservations()}
-                        disabled={isLoadingReservations}
-                      >
-                        Refresh
-                      </Button>
-                    </div>
-                  </div>
-                </div> */}
-                {isLoadingReservations ? (
-                  <div className="p-6 text-sm text-muted-foreground">
-                    Loading reservations…
-                  </div>
-                ) : reservationsError ? (
-                  <div className="p-6 text-center">
-                    <div className="text-red-600 mb-2">
-                      <h3 className="font-medium">Connection Error</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {reservationsErrObj?.message?.includes("Bad Gateway")
-                          ? "Backend server is not responding (502 Bad Gateway)"
-                          : "Failed to load reservations"}
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => refetchReservations()}
-                    >
-                      Try Again
-                    </Button>
-                  </div>
-                ) : (
-                  <StatusUpdateComponent
-                    reservations={allReservations}
-                    onStatusUpdate={refetchReservations}
-                    isLoading={isLoadingReservations}
-                  />
-                )}
-              </div>
+              <StatusUpdateTable
+                reservations={statusTableReservations}
+                isLoading={isLoadingReservations}
+                isError={reservationsError}
+                error={reservationsErrObj}
+                onRefetch={refetchReservations}
+                totalCount={reservationsData?.total_count}
+              />
             ),
           },
         ]}
@@ -1619,7 +1564,7 @@ export default function ReservationNew() {
                   })) || []
                 }
                 classes={
-                  classesData?.map((c) => ({
+                  classesData?.items?.map((c) => ({
                     class_id: c.class_id,
                     class_name: c.class_name,
                   })) || []

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, memo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,6 @@ import {
 import {
   FileSpreadsheet,
   FileText,
-  Eye,
   Download,
   GraduationCap,
 } from "lucide-react";
@@ -29,24 +28,40 @@ import {
 } from "@/lib/utils/admissionsExport";
 import type { CollegeAdmissionDetails, CollegeAdmissionListItem } from "@/lib/types/college/admissions";
 
+// Memoized status badge component
+const StatusBadge = memo(({ status }: { status: string }) => {
+  const getStatusBadgeVariant = (status: string) => {
+    if (status === "PAID") return "secondary";
+    if (status === "PENDING") return "default";
+    return "destructive";
+  };
+
+  return (
+    <Badge variant={getStatusBadgeVariant(status)}>
+      {status}
+    </Badge>
+  );
+});
+
+StatusBadge.displayName = "StatusBadge";
+
 const AdmissionsList = () => {
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(
     null
   );
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
 
   const { data: admissions = [], isLoading } = useCollegeAdmissions();
   const { data: selectedAdmission } = useCollegeAdmissionById(selectedStudentId);
 
-  const handleViewDetails = async (studentId: number) => {
-    setSelectedStudentId(studentId);
+  // Memoized handlers
+  const handleViewDetails = useCallback((admission: CollegeAdmissionListItem) => {
+    setSelectedStudentId(admission.student_id);
     setShowDetailsDialog(true);
-  };
+  }, []);
 
   const handleExportAll = useCallback(async () => {
     try {
-      setIsExporting(true);
       await exportAdmissionsToExcel(admissions as any, "College_Admissions");
       toast({
         title: "Export Successful",
@@ -59,12 +74,10 @@ const AdmissionsList = () => {
         description: error?.message || "Failed to export admissions to Excel",
         variant: "destructive",
       });
-    } finally {
-      setIsExporting(false);
     }
   }, [admissions]);
 
-  const handleExportSingle = async (admission: CollegeAdmissionDetails) => {
+  const handleExportSingle = useCallback(async (admission: CollegeAdmissionDetails) => {
     try {
       await exportSingleAdmissionToExcel(admission as any);
       toast({
@@ -79,9 +92,9 @@ const AdmissionsList = () => {
         variant: "destructive",
       });
     }
-  };
+  }, []);
 
-  const handleExportPDF = async (admission: CollegeAdmissionDetails) => {
+  const handleExportPDF = useCallback(async (admission: CollegeAdmissionDetails) => {
     try {
       await exportAdmissionFormToPDF(admission as any);
       toast({
@@ -96,13 +109,15 @@ const AdmissionsList = () => {
         variant: "destructive",
       });
     }
-  };
+  }, []);
 
-  const getStatusBadgeVariant = (status: string) => {
-    if (status === "PAID") return "secondary";
-    if (status === "PENDING") return "default";
-    return "destructive";
-  };
+  // Memoized action button groups for EnhancedDataTable
+  const actionButtonGroups = useMemo(() => [
+    {
+      type: "view" as const,
+      onClick: (row: CollegeAdmissionListItem) => handleViewDetails(row),
+    },
+  ], [handleViewDetails]);
 
   // Column definitions for the enhanced table
   const columns: ColumnDef<CollegeAdmissionListItem>[] = useMemo(() => [
@@ -119,18 +134,28 @@ const AdmissionsList = () => {
       cell: ({ row }) => <span>{row.getValue("student_name")}</span>,
     },
     {
-      accessorKey: "group_name",
-      header: "Group",
-      cell: ({ row }) => (
-        <Badge variant="outline">{row.getValue("group_name") || "N/A"}</Badge>
-      ),
-    },
-    {
-      accessorKey: "course_name",
-      header: "Course",
-      cell: ({ row }) => (
-        <Badge variant="outline">{row.getValue("course_name") || "N/A"}</Badge>
-      ),
+      accessorKey: "group_course",
+      header: "Group/Course",
+      cell: ({ row }) => {
+        const admission = row.original;
+        const groupName = admission.group_name ? String(admission.group_name).trim() : null;
+        const courseName = admission.course_name ? String(admission.course_name).trim() : null;
+        
+        let groupCourse = "-";
+        if (groupName && courseName) {
+          groupCourse = `${groupName} - ${courseName}`;
+        } else if (groupName) {
+          groupCourse = groupName;
+        } else if (courseName) {
+          groupCourse = courseName;
+        }
+        
+        return (
+          <div className="max-w-[150px] truncate">
+            <Badge variant="outline">{groupCourse}</Badge>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "admission_date",
@@ -141,11 +166,7 @@ const AdmissionsList = () => {
       accessorKey: "admission_fee_paid",
       header: "Admission Fee",
       cell: ({ row }) => (
-        <Badge
-          variant={getStatusBadgeVariant(row.getValue("admission_fee_paid"))}
-        >
-          {row.getValue("admission_fee_paid")}
-        </Badge>
+        <StatusBadge status={row.getValue("admission_fee_paid")} />
       ),
     },
     {
@@ -166,22 +187,7 @@ const AdmissionsList = () => {
         </span>
       ),
     },
-    {
-      id: "actions",
-      header: "Actions",
-      cell: ({ row }) => (
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => handleViewDetails(row.original.student_id)}
-          className="flex items-center gap-2"
-        >
-          <Eye className="h-4 w-4" />
-          View
-        </Button>
-      ),
-    },
-  ], [handleViewDetails, getStatusBadgeVariant]);
+  ], []);
 
   return (
     <div className="space-y-6">
@@ -190,7 +196,7 @@ const AdmissionsList = () => {
         columns={columns}
         title="Student Admissions"
         searchKey="student_name"
-        searchPlaceholder="Search by name, admission number, or student ID..."
+        searchPlaceholder="Search by name, admission number..."
         exportable={true}
         onExport={handleExportAll}
         loading={isLoading}
@@ -198,6 +204,10 @@ const AdmissionsList = () => {
         enableDebounce={true}
         debounceDelay={300}
         highlightSearchResults={true}
+        showActions={true}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        showActionLabels={true}
         className="w-full"
       />
 
@@ -465,13 +475,7 @@ const AdmissionsList = () => {
                           ₹{selectedAdmission.admission_fee || 0}
                         </td>
                         <td className="text-center py-3 px-4">
-                          <Badge
-                            variant={getStatusBadgeVariant(
-                              selectedAdmission.admission_fee_paid
-                            )}
-                          >
-                            {selectedAdmission.admission_fee_paid}
-                          </Badge>
+                          <StatusBadge status={selectedAdmission.admission_fee_paid} />
                         </td>
                       </tr>
                       <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">

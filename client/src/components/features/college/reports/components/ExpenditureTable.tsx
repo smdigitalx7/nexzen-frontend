@@ -1,12 +1,11 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Eye, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUpdateCollegeExpenditure, useDeleteCollegeExpenditure, useCollegeExpenditure } from "@/lib/hooks/college/use-college-expenditure";
 import type { CollegeExpenditureRead } from "@/lib/types/college";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { ViewExpenditureDialog } from "./ViewExpenditureDialog";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { useTableState } from "@/lib/hooks/common/useTableState";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -215,7 +214,7 @@ export const ExpenditureTable = ({
         showActions={true}
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
-        showActionLabels={false}
+        showActionLabels={true}
         filters={filterOptions}
       />
 

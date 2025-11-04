@@ -4,19 +4,11 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  DollarSign,
-  TrendingUp,
-  Calendar,
   UserCheck,
   UserX,
-  BookOpen,
-  Car,
-  Percent,
-  GraduationCap,
 } from "lucide-react";
 import { StatsCard, DashboardGrid } from "@/components/shared";
 import { CollegeReservationDashboardStats } from "@/lib/types/college/reservations";
-import { formatCurrency } from "@/lib/utils";
 
 interface CollegeReservationStatsCardsProps {
   stats: CollegeReservationDashboardStats;
