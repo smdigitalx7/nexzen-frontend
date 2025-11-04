@@ -5,8 +5,8 @@ import {
   useDeleteSchoolReservation,
   useSchoolReservationsDashboard,
   useCreateSchoolReservation,
-  useUpdateSchoolReservation,
 } from "@/lib/hooks/school/use-school-reservations";
+import { schoolKeys } from "@/lib/hooks/school/query-keys";
 import { useSchoolClasses } from "@/lib/hooks/school/use-school-dropdowns";
 import { useSchoolClass } from "@/lib/hooks/school/use-school-class";
 import { useDistanceSlabs } from "@/lib/hooks/general/useDistanceSlabs";
@@ -376,6 +376,7 @@ const ReservationManagementComponent = () => {
 
   // Initialize mutation hooks (after state is defined)
   const createReservationMutation = useCreateSchoolReservation();
+  const deleteReservation = useDeleteSchoolReservation();
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [viewReservation, setViewReservation] = useState<any>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -454,24 +455,19 @@ const ReservationManagementComponent = () => {
   const { data: dashboardStats, isLoading: dashboardLoading } =
     useSchoolReservationsDashboard();
 
-  // Use React Query hook for reservations - Only fetch when All Reservations tab is active
+  // Use React Query hook for reservations - Fetch when All Reservations or Status tab is active
   const {
     data: reservationsData,
     isLoading: isLoadingReservations,
     isError: reservationsError,
     error: reservationsErrObj,
     refetch: refetchReservations,
-  } = useQuery({
-    queryKey: ["school", "reservations", { page: 1, page_size: 20 }],
-    queryFn: () =>
-      import("@/lib/services/school/reservations.service").then((m) =>
-        m.SchoolReservationsService.list({ page: 1, page_size: 20 })
-      ),
-    enabled: activeTab === "all",
+  } = useSchoolReservationsList({
+    page: 1,
+    page_size: 20,
   });
-
-  // Delete reservation hook
-  const deleteReservation = useDeleteSchoolReservation();
+  // Query is enabled when either "all" or "status" tab is active
+  // This ensures data is fetched when Status tab is active
 
   // Status filter state
   const [statusFilter, setStatusFilter] = useState("all");
@@ -689,13 +685,16 @@ const ReservationManagementComponent = () => {
           remarks: remarks || null,
         });
 
+        // Invalidate and refetch reservations to show updated data
+        await queryClient.invalidateQueries({
+          queryKey: schoolKeys.reservations.root(),
+        });
+        await refetchReservations();
+
         toast({
           title: "Concession Updated",
           description: "Concession amounts have been updated successfully.",
         });
-
-        // Refresh the reservations list
-        refetchReservations();
       } catch (error: any) {
         console.error("Failed to update concession:", error);
         toast({
@@ -709,7 +708,7 @@ const ReservationManagementComponent = () => {
         throw error; // Re-throw to let the dialog handle it
       }
     },
-    [refetchReservations]
+    [refetchReservations, queryClient]
   );
 
   // Memoized route mapping
@@ -795,8 +794,11 @@ const ReservationManagementComponent = () => {
         // Use backend reservation_id to display receipt number
         setReservationNo(String(res?.reservation_id || ""));
 
-        // Invalidate cache to refresh the list
-        queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
+        // Invalidate and refetch reservations to show updated data
+        await queryClient.invalidateQueries({
+          queryKey: schoolKeys.reservations.root(),
+        });
+        await refetchReservations();
 
         if (withPayment) {
           // Prepare payment data for the payment processor
@@ -829,6 +831,7 @@ const ReservationManagementComponent = () => {
       transportFee,
       createReservationMutation,
       queryClient,
+      refetchReservations,
     ]
   );
 
@@ -1092,8 +1095,8 @@ const ReservationManagementComponent = () => {
         formData
       );
 
-      // Invalidate cache to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
+      // Refetch reservations to show updated data
+      await refetchReservations();
 
       toast({
         title: "Reservation Updated",
@@ -1102,7 +1105,14 @@ const ReservationManagementComponent = () => {
       setShowEditDialog(false);
     } catch (e: any) {
       console.error("Failed to update reservation:", e);
-      // Error toast is handled by mutation hook
+      toast({
+        title: "Update Failed",
+        description:
+          e?.response?.data?.detail ||
+          e?.message ||
+          "Failed to update reservation.",
+        variant: "destructive",
+      });
     }
   }, [
     selectedReservation,
@@ -1111,6 +1121,7 @@ const ReservationManagementComponent = () => {
     getPreferredDistanceSlabId,
     editTransportFee,
     queryClient,
+    refetchReservations,
   ]);
 
   // Handle reservations errors
@@ -1119,6 +1130,16 @@ const ReservationManagementComponent = () => {
       // Error handling is done in the UI components
     }
   }, [reservationsError, reservationsErrObj]);
+
+  // Refetch reservations when Status tab becomes active to ensure fresh data
+  useEffect(() => {
+    if (activeTab === "status") {
+      queryClient.invalidateQueries({
+        queryKey: schoolKeys.reservations.root(),
+      });
+      refetchReservations();
+    }
+  }, [activeTab, refetchReservations, queryClient]);
 
   return (
     <div className="space-y-6 p-6">
@@ -1262,6 +1283,10 @@ const ReservationManagementComponent = () => {
                   await deleteReservation.mutateAsync(
                     reservationToDelete.reservation_id
                   );
+
+                  // Refetch reservations to show updated data
+                  await refetchReservations();
+
                   // Toast handled by mutation hook
                   setShowDeleteDialog(false);
                   setReservationToDelete(null);
@@ -1293,7 +1318,7 @@ const ReservationManagementComponent = () => {
             </DialogHeader>
             <ReservationPaymentProcessor
               reservationData={paymentData}
-              onPaymentComplete={(
+              onPaymentComplete={async (
                 incomeRecord: SchoolIncomeRead,
                 blobUrl: string
               ) => {
@@ -1304,8 +1329,11 @@ const ReservationManagementComponent = () => {
                 setTimeout(() => {
                   setShowReceipt(true);
                 }, 100);
-                // Refresh reservations list to show updated status
-                refetchReservations();
+                // Invalidate and refetch reservations to show updated data
+                await queryClient.invalidateQueries({
+                  queryKey: schoolKeys.reservations.root(),
+                });
+                await refetchReservations();
               }}
               onPaymentFailed={(error: string) => {
                 toast({

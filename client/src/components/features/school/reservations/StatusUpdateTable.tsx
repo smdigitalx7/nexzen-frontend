@@ -12,6 +12,8 @@ import {
 import { Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
+import { useQueryClient } from "@tanstack/react-query";
+import { schoolKeys } from "@/lib/hooks/school/query-keys";
 import { EnhancedDataTable } from "@/components/shared";
 import { ColumnDef } from "@tanstack/react-table";
 
@@ -227,6 +229,7 @@ const StatusUpdateTableComponent = ({
   onRefetch,
   totalCount,
 }: StatusUpdateTableProps) => {
+  const queryClient = useQueryClient();
   const [statusChanges, setStatusChanges] = useState<
     Record<string, "PENDING" | "CONFIRMED" | "CANCELLED">
   >({});
@@ -262,37 +265,46 @@ const StatusUpdateTableComponent = ({
       remarks: string
     ) => {
       try {
+        // Use the service directly and invalidate cache
         await SchoolReservationsService.updateStatus(
           reservation.reservation_id,
           newStatus,
           remarks.trim() ? remarks : undefined
         );
 
+        // Invalidate queries and call the refetch function to refresh the data
+        queryClient.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+        await onRefetch();
+
         toast({
-          title: "Status Updated",
+          title: "Successful",
           description: `Reservation ${reservation.no} status updated to ${newStatus}.`,
+          variant: "success",
         });
 
-        // Clear the remarks after successful update
+        // Clear the status change and remarks after successful update
+        setStatusChanges((prev) => {
+          const updated = { ...prev };
+          delete updated[reservation.id];
+          return updated;
+        });
         setStatusRemarks((prev) => ({
           ...prev,
           [reservation.id]: "",
         }));
-
-        // Refresh the data
-        onRefetch();
       } catch (e: any) {
         console.error("Failed to update status:", e);
         toast({
           title: "Status Update Failed",
           description:
+            e?.response?.data?.detail ||
             e?.message ||
             "Could not update reservation status. Please try again.",
           variant: "destructive",
         });
       }
     },
-    [onRefetch]
+    [onRefetch, queryClient]
   );
 
   // Column definitions for EnhancedDataTable

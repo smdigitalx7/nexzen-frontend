@@ -39,7 +39,7 @@ export const SchoolReservationStatsCards: React.FC<
       value: stats.pending_reservations,
       icon: Clock,
       color: "yellow" as const,
-      variant: "bordered" as const,
+      variant: "elevated" as const,
       size: "md" as const,
     },
     {
@@ -47,7 +47,7 @@ export const SchoolReservationStatsCards: React.FC<
       value: stats.confirmed_reservations,
       icon: CheckCircle,
       color: "green" as const,
-      variant: "gradient" as const,
+      variant: "elevated" as const,
       size: "md" as const,
     },
     {
@@ -55,7 +55,7 @@ export const SchoolReservationStatsCards: React.FC<
       value: stats.cancelled_reservations,
       icon: XCircle,
       color: "red" as const,
-      variant: "default" as const,
+      variant: "elevated" as const,
       size: "md" as const,
     },
     {
@@ -63,7 +63,7 @@ export const SchoolReservationStatsCards: React.FC<
       value: stats.male_students,
       icon: UserCheck,
       color: "purple" as const,
-      variant: "default" as const,
+      variant: "elevated" as const,
       size: "md" as const,
     },
     {
@@ -71,7 +71,7 @@ export const SchoolReservationStatsCards: React.FC<
       value: stats.female_students,
       icon: UserX,
       color: "pink" as const,
-      variant: "default" as const,
+      variant: "elevated" as const,
       size: "md" as const,
     },
   ];
