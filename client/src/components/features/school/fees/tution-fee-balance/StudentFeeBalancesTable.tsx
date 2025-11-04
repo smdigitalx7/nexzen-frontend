@@ -218,7 +218,7 @@ const StudentFeeBalancesTableComponent = ({
         showActions={true}
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
-        showActionLabels={false}
+        showActionLabels={true}
         loading={loading}
         filters={filterOptions}
       />

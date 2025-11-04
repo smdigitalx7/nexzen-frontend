@@ -232,7 +232,7 @@ export const IncomeSummaryTable = ({
         actionButtonGroups={actionButtonGroups}
         actionButtons={actionButtons}
         actionColumnHeader="Actions"
-        showActionLabels={false}
+        showActionLabels={true}
       />
 
       {/* View Income Dialog */}

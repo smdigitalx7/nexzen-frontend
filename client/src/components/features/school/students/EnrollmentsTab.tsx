@@ -340,7 +340,7 @@ const EnrollmentsTabComponent = () => {
         showActions={true}
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
-        showActionLabels={false}
+        showActionLabels={true}
       />
 
       {/* Create Enrollment Dialog */}

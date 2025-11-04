@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   User,
@@ -26,13 +26,25 @@ const ProfilePage = () => {
     email: user?.email || "",
   });
 
+  // Update form data when user data changes
+  useEffect(() => {
+    if (user && !isEditing) {
+      setFormData({
+        full_name: user.full_name || "",
+        email: user.email || "",
+      });
+    }
+  }, [user, isEditing]);
+
   const getRoleColor = (role: string) => {
-    switch (role) {
-      case "institute_admin":
+    const upperRole = role?.toUpperCase() || "";
+    switch (upperRole) {
+      case "INSTITUTE_ADMIN":
+      case "ADMIN":
         return "bg-red-500";
-      case "academic":
+      case "ACADEMIC":
         return "bg-green-500";
-      case "accountant":
+      case "ACCOUNTANT":
         return "bg-blue-500";
       default:
         return "bg-gray-500";
@@ -40,15 +52,18 @@ const ProfilePage = () => {
   };
 
   const getRoleDisplay = (role: string) => {
-    switch (role) {
-      case "institute_admin":
+    const upperRole = role?.toUpperCase() || "";
+    switch (upperRole) {
+      case "INSTITUTE_ADMIN":
         return "Institute Admin";
-      case "academic":
+      case "ADMIN":
+        return "Admin";
+      case "ACADEMIC":
         return "Academic Staff";
-      case "accountant":
+      case "ACCOUNTANT":
         return "Accountant";
       default:
-        return role;
+        return role || "Unknown";
     }
   };
 
@@ -97,8 +112,8 @@ const ProfilePage = () => {
                   </div>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold">{user?.full_name}</h2>
-                  <p className="text-muted-foreground">{user?.email}</p>
+                  <h2 className="text-2xl font-bold">{user?.full_name || "User"}</h2>
+                  <p className="text-muted-foreground">{user?.email || "No email"}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge
                       variant="secondary"
@@ -167,7 +182,7 @@ const ProfilePage = () => {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Full Name</p>
-                      <p className="font-medium">{user?.full_name}</p>
+                      <p className="font-medium">{user?.full_name || "Not set"}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -176,7 +191,7 @@ const ProfilePage = () => {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Email</p>
-                      <p className="font-medium">{user?.email}</p>
+                      <p className="font-medium">{user?.email || "Not set"}</p>
                     </div>
                   </div>
                 </div>

@@ -718,7 +718,7 @@ const TestMarksManagementComponent = ({ onDataChange }: TestMarksManagementProps
                 showActions={true}
                 actionButtonGroups={actionButtonGroups}
                 actionColumnHeader="Actions"
-                showActionLabels={false}
+                showActionLabels={true}
               />
             ))}
 

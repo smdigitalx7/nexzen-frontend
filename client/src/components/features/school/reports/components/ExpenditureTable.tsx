@@ -200,7 +200,7 @@ export const ExpenditureTable = ({
         showActions={true}
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
-        showActionLabels={false}
+        showActionLabels={true}
         filters={filterOptions}
       />
 

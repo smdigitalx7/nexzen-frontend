@@ -443,7 +443,7 @@ const ExamMarksManagementComponent = ({ onDataChange }: ExamMarksManagementProps
                   showActions={true}
                   actionButtonGroups={actionButtonGroups}
                   actionColumnHeader="Actions"
-                  showActionLabels={false}
+                  showActionLabels={true}
                 />
               </div>
             ))}

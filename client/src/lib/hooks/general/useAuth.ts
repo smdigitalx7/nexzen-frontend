@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { unifiedApi } from "@/lib/services/general/unified-api.service";
 import { getRoleFromToken, decodeJWT, getTokenExpiration } from "@/lib/utils/jwt";
 import { normalizeRole, ROLES } from "@/lib/constants/roles";
+import { UsersService } from "@/lib/services/general/users.service";
 
 // Types for authentication
 export interface LoginRequest {

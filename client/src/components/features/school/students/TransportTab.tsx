@@ -293,16 +293,16 @@ const TransportTabComponent = () => {
       accessorKey: 'route_name',
       header: 'Route',
     },
-    {
-      accessorKey: 'slab_name',
-      header: 'Slab',
-      cell: ({ row }) => row.original.slab_name || '-',
-    },
-    {
-      accessorKey: 'pickup_point',
-      header: 'Pickup Point',
-      cell: ({ row }) => row.original.pickup_point || '-',
-    },
+    // {
+    //   accessorKey: 'slab_name',
+    //   header: 'Slab',
+    //   cell: ({ row }) => row.original.slab_name || '-',
+    // },
+    // {
+    //   accessorKey: 'pickup_point',
+    //   header: 'Pickup Point',
+    //   cell: ({ row }) => row.original.pickup_point || '-',
+    // },
     {
       accessorKey: 'is_active',
       header: 'Status',
@@ -342,7 +342,7 @@ const TransportTabComponent = () => {
         showActions={true}
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
-        showActionLabels={false}
+        showActionLabels={true}
       />
 
       {/* Create Transport Assignment Dialog */}
