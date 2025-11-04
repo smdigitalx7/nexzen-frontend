@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { AlertTriangle, CheckCircle, TrendingUp, DollarSign } from "lucide-react";
+import { AlertTriangle, CheckCircle, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
@@ -81,7 +81,7 @@ export const FeeStatsCards = ({
             Branch
           </CardTitle>
           <Badge variant="outline" className="gap-1">
-            <DollarSign className="h-3 w-3" />
+            <span className="text-xs font-bold">₹</span>
             {currentBranch?.branch_name || "N/A"}
           </Badge>
         </CardHeader>

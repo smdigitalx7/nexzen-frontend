@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Bus, Route, DollarSign } from "lucide-react";
+import { Bus, Route } from "lucide-react";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
 import { useAuthStore } from "@/store/authStore";
@@ -153,7 +154,7 @@ const TransportManagement = () => {
           {
             value: "fees",
             label: "Distance Slabs",
-            icon: DollarSign,
+            icon: IndianRupeeIcon,
             badge: slabsData.length,
             content: (
               <DistanceSlabsTab

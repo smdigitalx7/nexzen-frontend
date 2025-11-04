@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import {
-  DollarSign,
   TrendingUp,
   UserCheck,
   Bus,
@@ -79,7 +79,7 @@ const AdminDashboard = () => {
           {
             title: "Fee Collection",
             value: "92%",
-            icon: DollarSign,
+            icon: IndianRupeeIcon,
             color: "text-emerald-600",
             desc: "Collected this term",
           },
@@ -201,7 +201,7 @@ const AdminDashboard = () => {
                 {
                   title: "Payroll",
                   href: "/payroll",
-                  icon: DollarSign,
+                  icon: IndianRupeeIcon,
                   color: "bg-purple-500",
                 },
                 {

@@ -4,7 +4,6 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  DollarSign,
   TrendingUp,
   Calendar,
   UserCheck,

@@ -30,7 +30,7 @@ const DetailsDialog = memo(({
   selectedBalance: SchoolTuitionFeeBalanceFullRead | undefined;
 }) => (
   <Dialog open={isOpen} onOpenChange={onClose}>
-    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
       <DialogHeader>
         <DialogTitle>Tuition Fee Balance Details</DialogTitle>
       </DialogHeader>

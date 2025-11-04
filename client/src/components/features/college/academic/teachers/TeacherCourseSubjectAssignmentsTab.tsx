@@ -170,7 +170,7 @@ export const TeacherCourseSubjectAssignmentsTab = ({
 
                   {/* Hierarchical Table */}
                   <CollapsibleContent>
-                    <div className="overflow-x-auto pb-0">
+                    <div className="overflow-x-auto scrollbar-hide pb-0">
                       {group.courses.map((course: any) => (
                         <div key={course.course_id} className="border-b last:border-b-0">
                           <div className="bg-gray-50 px-4 py-2 border-b">

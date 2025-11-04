@@ -54,13 +54,26 @@ const Header = () => {
   const [, setLocation] = useLocation();
   const [notifications] = useState(0);
   const [showResultsDialog, setShowResultsDialog] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { query, setQuery, searchResult, isSearching, error, clearSearch } =
     useGlobalSearch();
 
-  // Show results dialog when there's a result or error
+  // Close dialog immediately if query length is not 11 characters
   useEffect(() => {
-    if (searchResult?.result || (error && query.trim())) {
+    const trimmedQuery = query.trim();
+    if (trimmedQuery.length !== 11) {
+      setShowResultsDialog(false);
+    }
+  }, [query]);
+
+  // Show results dialog only when query is exactly 11 characters AND there's a result or error
+  useEffect(() => {
+    const trimmedQuery = query.trim();
+    // Only show dialog when:
+    // 1. Query is exactly 11 characters (complete admission number)
+    // 2. AND (there's a search result OR an error occurred)
+    if (trimmedQuery.length === 11 && (searchResult?.result || (error && trimmedQuery.length === 11))) {
       setShowResultsDialog(true);
     }
   }, [searchResult, error, query]);
@@ -175,12 +188,14 @@ const Header = () => {
         return (
           <SchoolSearchResultCard
             result={searchResult.result as SchoolFullStudentRead}
+            onCollectFee={handleCollectFee}
           />
         );
       } else {
         return (
           <CollegeSearchResultCard
             result={searchResult.result as CollegeFullStudentRead}
+            onCollectFee={handleCollectFee}
           />
         );
       }
@@ -237,12 +252,51 @@ const Header = () => {
     setLocation("/settings");
   };
 
+  const handleCollectFee = () => {
+    if (!searchResult?.result) return;
+    
+    const admissionNo = searchResult.branchType === "SCHOOL"
+      ? (searchResult.result as SchoolFullStudentRead).admission_no
+      : (searchResult.result as CollegeFullStudentRead).admission_no;
+    
+    if (!admissionNo) return;
+    
+    // Navigate to the appropriate collect fee page based on branch type
+    const basePath = searchResult.branchType === "SCHOOL" ? "/school/fees" : "/college/fees";
+    const url = `${basePath}?admission_no=${admissionNo}`;
+    
+    // Close the dialog first
+    setShowResultsDialog(false);
+    clearSearch();
+    
+    // Navigate to collect fee page
+    setLocation(url);
+  };
+
   return (
-    <motion.header
-      initial={{ y: -10, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      className="sticky top-0 z-30 w-full bg-gradient-to-r from-white to-slate-50 border-b border-slate-200/60 shadow-sm backdrop-blur-sm"
-    >
+    <>
+      {/* Backdrop overlay when search is focused */}
+      <AnimatePresence>
+        {isSearchFocused && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/10 dark:bg-black/20 z-40"
+            onClick={() => {
+              inputRef.current?.blur();
+              setIsSearchFocused(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <motion.header
+        initial={{ y: -10, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="sticky top-0 z-30 w-full bg-gradient-to-r from-white to-slate-50 border-b border-slate-200/60 shadow-sm backdrop-blur-sm"
+      >
       <div className="container flex h-20 items-center justify-between px-6">
         {/* Left: System Title */}
         <div className="flex items-center justify-start gap-6">
@@ -284,15 +338,17 @@ const Header = () => {
         {/* Right: Search, Year Badge, Notifications and User Menu */}
         <div className="flex items-center justify-end gap-4">
           {/* Inline Search Input */}
-          <div className="relative w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none z-10" />
+          <div className={`relative w-96 transition-all duration-200 ${isSearchFocused ? 'z-[100]' : ''}`}>
+            <Search className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none z-10 transition-colors duration-200 ${isSearchFocused ? 'text-blue-500' : 'text-slate-400'}`} />
             <div className="relative">
               <Input
                 ref={inputRef}
                 placeholder="Search by admission number (Ctrl+K)..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="pl-9 pr-9 h-10 w-full border-slate-300 focus:border-blue-400 focus:ring-blue-400"
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setIsSearchFocused(false)}
+                className="pl-9 pr-9 h-10 w-full border-slate-300 bg-white dark:bg-slate-900 transition-all duration-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/30 focus:shadow-2xl focus:shadow-blue-500/25 focus:scale-[1.05] focus:bg-white dark:focus:bg-slate-900 focus:-translate-y-0.5"
                 data-testid="global-search-input"
                 onKeyDown={(e) => {
                   if (e.key === "Escape") {
@@ -448,7 +504,7 @@ const Header = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-hidden flex flex-col px-6 pt-6 pb-4">
-            <div className="flex-1 overflow-y-auto pr-2">
+            <div className="flex-1 overflow-y-auto scrollbar-hide pr-2">
               {renderSearchResults()}
             </div>
           </div>
@@ -479,6 +535,7 @@ const Header = () => {
         </DialogContent>
       </Dialog>
     </motion.header>
+    </>
   );
 };
 

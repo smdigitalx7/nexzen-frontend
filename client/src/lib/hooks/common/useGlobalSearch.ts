@@ -23,18 +23,31 @@ export function useGlobalSearch(): UseGlobalSearchReturn {
   const [error, setError] = useState<string | null>(null);
   const { currentBranch } = useAuthStore();
 
-  // Debounce the query to avoid excessive API calls
-  const debouncedQuery = useDebounce(query, 500);
+  // Debounce the query to avoid excessive API calls - 300ms delay for smooth typing
+  const debouncedQuery = useDebounce(query, 300);
 
   const performSearch = useCallback(async () => {
-    if (!debouncedQuery || debouncedQuery.trim() === "") {
+    const trimmedQuery = debouncedQuery?.trim() || "";
+    
+    // Clear results if query is empty
+    if (!trimmedQuery) {
       setSearchResult(null);
       setError(null);
+      setIsSearching(false);
+      return;
+    }
+
+    // Only search when admission number is exactly 11 characters
+    if (trimmedQuery.length !== 11) {
+      setSearchResult(null);
+      setError(null);
+      setIsSearching(false);
       return;
     }
 
     if (!currentBranch?.branch_type) {
       setError("Branch type not available");
+      setIsSearching(false);
       return;
     }
 
@@ -43,7 +56,7 @@ export function useGlobalSearch(): UseGlobalSearchReturn {
 
     try {
       const result = await GlobalSearchService.searchStudent(
-        debouncedQuery.trim(),
+        trimmedQuery,
         currentBranch.branch_type
       );
 
@@ -51,8 +64,8 @@ export function useGlobalSearch(): UseGlobalSearchReturn {
       if (result.error) {
         setError(result.error);
       }
-    } catch (err: any) {
-      const errorMessage = err?.message || "An error occurred during search";
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "An error occurred during search";
       setError(errorMessage);
       setSearchResult({
         result: null,
@@ -64,9 +77,9 @@ export function useGlobalSearch(): UseGlobalSearchReturn {
     }
   }, [debouncedQuery, currentBranch?.branch_type]);
 
-  // Auto-search when debounced query changes
+  // Auto-search when debounced query changes and meets criteria
   useEffect(() => {
-    performSearch();
+    void performSearch();
   }, [performSearch]);
 
   const clearSearch = useCallback(() => {

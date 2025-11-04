@@ -11,12 +11,12 @@ import {
   Calendar,
   ClipboardList,
   Trophy,
-  DollarSign,
   Megaphone,
   Menu,
   FileText,
   BarChart3,
 } from "lucide-react";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -196,7 +196,7 @@ const Sidebar = () => {
       {
         title: "Fees",
         href: `${branchPrefix}/fees`,
-        icon: DollarSign,
+        icon: IndianRupeeIcon,
         description: "Fee management",
         allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACCOUNTANT],
       },

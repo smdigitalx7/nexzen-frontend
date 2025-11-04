@@ -25,7 +25,6 @@ import {
   GraduationCap,
   Edit,
   CheckCircle,
-  DollarSign,
 } from "lucide-react";
 import {
   useSchoolReservationsList,
@@ -461,7 +460,7 @@ FeeTableRow.displayName = "FeeTableRow";
 const FeeStructure = memo(({ editForm }: { editForm: Reservation }) => (
   <div className="border-t pt-4">
     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-      <DollarSign className="h-5 w-5" />
+      <span className="text-lg font-bold">₹</span>
       Fee Structure & Payment Details
     </h3>
 
@@ -677,7 +676,7 @@ const PaymentDialog = memo(
                 </>
               ) : (
                 <>
-                  <DollarSign className="h-5 w-5 mr-2" />
+                  <span className="text-lg font-bold mr-2">₹</span>
                   Collect Payment & Print Receipt
                 </>
               )}
@@ -1156,7 +1155,7 @@ const ConfirmedReservationsTabComponent = () => {
 
       {/* Reservation Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span>Student Enrollment Details</span>

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Calendar, FileText, CreditCard, DollarSign, User, Hash } from "lucide-react";
+import { Calendar, FileText, CreditCard, User, Hash } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -93,7 +93,7 @@ export const ViewIncomeDialog = ({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
+            <span className="text-lg font-bold">₹</span>
             Receipt Details
           </DialogTitle>
           <DialogDescription>
@@ -191,7 +191,7 @@ export const ViewIncomeDialog = ({
                 Payment Particulars
               </h4>
               <div className="border rounded-lg">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto scrollbar-hide">
                   <table className="w-full">
                     <thead className="bg-muted">
                       <tr>

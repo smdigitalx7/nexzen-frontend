@@ -1,6 +1,5 @@
 import React from 'react';
 import { 
-  DollarSign, 
   BookOpen, 
   TrendingUp, 
   AlertTriangle, 
@@ -13,6 +12,7 @@ import {
   CreditCard,
   Wallet
 } from 'lucide-react';
+import { IndianRupeeIcon } from '@/components/shared/IndianRupeeIcon';
 import { StatsCard, DashboardGrid } from '@/components/shared';
 import { CollegeTuitionFeeBalanceDashboardStats } from '@/lib/types/college/tuition-fee-balances';
 import { formatCurrency } from '@/lib/utils';
@@ -41,7 +41,7 @@ export const CollegeTuitionFeeBalanceStatsCards: React.FC<CollegeTuitionFeeBalan
     {
       title: "Total Actual Fee",
       value: formatCurrency(stats.total_actual_fee),
-      icon: DollarSign,
+      icon: IndianRupeeIcon,
       color: "green" as const,
       description: "Before concessions",
       variant: "gradient" as const,

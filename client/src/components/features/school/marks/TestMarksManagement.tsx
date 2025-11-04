@@ -461,7 +461,7 @@ const TestMarksManagementComponent = ({
 
   return (
     <div className="flex flex-col h-full bg-slate-50/30">
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto scrollbar-hide">
         <div className="p-2 space-y-2">
           {/* Header */}
           <motion.div

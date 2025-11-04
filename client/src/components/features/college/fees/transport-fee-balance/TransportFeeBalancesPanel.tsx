@@ -293,7 +293,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
 
       {/* Details Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
           <DialogHeader>
             <DialogTitle>Transport Payment Summary</DialogTitle>
           </DialogHeader>

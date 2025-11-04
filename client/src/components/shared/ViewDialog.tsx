@@ -20,7 +20,6 @@ import {
   Calendar,
   Phone,
   Hash,
-  DollarSign,
   Building,
   Mail,
   MapPin,
@@ -217,7 +216,7 @@ const ViewDialog: React.FC<ViewDialogProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn(
-        `${maxWidthClasses[maxWidth]} max-h-[90vh] overflow-y-auto`,
+        `${maxWidthClasses[maxWidth]} max-h-[90vh] overflow-y-auto scrollbar-hide`,
         className
       )}>
         <DialogHeader className="pb-4">

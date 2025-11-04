@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Lock, DollarSign, Bus, BookOpen } from "lucide-react";
+import { Lock, Bus, BookOpen } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import type { SchoolReservationRead } from "@/lib/types/school";
 
@@ -113,7 +113,7 @@ export function ConcessionUpdateDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-hide">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {isLocked && <Lock className="h-5 w-5 text-amber-600" />}
@@ -136,7 +136,7 @@ export function ConcessionUpdateDialog({
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
+                <span className="text-lg font-bold">₹</span>
                 Current Fee Structure
               </CardTitle>
             </CardHeader>

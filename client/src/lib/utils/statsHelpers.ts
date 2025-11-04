@@ -1,4 +1,5 @@
-import { LucideIcon, Users, UserCheck, DollarSign, TrendingDown, GraduationCap, BookOpen, CheckCircle } from 'lucide-react';
+import { LucideIcon, Users, UserCheck, TrendingDown, GraduationCap, BookOpen, CheckCircle } from 'lucide-react';
+import { IndianRupeeIcon } from '@/components/shared/IndianRupeeIcon';
 import { StatsCardConfig } from '@/components/shared';
 
 /**
@@ -118,7 +119,7 @@ export const statPresets = {
   ),
   
   // Financial
-  totalRevenue: (amount: number) => createFinancialStat('Total Revenue', amount, DollarSign, amount >= 0),
+  totalRevenue: (amount: number) => createFinancialStat('Total Revenue', amount, IndianRupeeIcon, amount >= 0),
   totalExpenses: (amount: number) => createFinancialStat('Total Expenses', amount, TrendingDown, false),
   
   // Academic

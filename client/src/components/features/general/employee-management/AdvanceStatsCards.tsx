@@ -1,6 +1,5 @@
 import React from 'react';
 import { 
-  DollarSign, 
   Clock, 
   CheckCircle, 
   XCircle, 
@@ -10,6 +9,7 @@ import {
   AlertTriangle,
   Wallet
 } from 'lucide-react';
+import { IndianRupeeIcon } from '@/components/shared/IndianRupeeIcon';
 import { StatsCard, DashboardGrid } from '@/components/shared';
 import { AdvanceDashboardStats } from '@/lib/types/general/advances';
 import { formatCurrency } from '@/lib/utils';
@@ -29,7 +29,7 @@ export const AdvanceStatsCards: React.FC<AdvanceStatsCardsProps> = ({
     {
       title: "Total Advances",
       value: stats.total_advances,
-      icon: DollarSign,
+      icon: IndianRupeeIcon,
       color: "blue" as const,
       description: "All advance requests",
       variant: "elevated" as const,
@@ -95,7 +95,7 @@ export const AdvanceStatsCards: React.FC<AdvanceStatsCardsProps> = ({
     {
       title: "Total Amount",
       value: formatCurrency(stats.total_advance_amount),
-      icon: DollarSign,
+      icon: IndianRupeeIcon,
       color: "indigo" as const,
       description: "All advance amounts",
       variant: "bordered" as const,

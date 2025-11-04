@@ -172,7 +172,7 @@ export const StudentsTab = () => {
 
       {/* Edit Student Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">Edit Student</DialogTitle>
             <DialogDescription>Update information for {selectedStudent?.student_name}</DialogDescription>
@@ -238,7 +238,7 @@ export const StudentsTab = () => {
 
       {/* Add Student Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">Add New Student</DialogTitle>
             <DialogDescription>Create a new student record</DialogDescription>
