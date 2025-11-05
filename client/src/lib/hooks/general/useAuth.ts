@@ -1,15 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
 import { useToast } from "@/hooks/use-toast";
-<<<<<<< HEAD
-import { unifiedApi } from "@/lib/services/general/unified-api.service";
-import { normalizeRole, ROLES } from "@/lib/constants/roles";
-import { extractPrimaryRole } from "@/lib/utils/roles";
-=======
 import { unifiedApi } from "@/lib/services/general";
-import { getRoleFromToken, decodeJWT, getTokenExpiration } from "@/lib/utils/auth/jwt";
 import { normalizeRole, ROLES } from "@/lib/constants";
->>>>>>> 453b9143e02e94d0f53d026b78542683b94146a1
+import { extractPrimaryRole } from "@/lib/utils/roles";
 
 // Types for authentication
 export interface LoginRequest {
@@ -164,27 +158,21 @@ export function useLogin() {
 
       // Step 9: Login user
       login(user as any, branchList as any);
-          tokenPayload: {
-            user_id: tokenPayload.user_id,
-            current_branch_id: tokenPayload.current_branch_id,
-            roles: tokenPayload.roles,
-            is_institute_admin: tokenPayload.is_institute_admin,
-          },
-        });
+
+      // Step 10: Determine redirect path based on role and branch type
+      let redirectPath = "/"; // Default for ADMIN/INSTITUTE_ADMIN
+      
+      // Get current branch type
+      const currentBranchType = branchList.find(b => b.branch_id === currentBranchId)?.branch_type || "SCHOOL";
+      const branchPrefix = currentBranchType === "COLLEGE" ? "/college" : "/school";
+      
+      // Set redirect path based on role
+      if (normalizedRole === ROLES.ACCOUNTANT) {
+        redirectPath = `${branchPrefix}/fees`;
+      } else if (normalizedRole === ROLES.ACADEMIC) {
+        redirectPath = `${branchPrefix}/academic`;
       }
-
-      // Step 9: Create branch list
-      const branchList = branches.map((b) => ({
-        branch_id: b.branch_id,
-        branch_name: b.branch_name,
-        branch_type: b.branch_type,
-      }));
-
-      // Step 10: Login user
-      login(user, branchList);
-
-      // Step 10: All users redirect to dashboard - DashboardRouter will show appropriate dashboard
-      const redirectPath = "/";
+      // ADMIN and INSTITUTE_ADMIN go to "/" (dashboard)
 
       return {
         user,
