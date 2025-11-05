@@ -1,9 +1,9 @@
 import { create } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
-import { AuthService } from "@/lib/services/general/auth.service";
+import { AuthService } from "@/lib/services/general";
 import { AuthTokenTimers } from "@/lib/api";
-import { ROLES, type UserRole } from "@/lib/constants/roles";
+import { ROLES, type UserRole } from "@/lib/constants";
 
 export interface AuthUser {
   user_id: string;
@@ -373,8 +373,8 @@ export const useAuthStore = create<AuthState>()(
             }
 
             // Decode new token to extract expiration and update role if needed
-            const { getTokenExpiration, decodeJWT, getRoleFromToken } = await import("@/lib/utils/jwt");
-            const { normalizeRole } = await import("@/lib/constants/roles");
+            const { getTokenExpiration, decodeJWT, getRoleFromToken } = await import("@/lib/utils/auth/jwt");
+            const { normalizeRole } = await import("@/lib/constants");
             
             const tokenPayload = decodeJWT(response.access_token);
             if (tokenPayload) {

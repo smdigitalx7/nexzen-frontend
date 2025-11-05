@@ -15,8 +15,8 @@ import { EnhancedDataTable } from '@/components/shared';
 import { useSearchFilters, useTableFilters } from '@/lib/hooks/common';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useToast } from '@/hooks/use-toast';
-import { useCollegeClasses, useCreateCollegeClass, useUpdateCollegeClass } from '@/lib/hooks/college/use-college-classes';
-import { useAcademicYears } from '@/lib/hooks/general/useAcademicYear';
+import { useCollegeClasses, useCreateCollegeClass, useUpdateCollegeClass } from '@/lib/hooks/college';
+import { useAcademicYears } from '@/lib/hooks/general';
 import type { CollegeClassResponse } from '@/lib/types/college';
 import {
   createClassNameColumn,
@@ -26,7 +26,7 @@ import {
   createSubjectsColumn,
   createBooleanStatusColumn,
   createBadgeColumn
-} from "@/lib/utils/columnFactories.tsx";
+} from "@/lib/utils/factory/columnFactories";
 
 // UI row shape used by the table; we will map backend data into this shape
 type UIClassRow = {

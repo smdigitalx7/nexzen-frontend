@@ -11,8 +11,8 @@ import {
   createIconTextColumn, 
   createDateColumn, 
   createBadgeColumn
-} from "@/lib/utils/columnFactories.tsx";
-import { useCreateSchoolExam, useDeleteSchoolExam, useUpdateSchoolExam } from "@/lib/hooks/school/use-school-exams-tests";
+} from "@/lib/utils/factory/columnFactories";
+import { useCreateSchoolExam, useDeleteSchoolExam, useUpdateSchoolExam } from "@/lib/hooks/school";
 import type { SchoolExamCreate, SchoolExamRead, SchoolExamUpdate } from "@/lib/types/school";
 
 interface ExamsTabProps {

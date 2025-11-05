@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import ProductionErrorBoundary from "./ProductionErrorBoundary";
 import { config, configUtils } from "@/lib/config/production";
-import { productionUtils } from "@/lib/utils/production-optimizations";
+import { productionUtils } from "@/lib/utils/performance/production-optimizations";
 import { LoadingStates } from "@/components/ui/loading";
 
 // Loading component
@@ -69,10 +69,8 @@ interface ProductionAppProps {
 export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
   // Initialize production utilities
   useEffect(() => {
-    // Setup global error handling
-    if (config.error.enableErrorReporting) {
-      productionUtils.error.setupGlobalErrorHandling();
-    }
+    // Setup global error handling (always enabled for better error tracking)
+    productionUtils.error.setupGlobalErrorHandling();
 
     // Setup performance monitoring
     if (config.monitoring.enablePerformanceMonitoring) {

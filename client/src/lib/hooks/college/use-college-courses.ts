@@ -14,14 +14,14 @@ export function useCollegeCourses() {
 export function useCollegeCoursesSlim() {
   return useQuery({
     queryKey: collegeKeys.courses.listSlim(),
-    queryFn: () => CollegeCoursesService.listSlim() as Promise<CollegeCourseList[]>,
+    queryFn: () => CollegeCoursesService.listSlim(),
   });
 }
 
 export function useCreateCollegeCourse() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeCourseCreate) => CollegeCoursesService.create(payload) as Promise<CollegeCourseResponse>,
+    mutationFn: (payload: CollegeCourseCreate) => CollegeCoursesService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.courses.root() });
     },
@@ -31,7 +31,7 @@ export function useCreateCollegeCourse() {
 export function useUpdateCollegeCourse(courseId: number) {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeCourseUpdate) => CollegeCoursesService.update(courseId, payload) as Promise<CollegeCourseResponse>,
+    mutationFn: (payload: CollegeCourseUpdate) => CollegeCoursesService.update(courseId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.courses.detail(courseId) });
       qc.invalidateQueries({ queryKey: collegeKeys.courses.root() });

@@ -13,14 +13,14 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useCollegeStudentsList(params?: { page?: number; pageSize?: number }) {
   return useQuery({
     queryKey: collegeKeys.students.list(params),
-    queryFn: () => CollegeStudentsService.list(params) as Promise<CollegeStudentsPaginatedResponse>,
+    queryFn: () => CollegeStudentsService.list(params),
   });
 }
 
 export function useCollegeStudent(studentId: number | null | undefined) {
   return useQuery({
     queryKey: studentId ? collegeKeys.students.detail(studentId) : [...collegeKeys.students.root(), "detail", "nil"],
-    queryFn: () => CollegeStudentsService.getById(studentId as number) as Promise<CollegeStudentFullDetails>,
+    queryFn: () => CollegeStudentsService.getById(studentId as number),
     enabled: typeof studentId === "number" && studentId > 0,
   });
 }
@@ -28,7 +28,7 @@ export function useCollegeStudent(studentId: number | null | undefined) {
 export function useCreateCollegeStudent() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeStudentCreate) => CollegeStudentsService.create(payload) as Promise<CollegeStudentFullDetails>,
+    mutationFn: (payload: CollegeStudentCreate) => CollegeStudentsService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.students.root() });
     },
@@ -39,7 +39,7 @@ export function useUpdateCollegeStudent(studentId: number) {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeStudentUpdate) =>
-      CollegeStudentsService.update(studentId, payload) as Promise<CollegeStudentFullDetails>,
+      CollegeStudentsService.update(studentId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.students.detail(studentId) });
       qc.invalidateQueries({ queryKey: collegeKeys.students.root() });

@@ -4,13 +4,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { User } from "lucide-react";
-import { useCollegeClasses } from "@/lib/hooks/college/use-college-classes";
-import { useCollegeGroups } from "@/lib/hooks/college/use-college-groups";
-import { useCollegeStudentTransportPaymentSummary } from "@/lib/hooks/college/use-college-transport-balances";
+import { useCollegeClasses, useCollegeGroups, useCollegeStudentTransportPaymentSummary } from "@/lib/hooks/college";
 import type { CollegeStudentTransportPaymentSummary } from "@/lib/types/college";
 import { EnhancedDataTable } from "@/components/shared";
 import { ColumnDef } from "@tanstack/react-table";
-import { createTextColumn, createCurrencyColumn, createDateColumn } from "@/lib/utils/columnFactories";
+import { createTextColumn, createCurrencyColumn, createDateColumn } from "@/lib/utils/factory/columnFactories";
 import { formatCurrency } from "@/lib/utils";
 
 interface TransportFeeBalanceRow {

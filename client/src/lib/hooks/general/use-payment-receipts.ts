@@ -21,7 +21,7 @@ export function useGeneratePaymentReceipt() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (paymentData: PaymentReceiptData) =>
-      PaymentReceiptsService.generateReceipt(paymentData) as Promise<PaymentReceiptResponse>,
+      PaymentReceiptsService.generateReceipt(paymentData),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: paymentReceiptKeys.all });
     },
@@ -43,7 +43,7 @@ export function useDownloadPaymentReceipt() {
 export function usePaymentReceiptByTransactionId(transactionId: string | null | undefined) {
   return useQuery({
     queryKey: transactionId ? paymentReceiptKeys.byTransaction(transactionId) : [...paymentReceiptKeys.all, 'transaction', 'nil'],
-    queryFn: () => PaymentReceiptsService.getReceiptByTransactionId(transactionId as string) as Promise<PaymentReceiptData>,
+    queryFn: () => PaymentReceiptsService.getReceiptByTransactionId(transactionId as string),
     enabled: typeof transactionId === "string" && transactionId.length > 0,
   });
 }
@@ -63,7 +63,7 @@ export function usePaymentReceipts(params?: {
 }) {
   return useQuery({
     queryKey: paymentReceiptKeys.list(params),
-    queryFn: () => PaymentReceiptsService.getReceipts(params) as Promise<PaymentReceiptListResponse>,
+    queryFn: () => PaymentReceiptsService.getReceipts(params),
   });
 }
 
@@ -77,7 +77,7 @@ export function useStudentPaymentReceipts(studentId: string | null | undefined, 
 }) {
   return useQuery({
     queryKey: studentId ? paymentReceiptKeys.studentReceipts(studentId, params) : [...paymentReceiptKeys.all, 'student', 'nil'],
-    queryFn: () => PaymentReceiptsService.getStudentReceipts(studentId as string, params) as Promise<PaymentReceiptListResponse>,
+    queryFn: () => PaymentReceiptsService.getStudentReceipts(studentId as string, params),
     enabled: typeof studentId === "string" && studentId.length > 0,
   });
 }

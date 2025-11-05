@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { TransportService } from '@/lib/services/general/transport.service';
 import type {
   BusRouteRead,
@@ -8,6 +8,7 @@ import type {
   RecentRoute,
 } from '@/lib/types/general/transport';
 import { useMutationWithSuccessToast } from '../common/use-mutation-with-toast';
+import { useGlobalRefetch } from '../common/useGlobalRefetch';
 
 // Query keys
 export const transportKeys = {
@@ -59,76 +60,58 @@ export const useRecentRoutes = (limit: number = 5) => {
 
 // Route mutations
 export const useCreateBusRoute = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
   
   return useMutationWithSuccessToast({
     mutationFn: (data: BusRouteCreate) => TransportService.createRoute(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: transportKeys.routes() });
-      queryClient.invalidateQueries({ queryKey: transportKeys.routeNames() });
-      queryClient.invalidateQueries({ queryKey: transportKeys.dashboard() });
-      queryClient.invalidateQueries({ queryKey: transportKeys.recent() });
+      invalidateEntity("transport");
     },
   }, "Bus route created successfully");
 };
 
 export const useUpdateBusRoute = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
   
   return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: BusRouteUpdate }) =>
       TransportService.updateRoute(id, payload),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: transportKeys.routes() });
-      queryClient.invalidateQueries({ queryKey: transportKeys.route(id) });
-      queryClient.invalidateQueries({ queryKey: transportKeys.routeNames() });
-      queryClient.invalidateQueries({ queryKey: transportKeys.dashboard() });
-      queryClient.invalidateQueries({ queryKey: transportKeys.recent() });
+    onSuccess: () => {
+      invalidateEntity("transport");
     },
   }, "Bus route updated successfully");
 };
 
 export const useDeleteBusRoute = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
   
   return useMutationWithSuccessToast({
     mutationFn: (id: number) => TransportService.deleteRoute(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: transportKeys.routes() });
-      queryClient.invalidateQueries({ queryKey: transportKeys.routeNames() });
-      queryClient.invalidateQueries({ queryKey: transportKeys.dashboard() });
-      queryClient.invalidateQueries({ queryKey: transportKeys.recent() });
+      invalidateEntity("transport");
     },
   }, "Bus route deleted successfully");
 };
 
 export const useAssignDriverToRoute = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
   
   return useMutationWithSuccessToast({
     mutationFn: ({ id, driverEmployeeId }: { id: number; driverEmployeeId: number }) =>
       TransportService.assignDriverToRoute(id, driverEmployeeId),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: transportKeys.routes() });
-      queryClient.invalidateQueries({ queryKey: transportKeys.route(id) });
-      queryClient.invalidateQueries({ queryKey: transportKeys.routeNames() });
-      queryClient.invalidateQueries({ queryKey: transportKeys.dashboard() });
-      queryClient.invalidateQueries({ queryKey: transportKeys.recent() });
+    onSuccess: () => {
+      invalidateEntity("transport");
     },
   }, "Driver assigned successfully");
 };
 
 export const useRemoveDriverFromRoute = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
   
   return useMutationWithSuccessToast({
     mutationFn: (id: number) => TransportService.removeDriverFromRoute(id),
-    onSuccess: (_, routeId) => {
-      queryClient.invalidateQueries({ queryKey: transportKeys.routes() });
-      queryClient.invalidateQueries({ queryKey: transportKeys.route(routeId) });
-      queryClient.invalidateQueries({ queryKey: transportKeys.routeNames() });
-      queryClient.invalidateQueries({ queryKey: transportKeys.dashboard() });
-      queryClient.invalidateQueries({ queryKey: transportKeys.recent() });
+    onSuccess: () => {
+      invalidateEntity("transport");
     },
   }, "Driver removed successfully");
 };

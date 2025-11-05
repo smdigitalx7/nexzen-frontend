@@ -11,8 +11,8 @@ import {
   createAvatarColumn,
   createTextColumn,
   createBadgeColumn
-} from '@/lib/utils/columnFactories';
-import { useCollegeStudentsList, useDeleteCollegeStudent, useCreateCollegeStudent, useUpdateCollegeStudent } from '@/lib/hooks/college/use-college-students';
+} from '@/lib/utils/factory/columnFactories';
+import { useCollegeStudentsList, useDeleteCollegeStudent, useCreateCollegeStudent, useUpdateCollegeStudent } from '@/lib/hooks/college';
 import { useAuthStore } from '@/store/authStore';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';

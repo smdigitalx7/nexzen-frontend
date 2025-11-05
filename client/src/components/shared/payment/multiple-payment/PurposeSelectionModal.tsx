@@ -69,7 +69,7 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
 
   const handlePurposeClick = (purpose: PaymentPurpose) => {
     // Check if purpose is available based on balances
-    const availability = feeAvailability[purpose as keyof typeof feeAvailability];
+    const availability = feeAvailability[purpose];
     if (availability && !availability.available) {
       return; // Don't allow selection if not available due to balance constraints
     }
@@ -140,7 +140,7 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
     const inAvailableList = availablePurposes.includes(purpose);
     
     // Then check if it's available based on fee balances
-    const availability = feeAvailability[purpose as keyof typeof feeAvailability];
+    const availability = feeAvailability[purpose];
     const balanceAvailable = !availability || availability.available;
     
     // For tuition/transport fees, check if any terms are available AND no items exist for this purpose
@@ -162,7 +162,7 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
   };
 
   const getPurposeDisabledReason = (purpose: PaymentPurpose) => {
-    const availability = feeAvailability[purpose as keyof typeof feeAvailability];
+    const availability = feeAvailability[purpose];
     if (availability && !availability.available) {
       return availability.reason;
     }
@@ -221,7 +221,7 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
               const isAvailable = isPurposeAvailable(purposeKey);
               const isDisabled = !isAvailable;
               const disabledReason = getPurposeDisabledReason(purposeKey);
-              const availability = feeAvailability[purposeKey as keyof typeof feeAvailability];
+              const availability = feeAvailability[purposeKey];
 
               return (
                 <motion.div

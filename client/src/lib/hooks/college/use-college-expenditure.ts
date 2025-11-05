@@ -7,14 +7,14 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useCollegeExpenditureList(params?: { start_date?: string; end_date?: string }) {
   return useQuery({
     queryKey: collegeKeys.expenditure.list(params),
-    queryFn: () => CollegeExpenditureService.list(params) as Promise<CollegeExpenditureRead[]>,
+    queryFn: () => CollegeExpenditureService.list(params),
   });
 }
 
 export function useCollegeExpenditure(expenditureId: number | null | undefined) {
   return useQuery({
     queryKey: typeof expenditureId === "number" ? collegeKeys.expenditure.detail(expenditureId) : [...collegeKeys.expenditure.root(), "detail", "nil"],
-    queryFn: () => CollegeExpenditureService.getById(expenditureId as number) as Promise<CollegeExpenditureRead>,
+    queryFn: () => CollegeExpenditureService.getById(expenditureId as number),
     enabled: typeof expenditureId === "number" && expenditureId > 0,
   });
 }
@@ -22,7 +22,7 @@ export function useCollegeExpenditure(expenditureId: number | null | undefined) 
 export function useCreateCollegeExpenditure() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeExpenditureCreate) => CollegeExpenditureService.create(payload) as Promise<CollegeExpenditureRead>,
+    mutationFn: (payload: CollegeExpenditureCreate) => CollegeExpenditureService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
     },
@@ -32,7 +32,7 @@ export function useCreateCollegeExpenditure() {
 export function useUpdateCollegeExpenditure(expenditureId: number) {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeExpenditureUpdate) => CollegeExpenditureService.update(expenditureId, payload) as Promise<CollegeExpenditureRead>,
+    mutationFn: (payload: CollegeExpenditureUpdate) => CollegeExpenditureService.update(expenditureId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.expenditure.detail(expenditureId) });
       qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });

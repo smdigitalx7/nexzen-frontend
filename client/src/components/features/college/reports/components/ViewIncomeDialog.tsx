@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { CollegeIncomeRead, CollegeIncomeReceipt } from "@/lib/types/college";
-import { CollegeIncomeService } from "@/lib/services/college/income.service";
+import { CollegeIncomeService } from "@/lib/services/college";
 import { useQuery } from "@tanstack/react-query";
 
 interface ViewIncomeDialogProps {

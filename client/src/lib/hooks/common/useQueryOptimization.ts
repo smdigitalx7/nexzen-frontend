@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery, UseQueryOptions } from '@tanstack/react-query';
 
 interface UseQueryOptimizationProps {
   queryKey: string[];
@@ -67,3 +67,27 @@ export const useQueryOptimization = ({
     getQueryState,
   };
 };
+
+/**
+ * Optimized query hook with field selection
+ * Use this to fetch only specific fields from a larger dataset
+ * 
+ * @example
+ * // Only fetch employee names instead of full employee objects
+ * const { data: employeeNames } = useOptimizedQuery({
+ *   queryKey: employeeKeys.lists(),
+ *   queryFn: () => EmployeesService.listByBranch(),
+ *   select: (employees) => employees.map(e => ({ id: e.employee_id, name: e.employee_name }))
+ * });
+ */
+export function useOptimizedQuery<TData, TSelected = TData>(
+  options: UseQueryOptions<TData, Error, TSelected> & {
+    select?: (data: TData) => TSelected;
+  }
+) {
+  return useQuery<TData, Error, TSelected>({
+    ...options,
+    // select only recomputes when data changes, not on every render
+    select: options.select,
+  });
+}

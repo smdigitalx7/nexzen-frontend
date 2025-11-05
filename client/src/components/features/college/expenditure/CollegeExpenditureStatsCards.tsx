@@ -11,7 +11,8 @@ import {
   BarChart3,
   Receipt,
 } from "lucide-react";
-import { StatsCard, DashboardGrid } from "@/components/shared";
+import { StatsCard } from "@/components/shared/dashboard/StatsCard";
+import { DashboardGrid } from "@/components/shared/dashboard/DashboardGrid";
 import { CollegeExpenditureDashboardStats } from "@/lib/types/college/expenditure";
 import { formatCurrency } from "@/lib/utils";
 

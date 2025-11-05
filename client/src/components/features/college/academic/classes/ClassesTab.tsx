@@ -4,15 +4,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { useCollegeClasses, useUpdateCollegeClass, useCreateCollegeClass } from '@/lib/hooks/college/use-college-classes';
+import { useCollegeClasses, useUpdateCollegeClass, useCreateCollegeClass } from '@/lib/hooks/college';
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createIconTextColumn
-} from "@/lib/utils/columnFactories";
+} from "@/lib/utils/factory/columnFactories";
+import type { CollegeClassResponse } from "@/lib/types/college";
 
 interface ClassesTabProps {
-  classesWithSubjects: any[];
+  classesWithSubjects: CollegeClassResponse[];
   classesLoading: boolean;
   searchTerm: string;
   setSearchTerm: (term: string) => void;

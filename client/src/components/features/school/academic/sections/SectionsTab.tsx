@@ -5,8 +5,7 @@ import { Label } from "@/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { Edit, Trash2 } from "lucide-react";
-import { useSchoolClasses } from "@/lib/hooks/school/use-school-classes";
-import { useSchoolSectionsByClass, useCreateSchoolSection, useUpdateSchoolSection, useDeleteSchoolSection } from "@/lib/hooks/school/use-school-sections";
+import { useSchoolClasses, useSchoolSectionsByClass, useCreateSchoolSection, useUpdateSchoolSection, useDeleteSchoolSection } from "@/lib/hooks/school";
 import type { SchoolSectionRead, SchoolClassRead } from "@/lib/types/school";
 
 // Initial form state
@@ -32,9 +31,9 @@ const SectionsTabComponent = () => {
   const { data: sections = [], isLoading } = useSchoolSectionsByClass(selectedClassId);
 
   // Hooks
-  const createSection = useCreateSchoolSection((selectedClassId || 0) as number);
-  const updateSection = useUpdateSchoolSection((selectedClassId || 0) as number, selectedSection?.section_id || 0);
-  const deleteSection = useDeleteSchoolSection((selectedClassId || 0) as number);
+  const createSection = useCreateSchoolSection((selectedClassId || 0));
+  const updateSection = useUpdateSchoolSection((selectedClassId || 0), selectedSection?.section_id || 0);
+  const deleteSection = useDeleteSchoolSection((selectedClassId || 0));
 
   // Memoized validation functions
   const validateSectionForm = useCallback((form: typeof initialSectionForm) => {

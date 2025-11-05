@@ -244,7 +244,7 @@ const mockDashboardData = {
 const Dashboard = () => {
   const { user, currentBranch } = useAuthStore();
   const [selectedMetric, setSelectedMetric] = useState("students");
-  const role = user?.role || "institute_admin";
+  const role = user?.role || "INSTITUTE_ADMIN";
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -748,9 +748,9 @@ const Dashboard = () => {
         </Card>
       </motion.div>
 
-      {role === "institute_admin" && <AdminView />}
-      {role === "accountant" && <AccountantView />}
-      {role === "academic" && <AcademicView />}
+      {role === "INSTITUTE_ADMIN" && <AdminView />}
+      {role === "ACCOUNTANT" && <AccountantView />}
+      {role === "ACADEMIC" && <AcademicView />}
       
     </div>
   );

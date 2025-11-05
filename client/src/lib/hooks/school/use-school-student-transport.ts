@@ -68,7 +68,7 @@ export function useSchoolStudentTransportDashboard() {
 export function useSchoolStudentTransportByAdmission(admissionNo: string | null | undefined) {
   return useQuery({
     queryKey: admissionNo ? [...keys.root, "by-admission", admissionNo] : [...keys.root, "by-admission", "nil"],
-    queryFn: () => StudentTransportService.getByAdmission(admissionNo as string) as Promise<SchoolStudentTransportAssignmentRead[]>,
+    queryFn: () => StudentTransportService.getByAdmission(admissionNo as string),
     enabled: typeof admissionNo === "string" && admissionNo.length > 0,
   });
 }

@@ -10,11 +10,9 @@ import {
   useCollegeIncomeList,
   useCollegeIncomeDashboard,
   useCollegeIncome,
-} from "@/lib/hooks/college/use-college-income";
-import {
   useCollegeExpenditureList,
   useCollegeExpenditureDashboard,
-} from "@/lib/hooks/college/use-college-expenditure";
+} from "@/lib/hooks/college";
 import { IncomeTable } from "./components/IncomeTable";
 import { ExpenditureTable } from "./components/ExpenditureTable";
 import { AddExpenditureDialog } from "./components/AddExpenditureDialog";

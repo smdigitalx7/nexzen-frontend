@@ -5,7 +5,7 @@ import { Percent } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared";
 import { ColumnDef } from "@tanstack/react-table";
 import { useAuthStore } from "@/store/authStore";
-import { ROLES } from "@/lib/constants/roles";
+import { ROLES } from "@/lib/constants";
 
 // Helper function to format date from ISO format to YYYY-MM-DD
 const formatDate = (dateString: string | null | undefined): string => {
@@ -203,7 +203,7 @@ const AllReservationsTableComponent = ({
         header: "Date",
         cell: ({ row }) => (
           <div className="text-sm">
-            {formatDate(row.getValue("date") as string)}
+            {formatDate(row.getValue("date"))}
           </div>
         ),
       },
@@ -211,10 +211,7 @@ const AllReservationsTableComponent = ({
         accessorKey: "application_income_id",
         header: "Application Fee Status",
         cell: ({ row }) => {
-          const applicationIncomeId = row.getValue("application_income_id") as
-            | number
-            | null
-            | undefined;
+          const applicationIncomeId = row.getValue("application_income_id") as number | null | undefined;
           return (
             <ApplicationFeeBadge applicationIncomeId={applicationIncomeId} />
           );

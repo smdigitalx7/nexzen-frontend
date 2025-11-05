@@ -29,7 +29,7 @@ export function useCollegeTests() {
 export function useCollegeTest(testId: number | null | undefined) {
   return useQuery({
     queryKey: typeof testId === "number" ? collegeKeys.tests.detail(testId) : [...collegeKeys.tests.root(), "detail", "nil"],
-    queryFn: () => CollegeTestsService.getById(testId as number) as Promise<CollegeTestResponse>,
+    queryFn: () => CollegeTestsService.getById(testId as number),
     enabled: typeof testId === "number" && testId > 0,
   });
 }
@@ -37,7 +37,7 @@ export function useCollegeTest(testId: number | null | undefined) {
 export function useCreateCollegeTest() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeTestCreate) => CollegeTestsService.create(payload) as Promise<CollegeTestResponse>,
+    mutationFn: (payload: CollegeTestCreate) => CollegeTestsService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });
     },
@@ -47,7 +47,7 @@ export function useCreateCollegeTest() {
 export function useUpdateCollegeTest(testId: number) {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeTestUpdate) => CollegeTestsService.update(testId, payload) as Promise<CollegeTestResponse>,
+    mutationFn: (payload: CollegeTestUpdate) => CollegeTestsService.update(testId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.tests.detail(testId) });
       qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });

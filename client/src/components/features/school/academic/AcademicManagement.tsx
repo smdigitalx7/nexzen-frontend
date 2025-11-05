@@ -13,12 +13,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
-import { useSchoolClasses } from "@/lib/hooks/school/use-school-classes";
-import { useSchoolSubjects } from "@/lib/hooks/school/use-school-subjects";
-import {
-  useSchoolExams,
-  useSchoolTests,
-} from "@/lib/hooks/school/use-school-exams-tests";
+import { useSchoolClasses, useSchoolSubjects, useSchoolExams, useSchoolTests } from "@/lib/hooks/school";
 import AcademicYearManagement from "@/components/features/school/academic/academic-years/AcademicYearManagement";
 import { ClassesTab } from "@/components/features/school/academic/classes/ClassesTab";
 import { SubjectsTab } from "@/components/features/school/academic/subjects/SubjectsTab";

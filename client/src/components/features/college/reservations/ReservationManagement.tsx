@@ -4,8 +4,8 @@ import {
   useDeleteCollegeReservation,
   useCollegeReservationDashboard,
   useCreateCollegeReservation,
-} from "@/lib/hooks/college/use-college-reservations";
-import { collegeKeys } from "@/lib/hooks/college/query-keys";
+} from "@/lib/hooks/college";
+import { collegeKeys } from "@/lib/hooks/college";
 
 import { motion } from "framer-motion";
 import { Label } from "@/components/ui/label";
@@ -35,10 +35,9 @@ import { useAuthStore } from "@/store/authStore";
 import { Printer } from "lucide-react";
 import ReservationForm from "../reservations/ReservationForm";
 import ReservationsTable from "../reservations/ReservationsTable";
-import { TransportService } from "@/lib/services/general/transport.service";
+import { TransportService } from "@/lib/services/general";
 import { toast } from "@/hooks/use-toast";
-import { CollegeReservationsService } from "@/lib/services/college/reservations.service";
-import { CollegeDropdownsService } from "@/lib/services/college/dropdowns.service";
+import { CollegeReservationsService, CollegeDropdownsService } from "@/lib/services/college";
 import type { CollegeReservationView } from "@/lib/types/college/reservations";
 import { Plus, List, BarChart3, Save } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";

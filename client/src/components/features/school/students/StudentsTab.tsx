@@ -11,8 +11,8 @@ import {
   createAvatarColumn, 
   createTextColumn,
   createBadgeColumn
-} from '@/lib/utils/columnFactories';
-import { useSchoolStudentsList, useCreateSchoolStudent, useUpdateSchoolStudent, useSchoolStudent } from '@/lib/hooks/school/use-school-students';
+} from '@/lib/utils/factory/columnFactories';
+import { useSchoolStudentsList, useCreateSchoolStudent, useUpdateSchoolStudent, useSchoolStudent } from '@/lib/hooks/school';
 import type { SchoolStudentRead, SchoolStudentFullDetails } from '@/lib/types/school';
 import { useAuthStore } from '@/store/authStore';
 import { useForm } from 'react-hook-form';

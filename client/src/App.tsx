@@ -10,9 +10,9 @@ import { AuthTokenTimers } from "@/lib/api";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query";
 import { LazyLoadingWrapper } from "@/components/shared/LazyLoadingWrapper";
-import { componentPreloader } from "@/lib/utils/preloader";
+import { componentPreloader } from "@/lib/utils/performance/preloader";
 import ProductionApp from "@/components/shared/ProductionApp";
-import { ROLES, type UserRole } from "@/lib/constants/roles";
+import { ROLES, type UserRole } from "@/lib/constants";
 import { config } from "@/lib/config/production";
 
 // Lazy-loaded General Components

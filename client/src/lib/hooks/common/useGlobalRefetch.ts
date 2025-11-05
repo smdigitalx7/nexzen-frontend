@@ -17,7 +17,7 @@ export const ENTITY_QUERY_MAP = {
   payrolls: [["payrolls"]] as QueryKey[],
   transport: [["transport"]] as QueryKey[],
   branches: [["branches"]] as QueryKey[],
-  academicYears: [["academic-years"]] as QueryKey[],
+  academicYears: [["academic-years"], ["academic-year"]] as QueryKey[],
   subjects: [
     ["school", "subjects"],
     ["college", "subjects"],
@@ -59,6 +59,12 @@ export const ENTITY_QUERY_MAP = {
     ["school", "enrollments"],
     ["college", "enrollments"],
   ] as QueryKey[],
+  announcements: [["announcements"]] as QueryKey[],
+  distanceSlabs: [["distance-slabs"]] as QueryKey[],
+  roles: [["roles"]] as QueryKey[],
+  advances: [["advances"]] as QueryKey[],
+  leaves: [["employee-leaves"]] as QueryKey[],
+  employeeAttendances: [["employee-attendances"]] as QueryKey[],
 } as const;
 
 export type EntityType = keyof typeof ENTITY_QUERY_MAP;

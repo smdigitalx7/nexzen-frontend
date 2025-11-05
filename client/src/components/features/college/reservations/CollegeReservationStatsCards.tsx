@@ -7,7 +7,8 @@ import {
   UserCheck,
   UserX,
 } from "lucide-react";
-import { StatsCard, DashboardGrid } from "@/components/shared";
+import { StatsCard } from "@/components/shared/dashboard/StatsCard";
+import { DashboardGrid } from "@/components/shared/dashboard/DashboardGrid";
 import { CollegeReservationDashboardStats } from "@/lib/types/college/reservations";
 
 interface CollegeReservationStatsCardsProps {

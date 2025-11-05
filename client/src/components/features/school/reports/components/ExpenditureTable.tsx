@@ -1,17 +1,17 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Eye, Edit, Trash2 } from "lucide-react";
-import { useUpdateSchoolExpenditure, useDeleteSchoolExpenditure, useSchoolExpenditure } from "@/lib/hooks/school/use-school-income-expenditure";
+import { useUpdateSchoolExpenditure, useDeleteSchoolExpenditure, useSchoolExpenditure } from "@/lib/hooks/school";
 import type { SchoolExpenditureRead } from "@/lib/types/school";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { ViewExpenditureDialog } from "./ViewExpenditureDialog";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { useTableState } from "@/lib/hooks/common/useTableState";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { createTextColumn, createCurrencyColumn } from "@/lib/utils/columnFactories";
+import { createTextColumn, createCurrencyColumn } from "@/lib/utils/factory/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface ExpenditureTableProps {

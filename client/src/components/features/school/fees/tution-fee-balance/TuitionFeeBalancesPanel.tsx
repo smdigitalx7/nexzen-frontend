@@ -4,8 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useSchoolClasses } from "@/lib/hooks/school/use-school-classes";
-import { useSchoolTuitionBalancesList, useSchoolTuitionBalance, useBulkCreateSchoolTuitionBalances } from "@/lib/hooks/school/use-school-fee-balances";
+import { useSchoolClasses, useSchoolTuitionBalancesList, useSchoolTuitionBalance, useBulkCreateSchoolTuitionBalances } from "@/lib/hooks/school";
 import type { SchoolTuitionFeeBalanceRead, SchoolTuitionFeeBalanceFullRead } from "@/lib/types/school";
 import { StudentFeeBalancesTable } from "./StudentFeeBalancesTable";
 import { Plus } from "lucide-react";

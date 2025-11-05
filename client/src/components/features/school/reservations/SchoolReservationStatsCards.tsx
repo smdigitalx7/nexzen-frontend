@@ -13,7 +13,8 @@ import {
   Car,
   Percent,
 } from "lucide-react";
-import { StatsCard, DashboardGrid } from "@/components/shared";
+import { StatsCard } from "@/components/shared/dashboard/StatsCard";
+import { DashboardGrid } from "@/components/shared/dashboard/DashboardGrid";
 import { SchoolReservationDashboardStats } from "@/lib/types/school/reservations";
 
 interface SchoolReservationStatsCardsProps {

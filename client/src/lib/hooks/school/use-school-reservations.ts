@@ -21,7 +21,7 @@ export function useSchoolReservationsList(params?: {
     queryFn: () =>
       SchoolReservationsService.list(
         params
-      ) as Promise<SchoolReservationListResponse>,
+      ),
   });
 }
 
@@ -34,7 +34,7 @@ export function useSchoolReservation(reservationId: number | null | undefined) {
     queryFn: () =>
       SchoolReservationsService.getById(
         reservationId as number
-      ) as Promise<SchoolReservationRead>,
+      ),
     enabled: typeof reservationId === "number" && reservationId > 0,
   });
 }

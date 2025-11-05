@@ -6,9 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { useSchoolClasses } from '@/lib/hooks/school/use-school-classes';
-import { useSchoolSectionsByClass } from '@/lib/hooks/school/use-school-sections';
-import { useBulkCreateSchoolAttendance, useBulkUpdateSchoolAttendance, useCreateSchoolAttendance } from '@/lib/hooks/school/use-school-attendance';
+import { useSchoolClasses, useSchoolSectionsByClass, useBulkCreateSchoolAttendance, useBulkUpdateSchoolAttendance, useCreateSchoolAttendance } from '@/lib/hooks/school';
 
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 

@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormDialog } from '@/components/shared/FormDialog';
+// Note: useSchoolClasses, useSchoolSections, useSchoolSubjects, useSchoolExams from dropdowns (naming conflict)
 import { useSchoolClasses, useSchoolSections, useSchoolSubjects, useSchoolExams } from '@/lib/hooks/school/use-school-dropdowns';
-import { useSchoolStudentsList } from '@/lib/hooks/school/use-school-students';
+import { useSchoolStudentsList } from '@/lib/hooks/school';
 import type { ExamMarkWithDetails } from '@/lib/types/school/exam-marks';
 
 // Utility functions for grade calculation

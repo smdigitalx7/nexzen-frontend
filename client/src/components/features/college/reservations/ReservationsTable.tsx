@@ -19,8 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { CollegeReservationsService } from "@/lib/services/college/reservations.service";
-import { CollegeIncomeService } from "@/lib/services/college/income.service";
+import { CollegeReservationsService, CollegeIncomeService } from "@/lib/services/college";
 import {
   ReceiptPreviewModal,
   ConcessionUpdateDialog,

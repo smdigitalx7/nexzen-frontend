@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { BookOpen, GraduationCap, Award, FileText, CheckCircle, Layers } from "lucide-react";
-import { StatsCard, DashboardGrid } from "@/components/shared";
+import { StatsCard } from "@/components/shared/dashboard/StatsCard";
+import { DashboardGrid } from "@/components/shared/dashboard/DashboardGrid";
 
 interface AcademicOverviewCardsProps {
   totalClasses: number;

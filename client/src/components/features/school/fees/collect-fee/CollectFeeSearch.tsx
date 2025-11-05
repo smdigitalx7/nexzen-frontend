@@ -6,9 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
-import { SchoolStudentsService } from "@/lib/services/school/students.service";
-import { SchoolTuitionFeeBalancesService } from "@/lib/services/school/tuition-fee-balances.service";
-import { SchoolTransportFeeBalancesService } from "@/lib/services/school/transport-fee-balances.service";
+import { SchoolStudentsService, SchoolTuitionFeeBalancesService, SchoolTransportFeeBalancesService } from "@/lib/services/school";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 

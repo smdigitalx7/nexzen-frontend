@@ -88,11 +88,27 @@ export const TeacherCourseSubjectAssignmentsTab = ({
       });
     });
     
-    // Convert Maps to arrays
-    return Array.from(grouped.values()).map(group => ({
-      ...group,
-      courses: Array.from(group.courses.values()).map(course => ({
-        ...course,
+    // Convert Maps to arrays with proper typing
+    interface GroupItem {
+      group_id: number;
+      group_name: string;
+      courses: Array<{
+        course_id: number;
+        course_name: string;
+        teachers: Array<{
+          teacher_id: number;
+          teacher_name: string;
+          subjects: Array<{ subject_id: number; subject_name: string }>;
+        }>;
+      }>;
+    }
+    
+    return Array.from(grouped.values()).map((group: any): GroupItem => ({
+      group_id: group.group_id,
+      group_name: group.group_name,
+      courses: Array.from(group.courses.values()).map((course: any) => ({
+        course_id: course.course_id,
+        course_name: course.course_name,
         teachers: Array.from(course.teachers.values()),
       })),
     }));

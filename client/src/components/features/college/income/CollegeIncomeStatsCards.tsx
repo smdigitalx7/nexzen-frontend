@@ -10,7 +10,8 @@ import {
   Wallet,
   BarChart3,
 } from "lucide-react";
-import { StatsCard, DashboardGrid } from "@/components/shared";
+import { StatsCard } from "@/components/shared/dashboard/StatsCard";
+import { DashboardGrid } from "@/components/shared/dashboard/DashboardGrid";
 import { CollegeIncomeDashboardStats } from "@/lib/types/college/income";
 import { formatCurrency } from "@/lib/utils";
 

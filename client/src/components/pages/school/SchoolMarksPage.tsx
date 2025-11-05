@@ -1,4 +1,4 @@
-import MarksManagement from "@/components/features/school/marks/MarksManagement";
+import { MarksManagement } from "@/components/features/school";
 
 const SchoolMarksManagementPage = () => {
   return <MarksManagement />;

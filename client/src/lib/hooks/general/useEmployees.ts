@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { EmployeesService } from "@/lib/services/general/employees.service";
 import type {
   EmployeeRead,
@@ -81,19 +81,12 @@ export const useRecentEmployees = (limit: number = 5) => {
 
 // Mutation hooks
 export const useCreateEmployee = () => {
-  const queryClient = useQueryClient();
   const { invalidateEntity } = useGlobalRefetch();
 
   return useMutationWithSuccessToast(
     {
       mutationFn: (data: EmployeeCreate) => EmployeesService.create(data),
       onSuccess: () => {
-        // Specific invalidations for precise cache updates
-        queryClient.invalidateQueries({ queryKey: employeeKeys.lists() });
-        queryClient.invalidateQueries({ queryKey: employeeKeys.byBranch() });
-        queryClient.invalidateQueries({ queryKey: employeeKeys.dashboard() });
-        queryClient.invalidateQueries({ queryKey: employeeKeys.recent() });
-        // Global entity invalidation for cross-module refetch
         invalidateEntity("employees");
       },
     },
@@ -102,20 +95,13 @@ export const useCreateEmployee = () => {
 };
 
 export const useUpdateEmployee = () => {
-  const queryClient = useQueryClient();
   const { invalidateEntity } = useGlobalRefetch();
 
   return useMutationWithSuccessToast(
     {
       mutationFn: ({ id, payload }: { id: number; payload: EmployeeUpdate }) =>
         EmployeesService.update(id, payload),
-      onSuccess: (_, { id }) => {
-        // Specific invalidations for precise cache updates
-        queryClient.invalidateQueries({ queryKey: employeeKeys.lists() });
-        queryClient.invalidateQueries({ queryKey: employeeKeys.byBranch() });
-        queryClient.invalidateQueries({ queryKey: employeeKeys.detail(id) });
-        queryClient.invalidateQueries({ queryKey: employeeKeys.dashboard() });
-        // Global entity invalidation for cross-module refetch
+      onSuccess: () => {
         invalidateEntity("employees");
       },
     },
@@ -124,18 +110,12 @@ export const useUpdateEmployee = () => {
 };
 
 export const useDeleteEmployee = () => {
-  const queryClient = useQueryClient();
   const { invalidateEntity } = useGlobalRefetch();
 
   return useMutationWithSuccessToast(
     {
       mutationFn: (id: number) => EmployeesService.remove(id),
       onSuccess: () => {
-        // Specific invalidations for precise cache updates
-        queryClient.invalidateQueries({ queryKey: employeeKeys.lists() });
-        queryClient.invalidateQueries({ queryKey: employeeKeys.byBranch() });
-        queryClient.invalidateQueries({ queryKey: employeeKeys.dashboard() });
-        // Global entity invalidation for cross-module refetch
         invalidateEntity("employees");
       },
     },
@@ -144,20 +124,13 @@ export const useDeleteEmployee = () => {
 };
 
 export const useUpdateEmployeeStatus = () => {
-  const queryClient = useQueryClient();
   const { invalidateEntity } = useGlobalRefetch();
 
   return useMutationWithSuccessToast(
     {
       mutationFn: ({ id, status }: { id: number; status: string }) =>
         EmployeesService.updateStatus(id, status),
-      onSuccess: (_, { id }) => {
-        // Specific invalidations for precise cache updates
-        queryClient.invalidateQueries({ queryKey: employeeKeys.lists() });
-        queryClient.invalidateQueries({ queryKey: employeeKeys.byBranch() });
-        queryClient.invalidateQueries({ queryKey: employeeKeys.detail(id) });
-        queryClient.invalidateQueries({ queryKey: employeeKeys.dashboard() });
-        // Global entity invalidation for cross-module refetch
+      onSuccess: () => {
         invalidateEntity("employees");
       },
     },

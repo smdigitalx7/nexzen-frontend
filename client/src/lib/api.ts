@@ -3,7 +3,32 @@ import { useCacheStore } from "@/store/cacheStore";
 
 // For the simple API, we need to use /api/v1 since the proxy forwards /api to the external server
 // and the external server expects /v1 paths
-const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || "/api/v1";
+
+// Validate API Base URL configuration
+const validateAndGetApiBaseUrl = (): string => {
+  const envUrl = (import.meta as any).env.VITE_API_BASE_URL;
+  const isDevelopment = import.meta.env.DEV;
+  
+  // In production, require explicit configuration
+  if (!isDevelopment && !envUrl) {
+    console.error("❌ VITE_API_BASE_URL is not configured in production!");
+    throw new Error(
+      "API base URL not configured. Please set VITE_API_BASE_URL environment variable."
+    );
+  }
+  
+  // Use provided URL or fallback to proxy path for development
+  const apiBaseUrl = envUrl || "/api/v1";
+  
+  // Validate URL format
+  if (envUrl && !envUrl.startsWith("/") && !envUrl.startsWith("http://") && !envUrl.startsWith("https://")) {
+    console.warn("⚠️ API Base URL should be a valid path or URL:", envUrl);
+  }
+  
+  return apiBaseUrl;
+};
+
+const API_BASE_URL: string = validateAndGetApiBaseUrl();
 
 // Debug: Log API configuration on module load
 
@@ -163,8 +188,8 @@ async function tryRefreshToken(
 
     // Decode new token and update user role if changed
     try {
-      const { decodeJWT, getRoleFromToken, getTokenExpiration } = await import("@/lib/utils/jwt");
-      const { normalizeRole } = await import("@/lib/constants/roles");
+      const { decodeJWT, getRoleFromToken, getTokenExpiration } = await import("@/lib/utils/auth/jwt");
+      const { normalizeRole } = await import("@/lib/constants");
       
       const newTokenPayload = decodeJWT(newToken);
       if (newTokenPayload) {
@@ -306,8 +331,8 @@ export async function api<T = unknown>({
 
       // If this was a login call, store token and schedule proactive refresh
       if (path === "/auth/login" && res.ok && isJson) {
-        const access = (data as any)?.access_token as string | undefined;
-        const expireIso = (data as any)?.expiretime as string | undefined;
+        const access = (data)?.access_token as string | undefined;
+        const expireIso = (data)?.expiretime as string | undefined;
         if (access && expireIso) {
           useAuthStore
             .getState()
@@ -340,7 +365,7 @@ export async function api<T = unknown>({
 
       if (!res.ok) {
         const message =
-          (isJson && ((data as any)?.detail || (data as any)?.message)) ||
+          (isJson && ((data)?.detail || (data)?.message)) ||
           res.statusText ||
           "Request failed";
         const error = new Error(message as string);
@@ -491,7 +516,7 @@ export const Api = {
       : ((await res.text()) as unknown as T);
     if (!res.ok) {
       const message =
-        (isJson && ((data as any)?.detail || (data as any)?.message)) ||
+        (isJson && ((data)?.detail || (data)?.message)) ||
         res.statusText ||
         "Request failed";
       throw new Error(message as string);
@@ -526,7 +551,7 @@ export const Api = {
       : ((await res.text()) as unknown as T);
     if (!res.ok) {
       const message =
-        (isJson && ((data as any)?.detail || (data as any)?.message)) ||
+        (isJson && ((data)?.detail || (data)?.message)) ||
         res.statusText ||
         "Request failed";
       throw new Error(message as string);

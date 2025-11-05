@@ -4,7 +4,7 @@ import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn
-} from "@/lib/utils/columnFactories.tsx";
+} from "@/lib/utils/factory/columnFactories";
 
 interface EmployeeAttendanceRead {
   attendance_id: number;

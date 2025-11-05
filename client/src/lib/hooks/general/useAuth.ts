@@ -1,10 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
 import { useToast } from "@/hooks/use-toast";
-import { unifiedApi } from "@/lib/services/general/unified-api.service";
-import { getRoleFromToken, decodeJWT, getTokenExpiration } from "@/lib/utils/jwt";
-import { normalizeRole, ROLES } from "@/lib/constants/roles";
-import { UsersService } from "@/lib/services/general/users.service";
+import { unifiedApi } from "@/lib/services/general";
+import { getRoleFromToken, decodeJWT, getTokenExpiration } from "@/lib/utils/auth/jwt";
+import { normalizeRole, ROLES } from "@/lib/constants";
 
 // Types for authentication
 export interface LoginRequest {
@@ -34,7 +33,7 @@ export interface BranchInfo {
   branch_type: "SCHOOL" | "COLLEGE";
 }
 
-import type { UserRole } from "@/lib/constants/roles";
+import type { UserRole } from "@/lib/constants";
 
 export interface AuthUser {
   user_id: string;

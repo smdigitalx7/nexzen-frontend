@@ -8,10 +8,9 @@ import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { useCollegeAttendance, useUpdateCollegeAttendance, useDeleteCollegeAttendance } from '@/lib/hooks/college/use-college-attendance';
+import { useCollegeAttendance, useUpdateCollegeAttendance, useDeleteCollegeAttendance, useCollegeClasses, useCollegeClassGroups } from '@/lib/hooks/college';
 import { useToast } from '@/hooks/use-toast';
-import { useCollegeClasses, useCollegeClassGroups } from '@/lib/hooks/college/use-college-classes';
-import { CollegeAttendanceService } from '@/lib/services/college/attendance.service';
+import { CollegeAttendanceService } from '@/lib/services/college';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CollegeClassResponse, CollegeGroupResponse } from '@/lib/types/college';
 
@@ -56,7 +55,7 @@ export default function AttendanceView() {
       toast({ title: 'Error', description: 'Please select a class first', variant: 'destructive' });
       return;
     }
-    const student = (allStudents as any[]).find((s) => s.student_id === studentId);
+    const student = (allStudents).find((s) => s.student_id === studentId);
     if (!student?.attendance_id) {
       toast({ title: 'No record', description: 'Initialize month in Create tab first', variant: 'destructive' });
       return;

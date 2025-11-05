@@ -7,14 +7,14 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useTeacherCourseSubjectsList(params?: CollegeTeacherCourseSubjectListParams) {
   return useQuery({
     queryKey: collegeKeys.teacherCourseSubjects.list(params),
-    queryFn: () => CollegeTeacherCourseSubjectsService.list(params) as Promise<CollegeTeacherCourseSubjectGroupedRead[]>,
+    queryFn: () => CollegeTeacherCourseSubjectsService.list(params),
   });
 }
 
 export function useCreateTeacherCourseSubject() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeTeacherCourseSubjectCreate) => CollegeTeacherCourseSubjectsService.create(payload) as Promise<CollegeTeacherCourseSubjectRead>,
+    mutationFn: (payload: CollegeTeacherCourseSubjectCreate) => CollegeTeacherCourseSubjectsService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.teacherCourseSubjects.root() });
     },

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { CollegeReservationsService } from "@/lib/services/college/reservations.service";
+import { CollegeReservationsService } from "@/lib/services/college";
 import { EnhancedDataTable } from "@/components/shared";
 import { ColumnDef } from "@tanstack/react-table";
 
@@ -74,10 +74,7 @@ const StatusSelect = memo(
     ) => void;
   }) => {
     const current = (reservation.status || "").toUpperCase();
-    const selected = (statusChanges[reservation.id] || current) as
-      | "PENDING"
-      | "CONFIRMED"
-      | "CANCELLED";
+    const selected = (statusChanges[reservation.id] || current);
 
     return (
       <div className="w-48">
@@ -144,10 +141,7 @@ const UpdateButton = memo(
     ) => void;
   }) => {
     const current = (reservation.status || "").toUpperCase();
-    const selected = (statusChanges[reservation.id] || current) as
-      | "PENDING"
-      | "CONFIRMED"
-      | "CANCELLED";
+    const selected = (statusChanges[reservation.id] || current);
     const same = selected === current;
 
     return (
@@ -157,10 +151,7 @@ const UpdateButton = memo(
           variant={same ? "outline" : "default"}
           disabled={same}
           onClick={() => {
-            const to = (statusChanges[reservation.id] || current) as
-              | "PENDING"
-              | "CONFIRMED"
-              | "CANCELLED";
+            const to = (statusChanges[reservation.id] || current);
             const remarks = statusRemarks[reservation.id] || "";
             onUpdate(reservation, to, remarks);
           }}
@@ -330,7 +321,7 @@ const StatusUpdateTableComponent = ({
         accessorKey: "changeTo",
         header: "Change To",
         cell: ({ row }) => {
-          const reservation = row.original as Reservation;
+          const reservation = row.original;
           return (
             <StatusSelect
               reservation={reservation}
@@ -344,7 +335,7 @@ const StatusUpdateTableComponent = ({
         accessorKey: "remarks",
         header: "Remarks",
         cell: ({ row }) => {
-          const reservation = row.original as Reservation;
+          const reservation = row.original;
           return (
             <RemarksTextarea
               reservation={reservation}
@@ -358,7 +349,7 @@ const StatusUpdateTableComponent = ({
         accessorKey: "updateAction",
         header: "Update",
         cell: ({ row }) => {
-          const reservation = row.original as Reservation;
+          const reservation = row.original;
           return (
             <UpdateButton
               reservation={reservation}

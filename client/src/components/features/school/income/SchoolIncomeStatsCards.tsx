@@ -12,7 +12,8 @@ import {
   Users,
   BarChart3,
 } from "lucide-react";
-import { StatsCard, DashboardGrid } from "@/components/shared";
+import { StatsCard } from "@/components/shared/dashboard/StatsCard";
+import { DashboardGrid } from "@/components/shared/dashboard/DashboardGrid";
 import { SchoolIncomeDashboardStats } from "@/lib/types/school/income";
 import { formatCurrency } from "@/lib/utils";
 

@@ -9,7 +9,7 @@ import {
   createTextColumn,
   createCurrencyColumn,
   createBadgeColumn
-} from "@/lib/utils/columnFactories.tsx";
+} from "@/lib/utils/factory/columnFactories";
 
 // Extended interface that includes employee information
 interface PayrollWithEmployee extends Omit<PayrollRead, 'payroll_month'> {

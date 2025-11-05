@@ -36,7 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
+import { SchoolReservationsService } from "@/lib/services/school";
 import {
   ReceiptPreviewModal,
   ConcessionUpdateDialog,
