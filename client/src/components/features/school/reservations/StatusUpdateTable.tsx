@@ -227,6 +227,7 @@ const StatusUpdateTableComponent = ({
   const [statusRemarks, setStatusRemarks] = useState<Record<string, string>>(
     {}
   );
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Memoized handlers
   const handleStatusChange = useCallback(
@@ -263,9 +264,14 @@ const StatusUpdateTableComponent = ({
           remarks.trim() ? remarks : undefined
         );
 
-        // Invalidate queries and call the refetch function to refresh the data
-        void queryClient.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+        // Invalidate and refetch queries to refresh the data immediately
+        await queryClient.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+        await queryClient.refetchQueries({ queryKey: schoolKeys.reservations.root() });
+        // Also call the refetch function passed from parent
         await onRefetch();
+
+        // Force table refresh by updating refresh key
+        setRefreshKey((prev) => prev + 1);
 
         toast({
           title: "Successful",
@@ -388,6 +394,7 @@ const StatusUpdateTableComponent = ({
       />
 
       <EnhancedDataTable
+        key={refreshKey}
         data={reservations}
         columns={statusColumns}
         title="Status Updates"
