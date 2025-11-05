@@ -60,8 +60,14 @@ export function useLogin() {
         true
       );
 
-      if (!loginResponse.user_info || !loginResponse.user_info.branches || loginResponse.user_info.branches.length === 0) {
-        throw new Error("Invalid login response: missing user information or branches.");
+      if (
+        !loginResponse.user_info ||
+        !loginResponse.user_info.branches ||
+        loginResponse.user_info.branches.length === 0
+      ) {
+        throw new Error(
+          "Invalid login response: missing user information or branches."
+        );
       }
 
       // Step 2: Extract branches from user_info
@@ -70,8 +76,12 @@ export function useLogin() {
       // Step 3: Get current branch (first branch or find by branch_id if available)
       // The backend should indicate which branch is current, but we'll use the first one for now
       const currentBranch = branchesFromResponse[0];
-      
-      if (!currentBranch || !currentBranch.roles || currentBranch.roles.length === 0) {
+
+      if (
+        !currentBranch ||
+        !currentBranch.roles ||
+        currentBranch.roles.length === 0
+      ) {
         throw new Error("User role not found. Please contact administrator.");
       }
 
@@ -83,14 +93,16 @@ export function useLogin() {
 
       let normalizedRole = normalizeRole(roleFromBranch);
       if (!normalizedRole) {
-        throw new Error(`Invalid user role: ${roleFromBranch}. Please contact administrator.`);
+        throw new Error(
+          `Invalid user role: ${roleFromBranch}. Please contact administrator.`
+        );
       }
 
       // Step 5: Set token in auth store with expiration from response
-      const expirationTime = loginResponse.expiretime 
-        ? new Date(loginResponse.expiretime).getTime() 
+      const expirationTime = loginResponse.expiretime
+        ? new Date(loginResponse.expiretime).getTime()
         : null;
-      
+
       setTokenAndExpiry(loginResponse.access_token, expirationTime);
 
       // Step 6: Get additional user info from /auth/me (for user_id, institute_id, and current_branch_id only)
@@ -101,15 +113,24 @@ export function useLogin() {
         const meResponse = await unifiedApi.get<any>("/auth/me");
         if (meResponse) {
           userId = meResponse.user_id ? String(meResponse.user_id) : "";
-          instituteId = meResponse.institute_id ? String(meResponse.institute_id) : "1";
+          instituteId = meResponse.institute_id
+            ? String(meResponse.institute_id)
+            : "1";
           // Use current_branch_id from /auth/me if available, otherwise use first branch
           if (meResponse.current_branch_id) {
             currentBranchId = meResponse.current_branch_id;
             // Find the branch that matches this ID and update role if different
-            const branchFromId = branchesFromResponse.find(b => b.branch_id === currentBranchId);
-            if (branchFromId && branchFromId.branch_id !== currentBranch.branch_id) {
+            const branchFromId = branchesFromResponse.find(
+              (b) => b.branch_id === currentBranchId
+            );
+            if (
+              branchFromId &&
+              branchFromId.branch_id !== currentBranch.branch_id
+            ) {
               // Update role from the actual current branch
-              const roleFromActualBranch = extractPrimaryRole(branchFromId.roles);
+              const roleFromActualBranch = extractPrimaryRole(
+                branchFromId.roles
+              );
               if (roleFromActualBranch) {
                 const newNormalizedRole = normalizeRole(roleFromActualBranch);
                 if (newNormalizedRole) {
@@ -129,7 +150,9 @@ export function useLogin() {
       const branchList = branchesFromResponse.map((b) => ({
         branch_id: b.branch_id,
         branch_name: b.branch_name,
-        branch_type: b.branch_name.toUpperCase().includes('COLLEGE') ? "COLLEGE" as const : "SCHOOL" as const,
+        branch_type: b.branch_name.toUpperCase().includes("COLLEGE")
+          ? ("COLLEGE" as const)
+          : ("SCHOOL" as const),
         roles: b.roles, // Store roles for each branch
       }));
 
@@ -145,7 +168,7 @@ export function useLogin() {
 
       // Debug logging (only in development)
       if (import.meta.env.DEV) {
-        console.log('🔐 Login Debug:', {
+        console.log("🔐 Login Debug:", {
           roleFromBranch,
           normalizedRole: normalizedRole,
           userRole: user.role,
@@ -157,17 +180,16 @@ export function useLogin() {
       // Step 9: Login user
       login(user as any, branchList as any);
 
-<<<<<<< HEAD
-      // Step 10: All users redirect to dashboard - DashboardRouter will show appropriate dashboard
-      const redirectPath = "/";
-=======
       // Step 10: Determine redirect path based on role and branch type
       let redirectPath = "/"; // Default for ADMIN/INSTITUTE_ADMIN
-      
+
       // Get current branch type
-      const currentBranchType = branchList.find(b => b.branch_id === currentBranchId)?.branch_type || "SCHOOL";
-      const branchPrefix = currentBranchType === "COLLEGE" ? "/college" : "/school";
-      
+      const currentBranchType =
+        branchList.find((b) => b.branch_id === currentBranchId)?.branch_type ||
+        "SCHOOL";
+      const branchPrefix =
+        currentBranchType === "COLLEGE" ? "/college" : "/school";
+
       // Set redirect path based on role
       if (normalizedRole === ROLES.ACCOUNTANT) {
         redirectPath = `${branchPrefix}/fees`;
@@ -175,7 +197,6 @@ export function useLogin() {
         redirectPath = `${branchPrefix}/academic`;
       }
       // ADMIN and INSTITUTE_ADMIN go to "/" (dashboard)
->>>>>>> 4810d931a632104ad3c6e7bd4a165623ab680201
 
       return {
         user,
@@ -211,11 +232,11 @@ export function useLogout() {
     mutationFn: async () => {
       // Clear auth store
       logout();
-      
+
       // Clear any cached data
       // Note: In a real app, you might want to call a logout endpoint
       // to invalidate the token on the server
-      
+
       return true;
     },
     onSuccess: () => {
