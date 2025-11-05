@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DashboardService } from "@/lib/services/general/dashboard.service";
+import { useAuthStore } from "@/store/authStore";
 import type {
   AdminDashboardResponse,
   AccountantDashboardResponse,
@@ -22,8 +23,15 @@ function useAdminDashboard(): UseDashboardDataReturn<AdminDashboardResponse> {
   const [data, setData] = useState<AdminDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { token, isAuthenticated } = useAuthStore();
 
-  const fetchDashboard = async () => {
+  const fetchDashboard = useCallback(async () => {
+    // Don't fetch if not authenticated or no token
+    if (!isAuthenticated || !token) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -39,11 +47,11 @@ function useAdminDashboard(): UseDashboardDataReturn<AdminDashboardResponse> {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, isAuthenticated]);
 
   useEffect(() => {
     fetchDashboard();
-  }, []);
+  }, [fetchDashboard]);
 
   return {
     data,
@@ -57,8 +65,15 @@ function useAccountantDashboard(): UseDashboardDataReturn<AccountantDashboardRes
   const [data, setData] = useState<AccountantDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { token, isAuthenticated } = useAuthStore();
 
-  const fetchDashboard = async () => {
+  const fetchDashboard = useCallback(async () => {
+    // Don't fetch if not authenticated or no token
+    if (!isAuthenticated || !token) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -74,11 +89,11 @@ function useAccountantDashboard(): UseDashboardDataReturn<AccountantDashboardRes
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, isAuthenticated]);
 
   useEffect(() => {
     fetchDashboard();
-  }, []);
+  }, [fetchDashboard]);
 
   return {
     data,
@@ -92,8 +107,15 @@ function useAcademicDashboard(): UseDashboardDataReturn<AcademicDashboardRespons
   const [data, setData] = useState<AcademicDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { token, isAuthenticated } = useAuthStore();
 
-  const fetchDashboard = async () => {
+  const fetchDashboard = useCallback(async () => {
+    // Don't fetch if not authenticated or no token
+    if (!isAuthenticated || !token) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -109,11 +131,11 @@ function useAcademicDashboard(): UseDashboardDataReturn<AcademicDashboardRespons
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, isAuthenticated]);
 
   useEffect(() => {
     fetchDashboard();
-  }, []);
+  }, [fetchDashboard]);
 
   return {
     data,

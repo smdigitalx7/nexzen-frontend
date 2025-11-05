@@ -7,6 +7,7 @@ import {
   Shield,
   Save,
   X,
+  Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,15 +17,25 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useAuthStore } from "@/store/authStore";
 import { useToast } from "@/hooks/use-toast";
+import { useUpdateUser, useUser } from "@/lib/hooks/general/useUsers";
 
 const ProfilePage = () => {
   const { user, currentBranch } = useAuthStore();
   const { toast } = useToast();
+  const updateUserMutation = useUpdateUser();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     full_name: user?.full_name || "",
     email: user?.email || "",
+    mobile_no: "",
   });
+
+  // Fetch full user data to get mobile_no
+  const userId = user?.user_id ? parseInt(user.user_id, 10) : null;
+  const { data: userData } = useUser(userId ?? 0);
+
+  // Store mobile_no in state to persist after updates
+  const [currentMobileNo, setCurrentMobileNo] = useState<string>("");
 
   // Update form data when user data changes
   useEffect(() => {
@@ -32,9 +43,17 @@ const ProfilePage = () => {
       setFormData({
         full_name: user.full_name || "",
         email: user.email || "",
+        mobile_no: currentMobileNo || userData?.mobile_no || "",
       });
     }
-  }, [user, isEditing]);
+  }, [user, isEditing, currentMobileNo, userData]);
+
+  // Update mobile_no when userData is fetched
+  useEffect(() => {
+    if (userData?.mobile_no) {
+      setCurrentMobileNo(userData.mobile_no);
+    }
+  }, [userData]);
 
   const getRoleColor = (role: string) => {
     const upperRole = role?.toUpperCase() || "";
@@ -67,19 +86,87 @@ const ProfilePage = () => {
     }
   };
 
-  const handleSave = () => {
-    // TODO: Implement API call to update user profile
-    toast({
-      title: "Profile Updated",
-      description: "Your profile has been updated successfully.",
-    });
-    setIsEditing(false);
+  const handleSave = async () => {
+    if (!user?.user_id) {
+      toast({
+        title: "Error",
+        description: "User information not found. Please try logging in again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate form data
+    if (!formData.full_name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Full name is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Email is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const userId = parseInt(user.user_id, 10);
+      if (isNaN(userId)) {
+        throw new Error("Invalid user ID");
+      }
+
+      const updatedUser = await updateUserMutation.mutateAsync({
+        id: userId,
+        payload: {
+          full_name: formData.full_name.trim(),
+          email: formData.email.trim(),
+          mobile_no: formData.mobile_no.trim() || null,
+        },
+      });
+
+      // Update auth store with new user data
+      useAuthStore.setState((state) => {
+        if (state.user) {
+          state.user.full_name = updatedUser.full_name;
+          state.user.email = updatedUser.email;
+        }
+      });
+
+      // Update mobile_no state from response
+      if (updatedUser.mobile_no) {
+        setCurrentMobileNo(updatedUser.mobile_no);
+      }
+
+      setIsEditing(false);
+    } catch (error) {
+      // Error is handled by the mutation hook's onError callback
+      // The form will remain in edit mode so user can retry
+      console.error("Failed to update profile:", error);
+    }
   };
 
   const handleCancel = () => {
     setFormData({
       full_name: user?.full_name || "",
       email: user?.email || "",
+      mobile_no: currentMobileNo || userData?.mobile_no || "",
     });
     setIsEditing(false);
   };
@@ -162,14 +249,36 @@ const ProfilePage = () => {
                     placeholder="Enter your email"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mobile_no">Mobile Number</Label>
+                  <Input
+                    id="mobile_no"
+                    type="tel"
+                    value={formData.mobile_no}
+                    onChange={(e) =>
+                      setFormData({ ...formData, mobile_no: e.target.value })
+                    }
+                    placeholder="Enter your mobile number"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Exclude country code (e.g., 9876543210)
+                  </p>
+                </div>
                 <div className="flex justify-end gap-2 pt-4">
-                  <Button variant="outline" onClick={handleCancel}>
+                  <Button
+                    variant="outline"
+                    onClick={handleCancel}
+                    disabled={updateUserMutation.isPending}
+                  >
                     <X className="h-4 w-4 mr-2" />
                     Cancel
                   </Button>
-                  <Button onClick={handleSave}>
+                  <Button
+                    onClick={handleSave}
+                    disabled={updateUserMutation.isPending}
+                  >
                     <Save className="h-4 w-4 mr-2" />
-                    Save Changes
+                    {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </motion.div>
@@ -192,6 +301,17 @@ const ProfilePage = () => {
                     <div>
                       <p className="text-sm text-muted-foreground">Email</p>
                       <p className="font-medium">{user?.email || "Not set"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="bg-slate-100 p-2 rounded-lg">
+                      <Phone className="h-5 w-5 text-slate-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Mobile Number</p>
+                      <p className="font-medium">
+                        {currentMobileNo || userData?.mobile_no || "Not set"}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -245,4 +365,3 @@ const ProfilePage = () => {
 };
 
 export default ProfilePage;
-

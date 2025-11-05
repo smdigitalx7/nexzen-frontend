@@ -1,5 +1,4 @@
-import { Link } from "wouter";
-import { formatCurrency } from "@/lib/utils";
+import { useLocation } from "wouter";
 import {
   Card,
   CardContent,
@@ -9,6 +8,14 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/store/authStore";
 import {
   FileText,
@@ -22,40 +29,82 @@ import {
   BookOpen,
   Award,
   CheckCircle,
+  MoreHorizontal,
+  AlertCircle,
+  Clock,
 } from "lucide-react";
 import { useAcademicDashboard } from "@/lib/hooks/general";
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from "recharts";
 import {
   DashboardContainer,
   DashboardHeader,
   DashboardError,
+  StatsCard,
+  DashboardGrid,
 } from "@/components/shared/dashboard";
 
 const AcademicDashboard = () => {
   const { user, currentBranch } = useAuthStore();
+  const [, setLocation] = useLocation();
   const branchPrefix =
     currentBranch?.branch_type === "SCHOOL" ? "/school" : "/college";
   const { data: dashboardData, loading, error } = useAcademicDashboard();
+
+  const quickLinks = [
+    {
+      title: "Academic",
+      href: `${branchPrefix}/academic`,
+      icon: FileText,
+      color: "text-indigo-600",
+    },
+    {
+      title: "Attendance",
+      href: `${branchPrefix}/attendance`,
+      icon: Calendar,
+      color: "text-blue-600",
+    },
+    {
+      title: "Marks Entry",
+      href: `${branchPrefix}/marks`,
+      icon: Trophy,
+      color: "text-purple-600",
+    },
+  ];
+
+  const quickLinksDropdown = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="h-9">
+          <MoreHorizontal className="h-4 w-4 mr-2" />
+          Quick Links
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Academic Tasks</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {quickLinks.map((link) => {
+          const Icon = link.icon;
+          return (
+            <DropdownMenuItem
+              key={link.title}
+              onClick={() => setLocation(link.href)}
+              className="cursor-pointer"
+            >
+              <Icon className={`h-4 w-4 mr-2 ${link.color}`} />
+              <span>{link.title}</span>
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   return (
     <DashboardContainer loading={loading}>
       <DashboardHeader
         title={`Welcome back, ${user?.full_name?.split(" ")[0] || "Academic"}!`}
-        description={`Academic overview for ${currentBranch?.branch_name}`}
-        badge={{
-          text: currentBranch?.branch_type || "Education",
-          variant: "outline",
-        }}
+        description="Academic overview and performance metrics"
+        showBranchBadge={true}
+        rightContent={quickLinksDropdown}
       />
 
       <DashboardError error={error} />
@@ -64,335 +113,381 @@ const AcademicDashboard = () => {
       {!loading && !error && dashboardData && (
         <>
           {/* Overview Statistics */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                title: "Total Students",
-                value: dashboardData.data.overview.total_students.toLocaleString(),
-                icon: Users,
-                color: "text-blue-600",
-                desc: "Active students",
-              },
-              {
-                title: "Total Teachers",
-                value: dashboardData.data.overview.total_teachers.toLocaleString(),
-                icon: GraduationCap,
-                color: "text-green-600",
-                desc: "Teaching staff",
-              },
-              {
-                title: "Total Classes",
-                value: dashboardData.data.overview.total_classes.toLocaleString(),
-                icon: BookOpen,
-                color: "text-purple-600",
-                desc: "Active classes",
-              },
-              {
-                title: "Total Subjects",
-                value: dashboardData.data.overview.total_subjects.toLocaleString(),
-                icon: FileText,
-                color: "text-indigo-600",
-                desc: "Subjects taught",
-              },
-            ].map((c) => (
-              <Card key={c.title} className="hover-elevate">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{c.title}</CardTitle>
-                  <c.icon className={`h-4 w-4 ${c.color}`} />
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
-                  <p className="text-xs text-muted-foreground mt-1">{c.desc}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <DashboardGrid columns={6}>
+            <StatsCard
+              title="Total Students"
+              value={dashboardData.data.overview.total_students.toLocaleString()}
+              icon={Users}
+              color="blue"
+              description="Active students"
+              size="md"
+            />
+            <StatsCard
+              title="Total Teachers"
+              value={dashboardData.data.overview.total_teachers.toLocaleString()}
+              icon={GraduationCap}
+              color="green"
+              description="Teaching staff"
+              size="md"
+            />
+            <StatsCard
+              title="Total Classes"
+              value={dashboardData.data.overview.total_classes.toLocaleString()}
+              icon={BookOpen}
+              color="purple"
+              description="Active classes"
+              size="md"
+            />
+            <StatsCard
+              title="Total Subjects"
+              value={dashboardData.data.overview.total_subjects.toLocaleString()}
+              icon={FileText}
+              color="indigo"
+              description="Subjects taught"
+              size="md"
+            />
 
-          {/* Attendance Metrics */}
-          <div className="grid gap-4 md:grid-cols-2">
-            {[
-              {
-                title: "Student Attendance",
-                value: `${parseFloat(dashboardData.data.attendance.student_attendance_rate).toFixed(1)}%`,
-                icon: UserCheck,
-                color: "text-orange-600",
-                desc: "This month",
-              },
-              {
-                title: "Teacher Attendance",
-                value: `${parseFloat(dashboardData.data.attendance.teacher_attendance_rate).toFixed(1)}%`,
-                icon: UserCheck,
-                color: "text-cyan-600",
-                desc: "This month",
-              },
-            ].map((c) => (
-              <Card key={c.title} className="hover-elevate">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{c.title}</CardTitle>
-                  <c.icon className={`h-4 w-4 ${c.color}`} />
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
-                  <p className="text-xs text-muted-foreground mt-1">{c.desc}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+            {/* Attendance Metrics */}
+            <StatsCard
+              title="Student Attendance"
+              value={`${parseFloat(dashboardData.data.attendance.student_attendance_rate).toFixed(1)}%`}
+              icon={UserCheck}
+              color="orange"
+              description="This month"
+              size="md"
+            />
+            <StatsCard
+              title="Teacher Attendance"
+              value={`${parseFloat(dashboardData.data.attendance.teacher_attendance_rate).toFixed(1)}%`}
+              icon={UserCheck}
+              color="cyan"
+              description="This month"
+              size="md"
+            />
+          </DashboardGrid>
 
           {/* Academic Performance & Exams */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                title: "Total Exams",
-                value: dashboardData.data.exams.total_exams.toString(),
-                icon: Award,
-                color: "text-purple-600",
-                desc: "All exams",
-              },
-              {
-                title: "Upcoming Exams",
-                value: dashboardData.data.exams.upcoming_exams.toString(),
-                icon: Calendar,
-                color: "text-blue-600",
-                desc: "Scheduled",
-              },
-              {
-                title: "Completed Exams",
-                value: dashboardData.data.exams.completed_exams.toString(),
-                icon: CheckCircle,
-                color: "text-green-600",
-                desc: "Finished",
-              },
-              {
-                title: "Exams This Month",
-                value: dashboardData.data.exams.exams_this_month.toString(),
-                icon: Calendar,
-                color: "text-indigo-600",
-                desc: "Current month",
-              },
-            ].map((c) => (
-              <Card key={c.title} className="hover-elevate">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{c.title}</CardTitle>
-                  <c.icon className={`h-4 w-4 ${c.color}`} />
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
-                  <p className="text-xs text-muted-foreground mt-1">{c.desc}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <DashboardGrid columns={8}>
+            <StatsCard
+              title="Total Exams"
+              value={dashboardData.data.exams.total_exams.toString()}
+              icon={Award}
+              color="purple"
+              description="All exams"
+              size="md"
+            />
+            <StatsCard
+              title="Upcoming Exams"
+              value={dashboardData.data.exams.upcoming_exams.toString()}
+              icon={Calendar}
+              color="blue"
+              description="Scheduled"
+              size="md"
+            />
+            <StatsCard
+              title="Completed Exams"
+              value={dashboardData.data.exams.completed_exams.toString()}
+              icon={CheckCircle}
+              color="green"
+              description="Finished"
+              size="md"
+            />
+            <StatsCard
+              title="Exams This Month"
+              value={dashboardData.data.exams.exams_this_month.toString()}
+              icon={Calendar}
+              color="indigo"
+              description="Current month"
+              size="md"
+            />
 
-          {/* Tests & Performance */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                title: "Total Tests",
-                value: dashboardData.data.tests.total_tests.toString(),
-                icon: Trophy,
-                color: "text-purple-600",
-                desc: "All tests",
-              },
-              {
-                title: "Tests This Month",
-                value: dashboardData.data.tests.tests_this_month.toString(),
-                icon: Calendar,
-                color: "text-blue-600",
-                desc: "Current month",
-              },
-              {
-                title: "Average Test Score",
-                value: `${parseFloat(dashboardData.data.tests.average_test_score).toFixed(1)}%`,
-                change: parseFloat(dashboardData.data.tests.average_test_score_change),
-                icon: TrendingUp,
-                color: "text-green-600",
-                desc: "Average score",
-              },
-              {
-                title: "Academic Performance",
-                value: `${dashboardData.data.academic_performance.total_exams_conducted}`,
-                icon: Award,
-                color: "text-indigo-600",
-                desc: "Exams conducted",
-              },
-            ].map((c) => (
-              <Card key={c.title} className="hover-elevate">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{c.title}</CardTitle>
-                  <c.icon className={`h-4 w-4 ${c.color}`} />
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-xs text-muted-foreground">{c.desc}</p>
-                    {c.change !== undefined && (
-                      <span className={`text-xs flex items-center gap-1 ${c.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {c.change >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                        {Math.abs(c.change).toFixed(1)}%
-                      </span>
+            {/* Tests & Performance */}
+            <StatsCard
+              title="Total Tests"
+              value={dashboardData.data.tests.total_tests.toString()}
+              icon={Trophy}
+              color="purple"
+              description="All tests"
+              size="md"
+            />
+            <StatsCard
+              title="Tests This Month"
+              value={dashboardData.data.tests.tests_this_month.toString()}
+              icon={Calendar}
+              color="blue"
+              description="Current month"
+              size="md"
+            />
+            <StatsCard
+              title="Average Test Score"
+              value={`${parseFloat(dashboardData.data.tests.average_test_score).toFixed(1)}%`}
+              icon={TrendingUp}
+              color="green"
+              description="Average score"
+              size="md"
+            />
+            <StatsCard
+              title="Academic Performance"
+              value={dashboardData.data.academic_performance.total_exams_conducted.toString()}
+              icon={Award}
+              color="indigo"
+              description="Exams conducted"
+              size="md"
+            />
+          </DashboardGrid>
+
+          {/* Next Exam */}
+          {dashboardData.data.exams.next_exam_date && (() => {
+            const examDate = new Date(dashboardData.data.exams.next_exam_date);
+            const today = new Date();
+            const daysUntilExam = Math.ceil((examDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            
+            // Determine urgency level and styling
+            const getUrgencyStyle = () => {
+              if (daysUntilExam === 0) {
+                return {
+                  bg: "bg-gradient-to-r from-rose-600 to-pink-600",
+                  text: "text-white",
+                  border: "border-rose-700",
+                  shadow: "shadow-lg shadow-rose-500/50",
+                  pulse: "animate-pulse",
+                  icon: AlertCircle,
+                  label: "TODAY",
+                };
+              } else if (daysUntilExam === 1) {
+                return {
+                  bg: "bg-gradient-to-r from-violet-600 to-purple-600",
+                  text: "text-white",
+                  border: "border-violet-700",
+                  shadow: "shadow-lg shadow-violet-500/50",
+                  pulse: "",
+                  icon: AlertCircle,
+                  label: "TOMORROW",
+                };
+              } else if (daysUntilExam <= 3) {
+                return {
+                  bg: "bg-gradient-to-r from-indigo-600 to-blue-600",
+                  text: "text-white",
+                  border: "border-indigo-700",
+                  shadow: "shadow-md shadow-indigo-500/40",
+                  pulse: "",
+                  icon: Clock,
+                  label: `${daysUntilExam} DAYS LEFT`,
+                };
+              } else if (daysUntilExam <= 7) {
+                return {
+                  bg: "bg-gradient-to-r from-cyan-600 to-teal-600",
+                  text: "text-white",
+                  border: "border-cyan-700",
+                  shadow: "shadow-md shadow-cyan-500/30",
+                  pulse: "",
+                  icon: Clock,
+                  label: `${daysUntilExam} DAYS LEFT`,
+                };
+              } else {
+                return {
+                  bg: "bg-gradient-to-r from-slate-600 to-gray-600",
+                  text: "text-white",
+                  border: "border-slate-700",
+                  shadow: "shadow-md shadow-slate-500/20",
+                  pulse: "",
+                  icon: Calendar,
+                  label: `${daysUntilExam} DAYS LEFT`,
+                };
+              }
+            };
+            
+            const urgencyStyle = daysUntilExam >= 0 ? getUrgencyStyle() : null;
+            const UrgencyIcon = urgencyStyle?.icon || Calendar;
+            
+            return (
+              <Card className={`border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 ${daysUntilExam <= 3 ? 'ring-2 ring-rose-200 dark:ring-rose-900' : ''}`}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-blue-600" />
+                        Next Exam
+                      </CardTitle>
+                      <CardDescription>Upcoming exam information</CardDescription>
+                    </div>
+                    {urgencyStyle && (
+                      <div className={`${urgencyStyle.pulse} ${urgencyStyle.shadow} rounded-lg px-4 py-2.5 ${urgencyStyle.bg} ${urgencyStyle.text} border-2 ${urgencyStyle.border} flex items-center gap-2 font-bold text-sm`}>
+                        <UrgencyIcon className="h-4 w-4" />
+                        <span>{urgencyStyle.label}</span>
+                      </div>
                     )}
                   </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-4 p-4 rounded-lg bg-white/50 dark:bg-gray-900/50 border border-blue-100 dark:border-blue-900">
+                      <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
+                        <Award className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-muted-foreground mb-1">Exam Name</p>
+                        <p className="text-xl font-semibold text-foreground">
+                          {dashboardData.data.exams.next_exam_name || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-white/50 dark:bg-gray-900/50 border border-blue-100 dark:border-blue-900">
+                        <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Exam Date</p>
+                          <p className="text-base font-semibold">
+                            {examDate.toLocaleDateString('en-US', { 
+                              weekday: 'long', 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-white/50 dark:bg-gray-900/50 border border-blue-100 dark:border-blue-900">
+                        <Award className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Exams This Year</p>
+                          <p className="text-xl font-bold text-indigo-600">{dashboardData.data.exams.exams_this_year}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            );
+          })()}
 
-      {/* Quick Links */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Links</CardTitle>
-          <CardDescription>Academic tasks</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-3">
-          {[
-            {
-              title: "Academic",
-              href: `${branchPrefix}/academic`,
-              icon: FileText,
-              color: "bg-indigo-500",
-            },
-            {
-              title: "Attendance",
-              href: `${branchPrefix}/attendance`,
-              icon: Calendar,
-              color: "bg-blue-500",
-            },
-            {
-              title: "Marks Entry",
-              href: `${branchPrefix}/marks`,
-              icon: Trophy,
-              color: "bg-purple-500",
-            },
-          ].map((a) => (
-            <Link key={a.title} href={a.href}>
-              <Button
-                variant="outline"
-                className="justify-start gap-3 h-auto p-3 hover-elevate w-full"
-              >
-                <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center ${a.color}`}
-                >
-                  <a.icon className="h-4 w-4 text-white" />
-                </div>
-                <span className="text-sm font-medium">{a.title}</span>
-              </Button>
-            </Link>
-          ))}
-        </CardContent>
-      </Card>
-
-          {/* Exam Details */}
-          {dashboardData.data.exams.next_exam_date && (
-            <Card>
+          {/* Academic Performance Summary */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {/* Academic Performance */}
+            <Card className="hover-elevate">
               <CardHeader>
-                <CardTitle>Next Exam</CardTitle>
-                <CardDescription>Upcoming exam information</CardDescription>
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
+                    <Award className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Academic Performance</CardTitle>
+                    <CardDescription>Overall performance metrics</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Exam Name</span>
-                    <span className="text-sm font-semibold">{dashboardData.data.exams.next_exam_name || 'N/A'}</span>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <span className="text-sm font-medium">Total Exams Conducted</span>
+                    <span className="text-2xl font-bold text-purple-600">{dashboardData.data.academic_performance.total_exams_conducted}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Exam Date</span>
-                    <span className="text-sm font-semibold">
-                      {new Date(dashboardData.data.exams.next_exam_date).toLocaleDateString()}
-                    </span>
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                    <span className="text-sm font-medium">Upcoming Exams</span>
+                    <span className="text-xl font-bold text-blue-600">{dashboardData.data.academic_performance.upcoming_exams}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Exams This Year</span>
-                    <span className="text-sm font-semibold">{dashboardData.data.exams.exams_this_year}</span>
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-950/20">
+                    <span className="text-sm font-medium">Completed Exams</span>
+                    <span className="text-xl font-bold text-green-600">{dashboardData.data.academic_performance.completed_exams}</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          )}
 
-          {/* Academic Performance Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Academic Performance Summary</CardTitle>
-              <CardDescription>Exams and tests overview</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold">Academic Performance</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Total Exams Conducted</span>
-                      <span className="text-sm font-semibold">{dashboardData.data.academic_performance.total_exams_conducted}</span>
+            {/* Exams Overview */}
+            <Card className="hover-elevate">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900">
+                    <Calendar className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Exams Overview</CardTitle>
+                    <CardDescription>Exam statistics and timeline</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <span className="text-sm font-medium">Total Exams</span>
+                    <span className="text-2xl font-bold">{dashboardData.data.exams.total_exams}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                    <span className="text-sm font-medium">Upcoming</span>
+                    <span className="text-xl font-bold text-blue-600">{dashboardData.data.exams.upcoming_exams}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-950/20">
+                    <span className="text-sm font-medium">Completed</span>
+                    <span className="text-xl font-bold text-green-600">{dashboardData.data.exams.completed_exams}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                    <div className="text-center p-3 rounded-lg bg-muted/30">
+                      <p className="text-xs text-muted-foreground mb-1">This Month</p>
+                      <p className="text-lg font-bold">{dashboardData.data.exams.exams_this_month}</p>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Upcoming Exams</span>
-                      <span className="text-sm font-semibold text-blue-600">{dashboardData.data.academic_performance.upcoming_exams}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Completed Exams</span>
-                      <span className="text-sm font-semibold text-green-600">{dashboardData.data.academic_performance.completed_exams}</span>
+                    <div className="text-center p-3 rounded-lg bg-muted/30">
+                      <p className="text-xs text-muted-foreground mb-1">This Year</p>
+                      <p className="text-lg font-bold">{dashboardData.data.exams.exams_this_year}</p>
                     </div>
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold">Exams</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Total Exams</span>
-                      <span className="text-sm font-semibold">{dashboardData.data.exams.total_exams}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Upcoming</span>
-                      <span className="text-sm font-semibold text-blue-600">{dashboardData.data.exams.upcoming_exams}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Completed</span>
-                      <span className="text-sm font-semibold text-green-600">{dashboardData.data.exams.completed_exams}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">This Month</span>
-                      <span className="text-sm font-semibold">{dashboardData.data.exams.exams_this_month}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">This Year</span>
-                      <span className="text-sm font-semibold">{dashboardData.data.exams.exams_this_year}</span>
-                    </div>
+              </CardContent>
+            </Card>
+
+            {/* Tests Overview */}
+            <Card className="hover-elevate">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900">
+                    <Trophy className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Tests Overview</CardTitle>
+                    <CardDescription>Test statistics and performance</CardDescription>
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold">Tests</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Total Tests</span>
-                      <span className="text-sm font-semibold">{dashboardData.data.tests.total_tests}</span>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <span className="text-sm font-medium">Total Tests</span>
+                    <span className="text-2xl font-bold">{dashboardData.data.tests.total_tests}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-center p-3 rounded-lg bg-muted/30">
+                      <p className="text-xs text-muted-foreground mb-1">This Month</p>
+                      <p className="text-lg font-bold">{dashboardData.data.tests.tests_this_month}</p>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">This Month</span>
-                      <span className="text-sm font-semibold">{dashboardData.data.tests.tests_this_month}</span>
+                    <div className="text-center p-3 rounded-lg bg-muted/30">
+                      <p className="text-xs text-muted-foreground mb-1">This Year</p>
+                      <p className="text-lg font-bold">{dashboardData.data.tests.tests_this_year}</p>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">This Year</span>
-                      <span className="text-sm font-semibold">{dashboardData.data.tests.tests_this_year}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Average Score</span>
-                      <span className="text-sm font-semibold text-green-600">
+                  </div>
+                  <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Average Score</span>
+                      <span className="text-2xl font-bold text-green-600">
                         {parseFloat(dashboardData.data.tests.average_test_score).toFixed(1)}%
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Score Change</span>
-                      <span className={`text-sm font-semibold flex items-center gap-1 ${parseFloat(dashboardData.data.tests.average_test_score_change) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {parseFloat(dashboardData.data.tests.average_test_score_change) >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                        {Math.abs(parseFloat(dashboardData.data.tests.average_test_score_change)).toFixed(1)}%
+                    <div className="flex items-center gap-2">
+                      {parseFloat(dashboardData.data.tests.average_test_score_change) >= 0 ? (
+                        <TrendingUp className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <TrendingDown className="h-5 w-5 text-red-600" />
+                      )}
+                      <span className={`text-base font-semibold ${parseFloat(dashboardData.data.tests.average_test_score_change) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {parseFloat(dashboardData.data.tests.average_test_score_change) >= 0 ? '+' : ''}
+                        {parseFloat(dashboardData.data.tests.average_test_score_change).toFixed(1)}%
                       </span>
+                      <span className="text-xs text-muted-foreground">from previous period</span>
                     </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </>
       )}
 
