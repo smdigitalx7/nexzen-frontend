@@ -209,6 +209,7 @@ export const CollectFeeForm = ({
         toast({
           title: "Payment Successful",
           description: `Payment of ${formatCurrency(amount)} collected successfully`,
+          variant: "success",
         });
         
         onPaymentComplete();

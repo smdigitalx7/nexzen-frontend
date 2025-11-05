@@ -96,7 +96,7 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
         toast({
           title: "Payment Successful",
           description: "Student fee information has been refreshed.",
-          variant: "default",
+          variant: "success",
         });
       }
     } catch (error) {

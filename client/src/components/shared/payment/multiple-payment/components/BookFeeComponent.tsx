@@ -109,47 +109,52 @@ export const BookFeeComponent: React.FC<BookFeeComponentProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-blue-600" />
+      <DialogContent className="sm:max-w-lg max-h-[90vh]">
+        <DialogHeader className="pb-4 border-b border-blue-200 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 -mx-6 -mt-6 px-6 pt-6 rounded-t-lg">
+          <DialogTitle className="flex items-center gap-2 text-lg text-gray-900">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <BookOpen className="h-5 w-5 text-blue-600" />
+            </div>
             Book Fee Payment
           </DialogTitle>
-          <DialogDescription className="font-semibold">
-            Add book fee payment for {student.name} ({student.admissionNo})
+          <DialogDescription className="text-sm text-gray-600 mt-2">
+            Add book fee payment for <span className="font-medium text-gray-900">{student.name}</span> ({student.admissionNo})
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-5 pt-4">
 
-          {/* Fee Information */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-medium text-blue-800 mb-2">Book Fee Information</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-blue-600">Total Fee:</span>
-                <span className="ml-2 font-medium">{formatAmount(feeBalances.bookFee.total)}</span>
+          {/* Fee Information - Enhanced */}
+          <div className="border border-blue-200 rounded-lg p-5 bg-gradient-to-br from-blue-50 to-indigo-50">
+            <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-blue-600" />
+              Book Fee Information
+            </h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center p-3 bg-white rounded-lg border border-blue-100">
+                <p className="text-xs text-gray-500 mb-1.5">Total Fee</p>
+                <p className="font-semibold text-gray-900 text-sm">{formatAmount(feeBalances.bookFee.total)}</p>
               </div>
-              <div>
-                <span className="text-blue-600">Paid:</span>
-                <span className="ml-2 font-medium">{formatAmount(feeBalances.bookFee.paid)}</span>
+              <div className="text-center p-3 bg-white rounded-lg border border-blue-100">
+                <p className="text-xs text-gray-500 mb-1.5">Paid</p>
+                <p className="font-semibold text-blue-600 text-sm">{formatAmount(feeBalances.bookFee.paid)}</p>
               </div>
-              <div>
-                <span className="text-blue-600">Outstanding:</span>
-                <span className="ml-2 font-medium text-red-600">{formatAmount(feeBalances.bookFee.outstanding)}</span>
+              <div className="text-center p-3 bg-white rounded-lg border border-red-200 bg-red-50/30">
+                <p className="text-xs text-gray-600 mb-1.5 font-medium">Outstanding</p>
+                <p className="font-semibold text-red-600 text-sm">{formatAmount(feeBalances.bookFee.outstanding)}</p>
               </div>
             </div>
           </div>
 
           {outstandingAmount > 0 ? (
             <>
-              {/* Amount Input */}
+              {/* Amount Input - Enhanced */}
               <div className="space-y-2">
-                <Label htmlFor="amount" className="text-sm font-medium">
-                  Payment Amount * <span className="text-xs text-gray-500">(Fixed - Full Outstanding Amount)</span>
+                <Label htmlFor="amount" className="text-sm font-medium text-gray-700">
+                  Payment Amount <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-medium">
                     ₹
                   </span>
                   <Input
@@ -158,50 +163,45 @@ export const BookFeeComponent: React.FC<BookFeeComponentProps> = ({
                     placeholder="Enter amount"
                     value={amount}
                     disabled={true}
-                    className="pl-8 bg-gray-100 cursor-not-allowed"
+                    className="pl-8 bg-blue-50/50 border-blue-300 text-gray-900 font-semibold cursor-not-allowed"
                   />
                 </div>
-                
-                {/* Amount validation feedback */}
-                <div className="flex items-center gap-2 text-xs">
-                  <div className="flex items-center gap-1 text-blue-600">
-                    <CheckCircle className="h-3 w-3" />
-                    Amount automatically set to full outstanding balance
-                  </div>
+                <p className="text-xs text-green-600 flex items-center gap-1.5 font-medium">
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  Amount automatically set to full outstanding balance
+                </p>
+              </div>
+
+              {/* Payment Method - Radio Buttons */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium text-gray-700">
+                  Payment Method <span className="text-red-500">*</span>
+                </Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {paymentMethodOptions.map((option) => (
+                    <label
+                      key={option.value}
+                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                        paymentMethod === option.value
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/30'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="payment-method"
+                        value={option.value}
+                        checked={paymentMethod === option.value}
+                        onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                        className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className={`font-medium ${paymentMethod === option.value ? 'text-blue-700' : 'text-gray-700'}`}>
+                        {option.label}
+                      </span>
+                    </label>
+                  ))}
                 </div>
               </div>
-
-              {/* Payment Method */}
-              <div className="space-y-2">
-                <Label htmlFor="payment-method" className="text-sm font-medium">
-                  Payment Method *
-                </Label>
-                <Select value={paymentMethod} onValueChange={(value: PaymentMethod) => setPaymentMethod(value)}>
-                  <SelectTrigger id="payment-method">
-                    <SelectValue placeholder="Select payment method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {paymentMethodOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Warning Message */}
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>Important:</strong> Book fee must be paid in full in a single transaction. Custom amounts are not allowed.
-                  {outstandingAmount > 0 && (
-                    <span className="block mt-1">
-                      Payment amount is automatically set to: <strong>{formatAmount(outstandingAmount)}</strong>
-                    </span>
-                  )}
-                </AlertDescription>
-              </Alert>
             </>
           ) : (
             <div className="text-center py-8">
@@ -221,29 +221,31 @@ export const BookFeeComponent: React.FC<BookFeeComponentProps> = ({
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <Button
-              variant="outline"
-              onClick={onCancel}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            
+          {/* Action Buttons - Enhanced */}
+          <div className="flex flex-col gap-3 pt-4 border-t border-gray-200">
             {outstandingAmount > 0 ? (
-              <Button
-                onClick={handleSubmit}
-                disabled={!isFormValid}
-                className="flex-1 gap-2"
-              >
-                <BookOpen className="h-4 w-4" />
-                Add to Payment
-              </Button>
+              <>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!isFormValid}
+                  className="w-full gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md"
+                  size="lg"
+                >
+                  <BookOpen className="h-5 w-5" />
+                  Add to Payment
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={onCancel}
+                  className="w-full border-gray-300 hover:bg-gray-50"
+                >
+                  Cancel
+                </Button>
+              </>
             ) : (
               <Button
                 onClick={onCancel}
-                className="flex-1 gap-2"
+                className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white"
               >
                 <CheckCircle2 className="h-4 w-4" />
                 Close
