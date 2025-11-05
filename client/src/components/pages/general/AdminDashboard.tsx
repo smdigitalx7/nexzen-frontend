@@ -42,11 +42,9 @@ import {
 } from "recharts";
 import { useAdminDashboard } from "@/lib/hooks/general";
 import { formatCurrency } from "@/lib/utils";
-import {
-  DashboardContainer,
-  DashboardHeader,
-  DashboardError,
-} from "@/components/shared/dashboard";
+import { DashboardContainer } from "@/components/shared/dashboard/DashboardContainer";
+import { DashboardHeader } from "@/components/shared/dashboard/DashboardHeader";
+import { DashboardError } from "@/components/shared/dashboard/DashboardError";
 
 const AdminDashboard = () => {
   const { user } = useAuthStore();

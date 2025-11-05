@@ -52,13 +52,11 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import {
-  DashboardContainer,
-  DashboardHeader,
-  DashboardError,
-  StatsCard,
-  DashboardGrid,
-} from "@/components/shared/dashboard";
+import { DashboardContainer } from "@/components/shared/dashboard/DashboardContainer";
+import { DashboardHeader } from "@/components/shared/dashboard/DashboardHeader";
+import { DashboardError } from "@/components/shared/dashboard/DashboardError";
+import { StatsCard } from "@/components/shared/dashboard/StatsCard";
+import { DashboardGrid } from "@/components/shared/dashboard/DashboardGrid";
 
 const AccountantDashboard = () => {
   const { user, currentBranch } = useAuthStore();
