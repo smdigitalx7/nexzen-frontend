@@ -8,7 +8,7 @@ import { useCacheStore } from "@/store/cacheStore";
 const validateAndGetApiBaseUrl = (): string => {
   const envUrl = (import.meta as any).env.VITE_API_BASE_URL;
   const isDevelopment = import.meta.env.DEV;
-  
+
   // In production, require explicit configuration
   if (!isDevelopment && !envUrl) {
     console.error("❌ VITE_API_BASE_URL is not configured in production!");
@@ -16,15 +16,20 @@ const validateAndGetApiBaseUrl = (): string => {
       "API base URL not configured. Please set VITE_API_BASE_URL environment variable."
     );
   }
-  
+
   // Use provided URL or fallback to proxy path for development
   const apiBaseUrl = envUrl || "/api/v1";
-  
+
   // Validate URL format
-  if (envUrl && !envUrl.startsWith("/") && !envUrl.startsWith("http://") && !envUrl.startsWith("https://")) {
+  if (
+    envUrl &&
+    !envUrl.startsWith("/") &&
+    !envUrl.startsWith("http://") &&
+    !envUrl.startsWith("https://")
+  ) {
     console.warn("⚠️ API Base URL should be a valid path or URL:", envUrl);
   }
-  
+
   return apiBaseUrl;
 };
 
@@ -73,7 +78,7 @@ function buildQuery(query?: ApiRequestOptions["query"]) {
 // Generate cache key from request options
 function generateCacheKey(options: ApiRequestOptions): string {
   if (options.cacheKey) return options.cacheKey;
-  
+
   const { method = "GET", path, query } = options;
   const queryString = buildQuery(query);
   return `${method}:${path}${queryString}`;
@@ -164,22 +169,22 @@ async function tryRefreshToken(
       },
       credentials: "include", // Refresh token is in httpOnly cookie
     });
-    
+
     if (!res.ok) {
       // If refresh fails, clear auth state to prevent infinite loops
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === "development") {
         console.warn("Token refresh failed, clearing auth state");
       }
       useAuthStore.getState().logout();
       return null;
     }
-    
+
     const data = await res.json();
     const newToken = (data?.access_token as string) || null;
     const expireIso = (data?.expiretime as string) || null;
-    
+
     if (!newToken) {
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === "development") {
         console.warn("No access token received from refresh endpoint");
       }
       useAuthStore.getState().logout();
@@ -188,41 +193,53 @@ async function tryRefreshToken(
 
     // Decode new token and update user role if changed
     try {
-      const { decodeJWT, getRoleFromToken, getTokenExpiration } = await import("@/lib/utils/auth/jwt");
-      const { normalizeRole } = await import("@/lib/constants");
-      
+      const { decodeJWT, getRoleFromToken, getTokenExpiration } = await import(
+        "@/lib/utils/jwt"
+      );
+      const { normalizeRole } = await import("@/lib/constants/roles");
+
       const newTokenPayload = decodeJWT(newToken);
       if (newTokenPayload) {
         // Extract role from new token
-        const newRole = getRoleFromToken(newToken, newTokenPayload.current_branch_id);
+        const newRole = getRoleFromToken(
+          newToken,
+          newTokenPayload.current_branch_id
+        );
         const normalizedRole = normalizeRole(newRole);
-        
+
         // Get expiration from token or API response
-        const tokenExpiration = getTokenExpiration(newToken) ||
+        const tokenExpiration =
+          getTokenExpiration(newToken) ||
           (expireIso ? new Date(expireIso).getTime() : null);
-        
+
         // Update token and expiration
         useAuthStore.getState().setTokenAndExpiry(newToken, tokenExpiration);
-        
+
         // Update user role if it changed (e.g., after branch switch)
         const currentUser = useAuthStore.getState().user;
-        if (currentUser && normalizedRole && normalizedRole !== currentUser.role) {
+        if (
+          currentUser &&
+          normalizedRole &&
+          normalizedRole !== currentUser.role
+        ) {
           useAuthStore.setState((state) => {
             if (state.user) {
               state.user.role = normalizedRole;
             }
           });
-          
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`User role updated after token refresh: ${currentUser.role} → ${normalizedRole}`);
+
+          if (process.env.NODE_ENV === "development") {
+            console.log(
+              `User role updated after token refresh: ${currentUser.role} → ${normalizedRole}`
+            );
           }
         }
-        
+
         // Reschedule proactive refresh
         scheduleProactiveRefresh();
         return newToken;
       } else {
-        if (process.env.NODE_ENV === 'development') {
+        if (process.env.NODE_ENV === "development") {
           console.warn("Failed to decode refreshed token");
         }
         // Still update token even if decode fails (backend might have changed format)
@@ -232,7 +249,7 @@ async function tryRefreshToken(
         return newToken;
       }
     } catch (decodeError) {
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === "development") {
         console.warn("Error processing refreshed token:", decodeError);
       }
       // Still update token even if decode fails
@@ -242,7 +259,7 @@ async function tryRefreshToken(
       return newToken;
     }
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       console.warn("Token refresh error, clearing auth state:", error);
     }
     useAuthStore.getState().logout();
@@ -268,7 +285,7 @@ export async function api<T = unknown>({
 }: ApiRequestOptions): Promise<T> {
   // Generate cache key and check cache for GET requests
   const cacheKeyGenerated = generateCacheKey({ method, path, query, cacheKey });
-  
+
   if (shouldCache({ method, path, cache })) {
     const cachedData = getCachedData<T>(cacheKeyGenerated);
     if (cachedData) {
@@ -307,7 +324,9 @@ export async function api<T = unknown>({
     if (!noAuth && token) {
       requestHeaders["Authorization"] = `Bearer ${token}`;
     } else if (!noAuth && !token) {
-      console.warn(`⚠️ No token available for authenticated request to ${path}`);
+      console.warn(
+        `⚠️ No token available for authenticated request to ${path}`
+      );
     }
 
     // Create AbortController for timeout
@@ -327,12 +346,14 @@ export async function api<T = unknown>({
 
       const contentType = res.headers.get("content-type") || "";
       const isJson = contentType.includes("application/json");
-      const data = isJson ? await res.json() : ((await res.text()) as unknown as T);
+      const data = isJson
+        ? await res.json()
+        : ((await res.text()) as unknown as T);
 
       // If this was a login call, store token and schedule proactive refresh
       if (path === "/auth/login" && res.ok && isJson) {
-        const access = (data)?.access_token as string | undefined;
-        const expireIso = (data)?.expiretime as string | undefined;
+        const access = data?.access_token as string | undefined;
+        const expireIso = data?.expiretime as string | undefined;
         if (access && expireIso) {
           useAuthStore
             .getState()
@@ -365,7 +386,7 @@ export async function api<T = unknown>({
 
       if (!res.ok) {
         const message =
-          (isJson && ((data)?.detail || (data)?.message)) ||
+          (isJson && (data?.detail || data?.message)) ||
           res.statusText ||
           "Request failed";
         const error = new Error(message as string);
@@ -381,11 +402,11 @@ export async function api<T = unknown>({
       return data as T;
     } catch (error) {
       clearTimeout(timeoutId);
-      
-      if (error instanceof Error && error.name === 'AbortError') {
+
+      if (error instanceof Error && error.name === "AbortError") {
         throw new Error(`Request timeout after ${timeout}ms`);
       }
-      
+
       throw error;
     } finally {
       // Clear pending request
@@ -411,82 +432,87 @@ export const Api = {
     query?: ApiRequestOptions["query"],
     headers?: Record<string, string>,
     opts?: Partial<ApiRequestOptions>
-  ) => api<T>({ 
-    method: "GET", 
-    path, 
-    query, 
-    headers, 
-    cache: opts?.cache ?? true,
-    cacheKey: opts?.cacheKey,
-    cacheTTL: opts?.cacheTTL,
-    dedupe: opts?.dedupe ?? true,
-    timeout: opts?.timeout
-  }),
+  ) =>
+    api<T>({
+      method: "GET",
+      path,
+      query,
+      headers,
+      cache: opts?.cache ?? true,
+      cacheKey: opts?.cacheKey,
+      cacheTTL: opts?.cacheTTL,
+      dedupe: opts?.dedupe ?? true,
+      timeout: opts?.timeout,
+    }),
   post: <T>(
     path: string,
     body?: unknown,
     headers?: Record<string, string>,
     opts?: Partial<ApiRequestOptions>
-  ) => api<T>({ 
-    method: "POST", 
-    path, 
-    body, 
-    headers, 
-    noAuth: opts?.noAuth,
-    cache: opts?.cache ?? false,
-    cacheKey: opts?.cacheKey,
-    cacheTTL: opts?.cacheTTL,
-    dedupe: opts?.dedupe ?? true,
-    timeout: opts?.timeout
-  }),
+  ) =>
+    api<T>({
+      method: "POST",
+      path,
+      body,
+      headers,
+      noAuth: opts?.noAuth,
+      cache: opts?.cache ?? false,
+      cacheKey: opts?.cacheKey,
+      cacheTTL: opts?.cacheTTL,
+      dedupe: opts?.dedupe ?? true,
+      timeout: opts?.timeout,
+    }),
   put: <T>(
-    path: string, 
-    body?: unknown, 
+    path: string,
+    body?: unknown,
     headers?: Record<string, string>,
     opts?: Partial<ApiRequestOptions>
-  ) => api<T>({ 
-    method: "PUT", 
-    path, 
-    body, 
-    headers,
-    cache: opts?.cache ?? false,
-    cacheKey: opts?.cacheKey,
-    cacheTTL: opts?.cacheTTL,
-    dedupe: opts?.dedupe ?? true,
-    timeout: opts?.timeout
-  }),
+  ) =>
+    api<T>({
+      method: "PUT",
+      path,
+      body,
+      headers,
+      cache: opts?.cache ?? false,
+      cacheKey: opts?.cacheKey,
+      cacheTTL: opts?.cacheTTL,
+      dedupe: opts?.dedupe ?? true,
+      timeout: opts?.timeout,
+    }),
   patch: <T>(
-    path: string, 
-    body?: unknown, 
+    path: string,
+    body?: unknown,
     headers?: Record<string, string>,
     opts?: Partial<ApiRequestOptions>
-  ) => api<T>({ 
-    method: "PATCH", 
-    path, 
-    body, 
-    headers,
-    cache: opts?.cache ?? false,
-    cacheKey: opts?.cacheKey,
-    cacheTTL: opts?.cacheTTL,
-    dedupe: opts?.dedupe ?? true,
-    timeout: opts?.timeout
-  }),
+  ) =>
+    api<T>({
+      method: "PATCH",
+      path,
+      body,
+      headers,
+      cache: opts?.cache ?? false,
+      cacheKey: opts?.cacheKey,
+      cacheTTL: opts?.cacheTTL,
+      dedupe: opts?.dedupe ?? true,
+      timeout: opts?.timeout,
+    }),
   delete: <T>(
     path: string,
     query?: ApiRequestOptions["query"],
     headers?: Record<string, string>,
     opts?: Partial<ApiRequestOptions>
-  ) => api<T>({ 
-    method: "DELETE", 
-    path, 
-    query, 
-    headers,
-    cache: opts?.cache ?? false,
-    cacheKey: opts?.cacheKey,
-    cacheTTL: opts?.cacheTTL,
-    dedupe: opts?.dedupe ?? true,
-    timeout: opts?.timeout
-  }),
+  ) =>
+    api<T>({
+      method: "DELETE",
+      path,
+      query,
+      headers,
+      cache: opts?.cache ?? false,
+      cacheKey: opts?.cacheKey,
+      cacheTTL: opts?.cacheTTL,
+      dedupe: opts?.dedupe ?? true,
+      timeout: opts?.timeout,
+    }),
 
   // FormData helper (avoids JSON content-type)
   postForm: async <T>(
@@ -516,7 +542,7 @@ export const Api = {
       : ((await res.text()) as unknown as T);
     if (!res.ok) {
       const message =
-        (isJson && ((data)?.detail || (data)?.message)) ||
+        (isJson && (data?.detail || data?.message)) ||
         res.statusText ||
         "Request failed";
       throw new Error(message as string);
@@ -551,7 +577,7 @@ export const Api = {
       : ((await res.text()) as unknown as T);
     if (!res.ok) {
       const message =
-        (isJson && ((data)?.detail || (data)?.message)) ||
+        (isJson && (data?.detail || data?.message)) ||
         res.statusText ||
         "Request failed";
       throw new Error(message as string);
@@ -566,7 +592,7 @@ export function getApiBaseUrl() {
 
 /**
  * Unified receipt regeneration handler that works for both school and college
- * 
+ *
  * This function regenerates a receipt PDF for the given income ID
  * and returns a blob URL for modal display
  *
@@ -576,7 +602,7 @@ export function getApiBaseUrl() {
  */
 export async function handleRegenerateReceipt(
   incomeId: number,
-  institutionType: 'school' | 'college' = 'school'
+  institutionType: "school" | "college" = "school"
 ): Promise<string> {
   const state = useAuthStore.getState();
   const token = state.token;
@@ -657,27 +683,27 @@ export async function batchRequests<T>(
   // Process requests in batches
   for (let i = 0; i < requests.length; i += maxConcurrency) {
     const batch = requests.slice(i, i + maxConcurrency);
-    
+
     const batchPromises = batch.map(async (request, index) => {
       try {
         const result = await Promise.race([
           request(),
-          new Promise<never>((_, reject) => 
-            setTimeout(() => reject(new Error('Request timeout')), timeout)
-          )
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Request timeout")), timeout)
+          ),
         ]);
         return { index: i + index, result, error: null };
       } catch (error) {
-        return { 
-          index: i + index, 
-          result: null, 
-          error: error instanceof Error ? error : new Error('Unknown error') 
+        return {
+          index: i + index,
+          result: null,
+          error: error instanceof Error ? error : new Error("Unknown error"),
         };
       }
     });
 
     const batchResults = await Promise.all(batchPromises);
-    
+
     batchResults.forEach(({ index, result, error }) => {
       if (error) {
         errors[index] = error;
@@ -688,7 +714,7 @@ export async function batchRequests<T>(
   }
 
   if (errors.length > 0) {
-    console.warn('Some batch requests failed:', errors);
+    console.warn("Some batch requests failed:", errors);
   }
 
   return results;
@@ -701,25 +727,25 @@ export const CacheUtils = {
     const cache = useCacheStore.getState();
     cache.invalidate(pattern);
   },
-  
+
   // Clear cache by tag
   clearByTag: (tag: string) => {
     const cache = useCacheStore.getState();
     cache.clearByTag(tag);
   },
-  
+
   // Clear all cache
   clearAll: () => {
     const cache = useCacheStore.getState();
     cache.clear();
   },
-  
+
   // Get cache statistics
   getStats: () => {
     const cache = useCacheStore.getState();
     return cache.getCacheStats();
   },
-  
+
   // Preload data
   preload: async <T>(
     key: string,
@@ -732,29 +758,29 @@ export const CacheUtils = {
       cache.set(key, data, options);
       return data;
     } catch (error) {
-      console.error('Preload failed:', error);
+      console.error("Preload failed:", error);
       throw error;
     }
-  }
+  },
 };
 
 // Request deduplication utilities
 export const DedupeUtils = {
   // Clear all pending requests
   clearAll: () => {
-    Object.keys(pendingRequests).forEach(key => delete pendingRequests[key]);
+    Object.keys(pendingRequests).forEach((key) => delete pendingRequests[key]);
   },
-  
+
   // Get pending request count
   getPendingCount: () => {
     return Object.keys(pendingRequests).length;
   },
-  
+
   // Check if request is pending
   isPending: (options: ApiRequestOptions) => {
     const dedupeKey = getDedupeKey(options);
     return dedupeKey in pendingRequests;
-  }
+  },
 };
 
 // Expose helpers for lifecycle
