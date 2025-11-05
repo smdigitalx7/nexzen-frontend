@@ -25,7 +25,7 @@ export function useCreateSchoolEnrollment() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolEnrollmentCreate) => EnrollmentsService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
     },
   }, "Enrollment created successfully");
 }
@@ -35,8 +35,8 @@ export function useUpdateSchoolEnrollment() {
   return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: SchoolEnrollmentUpdate }) => EnrollmentsService.update(id, payload),
     onSuccess: (_data, { id }) => {
-      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
-      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.detail(id) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.enrollments.detail(id) });
     },
   }, "Enrollment updated successfully");
 }
@@ -54,8 +54,8 @@ export function useDeleteSchoolEnrollment() {
   return useMutationWithSuccessToast({
     mutationFn: (enrollmentId: number) => EnrollmentsService.delete(enrollmentId),
     onSuccess: (_, enrollmentId) => {
-      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
-      qc.invalidateQueries({ queryKey: schoolKeys.enrollments.detail(enrollmentId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.enrollments.detail(enrollmentId) });
     },
   }, "Enrollment deleted successfully");
 }

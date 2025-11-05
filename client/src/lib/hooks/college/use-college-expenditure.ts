@@ -24,7 +24,7 @@ export function useCreateCollegeExpenditure() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeExpenditureCreate) => CollegeExpenditureService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
     },
   }, "Expenditure record created successfully");
 }
@@ -34,8 +34,8 @@ export function useUpdateCollegeExpenditure(expenditureId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeExpenditureUpdate) => CollegeExpenditureService.update(expenditureId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.expenditure.detail(expenditureId) });
-      qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.expenditure.detail(expenditureId) });
+      void qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
     },
   }, "Expenditure record updated successfully");
 }
@@ -45,7 +45,7 @@ export function useDeleteCollegeExpenditure() {
   return useMutationWithSuccessToast({
     mutationFn: (expenditureId: number) => CollegeExpenditureService.delete(expenditureId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
     },
   }, "Expenditure record deleted successfully");
 }

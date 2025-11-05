@@ -1,5 +1,5 @@
 import { useMutation, type UseMutationResult } from "@tanstack/react-query";
-import { useGlobalRefetch } from "./useGlobalRefetch";
+import { useGlobalRefetch, type EntityType, ENTITY_QUERY_MAP } from "./useGlobalRefetch";
 import { useMutationWithSuccessToast } from "./use-mutation-with-toast";
 
 interface UseCRUDOptions<TData, TVariables> {
@@ -38,12 +38,19 @@ export function useCRUD<TData, TVariables>({
 }: UseCRUDOptions<TData, TVariables>): UseCRUDReturn<TData, TVariables> {
   const { invalidateEntity } = useGlobalRefetch();
 
+  // Type guard to ensure entity is a valid EntityType
+  const isValidEntity = (e: string): e is EntityType => {
+    return e in ENTITY_QUERY_MAP;
+  };
+
   const create = useMutationWithSuccessToast(
     {
       mutationFn: createFn,
       onSuccess: () => {
         // Auto-invalidate entity queries
-        invalidateEntity(entity as any);
+        if (isValidEntity(entity)) {
+          invalidateEntity(entity);
+        }
       },
     },
     messages.create ||
@@ -58,7 +65,9 @@ export function useCRUD<TData, TVariables>({
         updateFn(id, data),
       onSuccess: () => {
         // Auto-invalidate entity queries
-        invalidateEntity(entity as any);
+        if (isValidEntity(entity)) {
+          invalidateEntity(entity);
+        }
       },
     },
     messages.update ||
@@ -72,7 +81,9 @@ export function useCRUD<TData, TVariables>({
       mutationFn: deleteFn,
       onSuccess: () => {
         // Auto-invalidate entity queries
-        invalidateEntity(entity as any);
+        if (isValidEntity(entity)) {
+          invalidateEntity(entity);
+        }
       },
     },
     messages.delete ||

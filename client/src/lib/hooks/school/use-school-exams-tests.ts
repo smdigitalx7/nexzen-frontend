@@ -59,7 +59,7 @@ export function useCreateSchoolExam() {
     mutationFn: (payload: SchoolExamCreate) =>
       SchoolExamsService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
     },
   }, "Exam created successfully");
 }
@@ -70,8 +70,8 @@ export function useUpdateSchoolExam(examId: number) {
     mutationFn: (payload: SchoolExamUpdate) =>
       SchoolExamsService.update(examId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.exams.detail(examId) });
-      qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.exams.detail(examId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
     },
   }, "Exam updated successfully");
 }
@@ -82,7 +82,7 @@ export function useDeleteSchoolExam() {
     mutationFn: (examId: number) =>
       SchoolExamsService.delete(examId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
     },
   }, "Exam deleted successfully");
 }
@@ -94,7 +94,7 @@ export function useCreateSchoolTest() {
     mutationFn: (payload: SchoolTestCreate) =>
       SchoolTestsService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
     },
   }, "Test created successfully");
 }
@@ -105,8 +105,8 @@ export function useUpdateSchoolTest(testId: number) {
     mutationFn: (payload: SchoolTestUpdate) =>
       SchoolTestsService.update(testId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.tests.detail(testId) });
-      qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.tests.detail(testId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
     },
   }, "Test updated successfully");
 }
@@ -117,7 +117,7 @@ export function useDeleteSchoolTest() {
     mutationFn: (testId: number) =>
       SchoolTestsService.delete(testId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
     },
   }, "Test deleted successfully");
 }

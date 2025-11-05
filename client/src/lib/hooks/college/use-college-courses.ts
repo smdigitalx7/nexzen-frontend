@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeCoursesService } from "@/lib/services/college/courses.service";
 import type { CollegeCourseCreate, CollegeCourseList, CollegeCourseResponse, CollegeCourseUpdate } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
@@ -23,7 +23,7 @@ export function useCreateCollegeCourse() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeCourseCreate) => CollegeCoursesService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.courses.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.courses.root() });
     },
   }, "Course created successfully");
 }
@@ -33,8 +33,8 @@ export function useUpdateCollegeCourse(courseId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeCourseUpdate) => CollegeCoursesService.update(courseId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.courses.detail(courseId) });
-      qc.invalidateQueries({ queryKey: collegeKeys.courses.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.courses.detail(courseId) });
+      void qc.invalidateQueries({ queryKey: collegeKeys.courses.root() });
     },
   }, "Course updated successfully");
 }
@@ -44,7 +44,7 @@ export function useDeleteCollegeCourse() {
   return useMutationWithSuccessToast({
     mutationFn: (courseId: number) => CollegeCoursesService.delete(courseId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.courses.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.courses.root() });
     },
   }, "Course deleted successfully");
 }

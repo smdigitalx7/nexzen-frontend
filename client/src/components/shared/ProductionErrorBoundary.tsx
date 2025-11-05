@@ -75,7 +75,9 @@ export class ProductionErrorBoundary extends Component<Props, State> {
     };
 
     // Send to error reporting service
-    console.log('Error report:', errorReport);
+    if (import.meta.env.DEV) {
+      console.log('Error report:', errorReport);
+    }
     
     // In production, send to actual error reporting service
     // Example: Sentry.captureException(error, { extra: errorReport });
@@ -114,7 +116,9 @@ export class ProductionErrorBoundary extends Component<Props, State> {
         alert('Error details copied to clipboard. Please share this with the development team.');
       })
       .catch(() => {
-        console.log('Error details:', errorDetails);
+        if (import.meta.env.DEV) {
+          console.log('Error details:', errorDetails);
+        }
         alert('Please copy the error details from the console and share with the development team.');
       });
   };

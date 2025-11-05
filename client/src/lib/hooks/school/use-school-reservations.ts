@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
 import type {
   SchoolReservationListResponse,
@@ -44,7 +44,7 @@ export function useCreateSchoolReservation() {
   return useMutationWithSuccessToast({
     mutationFn: (form: FormData) => SchoolReservationsService.create(form),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
     },
   }, "Reservation created successfully");
 }
@@ -55,10 +55,10 @@ export function useUpdateSchoolReservation(reservationId: number) {
     mutationFn: (form: FormData) =>
       SchoolReservationsService.update(reservationId, form),
     onSuccess: () => {
-      qc.invalidateQueries({
+      void qc.invalidateQueries({
         queryKey: schoolKeys.reservations.detail(reservationId),
       });
-      qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
     },
   }, "Reservation updated successfully");
 }
@@ -69,7 +69,7 @@ export function useDeleteSchoolReservation() {
     mutationFn: (reservationId: number) =>
       SchoolReservationsService.delete(reservationId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
     },
   }, "Reservation deleted successfully");
 }
@@ -86,10 +86,10 @@ export function useUpdateSchoolReservationStatus(reservationId: number) {
     }) =>
       SchoolReservationsService.updateStatus(reservationId, status, remarks),
     onSuccess: () => {
-      qc.invalidateQueries({
+      void qc.invalidateQueries({
         queryKey: schoolKeys.reservations.detail(reservationId),
       });
-      qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
     },
   }, "Reservation status updated successfully");
 }
@@ -114,10 +114,10 @@ export function useUpdateSchoolReservationConcession(reservationId: number) {
     mutationFn: (payload: any) =>
       SchoolReservationsService.updateConcession(reservationId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({
+      void qc.invalidateQueries({
         queryKey: schoolKeys.reservations.detail(reservationId),
       });
-      qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
     },
   }, "Reservation concession updated successfully");
 }

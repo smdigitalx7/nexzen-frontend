@@ -1107,7 +1107,9 @@ export default function ReservationForm({
                 <EmployeeCombobox
                   value={form.referred_by.toString()}
                   onValueChange={(value) => {
-                    console.log("EmployeeCombobox value changed:", value);
+                    if (import.meta.env.DEV) {
+                      console.log("EmployeeCombobox value changed:", value);
+                    }
                     setForm({ ...form, referred_by: Number(value) });
                   }}
                   placeholder="Select referring employee..."

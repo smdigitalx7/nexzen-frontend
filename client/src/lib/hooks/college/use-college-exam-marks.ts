@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeExamMarksService } from "@/lib/services/college/exam-marks.service";
 import type { CollegeCreateExamMarkBulk, CollegeExamMarkBulkCreateResult, CollegeExamMarkFullReadResponse, CollegeExamMarkMinimalRead, CollegeExamMarkUpdate, CollegeExamMarksListParams } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
@@ -25,7 +25,7 @@ export function useCreateCollegeExamMark() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeExamMarkUpdate) => CollegeExamMarksService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
     },
   }, "Exam mark created successfully");
 }
@@ -35,8 +35,8 @@ export function useUpdateCollegeExamMark(markId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeExamMarkUpdate) => CollegeExamMarksService.update(markId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.examMarks.detail(markId) });
-      qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.examMarks.detail(markId) });
+      void qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
     },
   }, "Exam mark updated successfully");
 }
@@ -46,7 +46,7 @@ export function useDeleteCollegeExamMark() {
   return useMutationWithSuccessToast({
     mutationFn: (markId: number) => CollegeExamMarksService.delete(markId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
     },
   }, "Exam mark deleted successfully");
 }
@@ -57,7 +57,7 @@ export function useBulkCreateCollegeExamMarks() {
     mutationFn: (payload: CollegeCreateExamMarkBulk) =>
       CollegeExamMarksService.bulkCreate(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
     },
   }, "Exam marks created successfully");
 }

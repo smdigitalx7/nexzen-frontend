@@ -3,11 +3,15 @@ import { persist, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { AuthService } from "@/lib/services/general/auth.service";
 import { AuthTokenTimers } from "@/lib/api";
+<<<<<<< HEAD
 import {
   ROLES,
   type UserRole,
   normalizeRole,
 } from "@/lib/constants/auth/roles";
+=======
+import { ROLES, type UserRole, normalizeRole } from "@/lib/constants";
+>>>>>>> a1f16fcbb0173b1117141c887ce4a46fc6552c88
 import { extractPrimaryRole } from "@/lib/utils/roles";
 
 export interface AuthUser {
@@ -668,12 +672,51 @@ export const useAuthStore = create<AuthState>()(
               return false;
             }
 
+<<<<<<< HEAD
             // Update token and expiration from response
             const expireAtMs = response.expiretime
               ? new Date(response.expiretime).getTime()
               : null;
             get().setTokenAndExpiry(response.access_token, expireAtMs);
 
+=======
+            // Decode new token to extract expiration and update role if needed
+            const { getTokenExpiration, decodeJWT, getRoleFromToken } = await import("@/lib/utils/auth/jwt");
+            const { normalizeRole } = await import("@/lib/constants");
+            
+            const tokenPayload = decodeJWT(response.access_token);
+            let expireAtMs: number | null = null;
+            
+            if (tokenPayload) {
+              // Extract new expiration from token
+              const tokenExpiration = getTokenExpiration(response.access_token);
+              expireAtMs = tokenExpiration 
+                ? tokenExpiration 
+                : (response.expiretime ? new Date(response.expiretime).getTime() : null);
+              
+              // Update user role if it changed
+              const currentState = get();
+              if (currentState.user && tokenPayload.current_branch_id) {
+                const newRole = getRoleFromToken(response.access_token, tokenPayload.current_branch_id);
+                const normalizedRole = normalizeRole(newRole);
+                
+                if (normalizedRole && currentState.user.role !== normalizedRole) {
+                  set((state) => {
+                    if (state.user) {
+                      state.user.role = normalizedRole;
+                    }
+                  });
+                }
+              }
+            } else {
+              // Fallback to expiretime from response
+              expireAtMs = response.expiretime ? new Date(response.expiretime).getTime() : null;
+            }
+            
+            // Update token and expiration once
+            get().setTokenAndExpiry(response.access_token, expireAtMs);
+              
+>>>>>>> a1f16fcbb0173b1117141c887ce4a46fc6552c88
             set((state) => {
               state.isTokenRefreshing = false;
             });
@@ -766,8 +809,8 @@ export const useAuthStore = create<AuthState>()(
         name: "enhanced-auth-storage",
         storage:
           typeof window !== "undefined"
-            ? {
-                getItem: (name) => {
+              ? {
+                getItem: (name: string) => {
                   // Get user data from localStorage
                   const userData = localStorage.getItem(name);
                   if (!userData) {
@@ -788,7 +831,7 @@ export const useAuthStore = create<AuthState>()(
                           academicYears: [],
                         },
                         version: 1,
-                      });
+                      }) as any;
                     }
                     return null;
                   }
@@ -797,14 +840,15 @@ export const useAuthStore = create<AuthState>()(
                     const parsed = JSON.parse(userData);
                     // Token is not stored in localStorage, we'll get it from sessionStorage in onRehydrateStorage
                     // Just return the user data as-is
-                    return JSON.stringify(parsed);
+                    return JSON.stringify(parsed) as any;
                   } catch {
-                    return userData;
+                    return userData as any;
                   }
                 },
-                setItem: (name, value) => {
+                setItem: (name: string, value: any) => {
                   try {
-                    const parsed = JSON.parse(value);
+                    const valueStr = typeof value === "string" ? value : JSON.stringify(value);
+                    const parsed = JSON.parse(valueStr);
                     // Store token separately in sessionStorage
                     if (parsed.state?.token) {
                       sessionStorage.setItem(
@@ -825,15 +869,16 @@ export const useAuthStore = create<AuthState>()(
 
                     localStorage.setItem(name, JSON.stringify(parsed));
                   } catch {
-                    localStorage.setItem(name, value);
+                    const valueStr = typeof value === "string" ? value : JSON.stringify(value);
+                    localStorage.setItem(name, valueStr);
                   }
                 },
-                removeItem: (name) => {
+                removeItem: (name: string) => {
                   localStorage.removeItem(name);
                   sessionStorage.removeItem("access_token");
                   sessionStorage.removeItem("token_expires");
                 },
-              }
+              } as any
             : undefined,
         partialize: (state) => {
           // Persist user data - isAuthenticated is NOT persisted, it's computed from token + user

@@ -44,7 +44,7 @@ class RefetchListener {
       keys.forEach((key) => {
         try {
           const queryKey = JSON.parse(key) as QueryKey;
-          queryClient.invalidateQueries({ queryKey });
+          void queryClient.invalidateQueries({ queryKey });
         } catch (error) {
           console.error(
             `Failed to parse query key for entity ${entity}:`,

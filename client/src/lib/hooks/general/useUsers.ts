@@ -1,12 +1,8 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { UsersService } from '@/lib/services/general/users.service';
 import type { 
-  UserRead, 
   UserCreate, 
   UserUpdate, 
-  UserWithRolesAndBranches,
-  UserWithAccesses,
-  UserDashboardStats 
 } from '@/lib/types/general/users';
 import { useMutationWithSuccessToast } from '../common/use-mutation-with-toast';
 import { useGlobalRefetch } from '../common/useGlobalRefetch';
@@ -15,7 +11,7 @@ import { useGlobalRefetch } from '../common/useGlobalRefetch';
 export const userKeys = {
   all: ['users'] as const,
   lists: () => [...userKeys.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...userKeys.lists(), { filters }] as const,
+  list: (filters: Record<string, unknown>) => [...userKeys.lists(), { filters }] as const,
   details: () => [...userKeys.all, 'detail'] as const,
   detail: (id: number) => [...userKeys.details(), id] as const,
   dashboard: () => [...userKeys.all, 'dashboard'] as const,

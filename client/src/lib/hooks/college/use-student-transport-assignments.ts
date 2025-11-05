@@ -24,7 +24,7 @@ export function useCreateCollegeStudentTransportAssignment() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeTransportAssignmentCreate) => CollegeStudentTransportAssignmentsService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.root() });
     },
   }, "Student transport assigned successfully");
 }
@@ -35,8 +35,8 @@ export function useUpdateCollegeStudentTransportAssignment() {
     mutationFn: ({ id, payload }: { id: number; payload: CollegeTransportAssignmentUpdate }) =>
       CollegeStudentTransportAssignmentsService.update(id, payload),
     onSuccess: (_data, { id }) => {
-      qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.root() });
-      qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.detail(id) });
+      void qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.detail(id) });
     },
   }, "Student transport updated successfully");
 }
@@ -46,7 +46,7 @@ export function useDeleteCollegeStudentTransportAssignment() {
   return useMutationWithSuccessToast({
     mutationFn: (assignmentId: number) => CollegeStudentTransportAssignmentsService.delete(assignmentId),
     onSuccess: (_, assignmentId) => {
-      qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.root() });
       qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.detail(assignmentId) });
     },
   }, "Student transport assignment deleted successfully");

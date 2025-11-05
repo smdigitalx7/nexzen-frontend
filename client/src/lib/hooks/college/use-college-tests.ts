@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeTestsService } from "@/lib/services/college/tests.service";
 import type { CollegeTestCreate, CollegeTestRead, CollegeTestResponse, CollegeTestUpdate } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
@@ -10,14 +10,17 @@ export function useCollegeTests() {
     queryFn: async () => {
       try {
         return await CollegeTestsService.list();
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle 404 errors by returning empty array
-        console.log('Tests API error:', error);
-        if (error?.message?.includes('404') || 
-            error?.message?.includes('Tests not found') ||
-            error?.message?.includes('Not Found') ||
-            error?.status === 404 ||
-            error?.message === 'Tests not found') {
+        if (import.meta.env.DEV) {
+          console.log('Tests API error:', error);
+        }
+        const errorObj = error as { message?: string; status?: number };
+        if (errorObj?.message?.includes('404') || 
+            errorObj?.message?.includes('Tests not found') ||
+            errorObj?.message?.includes('Not Found') ||
+            errorObj?.status === 404 ||
+            errorObj?.message === 'Tests not found') {
           return [];
         }
         throw error;
@@ -39,7 +42,7 @@ export function useCreateCollegeTest() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeTestCreate) => CollegeTestsService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });
     },
   }, "Test created successfully");
 }
@@ -49,8 +52,8 @@ export function useUpdateCollegeTest(testId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeTestUpdate) => CollegeTestsService.update(testId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.tests.detail(testId) });
-      qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.tests.detail(testId) });
+      void qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });
     },
   }, "Test updated successfully");
 }
@@ -60,7 +63,7 @@ export function useDeleteCollegeTest() {
   return useMutationWithSuccessToast({
     mutationFn: (testId: number) => CollegeTestsService.delete(testId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });
     },
   }, "Test deleted successfully");
 }

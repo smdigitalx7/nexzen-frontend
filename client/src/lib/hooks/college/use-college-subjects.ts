@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeSubjectsService } from "@/lib/services/college/subjects.service";
 import type {
   CollegeCreateSubject,
@@ -35,7 +35,7 @@ export function useCreateCollegeSubject() {
     mutationFn: (payload: CollegeCreateSubject) =>
       CollegeSubjectsService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.subjects.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.subjects.root() });
     },
   }, "Subject created successfully");
 }
@@ -49,10 +49,10 @@ export function useUpdateCollegeSubject(subjectId: number) {
         payload
       ),
     onSuccess: () => {
-      qc.invalidateQueries({
+      void qc.invalidateQueries({
         queryKey: collegeKeys.subjects.detail(subjectId),
       });
-      qc.invalidateQueries({ queryKey: collegeKeys.subjects.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.subjects.root() });
     },
   }, "Subject updated successfully");
 }
@@ -66,7 +66,7 @@ export function useAddSubjectToGroup(subjectId: number) {
         payload
       ),
     onSuccess: () => {
-      qc.invalidateQueries({
+      void qc.invalidateQueries({
         queryKey: [...collegeKeys.subjects.detail(subjectId), "groups"],
       });
     },
@@ -86,7 +86,7 @@ export function useUpdateSubjectGroupRelation(
         payload
       ),
     onSuccess: () => {
-      qc.invalidateQueries({
+      void qc.invalidateQueries({
         queryKey: [...collegeKeys.subjects.detail(subjectId), "groups"],
       });
     },

@@ -25,7 +25,7 @@ export function useCreateCollegeIncomeByAdmission() {
     mutationFn: (input: { admission_no: string; payload: CollegeIncomeCreate }) =>
       CollegeIncomeService.createByAdmission(input.admission_no, input.payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.income.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.income.root() });
     },
   }, "Income record created successfully");
 }
@@ -35,8 +35,8 @@ export function useUpdateCollegeIncome(incomeId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeIncomeUpdate) => CollegeIncomeService.update(incomeId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.income.detail(incomeId) });
-      qc.invalidateQueries({ queryKey: collegeKeys.income.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.income.detail(incomeId) });
+      void qc.invalidateQueries({ queryKey: collegeKeys.income.root() });
     },
   }, "Income record updated successfully");
 }
@@ -46,7 +46,7 @@ export function useCreateCollegeIncomeByReservation() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeIncomeCreateReservation) => CollegeIncomeService.createByReservation(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.income.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.income.root() });
     },
   }, "Income record created successfully");
 }

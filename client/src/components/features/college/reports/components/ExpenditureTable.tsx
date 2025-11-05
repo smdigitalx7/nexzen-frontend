@@ -63,7 +63,9 @@ export const ExpenditureTable = ({
       console.error("Invalid expenditure object:", expenditure);
       return;
     }
-    console.log("handleEdit called with expenditure:", expenditure);
+    if (import.meta.env.DEV) {
+      console.log("handleEdit called with expenditure:", expenditure);
+    }
     setSelectedExpenditure(expenditure);
     setUpdateId(expenditure.expenditure_id);
     setEditForm({
@@ -81,7 +83,9 @@ export const ExpenditureTable = ({
       console.error("Invalid expenditure object:", expenditure);
       return;
     }
-    console.log("handleDelete called with expenditure:", expenditure);
+    if (import.meta.env.DEV) {
+      console.log("handleDelete called with expenditure:", expenditure);
+    }
     setSelectedExpenditure(expenditure);
     openDeleteDialog(expenditure);
   };
@@ -121,7 +125,9 @@ export const ExpenditureTable = ({
       header: 'Bill Date',
       cell: ({ row }) => {
         const value = row.original.bill_date;
-        console.log("College Bill date cell - value:", value);
+        if (import.meta.env.DEV) {
+          console.log("College Bill date cell - value:", value);
+        }
         return formatDate(value);
       },
     },
@@ -135,7 +141,9 @@ export const ExpenditureTable = ({
       header: 'Payment Method',
       cell: ({ row }) => {
         const value = row.original.payment_method;
-        console.log("College Payment method cell - value:", value);
+        if (import.meta.env.DEV) {
+          console.log("College Payment method cell - value:", value);
+        }
         return value || "-";
       },
     },
@@ -144,7 +152,9 @@ export const ExpenditureTable = ({
       header: 'Remarks',
       cell: ({ row }) => {
         const value = row.original.remarks;
-        console.log("College Remarks cell - value:", value);
+        if (import.meta.env.DEV) {
+          console.log("College Remarks cell - value:", value);
+        }
         return value || "-";
       },
     },
@@ -155,7 +165,9 @@ export const ExpenditureTable = ({
     {
       type: 'view' as const,
       onClick: (expenditure: CollegeExpenditureRead) => {
-        console.log("College View clicked - expenditure:", expenditure);
+        if (import.meta.env.DEV) {
+          console.log("College View clicked - expenditure:", expenditure);
+        }
         if (!expenditure || !expenditure.expenditure_id) {
           console.error("Invalid expenditure object:", expenditure);
           return;
@@ -168,14 +180,18 @@ export const ExpenditureTable = ({
     {
       type: 'edit' as const,
       onClick: (expenditure: CollegeExpenditureRead) => {
-        console.log("College Edit clicked - expenditure:", expenditure);
+        if (import.meta.env.DEV) {
+          console.log("College Edit clicked - expenditure:", expenditure);
+        }
         handleEdit(expenditure);
       }
     },
     {
       type: 'delete' as const,
       onClick: (expenditure: CollegeExpenditureRead) => {
-        console.log("College Delete clicked - expenditure:", expenditure);
+        if (import.meta.env.DEV) {
+          console.log("College Delete clicked - expenditure:", expenditure);
+        }
         handleDelete(expenditure);
       }
     }

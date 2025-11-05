@@ -58,7 +58,7 @@ export function normalizeRole(role: string | null | undefined): UserRole | null 
   }
   
   // Debug log if role not found
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     console.warn(`⚠️ Unknown role: "${role}" (normalized: "${upperRole}")`);
   }
   

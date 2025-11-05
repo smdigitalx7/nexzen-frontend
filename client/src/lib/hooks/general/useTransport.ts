@@ -1,11 +1,8 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { TransportService } from '@/lib/services/general/transport.service';
 import type {
-  BusRouteRead,
   BusRouteCreate,
   BusRouteUpdate,
-  TransportDashboardStats,
-  RecentRoute,
 } from '@/lib/types/general/transport';
 import { useMutationWithSuccessToast } from '../common/use-mutation-with-toast';
 import { useGlobalRefetch } from '../common/useGlobalRefetch';

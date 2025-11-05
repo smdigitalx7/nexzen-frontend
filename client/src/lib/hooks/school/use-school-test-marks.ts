@@ -25,7 +25,7 @@ export function useCreateSchoolTestMark() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: TestMarkCreate) => SchoolTestMarksService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.testMarks.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.testMarks.root() });
     },
   }, "Test mark created successfully");
 }
@@ -35,8 +35,8 @@ export function useUpdateSchoolTestMark(markId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: TestMarkUpdate) => SchoolTestMarksService.update(markId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.testMarks.detail(markId) });
-      qc.invalidateQueries({ queryKey: schoolKeys.testMarks.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.testMarks.detail(markId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.testMarks.root() });
     },
   }, "Test mark updated successfully");
 }
@@ -46,7 +46,7 @@ export function useDeleteSchoolTestMark() {
   return useMutationWithSuccessToast({
     mutationFn: (markId: number) => SchoolTestMarksService.delete(markId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.testMarks.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.testMarks.root() });
     },
   }, "Test mark deleted successfully");
 }
@@ -56,7 +56,7 @@ export function useBulkCreateSchoolTestMarks() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CreateTestMarkBulk) => SchoolTestMarksService.bulkCreate(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.testMarks.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.testMarks.root() });
     },
   }, "Test marks created successfully");
 }
