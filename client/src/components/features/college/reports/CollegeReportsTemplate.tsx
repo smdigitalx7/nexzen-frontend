@@ -3,7 +3,8 @@ import { motion } from "framer-motion";
 import { BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
-import { DollarSign, TrendingUp, PieChart } from "lucide-react";
+import { TrendingUp, PieChart } from "lucide-react";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { TabSwitcher } from "@/components/shared";
 import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 import {
@@ -117,7 +118,7 @@ export const CollegeReportsTemplate = () => {
           {
             value: "income",
             label: "Income",
-            icon: DollarSign,
+            icon: IndianRupeeIcon,
             content: incomeLoading ? (
               <div className="flex items-center justify-center h-32">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

@@ -104,7 +104,7 @@ export const FormDialog: React.FC<FormDialogProps> = ({
         </DialogHeader>
         
         <div 
-          className="max-h-[70vh] overflow-y-auto" 
+          className="max-h-[70vh] overflow-y-auto scrollbar-hide" 
           role="main" 
           aria-label="Form content"
           tabIndex={-1}

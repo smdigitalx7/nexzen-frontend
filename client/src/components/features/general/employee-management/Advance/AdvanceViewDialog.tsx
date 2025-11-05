@@ -1,7 +1,7 @@
 import { FormDialog } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, User, DollarSign, FileText, Clock, CheckCircle, XCircle, X } from "lucide-react";
+import { Calendar, User, FileText, Clock, CheckCircle, XCircle, X } from "lucide-react";
 
 interface AdvanceViewDialogProps {
   open: boolean;
@@ -61,7 +61,7 @@ export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee, onCha
         {/* Advance Information */}
         <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
           <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-            <DollarSign className="h-4 w-4" />
+            <span className="text-sm font-bold">₹</span>
             Advance Information
           </h3>
           <div className="grid grid-cols-2 gap-4">
@@ -161,7 +161,7 @@ export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee, onCha
                 onClick={() => onUpdateAmount(advance.advance_id)}
                 className="flex items-center gap-2"
               >
-                <DollarSign className="h-4 w-4" />
+                <span className="text-sm font-bold">₹</span>
                 Update Amount Paid
               </Button>
             )}

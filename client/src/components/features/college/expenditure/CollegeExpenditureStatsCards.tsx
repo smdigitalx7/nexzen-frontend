@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  DollarSign,
   TrendingUp,
   CalendarDays,
   FileText,
@@ -38,7 +37,7 @@ export const CollegeExpenditureStatsCards: React.FC<
     {
       title: "Total Expenditure Amount",
       value: formatCurrency(stats.total_expenditure_amount),
-      icon: DollarSign,
+      icon: IndianRupeeIcon,
       color: "red" as const,
       description: "Total expenses incurred",
       variant: "elevated" as const,

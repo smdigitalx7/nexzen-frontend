@@ -1,7 +1,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, CheckCircle, XCircle, DollarSign } from "lucide-react";
+import { Edit, Trash2, CheckCircle, XCircle } from "lucide-react";
 
 interface EmployeeAdvancesListProps {
   advances: any[];
@@ -55,7 +55,7 @@ const EmployeeAdvancesList = ({ advances, employees, onApprove, onEdit, onDelete
                   )}
                   {advance.status === "APPROVED" && onUpdateAmount && (
                     <Button variant="ghost" size="sm" onClick={() => onUpdateAmount(advance)} className="text-blue-600 hover:text-blue-700" title="Update Amount Paid">
-                      <DollarSign className="h-4 w-4" />
+                      <span className="text-sm font-bold">₹</span>
                     </Button>
                   )}
                   <Button variant="ghost" size="sm" onClick={() => onEdit(advance)} title="Edit">

@@ -213,7 +213,7 @@ const AdmissionsList = () => {
 
       {/* Admission Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto scrollbar-hide">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span>Admission Details</span>

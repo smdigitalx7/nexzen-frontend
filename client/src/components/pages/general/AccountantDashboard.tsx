@@ -11,7 +11,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
-import { ClipboardList, UserCheck, DollarSign, BarChart3 } from "lucide-react";
+import { ClipboardList, UserCheck, BarChart3 } from "lucide-react";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 
 // Accountant mock data
 const accountantCounters = [
@@ -126,7 +127,7 @@ const AccountantDashboard = () => {
             {
               title: "Fee Collection",
               href: `${branchPrefix}/fees`,
-              icon: DollarSign,
+              icon: IndianRupeeIcon,
               color: "bg-purple-500",
             },
             {
@@ -160,7 +161,7 @@ const AccountantDashboard = () => {
           <CardDescription>Latest fee transactions</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scrollbar-hide">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted-foreground border-b">

@@ -7,7 +7,6 @@ import {
   GraduationCap,
   BookOpen,
   Bus,
-  DollarSign,
   Calendar,
   MapPin,
   CheckCircle,
@@ -33,9 +32,10 @@ import type { SchoolFullStudentRead } from "@/lib/types/school";
 
 interface SchoolSearchResultCardProps {
   result: SchoolFullStudentRead;
+  onCollectFee?: () => void;
 }
 
-export function SchoolSearchResultCard({ result }: SchoolSearchResultCardProps) {
+export function SchoolSearchResultCard({ result, onCollectFee }: SchoolSearchResultCardProps) {
   const [expandedSections, setExpandedSections] = useState<{
     fees: boolean;
     receipts: boolean;
@@ -134,6 +134,16 @@ export function SchoolSearchResultCard({ result }: SchoolSearchResultCardProps) 
                     </Badge>
                   </div>
                 </div>
+                {onCollectFee && hasOutstandingBalance && (
+                  <Button
+                    onClick={onCollectFee}
+                    className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm px-4 py-2 text-base font-semibold"
+                    size="default"
+                  >
+                    <CreditCard className="h-5 w-5" />
+                    Collect Fee
+                  </Button>
+                )}
               </div>
               <div className="flex items-center gap-4 text-sm text-blue-100">
                 <div className="flex items-center gap-2">
@@ -171,7 +181,7 @@ export function SchoolSearchResultCard({ result }: SchoolSearchResultCardProps) 
               </div>
               <div className="text-center border-x border-slate-200">
                 <div className="flex items-center justify-center gap-2 text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
-                  <DollarSign className="h-3.5 w-3.5" />
+                  <span className="text-lg font-bold">₹</span>
                   Tuition Fee
                 </div>
                 <p className={`text-xl font-bold ${tuitionBalance > 0 ? "text-red-600" : "text-emerald-600"}`}>
@@ -277,7 +287,7 @@ export function SchoolSearchResultCard({ result }: SchoolSearchResultCardProps) 
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
-                        <DollarSign className="h-5 w-5 text-blue-600" />
+                        <span className="text-2xl font-bold text-blue-600">₹</span>
                       </div>
                       <div>
                         <h2 className="text-lg font-bold text-slate-900">Fee Summary</h2>
@@ -614,7 +624,7 @@ export function SchoolSearchResultCard({ result }: SchoolSearchResultCardProps) 
                   </div>
                   
                   {expandedSections.receipts && (
-                    <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto scrollbar-hide pr-2">
                       {result.income_receipts_list?.map((receipt) => (
                         <motion.div
                           key={receipt.income_id}

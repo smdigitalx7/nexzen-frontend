@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
-import { CreditCard, DollarSign, Truck } from "lucide-react";
+import { CreditCard, Truck } from "lucide-react";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { TabSwitcher } from "@/components/shared";
 import type { TabItem } from "@/components/shared/TabSwitcher";
 import { useCollegeFeesManagement, useCollegeTuitionFeeBalancesDashboard } from "@/lib/hooks/college";
@@ -81,7 +82,7 @@ export const FeesManagement = () => {
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="gap-1">
-            <DollarSign className="h-3 w-3" />
+            <span className="text-xs font-bold">₹</span>
             {currentBranch?.branch_name}
           </Badge>
         </div>
@@ -114,7 +115,7 @@ export const FeesManagement = () => {
           {
             value: "tuition-balances",
             label: "Tuition Fee Balances",
-            icon: DollarSign,
+            icon: IndianRupeeIcon,
             content: <TuitionFeeBalancesPanel onViewStudent={() => {}} onExportCSV={() => {}} />,
           },
           {

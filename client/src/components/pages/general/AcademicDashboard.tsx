@@ -129,7 +129,7 @@ const AcademicDashboard = () => {
           <CardDescription>By class/term (read-only)</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scrollbar-hide">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted-foreground border-b">
@@ -158,6 +158,7 @@ const AcademicDashboard = () => {
 };
 
 export default AcademicDashboard;
+
 
 
 

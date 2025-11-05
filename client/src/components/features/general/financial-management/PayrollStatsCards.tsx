@@ -1,6 +1,5 @@
 import React from 'react';
 import { 
-  DollarSign, 
   Clock, 
   CheckCircle, 
   AlertTriangle, 
@@ -10,6 +9,7 @@ import {
   Wallet,
   Calculator
 } from 'lucide-react';
+import { IndianRupeeIcon } from '@/components/shared/IndianRupeeIcon';
 import { StatsCard } from '@/components/shared/dashboard/StatsCard';
 import { DashboardGrid } from '@/components/shared/dashboard/DashboardGrid';
 import { PayrollDashboardStats } from '@/lib/types/general/payrolls';
@@ -66,7 +66,7 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
     {
       title: "Total Gross Pay",
       value: formatCurrency(stats.total_gross_pay),
-      icon: DollarSign,
+      icon: IndianRupeeIcon,
       color: "indigo" as const,
       description: "Before deductions",
       variant: "bordered" as const,

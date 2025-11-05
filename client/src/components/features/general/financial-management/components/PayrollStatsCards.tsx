@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, CreditCard, Clock, TrendingUp, Users, AlertCircle } from "lucide-react";
+import { CreditCard, Clock, TrendingUp, Users, AlertCircle } from "lucide-react";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { formatCurrency } from "@/lib/utils";
 
 interface PayrollStatsCardsProps {
@@ -34,7 +35,7 @@ export const PayrollStatsCards = ({
     {
       title: "Total Amount",
       value: formatCurrency(totalAmount),
-      icon: DollarSign,
+      icon: IndianRupeeIcon,
       color: "text-green-600",
       bgColor: "bg-green-50",
       trend: "+12.5%",

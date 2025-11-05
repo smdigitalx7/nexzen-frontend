@@ -11,7 +11,7 @@ export interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
 
 const Table = React.forwardRef<HTMLTableElement, TableProps>(
   ({ className, striped = false, hoverable = true, bordered = false, responsive = true, ...props }, ref) => (
-    <div className={cn("relative w-full", responsive && "overflow-auto")}>
+    <div className={cn("relative w-full", responsive && "overflow-auto scrollbar-hide")}>
       <table
         ref={ref}
         className={cn(

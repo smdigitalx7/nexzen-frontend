@@ -14,7 +14,6 @@ import {
   FileText, 
   Award,
   Calendar,
-  DollarSign
 } from "lucide-react";
 import { Icon } from "@radix-ui/react-select";
 

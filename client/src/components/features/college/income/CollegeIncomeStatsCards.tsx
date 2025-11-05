@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  DollarSign,
   CalendarDays,
   FileText,
   GraduationCap,
@@ -37,7 +36,7 @@ export const CollegeIncomeStatsCards: React.FC<
     {
       title: "Total Income Amount",
       value: formatCurrency(stats.total_income_amount),
-      icon: DollarSign,
+      icon: IndianRupeeIcon,
       color: "green" as const,
       description: "Total revenue collected",
       variant: "elevated" as const,

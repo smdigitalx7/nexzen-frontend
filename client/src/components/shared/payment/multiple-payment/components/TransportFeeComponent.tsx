@@ -288,18 +288,28 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
     const term = availableTerms.find(t => t.term === termNumber);
     if (!term) return false;
     
-    // Can't select if already paid or no outstanding amount
-    if (term.paid || term.outstanding <= 0) return false;
+    // Can't select if fully paid (no outstanding amount)
+    // Allow selection if there's any outstanding balance, even if partially paid
+    if (term.outstanding <= 0) return false;
     
-    // For sequential selection, check if previous terms are either:
-    // 1. Already paid (no outstanding balance), OR
-    // 2. Selected in current session
+    // For sequential selection:
+    // - Previous terms with outstanding balance must be fully paid OR selected in current session
+    // - Exception: If current term is partially paid, allow continuing that partial payment
     if (termNumber > 1) {
+      const isCurrentTermPartiallyPaid = term.paid && term.outstanding > 0;
+      
       for (let prevTermNum = 1; prevTermNum < termNumber; prevTermNum++) {
         const prevTerm = availableTerms.find(t => t.term === prevTermNum);
         if (prevTerm) {
-          // If previous term has outstanding balance and is not selected, can't select current term
-          if (prevTerm.outstanding > 0 && !prevTerm.paid && !selectedTerms.includes(prevTermNum)) {
+          // Skip if previous term is fully paid (no outstanding)
+          if (prevTerm.outstanding <= 0) {
+            continue;
+          }
+          
+          // If previous term has outstanding balance:
+          // - Must be selected in current session, OR
+          // - Current term is partially paid (allow continuing partial payments)
+          if (prevTerm.outstanding > 0 && !selectedTerms.includes(prevTermNum) && !isCurrentTermPartiallyPaid) {
             return false;
           }
         }
@@ -412,9 +422,16 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
                             {lockedTerms.includes(term.term) ? 'Locked' : 'Editable'}
                           </Badge>
                         )}
-                        {term.paid && (
+                        {/* Only show "Paid" badge if term is fully paid (no outstanding balance) */}
+                        {term.outstanding <= 0 && term.paid && (
                           <Badge variant="secondary" className="text-xs">
                             Paid
+                          </Badge>
+                        )}
+                        {/* Show "Partially Paid" if there's payment but still outstanding */}
+                        {term.paid && term.outstanding > 0 && (
+                          <Badge variant="outline" className="text-xs text-orange-600 border-orange-300 bg-orange-50">
+                            Partially Paid
                           </Badge>
                         )}
                         {term.outstanding <= 0 && !term.paid && (
@@ -422,7 +439,7 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
                             No Outstanding
                           </Badge>
                         )}
-                        {term.term > 1 && !canSelectTerm(term.term) && term.outstanding > 0 && !term.paid && (
+                        {term.term > 1 && !canSelectTerm(term.term) && term.outstanding > 0 && (
                           <Badge variant="outline" className="text-xs text-orange-500">
                             Complete Previous Terms First
                           </Badge>

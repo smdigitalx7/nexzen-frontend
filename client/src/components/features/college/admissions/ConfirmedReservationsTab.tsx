@@ -25,7 +25,6 @@ import {
   GraduationCap,
   Edit,
   CheckCircle,
-  DollarSign,
 } from "lucide-react";
 import { useCollegeReservationsList, useUpdateCollegeReservation, useUpdateCollegeReservationStatus, useCreateCollegeStudent } from "@/lib/hooks/college";
 import { CollegeReservationsService, CollegeStudentsService } from "@/lib/services/college";
@@ -477,7 +476,7 @@ const ConfirmedReservationsTab = () => {
 
       {/* Reservation Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <GraduationCap className="h-5 w-5" />
@@ -597,7 +596,7 @@ const ConfirmedReservationsTab = () => {
                   </>
                 ) : (
                   <>
-                    <DollarSign className="h-5 w-5 mr-2" />
+                    <span className="text-lg font-bold mr-2">₹</span>
                     Collect Payment & Print Receipt
                   </>
                 )}

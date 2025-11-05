@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import React, { useMemo, memo, useCallback } from "react";
-import { CreditCard, DollarSign, Building2, Truck } from "lucide-react";
+import { CreditCard, Building2, Truck } from "lucide-react";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { TabSwitcher } from "@/components/shared";
 import { useSchoolFeesManagement } from "@/lib/hooks/school";
 import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalancesPanel";
@@ -55,7 +56,7 @@ const HeaderContent = memo(({ currentBranch }: { currentBranch: any }) => (
     <div className="flex items-center gap-2">
       <Badge variant="outline" className="gap-1">
         {currentBranch?.branch_type === "SCHOOL" ? (
-          <DollarSign className="h-3 w-3" />
+          <span className="text-xs font-bold">₹</span>
         ) : (
           <Building2 className="h-3 w-3" />
         )}
@@ -130,7 +131,7 @@ const FeesManagementComponent = () => {
     {
       value: "tuition-balances",
       label: "Tuition Fee Balances",
-      icon: DollarSign,
+      icon: IndianRupeeIcon,
       content: (
         <TuitionFeeBalancesPanel 
           onViewStudent={handleViewStudent} 

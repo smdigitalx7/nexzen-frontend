@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
+import { useLocation, useSearch } from "wouter";
 import { CollectFeeSearch } from "./CollectFeeSearch";
 import { SchoolMultiplePaymentForm } from "../multiple-payment/SchoolMultiplePaymentForm";
 import type { StudentInfo, FeeBalance, MultiplePaymentData } from "@/components/shared/payment/types/PaymentTypes";
 import { handleSchoolPayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/lib/api-school";
 import { useToast } from "@/hooks/use-toast";
+import { SchoolStudentsService } from "@/lib/services/school/students.service";
+import { SchoolTuitionFeeBalancesService } from "@/lib/services/school/tuition-fee-balances.service";
+import { SchoolTransportFeeBalancesService } from "@/lib/services/school/transport-fee-balances.service";
+import { Api } from "@/lib/api";
 
 interface StudentFeeDetails {
   student: any;
@@ -21,15 +26,40 @@ interface CollectFeeProps {
 
 export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSearchQuery }: CollectFeeProps) => {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const search = useSearch();
   const [selectedStudent, setSelectedStudent] = useState<StudentFeeDetails | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [paymentMode, setPaymentMode] = useState<'single' | 'multiple'>('multiple');
+  const paymentSuccessRef = useRef<string | null>(null); // Store admission number for re-search
+  const hasInitializedRef = useRef(false);
+
+  // Parse URL search parameters
+  const searchParams = useMemo(() => new URLSearchParams(search), [search]);
+  const admissionNoFromUrl = searchParams.get("admission_no");
+
+  // Update URL with admission number
+  const updateUrlWithAdmission = (admissionNo: string) => {
+    const newSearchParams = new URLSearchParams(search);
+    newSearchParams.set("admission_no", admissionNo);
+    const newSearch = newSearchParams.toString();
+    navigate(`${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`, { replace: true });
+  };
+
+  // Remove admission number from URL
+  const removeAdmissionFromUrl = () => {
+    const newSearchParams = new URLSearchParams(search);
+    newSearchParams.delete("admission_no");
+    const newSearch = newSearchParams.toString();
+    navigate(`${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`, { replace: true });
+  };
 
   const handleStartPayment = (studentDetails: StudentFeeDetails) => {
     // Ensure we're in multiple payment mode
     setPaymentMode('multiple');
     setSelectedStudent(studentDetails);
     setIsFormOpen(true);
+    paymentSuccessRef.current = null; // Reset payment success flag
   };
 
   const handlePaymentComplete = () => {
@@ -38,9 +68,88 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
     setIsFormOpen(false);
   };
 
+  // Search student function (reusable for both initial search and re-search)
+  const searchStudent = async (admissionNo: string, showToast = true) => {
+    try {
+      // Update search query and URL
+      setSearchQuery(admissionNo);
+      // Update URL separately to avoid dependency issues
+      setTimeout(() => updateUrlWithAdmission(admissionNo), 0);
+      
+      // Always fetch fresh data - bypass cache
+      const student = await Api.get(
+        `/school/students/admission-no/${admissionNo}`,
+        { _t: Date.now() },
+        undefined,
+        { cache: false, dedupe: false }
+      );
+      const [tuitionBalance, transportBalance] = await Promise.all([
+        Api.get(
+          `/school/tuition-fee-balances/by-admission/${admissionNo}`,
+          { _t: Date.now() },
+          undefined,
+          { cache: false, dedupe: false }
+        ).catch(() => null),
+        Api.get(
+          `/school/transport-fee-balances/by-admission/${admissionNo}`,
+          { _t: Date.now() },
+          undefined,
+          { cache: false, dedupe: false }
+        ).catch(() => null)
+      ]);
+
+      const studentDetails: StudentFeeDetails = {
+        student,
+        tuitionBalance,
+        transportBalance
+      };
+
+      setSearchResults([studentDetails]);
+      
+      if (showToast) {
+        toast({
+          title: "Payment Successful",
+          description: "Student fee information has been refreshed.",
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      console.error("Search error:", error);
+      if (showToast) {
+        toast({
+          title: "Refresh Failed",
+          description: "Payment was successful but could not refresh student information. Please search again.",
+          variant: "default",
+        });
+      }
+    }
+  };
+
+  // Re-search the student after successful payment
+  const reSearchStudent = async (admissionNo: string) => {
+    await searchStudent(admissionNo, true);
+  };
+
+  // Auto-search on mount if admission number is in URL
+  useEffect(() => {
+    if (!hasInitializedRef.current && admissionNoFromUrl && !searchQuery) {
+      hasInitializedRef.current = true;
+      setSearchQuery(admissionNoFromUrl);
+      void searchStudent(admissionNoFromUrl, false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [admissionNoFromUrl]);
+
   const handleFormClose = () => {
+    const admissionNoToReSearch = paymentSuccessRef.current;
     setSelectedStudent(null);
     setIsFormOpen(false);
+    
+    // If payment was successful, re-search the same admission number
+    if (admissionNoToReSearch) {
+      paymentSuccessRef.current = null; // Reset flag
+      void reSearchStudent(admissionNoToReSearch);
+    }
   };
 
   const handleMultiplePaymentComplete = async (paymentData: MultiplePaymentData) => {
@@ -61,7 +170,9 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
       const result = await handlePayByAdmissionWithIncomeId(paymentData.admissionNo, apiPayload);
       
       // Handle successful payment
-      console.log('Multiple payment completed successfully:', result);
+      
+      // Store admission number for re-search after form closes
+      paymentSuccessRef.current = paymentData.admissionNo;
       
       // Don't close the form immediately - let MultiplePaymentForm handle it after receipt modal closes
       // setSelectedStudent(null);
@@ -71,6 +182,9 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
       return result;
     } catch (error) {
       console.error('Multiple payment error:', error);
+      
+      // Reset payment success flag on error
+      paymentSuccessRef.current = null;
       
       // Show error toast
       toast({
@@ -151,7 +265,13 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
         <CollectFeeSearch 
           onStudentSelected={() => {}} 
           paymentMode={paymentMode}
-          onStartPayment={handleStartPayment}
+          onStartPayment={(studentDetails) => {
+            handleStartPayment(studentDetails);
+            // Update URL when starting payment
+            if (studentDetails?.student?.admission_no) {
+              setTimeout(() => updateUrlWithAdmission(studentDetails.student.admission_no), 0);
+            }
+          }}
           searchResults={searchResults}
           setSearchResults={setSearchResults}
           searchQuery={searchQuery}

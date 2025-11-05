@@ -9,7 +9,6 @@ import {
   Car,
   TrendingUp, 
   Calendar,
-  DollarSign
 } from 'lucide-react';
 import { StatsCard } from '@/components/shared/dashboard/StatsCard';
 import { DashboardGrid } from '@/components/shared/dashboard/DashboardGrid';
@@ -113,7 +112,7 @@ export const EmployeeStatsCards: React.FC<EmployeeStatsCardsProps> = ({
     // {
     //   title: "Total Salary Expense",
     //   value: `₹${(stats.total_salary_expense / 100000).toFixed(1)}L`,
-    //   icon: DollarSign,
+    //   icon: IndianRupeeIcon,
     //   color: "rose" as const,
     //   description: "Monthly salary budget",
     //   variant: "elevated" as const,

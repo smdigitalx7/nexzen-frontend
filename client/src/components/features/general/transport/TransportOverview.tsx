@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Route, Users, Navigation, DollarSign } from "lucide-react";
+import { Route, Users, Navigation } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -73,7 +73,7 @@ const TransportOverview = ({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Monthly Cost</CardTitle>
-          <DollarSign className="h-4 w-4 text-orange-600" />
+          <span className="text-base font-bold text-orange-600">₹</span>
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-orange-600">

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, DollarSign, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
@@ -47,7 +47,7 @@ const DistanceSlabsTab = ({
       header: 'Slab Name',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <DollarSign className="h-4 w-4 text-green-600" />
+          <span className="text-sm font-bold text-green-600">₹</span>
           <span className="font-medium">{row.original.slab_name}</span>
         </div>
       ),

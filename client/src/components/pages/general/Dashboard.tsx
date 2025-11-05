@@ -18,7 +18,6 @@ import {
 import {
   Users,
   GraduationCap,
-  DollarSign,
   TrendingUp,
   AlertTriangle,
   CheckCircle,
@@ -31,6 +30,7 @@ import {
   Receipt,
   UserCheck,
 } from "lucide-react";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import {
   Card,
   CardContent,
@@ -76,7 +76,7 @@ const mockDashboardData = {
       value: "₹8.2M",
       change: "+12%",
       trend: "up",
-      icon: DollarSign,
+      icon: IndianRupeeIcon,
       color: "text-purple-600",
       description: "Fee collection",
     },
@@ -336,7 +336,7 @@ const Dashboard = () => {
           {
             title: "Fee Collection",
             value: "92%",
-            icon: DollarSign,
+            icon: IndianRupeeIcon,
             color: "text-emerald-600",
             desc: "Collected this term",
           },
@@ -458,7 +458,7 @@ const Dashboard = () => {
                 {
                   title: "Payroll",
                   href: "/payroll",
-                  icon: DollarSign,
+                  icon: IndianRupeeIcon,
                   color: "bg-purple-500",
                 },
                 {
@@ -560,7 +560,7 @@ const Dashboard = () => {
           <CardDescription>Latest fee transactions</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scrollbar-hide">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted-foreground">
@@ -638,7 +638,7 @@ const Dashboard = () => {
           <CardDescription>By class/term</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scrollbar-hide">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted-foreground">
@@ -717,7 +717,7 @@ const Dashboard = () => {
             <CardTitle className="text-sm font-medium">
               Fee Collection
             </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <span className="text-lg font-bold text-muted-foreground">₹</span>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹2.4M</div>

@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Search, User, GraduationCap, DollarSign, CreditCard } from "lucide-react";
+import { Search, User, GraduationCap, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,19 +34,30 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
 
+    // Clear previous results immediately for fresh search
+    setSearchResults([]);
+    setSelectedStudent(null);
     setIsSearching(true);
+    
     try {
+      const trimmedQuery = searchQuery.trim();
       let student = null;
       
       // First try to search by admission number
       try {
-        student = await CollegeStudentsService.getByAdmission(searchQuery);
+        // Always make a fresh API call - bypass cache
+        student = await Api.get<typeof student>(
+          `/college/students/by-admission/${trimmedQuery}`,
+          { _t: Date.now() }, // Cache-busting timestamp
+          undefined,
+          { cache: false, dedupe: false } // Disable cache and deduplication
+        );
       } catch (error) {
         // If admission search fails, try searching by name
         console.log("Admission search failed, trying name search...");
         const studentsList = await CollegeStudentsService.list({ page: 1, pageSize: 100 });
         const matchingStudents = studentsList.data?.filter((s: any) => 
-          s.student_name?.toLowerCase().includes(searchQuery.toLowerCase())
+          s.student_name?.toLowerCase().includes(trimmedQuery.toLowerCase())
         );
         
         if (matchingStudents && matchingStudents.length > 0) {
@@ -56,7 +67,13 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
             // If multiple matches, show all and let user select
             const studentDetailsList = await Promise.all(
               matchingStudents.map(async (s: any) => {
-                const tuitionBalance = await CollegeTuitionBalancesService.getByAdmissionNo(s.admission_no).catch(() => null);
+                // Always fetch fresh fee balance data - bypass cache
+                const tuitionBalance = await Api.get(
+                  `/college/tuition-fee-balances/by-admission-no/${s.admission_no}`,
+                  { _t: Date.now() },
+                  undefined,
+                  { cache: false, dedupe: false }
+                ).catch(() => null);
                 return {
                   student: s,
                   tuitionBalance
@@ -71,8 +88,13 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
       }
       
       if (student) {
-        // Get fee balances for this student
-        const tuitionBalance = await CollegeTuitionBalancesService.getByAdmissionNo(student.admission_no).catch(() => null);
+        // Always fetch fresh fee balances for this student - bypass cache
+        const tuitionBalance = await Api.get(
+          `/college/tuition-fee-balances/by-admission-no/${student.admission_no}`,
+          { _t: Date.now() },
+          undefined,
+          { cache: false, dedupe: false }
+        ).catch(() => null);
 
         const studentDetails: StudentFeeDetails = {
           student,
@@ -101,7 +123,7 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
     }
   };
 
-  const getTotalOutstanding = (studentDetails: StudentFeeDetails) => {
+  const getTotalOutstanding = useCallback((studentDetails: StudentFeeDetails) => {
     let total = 0;
     
     if (studentDetails.tuitionBalance) {
@@ -113,7 +135,7 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
     }
     
     return total;
-  };
+  }, []);
 
   // Define table columns
   const columns = useMemo<ColumnDef<StudentFeeDetails>[]>(() => [
@@ -195,18 +217,27 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
     {
       id: "actions",
       header: "Actions",
-      cell: ({ row }) => (
-        <Button 
-          onClick={() => onStartPayment(row.original)}
-          size="sm"
-          className="bg-green-600 hover:bg-green-700"
-        >
-          <CreditCard className="h-4 w-4 mr-2" />
-          Collect Fee
-        </Button>
-      ),
+      cell: ({ row }) => {
+        const totalOutstanding = getTotalOutstanding(row.original);
+        const hasOutstanding = totalOutstanding > 0;
+        
+        return (
+          <Button 
+            onClick={() => onStartPayment(row.original)}
+            size="sm"
+            disabled={!hasOutstanding}
+            className={hasOutstanding 
+              ? "bg-green-600 hover:bg-green-700" 
+              : "bg-gray-400 hover:bg-gray-400 cursor-not-allowed"
+            }
+          >
+            <CreditCard className="h-4 w-4 mr-2" />
+            Collect Fee
+          </Button>
+        );
+      },
     },
-  ], [onStartPayment]);
+  ], [onStartPayment, getTotalOutstanding]);
 
   return (
     <div className="space-y-6">
@@ -231,7 +262,10 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
                 />
               </div>
               <Button 
-                onClick={handleSearch} 
+                onClick={() => {
+                  // Force fresh search even if same query
+                  handleSearch();
+                }} 
                 disabled={isSearching || !searchQuery.trim()}
                 className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
               >

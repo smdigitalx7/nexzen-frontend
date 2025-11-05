@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  DollarSign, 
   TrendingDown, 
   TrendingUp, 
   Minus,
@@ -207,7 +206,7 @@ export const FinanceReportDialog: React.FC<FinanceReportDialogProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                   <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                     <div className="flex items-center gap-2 mb-2">
-                      <DollarSign className="h-4 w-4 text-green-600" />
+                      <span className="text-base font-bold text-green-600">₹</span>
                       <span className="text-sm font-medium text-green-800">Total Income</span>
                     </div>
                     <p className="text-2xl font-bold text-green-900">
