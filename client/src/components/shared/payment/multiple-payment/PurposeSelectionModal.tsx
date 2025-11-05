@@ -253,8 +253,8 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader className="pb-4 border-b border-gray-200">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
           <DialogTitle className="text-lg font-semibold text-gray-900">
             Add Payment Item
           </DialogTitle>
@@ -263,7 +263,8 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 pt-4">
+        <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+          <div className="space-y-4">
           {/* Book Fee Required Warning - Simplified */}
           {bookFeeRequired && (
             <div className="border border-gray-300 bg-gray-50 rounded-lg p-3">
@@ -443,6 +444,7 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
               </p>
             </motion.div>
           )}
+          </div>
         </div>
 
         {/* Action Buttons - Simplified */}

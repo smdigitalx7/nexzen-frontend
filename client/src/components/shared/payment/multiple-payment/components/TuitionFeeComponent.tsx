@@ -296,8 +296,8 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-        <DialogHeader className="pb-4 border-b border-blue-200 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 -mx-6 -mt-6 px-6 pt-6 rounded-t-lg">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-blue-200 bg-gradient-to-r from-blue-50/50 to-indigo-50/50">
           <DialogTitle className="flex items-center gap-2 text-lg text-gray-900">
             <div className="p-2 bg-blue-100 rounded-lg">
               <GraduationCap className="h-5 w-5 text-blue-600" />
@@ -311,7 +311,8 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+          <div className="space-y-6">
 
           {/* Term Selection - Both colleges and schools use term-based tuition fees */}
           <div className="space-y-3">
@@ -507,6 +508,7 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
                 Close
               </Button>
             )}
+          </div>
           </div>
         </div>
       </DialogContent>

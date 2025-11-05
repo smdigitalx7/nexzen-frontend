@@ -113,8 +113,8 @@ export function ConcessionUpdateDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
           <DialogTitle className="flex items-center gap-2">
             {isLocked && <Lock className="h-5 w-5 text-amber-600" />}
             Update Concession
@@ -131,7 +131,8 @@ export function ConcessionUpdateDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={(e) => { void handleSubmit(e); }} className="space-y-6">
+        <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+          <form onSubmit={(e) => { void handleSubmit(e); }} className="space-y-6">
           {/* Fee Overview */}
           <Card>
             <CardHeader>
@@ -308,7 +309,8 @@ export function ConcessionUpdateDialog({
               {isUpdating ? "Updating..." : "Update Concession"}
             </Button>
           </DialogFooter>
-        </form>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

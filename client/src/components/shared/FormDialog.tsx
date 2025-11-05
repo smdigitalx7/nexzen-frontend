@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { ButtonLoading } from '@/components/ui/loading';
 import { DIALOG_SIZES } from '@/lib/constants';
+import { cn } from '@/lib/utils';
 
 interface FormDialogProps {
   open: boolean;
@@ -92,13 +93,13 @@ export const FormDialog: React.FC<FormDialogProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className={DIALOG_SIZES[size]}
+        className={cn(DIALOG_SIZES[size], "max-h-[90vh] flex flex-col p-0")}
         onOpenAutoFocus={(e) => {
           // Prevent auto-focus to avoid aria-hidden conflicts
           e.preventDefault();
         }}
       >
-        <DialogHeader>
+        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
           <DialogTitle>{title}</DialogTitle>
           {description && (
             <DialogDescription>{description}</DialogDescription>
@@ -106,7 +107,7 @@ export const FormDialog: React.FC<FormDialogProps> = ({
         </DialogHeader>
         
         <div 
-          className="max-h-[70vh] overflow-y-auto scrollbar-hide" 
+          className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4" 
           role="main" 
           aria-label="Form content"
           tabIndex={-1}
@@ -165,7 +166,7 @@ export const FormDialog: React.FC<FormDialogProps> = ({
         </div>
         
         {showFooter && (
-          <DialogFooter className="gap-2">
+          <DialogFooter className="px-6 py-4 flex-shrink-0 border-t border-gray-200 gap-2">
             {showCancelButton && (
               <Button
                 type="button"

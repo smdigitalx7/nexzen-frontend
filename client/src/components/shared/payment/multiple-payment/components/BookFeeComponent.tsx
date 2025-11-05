@@ -109,8 +109,8 @@ export const BookFeeComponent: React.FC<BookFeeComponentProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh]">
-        <DialogHeader className="pb-4 border-b border-blue-200 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 -mx-6 -mt-6 px-6 pt-6 rounded-t-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-blue-200 bg-gradient-to-r from-blue-50/50 to-indigo-50/50">
           <DialogTitle className="flex items-center gap-2 text-lg text-gray-900">
             <div className="p-2 bg-blue-100 rounded-lg">
               <BookOpen className="h-5 w-5 text-blue-600" />
@@ -122,7 +122,8 @@ export const BookFeeComponent: React.FC<BookFeeComponentProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5 pt-4">
+        <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+          <div className="space-y-5">
 
           {/* Fee Information - Enhanced */}
           <div className="border border-blue-200 rounded-lg p-5 bg-gradient-to-br from-blue-50 to-indigo-50">
@@ -251,6 +252,7 @@ export const BookFeeComponent: React.FC<BookFeeComponentProps> = ({
                 Close
               </Button>
             )}
+          </div>
           </div>
         </div>
       </DialogContent>

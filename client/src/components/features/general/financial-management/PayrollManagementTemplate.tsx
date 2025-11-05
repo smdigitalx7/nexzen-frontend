@@ -694,34 +694,36 @@ export const PayrollManagementTemplateComponent = () => {
 
       {/* Detailed Payroll View Dialog */}
       <Dialog open={showPayslipDialog} onOpenChange={handleClosePayslipDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
               Payroll Details
             </DialogTitle>
           </DialogHeader>
           
-          {detailedPayrollLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-sm text-muted-foreground">Loading payroll details...</div>
-            </div>
-          ) : !detailedPayroll ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-sm text-muted-foreground">No payroll data available</div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <EmployeeInfoSection detailedPayroll={detailedPayroll as unknown as DetailedPayrollRead} />
-              <PayrollSummarySection detailedPayroll={detailedPayroll as unknown as DetailedPayrollRead} />
-              <DeductionsBreakdownSection detailedPayroll={detailedPayroll as unknown as DetailedPayrollRead} />
-              <PaymentInfoSection detailedPayroll={detailedPayroll as unknown as DetailedPayrollRead} />
-              <RecordInfoSection detailedPayroll={detailedPayroll as unknown as DetailedPayrollRead} />
-              <ActionButtons
-                onDownloadPayslip={handleDownloadPayslip}
-              />
-            </div>
-          )}
+          <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+            {detailedPayrollLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-sm text-muted-foreground">Loading payroll details...</div>
+              </div>
+            ) : !detailedPayroll ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-sm text-muted-foreground">No payroll data available</div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <EmployeeInfoSection detailedPayroll={detailedPayroll as unknown as DetailedPayrollRead} />
+                <PayrollSummarySection detailedPayroll={detailedPayroll as unknown as DetailedPayrollRead} />
+                <DeductionsBreakdownSection detailedPayroll={detailedPayroll as unknown as DetailedPayrollRead} />
+                <PaymentInfoSection detailedPayroll={detailedPayroll as unknown as DetailedPayrollRead} />
+                <RecordInfoSection detailedPayroll={detailedPayroll as unknown as DetailedPayrollRead} />
+                <ActionButtons
+                  onDownloadPayslip={handleDownloadPayslip}
+                />
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

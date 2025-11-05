@@ -212,8 +212,8 @@ const AdmissionsList = () => {
 
       {/* Admission Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-          <DialogHeader>
+        <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
             <DialogTitle>Admission Details</DialogTitle>
             <DialogDescription className="flex items-center justify-between">
               <span>Complete admission information for student</span>
@@ -241,8 +241,9 @@ const AdmissionsList = () => {
             </DialogDescription>
           </DialogHeader>
 
-          {selectedAdmission && (
-            <div className="space-y-6">
+          <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+            {selectedAdmission && (
+              <div className="space-y-6">
               {/* Header Card */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-6 rounded-lg border-2 border-blue-200 dark:border-blue-800">
                 <div className="grid grid-cols-4 gap-4">
@@ -607,7 +608,8 @@ const AdmissionsList = () => {
                 </div>
               </div>
             </div>
-          )}
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
