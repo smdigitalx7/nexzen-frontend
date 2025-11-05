@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import {
   TrendingUp,
@@ -15,15 +15,10 @@ import {
   Award,
   MoreHorizontal,
   BarChart3,
+  TrendingDown,
+  ArrowUpRight,
+  ArrowDownRight,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -50,26 +45,13 @@ import { formatCurrency } from "@/lib/utils";
 import {
   DashboardContainer,
   DashboardHeader,
-  StatsCard,
-  DashboardGrid,
   DashboardError,
 } from "@/components/shared/dashboard";
 
 const AdminDashboard = () => {
-  const { user, currentBranch } = useAuthStore();
+  const { user } = useAuthStore();
   const { data: dashboardData, loading, error } = useAdminDashboard();
   const [, setLocation] = useLocation();
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "success":
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case "warning":
-        return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
-      default:
-        return <CheckCircle className="h-4 w-4 text-blue-600" />;
-    }
-  };
 
   const quickLinks = [
     {
@@ -132,8 +114,53 @@ const AdminDashboard = () => {
     </DropdownMenu>
   );
 
+  if (loading) {
+    return (
+      <DashboardContainer loading={loading}>
+        <DashboardHeader
+          title={`Welcome back, ${user?.full_name?.split(" ")[0] || "Admin"}!`}
+          description="Here's what's happening today."
+          showBranchBadge={true}
+          rightContent={quickLinksDropdown}
+        />
+      </DashboardContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardContainer loading={false}>
+        <DashboardHeader
+          title={`Welcome back, ${user?.full_name?.split(" ")[0] || "Admin"}!`}
+          description="Here's what's happening today."
+          showBranchBadge={true}
+          rightContent={quickLinksDropdown}
+        />
+        <DashboardError error={error} />
+      </DashboardContainer>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <DashboardContainer loading={false}>
+        <DashboardHeader
+          title={`Welcome back, ${user?.full_name?.split(" ")[0] || "Admin"}!`}
+          description="Here's what's happening today."
+          showBranchBadge={true}
+          rightContent={quickLinksDropdown}
+        />
+        <div className="flex items-center justify-center py-12">
+          <div className="text-muted-foreground">
+            No dashboard data available
+          </div>
+        </div>
+      </DashboardContainer>
+    );
+  }
+
   return (
-    <DashboardContainer loading={loading}>
+    <DashboardContainer loading={false}>
       <DashboardHeader
         title={`Welcome back, ${user?.full_name?.split(" ")[0] || "Admin"}!`}
         description="Here's what's happening today."
@@ -143,389 +170,585 @@ const AdminDashboard = () => {
 
       <DashboardError error={error} />
 
-      {/* Dashboard Content */}
-      {!loading && !error && dashboardData && (
-        <>
-          {/* All Stats Cards */}
-          <DashboardGrid columns={5}>
-            {/* Overview Statistics */}
-            <StatsCard
-              title="Total Students"
-              value={dashboardData.data.overview.total_students.toLocaleString()}
-              icon={Users}
-              color="blue"
-              description="Across all branches"
-              size="md"
-            />
-            <StatsCard
-              title="Total Teachers"
-              value={dashboardData.data.overview.total_teachers.toLocaleString()}
-              icon={GraduationCap}
-              color="purple"
-              description="Teaching staff"
-              size="md"
-            />
-            <StatsCard
-              title="Total Classes"
-              value={dashboardData.data.overview.total_classes.toLocaleString()}
-              icon={BookOpen}
-              color="indigo"
-              description="Active classes"
-              size="md"
-            />
-            <StatsCard
-              title="Total Branches"
-              value={dashboardData.data.overview.total_branches.toLocaleString()}
-              icon={Building2}
-              color="cyan"
-              description="Institute branches"
-              size="md"
-            />
-            
-            {/* Financial Overview - All Time */}
-            <StatsCard
-              title="Total Income"
-              value={formatCurrency(parseFloat(dashboardData.data.financial.total_income))}
-              icon={IndianRupeeIcon}
-              color="emerald"
-              description="All time"
-              size="md"
-            />
-            <StatsCard
-              title="Total Expenditure"
-              value={formatCurrency(parseFloat(dashboardData.data.financial.total_expenditure))}
-              icon={Receipt}
-              color="red"
-              description="All time"
-              size="md"
-            />
-            <StatsCard
-              title="Net Profit"
-              value={formatCurrency(parseFloat(dashboardData.data.financial.net_profit))}
-              icon={TrendingUp}
-              color="green"
-              description="Income - Expenditure"
-              size="md"
-            />
-            <StatsCard
-              title="Income This Year"
-              value={formatCurrency(parseFloat(dashboardData.data.financial.income_this_year))}
-              icon={TrendingUp}
-              color="blue"
-              description="Current year"
-              size="md"
-            />
-            
-            {/* Financial Overview - This Month & Year */}
-            <StatsCard
-              title="Income This Month"
-              value={formatCurrency(parseFloat(dashboardData.data.financial.income_this_month))}
-              icon={IndianRupeeIcon}
-              color="emerald"
-              description="Current month"
-              size="md"
-            />
-            <StatsCard
-              title="Expenditure This Month"
-              value={formatCurrency(parseFloat(dashboardData.data.financial.expenditure_this_month))}
-              icon={Receipt}
-              color="red"
-              description="Current month"
-              size="md"
-            />
-            <StatsCard
-              title="Expenditure This Year"
-              value={formatCurrency(parseFloat(dashboardData.data.financial.expenditure_this_year))}
-              icon={Receipt}
-              color="orange"
-              description="Current year"
-              size="md"
-            />
-            
-            {/* Attendance & Academic Metrics */}
-            <StatsCard
-              title="Attendance Rate"
-              value={`${parseFloat(dashboardData.data.attendance.average_attendance_rate).toFixed(1)}%`}
-              icon={TrendingUp}
-              color="orange"
-              description="Average rate"
-              size="md"
-            />
-            <StatsCard
-              title="Total Exams"
-              value={dashboardData.data.academic.total_exams.toString()}
-              icon={Award}
-              color="purple"
-              description="All exams"
-              size="md"
-            />
-            <StatsCard
-              title="Upcoming Exams"
-              value={dashboardData.data.academic.upcoming_exams.toString()}
-              icon={Calendar}
-              color="blue"
-              description="Scheduled"
-              size="md"
-            />
-            <StatsCard
-              title="Pass Rate"
-              value={`${parseFloat(dashboardData.data.academic.average_pass_rate).toFixed(1)}%`}
-              icon={TrendingUp}
-              color="green"
-              description="Average pass rate"
-              size="md"
-            />
-          </DashboardGrid>
-
-          {/* Recent Activities */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activities</CardTitle>
-              <CardDescription>
-                Latest updates from your institute
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {dashboardData.data.enrollments.pending_enrollments > 0 && (
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover-elevate">
-                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">
-                        {dashboardData.data.enrollments.pending_enrollments} pending enrollments
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="text-xs text-muted-foreground">
-                          Requires attention
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="bg-yellow-100 text-yellow-800">enrollment</Badge>
-                  </div>
-                )}
-                {dashboardData.data.reservations.pending_reservations > 0 && (
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover-elevate">
-                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">
-                        {dashboardData.data.reservations.pending_reservations} pending reservations
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="text-xs text-muted-foreground">
-                          Requires attention
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="bg-yellow-100 text-yellow-800">reservation</Badge>
-                  </div>
-                )}
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover-elevate">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">
-                      {dashboardData.data.overview.total_students} total students enrolled
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="text-xs text-muted-foreground">
-                        {dashboardData.data.enrollments.confirmed_enrollments} confirmed
-                      </p>
-                    </div>
-                  </div>
-                  <Badge variant="default">students</Badge>
-                </div>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover-elevate">
-                  <CheckCircle className="h-4 w-4 text-blue-600" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">
-                      {dashboardData.data.reservations.total_reservations} total reservations
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="text-xs text-muted-foreground">
-                        {dashboardData.data.reservations.confirmed_reservations} confirmed
-                      </p>
-                    </div>
-                  </div>
-                  <Badge variant="default">reservations</Badge>
-                </div>
-                {dashboardData.data.academic.upcoming_exams > 0 && (
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover-elevate">
-                    <Calendar className="h-4 w-4 text-purple-600" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">
-                        {dashboardData.data.academic.upcoming_exams} upcoming exams
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="text-xs text-muted-foreground">
-                          {dashboardData.data.academic.completed_exams} completed
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="default">exams</Badge>
-                  </div>
-                )}
+      <div className="space-y-8">
+        {/* Overview Section - Enhanced Design */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-100/50 shadow-sm">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDYwIDAgTCAwIDAgMCA2MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTVlN2ViIiBzdHJva2Utd2lkdGg9IjEiIG9wYWNpdHk9IjAuMyIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-40"></div>
+          <div className="relative px-6 py-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900 mb-1">
+                  Institutional Overview
+                </h2>
+                <p className="text-sm text-slate-600">
+                  Key metrics at a glance
+                </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white/80 backdrop-blur-sm rounded-lg p-5 border border-white/50 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+                <div className="flex items-center gap-3 mb-3">
+                  <Users className="h-6 w-6 text-blue-600" />
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">
+                      Students
+                    </p>
+                    <p className="text-3xl font-bold text-slate-900 mt-1">
+                      {dashboardData.data.overview.total_students.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500">Across all branches</p>
+              </div>
 
-          {/* Enrollments & Reservations Summary */}
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="hover-elevate">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
-                    <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base">Enrollments Overview</CardTitle>
-                    <CardDescription>Enrollment statistics</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-900">
-                        <Users className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-                      </div>
-                      <span className="text-sm font-medium">Total Enrollments</span>
-                    </div>
-                    <span className="text-xl font-bold text-indigo-600">{dashboardData.data.enrollments.total_enrollments}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
-                    <div className="flex items-center gap-3">
-                      <div className="p-1.5 rounded-lg bg-green-100 dark:bg-green-900">
-                        <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-                      </div>
-                      <span className="text-sm font-medium">Confirmed</span>
-                    </div>
-                    <span className="text-xl font-bold text-green-600">{dashboardData.data.enrollments.confirmed_enrollments}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800">
-                    <div className="flex items-center gap-3">
-                      <div className="p-1.5 rounded-lg bg-yellow-100 dark:bg-yellow-900">
-                        <AlertTriangle className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
-                      </div>
-                      <span className="text-sm font-medium">Pending</span>
-                    </div>
-                    <span className="text-xl font-bold text-yellow-600">{dashboardData.data.enrollments.pending_enrollments}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
-                    <div className="flex items-center gap-3">
-                      <div className="p-1.5 rounded-lg bg-red-100 dark:bg-red-900">
-                        <AlertTriangle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
-                      </div>
-                      <span className="text-sm font-medium">Cancelled</span>
-                    </div>
-                    <span className="text-xl font-bold text-red-600">{dashboardData.data.enrollments.cancelled_enrollments}</span>
+              <div className="bg-white/80 backdrop-blur-sm rounded-lg p-5 border border-white/50 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+                <div className="flex items-center gap-3 mb-3">
+                  <GraduationCap className="h-6 w-6 text-purple-600" />
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">
+                      Teachers
+                    </p>
+                    <p className="text-3xl font-bold text-slate-900 mt-1">
+                      {dashboardData.data.overview.total_teachers.toLocaleString()}
+                    </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+                <p className="text-xs text-slate-500">Teaching staff</p>
+              </div>
 
-            <Card className="hover-elevate">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
-                    <Calendar className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              <div className="bg-white/80 backdrop-blur-sm rounded-lg p-5 border border-white/50 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+                <div className="flex items-center gap-3 mb-3">
+                  <BookOpen className="h-6 w-6 text-indigo-600" />
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">
+                      Classes
+                    </p>
+                    <p className="text-3xl font-bold text-slate-900 mt-1">
+                      {dashboardData.data.overview.total_classes.toLocaleString()}
+                    </p>
                   </div>
+                </div>
+                <p className="text-xs text-slate-500">Active classes</p>
+              </div>
+
+              <div className="bg-white/80 backdrop-blur-sm rounded-lg p-5 border border-white/50 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+                <div className="flex items-center gap-3 mb-3">
+                  <Building2 className="h-6 w-6 text-teal-600" />
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">
+                      Branches
+                    </p>
+                    <p className="text-3xl font-bold text-slate-900 mt-1">
+                      {dashboardData.data.overview.total_branches.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500">Institute branches</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Financial Performance - Enhanced Design */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Total Financials */}
+          <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+              <h3 className="text-lg font-semibold text-slate-900">
+                Financial Performance
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Complete financial overview
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-50/50 border border-emerald-100">
+                <div className="flex items-center gap-4">
+                  <TrendingUp className="h-6 w-6 text-emerald-600" />
                   <div>
-                    <CardTitle className="text-base">Reservations Overview</CardTitle>
-                    <CardDescription>Reservation statistics</CardDescription>
+                    <p className="text-sm font-medium text-slate-600">
+                      Total Income
+                    </p>
+                    <p className="text-2xl font-bold text-emerald-700 mt-1">
+                      {formatCurrency(
+                        parseFloat(dashboardData.data.financial.total_income)
+                      )}
+                    </p>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900">
-                        <Calendar className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                      </div>
-                      <span className="text-sm font-medium">Total Reservations</span>
-                    </div>
-                    <span className="text-xl font-bold text-purple-600">{dashboardData.data.reservations.total_reservations}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
-                    <div className="flex items-center gap-3">
-                      <div className="p-1.5 rounded-lg bg-green-100 dark:bg-green-900">
-                        <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-                      </div>
-                      <span className="text-sm font-medium">Confirmed</span>
-                    </div>
-                    <span className="text-xl font-bold text-green-600">{dashboardData.data.reservations.confirmed_reservations}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800">
-                    <div className="flex items-center gap-3">
-                      <div className="p-1.5 rounded-lg bg-yellow-100 dark:bg-yellow-900">
-                        <AlertTriangle className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
-                      </div>
-                      <span className="text-sm font-medium">Pending</span>
-                    </div>
-                    <span className="text-xl font-bold text-yellow-600">{dashboardData.data.reservations.pending_reservations}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
-                    <div className="flex items-center gap-3">
-                      <div className="p-1.5 rounded-lg bg-red-100 dark:bg-red-900">
-                        <AlertTriangle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
-                      </div>
-                      <span className="text-sm font-medium">Cancelled</span>
-                    </div>
-                    <span className="text-xl font-bold text-red-600">{dashboardData.data.reservations.cancelled_reservations}</span>
+                <ArrowUpRight className="h-5 w-5 text-emerald-600 opacity-50" />
+              </div>
+
+              <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-red-50 to-red-50/50 border border-red-100">
+                <div className="flex items-center gap-4">
+                  <TrendingDown className="h-6 w-6 text-red-600" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">
+                      Total Expenditure
+                    </p>
+                    <p className="text-2xl font-bold text-red-700 mt-1">
+                      {formatCurrency(
+                        parseFloat(
+                          dashboardData.data.financial.total_expenditure
+                        )
+                      )}
+                    </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+                <ArrowDownRight className="h-5 w-5 text-red-600 opacity-50" />
+              </div>
+
+              <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-slate-100 to-slate-50 border-2 border-slate-200">
+                <div className="flex items-center gap-4">
+                  <BarChart3 className="h-6 w-6 text-slate-700" />
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">
+                      Net Profit
+                    </p>
+                    <p className="text-2xl font-bold text-slate-900 mt-1">
+                      {formatCurrency(
+                        parseFloat(dashboardData.data.financial.net_profit)
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Charts Section */}
-          {/* Income by Category Chart */}
-          {dashboardData.data.charts.income_by_category.length > 0 && (
-            <Card className="hover-elevate">
-              <CardHeader className="p-4">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
-                    <BarChart3 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+          {/* Period Breakdown */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+              <h3 className="text-lg font-semibold text-slate-900">
+                Current Period
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Monthly & yearly breakdown
+              </p>
+            </div>
+            <div className="p-6 space-y-6">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-semibold text-slate-700">
+                    This Month
+                  </span>
+                  <Calendar className="h-4 w-4 text-slate-400" />
+                </div>
+                <div className="space-y-3 pl-2 border-l-2 border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Income</span>
+                    <span className="text-base font-bold text-emerald-700">
+                      {formatCurrency(
+                        parseFloat(
+                          dashboardData.data.financial.income_this_month
+                        )
+                      )}
+                    </span>
                   </div>
-                  <div>
-                    <CardTitle className="text-base">Income by Category</CardTitle>
-                    <CardDescription>Breakdown of income sources</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Expenditure</span>
+                    <span className="text-base font-bold text-red-700">
+                      {formatCurrency(
+                        parseFloat(
+                          dashboardData.data.financial.expenditure_this_month
+                        )
+                      )}
+                    </span>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="p-4 pt-0 pb-4">
-                <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={dashboardData.data.charts.income_by_category.map((item) => ({
-                    category: item.category || 'Other',
-                    amount: parseFloat(item.amount || '0'),
-                  }))} margin={{ bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis 
-                      dataKey="category" 
-                      tick={{ fontSize: 9 }} 
-                      height={40}
-                      interval={0}
-                    />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip 
-                      formatter={(value: number) => formatCurrency(value)}
-                      contentStyle={{ fontSize: '12px', borderRadius: '6px' }}
-                    />
-                    <Bar dataKey="amount" fill="#8b5cf6" name="Amount" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
+              </div>
 
-      {/* Fallback for when no dashboard data is available */}
-      {!loading && !error && !dashboardData && (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-muted-foreground">No dashboard data available</div>
+              <div className="pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-semibold text-slate-700">
+                    This Year
+                  </span>
+                  <Calendar className="h-4 w-4 text-slate-400" />
+                </div>
+                <div className="space-y-3 pl-2 border-l-2 border-indigo-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Income</span>
+                    <span className="text-base font-bold text-emerald-700">
+                      {formatCurrency(
+                        parseFloat(
+                          dashboardData.data.financial.income_this_year
+                        )
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Expenditure</span>
+                    <span className="text-base font-bold text-red-700">
+                      {formatCurrency(
+                        parseFloat(
+                          dashboardData.data.financial.expenditure_this_year
+                        )
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+
+        {/* Academic & Operations */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-white">
+              <div className="flex items-center gap-2">
+                <Award className="h-5 w-5 text-purple-600" />
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Academic Performance
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Exams and pass rates
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between p-4 rounded-lg bg-purple-50/50 border border-purple-100">
+                <div className="flex items-center gap-3">
+                  <Award className="h-5 w-5 text-purple-600" />
+                  <div>
+                    <p className="text-sm text-slate-600">Total Exams</p>
+                    <p className="text-2xl font-bold text-slate-900 mt-1">
+                      {dashboardData.data.academic.total_exams}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-500">Upcoming</p>
+                  <p className="text-lg font-semibold text-purple-700">
+                    {dashboardData.data.academic.upcoming_exams}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">Completed</p>
+                  <p className="text-sm font-medium text-slate-600">
+                    {dashboardData.data.academic.completed_exams}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-4 rounded-lg bg-indigo-50/50 border border-indigo-100">
+                <div className="flex items-center gap-3">
+                  <TrendingUp className="h-5 w-5 text-indigo-600" />
+                  <div>
+                    <p className="text-sm text-slate-600">Average Pass Rate</p>
+                    <p className="text-2xl font-bold text-slate-900 mt-1">
+                      {parseFloat(
+                        dashboardData.data.academic.average_pass_rate
+                      ).toFixed(1)}
+                      %
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-teal-50 to-white">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-teal-600" />
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Attendance
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Student attendance metrics
+              </p>
+            </div>
+            <div className="p-6">
+              <div className="flex items-center justify-between p-6 rounded-lg bg-gradient-to-br from-teal-50 to-teal-100/50 border border-teal-200">
+                <div className="flex items-center gap-4">
+                  <TrendingUp className="h-8 w-8 text-teal-600" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">
+                      Average Rate
+                    </p>
+                    <p className="text-4xl font-bold text-teal-700 mt-2">
+                      {parseFloat(
+                        dashboardData.data.attendance.average_attendance_rate
+                      ).toFixed(1)}
+                      %
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Enrollments & Reservations */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-white">
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-blue-600" />
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Enrollments
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Enrollment status overview
+              </p>
+            </div>
+            <div className="p-6 space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors">
+                <span className="text-sm font-medium text-slate-700">
+                  Total
+                </span>
+                <span className="text-lg font-bold text-slate-900">
+                  {dashboardData.data.enrollments.total_enrollments}
+                </span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50/50 border border-emerald-100">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-emerald-600" />
+                  <span className="text-sm font-medium text-slate-700">
+                    Confirmed
+                  </span>
+                </div>
+                <span className="text-lg font-bold text-emerald-700">
+                  {dashboardData.data.enrollments.confirmed_enrollments}
+                </span>
+              </div>
+              {dashboardData.data.enrollments.pending_enrollments > 0 && (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50/50 border border-amber-100">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <span className="text-sm font-medium text-slate-700">
+                      Pending
+                    </span>
+                  </div>
+                  <span className="text-lg font-bold text-amber-700">
+                    {dashboardData.data.enrollments.pending_enrollments}
+                  </span>
+                </div>
+              )}
+              {dashboardData.data.enrollments.cancelled_enrollments > 0 && (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-red-50/50 border border-red-100">
+                  <span className="text-sm font-medium text-slate-700">
+                    Cancelled
+                  </span>
+                  <span className="text-lg font-bold text-red-700">
+                    {dashboardData.data.enrollments.cancelled_enrollments}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-white">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-purple-600" />
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Reservations
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Reservation status overview
+              </p>
+            </div>
+            <div className="p-6 space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors">
+                <span className="text-sm font-medium text-slate-700">
+                  Total
+                </span>
+                <span className="text-lg font-bold text-slate-900">
+                  {dashboardData.data.reservations.total_reservations}
+                </span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50/50 border border-emerald-100">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-emerald-600" />
+                  <span className="text-sm font-medium text-slate-700">
+                    Confirmed
+                  </span>
+                </div>
+                <span className="text-lg font-bold text-emerald-700">
+                  {dashboardData.data.reservations.confirmed_reservations}
+                </span>
+              </div>
+              {dashboardData.data.reservations.pending_reservations > 0 && (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50/50 border border-amber-100">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <span className="text-sm font-medium text-slate-700">
+                      Pending
+                    </span>
+                  </div>
+                  <span className="text-lg font-bold text-amber-700">
+                    {dashboardData.data.reservations.pending_reservations}
+                  </span>
+                </div>
+              )}
+              {dashboardData.data.reservations.cancelled_reservations > 0 && (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-red-50/50 border border-red-100">
+                  <span className="text-sm font-medium text-slate-700">
+                    Cancelled
+                  </span>
+                  <span className="text-lg font-bold text-red-700">
+                    {dashboardData.data.reservations.cancelled_reservations}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Charts Section */}
+        {dashboardData.data.charts.income_by_category.length > 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-slate-600" />
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Income by Category
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Breakdown of income sources
+              </p>
+            </div>
+            <div className="p-6">
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart
+                  data={dashboardData.data.charts.income_by_category.map(
+                    (item) => ({
+                      category: item.category || "Other",
+                      amount: parseFloat(item.amount || "0"),
+                    })
+                  )}
+                  margin={{ top: 10, right: 20, left: 10, bottom: 30 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#e5e7eb"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="category"
+                    tick={{ fontSize: 12, fill: "#64748b" }}
+                    tickLine={false}
+                    axisLine={false}
+                    height={60}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 12, fill: "#64748b" }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => {
+                      if (value >= 1000000)
+                        return `₹${(value / 1000000).toFixed(1)}M`;
+                      if (value >= 1000)
+                        return `₹${(value / 1000).toFixed(0)}K`;
+                      return `₹${value}`;
+                    }}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{
+                      fontSize: "12px",
+                      borderRadius: "8px",
+                      border: "1px solid #e5e7eb",
+                      backgroundColor: "white",
+                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                    }}
+                  />
+                  <Bar
+                    dataKey="amount"
+                    fill="#6366f1"
+                    radius={[6, 6, 0, 0]}
+                    name="Amount"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* Income Trend Chart */}
+        {dashboardData.data.charts.income_trend.length > 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-slate-600" />
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Income & Expenditure Trend
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Monthly financial trends
+              </p>
+            </div>
+            <div className="p-6">
+              <ResponsiveContainer width="100%" height={320}>
+                <LineChart
+                  data={dashboardData.data.charts.income_trend.map((item) => ({
+                    month: item.month?.split(" ")[0] || "",
+                    income: parseFloat(item.income || "0"),
+                    expenditure: parseFloat(item.expenditure || "0"),
+                  }))}
+                  margin={{ top: 10, right: 20, left: 10, bottom: 10 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#e5e7eb"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 12, fill: "#64748b" }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 12, fill: "#64748b" }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => {
+                      if (value >= 1000000)
+                        return `₹${(value / 1000000).toFixed(1)}M`;
+                      if (value >= 1000)
+                        return `₹${(value / 1000).toFixed(0)}K`;
+                      return `₹${value}`;
+                    }}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{
+                      fontSize: "12px",
+                      borderRadius: "8px",
+                      border: "1px solid #e5e7eb",
+                      backgroundColor: "white",
+                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="income"
+                    stroke="#6366f1"
+                    strokeWidth={3}
+                    name="Income"
+                    dot={false}
+                    activeDot={{ r: 5, fill: "#6366f1" }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="expenditure"
+                    stroke="#94a3b8"
+                    strokeWidth={3}
+                    name="Expenditure"
+                    dot={false}
+                    activeDot={{ r: 5, fill: "#94a3b8" }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </div>
     </DashboardContainer>
   );
 };

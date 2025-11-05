@@ -36,6 +36,7 @@ export const EnrollmentViewDialog = ({
       icon={<GraduationCap className="h-5 w-5" />}
       iconColor="blue"
       maxWidth="2xl"
+      showCloseButton={false}
       sections={enrollment ? [
         {
           title: "Student Information",

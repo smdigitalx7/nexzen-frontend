@@ -14,7 +14,7 @@ import {
 import RouteFormDialog from "./RouteFormDialog";
 import RouteDetailsDialog from "./RouteDetailsDialog";
 import AssignDriverDialog from "./AssignDriverDialog";
-import { useAssignDriverToRoute, useRemoveDriverFromRoute } from "@/lib/hooks/general/useTransport";
+import { useAssignDriverToRoute, useRemoveDriverFromRoute, useBusRoute } from "@/lib/hooks/general/useTransport";
 import type { BusRouteRead, BusRouteCreate, BusRouteUpdate } from "@/lib/types/general/transport";
 import type { UseMutationResult } from "@tanstack/react-query";
 
@@ -52,6 +52,7 @@ const BusRoutesTab = ({
   const [isEditingRoute, setIsEditingRoute] = useState(false);
   const [routeEditingId, setRouteEditingId] = useState<number | null>(null);
   const [viewRouteId, setViewRouteId] = useState<number | null>(null);
+  const [viewRouteDataFallback, setViewRouteDataFallback] = useState<BusRouteRead | null>(null);
   const [confirmRouteDeleteId, setConfirmRouteDeleteId] = useState<number | null>(null);
   const [isAssignDriverOpen, setIsAssignDriverOpen] = useState(false);
   const [assignDriverRouteId, setAssignDriverRouteId] = useState<number | null>(null);
@@ -60,19 +61,70 @@ const BusRoutesTab = ({
   const assignDriverMutation = useAssignDriverToRoute();
   const removeDriverMutation = useRemoveDriverFromRoute();
 
-  const handleViewRoute = (route: BusRouteRead) => {
-    setViewRouteId(route.bus_route_id);
+  // Fetch route details when viewing
+  const { data: viewRouteData, isLoading: isViewRouteLoading, error: viewRouteError } = useBusRoute(viewRouteId ?? 0);
+  
+  // Helper function to find route by ID (checks both id and bus_route_id)
+  const findRouteById = (id: number | null) => {
+    if (!id) return null;
+    return routesData.find(route => route.bus_route_id === id) || 
+           busRoutes.find((route: any) => (route.bus_route_id === id || route.id === id)) ||
+           null;
+  };
+  
+  // Use fallback route data (from clicked route) or route from list while loading detailed data
+  // Ensure we always have a route with bus_route_id
+  const finalRouteData = viewRouteData || viewRouteDataFallback || findRouteById(viewRouteId);
+  
+  // Ensure finalRouteData has bus_route_id, if not try to get it from viewRouteId or id field
+  const finalRouteDataWithId = finalRouteData && finalRouteData.bus_route_id 
+    ? finalRouteData 
+    : (viewRouteId && finalRouteData 
+        ? { ...finalRouteData, bus_route_id: viewRouteId } 
+        : (finalRouteData && (finalRouteData as any).id
+            ? { ...finalRouteData, bus_route_id: (finalRouteData as any).id }
+            : finalRouteData));
+  
+  // Ensure we have data or show loading state
+  const isActuallyLoading = isViewRouteLoading && !viewRouteDataFallback && !finalRouteData;
+
+  // Helper function to get route ID from either id or bus_route_id field
+  const getRouteId = (route: BusRouteRead | any): number | null => {
+    return route.bus_route_id ?? route.id ?? null;
+  };
+
+  const handleViewRoute = (route: BusRouteRead | any) => {
+    // Get route ID from either id or bus_route_id field
+    const routeId = getRouteId(route);
+    if (!routeId) {
+      console.error("Cannot view route: route ID is missing", route);
+      return;
+    }
+    setViewRouteId(routeId);
+    // Ensure the route object has bus_route_id for consistency
+    const routeWithId = route.bus_route_id ? route : { ...route, bus_route_id: routeId };
+    setViewRouteDataFallback(routeWithId as BusRouteRead);
     setIsViewRouteOpen(true);
   };
 
-  const handleEditRoute = (route: BusRouteRead) => {
+  const handleEditRoute = (route: BusRouteRead | any) => {
+    const routeId = getRouteId(route);
+    if (!routeId) {
+      console.error("Cannot edit route: route ID is missing", route);
+      return;
+    }
     setIsEditingRoute(true);
-    setRouteEditingId(route.bus_route_id);
+    setRouteEditingId(routeId);
     setIsAddRouteOpen(true);
   };
 
-  const handleDeleteRoute = (route: BusRouteRead) => {
-    setConfirmRouteDeleteId(route.bus_route_id);
+  const handleDeleteRoute = (route: BusRouteRead | any) => {
+    const routeId = getRouteId(route);
+    if (!routeId) {
+      console.error("Cannot delete route: route ID is missing", route);
+      return;
+    }
+    setConfirmRouteDeleteId(routeId);
   };
 
   const columns: ColumnDef<BusRouteRead>[] = useMemo(() => [
@@ -91,12 +143,6 @@ const BusRoutesTab = ({
           </div>
         </div>
       ),
-    },
-    {
-      id: 'route_no',
-      accessorKey: 'route_no',
-      header: 'Route Number',
-      cell: ({ row }) => row.original.route_no || '-',
     },
     {
       id: 'via',
@@ -120,12 +166,6 @@ const BusRoutesTab = ({
       ),
     },
     {
-      id: 'vehicle_capacity',
-      accessorKey: 'vehicle_capacity',
-      header: 'Vehicle Capacity',
-      cell: ({ row }) => row.original.vehicle_capacity,
-    },
-    {
       id: 'distance_km',
       accessorKey: 'distance_km',
       header: 'Distance (km)',
@@ -141,12 +181,6 @@ const BusRoutesTab = ({
           </div>
         </div>
       ),
-    },
-    {
-      id: 'estimated_duration',
-      accessorKey: 'estimated_duration',
-      header: 'Duration (min)',
-      cell: ({ row }) => row.original.estimated_duration,
     },
     {
       id: 'students_count',
@@ -186,8 +220,6 @@ const BusRoutesTab = ({
       onClick: (row: BusRouteRead) => handleDeleteRoute(row)
     }
   ], []);
-
-  const viewRouteData = viewRouteId ? routesData.find(route => route.bus_route_id === viewRouteId) : null;
 
   const handleAddRoute = (data: { vehicle_number: string; vehicle_capacity: string; registration_number: string; route_no: string; route_name: string; via: string; start_location: string; total_distance: string; estimated_duration: string; is_active: boolean }) => {
     const payload: BusRouteCreate = {
@@ -245,15 +277,44 @@ const BusRoutesTab = ({
   };
   
   const handleAssignDriver = () => {
+    // Use viewRouteId or fallback to finalRouteData route ID
+    const routeId = viewRouteId || finalRouteDataWithId?.bus_route_id;
+    if (!routeId) {
+      console.error("Cannot assign driver: route ID is missing", {
+        viewRouteId,
+        finalRouteDataWithId,
+        hasBusRouteId: !!finalRouteDataWithId?.bus_route_id
+      });
+      return;
+    }
     setIsAssignDriverOpen(true);
-    setAssignDriverRouteId(viewRouteId);
+    setAssignDriverRouteId(routeId);
   };
   
-  const handleRemoveDriver = () => {
-    if (!viewRouteId) return;
+  const handleRemoveDriver = (routeId: number) => {
+    if (!routeId) {
+      console.error("Cannot remove driver: routeId is null or invalid");
+      return;
+    }
     
-    removeDriverMutation.mutate(viewRouteId);
-    // Toast handled by mutation hook
+    // Ensure viewRouteId is set before removing
+    if (!viewRouteId) {
+      setViewRouteId(routeId);
+    }
+    
+    console.log("Removing driver from route:", routeId);
+    removeDriverMutation.mutate(routeId, {
+      onSuccess: (updatedRoute) => {
+        console.log("Driver removed successfully, updated route:", updatedRoute);
+        // Update the fallback data with the response from API
+        if (updatedRoute) {
+          setViewRouteDataFallback(updatedRoute);
+        }
+      },
+      onError: (error) => {
+        console.error("Error removing driver:", error);
+      },
+    });
   };
   
   const handleAssignDriverConfirm = (driverEmployeeId: number) => {
@@ -262,9 +323,17 @@ const BusRoutesTab = ({
     assignDriverMutation.mutate(
       { id: assignDriverRouteId, driverEmployeeId },
       {
-        onSuccess: () => {
+        onSuccess: (updatedRoute) => {
           setIsAssignDriverOpen(false);
           setAssignDriverRouteId(null);
+          // Update the fallback data with the response from API
+          if (updatedRoute) {
+            setViewRouteDataFallback(updatedRoute);
+          }
+          // Ensure viewRouteId is set if it wasn't
+          if (!viewRouteId && assignDriverRouteId) {
+            setViewRouteId(assignDriverRouteId);
+          }
           // Toast handled by mutation hook
         },
       }
@@ -287,9 +356,10 @@ const BusRoutesTab = ({
           isEditing={isEditingRoute}
           editingRoute={isEditingRoute && routeEditingId ? 
             (() => {
-              const route = routesData.find(r => r.bus_route_id === routeEditingId) || busRoutes.find(r => r.bus_route_id === routeEditingId);
+              const route = routesData.find(r => r.bus_route_id === routeEditingId) || 
+                           busRoutes.find((r: any) => (r.bus_route_id === routeEditingId || r.id === routeEditingId));
               return route ? { 
-                id: route.bus_route_id,
+                id: route.bus_route_id ?? (route as any).id,
                 route_number: route.route_no ?? undefined,
                 route_no: route.route_no ?? undefined,
                 route_name: route.route_name ?? undefined,
@@ -330,14 +400,16 @@ const BusRoutesTab = ({
         onClose={() => {
           setIsViewRouteOpen(false);
           setViewRouteId(null);
+          setViewRouteDataFallback(null);
         }}
-        routeData={viewRouteData ?? null}
-        isLoading={isLoading}
-        error={error}
+        routeData={finalRouteDataWithId ?? null}
+        isLoading={isActuallyLoading}
+        error={viewRouteError}
         onAssignDriver={handleAssignDriver}
         onRemoveDriver={handleRemoveDriver}
         isAssigning={assignDriverMutation.isPending}
         isRemoving={removeDriverMutation.isPending}
+        routeId={viewRouteId ?? finalRouteDataWithId?.bus_route_id ?? null}
       />
       
       {/* Assign Driver Dialog */}

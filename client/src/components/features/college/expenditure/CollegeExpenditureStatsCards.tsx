@@ -14,6 +14,7 @@ import { StatsCard } from "@/components/shared/dashboard/StatsCard";
 import { DashboardGrid } from "@/components/shared/dashboard/DashboardGrid";
 import { CollegeExpenditureDashboardStats } from "@/lib/types/college/expenditure";
 import { formatCurrency } from "@/lib/utils";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 
 interface CollegeExpenditureStatsCardsProps {
   stats: CollegeExpenditureDashboardStats;

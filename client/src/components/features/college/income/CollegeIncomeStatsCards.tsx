@@ -13,6 +13,7 @@ import { StatsCard } from "@/components/shared/dashboard/StatsCard";
 import { DashboardGrid } from "@/components/shared/dashboard/DashboardGrid";
 import { CollegeIncomeDashboardStats } from "@/lib/types/college/income";
 import { formatCurrency } from "@/lib/utils";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 
 interface CollegeIncomeStatsCardsProps {
   stats: CollegeIncomeDashboardStats;

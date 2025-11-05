@@ -341,7 +341,7 @@ function EnhancedDataTableComponent<TData>({
                   className={cn(
                     showActionLabels
                       ? "h-5 px-2.5 py-0.5 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-sm"
-                      : "h-5 w-5 p-0 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-sm",
+                      : "h-5 w-5 p-4 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-sm",
                     index > 0 && "ml-2",
                     button.className
                   )}

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TransportService } from '@/lib/services/general/transport.service';
 import type {
   BusRouteCreate,
@@ -92,23 +92,40 @@ export const useDeleteBusRoute = () => {
 
 export const useAssignDriverToRoute = () => {
   const { invalidateEntity } = useGlobalRefetch();
+  const queryClient = useQueryClient();
   
   return useMutationWithSuccessToast({
     mutationFn: ({ id, driverEmployeeId }: { id: number; driverEmployeeId: number }) =>
       TransportService.assignDriverToRoute(id, driverEmployeeId),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       invalidateEntity("transport");
+      // Also invalidate the specific route query to refresh the dialog
+      queryClient.invalidateQueries({ queryKey: transportKeys.route(variables.id) });
     },
   }, "Driver assigned successfully");
 };
 
 export const useRemoveDriverFromRoute = () => {
   const { invalidateEntity } = useGlobalRefetch();
+  const queryClient = useQueryClient();
   
   return useMutationWithSuccessToast({
-    mutationFn: (id: number) => TransportService.removeDriverFromRoute(id),
-    onSuccess: () => {
+    mutationFn: (id: number) => {
+      console.log("Calling removeDriverFromRoute with id:", id);
+      return TransportService.removeDriverFromRoute(id);
+    },
+    onSuccess: (data, variables) => {
+      console.log("Remove driver success, data:", data, "variables:", variables);
       invalidateEntity("transport");
+      // Invalidate the specific route query to refresh the dialog
+      queryClient.invalidateQueries({ queryKey: transportKeys.route(variables) });
+      // Also set the query data directly with the response
+      if (data) {
+        queryClient.setQueryData(transportKeys.route(variables), data);
+      }
+    },
+    onError: (error, variables) => {
+      console.error("Remove driver error:", error, "variables:", variables);
     },
   }, "Driver removed successfully");
 };

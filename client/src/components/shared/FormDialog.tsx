@@ -26,6 +26,7 @@ interface FormDialogProps {
   onCancel?: () => void;
   saveText?: string;
   cancelText?: string;
+  showCancelButton?: boolean;
   saveVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost';
   disabled?: boolean;
   errors?: Record<string, string>;
@@ -56,6 +57,7 @@ export const FormDialog: React.FC<FormDialogProps> = ({
   onCancel,
   saveText = 'Save',
   cancelText = 'Cancel',
+  showCancelButton = true,
   saveVariant = 'default',
   disabled = false,
   errors = {},
@@ -164,14 +166,16 @@ export const FormDialog: React.FC<FormDialogProps> = ({
         
         {showFooter && (
           <DialogFooter className="gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCancel}
-              disabled={isLoading}
-            >
-              {cancelText}
-            </Button>
+            {showCancelButton && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+                disabled={isLoading}
+              >
+                {cancelText}
+              </Button>
+            )}
             {onSave && (
               <Button
                 type="button"
