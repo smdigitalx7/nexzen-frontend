@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { useUpdateCollegeExpenditure, useDeleteCollegeExpenditure, useCollegeExpenditure } from "@/lib/hooks/college/use-college-expenditure";
+import { useUpdateCollegeExpenditure, useDeleteCollegeExpenditure, useCollegeExpenditure } from "@/lib/hooks/college";
 import type { CollegeExpenditureRead } from "@/lib/types/college";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { ViewExpenditureDialog } from "./ViewExpenditureDialog";
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { createTextColumn, createCurrencyColumn } from "@/lib/utils/columnFactories";
+import { createTextColumn, createCurrencyColumn } from "@/lib/utils/factory/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface ExpenditureTableProps {
@@ -302,7 +302,7 @@ export const ExpenditureTable = ({
         }}
         expenditure={viewedExpenditure ?? null}
         isLoading={viewLoading}
-        error={viewError as Error | null}
+        error={viewError}
       />
     </motion.div>
   );

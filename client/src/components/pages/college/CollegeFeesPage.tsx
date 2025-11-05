@@ -1,4 +1,4 @@
-import FeesManagement from "@/components/features/college/fees/FeesManagement";
+import { FeesManagement } from "@/components/features/college";
 
 const CollegeFeesPage = () => {
   return <FeesManagement />;

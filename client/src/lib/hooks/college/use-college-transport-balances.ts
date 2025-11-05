@@ -10,14 +10,14 @@ import { collegeKeys } from "./query-keys";
 export function useCollegeStudentTransportPaymentSummary(params?: CollegeStudentTransportPaymentSummaryParams) {
   return useQuery({
     queryKey: [...collegeKeys.transport.root(), "payment-summary", params ?? {}],
-    queryFn: () => CollegeTransportBalancesService.getStudentTransportPaymentSummary(params) as Promise<CollegeStudentTransportPaymentSummaryListResponse>,
+    queryFn: () => CollegeTransportBalancesService.getStudentTransportPaymentSummary(params),
   });
 }
 
 export function useCollegeStudentTransportPaymentSummaryByAdmissionNo(admission_no: string | null | undefined) {
   return useQuery({
     queryKey: [...collegeKeys.transport.root(), "payment-summary", "by-admission", admission_no ?? "nil"],
-    queryFn: () => CollegeTransportBalancesService.getStudentTransportPaymentSummaryByAdmissionNo(admission_no!) as Promise<CollegeStudentTransportPaymentSummary>,
+    queryFn: () => CollegeTransportBalancesService.getStudentTransportPaymentSummaryByAdmissionNo(admission_no!),
     enabled: !!admission_no && admission_no.length > 0,
   });
 }

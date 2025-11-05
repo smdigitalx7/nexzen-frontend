@@ -18,7 +18,7 @@ import {
   createTextColumn,
   createBadgeColumn,
   createDateColumn
-} from "@/lib/utils/columnFactories.tsx";
+} from "@/lib/utils/factory/columnFactories";
 import { useUsersWithRolesAndBranches, useCreateUser, useUpdateUser, useDeleteUser, useUserDashboard, useRevokeUserAccess, useCreateUserAccess, useUser } from '@/lib/hooks/general/useUsers';
 import { useRoles } from '@/lib/hooks/general/useRoles';
 import { useBranches } from '@/lib/hooks/general/useBranches';
@@ -32,7 +32,7 @@ const UserManagement = () => {
   const { data: roles = [], isLoading: rolesLoading } = useRoles();
   const { data: branches = [], isLoading: branchesLoading } = useBranches();
   const { data: dashboardStats, isLoading: dashboardLoading } = useUserDashboard();
-  const branchesArray = branches as BranchRead[];
+  const branchesArray = branches;
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();

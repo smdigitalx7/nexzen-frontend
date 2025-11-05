@@ -5,7 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn,
   createDateColumn
-} from "@/lib/utils/columnFactories.tsx";
+} from "@/lib/utils/factory/columnFactories";
 import { EmployeeLeaveRead } from "@/lib/types/general/employee-leave";
 
 interface LeavesTableProps {

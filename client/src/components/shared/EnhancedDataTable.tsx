@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, memo, useCallback } from "react";
+import { useState, useMemo, useEffect, memo, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   ColumnDef,
@@ -11,6 +11,7 @@ import {
   useReactTable,
   ColumnFiltersState,
 } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   ArrowUpDown,
   Search,
@@ -19,7 +20,6 @@ import {
   ChevronRight,
   Download,
   Plus,
-  Loader2,
   X,
   Clock,
   Eye,
@@ -28,7 +28,8 @@ import {
   Shield,
   MoreHorizontal,
 } from "lucide-react";
-import { LoadingStates } from "@/components/ui/loading";
+import { LoadingStates, ButtonLoading } from "@/components/ui/loading";
+import { highlightText as sanitizeHighlight } from "@/lib/utils/security/sanitization";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -84,7 +85,7 @@ interface ActionButton<TData = any> {
  *   onClick: (row) => handleView(row)
  * }
  */
-interface ActionButtonGroup<TData = any> {
+interface ActionButtonGroup<TData = unknown> {
   type: "view" | "edit" | "delete" | "custom";
   onClick: (row: TData) => void;
   show?: (row: TData) => boolean;
@@ -132,7 +133,7 @@ interface EnhancedDataTableProps<TData> {
   debounceDelay?: number;
   highlightSearchResults?: boolean;
   searchSuggestions?: string[];
-  customGlobalFilterFn?: (row: any, columnId: string, value: string) => boolean;
+  customGlobalFilterFn?: <TData>(row: TData, columnId: string, value: string) => boolean;
   // Action buttons
   actionButtons?: ActionButton<TData>[];
   actionButtonGroups?: ActionButtonGroup<TData>[];
@@ -155,7 +156,7 @@ function EnhancedDataTableComponent<TData>({
   addButtonText = "Add New",
   addButtonVariant = "default",
   filters = [],
-  enableVirtualization = false,
+  enableVirtualization = true,
   virtualThreshold = 100,
   loading = false,
   showSearch = true,
@@ -186,6 +187,10 @@ function EnhancedDataTableComponent<TData>({
   const [isSearching, setIsSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
+
+  // Refs for virtualization
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const tableBodyRef = useRef<HTMLTableSectionElement>(null);
 
   // Debounce search term for better performance
   useEffect(() => {
@@ -242,16 +247,11 @@ function EnhancedDataTableComponent<TData>({
     [addToSearchHistory]
   );
 
-  // Highlight search terms in text
+  // Highlight search terms in text (sanitized)
   const highlightText = useCallback(
     (text: string, searchTerm: string) => {
       if (!searchTerm || !highlightSearchResults) return text;
-
-      const regex = new RegExp(`(${searchTerm})`, "gi");
-      return text.replace(
-        regex,
-        '<mark class="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">$1</mark>'
-      );
+      return sanitizeHighlight(text, searchTerm);
     },
     [highlightSearchResults]
   );
@@ -347,6 +347,7 @@ function EnhancedDataTableComponent<TData>({
                     button.className
                   )}
                   title={button.label}
+                  aria-label={button.label}
                 >
                   <Icon className="h-3 w-3" />
                   {showActionLabels && (
@@ -471,6 +472,18 @@ function EnhancedDataTableComponent<TData>({
       globalFilter: enableDebounce ? debouncedGlobalFilter : globalFilter,
       pagination,
     },
+  });
+
+  // Virtualization setup
+  const rows = table.getRowModel().rows;
+  const shouldVirtualize = enableVirtualization && rows.length > virtualThreshold;
+  
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => tableContainerRef.current,
+    estimateSize: () => 60, // Estimated row height
+    overscan: 10, // Number of rows to render outside visible area
+    enabled: shouldVirtualize,
   });
 
   const truncateText = useCallback((text: string, maxLength: number = 20) => {
@@ -898,22 +911,22 @@ function EnhancedDataTableComponent<TData>({
       console.error("Export failed:", error);
       // Fallback to CSV if Excel export fails
       const exportableColumns = columns.filter((col: any) => {
-        const hasAccessorKey = !!(col as any).accessorKey;
+        const hasAccessorKey = !!(col).accessorKey;
         const isActionColumn =
           col.id?.toLowerCase().includes("action") ||
           col.id?.toLowerCase().includes("actions") ||
-          (col as any).header?.toString().toLowerCase().includes("action");
+          (col).header?.toString().toLowerCase().includes("action");
         return hasAccessorKey && !isActionColumn;
       });
 
       const csvContent = [
         exportableColumns
-          .map((col: any) => (col as any).header || (col as any).accessorKey)
+          .map((col: any) => (col).header || (col).accessorKey)
           .join(","),
         ...memoizedFilteredData.map((row) =>
           exportableColumns
             .map((col: any) => {
-              const key = (col as any).accessorKey;
+              const key = (col).accessorKey;
               if (key) {
                 const value = (row as any)[key];
                 if (value === null || value === undefined) return "";
@@ -974,7 +987,9 @@ function EnhancedDataTableComponent<TData>({
                   {/* Search Icon */}
                   <div className="flex-shrink-0 mr-2">
                     {isSearching ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                      <div className="text-blue-500">
+                        <ButtonLoading size="sm" />
+                      </div>
                     ) : (
                       <Search className="h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors duration-200" />
                     )}
@@ -1130,7 +1145,7 @@ function EnhancedDataTableComponent<TData>({
               className=""
             >
               {isExporting ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <span className="mr-2"><ButtonLoading size="sm" /></span>
               ) : (
                 <Download className="h-4 w-4 mr-2" />
               )}
@@ -1195,7 +1210,15 @@ function EnhancedDataTableComponent<TData>({
 
       {/* Table */}
       <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
-        <div className="overflow-x-auto scrollbar-hide" role="region" aria-label="Data table">
+        <div 
+          ref={tableContainerRef}
+          className={cn(
+            "overflow-x-auto scrollbar-hide",
+            shouldVirtualize && "overflow-y-auto max-h-[600px]"
+          )}
+          role="region" 
+          aria-label="Data table"
+        >
           <Table className="w-full" role="table">
             <TableHeader className="bg-slate-50 dark:bg-slate-800">
               {table.getHeaderGroups().map((headerGroup) => (
@@ -1263,49 +1286,119 @@ function EnhancedDataTableComponent<TData>({
                 </TableRow>
               ))}
             </TableHeader>
-            <TableBody className="bg-white dark:bg-slate-900">
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row, index) => (
-                  <motion.tr
-                    key={row.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2, delay: index * 0.02 }}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 border-b border-slate-100 dark:border-slate-800 group"
-                    data-state={row.getIsSelected() && "selected"}
-                    data-testid={`row-${row.id}`}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        className={cn(
-                          "py-4 text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-200",
-                          cell.column.getIndex() === 0 ? "pl-6 pr-3" : "px-3"
-                        )}
+            <TableBody 
+              ref={tableBodyRef}
+              className="bg-white dark:bg-slate-900"
+              style={shouldVirtualize ? {
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                position: 'relative',
+              } : undefined}
+            >
+              {rows?.length ? (
+                shouldVirtualize ? (
+                  // Virtualized rendering
+                  rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const row = rows[virtualRow.index];
+                    return (
+                      <motion.tr
+                        key={row.id}
+                        data-index={virtualRow.index}
+                        ref={(node) => {
+                          if (node) {
+                            rowVirtualizer.measureElement(node);
+                          }
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: `${virtualRow.size}px`,
+                          transform: `translateY(${virtualRow.start}px)`,
+                        }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.1 }}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 border-b border-slate-100 dark:border-slate-800 group"
+                        data-state={row.getIsSelected() && "selected"}
+                        data-testid={`row-${row.id}`}
                       >
-                        <div
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell
+                            key={cell.id}
+                            className={cn(
+                              "py-4 text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-200",
+                              cell.column.getIndex() === 0 ? "pl-6 pr-3" : "px-3"
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                "max-w-[400px]",
+                                // Only truncate if the cell content is text-based
+                                (() => {
+                                  const value = cell.getValue();
+                                  return typeof value === "string" &&
+                                    value &&
+                                    value.length > 50
+                                    ? "truncate"
+                                    : "break-words";
+                                })()
+                              )}
+                            >
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </div>
+                          </TableCell>
+                        ))}
+                      </motion.tr>
+                    );
+                  })
+                ) : (
+                  // Non-virtualized rendering (for small lists)
+                  rows.map((row, index) => (
+                    <motion.tr
+                      key={row.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: index * 0.02 }}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 border-b border-slate-100 dark:border-slate-800 group"
+                      data-state={row.getIsSelected() && "selected"}
+                      data-testid={`row-${row.id}`}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell
+                          key={cell.id}
                           className={cn(
-                            "max-w-[400px]",
-                            // Only truncate if the cell content is text-based
-                            (() => {
-                              const value = cell.getValue();
-                              return typeof value === "string" &&
-                                value &&
-                                value.length > 50
-                                ? "truncate"
-                                : "break-words";
-                            })()
+                            "py-4 text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-200",
+                            cell.column.getIndex() === 0 ? "pl-6 pr-3" : "px-3"
                           )}
                         >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </div>
-                      </TableCell>
-                    ))}
-                  </motion.tr>
-                ))
+                          <div
+                            className={cn(
+                              "max-w-[400px]",
+                              // Only truncate if the cell content is text-based
+                              (() => {
+                                const value = cell.getValue();
+                                return typeof value === "string" &&
+                                  value &&
+                                  value.length > 50
+                                  ? "truncate"
+                                  : "break-words";
+                              })()
+                            )}
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </div>
+                        </TableCell>
+                      ))}
+                    </motion.tr>
+                  ))
+                )
               ) : (
                 <TableRow>
                   <TableCell

@@ -5,7 +5,7 @@
 import React, { memo, Suspense, lazy, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { createOptimizedLazyComponent, optimizeImports } from '@/lib/utils/bundleOptimizer';
+import { createOptimizedLazyComponent, optimizeImports } from '@/lib/utils/performance/bundleOptimizer';
 
 // Lazy load heavy components with optimization
 const HeavyChart = createOptimizedLazyComponent(

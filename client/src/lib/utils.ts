@@ -5,5 +5,5 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Re-export formatting utilities
-export * from './utils/formatting';
+// Re-export all utilities from the utils directory for backward compatibility
+export * from './utils/index';

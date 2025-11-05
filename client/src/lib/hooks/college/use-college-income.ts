@@ -7,14 +7,14 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useCollegeIncomeList(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string }) {
   return useQuery({
     queryKey: collegeKeys.income.list(params),
-    queryFn: () => CollegeIncomeService.list(params) as Promise<CollegeIncomeRead[]>,
+    queryFn: () => CollegeIncomeService.list(params),
   });
 }
 
 export function useCollegeIncome(incomeId: number | null | undefined) {
   return useQuery({
     queryKey: typeof incomeId === "number" ? collegeKeys.income.detail(incomeId) : [...collegeKeys.income.root(), "detail", "nil"],
-    queryFn: () => CollegeIncomeService.getById(incomeId as number) as Promise<CollegeIncomeRead>,
+    queryFn: () => CollegeIncomeService.getById(incomeId as number),
     enabled: typeof incomeId === "number" && incomeId > 0,
   });
 }
@@ -23,7 +23,7 @@ export function useCreateCollegeIncomeByAdmission() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (input: { admission_no: string; payload: CollegeIncomeCreate }) =>
-      CollegeIncomeService.createByAdmission(input.admission_no, input.payload) as Promise<CollegeIncomeRead>,
+      CollegeIncomeService.createByAdmission(input.admission_no, input.payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.income.root() });
     },
@@ -33,7 +33,7 @@ export function useCreateCollegeIncomeByAdmission() {
 export function useUpdateCollegeIncome(incomeId: number) {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeIncomeUpdate) => CollegeIncomeService.update(incomeId, payload) as Promise<CollegeIncomeRead>,
+    mutationFn: (payload: CollegeIncomeUpdate) => CollegeIncomeService.update(incomeId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.income.detail(incomeId) });
       qc.invalidateQueries({ queryKey: collegeKeys.income.root() });
@@ -44,7 +44,7 @@ export function useUpdateCollegeIncome(incomeId: number) {
 export function useCreateCollegeIncomeByReservation() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeIncomeCreateReservation) => CollegeIncomeService.createByReservation(payload) as Promise<CollegeIncomeRead>,
+    mutationFn: (payload: CollegeIncomeCreateReservation) => CollegeIncomeService.createByReservation(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.income.root() });
     },
@@ -68,7 +68,7 @@ export function useCollegeIncomeRecent(limit?: number) {
 export function useCollegeFinanceReport(params?: CollegeFinanceReportParams) {
   return useQuery({
     queryKey: [...collegeKeys.income.root(), "finance-report", params],
-    queryFn: () => CollegeIncomeService.getFinanceReport(params) as Promise<CollegeFinanceReport[]>,
+    queryFn: () => CollegeIncomeService.getFinanceReport(params),
     enabled: !!params && !!params.start_date && !!params.end_date,
   });
 }

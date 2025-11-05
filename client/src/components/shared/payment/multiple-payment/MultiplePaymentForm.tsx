@@ -299,7 +299,7 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
           let incomeId: number | null = null;
           
           // Type assertion to handle the response object
-          const result = paymentResult as any;
+          const result = paymentResult;
           
           // Check for income_id in different possible locations
           if (result.data && typeof result.data === 'object') {

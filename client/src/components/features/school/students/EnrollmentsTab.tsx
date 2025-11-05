@@ -15,10 +15,10 @@ import {
   useCreateSchoolEnrollment,
   useUpdateSchoolEnrollment,
   useDeleteSchoolEnrollment,
-} from '@/lib/hooks/school/use-school-enrollments';
-import { useSchoolClasses } from '@/lib/hooks/school/use-school-dropdowns';
-import { useSchoolSections } from '@/lib/hooks/school/use-school-dropdowns';
-import { useSchoolStudentsList } from '@/lib/hooks/school/use-school-students';
+  useSchoolStudentsList,
+} from '@/lib/hooks/school';
+// Note: useSchoolClasses, useSchoolSections from dropdowns (naming conflict)
+import { useSchoolClasses, useSchoolSections } from '@/lib/hooks/school/use-school-dropdowns';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SchoolEnrollmentCreate, SchoolEnrollmentUpdate, SchoolEnrollmentRead } from '@/lib/types/school';
 

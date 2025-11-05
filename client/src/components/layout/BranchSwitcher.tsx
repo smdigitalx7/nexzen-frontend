@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { GraduationCap, School, ChevronDown, Loader2 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { ChevronDown } from "lucide-react";
+import { ButtonLoading } from "@/components/ui/loading";
 import { useLocation } from "wouter";
 
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
-import { getEquivalentUrl } from "@/lib/utils/urlMapping";
+import { getEquivalentUrl } from "@/lib/utils/navigation";
 
 const BranchSwitcher = () => {
   const { currentBranch, branches, switchBranch, isBranchSwitching } =
     useAuthStore();
-  const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
   const handleBranchSwitch = useCallback(
@@ -90,7 +89,9 @@ const BranchSwitcher = () => {
             </div>
           </div>
           {isBranchSwitching ? (
-            <Loader2 className="h-4 w-4 text-slate-400 animate-spin" />
+            <div className="text-slate-400">
+              <ButtonLoading size="sm" />
+            </div>
           ) : (
             <ChevronDown className="h-4 w-4 text-slate-400" />
           )}

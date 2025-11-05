@@ -8,12 +8,9 @@ import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { useSchoolAttendance, useUpdateSchoolAttendance, useDeleteSchoolAttendance } from '@/lib/hooks/school/use-school-attendance';
+import { useSchoolAttendance, useUpdateSchoolAttendance, useDeleteSchoolAttendance, useSchoolAttendanceAllStudents, useSchoolClasses, useSchoolSectionsByClass } from '@/lib/hooks/school';
 import { useToast } from '@/hooks/use-toast';
-import { useSchoolClasses } from '@/lib/hooks/school/use-school-classes';
-import { useSchoolSectionsByClass } from '@/lib/hooks/school/use-school-sections';
-import { useSchoolAttendanceAllStudents } from '@/lib/hooks/school/use-school-attendance';
-import { SchoolStudentAttendanceService } from '@/lib/services/school/student-attendance.service';
+import { SchoolStudentAttendanceService } from '@/lib/services/school';
 import type { SchoolStudentAttendanceMonthlyGroupedResponse, SchoolClassRead, SchoolSectionRead } from '@/lib/types/school';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -109,7 +106,7 @@ export default function AttendanceView() {
             <SelectTrigger className="w-[160px]"><SelectValue placeholder="Section" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
-              {(sections as SchoolSectionRead[]).map((s: SchoolSectionRead) => (<SelectItem key={s.section_id} value={String(s.section_id)}>{s.section_name}</SelectItem>))}
+              {(sections).map((s: SchoolSectionRead) => (<SelectItem key={s.section_id} value={String(s.section_id)}>{s.section_name}</SelectItem>))}
             </SelectContent>
           </Select>
           <Select value={month ? String(month) : ''} onValueChange={(v) => { const m = parseInt(v); const d = selectedDate || new Date(); setSelectedDate(new Date(d.getFullYear(), m - 1, d.getDate())); }}>

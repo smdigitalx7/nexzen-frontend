@@ -44,7 +44,7 @@ export const GlobalSearchService = {
           trimmedAdmissionNo
         );
         return {
-          result: result as SchoolFullStudentRead,
+          result: result,
           branchType: "SCHOOL",
           error: null,
         };
@@ -53,7 +53,7 @@ export const GlobalSearchService = {
           trimmedAdmissionNo
         );
         return {
-          result: result as CollegeFullStudentRead,
+          result: result,
           branchType: "COLLEGE",
           error: null,
         };

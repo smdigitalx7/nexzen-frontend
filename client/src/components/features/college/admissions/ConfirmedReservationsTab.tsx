@@ -26,14 +26,11 @@ import {
   Edit,
   CheckCircle,
 } from "lucide-react";
-import { useCollegeReservationsList, useUpdateCollegeReservation, useUpdateCollegeReservationStatus } from "@/lib/hooks/college/use-college-reservations";
-import { useCreateCollegeStudent } from "@/lib/hooks/college/use-college-students";
-import { CollegeReservationsService } from "@/lib/services/college/reservations.service";
-import { CollegeStudentsService } from "@/lib/services/college/students.service";
+import { useCollegeReservationsList, useUpdateCollegeReservation, useUpdateCollegeReservationStatus, useCreateCollegeStudent } from "@/lib/hooks/college";
+import { CollegeReservationsService, CollegeStudentsService } from "@/lib/services/college";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { ReceiptPreviewModal } from "@/components/shared";
-import { handleRegenerateReceipt } from "@/lib/api";
 import { handleCollegePayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/lib/api-college";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 
@@ -268,7 +265,7 @@ const ConfirmedReservationsTab = () => {
         pickup_point: editForm.pickup_point,
         transport_fee: editForm.transport_fee,
         transport_concession: editForm.transport_concession,
-        status: editForm.status as "PENDING" | "CONFIRMED" | "CANCELLED",
+        status: editForm.status,
         referred_by: editForm.referred_by,
         remarks: editForm.remarks,
         reservation_date: editForm.reservation_date,
@@ -398,7 +395,7 @@ const ConfirmedReservationsTab = () => {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => {
-        const status = row.getValue("status") as string;
+        const status = row.getValue("status");
         return (
           <Badge
             variant={
@@ -414,7 +411,7 @@ const ConfirmedReservationsTab = () => {
                 : ""
             }
           >
-            {status}
+            {String(status)}
           </Badge>
         );
       },

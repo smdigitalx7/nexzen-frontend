@@ -16,7 +16,7 @@ import { DashboardGrid } from "@/components/shared/dashboard/DashboardGrid";
 import {
   useMarksStatistics,
   type MarksData,
-} from "@/lib/hooks/school/use-marks-statistics";
+} from "@/lib/hooks/school";
 import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 import ExamMarksManagement from "./ExamMarksManagement";
 import TestMarksManagement from "./TestMarksManagement";

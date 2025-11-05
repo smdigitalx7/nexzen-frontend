@@ -15,13 +15,14 @@ interface UseCRUDOptions<TData, TVariables> {
 }
 
 interface UseCRUDReturn<TData, TVariables> {
-  create: UseMutationResult<TData, Error, TVariables>;
+  create: UseMutationResult<TData, unknown, TVariables, unknown>;
   update: UseMutationResult<
     TData,
-    Error,
-    { id: number; data: Partial<TVariables> }
+    unknown,
+    { id: number; data: Partial<TVariables> },
+    unknown
   >;
-  remove: UseMutationResult<void, Error, number>;
+  remove: UseMutationResult<void, unknown, number, unknown>;
 }
 
 /**

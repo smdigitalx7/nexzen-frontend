@@ -5,7 +5,7 @@ import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 import { Users, School, Building2 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { Badge } from "@/components/ui/badge";
-import AdmissionsList from "@/components/features/school/admissions/AdmissionsList";
+import { AdmissionsList } from "@/components/features/school";
 import ConfirmedReservationsTab from "@/components/features/school/admissions/ConfirmedReservationsTab";
 
 const SchoolAdmissionsPage = () => {

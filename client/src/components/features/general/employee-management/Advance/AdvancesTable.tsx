@@ -5,7 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn,
   createDateColumn
-} from "@/lib/utils/columnFactories.tsx";
+} from "@/lib/utils/factory/columnFactories";
 
 interface EmployeeAdvanceRead {
   advance_id: number;

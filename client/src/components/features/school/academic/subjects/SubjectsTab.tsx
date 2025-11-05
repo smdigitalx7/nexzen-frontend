@@ -4,12 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { useCreateSchoolSubject, useUpdateSchoolSubject } from '@/lib/hooks/school/use-school-subjects';
+import { useCreateSchoolSubject, useUpdateSchoolSubject } from '@/lib/hooks/school';
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
 import { 
   createIconTextColumn
-} from "@/lib/utils/columnFactories";
+} from "@/lib/utils/factory/columnFactories";
 import type { SchoolSubjectRead } from "@/lib/types/school";
 
 interface SubjectsTabProps {

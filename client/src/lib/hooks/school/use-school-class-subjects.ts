@@ -7,7 +7,7 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useSchoolClassSubjectsList() {
   return useQuery({
     queryKey: schoolKeys.classSubjects.list(),
-    queryFn: () => SchoolClassSubjectsService.list() as Promise<SchoolClassSubjectRead[]>,
+    queryFn: () => SchoolClassSubjectsService.list(),
   });
 }
 
@@ -15,7 +15,7 @@ export function useSchoolClassSubjectsList() {
 export function useCreateSchoolClassSubject() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: SchoolClassSubjectCreate) => SchoolClassSubjectsService.create(payload) as Promise<SchoolClassSubjectRead>,
+    mutationFn: (payload: SchoolClassSubjectCreate) => SchoolClassSubjectsService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.classSubjects.root() });
     },

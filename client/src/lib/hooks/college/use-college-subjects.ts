@@ -25,7 +25,7 @@ export function useCollegeSubjectsSlim() {
   return useQuery({
     queryKey: collegeKeys.subjects.listSlim(),
     queryFn: () =>
-      CollegeSubjectsService.listSlim() as Promise<CollegeSubjectList[]>,
+      CollegeSubjectsService.listSlim(),
   });
 }
 
@@ -33,7 +33,7 @@ export function useCreateCollegeSubject() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeCreateSubject) =>
-      CollegeSubjectsService.create(payload) as Promise<CollegeSubjectResponse>,
+      CollegeSubjectsService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.subjects.root() });
     },
@@ -47,7 +47,7 @@ export function useUpdateCollegeSubject(subjectId: number) {
       CollegeSubjectsService.update(
         subjectId,
         payload
-      ) as Promise<CollegeSubjectResponse>,
+      ),
     onSuccess: () => {
       qc.invalidateQueries({
         queryKey: collegeKeys.subjects.detail(subjectId),
@@ -64,7 +64,7 @@ export function useAddSubjectToGroup(subjectId: number) {
       CollegeSubjectsService.addToGroup(
         subjectId,
         payload
-      ) as Promise<CollegeGroupSubjectRead>,
+      ),
     onSuccess: () => {
       qc.invalidateQueries({
         queryKey: [...collegeKeys.subjects.detail(subjectId), "groups"],
@@ -84,7 +84,7 @@ export function useUpdateSubjectGroupRelation(
         subjectId,
         groupId,
         payload
-      ) as Promise<CollegeGroupSubjectRead>,
+      ),
     onSuccess: () => {
       qc.invalidateQueries({
         queryKey: [...collegeKeys.subjects.detail(subjectId), "groups"],

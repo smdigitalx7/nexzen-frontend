@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
 import { useNavigationStore } from "@/store/navigationStore";
-import { ROLES } from "@/lib/constants/roles";
+import { ROLES } from "@/lib/constants";
 
 interface NavigationItem {
   title: string;

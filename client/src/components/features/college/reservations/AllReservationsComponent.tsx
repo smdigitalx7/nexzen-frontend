@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Percent } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared";
 import { useAuthStore } from "@/store/authStore";
-import { ROLES } from "@/lib/constants/roles";
+import { ROLES } from "@/lib/constants";
 import type { ReservationStatusEnum } from "@/lib/types/college/reservations";
 
 // Helper function to format date from ISO format to YYYY-MM-DD
@@ -223,7 +223,7 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
         header: "Date",
         cell: ({ row }) => (
           <div className="text-sm">
-            {formatDate(row.getValue("reservation_date") as string)}
+            {formatDate(row.getValue("reservation_date"))}
           </div>
         ),
       },
@@ -231,10 +231,7 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
         accessorKey: "application_income_id",
         header: "Application Fee Status",
         cell: ({ row }) => {
-          const applicationIncomeId = row.getValue("application_income_id") as
-            | number
-            | null
-            | undefined;
+          const applicationIncomeId = row.getValue("application_income_id") as number | null | undefined;
           return (
             <ApplicationFeeBadge applicationIncomeId={applicationIncomeId} />
           );

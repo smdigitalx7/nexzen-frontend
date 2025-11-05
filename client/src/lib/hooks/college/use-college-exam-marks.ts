@@ -7,7 +7,7 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useCollegeExamMarksList(params?: CollegeExamMarksListParams) {
   return useQuery({
     queryKey: collegeKeys.examMarks.list(params),
-    queryFn: () => CollegeExamMarksService.list(params) as Promise<CollegeExamMarkMinimalRead[]>,
+    queryFn: () => CollegeExamMarksService.list(params),
     enabled: !!params && !!params.class_id && !!params.group_id,
   });
 }
@@ -15,7 +15,7 @@ export function useCollegeExamMarksList(params?: CollegeExamMarksListParams) {
 export function useCollegeExamMark(markId: number | null | undefined) {
   return useQuery({
     queryKey: typeof markId === "number" ? collegeKeys.examMarks.detail(markId) : [...collegeKeys.examMarks.root(), "detail", "nil"],
-    queryFn: () => CollegeExamMarksService.getById(markId as number) as Promise<CollegeExamMarkFullReadResponse>,
+    queryFn: () => CollegeExamMarksService.getById(markId as number),
     enabled: typeof markId === "number" && markId > 0,
   });
 }
@@ -23,7 +23,7 @@ export function useCollegeExamMark(markId: number | null | undefined) {
 export function useCreateCollegeExamMark() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeExamMarkUpdate) => CollegeExamMarksService.create(payload) as Promise<CollegeExamMarkFullReadResponse>,
+    mutationFn: (payload: CollegeExamMarkUpdate) => CollegeExamMarksService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
     },
@@ -33,7 +33,7 @@ export function useCreateCollegeExamMark() {
 export function useUpdateCollegeExamMark(markId: number) {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeExamMarkUpdate) => CollegeExamMarksService.update(markId, payload) as Promise<CollegeExamMarkFullReadResponse>,
+    mutationFn: (payload: CollegeExamMarkUpdate) => CollegeExamMarksService.update(markId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.examMarks.detail(markId) });
       qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
@@ -55,7 +55,7 @@ export function useBulkCreateCollegeExamMarks() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeCreateExamMarkBulk) =>
-      CollegeExamMarksService.bulkCreate(payload) as Promise<CollegeExamMarkBulkCreateResult>,
+      CollegeExamMarksService.bulkCreate(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
     },

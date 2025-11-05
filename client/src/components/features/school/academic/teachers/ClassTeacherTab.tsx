@@ -6,11 +6,9 @@ import { FormDialog } from "@/components/shared";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ColumnDef } from "@tanstack/react-table";
 import { EnhancedDataTable } from "@/components/shared";
-import { createTextColumn } from "@/lib/utils/columnFactories";
-import { useClassTeachers, useCreateClassTeacher, useDeleteClassTeacher } from "@/lib/hooks/school/use-teacher-class-subjects";
-import { useEmployeesByBranch } from "@/lib/hooks/general/useEmployees";
-import { useSchoolClasses } from "@/lib/hooks/school/use-school-classes";
-import { useSchoolSectionsByClass } from "@/lib/hooks/school/use-school-sections";
+import { createTextColumn } from "@/lib/utils/factory/columnFactories";
+import { useClassTeachers, useCreateClassTeacher, useDeleteClassTeacher, useSchoolClasses, useSchoolSectionsByClass } from "@/lib/hooks/school";
+import { useEmployeesByBranch } from "@/lib/hooks/general";
 import { useToast } from "@/hooks/use-toast";
 
 interface ClassTeacherData {
@@ -129,7 +127,7 @@ export const ClassTeacherTab = () => {
             icon: Trash2,
             variant: "destructive" as const,
             size: "sm" as const,
-            onClick: (row) => handleDelete(row as ClassTeacherData),
+            onClick: (row) => handleDelete(row),
             className: "text-red-600 hover:text-red-700 hover:bg-red-50",
           },
         ]}

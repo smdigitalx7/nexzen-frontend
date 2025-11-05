@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { SchoolFinanceReport } from '@/lib/types/school/income';
-import { exportFinanceReportToExcel, generateExportFilename } from '@/lib/utils/export-utils';
+import { exportFinanceReportToExcel, generateExportFilename } from '@/lib/utils/export/export-utils';
 import { Loading } from '@/components/ui/loading';
 import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
 import { ColumnDef } from '@tanstack/react-table';

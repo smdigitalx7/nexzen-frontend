@@ -15,9 +15,10 @@ import {
   useCreateCollegeEnrollment,
   useUpdateCollegeEnrollment,
   useDeleteCollegeEnrollment,
-} from '@/lib/hooks/college/use-college-enrollments';
+  useCollegeStudentsList,
+} from '@/lib/hooks/college';
+// Note: useCollegeClasses, useCollegeGroups, useCollegeCourses from dropdowns (naming conflict)
 import { useCollegeClasses, useCollegeGroups, useCollegeCourses } from '@/lib/hooks/college/use-college-dropdowns';
-import { useCollegeStudentsList } from '@/lib/hooks/college/use-college-students';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { CollegeEnrollmentCreate, CollegeEnrollmentUpdate, CollegeEnrollmentRead, CollegeEnrollmentWithStudentDetails } from '@/lib/types/college';
 

@@ -1,10 +1,14 @@
 import { create } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
-import { AuthService } from "@/lib/services/general/auth.service";
+import { AuthService } from "@/lib/services/general";
 import { AuthTokenTimers } from "@/lib/api";
+<<<<<<< HEAD
 import { ROLES, type UserRole, normalizeRole } from "@/lib/constants/roles";
 import { extractPrimaryRole } from "@/lib/utils/roles";
+=======
+import { ROLES, type UserRole } from "@/lib/constants";
+>>>>>>> 453b9143e02e94d0f53d026b78542683b94146a1
 
 export interface AuthUser {
   user_id: string;
@@ -562,12 +566,50 @@ export const useAuthStore = create<AuthState>()(
               return false;
             }
 
+<<<<<<< HEAD
             // Update token and expiration from response
             const expireAtMs = response.expiretime
               ? new Date(response.expiretime).getTime()
               : null;
             get().setTokenAndExpiry(response.access_token, expireAtMs);
 
+=======
+            // Decode new token to extract expiration and update role if needed
+            const { getTokenExpiration, decodeJWT, getRoleFromToken } = await import("@/lib/utils/auth/jwt");
+            const { normalizeRole } = await import("@/lib/constants");
+            
+            const tokenPayload = decodeJWT(response.access_token);
+            if (tokenPayload) {
+              // Extract new expiration from token
+              const tokenExpiration = getTokenExpiration(response.access_token);
+              const expireAtMs = tokenExpiration 
+                ? tokenExpiration 
+                : (response.expiretime ? new Date(response.expiretime).getTime() : null);
+              
+              // Update token and expiration
+              get().setTokenAndExpiry(response.access_token, expireAtMs);
+              
+              // Update user role if it changed
+              const currentState = get();
+              if (currentState.user && tokenPayload.current_branch_id) {
+                const newRole = getRoleFromToken(response.access_token, tokenPayload.current_branch_id);
+                const normalizedRole = normalizeRole(newRole);
+                
+                if (normalizedRole && currentState.user.role !== normalizedRole) {
+                  set((state) => {
+                    if (state.user) {
+                      state.user.role = normalizedRole;
+                    }
+                  });
+                }
+              }
+            } else {
+              // Fallback to expiretime from response
+              const expireAtMs = response.expiretime ? new Date(response.expiretime).getTime() : null;
+              get().setTokenAndExpiry(response.access_token, expireAtMs);
+            }
+              
+>>>>>>> 453b9143e02e94d0f53d026b78542683b94146a1
             set((state) => {
               state.isTokenRefreshing = false;
             });

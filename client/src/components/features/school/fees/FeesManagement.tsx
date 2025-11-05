@@ -3,7 +3,7 @@ import React, { useMemo, memo, useCallback } from "react";
 import { CreditCard, Building2, Truck } from "lucide-react";
 import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { TabSwitcher } from "@/components/shared";
-import { useSchoolFeesManagement } from "@/lib/hooks/school/use-school-fees-management";
+import { useSchoolFeesManagement } from "@/lib/hooks/school";
 import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalancesPanel";
 import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeBalancesPanel";
 import { CollectFee } from "./collect-fee/CollectFee";

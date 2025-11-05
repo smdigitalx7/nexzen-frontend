@@ -5,7 +5,7 @@ import type { TabItem } from "@/components/shared/TabSwitcher";
 import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 import { useAuthStore } from "@/store/authStore";
 import { Badge } from "@/components/ui/badge";
-import AdmissionsList from "@/components/features/college/admissions/AdmissionsList";
+import { AdmissionsList } from "@/components/features/college";
 import ConfirmedReservationsTab from "@/components/features/college/admissions/ConfirmedReservationsTab";
 
 const CollegeAdmissionsPage = () => {

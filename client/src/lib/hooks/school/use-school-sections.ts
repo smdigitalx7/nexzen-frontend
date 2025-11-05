@@ -7,7 +7,7 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useSchoolSectionsByClass(classId: number | null | undefined) {
   return useQuery({
     queryKey: typeof classId === "number" ? schoolKeys.sections.listByClass(classId) : [...schoolKeys.sections.root(), "by-class", "nil"],
-    queryFn: () => SchoolSectionsService.listByClass(classId as number) as Promise<SchoolSectionRead[]>,
+    queryFn: () => SchoolSectionsService.listByClass(classId as number),
     enabled: typeof classId === "number" && classId > 0,
   });
 }
@@ -15,7 +15,7 @@ export function useSchoolSectionsByClass(classId: number | null | undefined) {
 export function useCreateSchoolSection(classId: number) {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: SchoolSectionCreate) => SchoolSectionsService.create(classId, payload) as Promise<SchoolSectionRead>,
+    mutationFn: (payload: SchoolSectionCreate) => SchoolSectionsService.create(classId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) });
     },
@@ -25,7 +25,7 @@ export function useCreateSchoolSection(classId: number) {
 export function useUpdateSchoolSection(classId: number, sectionId: number) {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: SchoolSectionUpdate) => SchoolSectionsService.update(classId, sectionId, payload) as Promise<SchoolSectionRead>,
+    mutationFn: (payload: SchoolSectionUpdate) => SchoolSectionsService.update(classId, sectionId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.sections.detail(classId, sectionId) });
       qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) });

@@ -13,14 +13,14 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useCollegeEnrollmentsList(params?: CollegeEnrollmentFilterParams) {
   return useQuery({
     queryKey: collegeKeys.enrollments.list(params),
-    queryFn: () => CollegeEnrollmentsService.list(params) as Promise<CollegeEnrollmentsPaginatedResponse>,
+    queryFn: () => CollegeEnrollmentsService.list(params),
   });
 }
 
 export function useCollegeEnrollment(enrollmentId: number | null | undefined) {
   return useQuery({
     queryKey: typeof enrollmentId === "number" ? collegeKeys.enrollments.detail(enrollmentId) : [...collegeKeys.enrollments.root(), "detail", "nil"],
-    queryFn: () => CollegeEnrollmentsService.getById(enrollmentId as number) as Promise<CollegeEnrollmentWithStudentDetails>,
+    queryFn: () => CollegeEnrollmentsService.getById(enrollmentId as number),
     enabled: typeof enrollmentId === "number" && enrollmentId > 0,
   });
 }
@@ -28,7 +28,7 @@ export function useCollegeEnrollment(enrollmentId: number | null | undefined) {
 export function useCollegeEnrollmentByAdmission(admissionNo: string | null | undefined) {
   return useQuery({
     queryKey: admissionNo ? collegeKeys.enrollments.byAdmission(admissionNo) : [...collegeKeys.enrollments.root(), "by-admission", "nil"],
-    queryFn: () => CollegeEnrollmentsService.getByAdmission(admissionNo as string) as Promise<CollegeEnrollmentWithStudentDetails>,
+    queryFn: () => CollegeEnrollmentsService.getByAdmission(admissionNo as string),
     enabled: typeof admissionNo === "string" && admissionNo.length > 0,
   });
 }
@@ -36,7 +36,7 @@ export function useCollegeEnrollmentByAdmission(admissionNo: string | null | und
 export function useCreateCollegeEnrollment() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeEnrollmentCreate) => CollegeEnrollmentsService.create(payload) as Promise<CollegeEnrollmentWithStudentDetails>,
+    mutationFn: (payload: CollegeEnrollmentCreate) => CollegeEnrollmentsService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.enrollments.root() });
     },

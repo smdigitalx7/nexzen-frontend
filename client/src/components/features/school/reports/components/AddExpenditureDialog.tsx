@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useCreateSchoolExpenditure } from "@/lib/hooks/school/use-school-income-expenditure";
+import { useCreateSchoolExpenditure } from "@/lib/hooks/school";
 
 const expenditureSchema = z.object({
   expenditure_purpose: z.string().min(1, "Purpose is required"),

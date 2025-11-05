@@ -18,6 +18,7 @@ import {
 } from "@/lib/types/general/payrolls";
 import { formatCurrency } from "@/lib/utils";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
+import { useGlobalRefetch } from "../common/useGlobalRefetch";
 
 // Extended interface that includes employee information
 interface PayrollWithEmployee extends Omit<PayrollRead, "payroll_month"> {
@@ -73,45 +74,36 @@ export const usePayroll = (id: number) => {
 };
 
 export const useCreatePayroll = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
 
   return useMutationWithSuccessToast({
     mutationFn: (payload: PayrollCreate) => PayrollsService.create(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.byBranch() });
+      invalidateEntity("payrolls");
     },
   }, "Payroll created successfully");
 };
 
 export const useUpdatePayroll = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
 
   return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: PayrollUpdate }) =>
       PayrollsService.update(id, payload),
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.byBranch() });
-      queryClient.invalidateQueries({
-        queryKey: payrollKeys.detail(variables.id),
-      });
+    onSuccess: () => {
+      invalidateEntity("payrolls");
     },
   }, "Payroll updated successfully");
 };
 
 export const useUpdatePayrollStatus = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
 
   return useMutationWithSuccessToast({
     mutationFn: ({ id, new_status }: { id: number; new_status: string }) =>
       PayrollsService.updateStatus(id, new_status),
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.byBranch() });
-      queryClient.invalidateQueries({
-        queryKey: payrollKeys.detail(variables.id),
-      });
+    onSuccess: () => {
+      invalidateEntity("payrolls");
     },
   }, "Payroll status updated successfully");
 };
@@ -133,7 +125,6 @@ export const useRecentPayrolls = (limit: number = 5) => {
 export const usePayrollManagement = () => {
   const { user, currentBranch } = useAuthStore();
   const { activeTab, setActiveTab } = useTabNavigation("payrolls");
-  const queryClient = useQueryClient();
 
   // UI State
   const [searchQuery, setSearchQuery] = useState("");
@@ -181,12 +172,11 @@ export const usePayrollManagement = () => {
   const updatePayrollStatusMutation = useUpdatePayrollStatus();
 
   // Bulk operations mutation
+  const { invalidateEntity } = useGlobalRefetch();
   const bulkCreateMutation = useMutation({
     mutationFn: (data: any[]) => PayrollsService.bulkCreate(data),
     onSuccess: () => {
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: payrollKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.byBranch() });
+      invalidateEntity("payrolls");
     },
   });
 

@@ -1,15 +1,15 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { BookOpen, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { useCreateSchoolSubject, useUpdateSchoolSubject } from '@/lib/hooks/school/use-school-subjects';
+import { useCreateSchoolSubject, useUpdateSchoolSubject } from '@/lib/hooks/school';
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
 import { 
   createIconTextColumn
-} from "@/lib/utils/columnFactories";
+} from "@/lib/utils/factory/columnFactories";
 
 interface SubjectsTabProps {
   backendSubjects: import("@/lib/types/school").SchoolSubjectRead[];
@@ -105,22 +105,22 @@ export const SubjectsTab = ({
     }
   };
 
-  const handleEditClick = (subject: import("@/lib/types/school").SchoolSubjectRead) => {
+  const handleEditClick = useCallback((subject: import("@/lib/types/school").SchoolSubjectRead) => {
     setSelectedSubject(subject);
     setEditSubject({ 
       subject_name: subject.subject_name,
     });
     setIsEditSubjectOpen(true);
-  };
+  }, []);
 
-  const handleDeleteClick = (subject: any) => {
+  const handleDeleteClick = useCallback((subject: any) => {
     setSelectedSubject(subject);
     setIsDeleteDialogOpen(true);
-  };
+  }, []);
 
   // Define columns for the data table using column factories
-  const columns: ColumnDef<any>[] = useMemo(() => [
-    createIconTextColumn<any>("subject_name", { 
+  const columns = useMemo<ColumnDef<import("@/lib/types/school").SchoolSubjectRead>[]>(() => [
+    createIconTextColumn<import("@/lib/types/school").SchoolSubjectRead>("subject_name", { 
       icon: BookOpen, 
       header: "Subject Name" 
     })
@@ -130,13 +130,13 @@ export const SubjectsTab = ({
   const actionButtonGroups = useMemo(() => [
     {
       type: 'edit' as const,
-      onClick: (subject: any) => handleEditClick(subject)
+      onClick: handleEditClick
     },
     {
       type: 'delete' as const,
-      onClick: (subject: any) => handleDeleteClick(subject)
+      onClick: handleDeleteClick
     }
-  ], []);
+  ], [handleEditClick, handleDeleteClick]);
 
   if (subjectsLoading) {
     return (

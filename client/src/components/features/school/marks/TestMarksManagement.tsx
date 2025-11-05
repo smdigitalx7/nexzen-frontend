@@ -49,25 +49,19 @@ import {
   useCreateSchoolTestMark,
   useUpdateSchoolTestMark,
   useDeleteSchoolTestMark,
-} from "@/lib/hooks/school/use-school-test-marks";
-import {
-  useSchoolClasses,
-  useSchoolSections,
-  useSchoolSubjects,
-  useSchoolTests,
-} from "@/lib/hooks/school/use-school-dropdowns";
-import { useSchoolStudentsList } from "@/lib/hooks/school/use-school-students";
-import type {
-  TestMarkWithDetails,
-  TestMarksQuery,
-} from "@/lib/types/school/test-marks";
+  useSchoolStudentsList,
+} from '@/lib/hooks/school';
+// Note: useSchoolClasses, useSchoolSections, useSchoolSubjects, useSchoolTests from dropdowns
+// Import dropdowns directly: import { useSchoolClasses } from "@/lib/hooks/school/use-school-dropdowns"
+import { useSchoolClasses, useSchoolSections, useSchoolSubjects, useSchoolTests } from '@/lib/hooks/school/use-school-dropdowns';
+import type { TestMarkWithDetails, TestMarksQuery } from '@/lib/types/school/test-marks';
 import {
   createStudentColumn,
   createSubjectColumn,
   createMarksColumn,
   createGradeColumn,
   createTestDateColumn,
-} from "@/lib/utils/columnFactories.tsx";
+} from "@/lib/utils/factory/columnFactories";
 
 // Utility functions for grade calculation - moved outside component for better performance
 const calculateGrade = (percentage: number): string => {

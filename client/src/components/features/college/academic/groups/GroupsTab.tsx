@@ -4,12 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { useCollegeGroups, useUpdateCollegeGroup, useCreateCollegeGroup, useDeleteCollegeGroup } from '@/lib/hooks/college/use-college-groups';
+import { useCollegeGroups, useUpdateCollegeGroup, useCreateCollegeGroup, useDeleteCollegeGroup } from '@/lib/hooks/college';
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createIconTextColumn
-} from "@/lib/utils/columnFactories";
+} from "@/lib/utils/factory/columnFactories";
 
 interface GroupsTabProps {
   groupsWithSubjects: any[];

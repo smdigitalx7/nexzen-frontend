@@ -7,7 +7,7 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useSchoolEnrollmentsList(params?: SchoolEnrollmentFilterParams) {
   return useQuery({
     queryKey: schoolKeys.enrollments.list(params as Record<string, unknown> | undefined),
-    queryFn: () => EnrollmentsService.list(params as any) as Promise<SchoolEnrollmentsPaginatedResponse>,
+    queryFn: () => EnrollmentsService.list(params as any),
     enabled: typeof (params as any)?.class_id === "number" && (params as any).class_id > 0,
   });
 }
@@ -15,7 +15,7 @@ export function useSchoolEnrollmentsList(params?: SchoolEnrollmentFilterParams) 
 export function useSchoolEnrollment(enrollmentId: number | null | undefined) {
   return useQuery({
     queryKey: typeof enrollmentId === "number" ? schoolKeys.enrollments.detail(enrollmentId) : [...schoolKeys.enrollments.root(), "detail", "nil"],
-    queryFn: () => EnrollmentsService.getById(enrollmentId as number) as Promise<SchoolEnrollmentWithStudentDetails>,
+    queryFn: () => EnrollmentsService.getById(enrollmentId as number),
     enabled: typeof enrollmentId === "number" && enrollmentId > 0,
   });
 }
@@ -23,7 +23,7 @@ export function useSchoolEnrollment(enrollmentId: number | null | undefined) {
 export function useCreateSchoolEnrollment() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: SchoolEnrollmentCreate) => EnrollmentsService.create(payload) as Promise<SchoolEnrollmentWithStudentDetails>,
+    mutationFn: (payload: SchoolEnrollmentCreate) => EnrollmentsService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
     },
@@ -44,7 +44,7 @@ export function useUpdateSchoolEnrollment() {
 export function useSchoolEnrollmentByAdmission(admissionNo: string | null | undefined) {
   return useQuery({
     queryKey: admissionNo ? [...schoolKeys.enrollments.root(), "by-admission", admissionNo] : [...schoolKeys.enrollments.root(), "by-admission", "nil"],
-    queryFn: () => EnrollmentsService.getByAdmission(admissionNo as string) as Promise<SchoolEnrollmentWithStudentDetails>,
+    queryFn: () => EnrollmentsService.getByAdmission(admissionNo as string),
     enabled: Boolean(admissionNo && admissionNo.trim()),
   });
 }

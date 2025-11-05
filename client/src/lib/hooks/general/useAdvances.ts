@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { AdvancesService } from '@/lib/services/general/advances.service';
 import type { 
   AdvanceRead, 
@@ -11,6 +11,7 @@ import type {
   RecentAdvance
 } from '@/lib/types/general/advances';
 import { useMutationWithSuccessToast } from '../common/use-mutation-with-toast';
+import { useGlobalRefetch } from '../common/useGlobalRefetch';
 
 // Query keys
 export const advanceKeys = {
@@ -63,55 +64,48 @@ export const useRecentAdvances = (limit: number = 5) => {
 
 // Mutation hooks
 export const useCreateAdvance = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
   
   return useMutationWithSuccessToast({
     mutationFn: (data: AdvanceCreate) => AdvancesService.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: advanceKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: advanceKeys.dashboard() });
+      invalidateEntity("advances");
     },
   }, "Advance created successfully");
 };
 
 export const useUpdateAdvance = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
   
   return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: AdvanceUpdate }) => 
       AdvancesService.update(id, payload),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: advanceKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: advanceKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: advanceKeys.dashboard() });
+    onSuccess: () => {
+      invalidateEntity("advances");
     },
   }, "Advance updated successfully");
 };
 
 export const useUpdateAdvanceStatus = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
   
   return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: AdvanceStatusUpdate }) => 
       AdvancesService.updateStatus(id, payload),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: advanceKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: advanceKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: advanceKeys.dashboard() });
+    onSuccess: () => {
+      invalidateEntity("advances");
     },
   }, "Advance status updated successfully");
 };
 
 export const useUpdateAdvanceAmountPaid = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
   
   return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: AdvanceAmountPaidUpdate }) => 
       AdvancesService.updateAmountPaid(id, payload),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: advanceKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: advanceKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: advanceKeys.dashboard() });
+    onSuccess: () => {
+      invalidateEntity("advances");
     },
   }, "Advance payment updated successfully");
 };

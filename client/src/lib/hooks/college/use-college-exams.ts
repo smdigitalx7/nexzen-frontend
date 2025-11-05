@@ -43,7 +43,7 @@ export function useCollegeExam(examId: number | null | undefined) {
     queryFn: () =>
       CollegeExamsService.getById(
         examId as number
-      ) as Promise<CollegeExamResponse>,
+      ),
     enabled: typeof examId === "number" && examId > 0,
   });
 }
@@ -52,7 +52,7 @@ export function useCreateCollegeExam() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeExamCreate) =>
-      CollegeExamsService.create(payload) as Promise<CollegeExamResponse>,
+      CollegeExamsService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
     },
@@ -66,7 +66,7 @@ export function useUpdateCollegeExam(examId: number) {
       CollegeExamsService.update(
         examId,
         payload
-      ) as Promise<CollegeExamResponse>,
+      ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.exams.detail(examId) });
       qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Users, UserCheck, UserX, Shield, TrendingUp, Calendar } from 'lucide-react';
-import { StatsCard, DashboardGrid } from '@/components/shared';
+import { StatsCard } from '@/components/shared/dashboard/StatsCard';
+import { DashboardGrid } from '@/components/shared/dashboard/DashboardGrid';
 import { UserDashboardStats } from '@/lib/types/general/users';
 
 interface UserStatsCardsProps {

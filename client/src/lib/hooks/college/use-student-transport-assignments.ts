@@ -7,7 +7,7 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useCollegeStudentTransportAssignments() {
   return useQuery({
     queryKey: collegeKeys.studentTransport.list(),
-    queryFn: () => CollegeStudentTransportAssignmentsService.list() as Promise<CollegeTransportRoute[]>,
+    queryFn: () => CollegeStudentTransportAssignmentsService.list(),
   });
 }
 
@@ -22,7 +22,7 @@ export function useCollegeStudentTransportAssignmentById(assignmentId: number | 
 export function useCreateCollegeStudentTransportAssignment() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: CollegeTransportAssignmentCreate) => CollegeStudentTransportAssignmentsService.create(payload) as Promise<CollegeTransportAssignmentRead>,
+    mutationFn: (payload: CollegeTransportAssignmentCreate) => CollegeStudentTransportAssignmentsService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.root() });
     },

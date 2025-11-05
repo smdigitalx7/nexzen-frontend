@@ -23,7 +23,7 @@ export function useCollegeClassesSlim() {
   return useQuery({
     queryKey: collegeKeys.classes.listSlim(),
     queryFn: () =>
-      CollegeClassesService.listSlim() as Promise<CollegeClassList[]>,
+      CollegeClassesService.listSlim(),
   });
 }
 
@@ -31,7 +31,7 @@ export function useCreateCollegeClass() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeClassCreate) =>
-      CollegeClassesService.create(payload) as Promise<CollegeClassResponse>,
+      CollegeClassesService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.classes.root() });
     },
@@ -45,7 +45,7 @@ export function useUpdateCollegeClass(classId: number) {
       CollegeClassesService.update(
         classId,
         payload
-      ) as Promise<CollegeClassResponse>,
+      ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: collegeKeys.classes.detail(classId) });
       qc.invalidateQueries({ queryKey: collegeKeys.classes.root() });
@@ -62,7 +62,7 @@ export function useCollegeClassGroups(classId: number | null | undefined) {
     queryFn: () =>
       CollegeClassesService.getGroups(
         classId as number
-      ) as Promise<CollegeClassWithGroups>,
+      ),
     enabled: typeof classId === "number" && classId > 0,
   });
 }

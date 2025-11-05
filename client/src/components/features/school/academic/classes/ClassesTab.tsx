@@ -8,14 +8,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { useCreateSchoolClass, useUpdateSchoolClass, useSchoolClassById, useDeleteSchoolClassSubject } from '@/lib/hooks/school/use-school-classes';
-import { useSchoolSubjects } from '@/lib/hooks/school/use-school-subjects';
-import { useCreateSchoolClassSubject } from '@/lib/hooks/school/use-school-class-subjects';
+import { useCreateSchoolClass, useUpdateSchoolClass, useSchoolClassById, useDeleteSchoolClassSubject, useSchoolSubjects, useCreateSchoolClassSubject } from '@/lib/hooks/school';
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createIconTextColumn
-} from "@/lib/utils/columnFactories";
+} from "@/lib/utils/factory/columnFactories";
 import type { SchoolClassRead } from "@/lib/types/school";
 
 // Component to display subjects for a specific class

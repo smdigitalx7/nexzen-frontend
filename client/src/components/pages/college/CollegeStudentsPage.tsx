@@ -1,4 +1,4 @@
-import StudentManagement from "@/components/features/college/students/StudentManagement";
+import { StudentManagement } from "@/components/features/college";
 
 const CollegeStudentsPage = () => {
   return <StudentManagement />;

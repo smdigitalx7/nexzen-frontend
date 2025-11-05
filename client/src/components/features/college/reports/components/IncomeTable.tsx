@@ -2,10 +2,10 @@ import { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Printer } from "lucide-react";
 import type { CollegeIncomeSummary, CollegeIncomeSummaryParams } from "@/lib/types/college";
-import { useCollegeIncomeSummary } from "@/lib/hooks/college/use-college-income";
+import { useCollegeIncomeSummary } from "@/lib/hooks/college";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { createTextColumn, createCurrencyColumn } from "@/lib/utils/columnFactories";
+import { createTextColumn, createCurrencyColumn } from "@/lib/utils/factory/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 import { handleRegenerateReceipt } from "@/lib/api";
 import { ReceiptPreviewModal } from "@/components/shared";
@@ -154,7 +154,7 @@ export const IncomeTable = ({
     {
       key: 'receipt_no',
       label: 'Receipt No',
-      options: uniqueReceiptNos.map(receiptNo => ({ value: receiptNo!, label: receiptNo! })),
+      options: uniqueReceiptNos.map(receiptNo => ({ value: receiptNo, label: receiptNo })),
       value: 'all',
       onChange: (value: string) => {
         // This will be handled by EnhancedDataTable's built-in filtering

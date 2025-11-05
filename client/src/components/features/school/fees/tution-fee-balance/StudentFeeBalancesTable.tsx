@@ -10,7 +10,7 @@ import {
   createTextColumn,
   createCurrencyColumn,
   createDateColumn,
-} from "@/lib/utils/columnFactories";
+} from "@/lib/utils/factory/columnFactories";
 import type { SchoolClassRead } from "@/lib/types/school";
 
 interface StudentFeeBalance {

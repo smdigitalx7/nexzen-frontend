@@ -23,7 +23,7 @@ import "./lib/react-utils";
 
 // Initialize clean architecture services
 // Use proxy for development to avoid CORS issues
-let apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
 // For ApiClient (clean architecture), we need to separate the base URL
 // ApiClient expects /api (it adds /v1 automatically)

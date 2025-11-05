@@ -19,7 +19,7 @@ export const useCollegeClasses = () => {
 export const useCollegeGroups = (classId?: number) => {
   return useQuery({
     queryKey: classId && classId > 0 ? ["college-dropdowns", "groups", classId] : ["college-dropdowns", "groups", "disabled"],
-    queryFn: () => CollegeDropdownsService.getGroups(classId!),
+    queryFn: () => CollegeDropdownsService.getGroups(classId),
     staleTime: 5 * 60 * 1000, // 5 minutes - dropdowns don't change often
     gcTime: 10 * 60 * 1000, // 10 minutes
     enabled: classId !== undefined && classId > 0, // Only fetch when classId is valid

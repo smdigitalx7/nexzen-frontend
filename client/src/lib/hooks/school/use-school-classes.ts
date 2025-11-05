@@ -12,7 +12,7 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useSchoolClasses(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: schoolKeys.classes.list(),
-    queryFn: () => SchoolClassesService.list() as Promise<SchoolClassRead[]>,
+    queryFn: () => SchoolClassesService.list(),
     enabled: options?.enabled !== false,
   });
 }
@@ -21,7 +21,7 @@ export function useCreateSchoolClass() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolClassCreate) =>
-      SchoolClassesService.create(payload) as Promise<SchoolClassRead>,
+      SchoolClassesService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
     },
@@ -32,7 +32,7 @@ export function useUpdateSchoolClass(classId: number) {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolClassUpdate) =>
-      SchoolClassesService.update(classId, payload) as Promise<SchoolClassRead>,
+      SchoolClassesService.update(classId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: schoolKeys.classes.detail(classId) });
       qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
@@ -57,7 +57,7 @@ export function useSchoolClassSubjects(classId: number | null | undefined) {
     queryFn: () =>
       SchoolClassesService.getSubjects(
         classId as number
-      ) as Promise<SchoolClassWithSubjects>,
+      ),
     enabled: typeof classId === "number" && classId > 0,
   });
 }
