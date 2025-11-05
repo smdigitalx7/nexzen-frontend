@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolSectionsService } from "@/lib/services/school/sections.service";
 import type { SchoolSectionCreate, SchoolSectionRead, SchoolSectionUpdate } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
@@ -17,7 +17,7 @@ export function useCreateSchoolSection(classId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolSectionCreate) => SchoolSectionsService.create(classId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) });
     },
   }, "Section created successfully");
 }
@@ -27,8 +27,8 @@ export function useUpdateSchoolSection(classId: number, sectionId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolSectionUpdate) => SchoolSectionsService.update(classId, sectionId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.sections.detail(classId, sectionId) });
-      qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.sections.detail(classId, sectionId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) });
     },
   }, "Section updated successfully");
 }
@@ -38,7 +38,7 @@ export function useDeleteSchoolSection(classId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (sectionId: number) => SchoolSectionsService.delete(classId, sectionId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) });
     },
   }, "Section deleted successfully");
 }

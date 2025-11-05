@@ -258,11 +258,16 @@ export const useAuthStore = create<AuthState>()(
         },
       logoutAsync: async () => {
         try {
-          console.log("Starting logout process...");
+          if (import.meta.env.DEV) {
+            console.log("Starting logout process...");
+          }
           
           // Call the backend logout endpoint (this needs the current token)
           await AuthService.logout();
-          console.log("Backend logout successful");
+          
+          if (import.meta.env.DEV) {
+            console.log("Backend logout successful");
+          }
           
         } catch (error) {
           console.error("Backend logout failed:", error);
@@ -285,17 +290,29 @@ export const useAuthStore = create<AuthState>()(
             isBranchSwitching: false,
           });
           
-          console.log("User logged out successfully");
+          if (import.meta.env.DEV) {
+            console.log("User logged out successfully");
+          }
         }
       },
       switchBranch: async (branch) => {
         set({ isBranchSwitching: true });
         try {
-          console.log("Switching to branch:", branch.branch_name, "ID:", branch.branch_id);
+          if (import.meta.env.DEV) {
+            console.log("Switching to branch:", branch.branch_name, "ID:", branch.branch_id);
+          }
           
           // Call the backend API to switch branch and get new token
-          const response = await AuthService.switchBranch(branch.branch_id) as any;
-          console.log("Branch switch response:", response);
+          interface SwitchBranchResponse {
+            access_token?: string;
+            expiretime?: string;
+            [key: string]: unknown;
+          }
+          const response = (await AuthService.switchBranch(branch.branch_id)) as SwitchBranchResponse;
+          
+          if (import.meta.env.DEV) {
+            console.log("Branch switch response:", response);
+          }
           
           // Update branch and token with new branch context
           if (response?.access_token) {
@@ -310,14 +327,20 @@ export const useAuthStore = create<AuthState>()(
               set({ user: { ...current.user, current_branch_id: branch.branch_id } });
             }
             set({ isBranchSwitching: false });
-            console.log("Branch switched successfully with new token and clients updated");
+            
+            if (import.meta.env.DEV) {
+              console.log("Branch switched successfully with new token and clients updated");
+            }
           } else {
             // Fallback to just updating the branch if no token response
             set({ 
               currentBranch: branch,
               isBranchSwitching: false
             });
-            console.log("Branch switched locally (no token response)");
+            
+            if (import.meta.env.DEV) {
+              console.log("Branch switched locally (no token response)");
+            }
           }
         } catch (error) {
           console.error("Failed to switch branch:", error);
@@ -326,7 +349,10 @@ export const useAuthStore = create<AuthState>()(
             currentBranch: branch,
             isBranchSwitching: false
           });
-          console.log("Branch switched locally (API call failed)");
+          
+          if (import.meta.env.DEV) {
+            console.log("Branch switched locally (API call failed)");
+          }
         }
       },
       switchAcademicYear: (year) => {

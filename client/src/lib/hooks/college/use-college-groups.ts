@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeGroupsService } from "@/lib/services/college/groups.service";
 import type { CollegeGroupCreate, CollegeGroupList, CollegeGroupResponse, CollegeGroupUpdate, CollegeGroupSubjectRead } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
@@ -23,7 +23,7 @@ export function useCreateCollegeGroup() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeGroupCreate) => CollegeGroupsService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.groups.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.groups.root() });
     },
   }, "Group created successfully");
 }
@@ -33,8 +33,8 @@ export function useUpdateCollegeGroup(groupId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeGroupUpdate) => CollegeGroupsService.update(groupId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.groups.detail(groupId) });
-      qc.invalidateQueries({ queryKey: collegeKeys.groups.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.groups.detail(groupId) });
+      void qc.invalidateQueries({ queryKey: collegeKeys.groups.root() });
     },
   }, "Group updated successfully");
 }
@@ -44,7 +44,7 @@ export function useDeleteCollegeGroup() {
   return useMutationWithSuccessToast({
     mutationFn: (groupId: number) => CollegeGroupsService.delete(groupId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.groups.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.groups.root() });
     },
   }, "Group deleted successfully");
 }

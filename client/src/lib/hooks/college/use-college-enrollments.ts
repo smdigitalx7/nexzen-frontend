@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeEnrollmentsService } from "@/lib/services/college/enrollments.service";
 import type {
   CollegeEnrollmentCreate,
@@ -38,7 +38,7 @@ export function useCreateCollegeEnrollment() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeEnrollmentCreate) => CollegeEnrollmentsService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.enrollments.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.root() });
     },
   }, "Enrollment created successfully");
 }
@@ -49,8 +49,8 @@ export function useUpdateCollegeEnrollment() {
     mutationFn: ({ id, payload }: { id: number; payload: CollegeEnrollmentUpdate }) =>
       CollegeEnrollmentsService.update(id, payload),
     onSuccess: (_data, { id }) => {
-      qc.invalidateQueries({ queryKey: collegeKeys.enrollments.root() });
-      qc.invalidateQueries({ queryKey: collegeKeys.enrollments.detail(id) });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.detail(id) });
     },
   }, "Enrollment updated successfully");
 }
@@ -60,7 +60,7 @@ export function useDeleteCollegeEnrollment() {
   return useMutationWithSuccessToast({
     mutationFn: (enrollmentId: number) => CollegeEnrollmentsService.delete(enrollmentId),
     onSuccess: (_, enrollmentId) => {
-      qc.invalidateQueries({ queryKey: collegeKeys.enrollments.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.root() });
       qc.invalidateQueries({ queryKey: collegeKeys.enrollments.detail(enrollmentId) });
     },
   }, "Enrollment deleted successfully");

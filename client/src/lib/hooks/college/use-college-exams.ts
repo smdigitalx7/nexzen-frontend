@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeExamsService } from "@/lib/services/college/exams.service";
 import type {
   CollegeExamCreate,
@@ -15,15 +15,18 @@ export function useCollegeExams(options?: { enabled?: boolean }) {
     queryFn: async () => {
       try {
         return await CollegeExamsService.list();
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle 404 errors by returning empty array
-        console.log("Exams API error:", error);
+        if (import.meta.env.DEV) {
+          console.log("Exams API error:", error);
+        }
+        const errorObj = error as { message?: string; status?: number };
         if (
-          error?.message?.includes("404") ||
-          error?.message?.includes("Exams not found") ||
-          error?.message?.includes("Not Found") ||
-          error?.status === 404 ||
-          error?.message === "Exams not found"
+          errorObj?.message?.includes("404") ||
+          errorObj?.message?.includes("Exams not found") ||
+          errorObj?.message?.includes("Not Found") ||
+          errorObj?.status === 404 ||
+          errorObj?.message === "Exams not found"
         ) {
           return [];
         }
@@ -54,7 +57,7 @@ export function useCreateCollegeExam() {
     mutationFn: (payload: CollegeExamCreate) =>
       CollegeExamsService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
     },
   }, "Exam created successfully");
 }
@@ -68,8 +71,8 @@ export function useUpdateCollegeExam(examId: number) {
         payload
       ),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.exams.detail(examId) });
-      qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.exams.detail(examId) });
+      void qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
     },
   }, "Exam updated successfully");
 }
@@ -79,7 +82,7 @@ export function useDeleteCollegeExam() {
   return useMutationWithSuccessToast({
     mutationFn: (examId: number) => CollegeExamsService.delete(examId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
     },
   }, "Exam deleted successfully");
 }

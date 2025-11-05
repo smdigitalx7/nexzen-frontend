@@ -66,7 +66,7 @@ export default function AttendanceView() {
       await CollegeAttendanceService.update(student.attendance_id, { absent_days: Math.max(0, nextAbsent) });
       
       // Invalidate cache to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["college", "attendance"] });
+      void queryClient.invalidateQueries({ queryKey: ["college", "attendance"] });
     } catch {
       toast({ title: 'Error', description: 'Failed to update attendance', variant: 'destructive' });
     }
@@ -228,7 +228,7 @@ export default function AttendanceView() {
                 await CollegeAttendanceService.update(editingRow.attendance_id, { absent_days: absent, remarks: editRemarks || null });
                 
                 // Invalidate cache to refresh the list
-                queryClient.invalidateQueries({ queryKey: ["college", "attendance"] });
+                void queryClient.invalidateQueries({ queryKey: ["college", "attendance"] });
                 
                 toast({ title: 'Updated', description: 'Attendance updated' });
                 setEditOpen(false);

@@ -264,7 +264,7 @@ const StatusUpdateTableComponent = ({
         );
 
         // Invalidate queries and call the refetch function to refresh the data
-        queryClient.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+        void queryClient.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
         await onRefetch();
 
         toast({

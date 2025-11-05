@@ -153,7 +153,9 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
 
       const result = await handleCollegePayByAdmissionWithIncomeId(paymentData.admissionNo, apiPayload);
       
-      console.log('Multiple payment completed successfully:', result);
+      if (import.meta.env.DEV) {
+        console.log('Multiple payment completed successfully:', result);
+      }
       
       // Store admission number for re-search after form closes
       paymentSuccessRef.current = paymentData.admissionNo;

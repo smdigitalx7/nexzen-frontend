@@ -64,7 +64,7 @@ export function useCreateSchoolTuitionBalance() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: any) => SchoolTuitionFeeBalancesService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
     },
   }, "Tuition balance created successfully");
 }
@@ -74,8 +74,8 @@ export function useUpdateSchoolTuitionBalance(enrollmentId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: any) => SchoolTuitionFeeBalancesService.update(enrollmentId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
-      qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
     },
   }, "Tuition balance updated successfully");
 }
@@ -85,7 +85,7 @@ export function useDeleteSchoolTuitionBalance() {
   return useMutationWithSuccessToast({
     mutationFn: (enrollmentId: number) => SchoolTuitionFeeBalancesService.delete(enrollmentId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
     },
   }, "Tuition balance deleted successfully");
 }
@@ -95,7 +95,7 @@ export function useBulkCreateSchoolTuitionBalances() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolTuitionBalanceBulkCreate) => SchoolTuitionFeeBalancesService.bulkCreate(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
     },
   }, "Tuition balances created successfully");
 }
@@ -105,8 +105,8 @@ export function useUpdateSchoolTuitionTermPayment(enrollmentId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolTermPaymentUpdate) => SchoolTuitionFeeBalancesService.updateTermPayment(enrollmentId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
-      qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
     },
   }, "Tuition payment updated successfully");
 }
@@ -116,8 +116,8 @@ export function useUpdateSchoolBookFeePayment(enrollmentId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolBookFeePaymentUpdate) => SchoolTuitionFeeBalancesService.updateBookPayment(enrollmentId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
-      qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
     },
   }, "Book fee payment updated successfully");
 }
@@ -144,7 +144,7 @@ export function useCreateSchoolTransportBalance() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: any) => SchoolTransportFeeBalancesService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
     },
   }, "Transport balance created successfully");
 }
@@ -154,8 +154,8 @@ export function useUpdateSchoolTransportBalance(enrollmentId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: any) => SchoolTransportFeeBalancesService.update(enrollmentId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.transport.detail(enrollmentId) });
-      qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.transport.detail(enrollmentId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
     },
   }, "Transport balance updated successfully");
 }
@@ -165,7 +165,7 @@ export function useDeleteSchoolTransportBalance() {
   return useMutationWithSuccessToast({
     mutationFn: (enrollmentId: number) => SchoolTransportFeeBalancesService.delete(enrollmentId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
     },
   }, "Transport balance deleted successfully");
 }
@@ -175,7 +175,7 @@ export function useBulkCreateSchoolTransportBalances() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolTransportBalanceBulkCreate) => SchoolTransportFeeBalancesService.bulkCreate(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
     },
   }, "Transport balances created successfully");
 }
@@ -185,8 +185,8 @@ export function useUpdateSchoolTransportTermPayment(enrollmentId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolTransportTermPaymentUpdate) => SchoolTransportFeeBalancesService.updateTermPayment(enrollmentId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.transport.detail(enrollmentId) });
-      qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.transport.detail(enrollmentId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
     },
   }, "Transport payment updated successfully");
 }

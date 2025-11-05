@@ -23,7 +23,7 @@ export function useCreateSchoolClass() {
     mutationFn: (payload: SchoolClassCreate) =>
       SchoolClassesService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
     },
   }, "Class created successfully");
 }
@@ -34,8 +34,8 @@ export function useUpdateSchoolClass(classId: number) {
     mutationFn: (payload: SchoolClassUpdate) =>
       SchoolClassesService.update(classId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.classes.detail(classId) });
-      qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.classes.detail(classId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
     },
   }, "Class updated successfully");
 }
@@ -73,7 +73,7 @@ export function useDeleteSchoolClassSubject() {
       subjectId: number;
     }) => SchoolClassesService.deleteClassSubject(classId, subjectId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
     },
   }, "Subject removed from class successfully");
 }

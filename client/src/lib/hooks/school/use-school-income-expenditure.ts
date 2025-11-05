@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolIncomeService } from "@/lib/services/school/income.service";
 import { SchoolExpenditureService } from "@/lib/services/school/expenditure.service";
 import type { SchoolExpenditureCreate, SchoolExpenditureRead, SchoolExpenditureUpdate, SchoolIncomeCreate, SchoolIncomeCreateReservation, SchoolIncomeRead, SchoolIncomeUpdate, SchoolExpenditureDashboardStats, SchoolRecentExpenditure, SchoolFinanceReport, SchoolFinanceReportParams } from "@/lib/types/school";
@@ -53,8 +53,8 @@ export function useCreateSchoolIncome() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolIncomeCreate) => SchoolIncomeService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.income.root() });
-      qc.invalidateQueries({ queryKey: schoolKeys.income.list({}) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.income.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.income.list({}) });
     },
   }, "Income record created successfully");
 }
@@ -64,7 +64,7 @@ export function useCreateSchoolIncomeByAdmission() {
   return useMutationWithSuccessToast({
     mutationFn: (input: { admission_no: string; payload: SchoolIncomeCreate }) => SchoolIncomeService.createByAdmission(input.admission_no, input.payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.income.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.income.root() });
     },
   }, "Income record created successfully");
 }
@@ -74,8 +74,8 @@ export function useUpdateSchoolIncome(incomeId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolIncomeUpdate) => SchoolIncomeService.update(incomeId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.income.detail(incomeId) });
-      qc.invalidateQueries({ queryKey: schoolKeys.income.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.income.detail(incomeId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.income.root() });
     },
   }, "Income record updated successfully");
 }
@@ -85,7 +85,7 @@ export function useCreateSchoolIncomeByReservation() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolIncomeCreateReservation) => SchoolIncomeService.createByReservation(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.income.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.income.root() });
     },
   }, "Income record created successfully");
 }
@@ -111,8 +111,8 @@ export function useCreateSchoolExpenditure() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolExpenditureCreate) => SchoolExpenditureService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.expenditure.root() });
-      qc.invalidateQueries({ queryKey: schoolKeys.expenditure.list({}) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.expenditure.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.expenditure.list({}) });
     },
   }, "Expenditure record created successfully");
 }
@@ -122,8 +122,8 @@ export function useUpdateSchoolExpenditure(expenditureId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolExpenditureUpdate) => SchoolExpenditureService.update(expenditureId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.expenditure.detail(expenditureId) });
-      qc.invalidateQueries({ queryKey: schoolKeys.expenditure.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.expenditure.detail(expenditureId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.expenditure.root() });
     },
   }, "Expenditure record updated successfully");
 }
@@ -133,7 +133,7 @@ export function useDeleteSchoolExpenditure() {
   return useMutationWithSuccessToast({
     mutationFn: (expenditureId: number) => SchoolExpenditureService.delete(expenditureId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.expenditure.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.expenditure.root() });
     },
   }, "Expenditure record deleted successfully");
 }

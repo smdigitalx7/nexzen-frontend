@@ -188,8 +188,8 @@ const ConfirmedReservationsTab = () => {
         });
 
         // Invalidate cache to refresh both students and reservations
-        queryClient.invalidateQueries({ queryKey: ["college", "students"] });
-        queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
+        void queryClient.invalidateQueries({ queryKey: ["college", "students"] });
+        void queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
 
         // Set admission details for payment dialog
         setCreatedAdmissionNo(response.admission_no || "");
@@ -274,7 +274,7 @@ const ConfirmedReservationsTab = () => {
       await updateReservationMutation.mutateAsync(updatePayload);
 
       // Additional invalidation
-      queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
+      void queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
       
       toast({
         title: "Reservation Updated",

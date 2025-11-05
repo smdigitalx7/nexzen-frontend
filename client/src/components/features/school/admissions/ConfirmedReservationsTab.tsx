@@ -903,7 +903,7 @@ const ConfirmedReservationsTabComponent = () => {
       await updateReservationMutation.mutateAsync(formData);
 
       // Invalidating queries to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
+      void queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
 
       // Refresh reservation details
       const updatedReservation = await SchoolReservationsService.getById(
@@ -1019,7 +1019,7 @@ const ConfirmedReservationsTabComponent = () => {
       });
 
       // Invalidate reservations cache to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
+      void queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
     } catch (error: any) {
       console.error("Payment failed:", error);
       toast({

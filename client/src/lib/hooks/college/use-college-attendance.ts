@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeAttendanceService } from "@/lib/services/college/attendance.service";
 import type { CollegeStudentAttendanceBulkCreate, CollegeStudentAttendanceBulkCreateResult, CollegeStudentAttendancePaginatedResponse, CollegeStudentAttendanceRead, CollegeStudentAttendanceCreate, CollegeStudentAttendanceUpdate } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
@@ -32,7 +32,7 @@ export function useCreateCollegeAttendance() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeStudentAttendanceCreate) => CollegeAttendanceService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
     },
   }, "Attendance created successfully");
 }
@@ -42,7 +42,7 @@ export function useBulkCreateCollegeAttendance() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeStudentAttendanceBulkCreate) => CollegeAttendanceService.bulkCreate(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
     },
   }, "Attendance records created successfully");
 }
@@ -52,8 +52,8 @@ export function useUpdateCollegeAttendance(attendanceId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeStudentAttendanceUpdate) => CollegeAttendanceService.update(attendanceId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.attendance.detail(attendanceId) });
-      qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.attendance.detail(attendanceId) });
+      void qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
     },
   }, "Attendance updated successfully");
 }
@@ -63,7 +63,7 @@ export function useDeleteCollegeAttendance() {
   return useMutationWithSuccessToast({
     mutationFn: (attendanceId: number) => CollegeAttendanceService.delete(attendanceId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
     },
   }, "Attendance deleted successfully");
 }

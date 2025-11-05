@@ -793,7 +793,9 @@ const ReservationManagementComponent = () => {
         const res: SchoolReservationRead =
           await createReservationMutation.mutateAsync(formData);
 
-        console.log("Reservation creation response:", res);
+        if (import.meta.env.DEV) {
+          console.log("Reservation creation response:", res);
+        }
         // Use backend reservation_id to display receipt number
         setReservationNo(String(res?.reservation_id || ""));
 

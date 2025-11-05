@@ -59,7 +59,9 @@ export const SchoolReportsTemplate = () => {
   // Handlers
   const handleExportReport = () => {
     // TODO: Implement export functionality
-    console.log("Exporting report...");
+    if (import.meta.env.DEV) {
+      console.log("Exporting report...");
+    }
     setShowExportDialog(false);
   };
 

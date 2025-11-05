@@ -530,7 +530,7 @@ export default function ReservationNew() {
       const res: any = await createReservationMutation.mutateAsync(payload);
 
       // Invalidate cache to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
+      void queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
 
       // Use backend reservation_id to display receipt number
       setReservationNo(String(res?.reservation_id || ""));
@@ -762,7 +762,7 @@ export default function ReservationNew() {
       );
 
       // Invalidate cache to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
+      void queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
 
       toast({
         title: "Reservation Updated",

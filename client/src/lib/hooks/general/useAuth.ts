@@ -114,7 +114,7 @@ export function useLogin() {
       };
 
       // Debug logging (only in development)
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.log('🔐 Login Debug:', {
           roleFromToken,
           normalizedRole: role,
@@ -136,7 +136,7 @@ export function useLogin() {
       }));
 
       // Step 10: Login user
-      login(user as any, branchList as any);
+      login(user, branchList);
 
       // Step 11: Determine redirect path
       const redirectPath = (role === ROLES.ADMIN || role === ROLES.INSTITUTE_ADMIN) 

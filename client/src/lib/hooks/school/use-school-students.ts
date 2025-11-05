@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolStudentsService } from "@/lib/services/school/students.service";
 import type { SchoolStudentCreate, SchoolStudentFullDetails, SchoolStudentRead, SchoolStudentUpdate, SchoolStudentsPaginatedResponse } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
@@ -24,7 +24,7 @@ export function useCreateSchoolStudent() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolStudentCreate) => SchoolStudentsService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.students.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.students.root() });
     },
   }, "Student created successfully");
 }
@@ -34,8 +34,8 @@ export function useUpdateSchoolStudent(studentId: number) {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolStudentUpdate) => SchoolStudentsService.update(studentId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.students.detail(studentId) });
-      qc.invalidateQueries({ queryKey: schoolKeys.students.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.students.detail(studentId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.students.root() });
     },
   }, "Student updated successfully");
 }
@@ -45,7 +45,7 @@ export function useDeleteSchoolStudent() {
   return useMutationWithSuccessToast({
     mutationFn: (studentId: number) => SchoolStudentsService.delete(studentId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.students.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.students.root() });
     },
   }, "Student deleted successfully");
 }

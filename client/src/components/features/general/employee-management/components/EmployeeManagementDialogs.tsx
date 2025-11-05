@@ -523,7 +523,9 @@ export const EmployeeManagementDialogs = ({
           if (isEditingAttendance) {
             // For editing, we need the attendance_id from the selected record
             // This would need to be tracked in the state
-            console.log("Update attendance not implemented yet");
+            if (import.meta.env.DEV) {
+              console.log("Update attendance not implemented yet");
+            }
           } else {
             // Convert AttendanceFormData to EmployeeAttendanceCreate
             const createData = {

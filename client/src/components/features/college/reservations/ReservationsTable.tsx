@@ -137,15 +137,19 @@ export default function ReservationsTable({
     );
 
     try {
-      console.log(
-        "🔄 Starting receipt regeneration for income ID:",
-        reservation.income_id
-      );
+      if (import.meta.env.DEV) {
+        console.log(
+          "🔄 Starting receipt regeneration for income ID:",
+          reservation.income_id
+        );
+      }
       const blob = await CollegeIncomeService.regenerateReceipt(
         reservation.income_id
       );
       const blobUrl = URL.createObjectURL(blob);
-      console.log("✅ Receipt blob URL received:", blobUrl);
+      if (import.meta.env.DEV) {
+        console.log("✅ Receipt blob URL received:", blobUrl);
+      }
 
       setReceiptBlobUrl(blobUrl);
       setShowReceiptModal(true);

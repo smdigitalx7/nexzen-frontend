@@ -37,7 +37,9 @@ const DistanceSlabsTab = ({
 
   const handleDeleteSlab = (id: number) => {
     // Add delete functionality when available
-    console.log('Delete slab:', id);
+    if (import.meta.env.DEV) {
+      console.log('Delete slab:', id);
+    }
   };
 
   const columns: ColumnDef<DistanceSlabRead>[] = useMemo(() => [

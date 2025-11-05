@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeClassesService } from "@/lib/services/college/classes.service";
 import type {
   CollegeClassCreate,
@@ -33,7 +33,7 @@ export function useCreateCollegeClass() {
     mutationFn: (payload: CollegeClassCreate) =>
       CollegeClassesService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.classes.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.classes.root() });
     },
   }, "Class created successfully");
 }
@@ -47,8 +47,8 @@ export function useUpdateCollegeClass(classId: number) {
         payload
       ),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.classes.detail(classId) });
-      qc.invalidateQueries({ queryKey: collegeKeys.classes.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.classes.detail(classId) });
+      void qc.invalidateQueries({ queryKey: collegeKeys.classes.root() });
     },
   }, "Class updated successfully");
 }
@@ -73,7 +73,7 @@ export function useRemoveCollegeClassGroup(classId: number) {
     mutationFn: (groupId: number) =>
       CollegeClassesService.removeGroup(classId, groupId),
     onSuccess: () => {
-      qc.invalidateQueries({
+      void qc.invalidateQueries({
         queryKey: [...collegeKeys.classes.detail(classId), "groups"],
       });
     },

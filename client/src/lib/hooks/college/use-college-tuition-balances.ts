@@ -41,7 +41,7 @@ export function useCreateCollegeTuitionBalance() {
     mutationFn: (payload: CollegeTuitionFeeBalanceRead) =>
       CollegeTuitionBalancesService.create(payload as any),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
     },
   }, "Tuition balance created successfully");
 }
@@ -52,8 +52,8 @@ export function useUpdateCollegeTuitionBalance(enrollmentId: number) {
     mutationFn: (payload: Partial<CollegeTuitionFeeBalanceRead>) =>
       CollegeTuitionBalancesService.update(enrollmentId, payload as any),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(enrollmentId) });
-      qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(enrollmentId) });
+      void qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
     },
   }, "Tuition balance updated successfully");
 }
@@ -63,7 +63,7 @@ export function useDeleteCollegeTuitionBalance() {
   return useMutationWithSuccessToast({
     mutationFn: (enrollmentId: number) => CollegeTuitionBalancesService.delete(enrollmentId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
     },
   }, "Tuition balance deleted successfully");
 }
@@ -74,7 +74,7 @@ export function useBulkCreateCollegeTuitionBalances() {
     mutationFn: (payload: CollegeTuitionBalanceBulkCreate) =>
       CollegeTuitionBalancesService.bulkCreate(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
     },
   }, "Tuition balances created successfully");
 }
@@ -85,8 +85,8 @@ export function useUpdateTuitionTermPayment(enrollmentId: number) {
     mutationFn: (payload: CollegeTermPaymentUpdate) =>
       CollegeTuitionBalancesService.updateTermPayment(enrollmentId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(enrollmentId) });
-      qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(enrollmentId) });
+      void qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
     },
   }, "Tuition payment updated successfully");
 }
@@ -97,8 +97,8 @@ export function useUpdateBookFeePayment(enrollmentId: number) {
     mutationFn: (payload: CollegeBookFeePaymentUpdate) =>
       CollegeTuitionBalancesService.updateBookPayment(enrollmentId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(enrollmentId) });
-      qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(enrollmentId) });
+      void qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
     },
   }, "Book fee payment updated successfully");
 }

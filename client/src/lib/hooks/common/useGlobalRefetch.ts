@@ -84,16 +84,16 @@ export function useGlobalRefetch() {
 
     // Invalidate all queries for the entity
     queryKeys.forEach((key) => {
-      queryClient.invalidateQueries({ queryKey: key });
+      void queryClient.invalidateQueries({ queryKey: key });
     });
   }, []);
 
   const invalidateAll = useCallback(() => {
-    queryClient.invalidateQueries();
+    void queryClient.invalidateQueries();
   }, []);
 
   const invalidateByPattern = useCallback((pattern: string) => {
-    queryClient.invalidateQueries({
+    void queryClient.invalidateQueries({
       predicate: (query) => {
         const queryKey = query.queryKey;
         return queryKey.some(

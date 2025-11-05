@@ -208,7 +208,7 @@ export default function AttendanceView() {
                 await SchoolStudentAttendanceService.update(editingRow.attendance_id, { absent_days: absent, remarks: editRemarks || null });
                 
                 // Invalidate cache to refresh the list
-                queryClient.invalidateQueries({ queryKey: ["school", "attendance"] });
+                void queryClient.invalidateQueries({ queryKey: ["school", "attendance"] });
                 
                 toast({ title: 'Updated', description: 'Attendance updated' });
                 setEditOpen(false);
