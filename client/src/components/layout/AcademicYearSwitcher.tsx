@@ -20,11 +20,13 @@ const AcademicYearSwitcher = () => {
   const handleAcademicYearSwitch = async (year: any) => {
     try {
       await switchAcademicYear(year);
-      // Academic year switching doesn't need URL change, just refresh to maintain current path
-      window.location.reload();
+      // Academic year switching doesn't need URL change or reload
+      // Just trigger a custom event for components to refresh their data
+      window.dispatchEvent(new Event('academic-year-switched'));
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Failed to switch academic year:", error);
+      // Don't logout on error - academic year switch is non-critical
     }
   };
 
