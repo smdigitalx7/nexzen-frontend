@@ -309,9 +309,6 @@ export const ViewIncomeDialog = ({
               Last updated: {income.updated_at ? formatDate(income.updated_at) : formatDate(income.created_at)}
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => onOpenChange(false)} className="px-6">
-                Close
-              </Button>
               <Button className="px-6 bg-green-600 hover:bg-green-700">
                 <Receipt className="h-4 w-4 mr-2" />
                 Print Receipt

@@ -361,19 +361,14 @@ RecordInfoSection.displayName = "RecordInfoSection";
 
 // Memoized action buttons component
 const ActionButtons = memo(({ 
-  onDownloadPayslip, 
-  onClose 
+  onDownloadPayslip
 }: { 
   onDownloadPayslip: () => void;
-  onClose: () => void;
 }) => (
   <div className="flex justify-end gap-2 pt-4 border-t">
     <Button variant="outline" onClick={onDownloadPayslip}>
       <Download className="h-4 w-4 mr-2" />
       Download Payslip
-    </Button>
-    <Button variant="outline" onClick={onClose}>
-      Close
     </Button>
   </div>
 ));
@@ -676,7 +671,6 @@ export const PayrollManagementTemplateComponent = () => {
               <RecordInfoSection detailedPayroll={detailedPayroll as unknown as DetailedPayrollRead} />
               <ActionButtons
                 onDownloadPayslip={handleDownloadPayslip}
-                onClose={() => setShowPayslipDialog(false)}
               />
             </div>
           )}

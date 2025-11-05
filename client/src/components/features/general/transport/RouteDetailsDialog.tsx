@@ -12,12 +12,13 @@ interface RouteDetailsDialogProps {
   isLoading: boolean;
   error: any;
   onAssignDriver?: () => void;
-  onRemoveDriver?: () => void;
+  onRemoveDriver?: (routeId: number) => void;
   isAssigning?: boolean;
   isRemoving?: boolean;
+  routeId?: number | null; // Fallback route ID when routeData.bus_route_id is missing
 }
 
-const RouteDetailsDialog = ({ isOpen, onClose, routeData, isLoading, error, onAssignDriver, onRemoveDriver, isAssigning, isRemoving }: RouteDetailsDialogProps) => {
+const RouteDetailsDialog = ({ isOpen, onClose, routeData, isLoading, error, onAssignDriver, onRemoveDriver, isAssigning, isRemoving, routeId }: RouteDetailsDialogProps) => {
   return (
     <FormDialog
       open={isOpen}
@@ -37,9 +38,15 @@ const RouteDetailsDialog = ({ isOpen, onClose, routeData, isLoading, error, onAs
         ) : error ? (
           <div className="text-center py-8 text-red-600">
             <p>Failed to load route details.</p>
-            <p className="text-sm text-muted-foreground mt-1">{error.message}</p>
+            <p className="text-sm text-muted-foreground mt-1">{error?.message || "An error occurred"}</p>
           </div>
-        ) : routeData ? (
+        ) : !routeData ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">No route data available</p>
+            </div>
+          </div>
+        ) : (
           <div className="space-y-6">
             {/* Route Header */}
             <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
@@ -118,7 +125,24 @@ const RouteDetailsDialog = ({ isOpen, onClose, routeData, isLoading, error, onAs
                       </Button>
                     ) : (
                       <Button
-                        onClick={onRemoveDriver}
+                        onClick={() => {
+                          // Use routeData.bus_route_id or fallback to routeId prop
+                          // Also check if routeData has an 'id' field as additional fallback
+                          const routeIdToUse = routeData?.bus_route_id ?? routeId ?? (routeData as any)?.id;
+                          if (routeIdToUse) {
+                            onRemoveDriver?.(routeIdToUse);
+                          } else {
+                            console.error("Cannot remove driver: routeData.bus_route_id and routeId are both missing", {
+                              routeData,
+                              routeId,
+                              hasBusRouteId: !!routeData?.bus_route_id,
+                              hasRouteId: !!routeId,
+                              routeDataId: (routeData as any)?.id
+                            });
+                            // Show user-friendly error (could also use toast here)
+                            alert("Unable to remove driver: Route ID is missing. Please try refreshing the page.");
+                          }
+                        }}
                         className="w-full"
                         variant="destructive"
                         disabled={isRemoving}
@@ -183,7 +207,7 @@ const RouteDetailsDialog = ({ isOpen, onClose, routeData, isLoading, error, onAs
               </CardContent>
             </Card>
           </div>
-        ) : null}
+        )}
     </FormDialog>
   );
 };

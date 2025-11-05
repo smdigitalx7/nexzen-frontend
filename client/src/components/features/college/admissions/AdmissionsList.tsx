@@ -12,7 +12,6 @@ import {
 import {
   FileSpreadsheet,
   FileText,
-  Download,
   GraduationCap,
 } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
@@ -24,7 +23,7 @@ import { toast } from "@/hooks/use-toast";
 import {
   exportAdmissionsToExcel,
   exportSingleAdmissionToExcel,
-  exportAdmissionFormToPDF,
+  exportCollegeAdmissionFormToPDF,
 } from "@/lib/utils/export/admissionsExport";
 import type { CollegeAdmissionDetails, CollegeAdmissionListItem } from "@/lib/types/college/admissions";
 
@@ -96,7 +95,7 @@ const AdmissionsList = () => {
 
   const handleExportPDF = useCallback(async (admission: CollegeAdmissionDetails) => {
     try {
-      await exportAdmissionFormToPDF(admission as any);
+      await exportCollegeAdmissionFormToPDF(admission);
       toast({
         title: "PDF Generated",
         description: `Admission form for ${admission.admission_no} downloaded`,
@@ -197,9 +196,9 @@ const AdmissionsList = () => {
         title="Student Admissions"
         searchKey="student_name"
         searchPlaceholder="Search by name, admission number..."
+        loading={isLoading}
         exportable={true}
         onExport={handleExportAll}
-        loading={isLoading}
         showSearch={true}
         enableDebounce={true}
         debounceDelay={300}
@@ -215,8 +214,9 @@ const AdmissionsList = () => {
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto scrollbar-hide">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>Admission Details</span>
+            <DialogTitle>Admission Details</DialogTitle>
+            <DialogDescription className="flex items-center justify-between">
+              <span>Complete admission information for student</span>
               {selectedAdmission && (
                 <div className="flex gap-2">
                   <Button
@@ -238,9 +238,6 @@ const AdmissionsList = () => {
                   </Button>
                 </div>
               )}
-            </DialogTitle>
-            <DialogDescription>
-              Complete admission information for student
             </DialogDescription>
           </DialogHeader>
 
@@ -608,29 +605,6 @@ const AdmissionsList = () => {
                     </Badge>
                   </div>
                 </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    selectedAdmission && handleExportSingle(selectedAdmission)
-                  }
-                  className="flex items-center gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Download Excel
-                </Button>
-                <Button
-                  onClick={() =>
-                    selectedAdmission && handleExportPDF(selectedAdmission)
-                  }
-                  className="flex items-center gap-2"
-                >
-                  <FileText className="h-4 w-4" />
-                  Download Admission Form (PDF)
-                </Button>
               </div>
             </div>
           )}

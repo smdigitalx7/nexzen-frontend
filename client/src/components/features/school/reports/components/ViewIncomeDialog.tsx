@@ -222,13 +222,6 @@ export const ViewIncomeDialog = ({
               </div>
             </div>
           )}
-
-
-          <div className="flex justify-end pt-4">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Close
-            </Button>
-          </div>
         </motion.div>
       </DialogContent>
     </Dialog>

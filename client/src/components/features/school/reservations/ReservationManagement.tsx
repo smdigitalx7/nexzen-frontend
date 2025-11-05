@@ -153,8 +153,8 @@ const ViewDialogContent = memo(
           <strong>Status:</strong> {viewReservation.status || "-"}
         </div>
         <div>
-          <strong>Referred By (ID):</strong>{" "}
-          {viewReservation.referred_by ?? "-"}
+          <strong>Referred By:</strong>{" "}
+          {viewReservation.referred_by_name ?? "-"}
         </div>
         <div>
           <strong>Enrollment Status:</strong>{" "}
@@ -307,50 +307,20 @@ const ViewDialogContent = memo(
         </div>
       </div>
 
-      {/* Income Records Section */}
-      {(viewReservation.application_income_id ||
-        viewReservation.admission_income_id) && (
-        <div className="border-t pt-4">
-          <div className="font-medium mb-2">Income Records</div>
-          <div className="space-y-2">
-            {viewReservation.application_income_id && (
-              <div className="flex justify-between items-center p-2 bg-blue-50 rounded-lg">
-                <span className="text-sm font-medium">
-                  Application Fee Income ID:
-                </span>
-                <Badge variant="outline" className="font-mono">
-                  {viewReservation.application_income_id}
-                </Badge>
-              </div>
-            )}
-            {viewReservation.admission_income_id && (
-              <div className="flex justify-between items-center p-2 bg-green-50 rounded-lg">
-                <span className="text-sm font-medium">
-                  Admission Fee Income ID:
-                </span>
-                <Badge variant="outline" className="font-mono">
-                  {viewReservation.admission_income_id}
-                </Badge>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       <div className="border-t pt-4">
         <div className="font-medium mb-2">Preferences</div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <strong>Preferred Class ID:</strong>{" "}
-            {viewReservation.preferred_class_id ?? "-"}
+            <strong>Preferred Class:</strong>{" "}
+            {viewReservation.class_name ?? "-"}
           </div>
           <div>
-            <strong>Preferred Transport ID:</strong>{" "}
-            {viewReservation.preferred_transport_id ?? "-"}
+            <strong>Preferred Transport:</strong>{" "}
+            {viewReservation.route_ ?? "-"}
           </div>
           <div>
-            <strong>Preferred Distance Slab ID:</strong>{" "}
-            {viewReservation.preferred_distance_slab_id ?? "-"}
+            <strong>Preferred Distance Slab:</strong>{" "}
+            {viewReservation.slab ?? "-"}
           </div>
           <div>
             <strong>Pickup Point:</strong> {viewReservation.pickup_point || "-"}
@@ -1192,11 +1162,6 @@ const ReservationManagementComponent = () => {
           ) : (
             <ViewDialogContent viewReservation={viewReservation} />
           )}
-          <DialogFooter className="mt-2 bg-background border-t py-3">
-            <Button type="button" onClick={() => setShowViewDialog(false)}>
-              Close
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 

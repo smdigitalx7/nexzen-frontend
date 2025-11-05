@@ -549,12 +549,6 @@ export const ClassesTab = memo(({
               <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button
                   variant="outline"
-                  onClick={closeViewDialog}
-                >
-                  Close
-                </Button>
-                <Button
-                  variant="outline"
                   onClick={() => {
                     setIsViewDialogOpen(false);
                     handleManageSubjectsClick(selectedClass);

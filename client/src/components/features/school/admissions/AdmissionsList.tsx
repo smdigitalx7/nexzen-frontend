@@ -12,7 +12,6 @@ import {
 import {
   FileSpreadsheet,
   FileText,
-  Download,
   GraduationCap,
 } from "lucide-react";
 import {
@@ -23,10 +22,11 @@ import { toast } from "@/hooks/use-toast";
 import {
   exportAdmissionsToExcel,
   exportSingleAdmissionToExcel,
-  exportAdmissionFormToPDF,
+  exportSchoolAdmissionFormToPDF,
 } from "@/lib/utils/export/admissionsExport";
 import type { SchoolAdmissionDetails, SchoolAdmissionListItem } from "@/lib/types/school/admissions";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
+import { CircleSpinner } from "@/components/ui/loading";
 
 // Memoized status badge component
 const StatusBadge = memo(({ status }: { status: string }) => {
@@ -332,37 +332,6 @@ const SiblingsInfo = memo(({ admission }: { admission: SchoolAdmissionDetails })
 
 SiblingsInfo.displayName = "SiblingsInfo";
 
-// Memoized action buttons component
-const ActionButtons = memo(({ 
-  admission, 
-  onExportSingle, 
-  onExportPDF 
-}: { 
-  admission: SchoolAdmissionDetails;
-  onExportSingle: (admission: SchoolAdmissionDetails) => void;
-  onExportPDF: (admission: SchoolAdmissionDetails) => void;
-}) => (
-  <div className="flex justify-end gap-3 pt-4 border-t">
-    <Button
-      variant="outline"
-      onClick={() => onExportSingle(admission)}
-      className="flex items-center gap-2"
-    >
-      <Download className="h-4 w-4" />
-      Download Excel
-    </Button>
-    <Button
-      onClick={() => onExportPDF(admission)}
-      className="flex items-center gap-2"
-    >
-      <FileText className="h-4 w-4" />
-      Download Admission Form (PDF)
-    </Button>
-  </div>
-));
-
-ActionButtons.displayName = "ActionButtons";
-
 // Memoized dialog header component
 const DialogHeader = memo(({ 
   admission, 
@@ -374,8 +343,9 @@ const DialogHeader = memo(({
   onExportPDF: (admission: SchoolAdmissionDetails) => void;
 }) => (
   <UIDialogHeader>
-    <DialogTitle className="flex items-center justify-between">
-      <span>Admission Details</span>
+    <DialogTitle>Admission Details</DialogTitle>
+    <DialogDescription className="flex items-center justify-between">
+      <span>Complete admission information for student</span>
       <div className="flex gap-2">
         <Button
           size="sm"
@@ -395,9 +365,6 @@ const DialogHeader = memo(({
           Export PDF
         </Button>
       </div>
-    </DialogTitle>
-    <DialogDescription>
-      Complete admission information for student
     </DialogDescription>
   </UIDialogHeader>
 ));
@@ -411,7 +378,7 @@ const AdmissionsListComponent = () => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   const { data: admissions = [], isLoading } = useSchoolAdmissions();
-  const { data: selectedAdmission } = useSchoolAdmissionById(selectedStudentId);
+  const { data: selectedAdmission, isLoading: isLoadingAdmission } = useSchoolAdmissionById(selectedStudentId);
 
   // Memoized handlers
   const handleViewDetails = useCallback((admission: SchoolAdmissionListItem) => {
@@ -455,7 +422,7 @@ const AdmissionsListComponent = () => {
 
   const handleExportPDF = useCallback(async (admission: SchoolAdmissionDetails) => {
     try {
-      await exportAdmissionFormToPDF(admission);
+      await exportSchoolAdmissionFormToPDF(admission);
       toast({
         title: "PDF Generated",
         description: `Admission form for ${admission.admission_no} downloaded`,
@@ -535,9 +502,9 @@ const AdmissionsListComponent = () => {
         title="Student Admissions"
         searchKey="student_name"
         searchPlaceholder="Search by name, admission number..."
+        loading={isLoading}
         exportable={true}
         onExport={handleExportAll}
-        loading={isLoading}
         showSearch={true}
         enableDebounce={true}
         debounceDelay={300}
@@ -552,7 +519,11 @@ const AdmissionsListComponent = () => {
       {/* Admission Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-          {selectedAdmission && (
+          {isLoadingAdmission ? (
+            <div className="flex items-center justify-center py-12">
+              <CircleSpinner size="lg" message="Loading admission details..." />
+            </div>
+          ) : selectedAdmission ? (
             <>
               <DialogHeader
                 admission={selectedAdmission}
@@ -567,14 +538,9 @@ const AdmissionsListComponent = () => {
                 <FeeStructure admission={selectedAdmission} />
                 <TransportInfo admission={selectedAdmission} />
                 <SiblingsInfo admission={selectedAdmission} />
-                <ActionButtons
-                  admission={selectedAdmission}
-                  onExportSingle={handleExportSingle}
-                  onExportPDF={handleExportPDF}
-                />
               </div>
             </>
-          )}
+          ) : null}
         </DialogContent>
       </Dialog>
     </div>

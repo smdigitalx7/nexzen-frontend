@@ -1430,11 +1430,6 @@ export default function ReservationNew() {
                 )}
             </div>
           )}
-          <DialogFooter className="mt-2 bg-background border-t py-3">
-            <Button type="button" onClick={() => setShowViewDialog(false)}>
-              Close
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 

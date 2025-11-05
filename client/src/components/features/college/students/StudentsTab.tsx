@@ -130,8 +130,7 @@ export const StudentsTab = () => {
     createTextColumn<CollegeStudentRead>('admission_no', { header: 'Admission No.'}),
     createAvatarColumn<CollegeStudentRead>('student_name', 'gender', { header: 'Student Details' }),
     createTextColumn<CollegeStudentRead>('father_or_guardian_mobile', { header: 'Father/Guardian Mobile', fallback: 'N/A' }),
-    createTextColumn<CollegeStudentRead>('mother_or_guardian_mobile', { header: 'Mother/Guardian Mobile', fallback: 'N/A' }),
-    createBadgeColumn<CollegeStudentRead>('gender', { header: 'Gender', variant: 'outline', fallback: 'N/A' }),
+    createTextColumn<CollegeStudentRead>('present_address', { header: 'Present Address', fallback: 'N/A' }),
     createBadgeColumn<CollegeStudentRead>('status', { header: 'Status', variant: 'outline', fallback: 'N/A' })
   ], []);
 
