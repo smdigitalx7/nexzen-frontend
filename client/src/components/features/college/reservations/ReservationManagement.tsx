@@ -163,7 +163,7 @@ export default function ReservationNew() {
     setSelectedReservationForConcession,
   ] = useState<any>(null);
 
-  // Use React Query hook for reservations - Only fetch when All Reservations tab is active
+  // Use React Query hook for reservations - Fetch when All Reservations or Status tab is active
   const {
     data: reservationsData,
     isLoading: isLoadingReservations,
@@ -173,7 +173,7 @@ export default function ReservationNew() {
   } = useQuery({
     queryKey: collegeKeys.reservations.list({ page: 1, page_size: 20 }),
     queryFn: () => CollegeReservationsService.list({ page: 1, page_size: 20 }),
-    enabled: activeTab === "all",
+    enabled: activeTab === "all" || activeTab === "status",
   });
 
   // Delete reservation hook
@@ -863,6 +863,16 @@ export default function ReservationNew() {
       // Error handling is done in the UI components
     }
   }, [reservationsError, reservationsErrObj]);
+
+  // Refetch reservations when Status tab becomes active to ensure fresh data
+  useEffect(() => {
+    if (activeTab === "status") {
+      queryClient.invalidateQueries({
+        queryKey: collegeKeys.reservations.root(),
+      });
+      refetchReservations();
+    }
+  }, [activeTab, refetchReservations, queryClient]);
 
   return (
     <div className="space-y-6 p-6">

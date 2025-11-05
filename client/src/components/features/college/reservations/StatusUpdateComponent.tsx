@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/select";
 import { Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { collegeKeys } from "@/lib/hooks/college/query-keys";
 import { CollegeReservationsService } from "@/lib/services/college";
 import { EnhancedDataTable } from "@/components/shared";
 import { ColumnDef } from "@tanstack/react-table";
@@ -224,6 +226,7 @@ const StatusUpdateTableComponent = ({
   const [statusRemarks, setStatusRemarks] = useState<Record<string, string>>(
     {}
   );
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Memoized handlers
   const handleStatusChange = useCallback(
@@ -246,6 +249,8 @@ const StatusUpdateTableComponent = ({
     []
   );
 
+  const queryClient = useQueryClient();
+
   const handleStatusUpdate = useCallback(
     async (
       reservation: Reservation,
@@ -263,31 +268,43 @@ const StatusUpdateTableComponent = ({
           payload
         );
 
+        // Invalidate and refetch queries to refresh the data immediately
+        await queryClient.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
+        await queryClient.refetchQueries({ queryKey: collegeKeys.reservations.root() });
+        // Also call the refetch function passed from parent
+        await onRefetch();
+
+        // Force table refresh by updating refresh key
+        setRefreshKey((prev) => prev + 1);
+
         toast({
           title: "Status Updated",
           description: `Reservation ${reservation.no} status updated to ${newStatus}.`,
         });
 
-        // Clear the remarks after successful update
+        // Clear the status change and remarks after successful update
+        setStatusChanges((prev) => {
+          const updated = { ...prev };
+          delete updated[reservation.id];
+          return updated;
+        });
         setStatusRemarks((prev) => ({
           ...prev,
           [reservation.id]: "",
         }));
-
-        // Refresh the data
-        onRefetch();
       } catch (e: any) {
         console.error("Failed to update status:", e);
         toast({
           title: "Status Update Failed",
           description:
+            e?.response?.data?.detail ||
             e?.message ||
             "Could not update reservation status. Please try again.",
           variant: "destructive",
         });
       }
     },
-    [onRefetch]
+    [onRefetch, queryClient]
   );
 
   // Column definitions for EnhancedDataTable
@@ -380,6 +397,7 @@ const StatusUpdateTableComponent = ({
       />
 
       <EnhancedDataTable
+        key={refreshKey}
         data={reservations}
         columns={statusColumns}
         title="Status Updates"

@@ -292,11 +292,11 @@ const Header = () => {
         )}
       </AnimatePresence>
 
-      <motion.header
-        initial={{ y: -10, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="sticky top-0 z-30 w-full bg-gradient-to-r from-white to-slate-50 border-b border-slate-200/60 shadow-sm backdrop-blur-sm"
-      >
+    <motion.header
+      initial={{ y: -10, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      className="sticky top-0 z-30 w-full bg-gradient-to-r from-white to-slate-50 border-b border-slate-200/60 shadow-sm backdrop-blur-sm"
+    >
       <div className="container flex h-20 items-center justify-between px-6">
         {/* Left: System Title */}
         <div className="flex items-center justify-start gap-6">
