@@ -30,6 +30,11 @@ export const PaymentItemCard = React.forwardRef<
       return true; // Non-term items can always be deleted
     }
 
+    // For college transport fees with paymentMonth, allow deletion (monthly payments are independent)
+    if (item.purpose === 'TRANSPORT_FEE' && institutionType === 'college' && item.paymentMonth) {
+      return true;
+    }
+
     if (!item.termNumber) {
       return true; // Items without term numbers can be deleted
     }
@@ -51,6 +56,17 @@ export const PaymentItemCard = React.forwardRef<
   };
 
   const canDelete = canDeleteTerm();
+
+  const formatPaymentMonth = (monthString: string): string => {
+    if (!monthString) return '';
+    try {
+      // Parse YYYY-MM-01 format
+      const date = new Date(monthString);
+      return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    } catch {
+      return monthString;
+    }
+  };
 
   const getPurposeLabel = () => {
     switch (item.purpose) {

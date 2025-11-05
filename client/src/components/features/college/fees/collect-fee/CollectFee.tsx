@@ -6,14 +6,44 @@ import { CollegeMultiplePaymentForm } from "../multiple-payment/CollegeMultipleP
 import type { StudentInfo, FeeBalance, MultiplePaymentData } from "@/components/shared/payment/types/PaymentTypes";
 import { handleCollegePayByAdmissionWithIncomeId } from "@/lib/api-college";
 import { useToast } from "@/hooks/use-toast";
-import { CollegeStudentsService } from "@/lib/services/college/students.service";
-import { CollegeTuitionBalancesService } from "@/lib/services/college/tuition-fee-balances.service";
 import { Api } from "@/lib/api";
+import type { CollegeTuitionFeeBalanceRead } from "@/lib/types/college/tuition-fee-balances";
+import { CollegeTransportBalancesService } from "@/lib/services/college/transport-fee-balances.service";
+
+interface CollegeStudentData {
+  student_id?: number;
+  id?: number;
+  admission_no: string;
+  student_name: string;
+  section_name?: string;
+  class_name?: string;
+  academic_year?: string;
+}
+
+interface CollegeTuitionBalanceData {
+  book_fee?: number;
+  book_paid?: number;
+  term1_amount?: number;
+  term1_paid?: number;
+  term2_amount?: number;
+  term2_paid?: number;
+  term3_amount?: number;
+  term3_paid?: number;
+}
+
+interface CollegeTransportBalanceData {
+  term1_amount?: number;
+  term1_paid?: number;
+  term2_amount?: number;
+  term2_paid?: number;
+  term3_amount?: number;
+  term3_paid?: number;
+}
 
 interface StudentFeeDetails {
-  student: any;
-  tuitionBalance: any;
-  transportBalance?: any;
+  student: CollegeStudentData;
+  tuitionBalance: CollegeTuitionFeeBalanceRead | CollegeTuitionBalanceData | null;
+  transportBalance?: CollegeTransportBalanceData | null;
 }
 
 interface CollectFeeProps {
@@ -44,23 +74,10 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
     navigate(`${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`, { replace: true });
   };
 
-  // Remove admission number from URL
-  const removeAdmissionFromUrl = () => {
-    const newSearchParams = new URLSearchParams(search);
-    newSearchParams.delete("admission_no");
-    const newSearch = newSearchParams.toString();
-    navigate(`${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`, { replace: true });
-  };
-
   const handleStartPayment = (studentDetails: StudentFeeDetails) => {
     setSelectedStudent(studentDetails);
     setIsFormOpen(true);
     paymentSuccessRef.current = null; // Reset payment success flag
-  };
-
-  const handlePaymentComplete = () => {
-    setSelectedStudent(null);
-    setIsFormOpen(false);
   };
 
   // Search student function (reusable for both initial search and re-search)
@@ -72,22 +89,28 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
       setTimeout(() => updateUrlWithAdmission(admissionNo), 0);
       
       // Always fetch fresh data - bypass cache
-      const student = await Api.get(
+      const student = await Api.get<CollegeStudentData>(
         `/college/students/by-admission/${admissionNo}`,
         { _t: Date.now() },
         undefined,
         { cache: false, dedupe: false }
       );
-      const tuitionBalance = await Api.get(
+      
+      const tuitionBalance = await Api.get<CollegeTuitionFeeBalanceRead | CollegeTuitionFeeBalanceRead[]>(
         `/college/tuition-fee-balances/by-admission-no/${admissionNo}`,
         { _t: Date.now() },
         undefined,
         { cache: false, dedupe: false }
       ).catch(() => null);
 
+      // Handle array response (API may return array)
+      const tuitionBalanceData = Array.isArray(tuitionBalance) 
+        ? tuitionBalance[0] ?? null 
+        : tuitionBalance;
+
       const studentDetails: StudentFeeDetails = {
         student,
-        tuitionBalance
+        tuitionBalance: tuitionBalanceData
       };
 
       setSearchResults([studentDetails]);
@@ -100,7 +123,6 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
         });
       }
     } catch (error) {
-      console.error("Search error:", error);
       if (showToast) {
         toast({
           title: "Refresh Failed",
@@ -140,36 +162,102 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
 
   const handleMultiplePaymentComplete = async (paymentData: MultiplePaymentData) => {
     try {
-      const apiPayload = {
-        details: paymentData.details.map(detail => ({
-          purpose: detail.purpose as "BOOK_FEE" | "TUITION_FEE" | "TRANSPORT_FEE" | "OTHER" | "ADMISSION_FEE",
-          custom_purpose_name: detail.customPurposeName || undefined,
-          term_number: detail.termNumber || undefined,
-          paid_amount: detail.amount,
-          payment_method: detail.paymentMethod === "CHEQUE" ? "CASH" : detail.paymentMethod as "CASH" | "ONLINE",
-        })),
+      const apiPayload: {
+        details: Array<{
+          purpose: "BOOK_FEE" | "TUITION_FEE" | "TRANSPORT_FEE" | "OTHER" | "ADMISSION_FEE";
+          paid_amount: number;
+          payment_method: "CASH" | "ONLINE";
+          term_number?: number;
+          payment_month?: string;
+          custom_purpose_name?: string;
+        }>;
+        remarks?: string;
+      } = {
+        details: paymentData.details.map(detail => {
+          const baseDetail: {
+            purpose: "BOOK_FEE" | "TUITION_FEE" | "TRANSPORT_FEE" | "OTHER" | "ADMISSION_FEE";
+            paid_amount: number;
+            payment_method: "CASH" | "ONLINE";
+            term_number?: number;
+            payment_month?: string;
+            custom_purpose_name?: string;
+          } = {
+            purpose: detail.purpose as "BOOK_FEE" | "TUITION_FEE" | "TRANSPORT_FEE" | "OTHER" | "ADMISSION_FEE",
+            paid_amount: detail.amount,
+            payment_method: (detail.paymentMethod === "CHEQUE" || detail.paymentMethod === "DD" ? "CASH" : detail.paymentMethod),
+          };
+
+          // Add term_number for TUITION_FEE
+          if (detail.purpose === "TUITION_FEE" && detail.termNumber) {
+            baseDetail.term_number = detail.termNumber;
+          }
+
+          // Add payment_month for TRANSPORT_FEE (college uses monthly payments, not terms)
+          if (detail.purpose === "TRANSPORT_FEE" && 'paymentMonth' in detail && detail.paymentMonth) {
+            baseDetail.payment_month = detail.paymentMonth; // Should be in YYYY-MM-01 format
+          }
+
+          // Add custom_purpose_name for OTHER
+          if (detail.purpose === "OTHER" && detail.customPurposeName) {
+            baseDetail.custom_purpose_name = detail.customPurposeName;
+          }
+
+          return baseDetail;
+        }),
         remarks: paymentData.remarks || undefined,
       };
 
       const result = await handleCollegePayByAdmissionWithIncomeId(paymentData.admissionNo, apiPayload);
       
-      if (import.meta.env.DEV) {
-        console.log('Multiple payment completed successfully:', result);
-      }
       
       // Store admission number for re-search after form closes
       paymentSuccessRef.current = paymentData.admissionNo;
       
       return result;
     } catch (error) {
-      console.error('Multiple payment error:', error);
-      
       // Reset payment success flag on error
       paymentSuccessRef.current = null;
       
+      // Parse error message and provide user-friendly feedback based on markdown guide
+      let errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      let errorTitle = "Payment Failed";
+      
+      // Handle specific error types from the markdown guide
+      if (errorMessage.includes("Student not found")) {
+        errorTitle = "Student Not Found";
+        errorMessage = "Student not found. Please check the admission number.";
+      } else if (errorMessage.includes("Active enrollment not found")) {
+        errorTitle = "Enrollment Not Found";
+        errorMessage = "Student is not enrolled for this academic year.";
+      } else if (errorMessage.includes("Payment sequence violation")) {
+        errorTitle = "Payment Sequence Error";
+        errorMessage = "Please pay previous terms/months first.";
+      } else if (errorMessage.includes("exceeds remaining_balance")) {
+        errorTitle = "Amount Exceeds Balance";
+        errorMessage = "Payment amount exceeds remaining balance.";
+      } else if (errorMessage.includes("must be paid in full")) {
+        errorTitle = "Full Payment Required";
+        errorMessage = "This fee must be paid in full. Partial payments are not allowed.";
+      } else if (errorMessage.includes("Book fee prerequisite")) {
+        errorTitle = "Book Fee Required";
+        errorMessage = "Book fee must be paid before tuition fees.";
+      } else if (errorMessage.includes("Sequential payment validation failed")) {
+        errorTitle = "Sequential Payment Required";
+        errorMessage = "Please pay pending months first.";
+      } else if (errorMessage.includes("Transport assignment not found")) {
+        errorTitle = "Transport Assignment Not Found";
+        errorMessage = "Student does not have an active transport assignment.";
+      } else if (errorMessage.includes("Duplicate payment months")) {
+        errorTitle = "Duplicate Payment";
+        errorMessage = "Each month can only be paid once per transaction.";
+      } else if (errorMessage.includes("Missing required parameter")) {
+        errorTitle = "Missing Information";
+        // Keep original message as it's specific
+      }
+      
       toast({
-        title: "Payment Failed",
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
       
@@ -177,50 +265,202 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
     }
   };
 
-  const transformStudentData = (studentDetails: StudentFeeDetails): { student: StudentInfo; feeBalances: FeeBalance } => {
+  const transformStudentData = async (studentDetails: StudentFeeDetails): Promise<{ student: StudentInfo; feeBalances: FeeBalance }> => {
+    const studentData = studentDetails.student;
+    const tuitionData = studentDetails.tuitionBalance;
+    // Note: transportData is not used for colleges (monthly-based, not term-based)
+    // But kept in case needed for future use
+    const _transportData = studentDetails.transportBalance;
+
+    // Try to get enrollment_id and total_fee from transport payment summary
+    // For colleges, transport fees are monthly-based only (not term-based)
+    let enrollmentId: number | undefined = undefined;
+    let transportFeeTotal: number | undefined = undefined;
+    try {
+      const transportSummary = await CollegeTransportBalancesService.getStudentTransportPaymentSummary();
+      const matchingItem = transportSummary?.items?.find(
+        (item) => item.admission_no === studentData.admission_no
+      );
+      if (matchingItem) {
+        enrollmentId = matchingItem.enrollment_id;
+        // Get total_fee from summary (monthly-based for colleges)
+        transportFeeTotal = typeof matchingItem.total_fee === 'string' 
+          ? parseFloat(matchingItem.total_fee) || 0 
+          : (matchingItem.total_fee || 0);
+      }
+    } catch (error) {
+      // Silently fail - enrollment_id and transportFeeTotal are optional
+      // Will use fallback values if fetch fails
+    }
+
     const student: StudentInfo = {
-      studentId: studentDetails.student.student_id || studentDetails.student.id,
-      admissionNo: studentDetails.student.admission_no,
-      name: studentDetails.student.student_name,
-      className: studentDetails.student.section_name || studentDetails.student.class_name || 'N/A',
-      academicYear: studentDetails.student.academic_year || '2025-2026'
+      studentId: String(studentData.student_id ?? studentData.id ?? 0),
+      admissionNo: studentData.admission_no,
+      name: studentData.student_name,
+      className: studentData.section_name ?? studentData.class_name ?? 'N/A',
+      academicYear: studentData.academic_year ?? '2025-2026',
+      enrollmentId: enrollmentId
     };
+
+    const bookFeeTotal = tuitionData?.book_fee ?? 0;
+    const bookFeePaid = tuitionData?.book_paid ?? 0;
+    const term1Amount = tuitionData?.term1_amount ?? 0;
+    const term1Paid = tuitionData?.term1_paid ?? 0;
+    const term2Amount = tuitionData?.term2_amount ?? 0;
+    const term2Paid = tuitionData?.term2_paid ?? 0;
+    const term3Amount = tuitionData?.term3_amount ?? 0;
+    const term3Paid = tuitionData?.term3_paid ?? 0;
+
+    // For colleges, transport fees are monthly-based only (NOT term-based)
+    // Use total_fee from transport payment summary if available
+    // DO NOT sum term amounts - colleges don't use terms for transport fees
+    // If transportFeeTotal is not available from summary, set to 0 (component will handle expected payments)
+    const transportTotal = transportFeeTotal ?? 0;
 
     const feeBalances: FeeBalance = {
       bookFee: {
-        total: studentDetails.tuitionBalance?.book_fee || 0,
-        paid: studentDetails.tuitionBalance?.book_paid || 0,
-        outstanding: Math.max(0, (studentDetails.tuitionBalance?.book_fee || 0) - (studentDetails.tuitionBalance?.book_paid || 0))
+        total: bookFeeTotal,
+        paid: bookFeePaid,
+        outstanding: Math.max(0, bookFeeTotal - bookFeePaid)
       },
       tuitionFee: {
-        total: (studentDetails.tuitionBalance?.term1_amount || 0) + (studentDetails.tuitionBalance?.term2_amount || 0) + (studentDetails.tuitionBalance?.term3_amount || 0),
+        total: term1Amount + term2Amount + term3Amount,
         term1: {
-          paid: studentDetails.tuitionBalance?.term1_paid || 0,
-          outstanding: Math.max(0, (studentDetails.tuitionBalance?.term1_amount || 0) - (studentDetails.tuitionBalance?.term1_paid || 0))
+          paid: term1Paid,
+          outstanding: Math.max(0, term1Amount - term1Paid)
         },
         term2: {
-          paid: studentDetails.tuitionBalance?.term2_paid || 0,
-          outstanding: Math.max(0, (studentDetails.tuitionBalance?.term2_amount || 0) - (studentDetails.tuitionBalance?.term2_paid || 0))
+          paid: term2Paid,
+          outstanding: Math.max(0, term2Amount - term2Paid)
         },
         term3: {
-          paid: studentDetails.tuitionBalance?.term3_paid || 0,
-          outstanding: Math.max(0, (studentDetails.tuitionBalance?.term3_amount || 0) - (studentDetails.tuitionBalance?.term3_paid || 0))
+          paid: term3Paid,
+          outstanding: Math.max(0, term3Amount - term3Paid)
         }
       },
       transportFee: {
-        total: (studentDetails.transportBalance?.term1_amount || 0) + (studentDetails.transportBalance?.term2_amount || 0) + (studentDetails.transportBalance?.term3_amount || 0),
-        term1: {
-          paid: studentDetails.transportBalance?.term1_paid || 0,
-          outstanding: Math.max(0, (studentDetails.transportBalance?.term1_amount || 0) - (studentDetails.transportBalance?.term1_paid || 0))
-        },
-        term2: {
-          paid: studentDetails.transportBalance?.term2_paid || 0,
-          outstanding: Math.max(0, (studentDetails.transportBalance?.term2_amount || 0) - (studentDetails.transportBalance?.term2_paid || 0))
-        }
+        // For colleges: monthly-based only - use total directly, no term structure
+        total: transportTotal,
+        // term1 and term2 should be undefined for colleges (only used by schools)
+        term1: undefined,
+        term2: undefined
       }
     };
 
     return { student, feeBalances };
+  };
+
+  // Wrapper component to handle async transformStudentData
+  const TransformStudentDataWrapper = ({ 
+    studentDetails, 
+    onPaymentComplete, 
+    onCancel 
+  }: { 
+    studentDetails: StudentFeeDetails; 
+    onPaymentComplete: (data: MultiplePaymentData) => Promise<unknown>; 
+    onCancel: () => void;
+  }) => {
+    const [transformedData, setTransformedData] = useState<{ student: StudentInfo; feeBalances: FeeBalance } | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+      transformStudentData(studentDetails)
+        .then((data) => {
+          setTransformedData(data);
+          setIsLoading(false);
+        })
+        .catch((error) => {
+          console.error("Error transforming student data:", error);
+          // Fallback to synchronous transform without enrollment_id
+          const studentData = studentDetails.student;
+          const tuitionData = studentDetails.tuitionBalance;
+          // Note: transportData is not used for colleges (monthly-based, not term-based)
+          // But kept in case needed for future use
+          const _transportData = studentDetails.transportBalance;
+
+          const student: StudentInfo = {
+            studentId: String(studentData.student_id ?? studentData.id ?? 0),
+            admissionNo: studentData.admission_no,
+            name: studentData.student_name,
+            className: studentData.section_name ?? studentData.class_name ?? 'N/A',
+            academicYear: studentData.academic_year ?? '2025-2026'
+          };
+
+          const bookFeeTotal = tuitionData?.book_fee ?? 0;
+          const bookFeePaid = tuitionData?.book_paid ?? 0;
+          const term1Amount = tuitionData?.term1_amount ?? 0;
+          const term1Paid = tuitionData?.term1_paid ?? 0;
+          const term2Amount = tuitionData?.term2_amount ?? 0;
+          const term2Paid = tuitionData?.term2_paid ?? 0;
+          const term3Amount = tuitionData?.term3_amount ?? 0;
+          const term3Paid = tuitionData?.term3_paid ?? 0;
+
+          // For colleges, transport fees are monthly-based only (NOT term-based)
+          // We can't reliably get total from term-based data - set to 0
+          // Component will handle expected payments via enrollment_id (which we don't have in fallback)
+          // DO NOT sum term amounts - colleges don't use terms for transport fees
+          const transportTotal = 0;
+
+          const feeBalances: FeeBalance = {
+            bookFee: {
+              total: bookFeeTotal,
+              paid: bookFeePaid,
+              outstanding: Math.max(0, bookFeeTotal - bookFeePaid)
+            },
+            tuitionFee: {
+              total: term1Amount + term2Amount + term3Amount,
+              term1: {
+                paid: term1Paid,
+                outstanding: Math.max(0, term1Amount - term1Paid)
+              },
+              term2: {
+                paid: term2Paid,
+                outstanding: Math.max(0, term2Amount - term2Paid)
+              },
+              term3: {
+                paid: term3Paid,
+                outstanding: Math.max(0, term3Amount - term3Paid)
+              }
+            },
+            transportFee: {
+              // For colleges: monthly-based only - use total directly, no term structure
+              total: transportTotal,
+              // term1 and term2 should be undefined for colleges (only used by schools)
+              term1: undefined,
+              term2: undefined
+            }
+          };
+
+          setTransformedData({ student, feeBalances });
+          setIsLoading(false);
+        });
+    }, [studentDetails]);
+
+    if (isLoading || !transformedData) {
+      return (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+            <p className="text-sm text-muted-foreground">Loading student data...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="space-y-6"
+      >
+        <CollegeMultiplePaymentForm
+          {...transformedData}
+          onPaymentComplete={onPaymentComplete}
+          onCancel={onCancel}
+        />
+      </motion.div>
+    );
   };
 
   return (
@@ -230,11 +470,12 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
         <CollectFeeSearch 
           onStudentSelected={() => {}} 
           paymentMode="multiple"
-          onStartPayment={(studentDetails) => {
+          onStartPayment={(studentDetails: StudentFeeDetails) => {
             handleStartPayment(studentDetails);
             // Update URL when starting payment
-            if (studentDetails?.student?.admission_no) {
-              setTimeout(() => updateUrlWithAdmission(studentDetails.student.admission_no), 0);
+            const admissionNo = studentDetails?.student?.admission_no;
+            if (admissionNo) {
+              setTimeout(() => updateUrlWithAdmission(admissionNo), 0);
             }
           }}
           searchResults={searchResults}
@@ -246,18 +487,11 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
 
       {/* Multiple Payment Form - Renders when student is selected */}
       {selectedStudent && isFormOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="space-y-6"
-        >
-          <CollegeMultiplePaymentForm
-            {...transformStudentData(selectedStudent)}
-            onPaymentComplete={handleMultiplePaymentComplete}
-            onCancel={handleFormClose}
-          />
-        </motion.div>
+        <TransformStudentDataWrapper
+          studentDetails={selectedStudent}
+          onPaymentComplete={handleMultiplePaymentComplete}
+          onCancel={handleFormClose}
+        />
       )}
     </div>
   );

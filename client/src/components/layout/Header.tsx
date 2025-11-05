@@ -39,20 +39,9 @@ import type { SchoolFullStudentRead } from "@/lib/types/school";
 import type { CollegeFullStudentRead } from "@/lib/types/college";
 
 const Header = () => {
-  const {
-    user,
-    currentBranch,
-    branches,
-    switchBranch,
-    logoutAsync,
-    academicYear,
-    academicYears,
-    switchAcademicYear,
-    isBranchSwitching,
-  } = useAuthStore();
+  const { user, currentBranch, logoutAsync } = useAuthStore();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const [notifications] = useState(0);
   const [showResultsDialog, setShowResultsDialog] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -129,10 +118,6 @@ const Header = () => {
       clearSearch();
     }
   }, [showResultsDialog, clearSearch]);
-
-  const handleViewStudent = (admissionNo: string) => {
-    // Removed - search results are display-only, no navigation needed
-  };
 
   const renderSearchResults = () => {
     if (isSearching) {
@@ -240,10 +225,8 @@ const Header = () => {
 
       // Clear React Query cache after logout
       queryClient.clear();
-
-      console.log("User logged out successfully");
     } catch (error) {
-      console.error("Logout failed:", error);
+      // Error handling is done by the auth store
     }
   };
 

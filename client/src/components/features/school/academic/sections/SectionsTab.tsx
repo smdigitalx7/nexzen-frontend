@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, memo, useCallback } from "react";
+import { useMemo, useState, useCallback } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/select";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { Edit, Trash2 } from "lucide-react";
 import { useSchoolClasses, useSchoolSectionsByClass, useCreateSchoolSection, useUpdateSchoolSection, useDeleteSchoolSection } from "@/lib/hooks/school";
 import type { SchoolSectionRead, SchoolClassRead } from "@/lib/types/school";
 
@@ -35,7 +34,7 @@ const SectionsTabComponent = () => {
   const [editSection, setEditSection] = useState(initialSectionForm);
 
   // Data fetching - only fetch when a class is selected
-  const { data: sections = [], isLoading } = useSchoolSectionsByClass(selectedClassId);
+  const { data: sections = [] } = useSchoolSectionsByClass(selectedClassId);
 
   // Hooks
   const createSection = useCreateSchoolSection((selectedClassId || 0));
@@ -226,7 +225,7 @@ const SectionsTabComponent = () => {
         onOpenChange={setIsAddOpen}
         title="Add Section"
         description="Create a new section in this class"
-        onSave={handleCreateSection}
+        onSave={() => { void handleCreateSection(); }}
         onCancel={closeAddDialog}
         saveText="Create Section"
         cancelText="Cancel"
@@ -260,7 +259,7 @@ const SectionsTabComponent = () => {
         onOpenChange={setIsEditOpen}
         title="Edit Section"
         description="Update section details"
-        onSave={handleUpdateSection}
+        onSave={() => { void handleUpdateSection(); }}
         onCancel={closeEditDialog}
         saveText="Update Section"
         cancelText="Cancel"
@@ -295,7 +294,7 @@ const SectionsTabComponent = () => {
         onOpenChange={setIsDeleteDialogOpen}
         title="Delete Section"
         description={`Are you sure you want to delete the section "${sectionToDelete?.section_name}"? This action cannot be undone.`}
-        onConfirm={handleDeleteSection}
+        onConfirm={() => { void handleDeleteSection(); }}
         onCancel={closeDeleteDialog}
         confirmText="Delete"
         variant="destructive"

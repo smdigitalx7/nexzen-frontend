@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { CreditCard, Plus, Download, X, Users, Calculator, Eye } from "lucide-react";
+import { CreditCard, Plus, Download, Users, Calculator, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,13 +19,24 @@ import { EmployeePayrollTable } from "./components/EmployeePayrollTable";
 import { SalaryCalculationForm } from "./components/SalaryCalculationForm";
 import { BulkPayrollOperations } from "./components/BulkPayrollOperations";
 import { memo, useMemo, useCallback } from "react";
+import type { Branch } from "@/store/authStore";
+import type { EmployeeRead } from "@/lib/types/general/employees";
+import type { PayrollRead } from "@/lib/types/general/payrolls";
+
+// Extended interface that includes employee information
+interface PayrollWithEmployee extends Omit<PayrollRead, "payroll_month"> {
+  employee_name: string;
+  employee_type?: string;
+  payroll_month: number;
+  payroll_year: number;
+}
 
 // Memoized header component
 const PayrollHeader = memo(({ 
   currentBranch, 
   onCreatePayroll 
 }: { 
-  currentBranch: any;
+  currentBranch: Branch | null;
   onCreatePayroll: () => void;
 }) => (
   <motion.div
@@ -268,7 +279,7 @@ const PayrollSummarySection = memo(({ detailedPayroll }: { detailedPayroll: Deta
       </div>
       <div>
         <span className="text-muted-foreground">Net Pay:</span> 
-        <span className="font-medium text-lg font-bold">{formatCurrency(detailedPayroll.net_pay)}</span>
+        <span className="text-lg font-bold">{formatCurrency(detailedPayroll.net_pay)}</span>
       </div>
     </div>
   </div>
@@ -295,7 +306,7 @@ const DeductionsBreakdownSection = memo(({ detailedPayroll }: { detailedPayroll:
       </div>
       <div>
         <span className="text-muted-foreground">Total Deductions:</span> 
-        <span className="font-medium font-bold">{formatCurrency(detailedPayroll.total_deductions)}</span>
+        <span className="font-bold">{formatCurrency(detailedPayroll.total_deductions)}</span>
       </div>
     </div>
   </div>
@@ -387,32 +398,42 @@ const BulkOperationsContent = memo(({
   onBulkExport, 
   isLoading 
 }: { 
-  employees: any[];
-  onBulkCreate: (data: any) => void;
+  employees: EmployeeRead[];
+  onBulkCreate: (data: unknown) => void;
   onBulkExport: () => void;
   isLoading: boolean;
-}) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: 0.1 }}
-    className="space-y-4"
-  >
-    <div>
-      <h2 className="text-2xl font-bold">Bulk Operations</h2>
-      <p className="text-muted-foreground">
-        Process multiple payrolls efficiently with bulk operations
-      </p>
-    </div>
-    
-    <BulkPayrollOperations
-      employees={employees}
-      onBulkCreate={onBulkCreate}
-      onBulkExport={onBulkExport}
-      isLoading={isLoading}
-    />
-  </motion.div>
-));
+}) => {
+  const handleBulkCreateWrapper = useCallback((data: unknown[]) => {
+    void onBulkCreate(data as unknown);
+  }, [onBulkCreate]);
+
+  const handleBulkExportWrapper = useCallback(() => {
+    void onBulkExport();
+  }, [onBulkExport]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+      className="space-y-4"
+    >
+      <div>
+        <h2 className="text-2xl font-bold">Bulk Operations</h2>
+        <p className="text-muted-foreground">
+          Process multiple payrolls efficiently with bulk operations
+        </p>
+      </div>
+      
+      <BulkPayrollOperations
+        employees={employees}
+        onBulkCreate={handleBulkCreateWrapper}
+        onBulkExport={handleBulkExportWrapper}
+        isLoading={isLoading}
+      />
+    </motion.div>
+  );
+});
 
 BulkOperationsContent.displayName = "BulkOperationsContent";
 
@@ -446,21 +467,44 @@ export const PayrollManagementTemplateComponent = () => {
   // Dashboard stats hook
   const { data: dashboardStats, isLoading: dashboardLoading } = usePayrollDashboard();
   
+  const managementData = usePayrollManagement();
+  
+  // Extract and type-safe destructure with proper type guards, wrapped in useMemo for stability
+  const payrolls: PayrollWithEmployee[] = useMemo(() => {
+    return Array.isArray(managementData.payrolls) 
+      ? (managementData.payrolls as PayrollWithEmployee[])
+      : [];
+  }, [managementData.payrolls]);
+  
+  const employees: EmployeeRead[] = useMemo(() => {
+    if (!Array.isArray(managementData.employees)) {
+      return [];
+    }
+    // Type guard: ensure all items are EmployeeRead
+    return managementData.employees.filter((emp): emp is EmployeeRead => 
+      typeof emp === 'object' && emp !== null && 'employee_id' in emp
+    );
+  }, [managementData.employees]);
+  
+  // Statistics are computed numbers from the hook, ensure type safety
+  const totalPayrolls = typeof managementData.totalPayrolls === 'number' 
+    ? managementData.totalPayrolls 
+    : 0;
+  const totalAmount = typeof managementData.totalAmount === 'number' 
+    ? managementData.totalAmount 
+    : 0;
+  const paidAmount = typeof managementData.paidAmount === 'number' 
+    ? managementData.paidAmount 
+    : 0;
+  const pendingAmount = typeof managementData.pendingAmount === 'number' 
+    ? managementData.pendingAmount 
+    : 0;
+  const pendingCount = typeof managementData.pendingCount === 'number' 
+    ? managementData.pendingCount 
+    : 0;
+  
   const {
-    // Data
-    payrolls,
-    employees,
-    
-    // Statistics
-    totalPayrolls,
-    totalAmount,
-    paidAmount,
-    pendingAmount,
-    pendingCount,
-    
     // UI State
-    searchQuery,
-    setSearchQuery,
     selectedMonth,
     setSelectedMonth,
     selectedYear,
@@ -475,7 +519,7 @@ export const PayrollManagementTemplateComponent = () => {
     setShowPayslipDialog,
     selectedPayroll,
     setSelectedPayroll,
-    selectedPayrollId,
+    selectedPayrollId: _selectedPayrollId,
     setSelectedPayrollId,
     detailedPayroll,
     detailedPayrollLoading,
@@ -486,8 +530,6 @@ export const PayrollManagementTemplateComponent = () => {
     isLoading,
     
     // Handlers
-    handleCreatePayroll,
-    handleUpdatePayroll,
     handleUpdateStatus,
     handleViewPayslip,
     handleEditPayroll,
@@ -502,9 +544,8 @@ export const PayrollManagementTemplateComponent = () => {
     getStatusText,
     
     // User context
-    user,
     currentBranch,
-  } = usePayrollManagement();
+  } = managementData;
 
   // Memoized handlers
   const handleCreatePayrollClick = useCallback(() => {
@@ -523,12 +564,11 @@ export const PayrollManagementTemplateComponent = () => {
       setSelectedPayrollId(null);
       setSelectedPayroll(null);
     }
-  }, [setShowPayslipDialog, setSelectedPayrollId, setSelectedPayroll]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setShowPayslipDialog, setSelectedPayroll]);
 
   const handleDownloadPayslip = useCallback(() => {
-    if (import.meta.env.DEV) {
-      console.log('Download payslip');
-    }
+    // Download payslip functionality to be implemented
   }, []);
 
   // Memoized tabs configuration
@@ -552,7 +592,9 @@ export const PayrollManagementTemplateComponent = () => {
             isLoading={isLoading}
             onEditPayroll={handleEditPayroll}
             onViewPayslip={handleViewPayslip}
-            onUpdateStatus={handleUpdateStatus}
+            onUpdateStatus={(id: number, status: string) => {
+              void handleUpdateStatus(id, status);
+            }}
             getStatusColor={getStatusColor}
             getStatusText={getStatusText}
           />
@@ -566,8 +608,12 @@ export const PayrollManagementTemplateComponent = () => {
       content: (
         <BulkOperationsContent
           employees={employees}
-          onBulkCreate={handleBulkCreate}
-          onBulkExport={handleBulkExport}
+          onBulkCreate={(data: unknown) => {
+            void handleBulkCreate(Array.isArray(data) ? data : []);
+          }}
+          onBulkExport={() => {
+            void handleBulkExport();
+          }}
           isLoading={isLoading}
         />
       ),
@@ -644,7 +690,9 @@ export const PayrollManagementTemplateComponent = () => {
       <SalaryCalculationForm
         isOpen={showCreateDialog || showUpdateDialog}
         onClose={handleCloseDialogs}
-        onSubmit={handleFormSubmit}
+        onSubmit={(data) => {
+          void handleFormSubmit(data);
+        }}
         employees={employees}
         selectedPayroll={selectedPayroll}
       />

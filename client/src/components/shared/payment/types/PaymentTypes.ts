@@ -9,10 +9,11 @@ export type PaymentMethod = 'CASH' | 'ONLINE' | 'CHEQUE' | 'DD';
 export interface PaymentItem {
   id: string;
   purpose: PaymentPurpose;
-  termNumber?: number;
+  termNumber?: number; // Required for TUITION_FEE (1, 2, or 3)
+  paymentMonth?: string; // Required for TRANSPORT_FEE (YYYY-MM-01 format) - for colleges
   amount: number;
   paymentMethod: PaymentMethod;
-  customPurposeName?: string;
+  customPurposeName?: string; // Required for OTHER purpose
 }
 
 export interface MultiplePaymentData {
@@ -35,6 +36,7 @@ export interface StudentInfo {
   name: string;
   className: string;
   academicYear: string;
+  enrollmentId?: number; // Optional enrollment ID for college transport fee payments
 }
 
 export interface FeeBalance {
@@ -109,7 +111,7 @@ export interface MultiplePaymentFormProps {
   student: StudentInfo;
   feeBalances: FeeBalance;
   config: PaymentFormConfig;
-  onPaymentComplete: (data: MultiplePaymentData) => Promise<any>;
+  onPaymentComplete: (data: MultiplePaymentData) => Promise<unknown>;
   onCancel: () => void;
 }
 
@@ -126,9 +128,10 @@ export interface PurposeSpecificComponentProps {
 export interface PaymentApiRequest {
   details: Array<{
     purpose: PaymentPurpose;
-    custom_purpose_name?: string;
-    term_number?: number;
-    paid_amount: number;
+    custom_purpose_name?: string; // Required for OTHER
+    term_number?: number; // Required for TUITION_FEE (1, 2, or 3)
+    payment_month?: string; // Required for TRANSPORT_FEE (YYYY-MM-01 format) - for colleges
+    paid_amount: number; // > 0, <= 1000000, max 2 decimal places
     payment_method: PaymentMethod;
   }>;
   remarks?: string;
@@ -137,7 +140,7 @@ export interface PaymentApiRequest {
 export interface PaymentApiResponse {
   success: boolean;
   message: string;
-  data?: any;
+  data?: unknown;
 }
 
 // Error Types

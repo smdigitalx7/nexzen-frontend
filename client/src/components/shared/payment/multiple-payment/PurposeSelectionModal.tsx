@@ -3,33 +3,21 @@
  * Allows users to select payment purpose for multiple payment form
  */
 
-import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  X,
-  BookOpen,
-  GraduationCap,
-  Truck,
-  Plus,
-  AlertCircle,
-  Star,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { BookOpen, GraduationCap, Truck, Plus, AlertCircle, Star } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import type {
-  PurposeSelectionProps,
-  PaymentPurpose,
-  FeeBalance,
-} from "../types/PaymentTypes";
-import { getAllFeePurposeAvailability } from "../validation/PaymentValidation";
+} from '@/components/ui/dialog';
+import type { PurposeSelectionProps, PaymentPurpose } from '../types/PaymentTypes';
+import { getAllFeePurposeAvailability } from '../validation/PaymentValidation';
 
 const purposeConfig = {
   BOOK_FEE: {
@@ -51,10 +39,9 @@ const purposeConfig = {
   TRANSPORT_FEE: {
     label: "Transport Fee",
     icon: Truck,
-    description: "Term-based transport payments",
-    color: "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100",
-    disabledColor:
-      "bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed",
+    description: 'Transport payments', // Description will be set dynamically based on institutionType
+    color: 'bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100',
+    disabledColor: 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed'
   },
   OTHER: {
     label: "Other",
@@ -104,11 +91,16 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
       if (hasExistingItems) {
         return; // Don't allow selection if items already exist for this purpose
       }
-
-      const availableTerms = getAvailableTerms(purpose);
-      if (availableTerms.length === 0) {
-        return; // Don't allow selection if no terms are available
+      
+      // For colleges, skip term check (use total outstanding amount instead)
+      // For schools, check if terms are available
+      if (institutionType !== 'college') {
+        const availableTerms = getAvailableTerms(purpose);
+        if (availableTerms.length === 0) {
+          return; // Don't allow selection if no terms are available
+        }
       }
+      // For colleges, availability is already checked via feeAvailability above
     }
 
     // Allow re-selection of deleted purposes
@@ -183,18 +175,30 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
     const balanceAvailable = !availability || availability.available;
 
     // For tuition/transport fees, check if any terms are available AND no items exist for this purpose
-    if (purpose === "TUITION_FEE" || purpose === "TRANSPORT_FEE") {
-      const availableTerms = getAvailableTerms(purpose);
-      const hasExistingItems = paymentItems.some(
-        (item) => item.purpose === purpose
-      );
-
+    if (purpose === 'TUITION_FEE' || purpose === 'TRANSPORT_FEE') {
+      const hasExistingItems = paymentItems.some(item => item.purpose === purpose);
+      
       // If there are existing items for this purpose, don't allow adding more
       if (hasExistingItems) {
         return false;
       }
-
-      return inAvailableList && balanceAvailable && availableTerms.length > 0;
+      
+      // For tuition fees, both colleges and schools use term-based (check available terms)
+      // For transport fees, colleges use monthly payments (check total outstanding)
+      if (purpose === 'TUITION_FEE') {
+        // Both colleges and schools use term-based tuition fees
+        const availableTerms = getAvailableTerms(purpose);
+        return inAvailableList && balanceAvailable && availableTerms.length > 0;
+      } else if (purpose === 'TRANSPORT_FEE' && institutionType === 'college') {
+        // Colleges use monthly transport payments
+        // Availability is checked via feeAvailability (which now allows colleges to have transport fee)
+        // Actual expected payments are checked in TransportFeeComponent
+        return inAvailableList && balanceAvailable;
+      } else {
+        // Schools use term-based transport fees
+        const availableTerms = getAvailableTerms(purpose);
+        return inAvailableList && balanceAvailable && availableTerms.length > 0;
+      }
     }
 
     // For other purposes, allow re-selection if not currently added
@@ -207,22 +211,24 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
     if (availability && !availability.available) {
       return availability.reason;
     }
-
-    // For tuition/transport fees, check if no terms are available or if items already exist
-    if (purpose === "TUITION_FEE" || purpose === "TRANSPORT_FEE") {
-      const hasExistingItems = paymentItems.some(
-        (item) => item.purpose === purpose
-      );
-      if (hasExistingItems) {
-        return "Already added";
+    
+      // For tuition/transport fees, check if no terms are available or if items already exist
+      if (purpose === 'TUITION_FEE' || purpose === 'TRANSPORT_FEE') {
+        const hasExistingItems = paymentItems.some(item => item.purpose === purpose);
+        if (hasExistingItems) {
+          return 'Already added';
+        }
+        
+        // For colleges, availability is checked via feeAvailability (total outstanding)
+        // For schools, check if terms are available
+        if (institutionType !== 'college') {
+          const availableTerms = getAvailableTerms(purpose);
+          if (availableTerms.length === 0) {
+            return 'No outstanding amounts';
+          }
+        }
       }
-
-      const availableTerms = getAvailableTerms(purpose);
-      if (availableTerms.length === 0) {
-        return "No outstanding amounts";
-      }
-    }
-
+    
     return null;
   };
 
@@ -267,6 +273,14 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
               const isDisabled = !isAvailable;
               const disabledReason = getPurposeDisabledReason(purposeKey);
               const availability = feeAvailability[purposeKey];
+              
+              // Get dynamic description based on institution type
+              const getDescription = () => {
+                if (purposeKey === 'TRANSPORT_FEE') {
+                  return institutionType === 'college' ? 'Monthly transport payments' : 'Term-based transport payments';
+                }
+                return config.description;
+              };
 
               return (
                 <motion.div
@@ -305,10 +319,8 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
                               <Star className="h-3 w-3 text-gray-600 fill-gray-300" />
                             )}
                           </div>
-                          <p
-                            className={`text-xs ${isDisabled ? "text-gray-400" : "text-gray-600"}`}
-                          >
-                            {config.description}
+                          <p className={`text-xs ${isDisabled ? 'opacity-50' : 'opacity-75'}`}>
+                            {getDescription()}
                           </p>
 
                           {/* Outstanding Amount */}

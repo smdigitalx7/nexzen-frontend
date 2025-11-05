@@ -1,5 +1,4 @@
 import { useState, useRef } from "react";
-import { motion } from "framer-motion";
 import { Calculator, CheckCircle, AlertTriangle, Receipt, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,11 +26,61 @@ import {
 // Removed individual payment hooks - now using pay-by-admission API
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
+import type { CollegeTuitionFeeBalanceRead } from "@/lib/types/college/tuition-fee-balances";
+
+interface CollegeStudentData {
+  student_id?: number;
+  id?: number;
+  admission_no: string;
+  student_name: string;
+  section_name?: string;
+  class_name?: string;
+  academic_year?: string;
+  gender?: string;
+}
+
+interface CollegeTuitionBalanceData {
+  book_fee?: number;
+  book_paid?: number;
+  term1_amount?: number;
+  term1_paid?: number;
+  term2_amount?: number;
+  term2_paid?: number;
+  term3_amount?: number;
+  term3_paid?: number;
+}
+
+interface CollegeTransportBalanceData {
+  term1_amount?: number;
+  term1_paid?: number;
+  term2_amount?: number;
+  term2_paid?: number;
+  term3_amount?: number;
+  term3_paid?: number;
+}
+
+interface BillItem {
+  description: string;
+  amount: number;
+}
+
+interface GeneratedBill {
+  billNumber: string;
+  studentName: string;
+  admissionNo: string;
+  paymentDate: string;
+  amount: number;
+  paymentMode: string;
+  items: BillItem[];
+  instituteName: string;
+  address: string;
+  phone: string;
+}
 
 interface StudentFeeDetails {
-  student: any;
-  tuitionBalance: any;
-  transportBalance?: any; // Make optional to match CollectFeeSearch
+  student: CollegeStudentData;
+  tuitionBalance: CollegeTuitionFeeBalanceRead | CollegeTuitionBalanceData | null;
+  transportBalance?: CollegeTransportBalanceData | null;
 }
 
 interface CollectFeeFormProps {
@@ -59,7 +108,7 @@ export const CollectFeeForm = ({
   const [customAmount, setCustomAmount] = useState("");
   const [paymentMode, setPaymentMode] = useState("CASH");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [generatedBill, setGeneratedBill] = useState<any>(null);
+  const [generatedBill, setGeneratedBill] = useState<GeneratedBill | null>(null);
   const [showBill, setShowBill] = useState(false);
   
   const billRef = useRef<HTMLDivElement>(null);
@@ -77,19 +126,33 @@ export const CollectFeeForm = ({
     let amount = 0;
     
     // Tuition fees
-    if (selectedStudent.tuitionBalance) {
-      const tuition = selectedStudent.tuitionBalance;
-      if (collectSelection.books) amount += Math.max(0, (tuition.book_fee || 0) - (tuition.book_paid || 0));
-      if (collectSelection.t1) amount += Math.max(0, (tuition.term1_amount || 0) - (tuition.term1_paid || 0));
-      if (collectSelection.t2) amount += Math.max(0, (tuition.term2_amount || 0) - (tuition.term2_paid || 0));
-      if (collectSelection.t3) amount += Math.max(0, (tuition.term3_amount || 0) - (tuition.term3_paid || 0));
+    const tuitionData = selectedStudent.tuitionBalance;
+    if (tuitionData) {
+      const bookFee = tuitionData.book_fee ?? 0;
+      const bookPaid = tuitionData.book_paid ?? 0;
+      const term1Amount = tuitionData.term1_amount ?? 0;
+      const term1Paid = tuitionData.term1_paid ?? 0;
+      const term2Amount = tuitionData.term2_amount ?? 0;
+      const term2Paid = tuitionData.term2_paid ?? 0;
+      const term3Amount = tuitionData.term3_amount ?? 0;
+      const term3Paid = tuitionData.term3_paid ?? 0;
+      
+      if (collectSelection.books) amount += Math.max(0, bookFee - bookPaid);
+      if (collectSelection.t1) amount += Math.max(0, term1Amount - term1Paid);
+      if (collectSelection.t2) amount += Math.max(0, term2Amount - term2Paid);
+      if (collectSelection.t3) amount += Math.max(0, term3Amount - term3Paid);
     }
     
     // Transport fees
-    if (selectedStudent.transportBalance) {
-      const transport = selectedStudent.transportBalance;
-      if (collectSelection.tr1) amount += Math.max(0, (transport.term1_amount || 0) - (transport.term1_paid || 0));
-      if (collectSelection.tr2) amount += Math.max(0, (transport.term2_amount || 0) - (transport.term2_paid || 0));
+    const transportData = selectedStudent.transportBalance;
+    if (transportData) {
+      const transportTerm1Amount = transportData.term1_amount ?? 0;
+      const transportTerm1Paid = transportData.term1_paid ?? 0;
+      const transportTerm2Amount = transportData.term2_amount ?? 0;
+      const transportTerm2Paid = transportData.term2_paid ?? 0;
+      
+      if (collectSelection.tr1) amount += Math.max(0, transportTerm1Amount - transportTerm1Paid);
+      if (collectSelection.tr2) amount += Math.max(0, transportTerm2Amount - transportTerm2Paid);
     }
     
     return amount;
@@ -106,72 +169,97 @@ export const CollectFeeForm = ({
       // Build payment details array for the pay-by-admission API
       const paymentDetails = [];
       
-      if (collectSelection.books && selectedStudent.tuitionBalance) {
+      const tuitionData = selectedStudent.tuitionBalance;
+      if (collectSelection.books && tuitionData) {
+        const bookFee = tuitionData.book_fee ?? 0;
+        const bookPaid = tuitionData.book_paid ?? 0;
         paymentDetails.push({
           purpose: "BOOK_FEE",
           custom_purpose_name: null,
           term_number: null,
-          paid_amount: selectedStudent.tuitionBalance.book_fee - selectedStudent.tuitionBalance.book_paid,
+          paid_amount: Math.max(0, bookFee - bookPaid),
           payment_method: paymentMode
         });
       }
       
-      if (collectSelection.t1 && selectedStudent.tuitionBalance) {
+      if (collectSelection.t1 && tuitionData) {
+        const term1Amount = tuitionData.term1_amount ?? 0;
+        const term1Paid = tuitionData.term1_paid ?? 0;
         paymentDetails.push({
           purpose: "TUITION_FEE",
           custom_purpose_name: null,
           term_number: 1,
-          paid_amount: selectedStudent.tuitionBalance.term1_amount - selectedStudent.tuitionBalance.term1_paid,
+          paid_amount: Math.max(0, term1Amount - term1Paid),
           payment_method: paymentMode
         });
       }
       
-      if (collectSelection.t2 && selectedStudent.tuitionBalance) {
+      if (collectSelection.t2 && tuitionData) {
+        const term2Amount = tuitionData.term2_amount ?? 0;
+        const term2Paid = tuitionData.term2_paid ?? 0;
         paymentDetails.push({
           purpose: "TUITION_FEE",
           custom_purpose_name: null,
           term_number: 2,
-          paid_amount: selectedStudent.tuitionBalance.term2_amount - selectedStudent.tuitionBalance.term2_paid,
+          paid_amount: Math.max(0, term2Amount - term2Paid),
           payment_method: paymentMode
         });
       }
       
-      if (collectSelection.t3 && selectedStudent.tuitionBalance) {
+      if (collectSelection.t3 && tuitionData) {
+        const term3Amount = tuitionData.term3_amount ?? 0;
+        const term3Paid = tuitionData.term3_paid ?? 0;
         paymentDetails.push({
           purpose: "TUITION_FEE",
           custom_purpose_name: null,
           term_number: 3,
-          paid_amount: selectedStudent.tuitionBalance.term3_amount - selectedStudent.tuitionBalance.term3_paid,
+          paid_amount: Math.max(0, term3Amount - term3Paid),
           payment_method: paymentMode
         });
       }
       
-      if (collectSelection.tr1 && selectedStudent.transportBalance) {
+      // NOTE: Transport fees for colleges require payment_month (YYYY-MM-01 format), not term_number
+      // This form uses term-based transport balance which may not match the API requirements
+      // For proper transport fee payment, use the MultiplePaymentForm which supports monthly payments
+      // Keeping this for backward compatibility but transport fees may not work correctly here
+      const transportData = selectedStudent.transportBalance;
+      if (collectSelection.tr1 && transportData) {
+        // TODO: Update to use payment_month instead of term_number
+        // Need to get monthly payment data from transport balance API
+        const transportTerm1Amount = transportData.term1_amount ?? 0;
+        const transportTerm1Paid = transportData.term1_paid ?? 0;
         paymentDetails.push({
           purpose: "TRANSPORT_FEE",
           custom_purpose_name: null,
-          term_number: 1,
-          paid_amount: selectedStudent.transportBalance.term1_amount - selectedStudent.transportBalance.term1_paid,
+          // term_number: 1, // REMOVED - colleges use payment_month, not term_number
+          // payment_month: "YYYY-MM-01", // TODO: Get from transport balance data
+          paid_amount: Math.max(0, transportTerm1Amount - transportTerm1Paid),
           payment_method: paymentMode
         });
       }
       
-      if (collectSelection.tr2 && selectedStudent.transportBalance) {
+      if (collectSelection.tr2 && transportData) {
+        const transportTerm2Amount = transportData.term2_amount ?? 0;
+        const transportTerm2Paid = transportData.term2_paid ?? 0;
         paymentDetails.push({
           purpose: "TRANSPORT_FEE",
           custom_purpose_name: null,
-          term_number: 2,
-          paid_amount: selectedStudent.transportBalance.term2_amount - selectedStudent.transportBalance.term2_paid,
+          // term_number: 2, // REMOVED - colleges use payment_month, not term_number
+          // payment_month: "YYYY-MM-01", // TODO: Get from transport balance data
+          paid_amount: Math.max(0, transportTerm2Amount - transportTerm2Paid),
           payment_method: paymentMode
         });
       }
       
-      if (collectSelection.tr3 && selectedStudent.transportBalance) {
+      if (collectSelection.tr3 && transportData) {
+        const transportTerm3Amount = transportData.term3_amount ?? 0;
+        const transportTerm3Paid = transportData.term3_paid ?? 0;
         paymentDetails.push({
           purpose: "TRANSPORT_FEE",
           custom_purpose_name: null,
-          term_number: 3,
-          paid_amount: selectedStudent.transportBalance.term3_amount - selectedStudent.transportBalance.term3_paid,
+          // term_number: 3, // REMOVED - colleges use payment_month, not term_number
+          // payment_month: "YYYY-MM-01", // TODO: Get from transport balance data
+          paid_amount: Math.max(0, transportTerm3Amount - transportTerm3Paid),
           payment_method: paymentMode
         });
       }
@@ -184,16 +272,17 @@ export const CollectFeeForm = ({
 
       const result = await api({
         method: 'POST',
-        path: `/college/income/pay-fee/${selectedStudent.student.admission_no}`,
+        path: `/college/income/pay-fee/${studentData.admission_no}`,
         body: apiPayload,
       });
       
       if ((result as { success: boolean; message?: string }).success) {
         // Generate bill
-        const bill = {
+        const studentData = selectedStudent.student;
+        const bill: GeneratedBill = {
           billNumber: `BILL-${Date.now()}`,
-          studentName: selectedStudent.student.student_name,
-          admissionNo: selectedStudent.student.admission_no,
+          studentName: studentData.student_name,
+          admissionNo: studentData.admission_no,
           paymentDate,
           amount,
           paymentMode,
@@ -218,10 +307,46 @@ export const CollectFeeForm = ({
       }
       
     } catch (error) {
-      console.error("Payment error:", error);
+      // Parse error message and provide user-friendly feedback based on markdown guide
+      let errorMessage = error instanceof Error ? error.message : "Failed to process payment. Please try again.";
+      let errorTitle = "Payment Failed";
+      
+      // Handle specific error types from the markdown guide
+      if (errorMessage.includes("Student not found")) {
+        errorTitle = "Student Not Found";
+        errorMessage = "Student not found. Please check the admission number.";
+      } else if (errorMessage.includes("Active enrollment not found")) {
+        errorTitle = "Enrollment Not Found";
+        errorMessage = "Student is not enrolled for this academic year.";
+      } else if (errorMessage.includes("Payment sequence violation")) {
+        errorTitle = "Payment Sequence Error";
+        errorMessage = "Please pay previous terms/months first.";
+      } else if (errorMessage.includes("exceeds remaining_balance")) {
+        errorTitle = "Amount Exceeds Balance";
+        errorMessage = "Payment amount exceeds remaining balance.";
+      } else if (errorMessage.includes("must be paid in full")) {
+        errorTitle = "Full Payment Required";
+        errorMessage = "This fee must be paid in full. Partial payments are not allowed.";
+      } else if (errorMessage.includes("Book fee prerequisite")) {
+        errorTitle = "Book Fee Required";
+        errorMessage = "Book fee must be paid before tuition fees.";
+      } else if (errorMessage.includes("Sequential payment validation failed")) {
+        errorTitle = "Sequential Payment Required";
+        errorMessage = "Please pay pending months first.";
+      } else if (errorMessage.includes("Transport assignment not found")) {
+        errorTitle = "Transport Assignment Not Found";
+        errorMessage = "Student does not have an active transport assignment.";
+      } else if (errorMessage.includes("Duplicate payment months")) {
+        errorTitle = "Duplicate Payment";
+        errorMessage = "Each month can only be paid once per transaction.";
+      } else if (errorMessage.includes("Missing required parameter")) {
+        errorTitle = "Missing Information";
+        // Keep original message as it's specific
+      }
+      
       toast({
-        title: "Payment Failed",
-        description: error instanceof Error ? error.message : "Failed to process payment. Please try again.",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -229,48 +354,65 @@ export const CollectFeeForm = ({
     }
   };
 
-  const getPaymentItems = () => {
-    const items = [];
+  const getPaymentItems = (): BillItem[] => {
+    const items: BillItem[] = [];
     
-    if (collectSelection.books && selectedStudent?.tuitionBalance) {
+    if (!selectedStudent) return items;
+    
+    const tuitionData = selectedStudent.tuitionBalance;
+    const transportData = selectedStudent.transportBalance;
+    
+    if (collectSelection.books && tuitionData) {
+      const bookFee = tuitionData.book_fee ?? 0;
+      const bookPaid = tuitionData.book_paid ?? 0;
       items.push({
         description: "Book Fee",
-        amount: selectedStudent.tuitionBalance.book_fee - selectedStudent.tuitionBalance.book_paid
+        amount: Math.max(0, bookFee - bookPaid)
       });
     }
     
-    if (collectSelection.t1 && selectedStudent?.tuitionBalance) {
+    if (collectSelection.t1 && tuitionData) {
+      const term1Amount = tuitionData.term1_amount ?? 0;
+      const term1Paid = tuitionData.term1_paid ?? 0;
       items.push({
         description: "Tuition Term 1",
-        amount: selectedStudent.tuitionBalance.term1_amount - selectedStudent.tuitionBalance.term1_paid
+        amount: Math.max(0, term1Amount - term1Paid)
       });
     }
     
-    if (collectSelection.t2 && selectedStudent?.tuitionBalance) {
+    if (collectSelection.t2 && tuitionData) {
+      const term2Amount = tuitionData.term2_amount ?? 0;
+      const term2Paid = tuitionData.term2_paid ?? 0;
       items.push({
         description: "Tuition Term 2",
-        amount: selectedStudent.tuitionBalance.term2_amount - selectedStudent.tuitionBalance.term2_paid
+        amount: Math.max(0, term2Amount - term2Paid)
       });
     }
     
-    if (collectSelection.t3 && selectedStudent?.tuitionBalance) {
+    if (collectSelection.t3 && tuitionData) {
+      const term3Amount = tuitionData.term3_amount ?? 0;
+      const term3Paid = tuitionData.term3_paid ?? 0;
       items.push({
         description: "Tuition Term 3",
-        amount: selectedStudent.tuitionBalance.term3_amount - selectedStudent.tuitionBalance.term3_paid
+        amount: Math.max(0, term3Amount - term3Paid)
       });
     }
     
-    if (collectSelection.tr1 && selectedStudent?.transportBalance) {
+    if (collectSelection.tr1 && transportData) {
+      const transportTerm1Amount = transportData.term1_amount ?? 0;
+      const transportTerm1Paid = transportData.term1_paid ?? 0;
       items.push({
         description: "Transport Term 1",
-        amount: selectedStudent.transportBalance.term1_amount - selectedStudent.transportBalance.term1_paid
+        amount: Math.max(0, transportTerm1Amount - transportTerm1Paid)
       });
     }
     
-    if (collectSelection.tr2 && selectedStudent?.transportBalance) {
+    if (collectSelection.tr2 && transportData) {
+      const transportTerm2Amount = transportData.term2_amount ?? 0;
+      const transportTerm2Paid = transportData.term2_paid ?? 0;
       items.push({
         description: "Transport Term 2",
-        amount: selectedStudent.transportBalance.term2_amount - selectedStudent.transportBalance.term2_paid
+        amount: Math.max(0, transportTerm2Amount - transportTerm2Paid)
       });
     }
     
@@ -333,6 +475,19 @@ export const CollectFeeForm = ({
 
   if (!selectedStudent) return null;
 
+  // Extract data safely for UI rendering
+  const studentData = selectedStudent.student;
+  const tuitionData = selectedStudent.tuitionBalance;
+  const transportData = selectedStudent.transportBalance;
+
+  // Calculate outstanding amounts for display
+  const bookOutstanding = tuitionData ? Math.max(0, (tuitionData.book_fee ?? 0) - (tuitionData.book_paid ?? 0)) : 0;
+  const term1Outstanding = tuitionData ? Math.max(0, (tuitionData.term1_amount ?? 0) - (tuitionData.term1_paid ?? 0)) : 0;
+  const term2Outstanding = tuitionData ? Math.max(0, (tuitionData.term2_amount ?? 0) - (tuitionData.term2_paid ?? 0)) : 0;
+  const term3Outstanding = tuitionData ? Math.max(0, (tuitionData.term3_amount ?? 0) - (tuitionData.term3_paid ?? 0)) : 0;
+  const transportTerm1Outstanding = transportData ? Math.max(0, (transportData.term1_amount ?? 0) - (transportData.term1_paid ?? 0)) : 0;
+  const transportTerm2Outstanding = transportData ? Math.max(0, (transportData.term2_amount ?? 0) - (transportData.term2_paid ?? 0)) : 0;
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -340,7 +495,7 @@ export const CollectFeeForm = ({
           <DialogHeader>
             <DialogTitle>Collect Fee Payment</DialogTitle>
             <DialogDescription>
-              Collect payment from {selectedStudent.student.student_name} ({selectedStudent.student.admission_no})
+              Collect payment from {studentData.student_name} ({studentData.admission_no})
             </DialogDescription>
           </DialogHeader>
 
@@ -354,19 +509,19 @@ export const CollectFeeForm = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm font-medium">Student Name</Label>
-                    <p className="text-sm text-muted-foreground">{selectedStudent.student.student_name}</p>
+                    <p className="text-sm text-muted-foreground">{studentData.student_name}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Admission No</Label>
-                    <p className="text-sm text-muted-foreground">{selectedStudent.student.admission_no}</p>
+                    <p className="text-sm text-muted-foreground">{studentData.admission_no}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Class</Label>
-                    <p className="text-sm text-muted-foreground">{selectedStudent.student.class_name || "N/A"}</p>
+                    <p className="text-sm text-muted-foreground">{studentData.class_name ?? "N/A"}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Gender</Label>
-                    <p className="text-sm text-muted-foreground">{selectedStudent.student.gender || "N/A"}</p>
+                    <p className="text-sm text-muted-foreground">{studentData.gender ?? "N/A"}</p>
                   </div>
                 </div>
               </CardContent>
@@ -378,7 +533,7 @@ export const CollectFeeForm = ({
                 <CardTitle className="text-lg">Outstanding Fees</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {selectedStudent.tuitionBalance && (
+                {tuitionData && (
                   <div className="space-y-2">
                     <h4 className="font-medium">Tuition Fees</h4>
                     <div className="grid grid-cols-2 gap-2 text-sm">
@@ -390,7 +545,7 @@ export const CollectFeeForm = ({
                         />
                         <Label htmlFor="books">Book Fee</Label>
                         <Badge variant="outline">
-                          {formatCurrency(selectedStudent.tuitionBalance.book_fee - selectedStudent.tuitionBalance.book_paid)}
+                          {formatCurrency(bookOutstanding)}
                         </Badge>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -401,7 +556,7 @@ export const CollectFeeForm = ({
                         />
                         <Label htmlFor="t1">Term 1</Label>
                         <Badge variant="outline">
-                          {formatCurrency(selectedStudent.tuitionBalance.term1_amount - selectedStudent.tuitionBalance.term1_paid)}
+                          {formatCurrency(term1Outstanding)}
                         </Badge>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -412,7 +567,7 @@ export const CollectFeeForm = ({
                         />
                         <Label htmlFor="t2">Term 2</Label>
                         <Badge variant="outline">
-                          {formatCurrency(selectedStudent.tuitionBalance.term2_amount - selectedStudent.tuitionBalance.term2_paid)}
+                          {formatCurrency(term2Outstanding)}
                         </Badge>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -423,14 +578,14 @@ export const CollectFeeForm = ({
                         />
                         <Label htmlFor="t3">Term 3</Label>
                         <Badge variant="outline">
-                          {formatCurrency(selectedStudent.tuitionBalance.term3_amount - selectedStudent.tuitionBalance.term3_paid)}
+                          {formatCurrency(term3Outstanding)}
                         </Badge>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {selectedStudent.transportBalance && (
+                {transportData && (
                   <div className="space-y-2">
                     <h4 className="font-medium">Transport Fees</h4>
                     <div className="grid grid-cols-2 gap-2 text-sm">
@@ -442,7 +597,7 @@ export const CollectFeeForm = ({
                         />
                         <Label htmlFor="tr1">Transport Term 1</Label>
                         <Badge variant="outline">
-                          {formatCurrency(selectedStudent.transportBalance.term1_amount - selectedStudent.transportBalance.term1_paid)}
+                          {formatCurrency(transportTerm1Outstanding)}
                         </Badge>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -453,7 +608,7 @@ export const CollectFeeForm = ({
                         />
                         <Label htmlFor="tr2">Transport Term 2</Label>
                         <Badge variant="outline">
-                          {formatCurrency(selectedStudent.transportBalance.term2_amount - selectedStudent.transportBalance.term2_paid)}
+                          {formatCurrency(transportTerm2Outstanding)}
                         </Badge>
                       </div>
                     </div>
@@ -524,7 +679,7 @@ export const CollectFeeForm = ({
               Cancel
             </Button>
             <Button 
-              onClick={handleCollect}
+              onClick={() => { void handleCollect(); }}
               disabled={!isSelectionValid() || isProcessing}
               className="bg-green-600 hover:bg-green-700"
             >
@@ -585,7 +740,7 @@ export const CollectFeeForm = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {generatedBill.items.map((item: any, index: number) => (
+                    {generatedBill.items.map((item: BillItem, index: number) => (
                       <tr key={index} className="border-t">
                         <td className="p-2">{item.description}</td>
                         <td className="p-2 text-right">{formatCurrency(item.amount)}</td>

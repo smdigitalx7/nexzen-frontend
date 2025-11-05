@@ -97,7 +97,7 @@ export function ConcessionUpdateDialog({
       );
       onClose();
     } catch (error) {
-      console.error("Failed to update concession:", error);
+      // Error handling is done by the parent component
     } finally {
       setIsUpdating(false);
     }
@@ -131,7 +131,7 @@ export function ConcessionUpdateDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={(e) => { void handleSubmit(e); }} className="space-y-6">
           {/* Fee Overview */}
           <Card>
             <CardHeader>
