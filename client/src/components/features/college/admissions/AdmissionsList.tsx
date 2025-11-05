@@ -19,13 +19,13 @@ import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import {
   useCollegeAdmissions,
   useCollegeAdmissionById,
-} from "@/lib/hooks/college/use-college-admissions";
+} from "@/lib/hooks/college";
 import { toast } from "@/hooks/use-toast";
 import {
   exportAdmissionsToExcel,
   exportSingleAdmissionToExcel,
   exportAdmissionFormToPDF,
-} from "@/lib/utils/admissionsExport";
+} from "@/lib/utils/export/admissionsExport";
 import type { CollegeAdmissionDetails, CollegeAdmissionListItem } from "@/lib/types/college/admissions";
 
 // Memoized status badge component

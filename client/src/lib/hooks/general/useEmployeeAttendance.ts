@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { EmployeeAttendanceService } from '@/lib/services/general/employee-attendance.service';
 import type { 
   EmployeeAttendanceRead, 
@@ -8,6 +8,7 @@ import type {
   AttendanceDashboardStats
 } from '@/lib/types/general/employee-attendance';
 import { useMutationWithSuccessToast } from '../common/use-mutation-with-toast';
+import { useGlobalRefetch } from '../common/useGlobalRefetch';
 
 // Query keys
 export const employeeAttendanceKeys = {
@@ -52,39 +53,35 @@ export const useAttendanceDashboard = () => {
 
 // Mutation hooks
 export const useCreateAttendance = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
   
   return useMutationWithSuccessToast({
     mutationFn: (data: EmployeeAttendanceCreate) => EmployeeAttendanceService.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: employeeAttendanceKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: employeeAttendanceKeys.dashboard() });
+      invalidateEntity("employeeAttendances");
     },
   }, "Attendance record created successfully");
 };
 
 export const useUpdateAttendance = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
   
   return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: EmployeeAttendanceUpdate }) => 
       EmployeeAttendanceService.update(id, payload),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: employeeAttendanceKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: employeeAttendanceKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: employeeAttendanceKeys.dashboard() });
+    onSuccess: () => {
+      invalidateEntity("employeeAttendances");
     },
   }, "Attendance record updated successfully");
 };
 
 export const useDeleteAttendance = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
   
   return useMutationWithSuccessToast({
     mutationFn: (id: number) => EmployeeAttendanceService.remove(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: employeeAttendanceKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: employeeAttendanceKeys.dashboard() });
+      invalidateEntity("employeeAttendances");
     },
   }, "Attendance record deleted successfully");
 };

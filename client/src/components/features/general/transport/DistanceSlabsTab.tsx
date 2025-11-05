@@ -7,17 +7,19 @@ import { ColumnDef } from "@tanstack/react-table";
 import { EnhancedDataTable } from "@/components/shared";
 import {
   createTextColumn
-} from "@/lib/utils/columnFactories";
+} from "@/lib/utils/factory/columnFactories";
 import DistanceSlabFormDialog from "./DistanceSlabFormDialog";
+import type { DistanceSlabRead, DistanceSlabCreate, DistanceSlabUpdate } from "@/lib/types/general/transport";
+import type { UseMutationResult } from "@tanstack/react-query";
 
 interface DistanceSlabsTabProps {
-  slabsData: any[];
+  slabsData: DistanceSlabRead[];
   searchTerm: string;
   onSearchChange: (term: string) => void;
-  onCreateSlab: (data: any) => void;
-  onUpdateSlab: (data: any) => void;
-  createFeeMutation: any;
-  updateFeeMutation: any;
+  onCreateSlab: (data: DistanceSlabCreate) => void;
+  onUpdateSlab: (data: { id: number; data: DistanceSlabUpdate }) => void;
+  createFeeMutation: UseMutationResult<DistanceSlabRead, unknown, DistanceSlabCreate, unknown>;
+  updateFeeMutation: UseMutationResult<DistanceSlabRead, unknown, { id: number; data: DistanceSlabUpdate }, unknown>;
 }
 
 const DistanceSlabsTab = ({
@@ -35,10 +37,12 @@ const DistanceSlabsTab = ({
 
   const handleDeleteSlab = (id: number) => {
     // Add delete functionality when available
-    console.log('Delete slab:', id);
+    if (import.meta.env.DEV) {
+      console.log('Delete slab:', id);
+    }
   };
 
-  const columns: ColumnDef<any>[] = useMemo(() => [
+  const columns: ColumnDef<DistanceSlabRead>[] = useMemo(() => [
     {
       id: 'slab_name',
       accessorKey: 'slab_name',
@@ -87,20 +91,20 @@ const DistanceSlabsTab = ({
   const actionButtonGroups = useMemo(() => [
     {
       type: 'edit' as const,
-      onClick: (row: any) => handleEditSlab(row)
+      onClick: (row: DistanceSlabRead) => handleEditSlab(row)
     },
     {
       type: 'delete' as const,
-      onClick: (row: any) => handleDeleteSlab(row.original.slab_id)
+      onClick: (row: DistanceSlabRead) => handleDeleteSlab(row.slab_id)
     }
   ], []);
 
-  const handleAddSlab = (data: any) => {
-    createFeeMutation(data);
+  const handleAddSlab = (data: DistanceSlabCreate) => {
+    createFeeMutation.mutate(data);
     setIsAddFeeOpen(false);
   };
 
-  const handleUpdateSlab = (data: any) => {
+  const handleUpdateSlab = (data: { id: number; data: DistanceSlabUpdate }) => {
     if (!data.id) {
       console.error("Slab ID is missing for update");
       return;
@@ -110,11 +114,11 @@ const DistanceSlabsTab = ({
     
     // Filter out undefined, null, NaN, and empty string values
     // Note: false and 0 are valid values and will be included
-    const payload: any = {};
+    const payload: DistanceSlabUpdate = {};
     Object.keys(updateData).forEach((key) => {
-      const value = updateData[key];
+      const value = updateData[key as keyof DistanceSlabUpdate];
       if (value !== undefined && value !== null && value !== '' && !Number.isNaN(value)) {
-        payload[key] = value;
+        (payload as Record<string, unknown>)[key] = value;
       }
     });
     
@@ -124,13 +128,13 @@ const DistanceSlabsTab = ({
       return;
     }
     
-    updateFeeMutation({ id, data: payload });
+    updateFeeMutation.mutate({ id, data: payload });
     setIsEditFeeOpen(false);
     setEditFeeId(null);
   };
 
-  const handleEditSlab = (slab: any) => {
-    setEditFeeId(slab.slab_id || slab.id);
+  const handleEditSlab = (slab: DistanceSlabRead) => {
+    setEditFeeId(slab.slab_id);
     setIsEditFeeOpen(true);
   };
 
@@ -171,8 +175,14 @@ const DistanceSlabsTab = ({
         onSubmit={handleUpdateSlab}
         isEditing={true}
         editingSlab={editFeeId ? (() => {
-          const slab = slabsData.find(s => s.slab_id === editFeeId || s.id === editFeeId);
-          return slab ? { ...slab, id: slab.id || slab.slab_id } : undefined;
+          const slab = slabsData.find(s => s.slab_id === editFeeId);
+          return slab ? { 
+            id: slab.slab_id,
+            slab_name: slab.slab_name,
+            min_distance: slab.min_distance,
+            max_distance: slab.max_distance ?? undefined,
+            fee_amount: slab.fee_amount
+          } : undefined;
         })() : undefined}
       />
     </div>

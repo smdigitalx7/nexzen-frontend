@@ -40,7 +40,11 @@ const AttendanceManagement = () => {
             </div>
             <div className="flex gap-3">
               <Button
-                onClick={() => console.log("Export attendance data")}
+                onClick={() => {
+                  if (import.meta.env.DEV) {
+                    console.log("Export attendance data");
+                  }
+                }}
                 variant="outline"
                 className="hover-elevate"
                 data-testid="button-export-attendance"

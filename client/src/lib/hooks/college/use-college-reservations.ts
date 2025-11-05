@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeReservationsService } from "@/lib/services/college/reservations.service";
 import type {
   CollegePaginatedReservationRead,
@@ -44,7 +44,7 @@ export function useCreateCollegeReservation() {
     mutationFn: (payload: CollegeReservationCreate) =>
       CollegeReservationsService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
     },
   }, "Reservation created successfully");
 }
@@ -55,10 +55,10 @@ export function useUpdateCollegeReservation(reservationId: number) {
     mutationFn: (payload: CollegeReservationUpdate) =>
       CollegeReservationsService.update(reservationId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({
+      void qc.invalidateQueries({
         queryKey: collegeKeys.reservations.detail(reservationId),
       });
-      qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
     },
   }, "Reservation updated successfully");
 }
@@ -69,7 +69,7 @@ export function useDeleteCollegeReservation() {
     mutationFn: (reservationId: number) =>
       CollegeReservationsService.delete(reservationId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
     },
   }, "Reservation deleted successfully");
 }
@@ -82,10 +82,10 @@ export function useUpdateCollegeReservationStatus(reservationId: number) {
       remarks?: string | null;
     }) => CollegeReservationsService.updateStatus(reservationId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({
+      void qc.invalidateQueries({
         queryKey: collegeKeys.reservations.detail(reservationId),
       });
-      qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
     },
   }, "Reservation status updated successfully");
 }
@@ -99,7 +99,7 @@ export function useUpdateCollegeReservationConcessions(reservationId: number) {
       remarks?: string | null;
     }) => CollegeReservationsService.updateConcessions(reservationId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({
+      void qc.invalidateQueries({
         queryKey: collegeKeys.reservations.detail(reservationId),
       });
     },

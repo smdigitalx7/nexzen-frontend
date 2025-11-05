@@ -12,10 +12,9 @@ import {
   useCreateCollegeStudentTransportAssignment,
   useUpdateCollegeStudentTransportAssignment,
   useDeleteCollegeStudentTransportAssignment,
-} from '@/lib/hooks/college/use-student-transport-assignments';
-import { useBusRoutes } from '@/lib/hooks/general/useTransport';
-import { useDistanceSlabs } from '@/lib/hooks/general/useDistanceSlabs';
-import { useCollegeEnrollmentsList } from '@/lib/hooks/college/use-college-enrollments';
+  useCollegeEnrollmentsList,
+} from '@/lib/hooks/college';
+import { useBusRoutes, useDistanceSlabs } from '@/lib/hooks/general';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { CollegeTransportAssignmentCreate, CollegeTransportAssignmentUpdate, CollegeTransportRoute, CollegeTransportStudent } from '@/lib/types/college';
 
@@ -192,7 +191,7 @@ const TransportTabComponent = () => {
   const flatData = useMemo(() => {
     if (!result.data || !Array.isArray(result.data)) return [];
     const flattened: any[] = [];
-    (result.data as CollegeTransportRoute[]).forEach((route) => {
+    (result.data).forEach((route) => {
       if (route.groups && Array.isArray(route.groups)) {
         route.groups.forEach((group) => {
           if (group.students && Array.isArray(group.students)) {

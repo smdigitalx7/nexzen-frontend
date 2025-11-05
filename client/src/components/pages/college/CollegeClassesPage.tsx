@@ -1,7 +1,7 @@
-import ClassesManagement from "@/components/features/college/classes/ClassManagement";
+import { ClassManagement } from "@/components/features/college";
 
 const CollegeClassesPage = () => {
-  return <ClassesManagement />;
+  return <ClassManagement />;
 };
 
 export default CollegeClassesPage;

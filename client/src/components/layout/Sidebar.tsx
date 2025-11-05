@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
 import { useNavigationStore } from "@/store/navigationStore";
-import { ROLES } from "@/lib/constants/roles";
+import { ROLES } from "@/lib/constants";
 
 interface NavigationItem {
   title: string;
@@ -39,32 +39,34 @@ const Sidebar = () => {
   const { user, currentBranch } = useAuthStore();
   const { sidebarOpen, setActiveModule, toggleSidebar } = useNavigationStore();
 
-  // Debug logging (always enabled for troubleshooting)
+  // Debug logging (only in development)
   useEffect(() => {
-    console.log("📋 Sidebar Debug:", {
-      user: user ? { role: user.role, id: user.user_id } : null,
-      currentBranch: currentBranch
-        ? {
-            id: currentBranch.branch_id,
-            type: currentBranch.branch_type,
-            name: currentBranch.branch_name,
-          }
-        : null,
-      userRole: user?.role,
-      roleConstants: {
-        ADMIN: ROLES.ADMIN,
-        INSTITUTE_ADMIN: ROLES.INSTITUTE_ADMIN,
-        ACCOUNTANT: ROLES.ACCOUNTANT,
-        ACADEMIC: ROLES.ACADEMIC,
-      },
-      roleMatch: {
-        isAdmin: user?.role === ROLES.ADMIN,
-        isInstituteAdmin: user?.role === ROLES.INSTITUTE_ADMIN,
-        isExactMatch: user?.role === "INSTITUTE_ADMIN",
-        roleType: typeof user?.role,
-        roleValue: user?.role,
-      },
-    });
+    if (import.meta.env.DEV) {
+      console.log("📋 Sidebar Debug:", {
+        user: user ? { role: user.role, id: user.user_id } : null,
+        currentBranch: currentBranch
+          ? {
+              id: currentBranch.branch_id,
+              type: currentBranch.branch_type,
+              name: currentBranch.branch_name,
+            }
+          : null,
+        userRole: user?.role,
+        roleConstants: {
+          ADMIN: ROLES.ADMIN,
+          INSTITUTE_ADMIN: ROLES.INSTITUTE_ADMIN,
+          ACCOUNTANT: ROLES.ACCOUNTANT,
+          ACADEMIC: ROLES.ACADEMIC,
+        },
+        roleMatch: {
+          isAdmin: user?.role === ROLES.ADMIN,
+          isInstituteAdmin: user?.role === ROLES.INSTITUTE_ADMIN,
+          isExactMatch: user?.role === "INSTITUTE_ADMIN",
+          roleType: typeof user?.role,
+          roleValue: user?.role,
+        },
+      });
+    }
   }, [user, currentBranch]);
 
   // Get General/Public modules based on role (memoized for performance)
@@ -80,22 +82,24 @@ const Sidebar = () => {
       userRoleUpper === "INSTITUTE_ADMIN" ||
       userRoleUpper === "INSTITUTEADMIN";
 
-    console.log("🔍 General Modules Check:", {
-      userRole: user.role,
-      userRoleUpper,
-      ROLES_ADMIN: ROLES.ADMIN,
-      ROLES_INSTITUTE_ADMIN: ROLES.INSTITUTE_ADMIN,
-      isAdminRole,
-      isInstituteAdminRole,
-      willShowGeneral: isAdminRole || isInstituteAdminRole,
-      comparison: {
-        exactMatch: user.role === ROLES.INSTITUTE_ADMIN,
-        upperMatch: userRoleUpper === ROLES.INSTITUTE_ADMIN,
-        includesMatch:
-          String(user.role).includes("INSTITUTE_ADMIN") ||
-          String(user.role).includes("ADMIN"),
-      },
-    });
+    if (import.meta.env.DEV) {
+      console.log("🔍 General Modules Check:", {
+        userRole: user.role,
+        userRoleUpper,
+        ROLES_ADMIN: ROLES.ADMIN,
+        ROLES_INSTITUTE_ADMIN: ROLES.INSTITUTE_ADMIN,
+        isAdminRole,
+        isInstituteAdminRole,
+        willShowGeneral: isAdminRole || isInstituteAdminRole,
+        comparison: {
+          exactMatch: user.role === ROLES.INSTITUTE_ADMIN,
+          upperMatch: userRoleUpper === ROLES.INSTITUTE_ADMIN,
+          includesMatch:
+            String(user.role).includes("INSTITUTE_ADMIN") ||
+            String(user.role).includes("ADMIN"),
+        },
+      });
+    }
 
     // Only ADMIN and INSTITUTE_ADMIN can see General modules
     if (isAdminRole || isInstituteAdminRole) {

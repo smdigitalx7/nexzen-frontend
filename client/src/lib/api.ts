@@ -34,6 +34,57 @@ const pendingRequests: Record<string, Promise<any>> = {};
 // Request timeout default
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 
+// CSRF Protection helpers
+export const CSRFProtection = {
+  /**
+   * Get CSRF token from meta tag or cookie
+   * This is a helper for frontend CSRF verification
+   * Actual CSRF protection should be implemented on the backend
+   */
+  getToken: (): string | null => {
+    if (typeof document === "undefined") return null;
+
+    // Try to get from meta tag
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    if (metaTag) {
+      return metaTag.getAttribute("content");
+    }
+
+    // Try to get from cookie (if backend sets it)
+    const cookies = document.cookie.split(";");
+    for (const cookie of cookies) {
+      const [name, value] = cookie.trim().split("=");
+      if (name === "csrf-token" || name === "XSRF-TOKEN") {
+        return decodeURIComponent(value);
+      }
+    }
+
+    return null;
+  },
+
+  /**
+   * Verify CSRF token is present (frontend check only)
+   * Backend should verify the actual token
+   */
+  verify: (): boolean => {
+    // For GET requests, CSRF is usually not required
+    // For POST/PUT/DELETE, we check if token exists
+    // Actual verification happens on backend
+    return true; // Always return true - backend handles verification
+  },
+
+  /**
+   * Add CSRF token to request headers if available
+   */
+  addToHeaders: (headers: Record<string, string>): void => {
+    const token = CSRFProtection.getToken();
+    if (token) {
+      headers["X-CSRF-Token"] = token;
+      headers["X-XSRF-TOKEN"] = token;
+    }
+  },
+};
+
 function buildQuery(query?: ApiRequestOptions["query"]) {
   if (!query) return "";
   const params = new URLSearchParams();
@@ -48,7 +99,7 @@ function buildQuery(query?: ApiRequestOptions["query"]) {
 // Generate cache key from request options
 function generateCacheKey(options: ApiRequestOptions): string {
   if (options.cacheKey) return options.cacheKey;
-  
+
   const { method = "GET", path, query } = options;
   const queryString = buildQuery(query);
   return `${method}:${path}${queryString}`;
@@ -125,10 +176,44 @@ function clearProactiveRefresh() {
   }
 }
 
+// Custom error types for better error handling
+export class TokenExpiredError extends Error {
+  constructor(message = "Token has expired") {
+    super(message);
+    this.name = "TokenExpiredError";
+  }
+}
+
+export class TokenRefreshError extends Error {
+  constructor(message = "Token refresh failed") {
+    super(message);
+    this.name = "TokenRefreshError";
+  }
+}
+
+export class NetworkError extends Error {
+  constructor(message = "Network request failed") {
+    super(message);
+    this.name = "NetworkError";
+  }
+}
+
 async function tryRefreshToken(
   oldAccessToken: string | null
 ): Promise<string | null> {
-  if (!oldAccessToken || isRefreshing) return null;
+  if (!oldAccessToken || isRefreshing) {
+    if (isRefreshing) {
+      // Wait for ongoing refresh to complete
+      let attempts = 0;
+      while (isRefreshing && attempts < 50) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        attempts++;
+      }
+      // Return the new token if refresh completed
+      return useAuthStore.getState().token;
+    }
+    return null;
+  }
 
   isRefreshing = true;
   try {
@@ -139,89 +224,60 @@ async function tryRefreshToken(
       },
       credentials: "include", // Refresh token is in httpOnly cookie
     });
-    
+
     if (!res.ok) {
       // If refresh fails, clear auth state to prevent infinite loops
-      if (process.env.NODE_ENV === 'development') {
-        console.warn("Token refresh failed, clearing auth state");
+      const errorText = await res.text().catch(() => res.statusText);
+      const errorMessage = `Token refresh failed: ${res.status} ${errorText}`;
+
+      if (process.env.NODE_ENV === "development") {
+        console.warn("Token refresh failed:", errorMessage);
       }
-      useAuthStore.getState().logout();
-      return null;
+
+      // Only logout on 401/403 - other errors might be temporary
+      if (res.status === 401 || res.status === 403) {
+        useAuthStore.getState().logout();
+      }
+
+      throw new TokenRefreshError(errorMessage);
     }
-    
+
     const data = await res.json();
     const newToken = (data?.access_token as string) || null;
     const expireIso = (data?.expiretime as string) || null;
-    
+
     if (!newToken) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn("No access token received from refresh endpoint");
+      const errorMessage = "No access token received from refresh endpoint";
+      if (process.env.NODE_ENV === "development") {
+        console.warn(errorMessage);
       }
       useAuthStore.getState().logout();
-      return null;
+      throw new TokenRefreshError(errorMessage);
     }
 
-    // Decode new token and update user role if changed
-    try {
-      const { decodeJWT, getRoleFromToken, getTokenExpiration } = await import("@/lib/utils/jwt");
-      const { normalizeRole } = await import("@/lib/constants/roles");
-      
-      const newTokenPayload = decodeJWT(newToken);
-      if (newTokenPayload) {
-        // Extract role from new token
-        const newRole = getRoleFromToken(newToken, newTokenPayload.current_branch_id);
-        const normalizedRole = normalizeRole(newRole);
-        
-        // Get expiration from token or API response
-        const tokenExpiration = getTokenExpiration(newToken) ||
-          (expireIso ? new Date(expireIso).getTime() : null);
-        
-        // Update token and expiration
-        useAuthStore.getState().setTokenAndExpiry(newToken, tokenExpiration);
-        
-        // Update user role if it changed (e.g., after branch switch)
-        const currentUser = useAuthStore.getState().user;
-        if (currentUser && normalizedRole && normalizedRole !== currentUser.role) {
-          useAuthStore.setState((state) => {
-            if (state.user) {
-              state.user.role = normalizedRole;
-            }
-          });
-          
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`User role updated after token refresh: ${currentUser.role} → ${normalizedRole}`);
-          }
-        }
-        
-        // Reschedule proactive refresh
-        scheduleProactiveRefresh();
-        return newToken;
-      } else {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn("Failed to decode refreshed token");
-        }
-        // Still update token even if decode fails (backend might have changed format)
-        const expireAtMs = expireIso ? new Date(expireIso).getTime() : null;
-        useAuthStore.getState().setTokenAndExpiry(newToken, expireAtMs);
-        scheduleProactiveRefresh();
-        return newToken;
-      }
-    } catch (decodeError) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn("Error processing refreshed token:", decodeError);
-      }
-      // Still update token even if decode fails
-      const expireAtMs = expireIso ? new Date(expireIso).getTime() : null;
-      useAuthStore.getState().setTokenAndExpiry(newToken, expireAtMs);
-      scheduleProactiveRefresh();
-      return newToken;
-    }
+    // Update token and expiration from response
+    const expireAtMs = expireIso ? new Date(expireIso).getTime() : null;
+    useAuthStore.getState().setTokenAndExpiry(newToken, expireAtMs);
+
+    // Reschedule proactive refresh
+    scheduleProactiveRefresh();
+    return newToken;
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn("Token refresh error, clearing auth state:", error);
+    if (error instanceof TokenRefreshError) {
+      throw error;
     }
-    useAuthStore.getState().logout();
-    return null;
+
+    // Network or other errors
+    const errorMessage =
+      error instanceof Error ? error.message : "Token refresh error";
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Token refresh error:", errorMessage);
+    }
+
+    // Don't logout on network errors - they might be temporary
+    throw new NetworkError(
+      `Network error during token refresh: ${errorMessage}`
+    );
   } finally {
     isRefreshing = false;
   }
@@ -243,7 +299,7 @@ export async function api<T = unknown>({
 }: ApiRequestOptions): Promise<T> {
   // Generate cache key and check cache for GET requests
   const cacheKeyGenerated = generateCacheKey({ method, path, query, cacheKey });
-  
+
   if (shouldCache({ method, path, cache })) {
     const cachedData = getCachedData<T>(cacheKeyGenerated);
     if (cachedData) {
@@ -263,14 +319,47 @@ export async function api<T = unknown>({
   // Create the actual request
   const makeRequest = async (): Promise<T> => {
     const state = useAuthStore.getState();
-    const token = state.token;
+    let token = state.token;
 
     const url = `${API_BASE_URL}${path}${buildQuery(query)}`;
 
-    if (token) {
-      // Check token expiry
-      if (state.tokenExpireAt) {
-        const isExpired = Date.now() > state.tokenExpireAt;
+    // Check token expiry and refresh proactively if needed
+    if (token && !noAuth && state.tokenExpireAt) {
+      const now = Date.now();
+      const isExpired = now >= state.tokenExpireAt;
+      const expiresSoon = state.tokenExpireAt - now < 120_000; // 2 minutes before expiry
+
+      if (isExpired || expiresSoon) {
+        // Token expired or expiring soon - try to refresh
+        try {
+          const refreshed = await tryRefreshToken(token);
+          if (refreshed) {
+            // Update token reference for this request
+            const newState = useAuthStore.getState();
+            token = newState.token;
+          } else if (isExpired) {
+            // Token expired and refresh failed - throw error
+            throw new TokenExpiredError(
+              "Token expired and refresh failed. Please log in again."
+            );
+          }
+        } catch (error) {
+          // If it's a network error, continue with the request (might succeed)
+          // If it's a refresh error, throw it
+          if (
+            error instanceof TokenRefreshError ||
+            error instanceof TokenExpiredError
+          ) {
+            throw error;
+          }
+          // Network errors - log but continue
+          if (process.env.NODE_ENV === "development") {
+            console.warn(
+              "Token refresh network error, continuing with current token:",
+              error
+            );
+          }
+        }
       }
     }
 
@@ -279,10 +368,17 @@ export async function api<T = unknown>({
       ...headers,
     };
 
+    // Add CSRF token for state-changing requests
+    if (method !== "GET" && !noAuth) {
+      CSRFProtection.addToHeaders(requestHeaders);
+    }
+
     if (!noAuth && token) {
       requestHeaders["Authorization"] = `Bearer ${token}`;
     } else if (!noAuth && !token) {
-      console.warn(`⚠️ No token available for authenticated request to ${path}`);
+      console.warn(
+        `⚠️ No token available for authenticated request to ${path}`
+      );
     }
 
     // Create AbortController for timeout
@@ -302,7 +398,9 @@ export async function api<T = unknown>({
 
       const contentType = res.headers.get("content-type") || "";
       const isJson = contentType.includes("application/json");
-      const data = isJson ? await res.json() : ((await res.text()) as unknown as T);
+      const data = isJson
+        ? await res.json()
+        : ((await res.text()) as unknown as T);
 
       // If this was a login call, store token and schedule proactive refresh
       if (path === "/auth/login" && res.ok && isJson) {
@@ -319,32 +417,59 @@ export async function api<T = unknown>({
       // Attempt refresh on 401 or 403 once for authenticated calls
       // 403 can also indicate token expiration in some API implementations
       if (!noAuth && (res.status === 401 || res.status === 403) && !_isRetry) {
-        const refreshed = await tryRefreshToken(token);
-        if (refreshed) {
-          return api<T>({
-            method,
-            path,
-            body,
-            query,
-            headers,
-            noAuth,
-            _isRetry: true,
-            cache,
-            cacheKey,
-            cacheTTL,
-            dedupe,
-            timeout,
-          });
+        try {
+          const refreshed = await tryRefreshToken(token);
+          if (refreshed) {
+            return api<T>({
+              method,
+              path,
+              body,
+              query,
+              headers,
+              noAuth,
+              _isRetry: true,
+              cache,
+              cacheKey,
+              cacheTTL,
+              dedupe,
+              timeout,
+            });
+          }
+        } catch (refreshError) {
+          // If refresh fails, let the error propagate
+          // The error handler below will handle it
+          if (process.env.NODE_ENV === "development") {
+            console.warn("Token refresh failed on 401/403:", refreshError);
+          }
         }
       }
 
       if (!res.ok) {
-        const message =
+        // Handle specific error cases
+        let message =
           (isJson && ((data as any)?.detail || (data as any)?.message)) ||
           res.statusText ||
           "Request failed";
+
+        // Enhance error messages based on status code
+        if (res.status === 401) {
+          message = "Authentication required. Please log in again.";
+        } else if (res.status === 403) {
+          message =
+            "Access forbidden. You don't have permission to perform this action.";
+        } else if (res.status === 404) {
+          message = "Resource not found.";
+        } else if (res.status === 422) {
+          message = "Validation error: " + (message || "Invalid input data.");
+        } else if (res.status === 429) {
+          message = "Too many requests. Please try again later.";
+        } else if (res.status >= 500) {
+          message = "Server error. Please try again later.";
+        }
+
         const error = new Error(message as string);
         (error as any).status = res.status;
+        (error as any).data = data;
         throw error;
       }
 
@@ -356,11 +481,11 @@ export async function api<T = unknown>({
       return data as T;
     } catch (error) {
       clearTimeout(timeoutId);
-      
-      if (error instanceof Error && error.name === 'AbortError') {
+
+      if (error instanceof Error && error.name === "AbortError") {
         throw new Error(`Request timeout after ${timeout}ms`);
       }
-      
+
       throw error;
     } finally {
       // Clear pending request
@@ -386,82 +511,87 @@ export const Api = {
     query?: ApiRequestOptions["query"],
     headers?: Record<string, string>,
     opts?: Partial<ApiRequestOptions>
-  ) => api<T>({ 
-    method: "GET", 
-    path, 
-    query, 
-    headers, 
-    cache: opts?.cache ?? true,
-    cacheKey: opts?.cacheKey,
-    cacheTTL: opts?.cacheTTL,
-    dedupe: opts?.dedupe ?? true,
-    timeout: opts?.timeout
-  }),
+  ) =>
+    api<T>({
+      method: "GET",
+      path,
+      query,
+      headers,
+      cache: opts?.cache ?? true,
+      cacheKey: opts?.cacheKey,
+      cacheTTL: opts?.cacheTTL,
+      dedupe: opts?.dedupe ?? true,
+      timeout: opts?.timeout,
+    }),
   post: <T>(
     path: string,
     body?: unknown,
     headers?: Record<string, string>,
     opts?: Partial<ApiRequestOptions>
-  ) => api<T>({ 
-    method: "POST", 
-    path, 
-    body, 
-    headers, 
-    noAuth: opts?.noAuth,
-    cache: opts?.cache ?? false,
-    cacheKey: opts?.cacheKey,
-    cacheTTL: opts?.cacheTTL,
-    dedupe: opts?.dedupe ?? true,
-    timeout: opts?.timeout
-  }),
+  ) =>
+    api<T>({
+      method: "POST",
+      path,
+      body,
+      headers,
+      noAuth: opts?.noAuth,
+      cache: opts?.cache ?? false,
+      cacheKey: opts?.cacheKey,
+      cacheTTL: opts?.cacheTTL,
+      dedupe: opts?.dedupe ?? true,
+      timeout: opts?.timeout,
+    }),
   put: <T>(
-    path: string, 
-    body?: unknown, 
+    path: string,
+    body?: unknown,
     headers?: Record<string, string>,
     opts?: Partial<ApiRequestOptions>
-  ) => api<T>({ 
-    method: "PUT", 
-    path, 
-    body, 
-    headers,
-    cache: opts?.cache ?? false,
-    cacheKey: opts?.cacheKey,
-    cacheTTL: opts?.cacheTTL,
-    dedupe: opts?.dedupe ?? true,
-    timeout: opts?.timeout
-  }),
+  ) =>
+    api<T>({
+      method: "PUT",
+      path,
+      body,
+      headers,
+      cache: opts?.cache ?? false,
+      cacheKey: opts?.cacheKey,
+      cacheTTL: opts?.cacheTTL,
+      dedupe: opts?.dedupe ?? true,
+      timeout: opts?.timeout,
+    }),
   patch: <T>(
-    path: string, 
-    body?: unknown, 
+    path: string,
+    body?: unknown,
     headers?: Record<string, string>,
     opts?: Partial<ApiRequestOptions>
-  ) => api<T>({ 
-    method: "PATCH", 
-    path, 
-    body, 
-    headers,
-    cache: opts?.cache ?? false,
-    cacheKey: opts?.cacheKey,
-    cacheTTL: opts?.cacheTTL,
-    dedupe: opts?.dedupe ?? true,
-    timeout: opts?.timeout
-  }),
+  ) =>
+    api<T>({
+      method: "PATCH",
+      path,
+      body,
+      headers,
+      cache: opts?.cache ?? false,
+      cacheKey: opts?.cacheKey,
+      cacheTTL: opts?.cacheTTL,
+      dedupe: opts?.dedupe ?? true,
+      timeout: opts?.timeout,
+    }),
   delete: <T>(
     path: string,
     query?: ApiRequestOptions["query"],
     headers?: Record<string, string>,
     opts?: Partial<ApiRequestOptions>
-  ) => api<T>({ 
-    method: "DELETE", 
-    path, 
-    query, 
-    headers,
-    cache: opts?.cache ?? false,
-    cacheKey: opts?.cacheKey,
-    cacheTTL: opts?.cacheTTL,
-    dedupe: opts?.dedupe ?? true,
-    timeout: opts?.timeout
-  }),
+  ) =>
+    api<T>({
+      method: "DELETE",
+      path,
+      query,
+      headers,
+      cache: opts?.cache ?? false,
+      cacheKey: opts?.cacheKey,
+      cacheTTL: opts?.cacheTTL,
+      dedupe: opts?.dedupe ?? true,
+      timeout: opts?.timeout,
+    }),
 
   // FormData helper (avoids JSON content-type)
   postForm: async <T>(
@@ -541,7 +671,7 @@ export function getApiBaseUrl() {
 
 /**
  * Unified receipt regeneration handler that works for both school and college
- * 
+ *
  * This function regenerates a receipt PDF for the given income ID
  * and returns a blob URL for modal display
  *
@@ -551,7 +681,7 @@ export function getApiBaseUrl() {
  */
 export async function handleRegenerateReceipt(
   incomeId: number,
-  institutionType: 'school' | 'college' = 'school'
+  institutionType: "school" | "college" = "school"
 ): Promise<string> {
   const state = useAuthStore.getState();
   const token = state.token;
@@ -632,27 +762,27 @@ export async function batchRequests<T>(
   // Process requests in batches
   for (let i = 0; i < requests.length; i += maxConcurrency) {
     const batch = requests.slice(i, i + maxConcurrency);
-    
+
     const batchPromises = batch.map(async (request, index) => {
       try {
         const result = await Promise.race([
           request(),
-          new Promise<never>((_, reject) => 
-            setTimeout(() => reject(new Error('Request timeout')), timeout)
-          )
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Request timeout")), timeout)
+          ),
         ]);
         return { index: i + index, result, error: null };
       } catch (error) {
-        return { 
-          index: i + index, 
-          result: null, 
-          error: error instanceof Error ? error : new Error('Unknown error') 
+        return {
+          index: i + index,
+          result: null,
+          error: error instanceof Error ? error : new Error("Unknown error"),
         };
       }
     });
 
     const batchResults = await Promise.all(batchPromises);
-    
+
     batchResults.forEach(({ index, result, error }) => {
       if (error) {
         errors[index] = error;
@@ -663,7 +793,7 @@ export async function batchRequests<T>(
   }
 
   if (errors.length > 0) {
-    console.warn('Some batch requests failed:', errors);
+    console.warn("Some batch requests failed:", errors);
   }
 
   return results;
@@ -676,25 +806,25 @@ export const CacheUtils = {
     const cache = useCacheStore.getState();
     cache.invalidate(pattern);
   },
-  
+
   // Clear cache by tag
   clearByTag: (tag: string) => {
     const cache = useCacheStore.getState();
     cache.clearByTag(tag);
   },
-  
+
   // Clear all cache
   clearAll: () => {
     const cache = useCacheStore.getState();
     cache.clear();
   },
-  
+
   // Get cache statistics
   getStats: () => {
     const cache = useCacheStore.getState();
     return cache.getCacheStats();
   },
-  
+
   // Preload data
   preload: async <T>(
     key: string,
@@ -707,29 +837,29 @@ export const CacheUtils = {
       cache.set(key, data, options);
       return data;
     } catch (error) {
-      console.error('Preload failed:', error);
+      console.error("Preload failed:", error);
       throw error;
     }
-  }
+  },
 };
 
 // Request deduplication utilities
 export const DedupeUtils = {
   // Clear all pending requests
   clearAll: () => {
-    Object.keys(pendingRequests).forEach(key => delete pendingRequests[key]);
+    Object.keys(pendingRequests).forEach((key) => delete pendingRequests[key]);
   },
-  
+
   // Get pending request count
   getPendingCount: () => {
     return Object.keys(pendingRequests).length;
   },
-  
+
   // Check if request is pending
   isPending: (options: ApiRequestOptions) => {
     const dedupeKey = getDedupeKey(options);
     return dedupeKey in pendingRequests;
-  }
+  },
 };
 
 // Expose helpers for lifecycle

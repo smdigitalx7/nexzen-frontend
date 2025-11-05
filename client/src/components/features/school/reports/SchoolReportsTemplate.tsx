@@ -24,11 +24,7 @@ import { TrendingUp, Eye, PieChart } from "lucide-react";
 import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { TabSwitcher } from "@/components/shared";
 import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
-import { useSchoolIncomeDashboard } from "@/lib/hooks/school/use-school-income-expenditure";
-import {
-  useSchoolExpenditureList,
-  useSchoolExpenditureDashboard,
-} from "@/lib/hooks/school/use-school-income-expenditure";
+import { useSchoolIncomeDashboard, useSchoolExpenditureList, useSchoolExpenditureDashboard } from "@/lib/hooks/school";
 import { IncomeSummaryTable } from "@/components/features/school/reports/components/IncomeSummaryTable";
 import { ExpenditureTable } from "@/components/features/school/reports/components/ExpenditureTable";
 import { AddExpenditureDialog } from "@/components/features/school/reports/components/AddExpenditureDialog";
@@ -63,7 +59,9 @@ export const SchoolReportsTemplate = () => {
   // Handlers
   const handleExportReport = () => {
     // TODO: Implement export functionality
-    console.log("Exporting report...");
+    if (import.meta.env.DEV) {
+      console.log("Exporting report...");
+    }
     setShowExportDialog(false);
   };
 

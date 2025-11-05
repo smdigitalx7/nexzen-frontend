@@ -1,13 +1,14 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { RolesService } from '@/lib/services/general/roles.service';
-import type { RoleRead, RoleUpdate } from '@/lib/types/general/roles';
+import type { RoleUpdate } from '@/lib/types/general/roles';
 import { useMutationWithSuccessToast } from '../common/use-mutation-with-toast';
+import { useGlobalRefetch } from '../common/useGlobalRefetch';
 
 // Query keys
 export const roleKeys = {
   all: ['roles'] as const,
   lists: () => [...roleKeys.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...roleKeys.lists(), { filters }] as const,
+  list: (filters: Record<string, unknown>) => [...roleKeys.lists(), { filters }] as const,
   details: () => [...roleKeys.all, 'detail'] as const,
   detail: (id: number) => [...roleKeys.details(), id] as const,
 };
@@ -30,14 +31,13 @@ export const useRole = (id: number) => {
 
 // Mutation hooks
 export const useUpdateRole = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
   
   return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: RoleUpdate }) => 
       RolesService.update(id, payload),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: roleKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: roleKeys.detail(id) });
+    onSuccess: () => {
+      invalidateEntity("roles");
     },
   }, "Role updated successfully");
 };

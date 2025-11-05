@@ -10,8 +10,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2 } from 'lucide-react';
-import { DIALOG_SIZES } from '@/lib/constants/ui';
+import { ButtonLoading } from '@/components/ui/loading';
+import { DIALOG_SIZES } from '@/lib/constants';
 
 interface FormDialogProps {
   open: boolean;
@@ -179,7 +179,7 @@ export const FormDialog: React.FC<FormDialogProps> = ({
                 onClick={onSave}
                 disabled={disabled || isLoading || (showStatusUpdate && newStatus === currentStatus)}
               >
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading && <span className="mr-2"><ButtonLoading size="sm" /></span>}
                 {showStatusUpdate ? statusUpdateText : saveText}
               </Button>
             )}

@@ -1,16 +1,17 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { DistanceSlabsService } from "@/lib/services/general/distance-slabs.service";
 import type {
   DistanceSlabRead,
   DistanceSlabCreate,
   DistanceSlabUpdate,
 } from "@/lib/types/general/distance-slabs";
+import { useGlobalRefetch } from "../common/useGlobalRefetch";
 
 /**
  * Hook for managing distance slabs
  */
 export const useDistanceSlabs = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
 
   // Get all distance slabs
   const {
@@ -37,7 +38,7 @@ export const useDistanceSlabs = () => {
     mutationFn: (data: DistanceSlabCreate) =>
       DistanceSlabsService.createDistanceSlab(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["distance-slabs"] });
+      invalidateEntity("distanceSlabs");
     },
   });
 
@@ -46,7 +47,7 @@ export const useDistanceSlabs = () => {
     mutationFn: ({ id, data }: { id: number; data: DistanceSlabUpdate }) =>
       DistanceSlabsService.updateDistanceSlab(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["distance-slabs"] });
+      invalidateEntity("distanceSlabs");
     },
   });
 

@@ -6,10 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
-import { SchoolStudentsService } from "@/lib/services/school/students.service";
-import { SchoolTuitionFeeBalancesService } from "@/lib/services/school/tuition-fee-balances.service";
-import { SchoolTransportFeeBalancesService } from "@/lib/services/school/transport-fee-balances.service";
 import { Api } from "@/lib/api";
+import { SchoolStudentsService, SchoolTuitionFeeBalancesService, SchoolTransportFeeBalancesService } from "@/lib/services/school";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -60,7 +58,9 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
         );
       } catch (error) {
         // If admission search fails, try searching by name
-        console.log("Admission search failed, trying name search...");
+        if (import.meta.env.DEV) {
+          console.log("Admission search failed, trying name search...");
+        }
         const studentsList = await SchoolStudentsService.list({ page: 1, page_size: 100 });
         const matchingStudents = studentsList.data?.filter((s: any) => 
           s.student_name?.toLowerCase().includes(trimmedQuery.toLowerCase())

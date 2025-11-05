@@ -10,7 +10,7 @@ import {
   createStatusColumn, 
   StatusColors,
   StatusIcons
-} from "@/lib/utils/columnFactories.tsx";
+} from "@/lib/utils/factory/columnFactories";
 
 interface EmployeeRead {
   employee_id: number;

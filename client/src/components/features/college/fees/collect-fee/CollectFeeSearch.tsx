@@ -6,11 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
-import { CollegeStudentsService } from "@/lib/services/college/students.service";
-import { CollegeTuitionBalancesService } from "@/lib/services/college/tuition-fee-balances.service";
-import { Api } from "@/lib/api";
+import { CollegeStudentsService, CollegeTuitionBalancesService } from "@/lib/services/college";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
+import { Api } from "@/lib/api";
 
 interface StudentFeeDetails {
   student: any;
@@ -56,7 +55,9 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
         );
       } catch (error) {
         // If admission search fails, try searching by name
-        console.log("Admission search failed, trying name search...");
+        if (import.meta.env.DEV) {
+          console.log("Admission search failed, trying name search...");
+        }
         const studentsList = await CollegeStudentsService.list({ page: 1, pageSize: 100 });
         const matchingStudents = studentsList.data?.filter((s: any) => 
           s.student_name?.toLowerCase().includes(trimmedQuery.toLowerCase())

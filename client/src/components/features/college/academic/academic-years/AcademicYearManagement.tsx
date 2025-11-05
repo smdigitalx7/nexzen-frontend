@@ -11,7 +11,7 @@ import {
   createIconTextColumn,
   createDateColumn,
   createBadgeColumn
-} from "@/lib/utils/columnFactories";
+} from "@/lib/utils/factory/columnFactories";
 
 // UI row shape for the table
 type UIAcademicYearRow = {

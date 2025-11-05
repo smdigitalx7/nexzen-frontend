@@ -526,7 +526,9 @@ export const PayrollManagementTemplateComponent = () => {
   }, [setShowPayslipDialog, setSelectedPayrollId, setSelectedPayroll]);
 
   const handleDownloadPayslip = useCallback(() => {
-    console.log('Download payslip');
+    if (import.meta.env.DEV) {
+      console.log('Download payslip');
+    }
   }, []);
 
   // Memoized tabs configuration

@@ -5,9 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
-import { useCollegeClasses } from "@/lib/hooks/college/use-college-classes";
-import { useCollegeGroups } from "@/lib/hooks/college/use-college-groups";
-import { useCollegeTuitionBalancesList, useCollegeTuitionBalance, useBulkCreateCollegeTuitionBalances } from "@/lib/hooks/college/use-college-tuition-balances";
+import { useCollegeClasses, useCollegeGroups, useCollegeTuitionBalancesList, useCollegeTuitionBalance, useBulkCreateCollegeTuitionBalances } from "@/lib/hooks/college";
 import type { CollegeTuitionFeeBalanceRead, CollegeTuitionFeeBalanceFullRead } from "@/lib/types/college";
 import { StudentFeeBalancesTable } from "./StudentFeeBalancesTable";
 

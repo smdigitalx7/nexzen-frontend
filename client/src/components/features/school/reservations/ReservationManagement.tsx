@@ -7,9 +7,13 @@ import {
   useCreateSchoolReservation,
 } from "@/lib/hooks/school/use-school-reservations";
 import { schoolKeys } from "@/lib/hooks/school/query-keys";
+import {
+  useUpdateSchoolReservation,
+  useSchoolClass,
+} from "@/lib/hooks/school";
+// Note: useSchoolClasses from dropdowns (naming conflict)
 import { useSchoolClasses } from "@/lib/hooks/school/use-school-dropdowns";
-import { useSchoolClass } from "@/lib/hooks/school/use-school-class";
-import { useDistanceSlabs } from "@/lib/hooks/general/useDistanceSlabs";
+import { useDistanceSlabs } from "@/lib/hooks/general";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,9 +41,8 @@ import ReservationForm from "../reservations/ReservationForm";
 import SchoolReservationEdit from "../reservations/SchoolReservationEdit";
 import AllReservationsTable from "../reservations/AllReservationsTable";
 import StatusUpdateTable from "../reservations/StatusUpdateTable";
-import { TransportService } from "@/lib/services/school/transport.service";
+import { TransportService, SchoolReservationsService } from "@/lib/services/school";
 import { toast } from "@/hooks/use-toast";
-import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
 import { Plus, List, BarChart3, School, Building2 } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
 import { SchoolReservationStatsCards } from "./SchoolReservationStatsCards";
@@ -790,7 +793,9 @@ const ReservationManagementComponent = () => {
         const res: SchoolReservationRead =
           await createReservationMutation.mutateAsync(formData);
 
-        console.log("Reservation creation response:", res);
+        if (import.meta.env.DEV) {
+          console.log("Reservation creation response:", res);
+        }
         // Use backend reservation_id to display receipt number
         setReservationNo(String(res?.reservation_id || ""));
 

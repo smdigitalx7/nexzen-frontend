@@ -23,7 +23,7 @@ import "./lib/react-utils";
 
 // Initialize clean architecture services
 // Use proxy for development to avoid CORS issues
-let apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
 // For ApiClient (clean architecture), we need to separate the base URL
 // ApiClient expects /api (it adds /v1 automatically)
@@ -35,9 +35,11 @@ if (
   apiBaseUrl.includes("http://") ||
   apiBaseUrl.includes("https://")
 ) {
-  console.warn(
-    "Detected external API URL, using direct connection for ApiClient"
-  );
+  if (import.meta.env.DEV) {
+    console.warn(
+      "Detected external API URL, using direct connection for ApiClient"
+    );
+  }
   // In production, use the full URL directly
   apiClientBaseUrl = apiBaseUrl.replace("/api/v1", "/api"); // Remove /v1 for ApiClient
 } else if (apiBaseUrl === "/api/v1") {
@@ -56,6 +58,7 @@ if (!authState.token || !authState.user) {
   // Check if token is expired
   if (authState.tokenExpireAt && Date.now() > authState.tokenExpireAt) {
   }
+
 }
 
 createRoot(document.getElementById("root")!).render(<App />);

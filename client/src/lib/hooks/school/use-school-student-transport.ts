@@ -23,7 +23,7 @@ export function useCreateSchoolStudentTransport() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolStudentTransportAssignmentCreate) => StudentTransportService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: keys.root });
+      void qc.invalidateQueries({ queryKey: keys.root });
     },
   }, "Student transport assigned successfully");
 }
@@ -41,8 +41,8 @@ export function useUpdateSchoolStudentTransport() {
   return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: SchoolStudentTransportAssignmentUpdate }) => StudentTransportService.update(id, payload),
     onSuccess: (_data, { id }) => {
-      qc.invalidateQueries({ queryKey: keys.root });
-      qc.invalidateQueries({ queryKey: keys.detail(id) });
+      void qc.invalidateQueries({ queryKey: keys.root });
+      void qc.invalidateQueries({ queryKey: keys.detail(id) });
     },
   }, "Student transport updated successfully");
 }
@@ -52,8 +52,8 @@ export function useDeleteSchoolStudentTransport() {
   return useMutationWithSuccessToast({
     mutationFn: (id: number) => StudentTransportService.delete(id),
     onSuccess: (_, id) => {
-      qc.invalidateQueries({ queryKey: keys.root });
-      qc.invalidateQueries({ queryKey: keys.detail(id) });
+      void qc.invalidateQueries({ queryKey: keys.root });
+      void qc.invalidateQueries({ queryKey: keys.detail(id) });
     },
   }, "Student transport assignment deleted successfully");
 }
@@ -68,7 +68,7 @@ export function useSchoolStudentTransportDashboard() {
 export function useSchoolStudentTransportByAdmission(admissionNo: string | null | undefined) {
   return useQuery({
     queryKey: admissionNo ? [...keys.root, "by-admission", admissionNo] : [...keys.root, "by-admission", "nil"],
-    queryFn: () => StudentTransportService.getByAdmission(admissionNo as string) as Promise<SchoolStudentTransportAssignmentRead[]>,
+    queryFn: () => StudentTransportService.getByAdmission(admissionNo as string),
     enabled: typeof admissionNo === "string" && admissionNo.length > 0,
   });
 }

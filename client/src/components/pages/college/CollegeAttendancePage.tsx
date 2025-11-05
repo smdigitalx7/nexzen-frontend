@@ -1,4 +1,4 @@
-import AttendanceManagement from "@/components/features/college/attendance/AttendanceManagement";
+import { AttendanceManagement } from "@/components/features/college";
 
 const CollegeAttendancePage = () => {
   return <AttendanceManagement />;

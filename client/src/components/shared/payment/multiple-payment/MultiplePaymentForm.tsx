@@ -58,23 +58,25 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
   const modalStateRef = useRef<{ showReceiptModal: boolean; receiptBlobUrl: string | null }>({ showReceiptModal: false, receiptBlobUrl: null });
   const isMountedRef = useRef(true);
 
-  // Debug logging for modal state changes
+  // Debug logging for modal state changes (only in development)
   useEffect(() => {
-    console.log("🔍 MultiplePaymentForm modal state changed:", { 
-      showReceiptModal, 
-      receiptBlobUrl: !!receiptBlobUrl,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Track when modal state changes to false
-    if (!showReceiptModal && receiptBlobUrl) {
-      console.log("⚠️ MODAL STATE LOST! Blob URL exists but modal is false");
-      console.log("⚠️ This suggests a competing state update or component unmounting");
-    }
-    
-    // Log when both conditions are met
-    if (showReceiptModal && receiptBlobUrl) {
-      console.log("🎯 Both conditions met - modal should render!");
+    if (import.meta.env.DEV) {
+      console.log("🔍 MultiplePaymentForm modal state changed:", { 
+        showReceiptModal, 
+        receiptBlobUrl: !!receiptBlobUrl,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Track when modal state changes to false
+      if (!showReceiptModal && receiptBlobUrl) {
+        console.log("⚠️ MODAL STATE LOST! Blob URL exists but modal is false");
+        console.log("⚠️ This suggests a competing state update or component unmounting");
+      }
+      
+      // Log when both conditions are met
+      if (showReceiptModal && receiptBlobUrl) {
+        console.log("🎯 Both conditions met - modal should render!");
+      }
     }
   }, [showReceiptModal, receiptBlobUrl]);
 
@@ -299,7 +301,7 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
           let incomeId: number | null = null;
           
           // Type assertion to handle the response object
-          const result = paymentResult as any;
+          const result = paymentResult;
           
           // Check for income_id in different possible locations
           if (result.data && typeof result.data === 'object') {
@@ -410,17 +412,19 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
     }
   };
 
-  // Debug: Log render state
+  // Debug: Log render state (only in development)
   useEffect(() => {
-    console.log("🔍 MultiplePaymentForm render:", { 
-      showReceiptModal, 
-      receiptBlobUrl: !!receiptBlobUrl,
-      shouldRenderModal: showReceiptModal && receiptBlobUrl,
-      timestamp: new Date().toISOString()
-    });
+    if (import.meta.env.DEV) {
+      console.log("🔍 MultiplePaymentForm render:", { 
+        showReceiptModal, 
+        receiptBlobUrl: !!receiptBlobUrl,
+        shouldRenderModal: showReceiptModal && receiptBlobUrl,
+        timestamp: new Date().toISOString()
+      });
+    }
     
-    // Additional debug for modal rendering
-    if (showReceiptModal && receiptBlobUrl) {
+    // Additional debug for modal rendering (only in development)
+    if (import.meta.env.DEV && showReceiptModal && receiptBlobUrl) {
       console.log("🎯 MODAL SHOULD BE RENDERING NOW!");
       console.log("🎯 Modal state:", showReceiptModal);
       console.log("🎯 Blob URL:", receiptBlobUrl);

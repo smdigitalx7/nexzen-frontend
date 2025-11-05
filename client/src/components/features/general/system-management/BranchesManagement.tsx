@@ -12,7 +12,7 @@ import {
   createBadgeColumn, 
   createTruncatedTextColumn, 
   createTextColumn
-} from "@/lib/utils/columnFactories.tsx";
+} from "@/lib/utils/factory/columnFactories";
 
 export default function BranchesManagement() {
   const { data, isLoading, error } = useBranches();

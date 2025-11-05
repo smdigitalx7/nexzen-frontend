@@ -29,9 +29,8 @@ import {
 import {
   useSchoolReservationsList,
   useUpdateSchoolReservation,
-} from "@/lib/hooks/school/use-school-reservations";
-import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
-import { SchoolStudentsService } from "@/lib/services/school/students.service";
+} from "@/lib/hooks/school";
+import { SchoolReservationsService, SchoolStudentsService } from "@/lib/services/school";
 import { toast } from "@/hooks/use-toast";
 import { ReceiptPreviewModal } from "@/components/shared";
 import { handleRegenerateReceipt } from "@/lib/api";
@@ -904,7 +903,7 @@ const ConfirmedReservationsTabComponent = () => {
       await updateReservationMutation.mutateAsync(formData);
 
       // Invalidating queries to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
+      void queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
 
       // Refresh reservation details
       const updatedReservation = await SchoolReservationsService.getById(
@@ -1020,7 +1019,7 @@ const ConfirmedReservationsTabComponent = () => {
       });
 
       // Invalidate reservations cache to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
+      void queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
     } catch (error: any) {
       console.error("Payment failed:", error);
       toast({
@@ -1077,10 +1076,7 @@ const ConfirmedReservationsTabComponent = () => {
         accessorKey: "application_income_id",
         header: "Payment Status",
         cell: ({ row }) => {
-          const applicationIncomeId = row.getValue("application_income_id") as
-            | number
-            | null
-            | undefined;
+          const applicationIncomeId = row.getValue("application_income_id") as number | null | undefined;
           return (
             <PaymentStatusBadge applicationIncomeId={applicationIncomeId} />
           );
@@ -1090,7 +1086,7 @@ const ConfirmedReservationsTabComponent = () => {
         accessorKey: "reservation_date",
         header: "Date",
         cell: ({ row }) => (
-          <span>{formatDate(row.getValue("reservation_date") as string)}</span>
+          <span>{formatDate(row.getValue("reservation_date"))}</span>
         ),
       },
       {

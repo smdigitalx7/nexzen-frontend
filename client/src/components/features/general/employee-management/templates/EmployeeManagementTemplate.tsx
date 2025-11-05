@@ -1,16 +1,11 @@
-import { useEmployeeManagement } from "@/lib/hooks/general/useEmployeeManagement";
-import { useEmployeeDashboard } from "@/lib/hooks/general/useEmployees";
-import { useAttendanceDashboard } from "@/lib/hooks/general/useEmployeeAttendance";
-import { useLeaveDashboard } from "@/lib/hooks/general/useEmployeeLeave";
-import { useAdvanceDashboard } from "@/lib/hooks/general/useAdvances";
+import { useEmployeeManagement, useEmployeeDashboard, useAttendanceDashboard, useLeaveDashboard, useAdvanceDashboard } from "@/lib/hooks/general";
 import { EmployeeManagementHeader } from "../components/EmployeeManagementHeader";
 import { EmployeeManagementTabs } from "../components/EmployeeManagementTabs";
-import { AttendanceStatsCards as OldAttendanceStatsCards } from "../components/AttendanceStatsCards";
 import { EmployeeManagementDialogs } from "../components/EmployeeManagementDialogs";
-import { EmployeeStatsCards } from "../EmployeeStatsCards";
-import { AttendanceStatsCards } from "../AttendanceStatsCards";
-import { LeaveStatsCards } from "../LeaveStatsCards";
-import { AdvanceStatsCards } from "../AdvanceStatsCards";
+import { EmployeeStatsCards } from "../employee/EmployeeStatsCards";
+import { AttendanceStatsCards } from "../Attendance/AttendanceStatsCards";
+import { LeaveStatsCards } from "../Leave/LeaveStatsCards";
+import { AdvanceStatsCards } from "../Advance/AdvanceStatsCards";
 
 export const EmployeeManagementTemplate = () => {
   // Dashboard stats hooks
@@ -232,24 +227,11 @@ export const EmployeeManagementTemplate = () => {
       )}
 
       {/* Attendance Statistics Cards - Only show when attendance tab is active */}
-      {activeTab === 'attendance' && (
-        attendanceDashboardStats ? (
-          <AttendanceStatsCards
-            stats={attendanceDashboardStats}
-            loading={attendanceDashboardLoading}
-          />
-        ) : (
-          <OldAttendanceStatsCards
-            totalRecords={attendance.length}
-            averageAttendance={attendance.length > 0 ? 
-              (attendance.reduce((sum, record) => sum + (record.days_present / record.total_working_days * 100), 0) / attendance.length) : 0
-            }
-            totalLateArrivals={attendance.reduce((sum, record) => sum + record.late_arrivals, 0)}
-            totalEarlyDepartures={attendance.reduce((sum, record) => sum + record.early_departures, 0)}
-            totalPaidLeaves={attendance.reduce((sum, record) => sum + record.paid_leaves, 0)}
-            totalUnpaidLeaves={attendance.reduce((sum, record) => sum + record.unpaid_leaves, 0)}
-          />
-        )
+      {activeTab === 'attendance' && attendanceDashboardStats && (
+        <AttendanceStatsCards
+          stats={attendanceDashboardStats}
+          loading={attendanceDashboardLoading}
+        />
       )}
 
       {/* Leave Statistics Cards - Only show when leaves tab is active */}

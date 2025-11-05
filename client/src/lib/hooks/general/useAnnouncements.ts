@@ -1,7 +1,8 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { AnnouncementsService } from "@/lib/services/general/announcements.service";
-import { QUERY_STALE_TIME } from "@/lib/constants/query";
+import { QUERY_STALE_TIME } from "@/lib/constants";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
+import { useGlobalRefetch } from "../common/useGlobalRefetch";
 
 // Types
 export interface Announcement {
@@ -91,14 +92,14 @@ export const useAnnouncement = (id: number) => {
  * Hook to create a new announcement
  */
 export const useCreateAnnouncement = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
 
   return useMutationWithSuccessToast({
     mutationFn: async (data: AnnouncementCreate) => {
       return await AnnouncementsService.create(data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ANNOUNCEMENT_KEYS.lists() });
+      invalidateEntity("announcements");
     },
   }, "Announcement created successfully");
 };
@@ -107,15 +108,14 @@ export const useCreateAnnouncement = () => {
  * Hook to update an announcement
  */
 export const useUpdateAnnouncement = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
 
   return useMutationWithSuccessToast({
     mutationFn: async ({ id, data }: { id: number; data: AnnouncementUpdate }) => {
       return await AnnouncementsService.update(id, data);
     },
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ANNOUNCEMENT_KEYS.lists() });
-      queryClient.invalidateQueries({ queryKey: ANNOUNCEMENT_KEYS.detail(id) });
+    onSuccess: () => {
+      invalidateEntity("announcements");
     },
   }, "Announcement updated successfully");
 };
@@ -124,14 +124,14 @@ export const useUpdateAnnouncement = () => {
  * Hook to delete an announcement
  */
 export const useDeleteAnnouncement = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
 
   return useMutationWithSuccessToast({
     mutationFn: async (id: number) => {
       return await AnnouncementsService.delete(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ANNOUNCEMENT_KEYS.lists() });
+      invalidateEntity("announcements");
     },
   }, "Announcement deleted successfully");
 };

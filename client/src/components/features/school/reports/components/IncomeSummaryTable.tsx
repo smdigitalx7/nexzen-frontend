@@ -1,13 +1,13 @@
 import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Receipt, Eye, Edit, Trash2, Printer } from "lucide-react";
-import { SchoolIncomeService } from "@/lib/services/school/income.service";
+import { Printer } from "lucide-react";
+import { SchoolIncomeService } from "@/lib/services/school";
 import type { SchoolIncomeSummary, SchoolIncomeSummaryParams } from "@/lib/types/school/income";
 import { ViewIncomeDialog } from "./ViewIncomeDialog";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { createCurrencyColumn } from "@/lib/utils/columnFactories";
+import { createCurrencyColumn } from "@/lib/utils/factory/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -109,7 +109,7 @@ export const IncomeSummaryTable = ({
     {
       accessorKey: 'created_at',
       header: 'Date',
-      cell: ({ row }) => formatDate(row.getValue("created_at") as string),
+      cell: ({ row }) => formatDate(row.getValue("created_at")),
     },
     {
       accessorKey: 'receipt_no',
@@ -130,10 +130,10 @@ export const IncomeSummaryTable = ({
       accessorKey: 'purpose',
       header: 'Purpose',
       cell: ({ row }) => {
-        const purpose = row.getValue("purpose") as string;
+        const purpose = row.getValue("purpose");
         return (
           <Badge variant="secondary" className="max-w-[200px] truncate">
-            {purpose || "-"}
+            {purpose && typeof purpose === 'string' ? purpose : "-"}
           </Badge>
         );
       },

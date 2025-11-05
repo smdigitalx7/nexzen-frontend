@@ -18,6 +18,7 @@ import {
 } from "@/lib/types/general/payrolls";
 import { formatCurrency } from "@/lib/utils";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
+import { useGlobalRefetch } from "../common/useGlobalRefetch";
 
 // Extended interface that includes employee information
 interface PayrollWithEmployee extends Omit<PayrollRead, "payroll_month"> {
@@ -31,7 +32,7 @@ interface PayrollWithEmployee extends Omit<PayrollRead, "payroll_month"> {
 const payrollKeys = {
   all: ["payrolls"] as const,
   lists: () => [...payrollKeys.all, "list"] as const,
-  list: (filters: Record<string, any>) =>
+  list: (filters: Record<string, unknown>) =>
     [...payrollKeys.lists(), { filters }] as const,
   details: () => [...payrollKeys.all, "detail"] as const,
   detail: (id: number) => [...payrollKeys.details(), id] as const,
@@ -44,7 +45,7 @@ const payrollKeys = {
 // Basic payroll hooks (moved from usePayrolls.ts)
 export const usePayrolls = (query?: PayrollQuery) => {
   return useQuery({
-    queryKey: payrollKeys.list(query || {}),
+    queryKey: payrollKeys.list(query as Record<string, unknown>),
     queryFn: () =>
       PayrollsService.listAll(query?.month, query?.year, query?.status),
   });
@@ -73,45 +74,36 @@ export const usePayroll = (id: number) => {
 };
 
 export const useCreatePayroll = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
 
   return useMutationWithSuccessToast({
     mutationFn: (payload: PayrollCreate) => PayrollsService.create(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.byBranch() });
+      invalidateEntity("payrolls");
     },
   }, "Payroll created successfully");
 };
 
 export const useUpdatePayroll = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
 
   return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: PayrollUpdate }) =>
       PayrollsService.update(id, payload),
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.byBranch() });
-      queryClient.invalidateQueries({
-        queryKey: payrollKeys.detail(variables.id),
-      });
+    onSuccess: () => {
+      invalidateEntity("payrolls");
     },
   }, "Payroll updated successfully");
 };
 
 export const useUpdatePayrollStatus = () => {
-  const queryClient = useQueryClient();
+  const { invalidateEntity } = useGlobalRefetch();
 
   return useMutationWithSuccessToast({
     mutationFn: ({ id, new_status }: { id: number; new_status: string }) =>
       PayrollsService.updateStatus(id, new_status),
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.byBranch() });
-      queryClient.invalidateQueries({
-        queryKey: payrollKeys.detail(variables.id),
-      });
+    onSuccess: () => {
+      invalidateEntity("payrolls");
     },
   }, "Payroll status updated successfully");
 };
@@ -133,7 +125,6 @@ export const useRecentPayrolls = (limit: number = 5) => {
 export const usePayrollManagement = () => {
   const { user, currentBranch } = useAuthStore();
   const { activeTab, setActiveTab } = useTabNavigation("payrolls");
-  const queryClient = useQueryClient();
 
   // UI State
   const [searchQuery, setSearchQuery] = useState("");
@@ -181,36 +172,44 @@ export const usePayrollManagement = () => {
   const updatePayrollStatusMutation = useUpdatePayrollStatus();
 
   // Bulk operations mutation
+  const { invalidateEntity } = useGlobalRefetch();
   const bulkCreateMutation = useMutation({
-    mutationFn: (data: any[]) => PayrollsService.bulkCreate(data),
+    mutationFn: (data: PayrollCreate[]) => PayrollsService.bulkCreate(data),
     onSuccess: () => {
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: payrollKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: payrollKeys.byBranch() });
+      invalidateEntity("payrolls");
     },
   });
+
+  // Interface for API response structure (month groups)
+  interface PayrollMonthGroup {
+    payrolls?: PayrollRead[];
+    [key: string]: unknown;
+  }
 
   // Computed values - Flatten nested payroll data structure and enrich with employee names
   const currentPayrolls = useMemo(() => {
     // Flatten the nested structure: data -> monthGroups -> payrolls
     const flattenedPayrolls =
-      payrollsResp?.data?.flatMap(
-        (monthGroup: any) => monthGroup.payrolls || []
-      ) || [];
+      Array.isArray(payrollsResp?.data)
+        ? payrollsResp.data.flatMap(
+            (monthGroup: PayrollMonthGroup) => monthGroup.payrolls || []
+          )
+        : [];
 
     // Enrich payroll data with employee names
-    const enrichedPayrolls = flattenedPayrolls.map((payrollRecord: any) => {
+    const enrichedPayrolls = flattenedPayrolls.map((payrollRecord: PayrollRead) => {
       const employee = employees.find(
         (emp) => emp.employee_id === payrollRecord.employee_id
       );
 
       // Better fallback logic for employee names - prioritize API response data
+      const payrollWithExtras = payrollRecord as PayrollRead & { employee_name?: string; employee_type?: string };
       let employeeName = "Unknown Employee";
       if (
-        payrollRecord.employee_name &&
-        payrollRecord.employee_name !== "Unknown Employee"
+        payrollWithExtras.employee_name &&
+        payrollWithExtras.employee_name !== "Unknown Employee"
       ) {
-        employeeName = payrollRecord.employee_name;
+        employeeName = payrollWithExtras.employee_name;
       } else if (employee?.employee_name) {
         employeeName = employee.employee_name;
       } else {
@@ -221,7 +220,7 @@ export const usePayrollManagement = () => {
         ...payrollRecord,
         employee_name: employeeName,
         employee_type:
-          employee?.employee_type || payrollRecord.employee_type || "Unknown",
+          employee?.employee_type || payrollWithExtras.employee_type || "Unknown",
       };
     });
 

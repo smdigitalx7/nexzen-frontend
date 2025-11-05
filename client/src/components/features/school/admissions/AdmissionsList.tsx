@@ -18,13 +18,13 @@ import {
 import {
   useSchoolAdmissions,
   useSchoolAdmissionById,
-} from "@/lib/hooks/school/use-school-admissions";
+} from "@/lib/hooks/school";
 import { toast } from "@/hooks/use-toast";
 import {
   exportAdmissionsToExcel,
   exportSingleAdmissionToExcel,
   exportAdmissionFormToPDF,
-} from "@/lib/utils/admissionsExport";
+} from "@/lib/utils/export/admissionsExport";
 import type { SchoolAdmissionDetails, SchoolAdmissionListItem } from "@/lib/types/school/admissions";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 

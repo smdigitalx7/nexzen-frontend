@@ -24,7 +24,7 @@ export const useOptimizedState = <T>({
   const previousStateRef = useRef<T | null>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const deepEqual = useCallback((a: any, b: any): boolean => {
+  const deepEqual = useCallback((a: unknown, b: unknown): boolean => {
     if (a === b) return true;
     if (a == null || b == null) return false;
     if (typeof a !== typeof b) return false;
@@ -35,9 +35,9 @@ export const useOptimizedState = <T>({
       
       if (keysA.length !== keysB.length) return false;
       
-      for (let key of keysA) {
+      for (const key of keysA) {
         if (!keysB.includes(key)) return false;
-        if (!deepEqual(a[key], b[key])) return false;
+        if (!deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])) return false;
       }
       
       return true;

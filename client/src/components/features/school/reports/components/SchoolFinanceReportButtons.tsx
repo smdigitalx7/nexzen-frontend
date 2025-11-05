@@ -19,7 +19,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useSchoolFinanceReport } from '@/lib/hooks/school/use-school-income-expenditure';
+import { useSchoolFinanceReport } from '@/lib/hooks/school';
 import { FinanceReportDialog } from './FinanceReportDialog';
 import { SchoolFinanceReportParams } from '@/lib/types/school/income';
 import { useAuthStore } from '@/store/authStore';

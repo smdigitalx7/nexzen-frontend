@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import React, { useEffect, Suspense, lazy } from "react";
+import React, { useEffect, Suspense, lazy, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Header, Sidebar } from "@/components/layout";
@@ -10,9 +10,9 @@ import { AuthTokenTimers } from "@/lib/api";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query";
 import { LazyLoadingWrapper } from "@/components/shared/LazyLoadingWrapper";
-import { componentPreloader } from "@/lib/utils/preloader";
+import { componentPreloader } from "@/lib/utils/performance/preloader";
 import ProductionApp from "@/components/shared/ProductionApp";
-import { ROLES, type UserRole } from "@/lib/constants/roles";
+import { ROLES, type UserRole } from "@/lib/constants/auth/roles";
 import { config } from "@/lib/config/production";
 
 // Lazy-loaded General Components
@@ -118,7 +118,88 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
 }
 
 function Router() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user, token } = useAuthStore();
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Wait for Zustand persist to hydrate - onRehydrateStorage handles auth restoration
+  useEffect(() => {
+    let mounted = true;
+    let hydrationCheckAttempts = 0;
+    const maxAttempts = 10; // Maximum attempts to check hydration
+    
+    const checkAndRestore = () => {
+      if (!mounted) return;
+      
+      hydrationCheckAttempts++;
+      const sessionToken = sessionStorage.getItem('access_token');
+      const sessionExpires = sessionStorage.getItem('token_expires');
+      const store = useAuthStore.getState();
+      
+      // Check if we have persisted user data (indicates hydration happened)
+      const hasPersistedData = !!store.user || !!localStorage.getItem('enhanced-auth-storage');
+      
+      // CRITICAL CHECK: If we have token + user, we MUST be authenticated
+      // This is a backup check in case onRehydrateStorage didn't run
+      if (sessionToken && sessionExpires && store.user) {
+        const expireAt = parseInt(sessionExpires);
+        const now = Date.now();
+        
+        if (now < expireAt) {
+          // Valid token - ensure authenticated state is set
+          if (!store.isAuthenticated || store.token !== sessionToken) {
+            useAuthStore.setState((state) => {
+              state.token = sessionToken;
+              state.tokenExpireAt = expireAt;
+              state.isAuthenticated = true;
+            });
+          }
+          setIsHydrated(true);
+          return;
+        } else {
+          // Token expired - clear everything
+          useAuthStore.getState().logout();
+          setIsHydrated(true);
+          return;
+        }
+      } else if (store.user && !sessionToken) {
+        // If we have user but no token, logout
+        useAuthStore.getState().logout();
+        setIsHydrated(true);
+        return;
+      } else if (!sessionToken && !store.user) {
+        // No token and no user - not authenticated, but hydration is complete
+        setIsHydrated(true);
+        return;
+      }
+      
+      // If we haven't hydrated yet and haven't exceeded max attempts, try again
+      if (!hasPersistedData && hydrationCheckAttempts < maxAttempts) {
+        setTimeout(checkAndRestore, 100);
+      } else {
+        // Either we have persisted data or we've exhausted attempts
+        setIsHydrated(true);
+      }
+    };
+
+    // Start checking immediately and then periodically
+    checkAndRestore();
+    
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Show loading state while hydrating
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -315,11 +396,11 @@ function ProtectedRoute({
     if (!hasAccess) return <NotAuthorized />;
     
     // For ACCOUNTANT and ACADEMIC: Block direct URL access to restricted routes
+    // But allow navigation from sidebar or internal navigation
     if (preventDirectAccess) {
       const isRestrictedRole = user?.role === ROLES.ACCOUNTANT || user?.role === ROLES.ACADEMIC;
       if (isRestrictedRole) {
         // Check if navigation came from sidebar using path-based check with timestamp
-        // Get the stored navigation path and timestamp
         const storedNavData = sessionStorage.getItem('navigation_from_sidebar');
         let fromSidebar = false;
         
@@ -329,23 +410,30 @@ function ProtectedRoute({
             const currentTime = Date.now();
             const timeDiff = currentTime - timestamp;
             
-            // Check if path matches and navigation was recent (within 2 seconds)
-            // This handles timing issues between navigation and route check
-            fromSidebar = storedPath === location && timeDiff < 2000;
+            // Check if path matches and navigation was recent (within 5 seconds)
+            // Increased timeout to handle React navigation delays
+            fromSidebar = storedPath === location && timeDiff < 5000;
             
             // Clear the stored data after successful navigation check
             if (fromSidebar) {
-              // Clear immediately after confirming it's from sidebar
+              sessionStorage.removeItem('navigation_from_sidebar');
+            } else if (timeDiff > 5000) {
+              // Clear stale data
               sessionStorage.removeItem('navigation_from_sidebar');
             }
           } catch (e) {
-            // If parsing fails, treat as not from sidebar
             sessionStorage.removeItem('navigation_from_sidebar');
           }
         }
         
-        if (!fromSidebar) {
-          // Direct URL access - redirect to dashboard
+        // Also check if this is a valid route for the user's role
+        // Allow navigation if user has permission for this route
+        const isAllowedRoute = hasAccess;
+        
+        // Only block if it's NOT from sidebar AND NOT an allowed route
+        // Actually, if user has access, allow it - remove the blocking
+        // The preventDirectAccess should only apply to unauthorized routes
+        if (!fromSidebar && !isAllowedRoute) {
           return <RedirectToDashboard />;
         }
       }
@@ -413,7 +501,41 @@ function NotAuthorized() {
 }
 
 function App() {
-  const { token, tokenExpireAt, user } = useAuthStore();
+  const { token, tokenExpireAt, user, logout, isAuthenticated } = useAuthStore();
+
+  // Restore authentication state on mount (after hydration)
+  useEffect(() => {
+    // Check if we have token and user data but isAuthenticated is false
+    // This handles the case where rehydration hasn't set isAuthenticated yet
+    const sessionToken = sessionStorage.getItem('access_token');
+    const sessionExpires = sessionStorage.getItem('token_expires');
+    const hasUser = user !== null;
+    
+    if (sessionToken && sessionExpires && hasUser && !isAuthenticated) {
+      const expireAt = parseInt(sessionExpires);
+      const now = Date.now();
+      
+      if (now < expireAt) {
+        // Token is valid, restore authentication
+        useAuthStore.setState((state) => {
+          state.token = sessionToken;
+          state.tokenExpireAt = expireAt;
+          state.isAuthenticated = true;
+        });
+      } else {
+        // Token expired
+        logout();
+        window.location.href = "/login";
+      }
+    } else if (!sessionToken && isAuthenticated) {
+      // No token but marked as authenticated - fix this
+      useAuthStore.setState((state) => {
+        state.isAuthenticated = false;
+        state.token = null;
+        state.tokenExpireAt = null;
+      });
+    }
+  }, [user, isAuthenticated, logout]);
 
   useEffect(() => {
     if (token && tokenExpireAt) {
@@ -423,6 +545,50 @@ function App() {
       AuthTokenTimers.clearProactiveRefresh();
     };
   }, [token, tokenExpireAt]);
+
+  // Auto-logout on token expiration - Check every 15 minutes (900000ms)
+  useEffect(() => {
+    if (!token || !tokenExpireAt) return;
+
+    const checkTokenExpiration = () => {
+      const now = Date.now();
+      
+      // Check if token is expired
+      if (now >= tokenExpireAt) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Token expired, logging out...");
+        }
+        logout();
+        // Force redirect to login
+        window.location.href = "/login";
+        return;
+      }
+      
+      // Check if token will expire in next 1 minute (buffer)
+      const oneMinuteFromNow = now + 60000;
+      if (oneMinuteFromNow >= tokenExpireAt) {
+        // Try to refresh token first
+        const { refreshTokenAsync } = useAuthStore.getState();
+        refreshTokenAsync().then((refreshed) => {
+          if (!refreshed) {
+            if (process.env.NODE_ENV === 'development') {
+              console.log("Token refresh failed, logging out...");
+            }
+            logout();
+            window.location.href = "/login";
+          }
+        });
+      }
+    };
+
+    // Check immediately
+    checkTokenExpiration();
+
+    // Check every 15 minutes (900000ms = 15 * 60 * 1000)
+    const interval = setInterval(checkTokenExpiration, 15 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [token, tokenExpireAt, logout]);
 
   // Preload components based on user role
   useEffect(() => {

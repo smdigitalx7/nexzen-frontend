@@ -18,14 +18,15 @@ import {
   useCollegeExamMark,
   useCreateCollegeExamMark, 
   useUpdateCollegeExamMark, 
-  useDeleteCollegeExamMark
-} from '@/lib/hooks/college/use-college-exam-marks';
-import { useCollegeClasses } from '@/lib/hooks/college/use-college-classes';
-import { useCollegeStudentsList } from '@/lib/hooks/college/use-college-students';
-import { useCollegeSubjects } from '@/lib/hooks/college/use-college-subjects';
+  useDeleteCollegeExamMark,
+  useCollegeClasses,
+  useCollegeStudentsList,
+  useCollegeSubjects,
+  useCollegeGroups,
+  useCollegeCourses,
+} from '@/lib/hooks/college';
+// Note: useCollegeExams from dropdowns (naming conflict)
 import { useCollegeExams } from '@/lib/hooks/college/use-college-dropdowns';
-import { useCollegeGroups } from '@/lib/hooks/college/use-college-groups';
-import { useCollegeCourses } from '@/lib/hooks/college/use-college-courses';
 import type { CollegeExamMarkMinimalRead, CollegeExamMarkFullReadResponse } from '@/lib/types/college/exam-marks';
 import {
   createStudentColumn,
@@ -33,7 +34,7 @@ import {
   createMarksColumn,
   createGradeColumn,
   createTestDateColumn,
-} from "@/lib/utils/columnFactories.tsx";
+} from "@/lib/utils/factory/columnFactories";
 
 // Utility functions for grade calculation
 const calculateGrade = (percentage: number): string => {

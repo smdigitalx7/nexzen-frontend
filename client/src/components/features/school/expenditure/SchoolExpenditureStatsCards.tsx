@@ -11,7 +11,8 @@ import {
   Receipt,
 } from "lucide-react";
 import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
-import { StatsCard, DashboardGrid } from "@/components/shared";
+import { StatsCard } from "@/components/shared/dashboard/StatsCard";
+import { DashboardGrid } from "@/components/shared/dashboard/DashboardGrid";
 import { SchoolExpenditureDashboardStats } from "@/lib/types/school/expenditure";
 import { formatCurrency } from "@/lib/utils";
 

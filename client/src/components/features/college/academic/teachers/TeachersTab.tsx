@@ -6,14 +6,11 @@ import { FormDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { TabSwitcher } from "@/components/shared";
 import { User, BookOpen, ClipboardList } from "lucide-react";
-import { useTeachersByBranch } from "@/lib/hooks/general/useEmployees";
+import { useTeachersByBranch } from "@/lib/hooks/general";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { TeacherCourseSubjectAssignmentsTab } from "./TeacherCourseSubjectAssignmentsTab";
-import { useTeacherCourseSubjectsList, useCreateTeacherCourseSubject, useDeleteTeacherCourseSubjectRelation } from "@/lib/hooks/college/use-teacher-course-subjects";
-import { useCollegeGroups } from "@/lib/hooks/college/use-college-groups";
-import { useCollegeCourses } from "@/lib/hooks/college/use-college-courses";
-import { useCollegeSubjects } from "@/lib/hooks/college/use-college-subjects";
+import { useTeacherCourseSubjectsList, useCreateTeacherCourseSubject, useDeleteTeacherCourseSubjectRelation, useCollegeGroups, useCollegeCourses, useCollegeSubjects } from "@/lib/hooks/college";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 

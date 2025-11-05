@@ -1,4 +1,4 @@
-import ReservationManagement from "@/components/features/college/reservations/ReservationManagement";
+import { ReservationManagement } from "@/components/features/college";
 
 const CollegeReservationPage = () => {
   return <ReservationManagement />;

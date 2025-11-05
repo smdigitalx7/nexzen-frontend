@@ -13,23 +13,23 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useTeacherClassSubjectsHierarchical() {
   return useQuery({
     queryKey: schoolKeys.teacherClassSubjects.hierarchical(),
-    queryFn: () => SchoolTeacherClassSubjectsService.getHierarchical() as Promise<SchoolTeacherDetail[]>,
+    queryFn: () => SchoolTeacherClassSubjectsService.getHierarchical(),
   });
 }
 
 export function useClassTeachers() {
   return useQuery({
     queryKey: schoolKeys.teacherClassSubjects.classTeachers(),
-    queryFn: () => SchoolTeacherClassSubjectsService.getClassTeachers() as Promise<SchoolTeacherClassSubjectRead[]>,
+    queryFn: () => SchoolTeacherClassSubjectsService.getClassTeachers(),
   });
 }
 
 export function useCreateTeacherClassSubject() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: SchoolTeacherClassSubjectCreate) => SchoolTeacherClassSubjectsService.create(payload) as Promise<SchoolTeacherClassSubjectRead>,
+    mutationFn: (payload: SchoolTeacherClassSubjectCreate) => SchoolTeacherClassSubjectsService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
     },
   }, "Teacher assignment created successfully");
 }
@@ -41,7 +41,7 @@ export function useDeleteTeacherClassSubject() {
       return SchoolTeacherClassSubjectsService.delete(teacherId, classId, subjectId, sectionId);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
     },
   }, "Teacher assignment removed successfully");
 }
@@ -49,9 +49,9 @@ export function useDeleteTeacherClassSubject() {
 export function useCreateClassTeacher() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: ClassTeacherCreate) => SchoolTeacherClassSubjectsService.createClassTeacher(payload) as Promise<SchoolTeacherClassSubjectRead>,
+    mutationFn: (payload: ClassTeacherCreate) => SchoolTeacherClassSubjectsService.createClassTeacher(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
     },
   }, "Class teacher assigned successfully");
 }
@@ -61,7 +61,7 @@ export function useDeleteClassTeacher() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: ClassTeacherDelete) => SchoolTeacherClassSubjectsService.deleteClassTeacher(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
     },
   }, "Class teacher removed successfully");
 }

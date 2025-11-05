@@ -10,25 +10,27 @@ import { EnhancedDataTable } from "@/components/shared";
 import {
   createTextColumn,
   createBadgeColumn
-} from "@/lib/utils/columnFactories";
+} from "@/lib/utils/factory/columnFactories";
 import RouteFormDialog from "./RouteFormDialog";
 import RouteDetailsDialog from "./RouteDetailsDialog";
 import AssignDriverDialog from "./AssignDriverDialog";
 import { useAssignDriverToRoute, useRemoveDriverFromRoute } from "@/lib/hooks/general/useTransport";
+import type { BusRouteRead, BusRouteCreate, BusRouteUpdate } from "@/lib/types/general/transport";
+import type { UseMutationResult } from "@tanstack/react-query";
 
 interface BusRoutesTabProps {
-  routesData: any[];
-  busRoutes: any[];
+  routesData: BusRouteRead[];
+  busRoutes: BusRouteRead[];
   isLoading: boolean;
   error: unknown;
   searchTerm: string;
   onSearchChange: (term: string) => void;
-  onCreateRoute: (data: any) => void;
-  onUpdateRoute: (data: any) => void;
+  onCreateRoute: (data: BusRouteCreate) => void;
+  onUpdateRoute: (data: { id: number; payload: BusRouteUpdate }) => void;
   onDeleteRoute: (id: number) => void;
-  createRouteMutation: any;
-  updateRouteMutation: any;
-  deleteRouteMutation: any;
+  createRouteMutation: UseMutationResult<BusRouteRead, unknown, BusRouteCreate, unknown>;
+  updateRouteMutation: UseMutationResult<BusRouteRead, unknown, { id: number; payload: BusRouteUpdate }, unknown>;
+  deleteRouteMutation: UseMutationResult<void, unknown, number, unknown>;
 }
 
 const BusRoutesTab = ({
@@ -58,22 +60,22 @@ const BusRoutesTab = ({
   const assignDriverMutation = useAssignDriverToRoute();
   const removeDriverMutation = useRemoveDriverFromRoute();
 
-  const handleViewRoute = (route: any) => {
-    setViewRouteId(route.id);
+  const handleViewRoute = (route: BusRouteRead) => {
+    setViewRouteId(route.bus_route_id);
     setIsViewRouteOpen(true);
   };
 
-  const handleEditRoute = (route: any) => {
+  const handleEditRoute = (route: BusRouteRead) => {
     setIsEditingRoute(true);
-    setRouteEditingId(route.id);
+    setRouteEditingId(route.bus_route_id);
     setIsAddRouteOpen(true);
   };
 
-  const handleDeleteRoute = (route: any) => {
-    setConfirmRouteDeleteId(route.id);
+  const handleDeleteRoute = (route: BusRouteRead) => {
+    setConfirmRouteDeleteId(route.bus_route_id);
   };
 
-  const columns: ColumnDef<any>[] = useMemo(() => [
+  const columns: ColumnDef<BusRouteRead>[] = useMemo(() => [
     {
       id: 'route_name',
       accessorKey: 'route_name',
@@ -84,17 +86,17 @@ const BusRoutesTab = ({
             <Bus className="h-4 w-4 text-blue-600" />
           </div>
           <div>
-            <div className="font-medium">{row.original.route_name}</div>
-            <div className="text-sm text-muted-foreground">{row.original.route_number || row.original.route_no || '-'}</div>
+            <div className="font-medium">{row.original.route_name || '-'}</div>
+            <div className="text-sm text-muted-foreground">{row.original.route_no || '-'}</div>
           </div>
         </div>
       ),
     },
     {
-      id: 'route_number',
-      accessorKey: 'route_number',
+      id: 'route_no',
+      accessorKey: 'route_no',
       header: 'Route Number',
-      cell: ({ row }) => row.original.route_number || row.original.route_no || '-',
+      cell: ({ row }) => row.original.route_no || '-',
     },
     {
       id: 'via',
@@ -131,7 +133,7 @@ const BusRoutesTab = ({
         <div className="space-y-1">
           <div className="flex items-center gap-1 text-sm">
             <MapPin className="h-3 w-3 text-muted-foreground" />
-            <span>{row.original.distance_km ?? row.original.total_distance ?? 0} km</span>
+            <span>{row.original.total_distance ?? 0} km</span>
           </div>
           <div className="flex items-center gap-1 text-sm">
             <Clock className="h-3 w-3 text-muted-foreground" />
@@ -153,17 +155,17 @@ const BusRoutesTab = ({
       cell: ({ row }) => (
         <div className="flex items-center gap-1">
           <Users className="h-4 w-4 text-muted-foreground" />
-          <span>{row.original.students_count}</span>
+          <span>{(row.original as any).students_count ?? '-'}</span>
         </div>
       ),
     },
     {
-      id: 'active',
-      accessorKey: 'active',
+      id: 'is_active',
+      accessorKey: 'is_active',
       header: 'Status',
       cell: ({ row }) => (
-        <Badge variant={row.original.active ? "default" : "secondary"}>
-          {row.original.active ? 'Active' : 'Inactive'}
+        <Badge variant={row.original.is_active ? "default" : "secondary"}>
+          {row.original.is_active ? 'Active' : 'Inactive'}
         </Badge>
       ),
     },
@@ -173,41 +175,57 @@ const BusRoutesTab = ({
   const actionButtonGroups = useMemo(() => [
     {
       type: 'view' as const,
-      onClick: (row: any) => handleViewRoute(row)
+      onClick: (row: BusRouteRead) => handleViewRoute(row)
     },
     {
       type: 'edit' as const,
-      onClick: (row: any) => handleEditRoute(row)
+      onClick: (row: BusRouteRead) => handleEditRoute(row)
     },
     {
       type: 'delete' as const,
-      onClick: (row: any) => handleDeleteRoute(row)
+      onClick: (row: BusRouteRead) => handleDeleteRoute(row)
     }
   ], []);
 
   const viewRouteData = viewRouteId ? routesData.find(route => route.bus_route_id === viewRouteId) : null;
 
-  const handleAddRoute = (data: any) => {
-    createRouteMutation.mutate(data);
+  const handleAddRoute = (data: { vehicle_number: string; vehicle_capacity: string; registration_number: string; route_no: string; route_name: string; via: string; start_location: string; total_distance: string; estimated_duration: string; is_active: boolean }) => {
+    const payload: BusRouteCreate = {
+      vehicle_number: data.vehicle_number,
+      vehicle_capacity: Number(data.vehicle_capacity),
+      registration_number: data.registration_number || undefined,
+      route_no: data.route_no,
+      route_name: data.route_name,
+      via: data.via || undefined,
+      start_location: data.start_location || undefined,
+      total_distance: data.total_distance ? Number(data.total_distance) : undefined,
+      estimated_duration: data.estimated_duration ? Number(data.estimated_duration) : undefined,
+      is_active: data.is_active
+    };
+    createRouteMutation.mutate(payload);
     setIsAddRouteOpen(false);
   };
 
-  const handleUpdateRoute = (data: any) => {
-    if (!data.id) {
+  const handleUpdateRoute = (data: { vehicle_number: string; vehicle_capacity: string; registration_number: string; route_no: string; route_name: string; via: string; start_location: string; total_distance: string; estimated_duration: string; is_active: boolean }) => {
+    if (!routeEditingId) {
       console.error("Route ID is missing for update");
       return;
     }
-    const { id, ...rest } = data;
+    const { vehicle_number, vehicle_capacity, registration_number, route_no, route_name, via, start_location, total_distance, estimated_duration, is_active } = data;
     
     // Filter out undefined, null, NaN, and empty string values
     // Note: false and 0 are valid values and will be included
-    const payload: any = {};
-    Object.keys(rest).forEach((key) => {
-      const value = rest[key];
-      if (value !== undefined && value !== null && value !== '' && !Number.isNaN(value)) {
-        payload[key] = value;
-      }
-    });
+    const payload: BusRouteUpdate = {};
+    if (vehicle_number !== undefined && vehicle_number !== '') payload.vehicle_number = vehicle_number;
+    if (vehicle_capacity !== undefined && vehicle_capacity !== '') payload.vehicle_capacity = Number(vehicle_capacity);
+    if (registration_number !== undefined && registration_number !== '') payload.registration_number = registration_number;
+    if (route_no !== undefined && route_no !== '') payload.route_no = route_no;
+    if (route_name !== undefined && route_name !== '') payload.route_name = route_name;
+    if (data.via !== undefined && data.via !== '') payload.via = data.via;
+    if (start_location !== undefined && start_location !== '') payload.start_location = start_location;
+    if (total_distance !== undefined && total_distance !== '') payload.total_distance = Number(total_distance);
+    if (estimated_duration !== undefined && estimated_duration !== '') payload.estimated_duration = Number(estimated_duration);
+    if (is_active !== undefined) payload.is_active = is_active;
     
     // Ensure payload is not empty
     if (Object.keys(payload).length === 0) {
@@ -215,7 +233,7 @@ const BusRoutesTab = ({
       return;
     }
     
-    updateRouteMutation.mutate({ id, payload });
+    updateRouteMutation.mutate({ id: routeEditingId, payload });
     setIsAddRouteOpen(false);
     setIsEditingRoute(false);
     setRouteEditingId(null);
@@ -269,8 +287,21 @@ const BusRoutesTab = ({
           isEditing={isEditingRoute}
           editingRoute={isEditingRoute && routeEditingId ? 
             (() => {
-              const route = routesData.find(r => r.bus_route_id === routeEditingId) || busRoutes.find(r => r.id === routeEditingId);
-              return route ? { ...route, id: route.id || route.bus_route_id } : undefined;
+              const route = routesData.find(r => r.bus_route_id === routeEditingId) || busRoutes.find(r => r.bus_route_id === routeEditingId);
+              return route ? { 
+                id: route.bus_route_id,
+                route_number: route.route_no ?? undefined,
+                route_no: route.route_no ?? undefined,
+                route_name: route.route_name ?? undefined,
+                via: route.via ?? undefined,
+                vehicle_number: route.vehicle_number ?? undefined,
+                vehicle_capacity: route.vehicle_capacity,
+                registration_number: route.registration_number ?? undefined,
+                start_location: route.start_location ?? undefined,
+                total_distance: route.total_distance ?? undefined,
+                estimated_duration: route.estimated_duration ?? undefined,
+                is_active: route.is_active ?? undefined
+              } : undefined;
             })() : undefined
           }
         />
@@ -300,7 +331,7 @@ const BusRoutesTab = ({
           setIsViewRouteOpen(false);
           setViewRouteId(null);
         }}
-        routeData={viewRouteData}
+        routeData={viewRouteData ?? null}
         isLoading={isLoading}
         error={error}
         onAssignDriver={handleAssignDriver}

@@ -15,12 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
 import { useAuthStore } from "@/store/authStore";
-import { useCollegeClasses } from "@/lib/hooks/college/use-college-classes";
-import { useCollegeSubjects } from "@/lib/hooks/college/use-college-subjects";
-import { useCollegeExams } from "@/lib/hooks/college/use-college-exams";
-import { useCollegeTests } from "@/lib/hooks/college/use-college-tests";
-import { useCollegeGroups } from "@/lib/hooks/college/use-college-groups";
-import { useCollegeCourses } from "@/lib/hooks/college/use-college-courses";
+import { useCollegeClasses, useCollegeSubjects, useCollegeExams, useCollegeTests, useCollegeGroups, useCollegeCourses } from "@/lib/hooks/college";
 import AcademicYearManagement from "@/components/features/college/academic/academic-years/AcademicYearManagement";
 import { ClassesTab } from "@/components/features/college/academic/classes/ClassesTab";
 import { SubjectsTab } from "@/components/features/college/academic/subjects/SubjectsTab";
@@ -75,33 +70,31 @@ const AcademicManagement = () => {
     enabled: examsEnabled,
   });
 
+  // Note: useCollegeTests, useCollegeGroups, useCollegeCourses from specific hooks (not dropdowns)
   const {
-    data: tests = [],
+    data: testsData,
     isLoading: testsLoading,
     isError: testsError,
     error: testsErrObj,
     refetch: refetchTests,
-  } = useCollegeTests({
-    enabled: testsEnabled,
-  });
+  } = useCollegeTests();
+  const tests = (testsData || []) as import("@/lib/types/college").CollegeTestRead[];
 
   const {
-    data: groups = [],
+    data: groupsData,
     isLoading: groupsLoading,
     isError: groupsError,
     error: groupsErrObj,
-  } = useCollegeGroups({
-    enabled: groupsEnabled,
-  });
+  } = useCollegeGroups();
+  const groups = (groupsData || []) as import("@/lib/types/college").CollegeGroupResponse[];
 
   const {
-    data: courses = [],
+    data: coursesData,
     isLoading: coursesLoading,
     isError: coursesError,
     error: coursesErrObj,
-  } = useCollegeCourses({
-    enabled: coursesEnabled,
-  });
+  } = useCollegeCourses();
+  const courses = (coursesData || []) as import("@/lib/types/college").CollegeCourseResponse[];
 
   // Get effective classes
   const effectiveClasses = backendClasses;

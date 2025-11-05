@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
+import { sanitizeHTML } from "@/lib/utils/security/sanitization";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -176,9 +177,9 @@ export const CollectFeeForm = ({
         method: 'POST',
         path: `/school/income/pay-fee/${selectedStudent.student.admission_no}`,
         body: apiPayload,
-      }) as { success: boolean; message?: string };
+      });
       
-      if (result.success) {
+      if ((result as { success: boolean; message?: string }).success) {
         // Generate bill
         const bill = {
           billNumber: `BILL-${Date.now()}`,
@@ -203,7 +204,7 @@ export const CollectFeeForm = ({
         
         onPaymentComplete();
       } else {
-        throw new Error(result.message || 'Payment processing failed');
+        throw new Error((result as { success: boolean; message?: string }).message || 'Payment processing failed');
       }
       
     } catch (error) {
@@ -290,7 +291,7 @@ export const CollectFeeForm = ({
               </style>
             </head>
             <body>
-              ${billRef.current.innerHTML}
+              ${sanitizeHTML(billRef.current.innerHTML)}
             </body>
           </html>
         `);

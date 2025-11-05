@@ -13,7 +13,8 @@ import {
   Wallet
 } from 'lucide-react';
 import { IndianRupeeIcon } from '@/components/shared/IndianRupeeIcon';
-import { StatsCard, DashboardGrid } from '@/components/shared';
+import { StatsCard, type StatsCardConfig } from '@/components/shared/dashboard/StatsCard';
+import { DashboardGrid } from '@/components/shared/dashboard/DashboardGrid';
 import { CollegeTuitionFeeBalanceDashboardStats } from '@/lib/types/college/tuition-fee-balances';
 import { formatCurrency } from '@/lib/utils';
 
@@ -193,7 +194,7 @@ export const CollegeTuitionFeeBalanceStatsCards: React.FC<CollegeTuitionFeeBalan
       {statsCards.map((stat, index) => (
         <StatsCard
           key={stat.title}
-          {...stat}
+          {...(stat as StatsCardConfig)}
           loading={loading}
         />
       ))}

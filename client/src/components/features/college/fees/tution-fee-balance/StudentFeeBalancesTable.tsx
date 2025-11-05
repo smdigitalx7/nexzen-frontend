@@ -7,14 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { useUpdateCollegeTuitionBalance, useDeleteCollegeTuitionBalance } from "@/lib/hooks/college/use-college-tuition-balances";
+import { useUpdateCollegeTuitionBalance, useDeleteCollegeTuitionBalance } from "@/lib/hooks/college";
 import { ColumnDef } from "@tanstack/react-table";
 import { EnhancedDataTable } from "@/components/shared";
 import {
   createTextColumn,
   createCurrencyColumn,
   createDateColumn,
-} from "@/lib/utils/columnFactories";
+} from "@/lib/utils/factory/columnFactories";
 import {
   Dialog,
   DialogContent,

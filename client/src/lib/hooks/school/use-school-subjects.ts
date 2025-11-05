@@ -12,7 +12,7 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useSchoolSubjects(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: schoolKeys.subjects.list(),
-    queryFn: () => SchoolSubjectsService.list() as Promise<SchoolSubjectRead[]>,
+    queryFn: () => SchoolSubjectsService.list(),
     enabled: options?.enabled !== false,
   });
 }
@@ -21,9 +21,9 @@ export function useCreateSchoolSubject() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolSubjectCreate) =>
-      SchoolSubjectsService.create(payload) as Promise<SchoolSubjectRead>,
+      SchoolSubjectsService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.subjects.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.subjects.root() });
     },
   }, "Subject created successfully");
 }
@@ -35,10 +35,10 @@ export function useUpdateSchoolSubject(subjectId: number) {
       SchoolSubjectsService.update(
         subjectId,
         payload
-      ) as Promise<SchoolSubjectRead>,
+      ),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.subjects.detail(subjectId) });
-      qc.invalidateQueries({ queryKey: schoolKeys.subjects.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.subjects.detail(subjectId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.subjects.root() });
     },
   }, "Subject updated successfully");
 }
@@ -48,7 +48,7 @@ export function useDeleteSchoolSubject() {
   return useMutationWithSuccessToast({
     mutationFn: (subjectId: number) => SchoolSubjectsService.delete(subjectId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.subjects.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.subjects.root() });
     },
   }, "Subject deleted successfully");
 }
@@ -60,9 +60,7 @@ export function useSchoolSubjectClasses(subjectId: number | null | undefined) {
         ? [...schoolKeys.subjects.detail(subjectId), "classes"]
         : [...schoolKeys.subjects.root(), "classes", "nil"],
     queryFn: () =>
-      SchoolSubjectsService.getClasses(subjectId as number) as Promise<
-        SchoolClassRead[]
-      >,
+      SchoolSubjectsService.getClasses(subjectId as number),
     enabled: typeof subjectId === "number" && subjectId > 0,
   });
 }
@@ -78,7 +76,7 @@ export function useRemoveClassFromSubject() {
       classId: number;
     }) => SchoolSubjectsService.removeClassFromSubject(subjectId, classId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.subjects.root() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.subjects.root() });
     },
   }, "Class removed from subject successfully");
 }

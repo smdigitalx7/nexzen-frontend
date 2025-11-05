@@ -36,7 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
+import { SchoolReservationsService } from "@/lib/services/school";
 import {
   ReceiptPreviewModal,
   ConcessionUpdateDialog,
@@ -451,12 +451,16 @@ const ReservationsTableComponent = ({
     );
 
     try {
-      console.log(
-        "🔄 Starting receipt regeneration for income ID:",
-        reservation.income_id
-      );
+      if (import.meta.env.DEV) {
+        console.log(
+          "🔄 Starting receipt regeneration for income ID:",
+          reservation.income_id
+        );
+      }
       const blobUrl = await regenerateReceiptAPI(reservation.income_id, 'school');
-      console.log("✅ Receipt blob URL received:", blobUrl);
+      if (import.meta.env.DEV) {
+        console.log("✅ Receipt blob URL received:", blobUrl);
+      }
 
       setReceiptBlobUrl(blobUrl);
       setShowReceiptModal(true);

@@ -51,8 +51,9 @@ import {
   createMarksColumn,
   createGradeColumn,
   createTestDateColumn,
-} from "@/lib/utils/columnFactories.tsx";
+} from "@/lib/utils/factory/columnFactories";
 import AddExamMarkForm from "./AddExamMarkForm";
+
 
 interface ExamMarksManagementProps {
   onDataChange?: (data: ExamMarkWithDetails[]) => void;

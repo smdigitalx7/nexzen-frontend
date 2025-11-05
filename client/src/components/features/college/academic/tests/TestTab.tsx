@@ -11,8 +11,8 @@ import {
   createIconTextColumn, 
   createDateColumn,
   createBadgeColumn
-} from "@/lib/utils/columnFactories";
-import { useCreateCollegeTest, useDeleteCollegeTest, useUpdateCollegeTest } from "@/lib/hooks/college/use-college-tests";
+} from "@/lib/utils/factory/columnFactories";
+import { useCreateCollegeTest, useDeleteCollegeTest, useUpdateCollegeTest } from "@/lib/hooks/college";
 import type { CollegeTestCreate, CollegeTestRead, CollegeTestUpdate } from "@/lib/types/college";
 
 export interface TestTabProps {

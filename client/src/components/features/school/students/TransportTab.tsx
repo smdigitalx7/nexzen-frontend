@@ -14,12 +14,12 @@ import {
   useUpdateSchoolStudentTransport,
   useDeleteSchoolStudentTransport,
   useSchoolStudentTransportById 
-} from '@/lib/hooks/school/use-school-student-transport';
-import { useSchoolClasses } from '@/lib/hooks/school/use-school-dropdowns';
-import { useSchoolSections } from '@/lib/hooks/school/use-school-dropdowns';
-import { useBusRoutes } from '@/lib/hooks/general/useTransport';
-import { useDistanceSlabs } from '@/lib/hooks/general/useDistanceSlabs';
-import { useSchoolEnrollmentsList } from '@/lib/hooks/school/use-school-enrollments';
+} from '@/lib/hooks/school';
+// Note: useSchoolClasses, useSchoolSections from dropdowns (naming conflict)
+import { useSchoolClasses, useSchoolSections } from '@/lib/hooks/school/use-school-dropdowns';
+import { useBusRoutes } from '@/lib/hooks/general';
+import { useDistanceSlabs } from '@/lib/hooks/general';
+import { useSchoolEnrollmentsList } from '@/lib/hooks/school';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SchoolStudentTransportAssignmentCreate, SchoolStudentTransportAssignmentUpdate } from '@/lib/types/school';
 

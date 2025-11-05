@@ -15,7 +15,7 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useSchoolExams(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: schoolKeys.exams.list(),
-    queryFn: () => SchoolExamsService.list() as Promise<SchoolExamRead[]>,
+    queryFn: () => SchoolExamsService.list(),
     enabled: options?.enabled !== false,
   });
 }
@@ -27,7 +27,7 @@ export function useSchoolExam(examId: number | null | undefined) {
         ? schoolKeys.exams.detail(examId)
         : [...schoolKeys.exams.root(), "detail", "nil"],
     queryFn: () =>
-      SchoolExamsService.getById(examId as number) as Promise<SchoolExamRead>,
+      SchoolExamsService.getById(examId as number),
     enabled: typeof examId === "number" && examId > 0,
   });
 }
@@ -35,7 +35,7 @@ export function useSchoolExam(examId: number | null | undefined) {
 export function useSchoolTests(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: schoolKeys.tests.list(),
-    queryFn: () => SchoolTestsService.list() as Promise<SchoolTestRead[]>,
+    queryFn: () => SchoolTestsService.list(),
     enabled: options?.enabled !== false,
   });
 }
@@ -47,7 +47,7 @@ export function useSchoolTest(testId: number | null | undefined) {
         ? schoolKeys.tests.detail(testId)
         : [...schoolKeys.tests.root(), "detail", "nil"],
     queryFn: () =>
-      SchoolTestsService.getById(testId as number) as Promise<SchoolTestRead>,
+      SchoolTestsService.getById(testId as number),
     enabled: typeof testId === "number" && testId > 0,
   });
 }
@@ -57,9 +57,9 @@ export function useCreateSchoolExam() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolExamCreate) =>
-      SchoolExamsService.create(payload) as Promise<SchoolExamRead>,
+      SchoolExamsService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
     },
   }, "Exam created successfully");
 }
@@ -68,10 +68,10 @@ export function useUpdateSchoolExam(examId: number) {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolExamUpdate) =>
-      SchoolExamsService.update(examId, payload) as Promise<SchoolExamRead>,
+      SchoolExamsService.update(examId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.exams.detail(examId) });
-      qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.exams.detail(examId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
     },
   }, "Exam updated successfully");
 }
@@ -80,9 +80,9 @@ export function useDeleteSchoolExam() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (examId: number) =>
-      SchoolExamsService.delete(examId) as Promise<void>,
+      SchoolExamsService.delete(examId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
     },
   }, "Exam deleted successfully");
 }
@@ -92,9 +92,9 @@ export function useCreateSchoolTest() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolTestCreate) =>
-      SchoolTestsService.create(payload) as Promise<SchoolTestRead>,
+      SchoolTestsService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
     },
   }, "Test created successfully");
 }
@@ -103,10 +103,10 @@ export function useUpdateSchoolTest(testId: number) {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolTestUpdate) =>
-      SchoolTestsService.update(testId, payload) as Promise<SchoolTestRead>,
+      SchoolTestsService.update(testId, payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.tests.detail(testId) });
-      qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.tests.detail(testId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
     },
   }, "Test updated successfully");
 }
@@ -115,9 +115,9 @@ export function useDeleteSchoolTest() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (testId: number) =>
-      SchoolTestsService.delete(testId) as Promise<void>,
+      SchoolTestsService.delete(testId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
+      void qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
     },
   }, "Test deleted successfully");
 }
