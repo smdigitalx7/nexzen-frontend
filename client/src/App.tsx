@@ -1,14 +1,12 @@
 import { Switch, Route, useLocation } from "wouter";
 import React, { useEffect, Suspense, lazy, useState } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
+
 import { Header, Sidebar } from "@/components/layout";
 import { useAuthStore } from "@/store/authStore";
 import { useNavigationStore } from "@/store/navigationStore";
 import { cn } from "@/lib/utils";
 import { AuthTokenTimers } from "@/lib/api";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "@/lib/query";
+
 import { LazyLoadingWrapper } from "@/components/shared/LazyLoadingWrapper";
 import { componentPreloader } from "@/lib/utils/performance/preloader";
 import ProductionApp from "@/components/shared/ProductionApp";
@@ -125,7 +123,7 @@ function Router() {
   useEffect(() => {
     let mounted = true;
     let hydrationCheckAttempts = 0;
-    const maxAttempts = 10; // Maximum attempts to check hydration
+    const maxAttempts = 50; // Increased attempts to wait longer for hydration
     
     const checkAndRestore = () => {
       if (!mounted) return;
@@ -135,11 +133,8 @@ function Router() {
       const sessionExpires = sessionStorage.getItem('token_expires');
       const store = useAuthStore.getState();
       
-      // Check if we have persisted user data (indicates hydration happened)
-      const hasPersistedData = !!store.user || !!localStorage.getItem('enhanced-auth-storage');
-      
-      // CRITICAL CHECK: If we have token + user, we MUST be authenticated
-      // This is a backup check in case onRehydrateStorage didn't run
+      // CRITICAL: Check if we have token + user data to determine if we should be authenticated
+      // This is a backup check in case onRehydrateStorage didn't run or is still running
       if (sessionToken && sessionExpires && store.user) {
         const expireAt = parseInt(sessionExpires);
         const now = Date.now();
@@ -172,17 +167,70 @@ function Router() {
         return;
       }
       
-      // If we haven't hydrated yet and haven't exceeded max attempts, try again
-      if (!hasPersistedData && hydrationCheckAttempts < maxAttempts) {
-        setTimeout(checkAndRestore, 100);
-      } else {
-        // Either we have persisted data or we've exhausted attempts
-        setIsHydrated(true);
+      // If we have token but no user yet, wait for hydration to complete
+      // This handles the case where Zustand persist is still loading user data
+      if (sessionToken && !store.user) {
+        // Token exists but user not loaded yet - wait for user data
+        if (hydrationCheckAttempts < maxAttempts) {
+          setTimeout(checkAndRestore, 100);
+          return;
+        } else {
+          // Exhausted attempts - check localStorage directly one more time
+          const localStorageData = localStorage.getItem('enhanced-auth-storage');
+          if (localStorageData) {
+            try {
+              const parsed = JSON.parse(localStorageData);
+              if (parsed.state?.user) {
+                // User data exists in localStorage but not in store yet
+                // Set it directly and authenticate
+                useAuthStore.setState((state) => {
+                  state.user = parsed.state.user;
+                  state.branches = parsed.state.branches || [];
+                  state.currentBranch = parsed.state.currentBranch || null;
+                  state.academicYear = parsed.state.academicYear || null;
+                  state.academicYears = parsed.state.academicYears || [];
+                  state.token = sessionToken;
+                  if (sessionExpires) {
+                    state.tokenExpireAt = parseInt(sessionExpires);
+                  }
+                  state.isAuthenticated = true;
+                });
+                setIsHydrated(true);
+                return;
+              }
+            } catch (e) {
+              // Failed to parse localStorage data
+            }
+          }
+          // No user data found after all attempts - clear token and logout
+          sessionStorage.removeItem('access_token');
+          sessionStorage.removeItem('token_expires');
+          useAuthStore.getState().logout();
+          setIsHydrated(true);
+          return;
+        }
       }
+      
+      // If we have user but no token, wait a bit for token to be set
+      if (store.user && !sessionToken) {
+        if (hydrationCheckAttempts < maxAttempts) {
+          setTimeout(checkAndRestore, 100);
+          return;
+        } else {
+          // No token found after all attempts - logout
+          useAuthStore.getState().logout();
+          setIsHydrated(true);
+          return;
+        }
+      }
+      
+      // If we reach here, something unexpected happened - complete hydration anyway
+      setIsHydrated(true);
     };
 
-    // Start checking immediately and then periodically
-    checkAndRestore();
+    // Start checking after a small delay to allow Zustand to start hydration
+    // Zustand persist hydration happens synchronously, but we give it a tick
+    setTimeout(checkAndRestore, 50);
     
     return () => {
       mounted = false;
@@ -523,9 +571,8 @@ function App() {
           state.isAuthenticated = true;
         });
       } else {
-        // Token expired
+        // Token expired - logout will trigger Router to redirect to login
         logout();
-        window.location.href = "/login";
       }
     } else if (!sessionToken && isAuthenticated) {
       // No token but marked as authenticated - fix this
@@ -537,6 +584,7 @@ function App() {
     }
   }, [user, isAuthenticated, logout]);
 
+  // Proactive refresh scheduling (consolidated - removed redundant periodic check)
   useEffect(() => {
     if (token && tokenExpireAt) {
       AuthTokenTimers.scheduleProactiveRefresh();
@@ -546,46 +594,45 @@ function App() {
     };
   }, [token, tokenExpireAt]);
 
-  // Auto-logout on token expiration - Check every 15 minutes (900000ms)
+  // Page Visibility API integration - pause refresh when tab is inactive
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const isVisible = !document.hidden;
+      AuthTokenTimers.setTabVisible(isVisible);
+    };
+
+    // Set initial visibility state
+    AuthTokenTimers.setTabVisible(!document.hidden);
+
+    // Listen for visibility changes
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  // Simple token expiration check (only for logout, refresh is handled proactively)
   useEffect(() => {
     if (!token || !tokenExpireAt) return;
 
     const checkTokenExpiration = () => {
       const now = Date.now();
       
-      // Check if token is expired
+      // Only check if token is already expired (proactive refresh should handle before expiry)
       if (now >= tokenExpireAt) {
         if (process.env.NODE_ENV === 'development') {
           console.log("Token expired, logging out...");
         }
         logout();
-        // Force redirect to login
-        window.location.href = "/login";
+        // Use soft navigation instead of hard redirect
+        // Note: This will be handled by the Router component which checks isAuthenticated
         return;
-      }
-      
-      // Check if token will expire in next 1 minute (buffer)
-      const oneMinuteFromNow = now + 60000;
-      if (oneMinuteFromNow >= tokenExpireAt) {
-        // Try to refresh token first
-        const { refreshTokenAsync } = useAuthStore.getState();
-        refreshTokenAsync().then((refreshed) => {
-          if (!refreshed) {
-            if (process.env.NODE_ENV === 'development') {
-              console.log("Token refresh failed, logging out...");
-            }
-            logout();
-            window.location.href = "/login";
-          }
-        });
       }
     };
 
-    // Check immediately
-    checkTokenExpiration();
-
-    // Check every 15 minutes (900000ms = 15 * 60 * 1000)
-    const interval = setInterval(checkTokenExpiration, 15 * 60 * 1000);
+    // Check every 5 minutes (reduced frequency, only for safety logout)
+    const interval = setInterval(checkTokenExpiration, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, [token, tokenExpireAt, logout]);

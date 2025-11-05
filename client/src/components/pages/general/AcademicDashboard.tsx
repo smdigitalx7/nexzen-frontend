@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -11,72 +10,233 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
-import { FileText, Calendar, Trophy, GraduationCap } from "lucide-react";
-
-// Academic mock data
-const academicCards = [
-  { title: "Section Changes Pending", value: 4, color: "text-blue-600" },
-  {
-    title: "Attendance Pending (month)",
-    value: 6,
-    color: "text-orange-600",
-  },
-  { title: "Exams Open", value: 3, color: "text-purple-600" },
-];
-
-const duesList = [
-  { student: "Kiran P.", class: "VII-B", term: "T1", amount: 6000 },
-  {
-    student: "Divya M.",
-    class: "XII-BiPC",
-    term: "T2",
-    amount: 12000,
-  },
-  { student: "Mohan L.", class: "IV-A", term: "Books", amount: 2500 },
-  { student: "Rita S.", class: "IX-C", term: "T3", amount: 18000 },
-];
+import {
+  FileText,
+  Calendar,
+  Trophy,
+  GraduationCap,
+  Users,
+  UserCheck,
+  TrendingUp,
+  TrendingDown,
+  BookOpen,
+  Award,
+  CheckCircle,
+} from "lucide-react";
+import { useAcademicDashboard } from "@/lib/hooks/general";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
+import {
+  DashboardContainer,
+  DashboardHeader,
+  DashboardError,
+} from "@/components/shared/dashboard";
 
 const AcademicDashboard = () => {
   const { user, currentBranch } = useAuthStore();
   const branchPrefix =
     currentBranch?.branch_type === "SCHOOL" ? "/school" : "/college";
+  const { data: dashboardData, loading, error } = useAcademicDashboard();
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Welcome Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-2"
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Welcome back, {user?.full_name?.split(" ")[0] || "Academic"}!
-            </h1>
-            <p className="text-muted-foreground">
-              Academic overview for {currentBranch?.branch_name}
-            </p>
-          </div>
-          <Badge variant="outline" className="capitalize">
-            {currentBranch?.branch_type || "Education"}
-          </Badge>
-        </div>
-      </motion.div>
+    <DashboardContainer loading={loading}>
+      <DashboardHeader
+        title={`Welcome back, ${user?.full_name?.split(" ")[0] || "Academic"}!`}
+        description={`Academic overview for ${currentBranch?.branch_name}`}
+        badge={{
+          text: currentBranch?.branch_type || "Education",
+          variant: "outline",
+        }}
+      />
 
-      {/* Academic Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {academicCards.map((c) => (
-          <Card key={c.title} className="hover-elevate">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">{c.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <DashboardError error={error} />
+
+      {/* Dashboard Content */}
+      {!loading && !error && dashboardData && (
+        <>
+          {/* Overview Statistics */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                title: "Total Students",
+                value: dashboardData.data.overview.total_students.toLocaleString(),
+                icon: Users,
+                color: "text-blue-600",
+                desc: "Active students",
+              },
+              {
+                title: "Total Teachers",
+                value: dashboardData.data.overview.total_teachers.toLocaleString(),
+                icon: GraduationCap,
+                color: "text-green-600",
+                desc: "Teaching staff",
+              },
+              {
+                title: "Total Classes",
+                value: dashboardData.data.overview.total_classes.toLocaleString(),
+                icon: BookOpen,
+                color: "text-purple-600",
+                desc: "Active classes",
+              },
+              {
+                title: "Total Subjects",
+                value: dashboardData.data.overview.total_subjects.toLocaleString(),
+                icon: FileText,
+                color: "text-indigo-600",
+                desc: "Subjects taught",
+              },
+            ].map((c) => (
+              <Card key={c.title} className="hover-elevate">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{c.title}</CardTitle>
+                  <c.icon className={`h-4 w-4 ${c.color}`} />
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
+                  <p className="text-xs text-muted-foreground mt-1">{c.desc}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Attendance Metrics */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {[
+              {
+                title: "Student Attendance",
+                value: `${parseFloat(dashboardData.data.attendance.student_attendance_rate).toFixed(1)}%`,
+                icon: UserCheck,
+                color: "text-orange-600",
+                desc: "This month",
+              },
+              {
+                title: "Teacher Attendance",
+                value: `${parseFloat(dashboardData.data.attendance.teacher_attendance_rate).toFixed(1)}%`,
+                icon: UserCheck,
+                color: "text-cyan-600",
+                desc: "This month",
+              },
+            ].map((c) => (
+              <Card key={c.title} className="hover-elevate">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{c.title}</CardTitle>
+                  <c.icon className={`h-4 w-4 ${c.color}`} />
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
+                  <p className="text-xs text-muted-foreground mt-1">{c.desc}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Academic Performance & Exams */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                title: "Total Exams",
+                value: dashboardData.data.exams.total_exams.toString(),
+                icon: Award,
+                color: "text-purple-600",
+                desc: "All exams",
+              },
+              {
+                title: "Upcoming Exams",
+                value: dashboardData.data.exams.upcoming_exams.toString(),
+                icon: Calendar,
+                color: "text-blue-600",
+                desc: "Scheduled",
+              },
+              {
+                title: "Completed Exams",
+                value: dashboardData.data.exams.completed_exams.toString(),
+                icon: CheckCircle,
+                color: "text-green-600",
+                desc: "Finished",
+              },
+              {
+                title: "Exams This Month",
+                value: dashboardData.data.exams.exams_this_month.toString(),
+                icon: Calendar,
+                color: "text-indigo-600",
+                desc: "Current month",
+              },
+            ].map((c) => (
+              <Card key={c.title} className="hover-elevate">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{c.title}</CardTitle>
+                  <c.icon className={`h-4 w-4 ${c.color}`} />
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
+                  <p className="text-xs text-muted-foreground mt-1">{c.desc}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Tests & Performance */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                title: "Total Tests",
+                value: dashboardData.data.tests.total_tests.toString(),
+                icon: Trophy,
+                color: "text-purple-600",
+                desc: "All tests",
+              },
+              {
+                title: "Tests This Month",
+                value: dashboardData.data.tests.tests_this_month.toString(),
+                icon: Calendar,
+                color: "text-blue-600",
+                desc: "Current month",
+              },
+              {
+                title: "Average Test Score",
+                value: `${parseFloat(dashboardData.data.tests.average_test_score).toFixed(1)}%`,
+                change: parseFloat(dashboardData.data.tests.average_test_score_change),
+                icon: TrendingUp,
+                color: "text-green-600",
+                desc: "Average score",
+              },
+              {
+                title: "Academic Performance",
+                value: `${dashboardData.data.academic_performance.total_exams_conducted}`,
+                icon: Award,
+                color: "text-indigo-600",
+                desc: "Exams conducted",
+              },
+            ].map((c) => (
+              <Card key={c.title} className="hover-elevate">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{c.title}</CardTitle>
+                  <c.icon className={`h-4 w-4 ${c.color}`} />
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-xs text-muted-foreground">{c.desc}</p>
+                    {c.change !== undefined && (
+                      <span className={`text-xs flex items-center gap-1 ${c.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {c.change >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                        {Math.abs(c.change).toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
       {/* Quick Links */}
       <Card>
@@ -122,38 +282,127 @@ const AcademicDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Outstanding Dues (read-only) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Students with Outstanding Dues</CardTitle>
-          <CardDescription>By class/term (read-only)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto scrollbar-hide">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-muted-foreground border-b">
-                  <th className="py-2">Student</th>
-                  <th className="py-2">Class</th>
-                  <th className="py-2">Term</th>
-                  <th className="py-2">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {duesList.map((d, idx) => (
-                  <tr key={idx} className="border-b hover:bg-muted/50">
-                    <td className="py-2">{d.student}</td>
-                    <td className="py-2">{d.class}</td>
-                    <td className="py-2">{d.term}</td>
-                    <td className="py-2">{formatCurrency(d.amount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          {/* Exam Details */}
+          {dashboardData.data.exams.next_exam_date && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Next Exam</CardTitle>
+                <CardDescription>Upcoming exam information</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Exam Name</span>
+                    <span className="text-sm font-semibold">{dashboardData.data.exams.next_exam_name || 'N/A'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Exam Date</span>
+                    <span className="text-sm font-semibold">
+                      {new Date(dashboardData.data.exams.next_exam_date).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Exams This Year</span>
+                    <span className="text-sm font-semibold">{dashboardData.data.exams.exams_this_year}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Academic Performance Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Academic Performance Summary</CardTitle>
+              <CardDescription>Exams and tests overview</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold">Academic Performance</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Total Exams Conducted</span>
+                      <span className="text-sm font-semibold">{dashboardData.data.academic_performance.total_exams_conducted}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Upcoming Exams</span>
+                      <span className="text-sm font-semibold text-blue-600">{dashboardData.data.academic_performance.upcoming_exams}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Completed Exams</span>
+                      <span className="text-sm font-semibold text-green-600">{dashboardData.data.academic_performance.completed_exams}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold">Exams</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Total Exams</span>
+                      <span className="text-sm font-semibold">{dashboardData.data.exams.total_exams}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Upcoming</span>
+                      <span className="text-sm font-semibold text-blue-600">{dashboardData.data.exams.upcoming_exams}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Completed</span>
+                      <span className="text-sm font-semibold text-green-600">{dashboardData.data.exams.completed_exams}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">This Month</span>
+                      <span className="text-sm font-semibold">{dashboardData.data.exams.exams_this_month}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">This Year</span>
+                      <span className="text-sm font-semibold">{dashboardData.data.exams.exams_this_year}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold">Tests</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Total Tests</span>
+                      <span className="text-sm font-semibold">{dashboardData.data.tests.total_tests}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">This Month</span>
+                      <span className="text-sm font-semibold">{dashboardData.data.tests.tests_this_month}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">This Year</span>
+                      <span className="text-sm font-semibold">{dashboardData.data.tests.tests_this_year}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Average Score</span>
+                      <span className="text-sm font-semibold text-green-600">
+                        {parseFloat(dashboardData.data.tests.average_test_score).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Score Change</span>
+                      <span className={`text-sm font-semibold flex items-center gap-1 ${parseFloat(dashboardData.data.tests.average_test_score_change) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {parseFloat(dashboardData.data.tests.average_test_score_change) >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                        {Math.abs(parseFloat(dashboardData.data.tests.average_test_score_change)).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* Fallback for when no dashboard data is available */}
+      {!loading && !error && !dashboardData && (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-muted-foreground">No dashboard data available</div>
+        </div>
+      )}
+    </DashboardContainer>
   );
 };
 

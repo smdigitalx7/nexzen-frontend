@@ -6,7 +6,6 @@ import React from "react";
 
 // Critical components that should be preloaded
 const CRITICAL_COMPONENTS = [
-  () => import("@/components/pages/general/Dashboard"),
   () => import("@/components/pages/general/Login"),
   () => import("@/components/pages/general/UserManagementPage"),
 ];

@@ -10,6 +10,7 @@ export * from "./dropdowns";
 export * from "./employee-attendance";
 export * from "./employee-leave";
 export * from "./employees";
+export * from "./audit-logs";
 export * from "./health";
 export * from "./logs";
 export * from "./payrolls";

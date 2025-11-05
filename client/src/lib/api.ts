@@ -1,5 +1,6 @@
 import { useAuthStore } from "@/store/authStore";
 import { useCacheStore } from "@/store/cacheStore";
+import { useUIStore } from "@/store/uiStore";
 
 // For the simple API, we need to use /api/v1 since the proxy forwards /api to the external server
 // and the external server expects /v1 paths
@@ -147,10 +148,41 @@ function clearPendingRequest(dedupeKey: string): void {
 
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 let isRefreshing = false;
+// Promise-based refresh queue to handle concurrent refresh requests
+let refreshPromise: Promise<string | null> | null = null;
+// Track if tab is visible (Page Visibility API)
+let isTabVisible = true;
+// Refresh metrics tracking
+interface RefreshMetrics {
+  totalAttempts: number;
+  successfulRefreshes: number;
+  failedRefreshes: number;
+  lastRefreshTime: number | null;
+  consecutiveFailures: number;
+}
+const refreshMetrics: RefreshMetrics = {
+  totalAttempts: 0,
+  successfulRefreshes: 0,
+  failedRefreshes: 0,
+  lastRefreshTime: null,
+  consecutiveFailures: 0,
+};
+// Exponential backoff configuration
+const BACKOFF_CONFIG = {
+  initialDelay: 1000, // 1 second
+  maxDelay: 30000, // 30 seconds
+  multiplier: 2,
+};
 
 function scheduleProactiveRefresh() {
   const { token, tokenExpireAt } = useAuthStore.getState();
   if (!token || !tokenExpireAt) return;
+  
+  // Don't schedule refresh if tab is not visible
+  if (!isTabVisible) {
+    return;
+  }
+  
   const now = Date.now();
   // Refresh 60 seconds before expiry
   const refreshInMs = Math.max(0, tokenExpireAt - now - 60_000);
@@ -159,6 +191,13 @@ function scheduleProactiveRefresh() {
     refreshTimer = null;
   }
   refreshTimer = setTimeout(async () => {
+    // Check visibility again before refreshing
+    if (!isTabVisible) {
+      // Reschedule when tab becomes visible
+      scheduleProactiveRefresh();
+      return;
+    }
+    
     try {
       await tryRefreshToken(useAuthStore.getState().token);
       // reschedule after refresh
@@ -201,85 +240,160 @@ export class NetworkError extends Error {
 async function tryRefreshToken(
   oldAccessToken: string | null
 ): Promise<string | null> {
-  if (!oldAccessToken || isRefreshing) {
-    if (isRefreshing) {
-      // Wait for ongoing refresh to complete
-      let attempts = 0;
-      while (isRefreshing && attempts < 50) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        attempts++;
-      }
-      // Return the new token if refresh completed
-      return useAuthStore.getState().token;
-    }
+  if (!oldAccessToken) {
     return null;
   }
 
+  // Use Promise-based queue instead of polling
+  if (refreshPromise) {
+    // Wait for ongoing refresh to complete
+    try {
+      return await refreshPromise;
+    } catch {
+      // If refresh failed, return null to allow retry
+      return null;
+    }
+  }
+
+  // Don't refresh if tab is not visible
+  if (!isTabVisible) {
+    return null;
+  }
+
+  // Track metrics
+  refreshMetrics.totalAttempts++;
+  refreshMetrics.lastRefreshTime = Date.now();
+
+  // Calculate exponential backoff delay
+  const backoffDelay = Math.min(
+    BACKOFF_CONFIG.initialDelay * Math.pow(BACKOFF_CONFIG.multiplier, refreshMetrics.consecutiveFailures),
+    BACKOFF_CONFIG.maxDelay
+  );
+
+  // Apply backoff if we have consecutive failures
+  if (refreshMetrics.consecutiveFailures > 0) {
+    await new Promise((resolve) => setTimeout(resolve, backoffDelay));
+  }
+
+  // Show subtle user feedback during refresh
+  const uiStore = useUIStore.getState();
+  const toastId = uiStore.showToast({
+    type: "info",
+    title: "Refreshing session",
+    description: "Please wait...",
+    duration: 2000,
+  });
+
   isRefreshing = true;
-  try {
-    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include", // Refresh token is in httpOnly cookie
-    });
+  
+  // Create refresh promise
+  refreshPromise = (async (): Promise<string | null> => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Refresh token is in httpOnly cookie
+      });
 
-    if (!res.ok) {
-      // If refresh fails, clear auth state to prevent infinite loops
-      const errorText = await res.text().catch(() => res.statusText);
-      const errorMessage = `Token refresh failed: ${res.status} ${errorText}`;
+      if (!res.ok) {
+        // If refresh fails, clear auth state to prevent infinite loops
+        const errorText = await res.text().catch(() => res.statusText);
+        const errorMessage = `Token refresh failed: ${res.status} ${errorText}`;
 
-      if (process.env.NODE_ENV === "development") {
-        console.warn("Token refresh failed:", errorMessage);
+        refreshMetrics.failedRefreshes++;
+        refreshMetrics.consecutiveFailures++;
+
+        // Only logout on 401/403 - other errors might be temporary
+        if (res.status === 401 || res.status === 403) {
+          uiStore.hideToast(toastId);
+          uiStore.showToast({
+            type: "error",
+            title: "Session expired",
+            description: "Please log in again",
+            duration: 5000,
+          });
+          useAuthStore.getState().logout();
+          throw new TokenRefreshError(errorMessage);
+        }
+
+        // For other errors, show warning but don't logout
+        uiStore.hideToast(toastId);
+        uiStore.showToast({
+          type: "warning",
+          title: "Session refresh failed",
+          description: "Retrying...",
+          duration: 3000,
+        });
+
+        throw new TokenRefreshError(errorMessage);
       }
 
-      // Only logout on 401/403 - other errors might be temporary
-      if (res.status === 401 || res.status === 403) {
+      const data = await res.json();
+      const newToken = (data?.access_token as string) || null;
+      const expireIso = (data?.expiretime as string) || null;
+
+      if (!newToken) {
+        const errorMessage = "No access token received from refresh endpoint";
+        refreshMetrics.failedRefreshes++;
+        refreshMetrics.consecutiveFailures++;
+        
+        uiStore.hideToast(toastId);
+        uiStore.showToast({
+          type: "error",
+          title: "Authentication error",
+          description: "Please log in again",
+          duration: 5000,
+        });
+        
         useAuthStore.getState().logout();
+        throw new TokenRefreshError(errorMessage);
       }
 
-      throw new TokenRefreshError(errorMessage);
-    }
+      // Update token and expiration from response
+      const expireAtMs = expireIso ? new Date(expireIso).getTime() : null;
+      useAuthStore.getState().setTokenAndExpiry(newToken, expireAtMs);
 
-    const data = await res.json();
-    const newToken = (data?.access_token as string) || null;
-    const expireIso = (data?.expiretime as string) || null;
+      // Reset consecutive failures on success
+      refreshMetrics.successfulRefreshes++;
+      refreshMetrics.consecutiveFailures = 0;
 
-    if (!newToken) {
-      const errorMessage = "No access token received from refresh endpoint";
-      if (process.env.NODE_ENV === "development") {
-        console.warn(errorMessage);
+      // Hide loading toast
+      uiStore.hideToast(toastId);
+
+      // Reschedule proactive refresh
+      scheduleProactiveRefresh();
+      return newToken;
+    } catch (error) {
+      if (error instanceof TokenRefreshError) {
+        throw error;
       }
-      useAuthStore.getState().logout();
-      throw new TokenRefreshError(errorMessage);
+
+      // Network or other errors
+      const errorMessage =
+        error instanceof Error ? error.message : "Token refresh error";
+      
+      refreshMetrics.failedRefreshes++;
+      refreshMetrics.consecutiveFailures++;
+
+      uiStore.hideToast(toastId);
+
+      // Don't logout on network errors - they might be temporary
+      throw new NetworkError(
+        `Network error during token refresh: ${errorMessage}`
+      );
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
     }
+  })();
 
-    // Update token and expiration from response
-    const expireAtMs = expireIso ? new Date(expireIso).getTime() : null;
-    useAuthStore.getState().setTokenAndExpiry(newToken, expireAtMs);
-
-    // Reschedule proactive refresh
-    scheduleProactiveRefresh();
-    return newToken;
+  try {
+    return await refreshPromise;
   } catch (error) {
-    if (error instanceof TokenRefreshError) {
-      throw error;
-    }
-
-    // Network or other errors
-    const errorMessage =
-      error instanceof Error ? error.message : "Token refresh error";
-    if (process.env.NODE_ENV === "development") {
-      console.warn("Token refresh error:", errorMessage);
-    }
-
-    // Don't logout on network errors - they might be temporary
-    throw new NetworkError(
-      `Network error during token refresh: ${errorMessage}`
-    );
-  } finally {
-    isRefreshing = false;
+    // Propagate error
+    throw error;
   }
 }
 
@@ -327,7 +441,7 @@ export async function api<T = unknown>({
     if (token && !noAuth && state.tokenExpireAt) {
       const now = Date.now();
       const isExpired = now >= state.tokenExpireAt;
-      const expiresSoon = state.tokenExpireAt - now < 120_000; // 2 minutes before expiry
+      const expiresSoon = state.tokenExpireAt - now < 60_000; // 60 seconds before expiry (reduced from 2 minutes)
 
       if (isExpired || expiresSoon) {
         // Token expired or expiring soon - try to refresh
@@ -866,4 +980,27 @@ export const DedupeUtils = {
 export const AuthTokenTimers = {
   scheduleProactiveRefresh,
   clearProactiveRefresh,
+  // Page Visibility API integration
+  setTabVisible: (visible: boolean) => {
+    isTabVisible = visible;
+    if (visible) {
+      // Reschedule refresh when tab becomes visible
+      const { token, tokenExpireAt } = useAuthStore.getState();
+      if (token && tokenExpireAt) {
+        scheduleProactiveRefresh();
+      }
+    } else {
+      // Clear refresh timer when tab is hidden
+      clearProactiveRefresh();
+    }
+  },
+  // Refresh metrics
+  getRefreshMetrics: () => ({ ...refreshMetrics }),
+  resetRefreshMetrics: () => {
+    refreshMetrics.totalAttempts = 0;
+    refreshMetrics.successfulRefreshes = 0;
+    refreshMetrics.failedRefreshes = 0;
+    refreshMetrics.lastRefreshTime = null;
+    refreshMetrics.consecutiveFailures = 0;
+  },
 };

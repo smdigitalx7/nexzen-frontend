@@ -2,6 +2,7 @@
 export * from "./useAcademicYear";
 export * from "./useAdvances";
 export * from "./useAnnouncements";
+export * from "./useAuditLogs";
 export * from "./useAuth";
 export * from "./useBranches";
 export * from "./useDistanceSlabs";
@@ -17,4 +18,5 @@ export * from "./use-payment-receipts";
 export * from "./useRoles";
 export * from "./useTransport";
 export * from "./useUsers";
+export * from "./useDashboardData";
 

@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 export interface StatsCardConfig {
   title: string;
   value: string | number;
-  icon: LucideIcon;
+  icon: LucideIcon | React.ComponentType | React.ReactNode;
   description?: string;
   trend?: {
     value: number;
@@ -267,12 +267,46 @@ export const StatsCard: React.FC<StatsCardConfig> = ({
         </CardTitle>
         <div
           className={cn(
-            "p-2 rounded-xl transition-all duration-200 group-hover:scale-110",
+            "p-2 rounded-xl transition-all duration-200 group-hover:scale-110 flex items-center justify-center",
             colors.bg,
             variant === "elevated" && "group-hover:shadow-lg"
           )}
         >
-          <Icon className={cn(colors.icon, sizes.icon)} />
+          {(() => {
+            // Handle React elements
+            if (React.isValidElement(Icon)) {
+              return (
+                <span className={cn(colors.icon, sizes.icon, "flex items-center justify-center")}>
+                  {Icon}
+                </span>
+              );
+            }
+            
+            // Handle null/undefined
+            if (Icon == null) {
+              return null;
+            }
+            
+            // Handle React components (including forwardRef components from lucide-react)
+            // forwardRef components are objects with $$typeof: Symbol(react.forward_ref)
+            // They can still be used with React.createElement
+            if (
+              typeof Icon === "function" ||
+              (typeof Icon === "object" && Icon !== null && ("render" in Icon || "$$typeof" in Icon))
+            ) {
+              try {
+                return React.createElement(Icon as React.ComponentType<any>, {
+                  className: cn(colors.icon, sizes.icon),
+                });
+              } catch (error) {
+                console.warn("Failed to render icon component:", error);
+                return null;
+              }
+            }
+            
+            // Fallback for other types (shouldn't happen with proper usage)
+            return null;
+          })()}
         </div>
       </CardHeader>
 

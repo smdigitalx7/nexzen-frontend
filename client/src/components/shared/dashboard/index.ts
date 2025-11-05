@@ -6,3 +6,5 @@ export { DashboardContainer } from './DashboardContainer';
 export { DashboardCharts } from './DashboardCharts';
 export { DashboardQuickActions } from './DashboardQuickActions';
 export { DashboardRecentActivity } from './DashboardRecentActivity';
+export { DashboardChart, type DashboardChartProps } from './DashboardChart';
+export { DashboardError } from './DashboardError';

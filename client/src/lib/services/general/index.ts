@@ -3,6 +3,7 @@ export * from "./academic-year.service";
 export * from "./advances.service";
 export * from "./announcements.service";
 export * from "./attendance.service";
+export * from "./audit-logs.service";
 export * from "./auth.service";
 export * from "./branches.service";
 export * from "./distance-slabs.service";

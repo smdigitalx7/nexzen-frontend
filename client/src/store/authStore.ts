@@ -814,8 +814,43 @@ export const useAuthStore = create<AuthState>()(
               const token = sessionStorage.getItem("access_token");
               const tokenExpires = sessionStorage.getItem("token_expires");
 
+              // Fallback: Check localStorage directly if user is not in state
+              // This handles edge cases where Zustand might not have loaded user yet
+              let userData = state.user;
+              if (!userData && token) {
+                try {
+                  const localStorageData = localStorage.getItem("enhanced-auth-storage");
+                  if (localStorageData) {
+                    const parsed = JSON.parse(localStorageData);
+                    if (parsed.state?.user) {
+                      userData = parsed.state.user;
+                      // Also restore other persisted data
+                      if (parsed.state.branches) state.branches = parsed.state.branches;
+                      if (parsed.state.currentBranch) state.currentBranch = parsed.state.currentBranch;
+                      if (parsed.state.academicYear) state.academicYear = parsed.state.academicYear;
+                      if (parsed.state.academicYears) state.academicYears = parsed.state.academicYears;
+                    }
+                  }
+                } catch (e) {
+                  if (process.env.NODE_ENV === "development") {
+                    console.error("Failed to parse localStorage data:", e);
+                  }
+                }
+              }
+
+              if (process.env.NODE_ENV === "development") {
+                console.log("Rehydrating auth state:", {
+                  hasToken: !!token,
+                  hasTokenExpires: !!tokenExpires,
+                  hasUser: !!userData,
+                  userFromState: !!state.user,
+                  userFromLocalStorage: !!userData && !state.user,
+                  userEmail: userData?.email,
+                });
+              }
+
               // Check if we have both token and user data
-              if (token && tokenExpires && state.user) {
+              if (token && tokenExpires && userData) {
                 const expireAt = parseInt(tokenExpires);
                 const now = Date.now();
 
@@ -837,21 +872,23 @@ export const useAuthStore = create<AuthState>()(
                 }
 
                 // Valid token + user = MUST be authenticated - set directly
+                state.user = userData; // Ensure user is set
                 state.token = token;
                 state.tokenExpireAt = expireAt;
                 state.isAuthenticated = true; // CRITICAL: Force authenticated
                 
                 if (process.env.NODE_ENV === "development") {
-                  console.log("Auth state restored from storage:", {
+                  console.log("✅ Auth state restored from storage:", {
                     hasUser: !!state.user,
                     hasToken: !!state.token,
                     isAuthenticated: state.isAuthenticated,
+                    tokenExpiresIn: Math.round((expireAt - now) / 1000 / 60) + " minutes",
                   });
                 }
-              } else if (!token && state.user) {
+              } else if (!token && (state.user || userData)) {
                 // No token but have user - invalid state, clear everything
                 if (process.env.NODE_ENV === "development") {
-                  console.warn("User data found but no token, clearing user data");
+                  console.warn("⚠️ User data found but no token, clearing user data");
                 }
                 state.user = null;
                 state.branches = [];
@@ -859,16 +896,20 @@ export const useAuthStore = create<AuthState>()(
                 state.token = null;
                 state.tokenExpireAt = null;
                 state.isAuthenticated = false;
-              } else if (token && !state.user) {
-                // Token but no user - invalid state, clear token
+              } else if (token && !userData) {
+                // Token but no user - this might happen during initial load
+                // Don't clear token yet - wait for user data to be loaded
+                // The Router component will handle this case
                 if (process.env.NODE_ENV === "development") {
-                  console.warn("Token found but no user data, clearing token");
+                  console.warn("⚠️ Token found but no user data - Router will handle retry");
                 }
-                state.token = null;
-                state.tokenExpireAt = null;
+                state.token = token;
+                if (tokenExpires) {
+                  const expireAt = parseInt(tokenExpires);
+                  state.tokenExpireAt = expireAt;
+                }
+                // Don't set isAuthenticated yet - wait for user data
                 state.isAuthenticated = false;
-                sessionStorage.removeItem("access_token");
-                sessionStorage.removeItem("token_expires");
               } else {
                 // No token and no user - not authenticated
                 state.token = null;
