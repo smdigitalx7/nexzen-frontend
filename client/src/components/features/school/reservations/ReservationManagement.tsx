@@ -137,7 +137,7 @@ ReservationHeader.displayName = "ReservationHeader";
 // Memoized view dialog content component
 const ViewDialogContent = memo(
   ({ viewReservation }: { viewReservation: any }) => (
-    <div className="space-y-6 text-sm flex-1 overflow-y-auto pr-1">
+    <div className="space-y-6 text-sm flex-1 overflow-y-auto scrollbar-hide pr-1">
       <div className="grid grid-cols-2 gap-4">
         <div>
           <strong>Reservation No:</strong>{" "}
@@ -1205,7 +1205,7 @@ const ReservationManagementComponent = () => {
             </DialogDescription>
           </DialogHeader>
           {editForm ? (
-            <div className="flex-1 overflow-y-auto pr-1">
+            <div className="flex-1 overflow-y-auto scrollbar-hide pr-1">
               <SchoolReservationEdit
                 form={editForm}
                 setForm={setEditForm}
@@ -1309,7 +1309,7 @@ const ReservationManagementComponent = () => {
           open={showPaymentProcessor}
           onOpenChange={setShowPaymentProcessor}
         >
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
             <DialogHeader>
               <DialogTitle>Complete Payment</DialogTitle>
               <DialogDescription>

@@ -2,10 +2,16 @@ import { motion } from "framer-motion";
 import { CreditCard, Plus, Download, X, Users, Calculator, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TabSwitcher } from "@/components/shared";
-import { usePayrollManagement } from "@/lib/hooks/general/usePayrollManagement";
-import { usePayrollDashboard } from "@/lib/hooks/general/usePayrollManagement";
+import { usePayrollManagement, usePayrollDashboard } from "@/lib/hooks/general/usePayrollManagement";
 import { formatCurrency } from "@/lib/utils";
 import type { PayrollRead } from "@/lib/types/general/payrolls";
 import { PayrollStatsCards as OldPayrollStatsCards } from "./components/PayrollStatsCards";
@@ -65,8 +71,8 @@ const FilterControls = memo(({
   selectedStatus: string | undefined;
   setSelectedStatus: (status: string | undefined) => void;
 }) => {
-  const handleMonthChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const month = e.target.value ? parseInt(e.target.value) : undefined;
+  const handleMonthChange = useCallback((value: string) => {
+    const month = value && value !== "all" ? parseInt(value) : undefined;
     setSelectedMonth(month);
     if (!month) {
       setSelectedYear(undefined);
@@ -75,8 +81,8 @@ const FilterControls = memo(({
     }
   }, [selectedYear, setSelectedMonth, setSelectedYear]);
 
-  const handleYearChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const year = e.target.value ? parseInt(e.target.value) : undefined;
+  const handleYearChange = useCallback((value: string) => {
+    const year = value && value !== "all" ? parseInt(value) : undefined;
     setSelectedYear(year);
     if (!year) {
       setSelectedMonth(undefined);
@@ -85,8 +91,8 @@ const FilterControls = memo(({
     }
   }, [selectedMonth, setSelectedYear, setSelectedMonth]);
 
-  const handleStatusChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedStatus(e.target.value || undefined);
+  const handleStatusChange = useCallback((value: string) => {
+    setSelectedStatus(value && value !== "all" ? value : undefined);
   }, [setSelectedStatus]);
 
   const clearFilters = useCallback(() => {
@@ -111,65 +117,80 @@ const FilterControls = memo(({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white p-4 rounded-lg border shadow-sm"
+      className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700"
     >
-      <div className="flex flex-wrap gap-4 items-end">
+      {/* Filter Controls Row */}
+      <div className="flex flex-wrap gap-4 items-center">
         {/* Month Filter */}
-        <div className="flex-1 min-w-[120px]">
-          <label className="text-sm font-medium text-gray-700 mb-1 block">Month</label>
-          <select
-            value={selectedMonth || ""}
-            onChange={handleMonthChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium">Month:</label>
+          <Select
+            value={selectedMonth?.toString() || "all"}
+            onValueChange={handleMonthChange}
           >
-            <option value="">All Months</option>
-            {monthOptions.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="All Months" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Months</SelectItem>
+              {monthOptions.map(({ value, label }) => (
+                <SelectItem key={value} value={value.toString()}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Year Filter */}
-        <div className="flex-1 min-w-[100px]">
-          <label className="text-sm font-medium text-gray-700 mb-1 block">Year</label>
-          <select
-            value={selectedYear || ""}
-            onChange={handleYearChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium">Year:</label>
+          <Select
+            value={selectedYear?.toString() || "all"}
+            onValueChange={handleYearChange}
           >
-            <option value="">All Years</option>
-            {yearOptions.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="All Years" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Years</SelectItem>
+              {yearOptions.map(({ value, label }) => (
+                <SelectItem key={value} value={value.toString()}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Status Filter */}
-        <div className="flex-1 min-w-[120px]">
-          <label className="text-sm font-medium text-gray-700 mb-1 block">Status</label>
-          <select
-            value={selectedStatus || ""}
-            onChange={handleStatusChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium">Status:</label>
+          <Select
+            value={selectedStatus || "all"}
+            onValueChange={handleStatusChange}
           >
-            <option value="">All Status</option>
-            <option value="PENDING">Pending</option>
-            <option value="PAID">Paid</option>
-            <option value="HOLD">On Hold</option>
-          </select>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="PENDING">Pending</SelectItem>
+              <SelectItem value="PAID">Paid</SelectItem>
+              <SelectItem value="HOLD">On Hold</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Clear Filters Button */}
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={clearFilters}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          className="h-9"
         >
           Clear Filters
-        </button>
+        </Button>
       </div>
 
       {/* Help Text */}
@@ -629,7 +650,7 @@ export const PayrollManagementTemplateComponent = () => {
 
       {/* Detailed Payroll View Dialog */}
       <Dialog open={showPayslipDialog} onOpenChange={handleClosePayslipDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />

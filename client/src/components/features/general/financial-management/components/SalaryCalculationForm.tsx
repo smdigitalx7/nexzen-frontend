@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Calculator, Save, X, User, Calendar, DollarSign, CreditCard, AlertCircle, CheckCircle } from "lucide-react";
+import { Calculator, Save, X, User, Calendar, CreditCard, AlertCircle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -98,7 +98,7 @@ export const SalaryCalculationForm = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
         <DialogHeader className="pb-4">
           <DialogTitle className="flex items-center gap-3 text-xl">
             <div className="p-2 bg-primary/10 rounded-lg">
@@ -209,7 +209,7 @@ export const SalaryCalculationForm = ({
             className="space-y-6"
           >
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <DollarSign className="h-4 w-4" />
+              <span className="text-sm font-bold">₹</span>
               Salary Calculation
             </div>
 
@@ -225,7 +225,7 @@ export const SalaryCalculationForm = ({
                 <div className="space-y-3">
                   <Label htmlFor="gross_pay" className="text-sm font-medium">Gross Salary</Label>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm font-bold text-muted-foreground">₹</span>
                     <Input
                       type="number"
                       id="gross_pay"
@@ -330,7 +330,7 @@ export const SalaryCalculationForm = ({
                     </SelectItem>
                     <SelectItem value={PaymentMethodEnum.CASH}>
                       <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4" />
+                        <span className="text-sm font-bold">₹</span>
                         Cash
                       </div>
                     </SelectItem>

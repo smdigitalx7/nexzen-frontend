@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  DollarSign,
   CalendarDays,
   FileText,
   GraduationCap,
@@ -10,6 +9,7 @@ import {
   Wallet,
   BarChart3,
 } from "lucide-react";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { StatsCard, DashboardGrid } from "@/components/shared";
 import { CollegeIncomeDashboardStats } from "@/lib/types/college/income";
 import { formatCurrency } from "@/lib/utils";
@@ -36,7 +36,7 @@ export const CollegeIncomeStatsCards: React.FC<
     {
       title: "Total Income Amount",
       value: formatCurrency(stats.total_income_amount),
-      icon: DollarSign,
+      icon: IndianRupeeIcon,
       color: "green" as const,
       description: "Total revenue collected",
       variant: "elevated" as const,

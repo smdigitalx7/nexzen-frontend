@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -52,6 +53,8 @@ export const PaymentSummary: React.FC<PaymentSummaryProps> = ({
   disabled
 }) => {
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [isAcknowledged, setIsAcknowledged] = useState(false);
+  
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -66,16 +69,20 @@ export const PaymentSummary: React.FC<PaymentSummaryProps> = ({
   );
 
   const handleSubmitClick = () => {
+    setIsAcknowledged(false); // Reset checkbox when opening dialog
     setShowConfirmationDialog(true);
   };
 
   const handleConfirmPayment = () => {
+    if (!isAcknowledged) return; // Don't proceed if not acknowledged
     setShowConfirmationDialog(false);
+    setIsAcknowledged(false);
     onSubmit();
   };
 
   const handleCancelConfirmation = () => {
     setShowConfirmationDialog(false);
+    setIsAcknowledged(false);
   };
 
   return (
@@ -224,67 +231,98 @@ export const PaymentSummary: React.FC<PaymentSummaryProps> = ({
       </CardContent>
 
       {/* Confirmation Dialog */}
-      <Dialog open={showConfirmationDialog} onOpenChange={setShowConfirmationDialog}>
+      <Dialog 
+        open={showConfirmationDialog} 
+        onOpenChange={(open) => {
+          if (!isSubmitting) {
+            setShowConfirmationDialog(open);
+            if (!open) {
+              setIsAcknowledged(false);
+            }
+          }
+        }}
+      >
         <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+          <DialogHeader className="pb-4">
+            <DialogTitle className="flex items-center gap-2.5 text-xl font-semibold text-gray-900">
+              <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
               Confirm Payment
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm text-gray-600 mt-1.5">
               Please review your payment details before proceeding.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             {/* Payment Summary */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium text-gray-600">Total Amount:</span>
-                  <span className="text-lg font-bold text-gray-900">
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-lg p-5 border border-gray-200/60">
+              <div className="space-y-3">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-sm font-medium text-gray-700">Total Amount</span>
+                  <span className="text-2xl font-bold text-gray-900 tracking-tight">
                     {formatAmount(totalAmount)}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium text-gray-600">Payment Method:</span>
-                  <span className="text-sm text-gray-900">
+                <div className="h-px bg-gray-200"></div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-600">Payment Method</span>
+                  <span className="text-sm font-semibold text-gray-900">
                     {selectedPaymentMethod?.label}
                   </span>
                 </div>
                 {remarks && (
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-600">Remarks:</span>
-                    <span className="text-sm text-gray-900">{remarks}</span>
+                  <div className="flex justify-between items-start gap-2 pt-1">
+                    <span className="text-sm font-medium text-gray-600">Remarks</span>
+                    <span className="text-sm text-gray-900 text-right leading-relaxed">{remarks}</span>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Warning Message */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
-                <div className="text-sm text-yellow-800">
-                  <p className="font-medium">Please confirm:</p>
-                  <p>This action will process the payment and cannot be undone.</p>
+            <div className="bg-amber-50/80 border border-amber-200/60 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-amber-900">Important Note</p>
+                  <p className="text-sm text-amber-800 leading-relaxed">
+                    Please verify that the amount being processed ({formatAmount(totalAmount)}) matches the amount collected from the student. This action will process the payment and cannot be undone.
+                  </p>
                 </div>
               </div>
             </div>
+
+            {/* Acknowledgment Checkbox */}
+            <div className="flex items-start gap-3 p-4 bg-gray-50/80 rounded-lg border border-gray-200/60">
+              <Checkbox
+                id="acknowledge"
+                checked={isAcknowledged}
+                onCheckedChange={(checked) => setIsAcknowledged(checked === true)}
+                disabled={isSubmitting}
+                className="mt-0.5 shrink-0"
+              />
+              <Label
+                htmlFor="acknowledge"
+                className="text-sm font-normal text-gray-700 leading-relaxed cursor-pointer peer-disabled:cursor-not-allowed peer-disabled:opacity-60"
+              >
+                I acknowledge that I have reviewed the payment details and confirm that all information is correct. I understand that this payment cannot be cancelled once processed.
+              </Label>
+            </div>
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-3 pt-2">
             <Button
               variant="outline"
               onClick={handleCancelConfirmation}
               disabled={isSubmitting}
+              className="font-medium"
             >
               Cancel
             </Button>
             <Button
               onClick={handleConfirmPayment}
-              disabled={isSubmitting}
-              className="bg-green-600 hover:bg-green-700 gap-2"
+              disabled={!isAcknowledged || isSubmitting}
+              className="bg-green-600 hover:bg-green-700 text-white font-medium gap-2 min-w-[140px] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCircle className="h-4 w-4" />
               Confirm Payment

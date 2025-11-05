@@ -99,7 +99,7 @@ export const TeacherAssignmentsTab = ({
 
                   {/* Hierarchical Table */}
                   <CollapsibleContent>
-                    <div className="overflow-x-auto pb-0">
+                    <div className="overflow-x-auto scrollbar-hide pb-0">
                       <Table className="mb-0">
                         <TableHeader>
                           <TableRow>

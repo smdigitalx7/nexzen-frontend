@@ -109,7 +109,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         )}
       >
         <Header />
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto scrollbar-hide">
           <div className="p-2">{children}</div>
         </main>
       </div>

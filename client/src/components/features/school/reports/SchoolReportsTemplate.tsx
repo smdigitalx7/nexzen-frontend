@@ -20,7 +20,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DollarSign, TrendingUp, Eye, PieChart } from "lucide-react";
+import { TrendingUp, Eye, PieChart } from "lucide-react";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { TabSwitcher } from "@/components/shared";
 import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 import { useSchoolIncomeDashboard } from "@/lib/hooks/school/use-school-income-expenditure";
@@ -124,7 +125,7 @@ export const SchoolReportsTemplate = () => {
           {
             value: "income",
             label: "Income",
-            icon: DollarSign,
+            icon: IndianRupeeIcon,
             content: <IncomeSummaryTable onExportCSV={() => {}} />,
           },
           {

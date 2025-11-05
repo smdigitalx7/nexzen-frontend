@@ -1,7 +1,7 @@
 import React from "react";
 import { FormDialog } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Phone, MapPin, Calendar, DollarSign, Briefcase } from "lucide-react";
+import { User, Mail, Phone, MapPin, Calendar, Briefcase } from "lucide-react";
 
 interface EmployeeDetailDialogProps {
   open: boolean;
@@ -133,7 +133,7 @@ const EmployeeDetailDialog = ({ open, onOpenChange, employee, newStatus, onStatu
               <div>
                 <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Salary</label>
                 <p className="text-lg font-semibold flex items-center gap-1 text-green-600">
-                  <DollarSign className="h-4 w-4" />
+                  <span className="text-sm font-bold">₹</span>
                   {formatCurrency(employee.salary)}
                 </p>
               </div>

@@ -1196,7 +1196,7 @@ export default function ReservationNew() {
           {!viewReservation ? (
             <div className="p-4 text-sm">Loading...</div>
           ) : (
-            <div className="space-y-6 text-sm flex-1 overflow-y-auto pr-1">
+            <div className="space-y-6 text-sm flex-1 overflow-y-auto scrollbar-hide pr-1">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <strong>Reservation No:</strong>{" "}
@@ -1439,7 +1439,7 @@ export default function ReservationNew() {
             </DialogDescription>
           </DialogHeader>
           {editForm ? (
-            <div className="flex-1 overflow-y-auto pr-1">
+            <div className="flex-1 overflow-y-auto scrollbar-hide pr-1">
               {(groupsLoading || coursesLoading || isLoadingDistanceSlabs) && (
                 <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-center gap-2 text-blue-700">

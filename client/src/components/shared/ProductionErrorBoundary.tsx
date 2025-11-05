@@ -221,7 +221,7 @@ export class ProductionErrorBoundary extends Component<Props, State> {
                     Development Details
                   </summary>
                   <div className="mt-2 rounded-lg bg-muted p-4">
-                    <pre className="text-xs overflow-auto">
+                    <pre className="text-xs overflow-auto scrollbar-hide">
                       {JSON.stringify({
                         error: error?.message,
                         stack: error?.stack,

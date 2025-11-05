@@ -5,7 +5,8 @@ import { AttendanceTable } from "./AttendanceTable";
 import { LeavesTable } from "./LeavesTable";
 import { AdvancesTable } from "../Advance/AdvancesTable";
 import EmployeeLeavesList from "../employee/EmployeeLeavesList";
-import { Users, Calendar, FileText, DollarSign } from "lucide-react";
+import { Users, Calendar, FileText } from "lucide-react";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import type { TabItem } from "@/components/shared/TabSwitcher";
 
 interface EmployeeManagementTabsProps {
@@ -157,7 +158,7 @@ export const EmployeeManagementTabs = ({
     {
       value: "advances",
       label: "Advances",
-      icon: DollarSign,
+      icon: IndianRupeeIcon,
       content: (
         <AdvancesTable
           advances={advances}

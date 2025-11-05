@@ -309,7 +309,7 @@ export function getAvailableTerms(
         outstanding = termData.outstanding || 0;
       }
     } else if (purpose === 'TRANSPORT_FEE') {
-      const termKey = `term${i}` as 'term1' | 'term2' | 'term3';
+      const termKey = `term${i}` as 'term1' | 'term2';
       const termData = feeBalances.transportFee[termKey as keyof typeof feeBalances.transportFee];
       if (termData && typeof termData === 'object' && 'paid' in termData && 'outstanding' in termData) {
         paid = termData.paid > 0;
@@ -317,8 +317,18 @@ export function getAvailableTerms(
       }
     }
 
-    // Term is available if it's not paid and previous terms are paid (for sequential validation)
-    const available = !paid && outstanding > 0 && (i === 1 || terms[i - 2]?.paid);
+    // Term is available if it has outstanding balance
+    // A term should be available if there's any outstanding amount, regardless of whether it's partially paid
+    // This allows continuing to pay partially paid terms that still have outstanding balance
+    // For sequential validation: term 1 is always available if outstanding > 0
+    // For subsequent terms: available if outstanding > 0 AND (previous term is fully paid OR current term is partially paid)
+    const previousTermFullyPaid = i === 1 ? true : (terms[i - 2]?.outstanding === 0);
+    const isPartiallyPaid = paid && outstanding > 0;
+    // Allow term if it has outstanding balance AND either:
+    // - It's term 1 (always allowed if outstanding > 0)
+    // - Previous term is fully paid (sequential validation)
+    // - Current term is partially paid (allow continuing partial payments)
+    const available = outstanding > 0 && (i === 1 || previousTermFullyPaid || isPartiallyPaid);
 
     terms.push({
       term: i,

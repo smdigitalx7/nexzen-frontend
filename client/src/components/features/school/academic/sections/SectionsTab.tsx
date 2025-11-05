@@ -2,6 +2,13 @@ import { useMemo, useState, useEffect, memo, useCallback } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { Edit, Trash2 } from "lucide-react";
@@ -124,9 +131,15 @@ const SectionsTabComponent = () => {
     setSectionToDelete(null);
   }, []);
 
-  const handleClassChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const classId = e.target.value ? parseInt(e.target.value) : undefined;
-    setSelectedClassId(classId);
+  const handleClassChange = useCallback((value: string) => {
+    if (value === "all" || !value) {
+      setSelectedClassId(undefined);
+    } else {
+      const classId = parseInt(value);
+      if (!isNaN(classId)) {
+        setSelectedClassId(classId);
+      }
+    }
   }, []);
 
   // Memoized action button groups
@@ -163,19 +176,30 @@ const SectionsTabComponent = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <Label htmlFor="class_select">Class</Label>
-        <select
-          id="class_select"
-          className="border rounded px-2 py-1"
-          value={selectedClassId || ""}
-          onChange={handleClassChange}
-        >
-          <option value="">Select a class...</option>
-          {classes.map((c: SchoolClassRead) => (
-            <option key={c.class_id} value={c.class_id}>{c.class_name}</option>
-          ))}
-        </select>
+      {/* Filter Controls */}
+      <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium">Class:</label>
+          <Select
+            value={selectedClassId ? selectedClassId.toString() : "all"}
+            onValueChange={handleClassChange}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Select class" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Classes</SelectItem>
+              {classes.map((c: SchoolClassRead) => (
+                <SelectItem
+                  key={c.class_id}
+                  value={c.class_id.toString()}
+                >
+                  {c.class_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {!selectedClassId ? (
