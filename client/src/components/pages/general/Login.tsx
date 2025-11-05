@@ -1,23 +1,9 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import {
-  Mail,
-  Lock,
-  GraduationCap,
-  Eye,
-  EyeOff,
-  Phone,
-  ExternalLink,
-} from "lucide-react";
+import { Mail, Lock, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -80,9 +66,59 @@ const Login = () => {
 
       // Redirect to appropriate page based on user role
       setLocation(result.redirectPath);
-    } catch (err: any) {
-      const message = err?.message || "Login failed";
-      setError(message);
+    } catch (err: unknown) {
+      // Extract error message from API response
+      let errorMessage = "Login failed";
+
+      // Check if error has response data (axios error format)
+      if (err && typeof err === "object") {
+        const errorObj = err as Record<string, unknown>;
+
+        // Check for axios response structure: err.response.data
+        const responseData =
+          ((errorObj.response as Record<string, unknown>)?.data as Record<
+            string,
+            unknown
+          >) || (errorObj.data as Record<string, unknown>);
+
+        if (responseData) {
+          // Handle validation error format: { detail: [{ msg: "...", ... }] }
+          if (responseData.detail && Array.isArray(responseData.detail)) {
+            const detailArray = responseData.detail as Array<
+              Record<string, unknown>
+            >;
+            // Extract all validation error messages
+            const messages = detailArray
+              .map((item) => {
+                const msg = item?.msg || item?.message;
+                return typeof msg === "string" ? msg : "";
+              })
+              .filter((msg) => msg.length > 0)
+              .join(", ");
+            errorMessage = messages || "Validation error";
+          }
+          // Handle simple error format: { detail: "Error message" }
+          else if (
+            responseData.detail &&
+            typeof responseData.detail === "string"
+          ) {
+            errorMessage = responseData.detail;
+          }
+          // Handle error message directly
+          else if (
+            responseData.message &&
+            typeof responseData.message === "string"
+          ) {
+            errorMessage = responseData.message;
+          }
+        }
+        // Fallback to error message if available
+        else if (errorObj.message && typeof errorObj.message === "string") {
+          errorMessage = errorObj.message;
+        }
+      }
+
+      setError(errorMessage);
     }
   };
 
@@ -194,7 +230,12 @@ const Login = () => {
           </CardHeader>
 
           <CardContent className="space-y-6 px-8 pb-8">
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form
+              onSubmit={(e) => {
+                void handleSubmit(e);
+              }}
+              className="space-y-4"
+            >
               <div className="space-y-1">
                 <Input
                   id="email"
@@ -206,7 +247,7 @@ const Login = () => {
                   leftIcon={<Mail className="h-4 w-4" />}
                   data-testid="input-email"
                   required
-                  className="h-12 text-base bg-blue-500/5 dark:bg-black/10 border-2 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-0 focus:outline-none"
+                  className="h-12 text-base bg-blue-500/5 border border-gray-300 dark:border-gray-600 focus:border-blue-400 dark:focus:border-gray-500 focus:ring-0 focus:outline-none"
                 />
               </div>
 
@@ -222,7 +263,7 @@ const Login = () => {
                   showPasswordToggle={true}
                   data-testid="input-password"
                   required
-                  className="h-12 text-base bg-blue-500/5 dark:bg-black/10 border-2 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-0 focus:outline-none"
+                  className="h-12 text-base bg-blue-500/5 border border-gray-300 dark:border-gray-600 focus:border-blue-400 dark:focus:border-gray-500 focus:ring-0 focus:outline-none"
                 />
               </div>
 

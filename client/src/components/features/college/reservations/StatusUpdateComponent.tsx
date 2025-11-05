@@ -263,18 +263,34 @@ const StatusUpdateTableComponent = ({
           remarks: remarks.trim() ? remarks : null,
         };
 
+        // Step 1: Update the status via API
         await CollegeReservationsService.updateStatus(
           reservation.reservation_id,
           payload
         );
 
-        // Invalidate and refetch queries to refresh the data immediately
-        await queryClient.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
-        await queryClient.refetchQueries({ queryKey: collegeKeys.reservations.root() });
-        // Also call the refetch function passed from parent
-        await onRefetch();
-
-        // Force table refresh by updating refresh key
+        // Step 2: Remove the query data to force fresh fetch
+        queryClient.removeQueries({ queryKey: collegeKeys.reservations.list({ page: 1, page_size: 20 }) });
+        
+        // Step 3: Invalidate all reservation queries
+        queryClient.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
+        
+        // Step 4: FORCE REFETCH - This will make a network request to /college/reservations
+        // The refetch will fetch fresh data from server since we removed the cache
+        if (onRefetch) {
+          await onRefetch();
+        }
+        
+        // Step 5: Also explicitly refetch to ensure network request
+        await queryClient.refetchQueries({
+          queryKey: collegeKeys.reservations.list({ page: 1, page_size: 20 }),
+          type: 'active'
+        });
+        
+        // Step 6: Wait for React to process the state update
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Step 7: Force table refresh by updating refresh key
         setRefreshKey((prev) => prev + 1);
 
         toast({
@@ -397,7 +413,7 @@ const StatusUpdateTableComponent = ({
       />
 
       <EnhancedDataTable
-        key={refreshKey}
+        key={`status-table-${refreshKey}`}
         data={reservations}
         columns={statusColumns}
         title="Status Updates"
