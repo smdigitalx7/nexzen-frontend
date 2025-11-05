@@ -1,12 +1,11 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Eye, Download, Edit, Trash2, User } from "lucide-react";
+import { User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
 import { useUpdateCollegeTuitionBalance, useDeleteCollegeTuitionBalance } from "@/lib/hooks/college";
 import { ColumnDef } from "@tanstack/react-table";
 import { EnhancedDataTable } from "@/components/shared";
@@ -84,11 +83,8 @@ export const StudentFeeBalancesTable = ({
   onExportCSV,
   onBulkCreate,
   title = "Student Fee Balances",
-  description = "Track individual student fee payments and outstanding amounts",
-  showHeader = true,
   loading = false,
 }: StudentFeeBalancesTableProps) => {
-  const { toast } = useToast();
   const deleteMutation = useDeleteCollegeTuitionBalance();
   
   // State for edit and delete dialogs
@@ -230,7 +226,7 @@ export const StudentFeeBalancesTable = ({
       label: 'Class',
       options: uniqueClasses.map(className => ({ value: className, label: className })),
       value: 'all',
-      onChange: (value: string) => {
+      onChange: (_value: string) => {
         // This will be handled by EnhancedDataTable's built-in filtering
       }
     },
@@ -243,7 +239,7 @@ export const StudentFeeBalancesTable = ({
         { value: 'OUTSTANDING', label: 'Outstanding' }
       ],
       value: 'all',
-      onChange: (value: string) => {
+      onChange: (_value: string) => {
         // This will be handled by EnhancedDataTable's built-in filtering
       }
     }
@@ -357,7 +353,7 @@ export const StudentFeeBalancesTable = ({
             <Button variant="outline" onClick={() => setEditOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleUpdate}>
+            <Button onClick={() => { void handleUpdate(); }}>
               Update Balance
             </Button>
           </DialogFooter>
@@ -381,7 +377,7 @@ export const StudentFeeBalancesTable = ({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteConfirm}
+              onClick={() => { void handleDeleteConfirm(); }}
               disabled={deleteMutation.isPending}
               className="bg-red-600 hover:bg-red-700"
             >

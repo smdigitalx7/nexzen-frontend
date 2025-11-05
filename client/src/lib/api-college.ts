@@ -1,11 +1,32 @@
 import { useAuthStore } from "@/store/authStore";
 import { getApiBaseUrl } from "./api";
 
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL: string = getApiBaseUrl() as string;
 
 /**
  * College-specific payment and receipt handling functions
  */
+
+// Type definitions for API responses
+interface PaymentResponseContext {
+  income_id: number;
+}
+
+interface PaymentResponseData {
+  context?: PaymentResponseContext;
+}
+
+interface PaymentResponse {
+  data?: PaymentResponseData;
+  context?: PaymentResponseContext;
+  [key: string]: unknown;
+}
+
+interface ErrorResponse {
+  detail?: string;
+  message?: string;
+  [key: string]: unknown;
+}
 
 /**
  * Handles payment processing by admission and returns PDF receipt
@@ -30,9 +51,10 @@ export async function handleCollegePayByAdmission(
         | "TUITION_FEE"
         | "TRANSPORT_FEE"
         | "OTHER";
-      paid_amount: number;
+      paid_amount: number; // > 0, <= 1000000, max 2 decimal places
       payment_method: "CASH" | "ONLINE";
-      term_number?: number; // Required for TUITION_FEE and TRANSPORT_FEE
+      term_number?: number; // Required for TUITION_FEE (1, 2, or 3)
+      payment_month?: string; // Required for TRANSPORT_FEE (YYYY-MM-01 format)
       custom_purpose_name?: string; // Required for OTHER purpose
     }>;
     remarks?: string;
@@ -64,7 +86,7 @@ export async function handleCollegePayByAdmission(
 
       if (contentType.includes("application/json")) {
         try {
-          const errorData = await response.json();
+          const errorData = (await response.json()) as ErrorResponse;
           errorMessage = errorData.detail || errorData.message || errorMessage;
         } catch {
           errorMessage = (await response.text()) || errorMessage;
@@ -77,11 +99,11 @@ export async function handleCollegePayByAdmission(
     }
 
     // Parse JSON response to get income_id
-    const paymentData = await response.json();
+    const paymentData = (await response.json()) as PaymentResponse;
 
-    const income_id = paymentData.data?.context?.income_id || paymentData.context?.income_id;
+    const income_id = paymentData.data?.context?.income_id ?? paymentData.context?.income_id;
 
-    if (!income_id) {
+    if (!income_id || typeof income_id !== 'number') {
       throw new Error("Payment successful but income_id not found in response context");
     }
 
@@ -90,7 +112,7 @@ export async function handleCollegePayByAdmission(
 
     return blobUrl;
   } catch (error) {
-    console.error("❌ Payment processing failed:", error);
+    // Error handling is done by the caller
     if (error instanceof TypeError && error.message.includes("fetch")) {
       throw new Error(
         "Network error occurred while processing payment. Please check your connection and try again."
@@ -124,14 +146,15 @@ export async function handleCollegePayByAdmissionWithIncomeId(
         | "TUITION_FEE"
         | "TRANSPORT_FEE"
         | "OTHER";
-      paid_amount: number;
+      paid_amount: number; // > 0, <= 1000000, max 2 decimal places
       payment_method: "CASH" | "ONLINE";
-      term_number?: number; // Required for TUITION_FEE and TRANSPORT_FEE
+      term_number?: number; // Required for TUITION_FEE (1, 2, or 3)
+      payment_month?: string; // Required for TRANSPORT_FEE (YYYY-MM-01 format)
       custom_purpose_name?: string; // Required for OTHER purpose
     }>;
     remarks?: string;
   }
-): Promise<{ income_id: number; blobUrl: string; paymentData: any }> {
+): Promise<{ income_id: number; blobUrl: string; paymentData: PaymentResponse }> {
   const state = useAuthStore.getState();
   const token = state.token;
 
@@ -165,7 +188,7 @@ export async function handleCollegePayByAdmissionWithIncomeId(
 
       if (contentType.includes("application/json")) {
         try {
-          const errorData = await response.json();
+          const errorData = (await response.json()) as ErrorResponse;
           errorMessage = errorData.detail || errorData.message || errorMessage;
         } catch {
           errorMessage = (await response.text()) || errorMessage;
@@ -178,11 +201,11 @@ export async function handleCollegePayByAdmissionWithIncomeId(
     }
 
     // Parse JSON response to get income_id
-    const paymentData = await response.json();
+    const paymentData = (await response.json()) as PaymentResponse;
 
-    const income_id = paymentData.data?.context?.income_id || paymentData.context?.income_id;
+    const income_id = paymentData.data?.context?.income_id ?? paymentData.context?.income_id;
 
-    if (!income_id) {
+    if (!income_id || typeof income_id !== 'number') {
       throw new Error("Payment successful but income_id not found in response context");
     }
 
@@ -197,7 +220,7 @@ export async function handleCollegePayByAdmissionWithIncomeId(
 
     return result;
   } catch (error) {
-    console.error("❌ Payment processing failed:", error);
+    // Error handling is done by the caller
 
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
@@ -236,7 +259,7 @@ export async function handleCollegePayByReservation(
     }>;
     remarks?: string;
   }
-): Promise<{ blobUrl: string; income_id: number; paymentData: any }> {
+): Promise<{ blobUrl: string; income_id: number; paymentData: PaymentResponse }> {
   const state = useAuthStore.getState();
   const token = state.token;
 
@@ -263,7 +286,7 @@ export async function handleCollegePayByReservation(
 
       if (contentType.includes("application/json")) {
         try {
-          const errorData = await response.json();
+          const errorData = (await response.json()) as ErrorResponse;
           errorMessage = errorData.detail || errorData.message || errorMessage;
         } catch {
           errorMessage = (await response.text()) || errorMessage;
@@ -276,11 +299,11 @@ export async function handleCollegePayByReservation(
     }
 
     // Parse JSON response to get income_id
-    const paymentData = await response.json();
+    const paymentData = (await response.json()) as PaymentResponse;
 
-    const income_id = paymentData.data?.context?.income_id || paymentData.context?.income_id;
+    const income_id = paymentData.data?.context?.income_id ?? paymentData.context?.income_id;
 
-    if (!income_id) {
+    if (!income_id || typeof income_id !== 'number') {
       throw new Error("Payment successful but income_id not found in response context");
     }
 
@@ -289,7 +312,7 @@ export async function handleCollegePayByReservation(
 
     return { blobUrl, income_id, paymentData };
   } catch (error) {
-    console.error("❌ Payment processing failed:", error);
+    // Error handling is done by the caller
     if (error instanceof TypeError && error.message.includes("fetch")) {
       throw new Error(
         "Network error occurred while processing payment. Please check your connection and try again."
@@ -341,7 +364,7 @@ export async function handleCollegeRegenerateReceipt(
       let errorMessage = `Receipt regeneration failed with status ${response.status}`;
 
       try {
-        const errorData = JSON.parse(errorText);
+        const errorData = JSON.parse(errorText) as ErrorResponse;
         errorMessage = errorData.detail || errorData.message || errorMessage;
       } catch {
         // If not JSON, use the text as error message

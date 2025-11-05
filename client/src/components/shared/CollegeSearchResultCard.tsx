@@ -5,28 +5,23 @@
 import { motion } from "framer-motion";
 import {
   GraduationCap,
-  BookOpen,
   Bus,
   Calendar,
   MapPin,
   CheckCircle,
-  XCircle,
   Receipt,
   Building2,
   FileText,
   CreditCard,
   ChevronDown,
   ChevronUp,
-  TrendingUp,
   AlertCircle,
-  User,
   Hash,
   Wallet,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 import type { CollegeFullStudentRead } from "@/lib/types/college";
 

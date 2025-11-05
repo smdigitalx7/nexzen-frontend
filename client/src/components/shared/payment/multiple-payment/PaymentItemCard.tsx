@@ -9,7 +9,7 @@ import { Trash2, BookOpen, GraduationCap, Truck, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { PaymentItemCardProps, PaymentPurpose } from '../types/PaymentTypes';
+import type { PaymentItemCardProps } from '../types/PaymentTypes';
 
 const purposeIcons = {
   BOOK_FEE: BookOpen,
@@ -49,6 +49,11 @@ export const PaymentItemCard = React.forwardRef<HTMLDivElement, PaymentItemCardP
       return true; // Non-term items can always be deleted
     }
 
+    // For college transport fees with paymentMonth, allow deletion (monthly payments are independent)
+    if (item.purpose === 'TRANSPORT_FEE' && institutionType === 'college' && item.paymentMonth) {
+      return true;
+    }
+
     if (!item.termNumber) {
       return true; // Items without term numbers can be deleted
     }
@@ -69,6 +74,17 @@ export const PaymentItemCard = React.forwardRef<HTMLDivElement, PaymentItemCardP
 
   const canDelete = canDeleteTerm();
 
+  const formatPaymentMonth = (monthString: string): string => {
+    if (!monthString) return '';
+    try {
+      // Parse YYYY-MM-01 format
+      const date = new Date(monthString);
+      return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    } catch {
+      return monthString;
+    }
+  };
+
   const getPurposeLabel = () => {
     switch (item.purpose) {
       case 'BOOK_FEE':
@@ -76,7 +92,14 @@ export const PaymentItemCard = React.forwardRef<HTMLDivElement, PaymentItemCardP
       case 'TUITION_FEE':
         return `Tuition Fee - Term ${item.termNumber}`;
       case 'TRANSPORT_FEE':
-        return `Transport Fee - Term ${item.termNumber}`;
+        // For colleges, use paymentMonth; for schools, use termNumber
+        if (institutionType === 'college' && item.paymentMonth) {
+          return `Transport Fee - ${formatPaymentMonth(item.paymentMonth)}`;
+        } else if (item.termNumber) {
+          return `Transport Fee - Term ${item.termNumber}`;
+        } else {
+          return 'Transport Fee';
+        }
       case 'OTHER':
         return item.customPurposeName || 'Other';
       default:
@@ -163,15 +186,21 @@ export const PaymentItemCard = React.forwardRef<HTMLDivElement, PaymentItemCardP
             <div className="mt-3 pt-3 border-t border-gray-100">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">
-                  {institutionType === 'college' ? 'College Term' : 'School Term'}
+                  {item.purpose === 'TRANSPORT_FEE' && institutionType === 'college' && item.paymentMonth
+                    ? 'Payment Month'
+                    : institutionType === 'college' 
+                    ? 'College Term' 
+                    : 'School Term'}
                 </span>
                 <span className="font-medium text-gray-900">
-                  Term {item.termNumber}
+                  {item.purpose === 'TRANSPORT_FEE' && institutionType === 'college' && item.paymentMonth
+                    ? formatPaymentMonth(item.paymentMonth)
+                    : `Term ${item.termNumber}`}
                 </span>
               </div>
               
               {/* Deletion Order Warning */}
-              {!canDelete && (
+              {!canDelete && item.termNumber && (
                 <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
                   ⚠️ Delete higher terms first (Term {Math.max(...allItems.filter(i => i.purpose === item.purpose).map(i => i.termNumber || 0))})
                 </div>

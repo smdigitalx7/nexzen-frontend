@@ -4,10 +4,8 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { GraduationCap, AlertCircle, CheckCircle, Lock, CheckCircle2, Info } from 'lucide-react';
+import { GraduationCap, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -52,31 +50,30 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
   const [lockedTerms, setLockedTerms] = useState<number[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
   const [errors, setErrors] = useState<string[]>([]);
-  const [isValidating, setIsValidating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [termErrors, setTermErrors] = useState<Record<number, boolean>>({});
   const initializedRef = useRef(false);
 
   // Get available terms for tuition fee
+  // Both colleges and schools use term-based tuition fees (Term 1, Term 2, Term 3)
   const availableTerms = getAvailableTerms('TUITION_FEE', feeBalances, config.institutionType);
   
-  // Check if there are any outstanding payments
+  // Check if there are any outstanding payments (term-based for both colleges and schools)
   const hasOutstandingPayments = availableTerms.some(term => term.outstanding > 0);
   const allTermsPaid = availableTerms.length > 0 && availableTerms.every(term => term.paid);
-  
-  // For colleges, check if there are outstanding payments using the total amount
-  const isCollege = config.institutionType === 'college';
-  const collegeOutstanding = isCollege ? feeBalances.tuitionFee.total : 0;
 
   useEffect(() => {
     // Only initialize term amounts if we haven't initialized yet
+    // Both colleges and schools use term-based amounts
     if (!initializedRef.current) {
       const initialAmounts: Record<number, string> = {};
+      
       availableTerms.forEach(term => {
         if (term.available && term.outstanding > 0) {
           initialAmounts[term.term] = term.outstanding.toString();
         }
       });
+      
       setTermAmounts(initialAmounts);
       initializedRef.current = true;
     }
@@ -152,27 +149,17 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
   };
 
   const validateTermAmount = (termNumber: number, value: string) => {
-    setIsValidating(true);
-    
     const numAmount = parseFloat(value);
     const validation = PaymentValidator.validateAmount(numAmount, config.validationRules);
     
     let hasExceededAmount = false;
     
     // Check if amount exceeds outstanding balance for this term
-    if (isCollege) {
-      // For colleges, check against total tuition fee
-      if (numAmount > feeBalances.tuitionFee.total) {
-        validation.errors.push(`Amount cannot exceed total tuition fee of ${formatAmount(feeBalances.tuitionFee.total)}`);
-        hasExceededAmount = true;
-      }
-    } else {
-      // For schools, check against term-specific outstanding balance
-      const termData = availableTerms.find(t => t.term === termNumber);
-      if (termData && numAmount > termData.outstanding) {
-        validation.errors.push(`Amount cannot exceed outstanding balance of ${formatAmount(termData.outstanding)}`);
-        hasExceededAmount = true;
-      }
+    // Both colleges and schools use term-based validation
+    const termData = availableTerms.find(t => t.term === termNumber);
+    if (termData && numAmount > termData.outstanding) {
+      validation.errors.push(`Amount cannot exceed outstanding balance of ${formatAmount(termData.outstanding)}`);
+      hasExceededAmount = true;
     }
     
     // Clear error if amount is valid
@@ -187,7 +174,6 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
     }));
     
     setErrors(validation.errors);
-    setIsValidating(false);
   };
 
   const handleSubmit = () => {
@@ -196,59 +182,35 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
       return;
     }
     
-    if (!isCollege && selectedTerms.length === 0) {
+    // Both colleges and schools use term-based selection
+    if (selectedTerms.length === 0) {
       setErrors(['Please select at least one term']);
-      return;
-    }
-    
-    if (isCollege && (!termAmounts[1] || isNaN(parseFloat(termAmounts[1])) || parseFloat(termAmounts[1]) <= 0)) {
-      setErrors(['Please enter a valid amount']);
       return;
     }
 
     // Validate all selected terms
+    // Both colleges and schools use term-based validation
     const validationErrors: string[] = [];
     
-    if (isCollege) {
-      // For colleges, validate single payment
-      const amount = termAmounts[1];
+    selectedTerms.forEach(termNumber => {
+      const amount = termAmounts[termNumber];
       if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-        validationErrors.push('Please enter a valid amount');
+        validationErrors.push(`Please enter a valid amount for Term ${termNumber}`);
         return;
       }
 
       const numAmount = parseFloat(amount);
       const validation = PaymentValidator.validateAmount(numAmount, config.validationRules);
       if (!validation.isValid) {
-        validationErrors.push(...validation.errors);
+        validationErrors.push(...validation.errors.map(error => `Term ${termNumber}: ${error}`));
       }
 
-      // Check if amount exceeds total tuition fee
-      if (numAmount > feeBalances.tuitionFee.total) {
-        validationErrors.push(`Amount cannot exceed total tuition fee of ${formatAmount(feeBalances.tuitionFee.total)}`);
+      // Check if amount exceeds outstanding balance for this term
+      const termData = availableTerms.find(t => t.term === termNumber);
+      if (termData && numAmount > termData.outstanding) {
+        validationErrors.push(`Term ${termNumber}: Amount cannot exceed outstanding balance of ${formatAmount(termData.outstanding)}`);
       }
-    } else {
-      // For schools, validate term-based payments
-      selectedTerms.forEach(termNumber => {
-        const amount = termAmounts[termNumber];
-        if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-          validationErrors.push(`Please enter a valid amount for Term ${termNumber}`);
-          return;
-        }
-
-        const numAmount = parseFloat(amount);
-        const validation = PaymentValidator.validateAmount(numAmount, config.validationRules);
-        if (!validation.isValid) {
-          validationErrors.push(...validation.errors.map(error => `Term ${termNumber}: ${error}`));
-        }
-
-        // Check if amount exceeds outstanding balance for this term
-        const termData = availableTerms.find(t => t.term === termNumber);
-        if (termData && numAmount > termData.outstanding) {
-          validationErrors.push(`Term ${termNumber}: Amount cannot exceed outstanding balance of ${formatAmount(termData.outstanding)}`);
-        }
-      });
-    }
+    });
 
     if (validationErrors.length > 0) {
       setErrors(validationErrors);
@@ -256,6 +218,7 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
     }
 
     // Create payment items for each selected term
+    // Both colleges and schools use term-based payments
     const uniqueSelectedTerms = Array.from(new Set(selectedTerms)); // Remove duplicates
     setIsSubmitting(true);
     
@@ -283,10 +246,11 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
     }).format(amount);
   };
 
-  const isFormValid = (isCollege ? (termAmounts[1] && !isNaN(parseFloat(termAmounts[1])) && parseFloat(termAmounts[1]) > 0) : (selectedTerms.length > 0 && selectedTerms.every(term => {
+  // Both colleges and schools use term-based validation
+  const isFormValid = selectedTerms.length > 0 && selectedTerms.every(term => {
     const amount = termAmounts[term];
     return amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0;
-  }))) && errors.length === 0;
+  }) && errors.length === 0;
 
   // Helper function to determine if a term can be selected
   const canSelectTerm = (termNumber: number): boolean => {
@@ -339,48 +303,9 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
 
         <div className="space-y-6">
 
-          {/* College Single Payment */}
-          {isCollege ? (
-            <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-medium text-blue-800 mb-2">Tuition Fee Information</h3>
-                <div className="text-sm text-blue-700">
-                  <p>Total Tuition Fee: <strong>{formatAmount(feeBalances.tuitionFee.total)}</strong></p>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="tuition-amount" className="text-sm font-medium">
-                  Payment Amount *
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                    ₹
-                  </span>
-                  <Input
-                    id="tuition-amount"
-                    type="text"
-                    placeholder="Enter amount"
-                    value={termAmounts[1] || ''}
-                    onChange={(e) => handleTermAmountChange(1, e.target.value)}
-                    className={`pl-8 ${termErrors[1] ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                  />
-                </div>
-                <p className="text-xs text-gray-500">
-                  Maximum amount: {formatAmount(feeBalances.tuitionFee.total)}
-                </p>
-                {termErrors[1] && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Amount cannot exceed total tuition fee of {formatAmount(feeBalances.tuitionFee.total)}
-                  </p>
-                )}
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Term Selection */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Select Terms *</Label>
+          {/* Term Selection - Both colleges and schools use term-based tuition fees */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Select Terms *</Label>
                 
                 {!hasOutstandingPayments ? (
               <div className="text-center py-8">
@@ -502,10 +427,6 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
               </div>
             )}
           </div>
-
-
-            </>
-          )}
 
           {/* Payment Method */}
           <div className="space-y-2">

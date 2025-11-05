@@ -1,15 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { User } from "lucide-react";
-import { useCollegeClasses, useCollegeGroups, useCollegeStudentTransportPaymentSummary } from "@/lib/hooks/college";
-import type { CollegeStudentTransportPaymentSummary } from "@/lib/types/college";
+import { useCollegeStudentTransportPaymentSummary, useCollegeStudentTransportPaymentSummaryByEnrollmentId } from "@/lib/hooks/college";
+import type { 
+  CollegeStudentTransportPaymentSummaryItem,
+  CollegeStudentTransportMonthlyPayment,
+  CollegeStudentTransportExpectedPayment 
+} from "@/lib/types/college";
 import { EnhancedDataTable } from "@/components/shared";
 import { ColumnDef } from "@tanstack/react-table";
 import { createTextColumn, createCurrencyColumn, createDateColumn } from "@/lib/utils/factory/columnFactories";
 import { formatCurrency } from "@/lib/utils";
+
+type PaymentStatus = 'FULLY_PAID' | 'PARTIALLY_PAID' | 'PENDING';
 
 interface TransportFeeBalanceRow {
   id: number;
@@ -17,84 +23,97 @@ interface TransportFeeBalanceRow {
   admission_no: string | null;
   student_name: string;
   class_name: string;
-  group_name: string | null;
-  course_name: string | null;
+  group_name: string;
   total_fee: number;
   paid_amount: number;
   outstanding_amount: number;
   months_paid_count: number;
   months_pending_count: number;
-  status: 'PAID' | 'PARTIAL' | 'OUTSTANDING';
-  last_payment_date: string;
-  summary: CollegeStudentTransportPaymentSummary;
+  status: PaymentStatus;
+  last_payment_date: string | null;
+  summaryItem: CollegeStudentTransportPaymentSummaryItem;
 }
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: PaymentStatus): string => {
   switch (status) {
-    case 'PAID':
+    case 'FULLY_PAID':
       return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-    case 'PARTIAL':
+    case 'PARTIALLY_PAID':
       return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-    case 'OUTSTANDING':
+    case 'PENDING':
       return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-    default:
+    default: {
+      const _exhaustive: never = status;
       return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+    }
   }
 };
 
-export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onViewStudent: (s: TransportFeeBalanceRow) => void; onExportCSV: () => void; }) {
-  const { data: classes = [] } = useCollegeClasses();
-  const { data: groups = [] } = useCollegeGroups();
-  const [balanceClass, setBalanceClass] = useState<string>(classes[0]?.class_id?.toString() || "");
-  const [balanceGroup, setBalanceGroup] = useState<string>(groups[0]?.group_id?.toString() || "");
-
-  useEffect(() => {
-    if (!balanceClass && classes.length > 0) {
-      setBalanceClass(classes[0].class_id.toString());
+const getStatusLabel = (status: PaymentStatus): string => {
+  switch (status) {
+    case 'FULLY_PAID':
+      return 'Paid';
+    case 'PARTIALLY_PAID':
+      return 'Partial';
+    case 'PENDING':
+      return 'Pending';
+    default: {
+      const _exhaustive: never = status;
+      return status;
     }
-  }, [classes, balanceClass]);
+  }
+};
 
-  useEffect(() => {
-    if (!balanceGroup && groups.length > 0) {
-      setBalanceGroup(groups[0].group_id.toString());
-    }
-  }, [groups, balanceGroup]);
+interface TransportFeeBalancesPanelProps {
+  onViewStudent: (s: TransportFeeBalanceRow) => void;
+  onExportCSV: () => void;
+}
 
-  const classIdNum = balanceClass ? parseInt(balanceClass) : undefined;
-  const groupIdNum = balanceGroup ? parseInt(balanceGroup) : undefined;
-  const { data: transportSummaryData, isLoading } = useCollegeStudentTransportPaymentSummary({
-    class_id: classIdNum ?? undefined,
-    group_id: groupIdNum ?? undefined,
-  });
+export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: TransportFeeBalancesPanelProps) {
+  const [paymentStatus, setPaymentStatus] = useState<"all" | PaymentStatus>("all");
 
-  const [selectedSummary, setSelectedSummary] = useState<CollegeStudentTransportPaymentSummary | null>(null);
+  const { data: transportSummaryData, isLoading } = useCollegeStudentTransportPaymentSummary(
+    paymentStatus !== "all" ? { payment_status: paymentStatus } : undefined
+  );
+
+  const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<number | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const { data: selectedSummary, isLoading: isLoadingDetails } = useCollegeStudentTransportPaymentSummaryByEnrollmentId(selectedEnrollmentId);
 
   const rows = useMemo<TransportFeeBalanceRow[]>(() => {
-    return (transportSummaryData?.items || []).map((summary: CollegeStudentTransportPaymentSummary) => {
-      // Handle string/number conversion for Decimal values from API
-      const paidTotal = typeof summary.total_amount_paid === 'string' 
-        ? parseFloat(summary.total_amount_paid) || 0 
-        : summary.total_amount_paid || 0;
-      const outstanding = typeof summary.total_amount_pending === 'string' 
-        ? parseFloat(summary.total_amount_pending) || 0 
-        : summary.total_amount_pending || 0;
+    if (!transportSummaryData?.items) {
+      return [];
+    }
+    
+    return transportSummaryData.items.map((item: CollegeStudentTransportPaymentSummaryItem): TransportFeeBalanceRow => {
+      // Safely convert numeric values, handling string, null, undefined cases
+      const totalFee = typeof item.total_fee === 'string' 
+        ? parseFloat(item.total_fee) || 0 
+        : (item.total_fee || 0);
+      
+      const paidAmount = typeof item.paid_amount === 'string' 
+        ? parseFloat(item.paid_amount) || 0 
+        : (item.paid_amount || 0);
+      
+      const outstandingAmount = typeof item.outstanding === 'string' 
+        ? parseFloat(item.outstanding) || 0 
+        : (item.outstanding || 0);
+      
       return {
-        id: summary.enrollment_id,
-        enrollment_id: summary.enrollment_id,
-        admission_no: summary.admission_no,
-        student_name: summary.student_name,
-        class_name: summary.class_name || "",
-        group_name: summary.group_name,
-        course_name: summary.course_name,
-        total_fee: paidTotal + outstanding,
-        paid_amount: paidTotal,
-        outstanding_amount: outstanding,
-        months_paid_count: summary.months_paid_count,
-        months_pending_count: summary.months_pending_count,
-        status: outstanding <= 0 ? 'PAID' as const : paidTotal > 0 ? 'PARTIAL' as const : 'OUTSTANDING' as const,
-        last_payment_date: summary.monthly_payments?.[summary.monthly_payments.length - 1]?.payment_created_at || new Date().toISOString(),
-        summary,
+        id: item.enrollment_id,
+        enrollment_id: item.enrollment_id,
+        admission_no: item.admission_no,
+        student_name: item.student,
+        class_name: item.class,
+        group_name: item.group,
+        total_fee: totalFee,
+        paid_amount: paidAmount,
+        outstanding_amount: outstandingAmount,
+        months_paid_count: item.months_paid,
+        months_pending_count: item.months_pending,
+        status: item.status,
+        last_payment_date: item.last_payment,
+        summaryItem: item,
       };
     });
   }, [transportSummaryData]);
@@ -160,7 +179,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
       header: 'Status',
       cell: ({ row }) => (
         <Badge className={getStatusColor(row.original.status)}>
-          {row.original.status}
+          {getStatusLabel(row.original.status)}
         </Badge>
       ),
     },
@@ -170,11 +189,11 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
     }),
   ], []);
 
-  const handleViewDetails = (row: TransportFeeBalanceRow) => {
-    setSelectedSummary(row.summary);
+  const handleViewDetails = useCallback((row: TransportFeeBalanceRow) => {
+    setSelectedEnrollmentId(row.enrollment_id);
     setDetailsOpen(true);
     onViewStudent(row);
-  };
+  }, [onViewStudent]);
 
   // Action button groups - only view, no edit/delete
   const actionButtonGroups = useMemo(() => [
@@ -185,8 +204,14 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
   ], [handleViewDetails]);
 
   // Calculate summary statistics
-  const totalCollected = rows.reduce((sum, s) => sum + s.paid_amount, 0);
-  const totalOutstanding = rows.reduce((sum, s) => sum + s.outstanding_amount, 0);
+  const totalCollected = rows.reduce((sum, s) => {
+    const amount = typeof s.paid_amount === 'number' && !isNaN(s.paid_amount) ? s.paid_amount : 0;
+    return sum + amount;
+  }, 0);
+  const totalOutstanding = rows.reduce((sum, s) => {
+    const amount = typeof s.outstanding_amount === 'number' && !isNaN(s.outstanding_amount) ? s.outstanding_amount : 0;
+    return sum + amount;
+  }, 0);
   const totalStudents = rows.length;
 
   return (
@@ -199,33 +224,21 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
       {/* Filters */}
       <div className="flex gap-4 items-end">
         <div className="flex-1">
-          <label className="text-sm font-medium mb-2 block">Class</label>
-          <Select value={balanceClass} onValueChange={setBalanceClass}>
+          <label className="text-sm font-medium mb-2 block">Payment Status</label>
+          <Select 
+            value={paymentStatus} 
+            onValueChange={(value: string) => {
+              setPaymentStatus(value === "all" ? "all" : value as PaymentStatus);
+            }}
+          >
             <SelectTrigger>
-              <SelectValue placeholder="Select class" />
+              <SelectValue placeholder="Filter by payment status" />
             </SelectTrigger>
             <SelectContent>
-              {classes.map((cls) => (
-                <SelectItem key={cls.class_id} value={cls.class_id.toString()}>
-                  {cls.class_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex-1">
-          <label className="text-sm font-medium mb-2 block">Group</label>
-          <Select value={balanceGroup} onValueChange={setBalanceGroup}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select group" />
-            </SelectTrigger>
-            <SelectContent>
-              {groups.map((group) => (
-                <SelectItem key={group.group_id} value={group.group_id.toString()}>
-                  {group.group_name}
-                </SelectItem>
-              ))}
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="PENDING">Pending</SelectItem>
+              <SelectItem value="PARTIALLY_PAID">Partially Paid</SelectItem>
+              <SelectItem value="FULLY_PAID">Fully Paid</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -247,19 +260,12 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
         loading={isLoading}
         filters={[
           {
-            key: 'class_name',
-            label: 'Class',
-            options: Array.from(new Set(rows.map(r => r.class_name))).map(className => ({ value: className, label: className })),
-            value: 'all',
-            onChange: () => {}, // Handled by EnhancedDataTable's built-in filtering
-          },
-          {
             key: 'status',
             label: 'Status',
             options: [
-              { value: 'PAID', label: 'Paid' },
-              { value: 'PARTIAL', label: 'Partial' },
-              { value: 'OUTSTANDING', label: 'Outstanding' }
+              { value: 'PENDING', label: 'Pending' },
+              { value: 'PARTIALLY_PAID', label: 'Partially Paid' },
+              { value: 'FULLY_PAID', label: 'Fully Paid' }
             ],
             value: 'all',
             onChange: () => {}, // Handled by EnhancedDataTable's built-in filtering
@@ -295,7 +301,9 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
           <DialogHeader>
             <DialogTitle>Transport Payment Summary</DialogTitle>
           </DialogHeader>
-          {!selectedSummary ? (
+          {isLoadingDetails ? (
+            <div className="p-8 text-center text-muted-foreground">Loading payment details...</div>
+          ) : !selectedSummary ? (
             <div className="p-2 text-sm text-muted-foreground">No summary selected.</div>
           ) : (
             <div className="space-y-6">
@@ -303,12 +311,12 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
               <div className="bg-slate-50 p-4 rounded-lg">
                 <h3 className="font-semibold text-lg mb-3">Student Information</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><span className="text-muted-foreground">Admission No:</span> <span className="font-medium">{selectedSummary.admission_no || 'N/A'}</span></div>
-                  <div><span className="text-muted-foreground">Roll Number:</span> <span className="font-medium">{selectedSummary.roll_number || 'N/A'}</span></div>
-                  <div><span className="text-muted-foreground">Student Name:</span> <span className="font-medium">{selectedSummary.student_name}</span></div>
-                  <div><span className="text-muted-foreground">Class:</span> <span className="font-medium">{selectedSummary.class_name}</span></div>
-                  <div><span className="text-muted-foreground">Group:</span> <span className="font-medium">{selectedSummary.group_name || 'N/A'}</span></div>
-                  <div><span className="text-muted-foreground">Course:</span> <span className="font-medium">{selectedSummary.course_name || 'N/A'}</span></div>
+                  <div><span className="text-muted-foreground">Admission No:</span> <span className="font-medium">{selectedSummary?.admission_no || 'N/A'}</span></div>
+                  <div><span className="text-muted-foreground">Roll Number:</span> <span className="font-medium">{selectedSummary?.roll_number || 'N/A'}</span></div>
+                  <div><span className="text-muted-foreground">Student Name:</span> <span className="font-medium">{selectedSummary?.student_name}</span></div>
+                  <div><span className="text-muted-foreground">Class:</span> <span className="font-medium">{selectedSummary?.class_name}</span></div>
+                  <div><span className="text-muted-foreground">Group:</span> <span className="font-medium">{selectedSummary?.group_name || 'N/A'}</span></div>
+                  <div><span className="text-muted-foreground">Course:</span> <span className="font-medium">{selectedSummary?.course_name || 'N/A'}</span></div>
                 </div>
               </div>
 
@@ -316,71 +324,144 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
               <div className="bg-blue-50 p-4 rounded-lg">
                 <h3 className="font-semibold text-lg mb-3">Transport Assignment</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><span className="text-muted-foreground">Bus Route:</span> <span className="font-medium">{selectedSummary.bus_route_name || 'N/A'}</span></div>
-                  <div><span className="text-muted-foreground">Route No:</span> <span className="font-medium">{selectedSummary.bus_route_no || 'N/A'}</span></div>
-                  <div><span className="text-muted-foreground">Vehicle Number:</span> <span className="font-medium">{selectedSummary.vehicle_number || 'N/A'}</span></div>
-                  <div><span className="text-muted-foreground">Pickup Point:</span> <span className="font-medium">{selectedSummary.pickup_point || 'N/A'}</span></div>
-                  <div><span className="text-muted-foreground">Start Date:</span> <span className="font-medium">{selectedSummary.transport_start_date ? new Date(selectedSummary.transport_start_date).toLocaleDateString() : 'N/A'}</span></div>
-                  <div><span className="text-muted-foreground">End Date:</span> <span className="font-medium">{selectedSummary.transport_end_date ? new Date(selectedSummary.transport_end_date).toLocaleDateString() : 'N/A'}</span></div>
-                  <div><span className="text-muted-foreground">Status:</span> <span className={`font-medium ${selectedSummary.transport_assignment_active ? 'text-green-600' : 'text-red-600'}`}>{selectedSummary.transport_assignment_active ? 'Active' : 'Inactive'}</span></div>
+                  <div><span className="text-muted-foreground">Bus Route:</span> <span className="font-medium">{selectedSummary?.bus_route_name || 'N/A'}</span></div>
+                  <div><span className="text-muted-foreground">Route No:</span> <span className="font-medium">{selectedSummary?.bus_route_no || 'N/A'}</span></div>
+                  <div><span className="text-muted-foreground">Vehicle Number:</span> <span className="font-medium">{selectedSummary?.vehicle_number || 'N/A'}</span></div>
+                  <div><span className="text-muted-foreground">Pickup Point:</span> <span className="font-medium">{selectedSummary?.pickup_point || 'N/A'}</span></div>
+                  <div><span className="text-muted-foreground">Start Date:</span> <span className="font-medium">{selectedSummary?.transport_start_date ? new Date(selectedSummary.transport_start_date).toLocaleDateString() : 'N/A'}</span></div>
+                  <div><span className="text-muted-foreground">End Date:</span> <span className="font-medium">{selectedSummary?.transport_end_date ? new Date(selectedSummary.transport_end_date).toLocaleDateString() : 'N/A'}</span></div>
+                  <div><span className="text-muted-foreground">Status:</span> <span className={`font-medium ${selectedSummary?.transport_assignment_active ? 'text-green-600' : 'text-red-600'}`}>{selectedSummary?.transport_assignment_active ? 'Active' : 'Inactive'}</span></div>
                 </div>
               </div>
 
               {/* Payment Summary */}
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-lg mb-3">Payment Summary</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><span className="text-muted-foreground">Months Paid:</span> <span className="font-medium text-green-600">{selectedSummary.months_paid_count}</span></div>
-                  <div><span className="text-muted-foreground">Months Pending:</span> <span className="font-medium text-red-600">{selectedSummary.months_pending_count}</span></div>
-                  <div><span className="text-muted-foreground">Total Paid:</span> <span className="font-medium text-lg text-green-600">{formatCurrency(typeof selectedSummary.total_amount_paid === 'string' ? parseFloat(selectedSummary.total_amount_paid) || 0 : selectedSummary.total_amount_paid || 0)}</span></div>
-                  <div><span className="text-muted-foreground">Total Pending:</span> <span className="font-medium text-lg text-red-600">{formatCurrency(typeof selectedSummary.total_amount_pending === 'string' ? parseFloat(selectedSummary.total_amount_pending) || 0 : selectedSummary.total_amount_pending || 0)}</span></div>
-                </div>
-              </div>
+              {selectedSummary && (() => {
+                const totalPaid = typeof selectedSummary.total_amount_paid === 'string' 
+                  ? parseFloat(selectedSummary.total_amount_paid) || 0 
+                  : (selectedSummary.total_amount_paid || 0);
+                const totalPending = typeof selectedSummary.total_amount_pending === 'string' 
+                  ? parseFloat(selectedSummary.total_amount_pending) || 0 
+                  : (selectedSummary.total_amount_pending || 0);
+                
+                return (
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-lg mb-3">Payment Summary</h3>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Months Paid:</span> 
+                        <span className="font-medium text-green-600 ml-1">{selectedSummary.months_paid_count}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Months Pending:</span> 
+                        <span className="font-medium text-red-600 ml-1">{selectedSummary.months_pending_count}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Total Paid:</span> 
+                        <span className="font-medium text-lg text-green-600 ml-1">{formatCurrency(totalPaid)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Total Pending:</span> 
+                        <span className="font-medium text-lg text-red-600 ml-1">{formatCurrency(totalPending)}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Monthly Payments */}
-              {selectedSummary.monthly_payments && selectedSummary.monthly_payments.length > 0 && (
+              {selectedSummary?.monthly_payments && selectedSummary.monthly_payments.length > 0 && (
                 <div className="bg-yellow-50 p-4 rounded-lg">
                   <h3 className="font-semibold text-lg mb-3">Monthly Payments</h3>
                   <div className="space-y-2">
-                    {selectedSummary.monthly_payments.map((payment, index) => (
-                      <div key={index} className="bg-white p-3 rounded border">
-                        <div className="grid grid-cols-4 gap-4 text-sm">
-                          <div><span className="text-muted-foreground">Month:</span> <span className="font-medium">{payment.payment_month ? new Date(payment.payment_month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A'}</span></div>
-                          <div><span className="text-muted-foreground">Amount:</span> <span className="font-medium">{formatCurrency(typeof payment.amount_paid === 'string' ? parseFloat(payment.amount_paid) || 0 : payment.amount_paid || 0)}</span></div>
-                          <div><span className="text-muted-foreground">Status:</span> <span className="font-medium">{payment.payment_status}</span></div>
-                          <div><span className="text-muted-foreground">Receipt:</span> <span className="font-medium">{payment.receipt_no || 'N/A'}</span></div>
+                    {selectedSummary.monthly_payments.map((payment: CollegeStudentTransportMonthlyPayment, index: number) => {
+                      const amountPaid = typeof payment.amount_paid === 'string' 
+                        ? parseFloat(payment.amount_paid) || 0 
+                        : (payment.amount_paid || 0);
+                      
+                      const paymentDate = payment.payment_month 
+                        ? new Date(payment.payment_month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                        : 'N/A';
+                      
+                      return (
+                        <div key={payment.payment_id ?? index} className="bg-white p-3 rounded border">
+                          <div className="grid grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Month:</span> 
+                              <span className="font-medium ml-1">{paymentDate}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Amount:</span> 
+                              <span className="font-medium ml-1">{formatCurrency(amountPaid)}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Status:</span> 
+                              <span className="font-medium ml-1">{payment.payment_status}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Receipt:</span> 
+                              <span className="font-medium ml-1">{payment.receipt_no || 'N/A'}</span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
               {/* Expected Payments */}
-              {selectedSummary.expected_payments && selectedSummary.expected_payments.length > 0 && (
+              {selectedSummary?.expected_payments && selectedSummary.expected_payments.length > 0 && (
                 <div className="bg-purple-50 p-4 rounded-lg">
                   <h3 className="font-semibold text-lg mb-3">Expected Payments</h3>
                   <div className="space-y-2">
-                    {selectedSummary.expected_payments.map((expected, index) => (
-                      <div key={index} className="bg-white p-3 rounded border">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div><span className="text-muted-foreground">Month:</span> <span className="font-medium">{expected.expected_payment_month ? new Date(expected.expected_payment_month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A'}</span></div>
-                          <div><span className="text-muted-foreground">Status:</span> <span className="font-medium text-red-600">{expected.payment_status}</span></div>
+                    {selectedSummary.expected_payments.map((expected: CollegeStudentTransportExpectedPayment, index: number) => {
+                      const expectedDate = expected.expected_payment_month 
+                        ? new Date(expected.expected_payment_month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                        : 'N/A';
+                      
+                      return (
+                        <div key={`${expected.expected_payment_month}-${index}`} className="bg-white p-3 rounded border">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Month:</span> 
+                              <span className="font-medium ml-1">{expectedDate}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Status:</span> 
+                              <span className="font-medium text-red-600 ml-1">{expected.payment_status}</span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
               {/* Payment Period */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-lg mb-3">Payment Period</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><span className="text-muted-foreground">First Expected Payment:</span> <span className="font-medium">{selectedSummary.first_expected_payment_month ? new Date(selectedSummary.first_expected_payment_month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A'}</span></div>
-                  <div><span className="text-muted-foreground">Last Expected Payment:</span> <span className="font-medium">{selectedSummary.last_expected_payment_month ? new Date(selectedSummary.last_expected_payment_month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A'}</span></div>
+              {selectedSummary && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-semibold text-lg mb-3">Payment Period</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">First Expected Payment:</span> 
+                      <span className="font-medium ml-1">
+                        {selectedSummary.first_expected_payment_month 
+                          ? new Date(selectedSummary.first_expected_payment_month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                          : 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Last Expected Payment:</span> 
+                      <span className="font-medium ml-1">
+                        {selectedSummary.last_expected_payment_month 
+                          ? new Date(selectedSummary.last_expected_payment_month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                          : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </DialogContent>

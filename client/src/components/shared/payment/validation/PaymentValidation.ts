@@ -62,7 +62,10 @@ export class PaymentValidator {
 
     // Validate tuition fee sequence
     if (tuitionItems.length > 0) {
-      const termNumbers = tuitionItems.map(item => item.termNumber!).sort();
+      const termNumbers = tuitionItems
+        .map(item => item.termNumber)
+        .filter((term): term is number => term !== undefined)
+        .sort();
       for (let i = 0; i < termNumbers.length - 1; i++) {
         if (termNumbers[i + 1] - termNumbers[i] !== 1) {
           errors.push('Tuition fee terms must be paid sequentially (1 → 2 → 3)');
@@ -72,14 +75,24 @@ export class PaymentValidator {
     }
 
     // Validate transport fee sequence
+    // Only validate term-based transport fees (schools), not monthly-based (colleges)
     if (transportItems.length > 0) {
-      const termNumbers = transportItems.map(item => item.termNumber!).sort();
-      for (let i = 0; i < termNumbers.length - 1; i++) {
-        if (termNumbers[i + 1] - termNumbers[i] !== 1) {
-          errors.push('Transport fee terms must be paid sequentially (1 → 2)');
-          break;
+      // Filter out college transport fees (those with paymentMonth)
+      const termBasedTransportItems = transportItems.filter(item => !item.paymentMonth);
+      
+      if (termBasedTransportItems.length > 0) {
+        const termNumbers = termBasedTransportItems
+          .map(item => item.termNumber)
+          .filter((term): term is number => term !== undefined)
+          .sort();
+        for (let i = 0; i < termNumbers.length - 1; i++) {
+          if (termNumbers[i + 1] - termNumbers[i] !== 1) {
+            errors.push('Transport fee terms must be paid sequentially (1 → 2)');
+            break;
+          }
         }
       }
+      // College transport fees with paymentMonth are validated for sequential months in the backend
     }
 
     return {
@@ -189,13 +202,29 @@ export class PaymentValidator {
   /**
    * Validates term number for tuition and transport fees
    */
-  static validateTermNumber(purpose: PaymentPurpose, termNumber?: number, maxTerms: number = 3): PaymentValidationResult {
+  static validateTermNumber(purpose: PaymentPurpose, termNumber?: number, maxTerms: number = 3, paymentMonth?: string): PaymentValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    if (purpose === 'TUITION_FEE' || purpose === 'TRANSPORT_FEE') {
+    if (purpose === 'TUITION_FEE') {
+      // Tuition fees always require termNumber
       if (!termNumber) {
-        errors.push('Term number is required for tuition and transport fees');
+        errors.push('Term number is required for tuition fees');
+      } else if (termNumber < 1 || termNumber > maxTerms) {
+        errors.push(`Term number must be between 1 and ${maxTerms}`);
+      }
+    } else if (purpose === 'TRANSPORT_FEE') {
+      // Transport fees: colleges use paymentMonth, schools use termNumber
+      // If paymentMonth is provided, it's a college payment (monthly-based) - don't require termNumber
+      if (paymentMonth) {
+        // College transport fee - validate paymentMonth format instead
+        const monthRegex = /^\d{4}-\d{2}-01$/;
+        if (!monthRegex.test(paymentMonth)) {
+          errors.push('Payment month must be in YYYY-MM-01 format (e.g., 2024-01-01)');
+        }
+      } else if (!termNumber) {
+        // School transport fee - requires termNumber
+        errors.push('Term number is required for transport fees');
       } else if (termNumber < 1 || termNumber > maxTerms) {
         errors.push(`Term number must be between 1 and ${maxTerms}`);
       }
@@ -219,7 +248,13 @@ export class PaymentValidator {
     data.details.forEach((item, index) => {
       const amountValidation = this.validateAmount(item.amount, rules);
       const customPurposeValidation = this.validateCustomPurposeName(item.purpose, item.customPurposeName);
-      const termValidation = this.validateTermNumber(item.purpose, item.termNumber, rules.amountRange.max === 1000000 ? 3 : 2);
+      // For transport fees, check if paymentMonth is present (college) or termNumber (school)
+      const termValidation = this.validateTermNumber(
+        item.purpose, 
+        item.termNumber, 
+        rules.amountRange.max === 1000000 ? 3 : 2,
+        item.paymentMonth // Pass paymentMonth to validateTermNumber for transport fees
+      );
 
       allErrors.push(...amountValidation.errors.map(error => `Payment ${index + 1}: ${error}`));
       allErrors.push(...customPurposeValidation.errors.map(error => `Payment ${index + 1}: ${error}`));
@@ -292,8 +327,10 @@ export function getAvailableTerms(
 ): Array<{ term: number; available: boolean; paid: boolean; outstanding: number }> {
   // Different term counts based on purpose and institution type
   // Schools: 3 terms for tuition, 2 terms for transport
-  // Colleges: No terms (single payment)
-  const maxTerms = institutionType === 'college' ? 0 : (purpose === 'TRANSPORT_FEE' ? 2 : 3);
+  // Colleges: 3 terms for tuition (term-based), 0 terms for transport (monthly payments)
+  const maxTerms = institutionType === 'college' 
+    ? (purpose === 'TUITION_FEE' ? 3 : 0)  // Colleges have term-based tuition, monthly transport
+    : (purpose === 'TRANSPORT_FEE' ? 2 : 3);  // Schools have term-based for both
   const terms: Array<{ term: number; available: boolean; paid: boolean; outstanding: number }> = [];
 
 
@@ -354,6 +391,7 @@ export function isFeePurposeAvailable(
   const bookOutstanding = feeBalances.bookFee.outstanding;
   const bookFeePending = bookOutstanding > 0;
   const bookFeeAdded = addedPurposes.includes('BOOK_FEE');
+  const isCollege = institutionType === 'college';
 
   switch (purpose) {
     case 'BOOK_FEE':
@@ -363,9 +401,13 @@ export function isFeePurposeAvailable(
         outstandingAmount: bookOutstanding
       };
 
-    case 'TUITION_FEE':
+    case 'TUITION_FEE': {
       const tuitionTerms = getAvailableTerms('TUITION_FEE', feeBalances, institutionType);
+      
+      // Both colleges and schools use term-based tuition fees
+      // Check if any tuition term is available
       const hasAvailableTuitionTerm = tuitionTerms.some(term => term.available);
+      
       const totalTuitionOutstanding = tuitionTerms.reduce((sum, term) => sum + term.outstanding, 0);
       
       // If book fee is pending and not added, tuition fee is not available
@@ -379,14 +421,25 @@ export function isFeePurposeAvailable(
       
       return {
         available: hasAvailableTuitionTerm,
-        reason: !hasAvailableTuitionTerm ? 'No tuition fee terms available for payment' : undefined,
+        reason: !hasAvailableTuitionTerm ? 'No tuition fee available for payment' : undefined,
         outstandingAmount: totalTuitionOutstanding
       };
+    }
 
-    case 'TRANSPORT_FEE':
+    case 'TRANSPORT_FEE': {
       const transportTerms = getAvailableTerms('TRANSPORT_FEE', feeBalances, institutionType);
-      const hasAvailableTransportTerm = transportTerms.some(term => term.available);
-      const totalTransportOutstanding = transportTerms.reduce((sum, term) => sum + term.outstanding, 0);
+      
+      // For colleges, transport fee is monthly-based and availability depends on expected payments
+      // Since we can't check expected payments here (requires enrollment_id), we allow it to be available
+      // The TransportFeeComponent will handle showing expected payments or "no payments" message
+      // For schools, check if any transport term is available
+      const hasAvailableTransportTerm = isCollege 
+        ? true // Always allow for colleges - actual availability checked in TransportFeeComponent via expected payments
+        : transportTerms.some(term => term.available);
+      
+      const totalTransportOutstanding = isCollege 
+        ? feeBalances.transportFee.total 
+        : transportTerms.reduce((sum, term) => sum + term.outstanding, 0);
       
       // If book fee is pending and not added, transport fee is not available
       if (bookFeePending && !bookFeeAdded) {
@@ -399,9 +452,10 @@ export function isFeePurposeAvailable(
       
       return {
         available: hasAvailableTransportTerm,
-        reason: !hasAvailableTransportTerm ? 'No transport fee terms available for payment' : undefined,
+        reason: !hasAvailableTransportTerm ? 'No transport fee available for payment' : undefined,
         outstandingAmount: totalTransportOutstanding
       };
+    }
 
     case 'OTHER':
       // If book fee is pending and not added, other payments are not available
