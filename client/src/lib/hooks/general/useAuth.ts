@@ -156,24 +156,6 @@ export function useLogin() {
 
       // Step 9: Login user
       login(user as any, branchList as any);
-          tokenPayload: {
-            user_id: tokenPayload.user_id,
-            current_branch_id: tokenPayload.current_branch_id,
-            roles: tokenPayload.roles,
-            is_institute_admin: tokenPayload.is_institute_admin,
-          },
-        });
-      }
-
-      // Step 9: Create branch list
-      const branchList = branches.map((b) => ({
-        branch_id: b.branch_id,
-        branch_name: b.branch_name,
-        branch_type: b.branch_type,
-      }));
-
-      // Step 10: Login user
-      login(user, branchList);
 
       // Step 10: All users redirect to dashboard - DashboardRouter will show appropriate dashboard
       const redirectPath = "/";

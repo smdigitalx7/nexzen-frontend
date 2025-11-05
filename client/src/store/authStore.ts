@@ -1,17 +1,9 @@
 import { create } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
-import { AuthService } from "@/lib/services/general/auth.service";
+import { AuthService } from "@/lib/services/general";
 import { AuthTokenTimers } from "@/lib/api";
-<<<<<<< HEAD
-import {
-  ROLES,
-  type UserRole,
-  normalizeRole,
-} from "@/lib/constants/auth/roles";
-=======
 import { ROLES, type UserRole, normalizeRole } from "@/lib/constants";
->>>>>>> a1f16fcbb0173b1117141c887ce4a46fc6552c88
 import { extractPrimaryRole } from "@/lib/utils/roles";
 
 export interface AuthUser {
@@ -380,7 +372,7 @@ export const useAuthStore = create<AuthState>()(
                       current_branch_id: branch.branch_id,
                       role: normalizedRole,
                     },
-                    // CRITICAL: Preserve authentication state
+                    // CRITICAL: Keep authenticated true after branch switch
                     isAuthenticated: true,
                   });
                 }
@@ -397,7 +389,7 @@ export const useAuthStore = create<AuthState>()(
                           current_branch_id: branch.branch_id,
                           role: normalizedRole,
                         },
-                        // CRITICAL: Preserve authentication state
+                        // CRITICAL: Keep authenticated true after branch switch
                         isAuthenticated: true,
                       });
                     }
@@ -408,17 +400,13 @@ export const useAuthStore = create<AuthState>()(
                       ...current.user,
                       current_branch_id: branch.branch_id,
                     },
-                    // CRITICAL: Preserve authentication state
+                    // CRITICAL: Keep authenticated true after branch switch
                     isAuthenticated: true,
                   });
                 }
               }
 
-              set({
-                isBranchSwitching: false,
-                // CRITICAL: Ensure authenticated after branch switch
-                isAuthenticated: true,
-              });
+              set({ isBranchSwitching: false });
               console.log(
                 "Branch switched successfully with new token and clients updated"
               );
@@ -438,120 +426,37 @@ export const useAuthStore = create<AuthState>()(
                         current_branch_id: branch.branch_id,
                         role: normalizedRole,
                       },
-                      isBranchSwitching: false,
-                      // CRITICAL: Preserve authentication state
+                      // CRITICAL: Keep authenticated true
                       isAuthenticated: true,
+                      isBranchSwitching: false,
                     });
                   } else {
                     set({
                       currentBranch: branch,
+                      isAuthenticated: true, // Keep authenticated
                       isBranchSwitching: false,
-                      // CRITICAL: Preserve authentication state
-                      isAuthenticated: true,
                     });
                   }
                 } else {
                   set({
                     currentBranch: branch,
+                    isAuthenticated: true, // Keep authenticated
                     isBranchSwitching: false,
-                    // CRITICAL: Preserve authentication state
-                    isAuthenticated: true,
                   });
                 }
               } else {
                 set({
                   currentBranch: branch,
+                  isAuthenticated: true, // Keep authenticated
                   isBranchSwitching: false,
-                  // CRITICAL: Preserve authentication state
-                  isAuthenticated: true,
                 });
               }
               console.log("Branch switched locally (no token response)");
             }
           } catch (error) {
             console.error("Failed to switch branch:", error);
-
-            // Check if error is authentication-related
-            const isAuthError =
-              error instanceof Error &&
-              (error.message.includes("401") ||
-                error.message.includes("403") ||
-                error.message.includes("unauthorized") ||
-                error.message.includes("forbidden"));
-
-            if (isAuthError) {
-              // Authentication error - might need to refresh token
-              // Try to refresh and retry, but don't logout immediately
-              try {
-                const refreshed = await get().refreshTokenAsync();
-                if (refreshed) {
-                  // Retry branch switch with refreshed token
-                  const retryResponse = (await AuthService.switchBranch(
-                    branch.branch_id
-                  )) as any;
-
-                  if (retryResponse?.access_token) {
-                    const expireAtMs = retryResponse?.expiretime
-                      ? new Date(retryResponse.expiretime).getTime()
-                      : null;
-                    useAuthStore
-                      .getState()
-                      .setTokenAndExpiry(
-                        retryResponse.access_token,
-                        expireAtMs
-                      );
-
-                    // Extract role and update
-                    const current = useAuthStore.getState();
-                    if (
-                      current.user &&
-                      branch.roles &&
-                      branch.roles.length > 0
-                    ) {
-                      const roleToUse = extractPrimaryRole(branch.roles);
-                      if (roleToUse) {
-                        const normalizedRole = normalizeRole(roleToUse);
-                        if (normalizedRole) {
-                          set({
-                            currentBranch: branch,
-                            user: {
-                              ...current.user,
-                              current_branch_id: branch.branch_id,
-                              role: normalizedRole,
-                            },
-                            isBranchSwitching: false,
-                            isAuthenticated: true,
-                          });
-                          return;
-                        }
-                      }
-                    }
-
-                    set({
-                      currentBranch: branch,
-                      user: current.user
-                        ? {
-                            ...current.user,
-                            current_branch_id: branch.branch_id,
-                          }
-                        : current.user,
-                      isBranchSwitching: false,
-                      isAuthenticated: true,
-                    });
-                    return;
-                  }
-                }
-              } catch (refreshError) {
-                console.error(
-                  "Failed to refresh token during branch switch:",
-                  refreshError
-                );
-                // Continue to fallback - don't logout
-              }
-            }
-
-            // Fallback: Still update the branch locally even if API call fails
-            // This ensures the UI doesn't break and user stays authenticated
+            // Still update the branch locally even if API call fails
+            // Extract role from branch.roles if available
             const current = useAuthStore.getState();
             if (current.user && branch.roles && branch.roles.length > 0) {
               const roleToUse = extractPrimaryRole(branch.roles);
@@ -565,61 +470,52 @@ export const useAuthStore = create<AuthState>()(
                       current_branch_id: branch.branch_id,
                       role: normalizedRole,
                     },
-                    isBranchSwitching: false,
-                    // CRITICAL: Preserve authentication state even on error
+                    // CRITICAL: Keep authenticated true even on error
                     isAuthenticated: true,
+                    isBranchSwitching: false,
                   });
-                  console.log(
-                    "Branch switched locally (API call failed, using fallback)"
-                  );
-                  return;
+                } else {
+                  set({
+                    currentBranch: branch,
+                    isAuthenticated: true, // Keep authenticated
+                    isBranchSwitching: false,
+                  });
                 }
+              } else {
+                set({
+                  currentBranch: branch,
+                  isAuthenticated: true, // Keep authenticated
+                  isBranchSwitching: false,
+                });
               }
+            } else {
+              set({
+                currentBranch: branch,
+                isAuthenticated: true, // Keep authenticated
+                isBranchSwitching: false,
+              });
             }
-
-            // Final fallback - just update branch
-            set({
-              currentBranch: branch,
-              user: current.user
-                ? {
-                    ...current.user,
-                    current_branch_id: branch.branch_id,
-                  }
-                : current.user,
-              isBranchSwitching: false,
-              // CRITICAL: Preserve authentication state
-              isAuthenticated: true,
-            });
-            console.log(
-              "Branch switched locally (API call failed, minimal fallback)"
-            );
+            console.log("Branch switched locally (API call failed)");
           }
         },
         switchAcademicYear: (year) => {
-          const current = useAuthStore.getState();
+          // CRITICAL: Keep authentication state when switching academic year
           set({
             academicYear: year.year_name,
-            // CRITICAL: Preserve authentication state
-            isAuthenticated: current.isAuthenticated,
+            isAuthenticated: true, // Preserve authentication
           });
         },
         setAcademicYears: (years) => {
-          const current = useAuthStore.getState();
-          set({
-            academicYears: years,
-            // CRITICAL: Preserve authentication state
-            isAuthenticated: current.isAuthenticated,
-          });
+          set({ academicYears: years });
         },
         setLoading: (loading) => {
           set({ isLoading: loading });
         },
         setAcademicYear: (year) => {
-          const current = useAuthStore.getState();
+          // CRITICAL: Keep authentication state when setting academic year
           set({
             academicYear: year,
-            // CRITICAL: Preserve authentication state
-            isAuthenticated: current.isAuthenticated,
+            isAuthenticated: true, // Preserve authentication
           });
         },
         setToken: (token) => {
@@ -629,12 +525,6 @@ export const useAuthStore = create<AuthState>()(
           set((state) => {
             state.token = token;
             state.tokenExpireAt = expireAtMs;
-            // CRITICAL: If token exists and user exists, we MUST be authenticated
-            if (token && state.user) {
-              state.isAuthenticated = true;
-            } else if (!token) {
-              state.isAuthenticated = false;
-            }
           });
 
           // Also store in sessionStorage for security
@@ -672,35 +562,36 @@ export const useAuthStore = create<AuthState>()(
               return false;
             }
 
-<<<<<<< HEAD
-            // Update token and expiration from response
-            const expireAtMs = response.expiretime
-              ? new Date(response.expiretime).getTime()
-              : null;
-            get().setTokenAndExpiry(response.access_token, expireAtMs);
-
-=======
             // Decode new token to extract expiration and update role if needed
-            const { getTokenExpiration, decodeJWT, getRoleFromToken } = await import("@/lib/utils/auth/jwt");
+            const { getTokenExpiration, decodeJWT, getRoleFromToken } =
+              await import("@/lib/utils/auth/jwt");
             const { normalizeRole } = await import("@/lib/constants");
-            
+
             const tokenPayload = decodeJWT(response.access_token);
             let expireAtMs: number | null = null;
-            
+
             if (tokenPayload) {
               // Extract new expiration from token
               const tokenExpiration = getTokenExpiration(response.access_token);
-              expireAtMs = tokenExpiration 
-                ? tokenExpiration 
-                : (response.expiretime ? new Date(response.expiretime).getTime() : null);
-              
+              expireAtMs = tokenExpiration
+                ? tokenExpiration
+                : response.expiretime
+                  ? new Date(response.expiretime).getTime()
+                  : null;
+
               // Update user role if it changed
               const currentState = get();
               if (currentState.user && tokenPayload.current_branch_id) {
-                const newRole = getRoleFromToken(response.access_token, tokenPayload.current_branch_id);
+                const newRole = getRoleFromToken(
+                  response.access_token,
+                  tokenPayload.current_branch_id
+                );
                 const normalizedRole = normalizeRole(newRole);
-                
-                if (normalizedRole && currentState.user.role !== normalizedRole) {
+
+                if (
+                  normalizedRole &&
+                  currentState.user.role !== normalizedRole
+                ) {
                   set((state) => {
                     if (state.user) {
                       state.user.role = normalizedRole;
@@ -710,13 +601,14 @@ export const useAuthStore = create<AuthState>()(
               }
             } else {
               // Fallback to expiretime from response
-              expireAtMs = response.expiretime ? new Date(response.expiretime).getTime() : null;
+              expireAtMs = response.expiretime
+                ? new Date(response.expiretime).getTime()
+                : null;
             }
-            
+
             // Update token and expiration once
             get().setTokenAndExpiry(response.access_token, expireAtMs);
-              
->>>>>>> a1f16fcbb0173b1117141c887ce4a46fc6552c88
+
             set((state) => {
               state.isTokenRefreshing = false;
             });
@@ -809,7 +701,7 @@ export const useAuthStore = create<AuthState>()(
         name: "enhanced-auth-storage",
         storage:
           typeof window !== "undefined"
-              ? {
+            ? ({
                 getItem: (name: string) => {
                   // Get user data from localStorage
                   const userData = localStorage.getItem(name);
@@ -847,7 +739,8 @@ export const useAuthStore = create<AuthState>()(
                 },
                 setItem: (name: string, value: any) => {
                   try {
-                    const valueStr = typeof value === "string" ? value : JSON.stringify(value);
+                    const valueStr =
+                      typeof value === "string" ? value : JSON.stringify(value);
                     const parsed = JSON.parse(valueStr);
                     // Store token separately in sessionStorage
                     if (parsed.state?.token) {
@@ -869,7 +762,8 @@ export const useAuthStore = create<AuthState>()(
 
                     localStorage.setItem(name, JSON.stringify(parsed));
                   } catch {
-                    const valueStr = typeof value === "string" ? value : JSON.stringify(value);
+                    const valueStr =
+                      typeof value === "string" ? value : JSON.stringify(value);
                     localStorage.setItem(name, valueStr);
                   }
                 },
@@ -878,14 +772,13 @@ export const useAuthStore = create<AuthState>()(
                   sessionStorage.removeItem("access_token");
                   sessionStorage.removeItem("token_expires");
                 },
-              } as any
+              } as any)
             : undefined,
         partialize: (state) => {
-          // Persist user data - isAuthenticated is NOT persisted, it's computed from token + user
-          // During rehydration, onRehydrateStorage will set isAuthenticated based on sessionStorage token
+          // Persist user data - isAuthenticated will be restored during rehydration
           return {
             user: state.user,
-            // DO NOT persist isAuthenticated - it must be computed from token presence
+            isAuthenticated: state.isAuthenticated,
             academicYear: state.academicYear,
             academicYears: state.academicYears,
             // Don't persist token, refreshToken - stored in sessionStorage separately
@@ -915,51 +808,27 @@ export const useAuthStore = create<AuthState>()(
               return;
             }
 
-            // CRITICAL: Restore token and authentication state SYNCHRONOUSLY
-            // This runs immediately after Zustand rehydrates from localStorage
+            // CRITICAL: Restore token synchronously during rehydration
             if (state && typeof window !== "undefined") {
               const token = sessionStorage.getItem("access_token");
               const tokenExpires = sessionStorage.getItem("token_expires");
 
               if (token && tokenExpires && state.user) {
-                const expireAt = parseInt(tokenExpires, 10);
+                const expireAt = parseInt(tokenExpires);
                 const now = Date.now();
 
-                // Check if token is expired or will expire in next 5 seconds
-                if (now >= expireAt - 5000) {
-                  // Token expired or expiring very soon - try to refresh
-                  // Don't logout immediately, let the API layer handle refresh
-                  if (now >= expireAt) {
-                    // Already expired - try immediate refresh
-                    setTimeout(async () => {
-                      try {
-                        const { refreshTokenAsync } = useAuthStore.getState();
-                        const refreshed = await refreshTokenAsync();
-                        if (!refreshed) {
-                          useAuthStore.getState().logout();
-                          window.location.href = "/login";
-                        }
-                      } catch {
-                        useAuthStore.getState().logout();
-                        window.location.href = "/login";
-                      }
-                    }, 0);
-                    // Still set the state temporarily so app doesn't break
-                    state.token = token;
-                    state.tokenExpireAt = expireAt;
-                    state.isAuthenticated = true;
-                    return;
-                  }
+                if (now >= expireAt) {
+                  // Token expired - logout async to avoid blocking
+                  setTimeout(() => {
+                    useAuthStore.getState().logout();
+                  }, 0);
+                  return;
                 }
 
-                // Valid token + user = MUST be authenticated - set directly on state
-                // This is synchronous and will trigger React re-renders
+                // Valid token + user = MUST be authenticated - set directly
                 state.token = token;
                 state.tokenExpireAt = expireAt;
                 state.isAuthenticated = true; // CRITICAL: Force authenticated
-
-                // Schedule proactive refresh if token is valid
-                AuthTokenTimers.scheduleProactiveRefresh();
               } else if (!token && state.user) {
                 // No token but have user - invalid, clear
                 state.user = null;
@@ -969,34 +838,9 @@ export const useAuthStore = create<AuthState>()(
                 state.tokenExpireAt = null;
                 state.isAuthenticated = false;
               } else if (token && !state.user) {
-                // Token but no user - try to restore user from /auth/me
-                // This can happen if localStorage was cleared but sessionStorage wasn't
-                setTimeout(() => {
-                  // Try to restore user data asynchronously
-                  import("@/lib/services/general/auth.service")
-                    .then(({ AuthService }) => AuthService.me())
-                    .then((meResponse) => {
-                      // If we get user info, update the store
-                      if (meResponse) {
-                        // User data will be restored by the component that uses it
-                        // For now, just ensure token is set
-                        const store = useAuthStore.getState();
-                        if (store.token && !store.user) {
-                          // Token is valid but user not restored - this is a valid state
-                          // The app should fetch user data
-                        }
-                      }
-                    })
-                    .catch(() => {
-                      // Can't restore user - clear token
-                      useAuthStore.getState().logout();
-                    });
-                }, 0);
-                // Temporarily set authenticated to false
-                state.token = token;
-                state.tokenExpireAt = tokenExpires
-                  ? parseInt(tokenExpires, 10)
-                  : null;
+                // Token but no user - invalid, clear token
+                state.token = null;
+                state.tokenExpireAt = null;
                 state.isAuthenticated = false;
               } else {
                 // No token and no user
