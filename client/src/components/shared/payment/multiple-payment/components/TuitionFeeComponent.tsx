@@ -10,13 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -35,10 +28,7 @@ import type {
   PaymentMethod,
 } from "../../types/PaymentTypes";
 
-const paymentMethodOptions: Array<{ value: PaymentMethod; label: string }> = [
-  { value: "CASH", label: "Cash" },
-  { value: "ONLINE", label: "Online" },
-];
+
 
 interface TuitionFeeComponentProps extends PurposeSpecificComponentProps {
   isOpen: boolean;

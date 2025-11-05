@@ -77,25 +77,32 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
   const isMountedRef = useRef(true);
 
   // Debug logging for modal state changes (only in development)
+  // Only log when state actually changes to avoid excessive logging
+  const prevModalState = useRef({ showReceiptModal: false, receiptBlobUrl: null as string | null });
   useEffect(() => {
     if (import.meta.env.DEV) {
-      console.log("🔍 MultiplePaymentForm modal state changed:", {
-        showReceiptModal,
-        receiptBlobUrl: !!receiptBlobUrl,
-        timestamp: new Date().toISOString(),
-      });
+      const stateChanged = 
+        prevModalState.current.showReceiptModal !== showReceiptModal ||
+        prevModalState.current.receiptBlobUrl !== receiptBlobUrl;
 
-      // Track when modal state changes to false
-      if (!showReceiptModal && receiptBlobUrl) {
-        console.log("⚠️ MODAL STATE LOST! Blob URL exists but modal is false");
-        console.log(
-          "⚠️ This suggests a competing state update or component unmounting"
-        );
-      }
+      if (stateChanged) {
+        console.log("🔍 MultiplePaymentForm modal state changed:", {
+          showReceiptModal,
+          receiptBlobUrl: !!receiptBlobUrl,
+          timestamp: new Date().toISOString(),
+        });
 
-      // Log when both conditions are met
-      if (showReceiptModal && receiptBlobUrl) {
-        console.log("🎯 Both conditions met - modal should render!");
+        // Track when modal state changes to false
+        if (!showReceiptModal && receiptBlobUrl) {
+          console.log("⚠️ MODAL STATE LOST! Blob URL exists but modal is false");
+        }
+
+        // Log when both conditions are met
+        if (showReceiptModal && receiptBlobUrl) {
+          console.log("🎯 Both conditions met - modal should render!");
+        }
+
+        prevModalState.current = { showReceiptModal, receiptBlobUrl };
       }
     }
   }, [showReceiptModal, receiptBlobUrl]);
@@ -226,8 +233,9 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
         throw new Error("Invalid blob URL received from API");
       }
 
-      // Set the blob URL and open modal immediately
+      // CRITICAL: Set receipt modal states FIRST before other updates
       setReceiptBlobUrl(blobUrl);
+      setLastPaymentIncomeId(incomeId);
       setShowReceiptModal(true);
       setModalRenderKey((prev) => prev + 1);
 
@@ -236,9 +244,13 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
         showReceiptModal: true,
         receiptBlobUrl: blobUrl,
       };
+
+      // Don't show success toast or set paymentCompleted here
+      // These will be shown/set only after the receipt modal is closed
     } catch (error) {
       console.error("❌ Failed to generate receipt blob:", error);
 
+      // Show error toast
       toast({
         title: "Receipt Generation Failed",
         description:
@@ -247,12 +259,29 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
             : "Could not generate receipt. Please try again.",
         variant: "destructive",
       });
+
+      // Still show payment success even if receipt generation fails
+      toast({
+        title: "Payment Successful",
+        description: `Payment completed successfully.`,
+        variant: "success",
+      });
+      setPaymentCompleted(true);
     }
   };
 
   const handleCloseReceiptModal = () => {
     console.log("📄 Closing receipt modal");
     setShowReceiptModal(false);
+
+    // Show success toast and set payment completed ONLY after receipt modal is closed
+    toast({
+      title: "Payment Successful",
+      description: `Payment of ${formatTotalAmount(totalAmount)} completed successfully.`,
+      variant: "success",
+    });
+
+    setPaymentCompleted(true);
 
     // Redirect to receipt after modal closes
     if (receiptBlobUrl) {
@@ -298,28 +327,24 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
       // Process payment and get income ID
       const paymentResult = await onPaymentComplete(paymentData);
 
-      // Show success toast
-      toast({
-        title: "Payment Successful",
-        description: `Payment of ${formatTotalAmount(totalAmount)} completed successfully.`,
-        variant: "success",
-      });
-
-      // Set payment completed state
-      setPaymentCompleted(true);
-
       // Check if payment was successful and we have an income ID
+      // PRIORITY: Set receipt modal states FIRST before other state updates
       if (paymentResult !== undefined && paymentResult !== null) {
         // Handle the API response structure from handlePayByAdmissionWithIncomeId
-        if (typeof paymentResult === "object" && paymentResult.income_id) {
-          const incomeId = paymentResult.income_id;
+        // Type guard for payment result with income_id and blobUrl
+        if (
+          typeof paymentResult === "object" &&
+          "income_id" in paymentResult &&
+          typeof (paymentResult as { income_id: number }).income_id === "number"
+        ) {
+          const typedResult = paymentResult as { income_id: number; blobUrl?: string; paymentData?: any };
+          const incomeId = typedResult.income_id;
 
           // The blobUrl is already generated by handlePayByAdmissionWithIncomeId
-          if (paymentResult.blobUrl) {
-            console.log("📄 Setting receipt blob URL:", paymentResult.blobUrl);
-
-            // Store receipt data and open modal immediately
-            setReceiptBlobUrl(paymentResult.blobUrl);
+          if (typedResult.blobUrl) {
+            // CRITICAL: Set receipt modal states FIRST in a single batch
+            // Use React's automatic batching by grouping all state updates together
+            setReceiptBlobUrl(typedResult.blobUrl);
             setLastPaymentIncomeId(incomeId);
             setShowReceiptModal(true);
             setModalRenderKey((prev) => prev + 1);
@@ -327,11 +352,12 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
             // Update ref to persist state
             modalStateRef.current = {
               showReceiptModal: true,
-              receiptBlobUrl: paymentResult.blobUrl,
+              receiptBlobUrl: typedResult.blobUrl,
             };
+
+            // Don't show success toast or set paymentCompleted here
+            // These will be shown/set only after the receipt modal is closed
           } else {
-            console.log("📄 No blobUrl in response, generating receipt blob");
-            console.log("📄 Payment result structure:", paymentResult);
             // Fallback: generate receipt blob
             await generateReceiptBlob(incomeId);
           }
@@ -340,23 +366,21 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
           let incomeId: number | null = null;
 
           // Type assertion to handle the response object
-          const result = paymentResult;
+          const result = paymentResult as Record<string, any>;
 
           // Check for income_id in different possible locations
           if (result.data && typeof result.data === "object") {
-            const data = result.data;
+            const data = result.data as Record<string, any>;
             if (data.context && typeof data.context === "object") {
-              incomeId = data.context.income_id;
+              incomeId = (data.context as { income_id?: number }).income_id ?? null;
             } else if (data.income_id) {
-              incomeId = data.income_id;
+              incomeId = typeof data.income_id === "number" ? data.income_id : null;
             }
           } else if (result.income_id) {
-            incomeId = result.income_id;
+            incomeId = typeof result.income_id === "number" ? result.income_id : null;
           }
 
           if (incomeId && typeof incomeId === "number") {
-            console.log("📄 Payment successful, income ID:", incomeId);
-
             // Generate receipt blob after successful payment
             // The generateReceiptBlob function will handle opening the modal after dialog closes
             await generateReceiptBlob(incomeId);
@@ -406,12 +430,16 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
 
       // For tuition and transport fees, check if all terms are already added
       if (purpose === "TUITION_FEE" || purpose === "TRANSPORT_FEE") {
-        const maxTerms =
-          config.institutionType === "college"
-            ? 0
-            : purpose === "TRANSPORT_FEE"
-              ? 2
-              : 3;
+        // For colleges, don't filter based on terms - availability is determined by outstanding amounts
+        // and expected payments (for transport), which are checked in PurposeSelectionModal
+        if (config.institutionType === "college") {
+          // For colleges, always include if not already added as a purpose
+          // The actual availability (outstanding amounts) is checked in PurposeSelectionModal
+          return !paymentItems.some((item) => item.purpose === purpose);
+        }
+        
+        // For schools, check if all terms are already added
+        const maxTerms = purpose === "TRANSPORT_FEE" ? 2 : 3;
         const addedTerms = paymentItems
           .filter((item) => item.purpose === purpose)
           .map((item) => item.termNumber)
@@ -460,36 +488,18 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
     }
   };
 
-  // Debug: Log render state (only in development)
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log("🔍 MultiplePaymentForm render:", {
-        showReceiptModal,
-        receiptBlobUrl: !!receiptBlobUrl,
-        shouldRenderModal: showReceiptModal && receiptBlobUrl,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // Additional debug for modal rendering (only in development)
-    if (import.meta.env.DEV && showReceiptModal && receiptBlobUrl) {
-      //  console.log("🎯 MODAL SHOULD BE RENDERING NOW!");
-      //  console.log("🎯 Modal state:", showReceiptModal);
-      //  console.log("🎯 Blob URL:", receiptBlobUrl);
-    }
-  });
+  // Removed excessive render logging - only log when modal state actually changes
+  // The modal state change logging is handled in the useEffect above with proper dependencies
 
   // Force modal to show if both conditions are met
+  // Only update if state is actually out of sync to prevent render loops
   useEffect(() => {
-    if (receiptBlobUrl && !showReceiptModal) {
-      console.log(
-        "🔧 Force showing modal - blob URL exists but modal not showing"
-      );
-      console.log("🔧 Current state:", {
-        showReceiptModal,
-        receiptBlobUrl: !!receiptBlobUrl,
-      });
-      console.log("🔧 Ref state:", modalStateRef.current);
+    if (receiptBlobUrl && !showReceiptModal && isMountedRef.current) {
+      if (import.meta.env.DEV) {
+        console.log(
+          "🔧 Force showing modal - blob URL exists but modal not showing"
+        );
+      }
 
       setShowReceiptModal(true);
       setModalRenderKey((prev) => prev + 1);

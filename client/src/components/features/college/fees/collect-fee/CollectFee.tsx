@@ -6,44 +6,17 @@ import { CollegeMultiplePaymentForm } from "../multiple-payment/CollegeMultipleP
 import type { StudentInfo, FeeBalance, MultiplePaymentData } from "@/components/shared/payment/types/PaymentTypes";
 import { handleCollegePayByAdmissionWithIncomeId } from "@/lib/api-college";
 import { useToast } from "@/hooks/use-toast";
-import { Api } from "@/lib/api";
-import type { CollegeTuitionFeeBalanceRead } from "@/lib/types/college/tuition-fee-balances";
+import type { CollegeTuitionFeeBalanceRead, CollegeTuitionFeeBalanceFullRead } from "@/lib/types/college/tuition-fee-balances";
 import { CollegeTransportBalancesService } from "@/lib/services/college/transport-fee-balances.service";
-
-interface CollegeStudentData {
-  student_id?: number;
-  id?: number;
-  admission_no: string;
-  student_name: string;
-  section_name?: string;
-  class_name?: string;
-  academic_year?: string;
-}
-
-interface CollegeTuitionBalanceData {
-  book_fee?: number;
-  book_paid?: number;
-  term1_amount?: number;
-  term1_paid?: number;
-  term2_amount?: number;
-  term2_paid?: number;
-  term3_amount?: number;
-  term3_paid?: number;
-}
-
-interface CollegeTransportBalanceData {
-  term1_amount?: number;
-  term1_paid?: number;
-  term2_amount?: number;
-  term2_paid?: number;
-  term3_amount?: number;
-  term3_paid?: number;
-}
+import { CollegeEnrollmentsService, CollegeTuitionBalancesService } from "@/lib/services/college";
+import type { CollegeEnrollmentWithStudentDetails, CollegeStudentTransportPaymentSummary } from "@/lib/types/college";
+import type { ExpectedTransportPaymentsResponse } from "@/lib/types/college/transport-fee-balances";
 
 interface StudentFeeDetails {
-  student: CollegeStudentData;
-  tuitionBalance: CollegeTuitionFeeBalanceRead | CollegeTuitionBalanceData | null;
-  transportBalance?: CollegeTransportBalanceData | null;
+  enrollment: CollegeEnrollmentWithStudentDetails;
+  tuitionBalance: CollegeTuitionFeeBalanceRead | null;
+  transportExpectedPayments?: ExpectedTransportPaymentsResponse;
+  transportSummary?: CollegeStudentTransportPaymentSummary | null;
 }
 
 interface CollectFeeProps {
@@ -81,36 +54,56 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
   };
 
   // Search student function (reusable for both initial search and re-search)
-  const searchStudent = async (admissionNo: string, showToast = true) => {
+  const searchStudent = async (admissionNo: string, showToast = true, forceRefresh = false) => {
     try {
+      // If forceRefresh is true, invalidate cache and clear search results first
+      if (forceRefresh) {
+        // Clear search results immediately to show loading state
+        setSearchResults([]);
+        
+        // Import CacheUtils to invalidate cache
+        const { CacheUtils } = await import("@/lib/api");
+        
+        // Invalidate all college-related cache entries for this admission number
+        // This ensures we get fresh data after payment
+        CacheUtils.clearByPattern(/^GET:\/college\/student-enrollments\/by-admission\//);
+        CacheUtils.clearByPattern(/^GET:\/college\/tuition-fee-balances\//);
+        CacheUtils.clearByPattern(/^GET:\/college\/student-transport-payment\//);
+      }
+      
       // Update search query and URL
       setSearchQuery(admissionNo);
       // Update URL separately to avoid dependency issues
       setTimeout(() => updateUrlWithAdmission(admissionNo), 0);
       
-      // Always fetch fresh data - bypass cache
-      const student = await Api.get<CollegeStudentData>(
-        `/college/students/by-admission/${admissionNo}`,
-        { _t: Date.now() },
-        undefined,
-        { cache: false, dedupe: false }
-      );
+      // Import Api to bypass cache when forceRefresh is true
+      const { Api } = await import("@/lib/api");
       
-      const tuitionBalance = await Api.get<CollegeTuitionFeeBalanceRead | CollegeTuitionFeeBalanceRead[]>(
-        `/college/tuition-fee-balances/by-admission-no/${admissionNo}`,
-        { _t: Date.now() },
-        undefined,
-        { cache: false, dedupe: false }
-      ).catch(() => null);
-
-      // Handle array response (API may return array)
-      const tuitionBalanceData = Array.isArray(tuitionBalance) 
-        ? tuitionBalance[0] ?? null 
-        : tuitionBalance;
+      // Use enrollment endpoint to get enrollment data
+      // When forceRefresh is true, bypass cache by using cache: false option
+      const enrollment: CollegeEnrollmentWithStudentDetails = forceRefresh
+        ? await Api.get<CollegeEnrollmentWithStudentDetails>(`/college/student-enrollments/by-admission/${admissionNo}`, undefined, undefined, { cache: false })
+        : await CollegeEnrollmentsService.getByAdmission(admissionNo);
+      
+      // Fetch tuition balance, transport summary, and expected transport payments using enrollment_id
+      // When forceRefresh is true, bypass cache
+      const [tuitionBalance, transportSummary, transportExpectedPayments] = await Promise.all([
+        forceRefresh
+          ? await Api.get<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances/${enrollment.enrollment_id}`, undefined, undefined, { cache: false }).catch(() => null)
+          : CollegeTuitionBalancesService.getById(enrollment.enrollment_id).catch(() => null),
+        forceRefresh
+          ? await Api.get<CollegeStudentTransportPaymentSummary>(`/college/student-transport-payment/by-enrollment/${enrollment.enrollment_id}`, undefined, undefined, { cache: false }).catch(() => null)
+          : CollegeTransportBalancesService.getStudentTransportPaymentSummaryByEnrollmentId(enrollment.enrollment_id).catch(() => null),
+        forceRefresh
+          ? await Api.get<ExpectedTransportPaymentsResponse>(`/college/student-transport-payment/expected-payments/${enrollment.enrollment_id}`, undefined, undefined, { cache: false }).catch(() => undefined)
+          : CollegeTransportBalancesService.getExpectedTransportPaymentsByEnrollmentId(enrollment.enrollment_id).catch(() => undefined)
+      ]);
 
       const studentDetails: StudentFeeDetails = {
-        student,
-        tuitionBalance: tuitionBalanceData
+        enrollment,
+        tuitionBalance,
+        transportExpectedPayments,
+        transportSummary // Add transport summary for outstanding calculation
       };
 
       setSearchResults([studentDetails]);
@@ -118,7 +111,7 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
       if (showToast) {
         toast({
           title: "Payment Successful",
-          description: "Student fee information has been refreshed.",
+          description: "Student fee information has been refreshed with updated balances.",
           variant: "success",
         });
       }
@@ -133,9 +126,9 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
     }
   };
 
-  // Re-search the student after successful payment
+  // Re-search the student after successful payment with force refresh to bypass cache
   const reSearchStudent = async (admissionNo: string) => {
-    await searchStudent(admissionNo, true);
+    await searchStudent(admissionNo, true, true); // forceRefresh = true to bypass cache
   };
 
   // Auto-search on mount if admission number is in URL
@@ -207,12 +200,19 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
         remarks: paymentData.remarks || undefined,
       };
 
+      // Use the specialized API function that handles income_id extraction and receipt generation
       const result = await handleCollegePayByAdmissionWithIncomeId(paymentData.admissionNo, apiPayload);
-      
-      
+
+      // Handle successful payment
+
       // Store admission number for re-search after form closes
       paymentSuccessRef.current = paymentData.admissionNo;
-      
+
+      // Don't close the form immediately - let MultiplePaymentForm handle it after receipt modal closes
+      // setSelectedStudent(null);
+      // setIsFormOpen(false);
+
+      // Return the result so MultiplePaymentForm can extract income_id and blobUrl
       return result;
     } catch (error) {
       // Reset payment success flag on error
@@ -266,39 +266,37 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
   };
 
   const transformStudentData = async (studentDetails: StudentFeeDetails): Promise<{ student: StudentInfo; feeBalances: FeeBalance }> => {
-    const studentData = studentDetails.student;
+    const enrollment = studentDetails.enrollment;
     const tuitionData = studentDetails.tuitionBalance;
-    // Note: transportData is not used for colleges (monthly-based, not term-based)
-    // But kept in case needed for future use
-    const _transportData = studentDetails.transportBalance;
 
-    // Try to get enrollment_id and total_fee from transport payment summary
+    // Get enrollment_id directly from enrollment
+    const enrollmentId = enrollment.enrollment_id;
+
+    // Try to get transport fee total from transport payment summary
     // For colleges, transport fees are monthly-based only (not term-based)
-    let enrollmentId: number | undefined = undefined;
     let transportFeeTotal: number | undefined = undefined;
     try {
       const transportSummary = await CollegeTransportBalancesService.getStudentTransportPaymentSummary();
       const matchingItem = transportSummary?.items?.find(
-        (item) => item.admission_no === studentData.admission_no
+        (item) => item.admission_no === enrollment.admission_no
       );
       if (matchingItem) {
-        enrollmentId = matchingItem.enrollment_id;
         // Get total_fee from summary (monthly-based for colleges)
         transportFeeTotal = typeof matchingItem.total_fee === 'string' 
           ? parseFloat(matchingItem.total_fee) || 0 
           : (matchingItem.total_fee || 0);
       }
     } catch (error) {
-      // Silently fail - enrollment_id and transportFeeTotal are optional
+      // Silently fail - transportFeeTotal is optional
       // Will use fallback values if fetch fails
     }
 
     const student: StudentInfo = {
-      studentId: String(studentData.student_id ?? studentData.id ?? 0),
-      admissionNo: studentData.admission_no,
-      name: studentData.student_name,
-      className: studentData.section_name ?? studentData.class_name ?? 'N/A',
-      academicYear: studentData.academic_year ?? '2025-2026',
+      studentId: String(enrollment.student_id),
+      admissionNo: enrollment.admission_no,
+      name: enrollment.student_name,
+      className: enrollment.class_name || 'N/A',
+      academicYear: '2025-2026', // Default academic year
       enrollmentId: enrollmentId
     };
 
@@ -371,19 +369,17 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
         })
         .catch((error) => {
           console.error("Error transforming student data:", error);
-          // Fallback to synchronous transform without enrollment_id
-          const studentData = studentDetails.student;
+          // Fallback to synchronous transform using enrollment data
+          const enrollment = studentDetails.enrollment;
           const tuitionData = studentDetails.tuitionBalance;
-          // Note: transportData is not used for colleges (monthly-based, not term-based)
-          // But kept in case needed for future use
-          const _transportData = studentDetails.transportBalance;
 
           const student: StudentInfo = {
-            studentId: String(studentData.student_id ?? studentData.id ?? 0),
-            admissionNo: studentData.admission_no,
-            name: studentData.student_name,
-            className: studentData.section_name ?? studentData.class_name ?? 'N/A',
-            academicYear: studentData.academic_year ?? '2025-2026'
+            studentId: String(enrollment.student_id ?? 0),
+            admissionNo: enrollment.admission_no,
+            name: enrollment.student_name,
+            className: enrollment.class_name ?? 'N/A',
+            academicYear: '2025-2026',
+            enrollmentId: enrollment.enrollment_id
           };
 
           const bookFeeTotal = tuitionData?.book_fee ?? 0;
@@ -473,7 +469,7 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
           onStartPayment={(studentDetails: StudentFeeDetails) => {
             handleStartPayment(studentDetails);
             // Update URL when starting payment
-            const admissionNo = studentDetails?.student?.admission_no;
+            const admissionNo = studentDetails?.enrollment?.admission_no;
             if (admissionNo) {
               setTimeout(() => updateUrlWithAdmission(admissionNo), 0);
             }

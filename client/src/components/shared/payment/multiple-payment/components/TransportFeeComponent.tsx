@@ -10,13 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -57,6 +50,7 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [termErrors, setTermErrors] = useState<Record<number, boolean>>({});
+  const [expectedMonthErrors, setExpectedMonthErrors] = useState<Record<string, string>>({}); // Error messages per month
   const initializedRef = useRef(false);
 
   // Fetch expected payments for colleges when enrollment_id is available
@@ -104,8 +98,17 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
         // For colleges with expected payments, initialize amounts for each expected month
         if (expectedPayments.length > 0) {
           expectedPayments.forEach((payment) => {
-            // Initialize with monthly amount if > 0, otherwise leave empty for user input
-            initialExpectedAmounts[payment.expected_payment_month] = monthlyAmount > 0 ? monthlyAmount.toFixed(2) : '';
+            // Initialize with payment_amount from expected payment if available, otherwise leave empty
+            // Handle both string and number types for payment_amount
+            const paymentAmount = typeof payment.payment_amount === 'string' 
+              ? parseFloat(payment.payment_amount) 
+              : (payment.payment_amount || 0);
+            
+            if (paymentAmount > 0 && !isNaN(paymentAmount)) {
+              initialExpectedAmounts[payment.expected_payment_month] = paymentAmount.toFixed(2);
+            } else {
+              initialExpectedAmounts[payment.expected_payment_month] = '';
+            }
           });
           setExpectedMonthAmounts(initialExpectedAmounts);
         } else {
@@ -148,12 +151,22 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
       
       setSelectedExpectedMonths(prev => [...prev, month]);
       
-      // Initialize amount if not already set (only if monthlyAmount > 0, otherwise leave empty for user input)
-      if (!expectedMonthAmounts[month] && monthlyAmount > 0) {
-        setExpectedMonthAmounts(prev => ({
-          ...prev,
-          [month]: monthlyAmount.toFixed(2)
-        }));
+      // Initialize amount if not already set - use payment_amount from expected payment
+      if (!expectedMonthAmounts[month]) {
+        const payment = expectedPayments.find(p => p.expected_payment_month === month);
+        if (payment && payment.payment_amount !== undefined && payment.payment_amount !== null) {
+          // Handle both string and number types for payment_amount
+          const paymentAmount = typeof payment.payment_amount === 'string' 
+            ? parseFloat(payment.payment_amount) 
+            : (payment.payment_amount || 0);
+          
+          if (paymentAmount > 0 && !isNaN(paymentAmount)) {
+            setExpectedMonthAmounts(prev => ({
+              ...prev,
+              [month]: paymentAmount.toFixed(2)
+            }));
+          }
+        }
       }
     } else {
       // Remove month and any months after it in sequence
@@ -172,6 +185,13 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
         monthsToRemove.forEach(m => delete newAmounts[m]);
         return newAmounts;
       });
+      
+      // Clear errors for removed months
+      setExpectedMonthErrors(prev => {
+        const newErrors = { ...prev };
+        monthsToRemove.forEach(m => delete newErrors[m]);
+        return newErrors;
+      });
     }
     
     // Clear errors
@@ -185,17 +205,55 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
       [month]: value
     }));
     
+    // Clear error for this month when user starts typing
+    setExpectedMonthErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[month];
+      return newErrors;
+    });
+    
     // Validate amount
     const numAmount = parseFloat(value);
     if (!isNaN(numAmount) && numAmount > 0) {
       const validation = PaymentValidator.validateAmount(numAmount, config.validationRules);
       if (!validation.isValid) {
-        setErrors(validation.errors);
-      } else if (feeBalances.transportFee.total > 0 && numAmount > feeBalances.transportFee.total) {
-        setErrors([`Amount cannot exceed total transport fee of ${formatAmount(feeBalances.transportFee.total)}`]);
+        // Set error for this specific month
+        setExpectedMonthErrors(prev => ({
+          ...prev,
+          [month]: validation.errors[0] || 'Invalid amount'
+        }));
       } else {
-        setErrors([]);
+        // Check if amount exceeds the payment_amount for this specific month
+        const payment = expectedPayments.find(p => p.expected_payment_month === month);
+        if (payment && payment.payment_amount !== undefined && payment.payment_amount !== null) {
+          // Handle both string and number types for payment_amount
+          const paymentAmount = typeof payment.payment_amount === 'string' 
+            ? parseFloat(payment.payment_amount) 
+            : (payment.payment_amount || 0);
+          
+          if (!isNaN(paymentAmount) && numAmount > paymentAmount) {
+            // Set error for this specific month
+            setExpectedMonthErrors(prev => ({
+              ...prev,
+              [month]: `Amount cannot exceed ${formatAmount(paymentAmount)}`
+            }));
+          } else {
+            // Clear error for this month
+            setExpectedMonthErrors(prev => {
+              const newErrors = { ...prev };
+              delete newErrors[month];
+              return newErrors;
+            });
+          }
+        }
       }
+    } else if (value.trim() === '') {
+      // Clear error if field is empty
+      setExpectedMonthErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[month];
+        return newErrors;
+      });
     }
   };
 
@@ -359,8 +417,17 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
             validationErrors.push(...validation.errors.map(err => `${formatPaymentMonth(month)}: ${err}`));
           }
           
-          if (feeBalances.transportFee.total > 0 && numAmount > feeBalances.transportFee.total) {
-            validationErrors.push(`${formatPaymentMonth(month)}: Amount cannot exceed total transport fee of ${formatAmount(feeBalances.transportFee.total)}`);
+          // Check if amount exceeds the payment_amount for this specific month
+          const payment = expectedPayments.find(p => p.expected_payment_month === month);
+          if (payment && payment.payment_amount !== undefined && payment.payment_amount !== null) {
+            // Handle both string and number types for payment_amount
+            const paymentAmount = typeof payment.payment_amount === 'string' 
+              ? parseFloat(payment.payment_amount) 
+              : (payment.payment_amount || 0);
+            
+            if (!isNaN(paymentAmount) && numAmount > paymentAmount) {
+              validationErrors.push(`${formatPaymentMonth(month)}: Amount cannot exceed ${formatAmount(paymentAmount)}`);
+            }
           }
         });
         
@@ -528,11 +595,11 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
         })) ||
         // Fallback: manual month input
         (paymentMonth && /^\d{4}-\d{2}-01$/.test(paymentMonth) && termAmounts[1] && !isNaN(parseFloat(termAmounts[1])) && parseFloat(termAmounts[1]) > 0)
-      ) && errors.length === 0
+      ) && errors.length === 0 && Object.keys(expectedMonthErrors).length === 0
     : (selectedTerms.length > 0 && selectedTerms.every(term => {
         const amount = termAmounts[term];
         return amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0;
-      })) && errors.length === 0;
+      })) && errors.length === 0 && Object.keys(termErrors).filter(key => termErrors[Number(key)]).length === 0;
 
   // Helper function to determine if a term can be selected
   const canSelectTerm = (termNumber: number): boolean => {
@@ -577,9 +644,11 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b">
-          <DialogTitle className="flex items-center gap-2">
-            <Truck className="h-5 w-5 text-orange-600" />
+        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-orange-200 bg-gradient-to-r from-orange-50/50 to-red-50/50">
+          <DialogTitle className="flex items-center gap-2 text-lg text-gray-900">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <Truck className="h-5 w-5 text-orange-600" />
+            </div>
             Transport Fee Payment
           </DialogTitle>
           <DialogDescription className="text-sm text-gray-600 mt-2">
@@ -595,14 +664,6 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
           {/* College Monthly Payment */}
           {isCollege ? (
             <div className="space-y-4">
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                <h3 className="font-medium text-orange-800 mb-2">Transport Fee Information</h3>
-                <div className="text-sm text-orange-700">
-                  <p>Total Transport Fee: <strong>{formatAmount(feeBalances.transportFee.total)}</strong></p>
-                  <p className="mt-1 text-xs">Note: Transport fees are paid monthly. Select expected payment months in sequence order.</p>
-                </div>
-              </div>
-
               {/* Expected Payments Section */}
               {isLoadingExpectedPayments ? (
                 <div className="flex items-center justify-center py-8">
@@ -610,99 +671,133 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
                   <span className="ml-2 text-sm text-gray-600">Loading expected payments...</span>
                 </div>
               ) : expectedPayments.length > 0 ? (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Expected Payment Months *</Label>
-                    <p className="text-xs text-gray-500">
-                      Select payment months in sequence order (starting from #{expectedPayments[0]?.payment_sequence_number || 1})
-                    </p>
-                  </div>
-                  
+                <>
+                  {/* Month Selection */}
                   <div className="space-y-3">
-                    {expectedPayments.map((payment) => {
-                      const isSelected = selectedExpectedMonths.includes(payment.expected_payment_month);
-                      const previousPayments = expectedPayments
-                        .filter(p => p.payment_sequence_number < payment.payment_sequence_number)
-                        .map(p => p.expected_payment_month);
-                      const canSelect = previousPayments.length === 0 || 
-                        previousPayments.every(m => selectedExpectedMonths.includes(m));
-                      
-                      return (
-                        <div key={payment.expected_payment_month} className="border rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center space-x-3">
-                              <Checkbox
-                                id={`expected-month-${payment.expected_payment_month}`}
-                                checked={isSelected}
-                                onCheckedChange={(checked) => handleExpectedMonthSelection(payment.expected_payment_month, checked as boolean)}
-                                disabled={!canSelect}
-                              />
-                              <Label htmlFor={`expected-month-${payment.expected_payment_month}`} className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-xs font-mono">
-                                  #{payment.payment_sequence_number}
-                                </Badge>
-                                <span className="font-medium">{formatPaymentMonth(payment.expected_payment_month)}</span>
-                                {isSelected && (
-                                  <Badge variant="default" className="text-xs bg-green-100 text-green-700">
-                                    Selected
-                                  </Badge>
-                                )}
-                                {!canSelect && !isSelected && (
-                                  <Badge variant="outline" className="text-xs text-orange-500">
-                                    Select Previous First
-                                  </Badge>
-                                )}
-                              </Label>
-                            </div>
+                    <Label className="text-sm font-medium text-gray-700">
+                      Select Payment Months <span className="text-red-500">*</span>
+                    </Label>
+                    
+                    {!hasOutstandingPayments ? (
+                      <div className="text-center py-8">
+                        <div className="flex flex-col items-center space-y-4">
+                          <div className="p-4 bg-green-100 rounded-full">
+                            <CheckCircle2 className="h-8 w-8 text-green-600" />
                           </div>
+                          <div className="text-center">
+                            <h3 className="text-lg font-semibold text-green-800 mb-2">
+                              All Transport Fees Paid!
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              All transport fee payments have been paid in full.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {expectedPayments.map((payment) => {
+                          const isSelected = selectedExpectedMonths.includes(payment.expected_payment_month);
+                          const previousPayments = expectedPayments
+                            .filter(p => p.payment_sequence_number < payment.payment_sequence_number)
+                            .map(p => p.expected_payment_month);
+                          const canSelect = previousPayments.length === 0 || 
+                            previousPayments.every(m => selectedExpectedMonths.includes(m));
                           
-                          {isSelected && (
-                            <div className="space-y-2 mt-3">
-                              <Label htmlFor={`amount-${payment.expected_payment_month}`} className="text-sm font-medium">
-                                Payment Amount for {formatPaymentMonth(payment.expected_payment_month)} *
-                              </Label>
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                                  ₹
-                                </span>
-                                <Input
-                                  id={`amount-${payment.expected_payment_month}`}
-                                  type="text"
-                                  placeholder="Enter amount"
-                                  value={expectedMonthAmounts[payment.expected_payment_month] || ''}
-                                  onChange={(e) => handleExpectedMonthAmountChange(payment.expected_payment_month, e.target.value)}
-                                  className="pl-8"
-                                />
+                          // Get payment amount for this month - handle both string and number types
+                          const paymentAmount = typeof payment.payment_amount === 'string' 
+                            ? parseFloat(payment.payment_amount) || 0
+                            : (payment.payment_amount || 0);
+                          
+                          return (
+                            <div
+                              key={payment.expected_payment_month}
+                              className="border border-gray-200 rounded-lg p-4 bg-white hover:border-orange-300 transition-colors"
+                            >
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center space-x-3">
+                                  <Checkbox
+                                    id={`expected-month-${payment.expected_payment_month}`}
+                                    checked={isSelected}
+                                    onCheckedChange={(checked) => handleExpectedMonthSelection(payment.expected_payment_month, checked as boolean)}
+                                    disabled={!canSelect}
+                                  />
+                                  <Label htmlFor={`expected-month-${payment.expected_payment_month}`} className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-xs font-mono">
+                                      #{payment.payment_sequence_number}
+                                    </Badge>
+                                    <span className="font-medium">{formatPaymentMonth(payment.expected_payment_month)}</span>
+                                    {isSelected && (
+                                      <Badge variant="default" className="text-xs bg-green-100 text-green-700">
+                                        Selected
+                                      </Badge>
+                                    )}
+                                    {!canSelect && !isSelected && (
+                                      <Badge variant="outline" className="text-xs text-orange-500">
+                                        Select Previous First
+                                      </Badge>
+                                    )}
+                                  </Label>
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  Amount: {formatAmount(paymentAmount)}
+                                </div>
                               </div>
-                              {feeBalances.transportFee.total > 0 && (
-                                <p className="text-xs text-gray-500">
-                                  Maximum amount: {formatAmount(feeBalances.transportFee.total)}
-                                </p>
-                              )}
-                              {feeBalances.transportFee.total === 0 && expectedPayments.length > 0 && (
-                                <p className="text-xs text-gray-500">
-                                  Enter the payment amount for this month
-                                </p>
+                              
+                              {isSelected && (
+                                <div className="space-y-2">
+                                  <Label htmlFor={`amount-${payment.expected_payment_month}`} className="text-sm font-medium">
+                                    Payment Amount for {formatPaymentMonth(payment.expected_payment_month)} *
+                                  </Label>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-medium">
+                                      ₹
+                                    </span>
+                                    <Input
+                                      id={`amount-${payment.expected_payment_month}`}
+                                      type="text"
+                                      placeholder="Enter amount"
+                                      value={expectedMonthAmounts[payment.expected_payment_month] || ''}
+                                      onChange={(e) => handleExpectedMonthAmountChange(payment.expected_payment_month, e.target.value)}
+                                      className={`pl-8 bg-blue-50/50 border-blue-300 ${expectedMonthErrors[payment.expected_payment_month] ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                    />
+                                  </div>
+                                  {paymentAmount > 0 && (
+                                    <p className="text-xs text-gray-500">
+                                      Maximum amount: {formatAmount(paymentAmount)}
+                                    </p>
+                                  )}
+                                  {paymentAmount === 0 && (
+                                    <p className="text-xs text-gray-500">
+                                      Enter the payment amount for this month
+                                    </p>
+                                  )}
+                                  {expectedMonthErrors[payment.expected_payment_month] && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                      {expectedMonthErrors[payment.expected_payment_month]}
+                                    </p>
+                                  )}
+                                </div>
                               )}
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                          );
+                        })}
+                      </div>
+                    )}
+                    
+                    {selectedExpectedMonths.length > 0 && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <p className="text-sm text-blue-800">
+                          <strong>Selected:</strong> {selectedExpectedMonths.length} month{selectedExpectedMonths.length !== 1 ? 's' : ''} • 
+                          Total Amount: <strong>{formatAmount(selectedExpectedMonths.reduce((sum, month) => {
+                            const amount = parseFloat(expectedMonthAmounts[month] || '0');
+                            return sum + (isNaN(amount) ? 0 : amount);
+                          }, 0))}</strong>
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  
-                  {selectedExpectedMonths.length > 0 && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="text-sm text-blue-800">
-                        <strong>Selected:</strong> {selectedExpectedMonths.length} month{selectedExpectedMonths.length !== 1 ? 's' : ''} • 
-                        Total Amount: <strong>{formatAmount(selectedExpectedMonths.reduce((sum, month) => {
-                          const amount = parseFloat(expectedMonthAmounts[month] || '0');
-                          return sum + (isNaN(amount) ? 0 : amount);
-                        }, 0))}</strong>
-                      </p>
-                    </div>
-                  )}
-                </div>
+                </>
               ) : (
                 /* Fallback: Manual month input when no expected payments */
                 <div className="space-y-4">
@@ -747,7 +842,7 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
                       Payment Amount *
                     </Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-medium">
                         ₹
                       </span>
                       <Input
@@ -756,7 +851,7 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
                         placeholder="Enter amount"
                         value={termAmounts[1] || ''}
                         onChange={(e) => handleTermAmountChange(1, e.target.value)}
-                        className={`pl-8 ${termErrors[1] ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                        className={`pl-8 bg-blue-50/50 border-blue-300 ${termErrors[1] ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                       />
                     </div>
                     <p className="text-xs text-gray-500">

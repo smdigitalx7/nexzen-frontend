@@ -1,19 +1,21 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Search, User, GraduationCap, CreditCard } from "lucide-react";
+import { Search, CreditCard, User, GraduationCap, Users, BookOpen, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
-import { CollegeStudentsService, CollegeTuitionBalancesService } from "@/lib/services/college";
-import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import type { ColumnDef } from "@tanstack/react-table";
-import { Api } from "@/lib/api";
+import { CollegeEnrollmentsService, CollegeTuitionBalancesService, CollegeTransportBalancesService } from "@/lib/services/college";
+import type { CollegeEnrollmentWithStudentDetails, CollegeStudentTransportPaymentSummary } from "@/lib/types/college";
+import type { ExpectedTransportPaymentsResponse } from "@/lib/types/college/transport-fee-balances";
+import type { CollegeTuitionFeeBalanceRead } from "@/lib/types/college/tuition-fee-balances";
 
 interface StudentFeeDetails {
-  student: any;
-  tuitionBalance: any;
+  enrollment: CollegeEnrollmentWithStudentDetails;
+  tuitionBalance: CollegeTuitionFeeBalanceRead | null;
+  transportExpectedPayments?: ExpectedTransportPaymentsResponse;
+  transportSummary?: CollegeStudentTransportPaymentSummary | null; // Transport payment summary for outstanding calculation
 }
 
 interface CollectFeeSearchProps {
@@ -26,9 +28,9 @@ interface CollectFeeSearchProps {
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPayment, searchResults, setSearchResults, searchQuery, setSearchQuery }: CollectFeeSearchProps) => {
+export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResults, searchQuery, setSearchQuery }: CollectFeeSearchProps) => {
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<StudentFeeDetails | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Direct service calls for search functionality
 
@@ -37,83 +39,102 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
 
     // Clear previous results immediately for fresh search
     setSearchResults([]);
-    setSelectedStudent(null);
     setIsSearching(true);
+    setHasSearched(true); // Mark that a search has been performed
     
     try {
       const trimmedQuery = searchQuery.trim();
-      let student = null;
+      let enrollment: CollegeEnrollmentWithStudentDetails | null = null;
       
-      // First try to search by admission number
+      // First try to search by admission number using enrollment endpoint
       try {
-        // Always make a fresh API call - bypass cache
-        student = await Api.get<typeof student>(
-          `/college/students/by-admission/${trimmedQuery}`,
-          { _t: Date.now() }, // Cache-busting timestamp
-          undefined,
-          { cache: false, dedupe: false } // Disable cache and deduplication
-        );
+        enrollment = await CollegeEnrollmentsService.getByAdmission(trimmedQuery);
       } catch (error) {
-        // If admission search fails, try searching by name
+        // If enrollment search fails, try searching by name in enrollments list
         if (import.meta.env.DEV) {
-          console.log("Admission search failed, trying name search...");
+          console.log("Enrollment search failed, trying name search...");
         }
-        const studentsList = await CollegeStudentsService.list({ page: 1, pageSize: 100 });
-        const matchingStudents = studentsList.data?.filter((s: any) => 
-          s.student_name?.toLowerCase().includes(trimmedQuery.toLowerCase())
-        );
+        const enrollmentsList = await CollegeEnrollmentsService.list({ page: 1, pageSize: 100 });
+        // Flatten enrollments to find matching students
+        const allEnrollments: CollegeEnrollmentWithStudentDetails[] = [];
+        enrollmentsList.enrollments?.forEach(classGroup => {
+          classGroup.students?.forEach(student => {
+            if (student.student_name?.toLowerCase().includes(trimmedQuery.toLowerCase())) {
+              // Construct full enrollment object
+              allEnrollments.push({
+                enrollment_id: student.enrollment_id,
+                student_id: student.student_id,
+                admission_no: student.admission_no,
+                student_name: student.student_name,
+                class_id: classGroup.class_id,
+                class_name: classGroup.class_name,
+                group_id: classGroup.group_id,
+                group_name: classGroup.group_name,
+                course_id: classGroup.course_id,
+                course_name: classGroup.course_name,
+                roll_number: student.roll_number,
+                enrollment_date: student.enrollment_date,
+                is_active: student.is_active,
+                promoted: student.promoted,
+                created_at: "",
+                updated_at: null,
+                created_by: null,
+                created_by_name: null,
+                updated_by: null,
+                updated_by_name: null,
+              });
+            }
+          });
+        });
         
-        if (matchingStudents && matchingStudents.length > 0) {
-          if (matchingStudents.length === 1) {
-            student = matchingStudents[0]; // Take the first match if only one
+        if (allEnrollments.length > 0) {
+          if (allEnrollments.length === 1) {
+            enrollment = allEnrollments[0];
           } else {
             // If multiple matches, show all and let user select
             const studentDetailsList = await Promise.all(
-              matchingStudents.map(async (s: any) => {
-                // Always fetch fresh fee balance data - bypass cache
-                const tuitionBalance = await Api.get(
-                  `/college/tuition-fee-balances/by-admission-no/${s.admission_no}`,
-                  { _t: Date.now() },
-                  undefined,
-                  { cache: false, dedupe: false }
-                ).catch(() => null);
+              allEnrollments.map(async (enr) => {
+                const [tuitionBalance, transportSummary, transportExpectedPayments] = await Promise.all([
+                  CollegeTuitionBalancesService.getById(enr.enrollment_id).catch(() => null),
+                  CollegeTransportBalancesService.getStudentTransportPaymentSummaryByEnrollmentId(enr.enrollment_id).catch(() => null),
+                  CollegeTransportBalancesService.getExpectedTransportPaymentsByEnrollmentId(enr.enrollment_id).catch(() => undefined)
+                ]);
                 return {
-                  student: s,
-                  tuitionBalance
+                  enrollment: enr,
+                  tuitionBalance,
+                  transportExpectedPayments,
+                  transportSummary
                 };
               })
             );
             setSearchResults(studentDetailsList);
-            setSelectedStudent(null);
             return;
           }
         }
       }
       
-      if (student) {
-        // Always fetch fresh fee balances for this student - bypass cache
-        const tuitionBalance = await Api.get(
-          `/college/tuition-fee-balances/by-admission-no/${student.admission_no}`,
-          { _t: Date.now() },
-          undefined,
-          { cache: false, dedupe: false }
-        ).catch(() => null);
+      if (enrollment) {
+        // Fetch tuition balance, transport summary, and expected transport payments using enrollment_id
+        const [tuitionBalance, transportSummary, transportExpectedPayments] = await Promise.all([
+          CollegeTuitionBalancesService.getById(enrollment.enrollment_id).catch(() => null),
+          CollegeTransportBalancesService.getStudentTransportPaymentSummaryByEnrollmentId(enrollment.enrollment_id).catch(() => null),
+          CollegeTransportBalancesService.getExpectedTransportPaymentsByEnrollmentId(enrollment.enrollment_id).catch(() => undefined)
+        ]);
 
         const studentDetails: StudentFeeDetails = {
-          student,
-          tuitionBalance
+          enrollment,
+          tuitionBalance,
+          transportExpectedPayments,
+          transportSummary // Add transport summary for outstanding calculation
         };
 
         setSearchResults([studentDetails]);
-        setSelectedStudent(studentDetails);
       } else {
         setSearchResults([]);
-        setSelectedStudent(null);
       }
     } catch (error) {
       console.error("Search error:", error);
       setSearchResults([]);
-      setSelectedStudent(null);
     } finally {
       setIsSearching(false);
     }
@@ -122,13 +143,14 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && searchQuery.trim()) {
       e.preventDefault();
-      handleSearch();
+      void handleSearch();
     }
   };
 
   const getTotalOutstanding = useCallback((studentDetails: StudentFeeDetails) => {
     let total = 0;
     
+    // Tuition outstanding
     if (studentDetails.tuitionBalance) {
       const tuition = studentDetails.tuitionBalance;
       total += Math.max(0, (tuition.book_fee || 0) - (tuition.book_paid || 0)) + 
@@ -137,117 +159,47 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
                Math.max(0, (tuition.term3_amount || 0) - (tuition.term3_paid || 0));
     }
     
+    // Transport outstanding - get from transport summary if available
+    if (studentDetails.transportSummary && studentDetails.transportSummary.total_amount_pending !== undefined && studentDetails.transportSummary.total_amount_pending !== null) {
+      const transportOutstanding = typeof studentDetails.transportSummary.total_amount_pending === 'string'
+        ? parseFloat(studentDetails.transportSummary.total_amount_pending) || 0
+        : (studentDetails.transportSummary.total_amount_pending || 0);
+      total += transportOutstanding;
+    }
+    
     return total;
   }, []);
 
-  // Define table columns
-  const columns = useMemo<ColumnDef<StudentFeeDetails>[]>(() => [
-    {
-      accessorKey: "student.admission_no",
-      header: "Admission No",
-      cell: ({ row }) => (
-        <div className="font-medium">{row.original.student.admission_no}</div>
-      ),
-    },
-    {
-      accessorKey: "student.student_name",
-      header: "Student Name",
-      cell: ({ row }) => (
-        <span className="font-medium">{row.original.student.student_name}</span>
-      ),
-    },
-    {
-      accessorKey: "student.class_name",
-      header: "Class",
-      cell: ({ row }) => (
-        <Badge variant="outline">
-          {row.original.student.class_name || "N/A"}
-        </Badge>
-      ),
-    },
-    {
-      accessorKey: "student.group_name",
-      header: "Group",
-      cell: ({ row }) => (
-        <Badge variant="outline">
-          {row.original.student.group_name || "N/A"}
-        </Badge>
-      ),
-    },
-    {
-      accessorKey: "student.gender",
-      header: "Gender",
-      cell: ({ row }) => row.original.student.gender || "N/A",
-    },
-    {
-      id: "tuition_outstanding",
-      header: "Tuition Outstanding",
-      cell: ({ row }) => {
-        const tuition = row.original.tuitionBalance;
-        if (!tuition) return formatCurrency(0);
-        
-        const bookOutstanding = Math.max(0, (tuition.book_fee || 0) - (tuition.book_paid || 0));
-        const term1Outstanding = Math.max(0, (tuition.term1_amount || 0) - (tuition.term1_paid || 0));
-        const term2Outstanding = Math.max(0, (tuition.term2_amount || 0) - (tuition.term2_paid || 0));
-        const term3Outstanding = Math.max(0, (tuition.term3_amount || 0) - (tuition.term3_paid || 0));
-        const total = bookOutstanding + term1Outstanding + term2Outstanding + term3Outstanding;
-        
-        return (
-          <div className="text-right">
-            <div className="font-medium">{formatCurrency(total)}</div>
-            <div className="text-xs text-muted-foreground space-x-1">
-              {bookOutstanding > 0 && <span>Book: {formatCurrency(bookOutstanding)}</span>}
-              {term1Outstanding > 0 && <span>T1: {formatCurrency(term1Outstanding)}</span>}
-              {term2Outstanding > 0 && <span>T2: {formatCurrency(term2Outstanding)}</span>}
-              {term3Outstanding > 0 && <span>T3: {formatCurrency(term3Outstanding)}</span>}
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      id: "total_outstanding",
-      header: "Total Outstanding",
-      cell: ({ row }) => {
-        const total = getTotalOutstanding(row.original);
-        return (
-          <div className="text-right font-semibold text-green-600">
-            {formatCurrency(total)}
-          </div>
-        );
-      },
-    },
-    {
-      id: "actions",
-      header: "Actions",
-      cell: ({ row }) => {
-        const totalOutstanding = getTotalOutstanding(row.original);
-        const hasOutstanding = totalOutstanding > 0;
-        
-        return (
-          <Button 
-            onClick={() => onStartPayment(row.original)}
-            size="sm"
-            disabled={!hasOutstanding}
-            className={hasOutstanding 
-              ? "bg-green-600 hover:bg-green-700" 
-              : "bg-gray-400 hover:bg-gray-400 cursor-not-allowed"
-            }
-          >
-            <CreditCard className="h-4 w-4 mr-2" />
-            Collect Fee
-          </Button>
-        );
-      },
-    },
-  ], [onStartPayment, getTotalOutstanding]);
+  // Helper function to calculate tuition outstanding breakdown
+  const getTuitionOutstanding = useCallback((studentDetails: StudentFeeDetails) => {
+    const tuition = studentDetails.tuitionBalance;
+    if (!tuition) return { total: 0, breakdown: [] };
+
+    const bookOutstanding = Math.max(0, (tuition.book_fee || 0) - (tuition.book_paid || 0));
+    const term1Outstanding = Math.max(0, (tuition.term1_amount || 0) - (tuition.term1_paid || 0));
+    const term2Outstanding = Math.max(0, (tuition.term2_amount || 0) - (tuition.term2_paid || 0));
+    const term3Outstanding = Math.max(0, (tuition.term3_amount || 0) - (tuition.term3_paid || 0));
+
+    const breakdown = [
+      { label: "Book Fee", amount: bookOutstanding },
+      { label: "Term 1", amount: term1Outstanding },
+      { label: "Term 2", amount: term2Outstanding },
+      { label: "Term 3", amount: term3Outstanding },
+    ].filter((item) => item.amount > 0);
+
+    return {
+      total: bookOutstanding + term1Outstanding + term2Outstanding + term3Outstanding,
+      breakdown,
+    };
+  }, []);
+
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 ">
       {/* Search Section */}
       <Card className="w-full">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center justify-center gap-2">
             <Search className="h-5 w-5" />
             Search Student for Fee Collection
           </CardTitle>
@@ -259,62 +211,298 @@ export const CollectFeeSearch = ({ onStudentSelected, paymentMode, onStartPaymen
                 <Input
                   placeholder="Enter admission number or student name to search..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    // Reset hasSearched when user starts typing a new query
+                    if (hasSearched) {
+                      setHasSearched(false);
+                      setSearchResults([]); // Clear previous results
+                    }
+                  }}
                   onKeyDown={handleKeyDown}
-                  className="w-full"
+                  className="w-full h-12"
                 />
               </div>
               <Button 
                 onClick={() => {
                   // Force fresh search even if same query
-                  handleSearch();
+                  void handleSearch();
                 }} 
                 disabled={isSearching || !searchQuery.trim()}
-                className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
+                className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap h-12 px-4"
               >
-                <Search className="h-4 w-4 mr-2" />
+                <Search className="h-4 w-4 mr-1" />
                 {isSearching ? "Searching..." : "Search"}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground text-center">
+            <p className="text-xs text-muted-foreground text-center ">
               Press Enter to search or click the Search button
             </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Search Results - Enhanced Data Table */}
+      {/* Search Results - Professional Cards */}
       {searchResults.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <EnhancedDataTable
-            data={searchResults}
-            columns={columns}
-            title="Student Fee Collection"
-            searchKey="student"
-            searchPlaceholder="Search by student name or admission number..."
-            exportable={true}
-            showSearch={true}
-            className="border rounded-lg"
-            loading={isSearching}
-          />
-        </motion.div>
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+            Search Results ({searchResults.length})
+          </h2>
+          <div className="grid gap-4">
+            {searchResults.map((studentDetails, index) => {
+              const totalOutstanding = getTotalOutstanding(studentDetails);
+              const hasOutstanding = totalOutstanding > 0;
+              const tuitionOutstanding = getTuitionOutstanding(studentDetails);
+
+              return (
+                <motion.div
+                  key={studentDetails.enrollment.admission_no || index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Card className="border-2 hover:shadow-lg transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="space-y-6">
+                        {/* Student Information Section */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 pb-4 border-b">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                              <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">
+                                Admission No
+                              </p>
+                              <p className="font-semibold">
+                                {studentDetails.enrollment.admission_no}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                              <User className="h-5 w-5 text-green-600 dark:text-green-400" />
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">
+                                Student Name
+                              </p>
+                              <p className="font-semibold">
+                                {studentDetails.enrollment.student_name}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                              <GraduationCap className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">
+                                Class
+                              </p>
+                              <Badge variant="outline">
+                                {studentDetails.enrollment.class_name || "N/A"}
+                              </Badge>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                              <Users className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">
+                                Group / Course
+                              </p>
+                              <div className="flex gap-2 items-center">
+                                <Badge variant="outline">
+                                  {studentDetails.enrollment.group_name || "N/A"}
+                                </Badge>
+                                {studentDetails.enrollment.course_name && (
+                                  <Badge variant="outline">
+                                    {studentDetails.enrollment.course_name}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                              <Users className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">
+                                Roll Number
+                              </p>
+                              <p className="font-semibold">
+                                {studentDetails.enrollment.roll_number || "N/A"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Fee Breakdown Section */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Tuition Fee Card */}
+                          <Card className="border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
+                            <CardHeader className="pb-3">
+                              <div className="flex items-center gap-2">
+                                <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                <CardTitle className="text-lg">
+                                  Tuition Fee
+                                </CardTitle>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-muted-foreground">
+                                  Total Outstanding
+                                </span>
+                                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                  {formatCurrency(tuitionOutstanding.total)}
+                                </span>
+                              </div>
+                              {tuitionOutstanding.breakdown.length > 0 && (
+                                <div className="space-y-2 pt-2 border-t">
+                                  {tuitionOutstanding.breakdown.map(
+                                    (item, idx) => (
+                                      <div
+                                        key={idx}
+                                        className="flex justify-between text-sm"
+                                      >
+                                        <span className="text-muted-foreground">
+                                          {item.label}:
+                                        </span>
+                                        <span className="font-medium">
+                                          {formatCurrency(item.amount)}
+                                        </span>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              )}
+                              {tuitionOutstanding.total === 0 && (
+                                <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+                                  All fees paid
+                                </p>
+                              )}
+                            </CardContent>
+                          </Card>
+
+                          {/* Transport Fee Card - Outstanding Amount */}
+                          <Card className="border border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
+                            <CardHeader className="pb-3">
+                              <div className="flex items-center gap-2">
+                                <Truck className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                <CardTitle className="text-lg">
+                                  Transport Fee
+                                </CardTitle>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              {(() => {
+                                const transportOutstanding = studentDetails.transportSummary && studentDetails.transportSummary.total_amount_pending !== undefined && studentDetails.transportSummary.total_amount_pending !== null
+                                  ? (typeof studentDetails.transportSummary.total_amount_pending === 'string'
+                                      ? parseFloat(studentDetails.transportSummary.total_amount_pending) || 0
+                                      : (studentDetails.transportSummary.total_amount_pending || 0))
+                                  : 0;
+                                
+                                return transportOutstanding > 0 ? (
+                                  <>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-muted-foreground">
+                                        Total Outstanding
+                                      </span>
+                                      <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                                        {formatCurrency(transportOutstanding)}
+                                      </span>
+                                    </div>
+                                    {studentDetails.transportExpectedPayments?.expected_payments?.length ? (
+                                      <div className="space-y-2 pt-2 border-t">
+                                        <div className="flex justify-between text-sm">
+                                          <span className="text-muted-foreground">
+                                            Unpaid Months:
+                                          </span>
+                                          <span className="font-medium">
+                                            {studentDetails.transportExpectedPayments.expected_payments.length}
+                                          </span>
+                                        </div>
+                                        <div className="text-xs text-muted-foreground mt-2">
+                                          {studentDetails.transportExpectedPayments.expected_payments
+                                            .slice(0, 3)
+                                            .map((payment) => {
+                                              const date = new Date(payment.expected_payment_month);
+                                              return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                                            })
+                                            .join(', ')}
+                                          {studentDetails.transportExpectedPayments.expected_payments.length > 3 && '...'}
+                                        </div>
+                                      </div>
+                                    ) : null}
+                                  </>
+                                ) : (
+                                  <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+                                    All transport fees paid
+                                  </p>
+                                );
+                              })()}
+                            </CardContent>
+                          </Card>
+                        </div>
+
+                        {/* Total Outstanding and Action */}
+                        <div className="flex items-center justify-between pt-4 border-t">
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-1">
+                              Total Outstanding
+                            </p>
+                            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                              {formatCurrency(totalOutstanding)}
+                            </p>
+                          </div>
+                          <Button
+                            onClick={() => onStartPayment(studentDetails)}
+                            disabled={!hasOutstanding}
+                            size="lg"
+                            className={
+                              hasOutstanding
+                                ? "bg-green-600 hover:bg-green-700 text-white"
+                                : "bg-gray-400 hover:bg-gray-400 cursor-not-allowed"
+                            }
+                          >
+                            <CreditCard className="h-5 w-5 mr-2" />
+                            {hasOutstanding ? "Collect Fee" : "No Outstanding"}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
       )}
 
-      {/* No Results */}
-      {searchResults.length === 0 && searchQuery && !isSearching && (
-        <Card>
-          <CardContent className="text-center py-8">
-            <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">No student found</h3>
-            <p className="text-muted-foreground">
-              No student found with admission number or name "{searchQuery}"
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {/* No Results - Only show after a search has been performed */}
+      {hasSearched &&
+        searchResults.length === 0 &&
+        searchQuery &&
+        !isSearching && (
+          <Card>
+            <CardContent className="text-center py-8">
+              <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium">No student found</h3>
+              <p className="text-muted-foreground">
+                No student found with admission number or name &quot;
+                {searchQuery}&quot;
+              </p>
+            </CardContent>
+          </Card>
+        )}
     </div>
   );
 };

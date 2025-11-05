@@ -14,11 +14,12 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
-import { Api } from "@/lib/api";
-import { SchoolStudentsService } from "@/lib/services/school";
+import { EnrollmentsService } from "@/lib/services/school/enrollments.service";
+import { SchoolTuitionFeeBalancesService, SchoolTransportFeeBalancesService } from "@/lib/services/school";
+import type { SchoolEnrollmentWithStudentDetails } from "@/lib/types/school/enrollments";
 
 interface StudentFeeDetails {
-  student: any;
+  enrollment: SchoolEnrollmentWithStudentDetails;
   tuitionBalance: any;
   transportBalance: any;
 }
@@ -55,84 +56,28 @@ export const CollectFeeSearch = ({
 
     try {
       const trimmedQuery = searchQuery.trim();
-      let student = null;
+      let enrollment: SchoolEnrollmentWithStudentDetails | null = null;
 
-      // First try to search by admission number
+      // First try to search by admission number using enrollment endpoint
       try {
-        // Always make a fresh API call - bypass cache
-        student = await Api.get<typeof student>(
-          `/school/students/admission-no/${trimmedQuery}`,
-          { _t: Date.now() }, // Cache-busting timestamp
-          undefined,
-          { cache: false, dedupe: false } // Disable cache and deduplication
-        );
+        enrollment = await EnrollmentsService.getByAdmission(trimmedQuery);
       } catch (error) {
-        // If admission search fails, try searching by name
+        // If enrollment search fails, return empty results
+        // Name search in enrollments would require iterating through all classes
         if (import.meta.env.DEV) {
-          console.log("Admission search failed, trying name search...");
-        }
-        const studentsList = await SchoolStudentsService.list({
-          page: 1,
-          page_size: 100,
-        });
-        const matchingStudents = studentsList.data?.filter((s: any) =>
-          s.student_name?.toLowerCase().includes(trimmedQuery.toLowerCase())
-        );
-
-        if (matchingStudents && matchingStudents.length > 0) {
-          if (matchingStudents.length === 1) {
-            student = matchingStudents[0]; // Take the first match if only one
-          } else {
-            // If multiple matches, show all and let user select
-            const studentDetailsList = await Promise.all(
-              matchingStudents.map(async (s: any) => {
-                // Always fetch fresh fee balance data - bypass cache
-                const [tuitionBalance, transportBalance] = await Promise.all([
-                  Api.get(
-                    `/school/tuition-fee-balances/by-admission/${s.admission_no}`,
-                    { _t: Date.now() },
-                    undefined,
-                    { cache: false, dedupe: false }
-                  ).catch(() => null),
-                  Api.get(
-                    `/school/transport-fee-balances/by-admission/${s.admission_no}`,
-                    { _t: Date.now() },
-                    undefined,
-                    { cache: false, dedupe: false }
-                  ).catch(() => null),
-                ]);
-                return {
-                  student: s,
-                  tuitionBalance,
-                  transportBalance,
-                };
-              })
-            );
-            setSearchResults(studentDetailsList);
-            return;
-          }
+          console.log("Enrollment search by admission failed");
         }
       }
 
-      if (student) {
-        // Always fetch fresh fee balances for this student - bypass cache
+      if (enrollment) {
+        // Fetch tuition and transport balances using enrollment_id
         const [tuitionBalance, transportBalance] = await Promise.all([
-          Api.get(
-            `/school/tuition-fee-balances/by-admission/${student.admission_no}`,
-            { _t: Date.now() },
-            undefined,
-            { cache: false, dedupe: false }
-          ).catch(() => null),
-          Api.get(
-            `/school/transport-fee-balances/by-admission/${student.admission_no}`,
-            { _t: Date.now() },
-            undefined,
-            { cache: false, dedupe: false }
-          ).catch(() => null),
+          SchoolTuitionFeeBalancesService.getById(enrollment.enrollment_id).catch(() => null),
+          SchoolTransportFeeBalancesService.getById(enrollment.enrollment_id).catch(() => null)
         ]);
 
         const studentDetails: StudentFeeDetails = {
-          student,
+          enrollment,
           tuitionBalance,
           transportBalance,
         };
@@ -325,7 +270,7 @@ export const CollectFeeSearch = ({
 
               return (
                 <motion.div
-                  key={studentDetails.student.admission_no || index}
+                  key={studentDetails.enrollment.admission_no || index}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
@@ -334,7 +279,7 @@ export const CollectFeeSearch = ({
                     <CardContent className="p-6">
                       <div className="space-y-6">
                         {/* Student Information Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-4 border-b">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 pb-4 border-b">
                           <div className="flex items-center gap-3">
                             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                               <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -344,7 +289,7 @@ export const CollectFeeSearch = ({
                                 Admission No
                               </p>
                               <p className="font-semibold">
-                                {studentDetails.student.admission_no}
+                                {studentDetails.enrollment.admission_no}
                               </p>
                             </div>
                           </div>
@@ -358,7 +303,7 @@ export const CollectFeeSearch = ({
                                 Student Name
                               </p>
                               <p className="font-semibold">
-                                {studentDetails.student.student_name}
+                                {studentDetails.enrollment.student_name}
                               </p>
                             </div>
                           </div>
@@ -369,15 +314,13 @@ export const CollectFeeSearch = ({
                             </div>
                             <div>
                               <p className="text-sm text-muted-foreground">
-                                Class
+                                Class / Section
                               </p>
                               <div className="flex gap-2 items-center">
                                 <Badge variant="outline">
-                                  {studentDetails.tuitionBalance?.class_name ||
-                                    "N/A"}
+                                  {studentDetails.tuitionBalance?.class_name || "N/A"}
                                 </Badge>
-                                {studentDetails.tuitionBalance
-                                  ?.section_name && (
+                                {studentDetails.tuitionBalance?.section_name && (
                                   <Badge variant="outline">
                                     {studentDetails.tuitionBalance.section_name}
                                   </Badge>
@@ -387,15 +330,15 @@ export const CollectFeeSearch = ({
                           </div>
 
                           <div className="flex items-center gap-3">
-                            <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                              <Users className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                              <Users className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                             </div>
                             <div>
                               <p className="text-sm text-muted-foreground">
-                                Gender
+                                Roll Number
                               </p>
                               <p className="font-semibold">
-                                {studentDetails.student.gender || "N/A"}
+                                {studentDetails.enrollment.roll_number || "N/A"}
                               </p>
                             </div>
                           </div>
