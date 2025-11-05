@@ -237,7 +237,8 @@ function Router() {
     };
   }, []);
 
-  // Show loading state while hydrating
+  // If not hydrated yet, show loading state
+  // This will be replaced by LazyLoadingWrapper once hydrated to prevent double loaders
   if (!isHydrated) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -495,15 +496,52 @@ function ProtectedRoute({
 
 // Dashboard Router - Shows appropriate dashboard based on role
 function DashboardRouter() {
-  const { user } = useAuthStore();
+  const { user, token, isAuthenticated } = useAuthStore();
+  const [mounted, setMounted] = React.useState(false);
   
-  if (user?.role === ROLES.ADMIN || user?.role === ROLES.INSTITUTE_ADMIN) {
+  // Wait for component to mount and state to stabilize
+  React.useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 50);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // CRITICAL: If user.role is not available, try to get it from token
+  // This handles race conditions when logging in with a different role
+  let role = user?.role;
+  if (!role && token) {
+    try {
+      const { getRoleFromToken } = require("@/lib/utils/auth/jwt");
+      role = getRoleFromToken(token, user?.current_branch_id);
+    } catch (e) {
+      // If we can't get role from token, fall back to user.role
+    }
+  }
+  
+  // Show loading state until mounted and authenticated
+  if (!mounted || !isAuthenticated || !token) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-muted-foreground">Loading dashboard...</div>
+      </div>
+    );
+  }
+  
+  // If we have a token but no role yet, show loading
+  if (!role) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-muted-foreground">Loading dashboard...</div>
+      </div>
+    );
+  }
+  
+  if (role === ROLES.ADMIN || role === ROLES.INSTITUTE_ADMIN) {
     return <AdminDashboard />;
   }
-  if (user?.role === ROLES.ACCOUNTANT) {
+  if (role === ROLES.ACCOUNTANT) {
     return <AccountantDashboard />;
   }
-  if (user?.role === ROLES.ACADEMIC) {
+  if (role === ROLES.ACADEMIC) {
     return <AcademicDashboard />;
   }
   

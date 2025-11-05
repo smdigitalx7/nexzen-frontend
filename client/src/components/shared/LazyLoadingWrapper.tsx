@@ -58,16 +58,16 @@ class SimpleErrorBoundary extends Component<
   }
 }
 
-// Simple Loading Spinner
+// Simple Loading Spinner - full screen to match Router hydration loader
 const SimpleLoadingSpinner = ({
   message = "Loading...",
 }: {
   message?: string;
 }) => (
-  <div className="flex items-center justify-center h-32">
-    <div className="flex items-center space-x-2">
-      <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-      <span className="text-sm text-muted-foreground">{message}</span>
+  <div className="flex items-center justify-center h-screen">
+    <div className="text-center">
+      <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <p className="text-sm text-muted-foreground">{message}</p>
     </div>
   </div>
 );

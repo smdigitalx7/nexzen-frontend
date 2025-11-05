@@ -263,12 +263,15 @@ export const useAuthStore = create<AuthState>()(
         logout: () => {
           AuthTokenTimers.clearProactiveRefresh();
 
-          // Clear sessionStorage tokens
-          if (typeof window !== "undefined") {
-            sessionStorage.removeItem("access_token");
-            sessionStorage.removeItem("token_expires");
+          // CRITICAL: Clear pending API requests to prevent them from completing with old token
+          try {
+            const { DedupeUtils } = require("@/lib/api");
+            DedupeUtils.clearAll();
+          } catch (e) {
+            console.warn("Failed to clear pending requests:", e);
           }
 
+          // CRITICAL: Clear user state FIRST to prevent hooks from accessing stale data
           set((state) => {
             state.user = null;
             state.isAuthenticated = false;
@@ -285,6 +288,34 @@ export const useAuthStore = create<AuthState>()(
             state.error = null;
             state.lastError = null;
           });
+
+          // Clear ALL storage: sessionStorage, localStorage, and Zustand persist
+          if (typeof window !== "undefined") {
+            // Clear sessionStorage
+            sessionStorage.removeItem("access_token");
+            sessionStorage.removeItem("token_expires");
+            
+            // CRITICAL: Clear localStorage (Zustand persist stores user data here)
+            localStorage.removeItem("enhanced-auth-storage");
+            
+            // Clear API cache
+            try {
+              const { useCacheStore } = require("@/store/cacheStore");
+              useCacheStore.getState().clear();
+            } catch (e) {
+              console.warn("Failed to clear cache store:", e);
+            }
+            
+            // CRITICAL: Clear React Query cache to prevent stale dashboard data
+            try {
+              const { queryClient } = require("@/lib/query");
+              queryClient.clear();
+              // Reset all queries to ensure fresh state
+              queryClient.resetQueries();
+            } catch (e) {
+              console.warn("Failed to clear React Query cache:", e);
+            }
+          }
         },
         logoutAsync: async () => {
           try {
@@ -297,10 +328,18 @@ export const useAuthStore = create<AuthState>()(
             console.error("Backend logout failed:", error);
             // Continue with client-side cleanup even if backend fails
           } finally {
-            // Clear all client-side state
+            // Clear all client-side state (same as logout())
             AuthTokenTimers.clearProactiveRefresh();
 
-            // Clear auth store
+            // CRITICAL: Clear pending API requests to prevent them from completing with old token
+            try {
+              const { DedupeUtils } = require("@/lib/api");
+              DedupeUtils.clearAll();
+            } catch (e) {
+              console.warn("Failed to clear pending requests:", e);
+            }
+
+            // CRITICAL: Clear auth store FIRST to prevent hooks from accessing stale data
             set({
               user: null,
               isAuthenticated: false,
@@ -308,11 +347,39 @@ export const useAuthStore = create<AuthState>()(
               academicYears: [],
               token: null,
               tokenExpireAt: null,
+              refreshToken: null,
               branches: [],
               currentBranch: null,
               isLoading: false,
               isBranchSwitching: false,
+              isTokenRefreshing: false,
+              error: null,
+              lastError: null,
             });
+
+            // Clear ALL storage: sessionStorage, localStorage, and caches
+            if (typeof window !== "undefined") {
+              sessionStorage.removeItem("access_token");
+              sessionStorage.removeItem("token_expires");
+              localStorage.removeItem("enhanced-auth-storage");
+              
+              try {
+                const { useCacheStore } = require("@/store/cacheStore");
+                useCacheStore.getState().clear();
+              } catch (e) {
+                console.warn("Failed to clear cache store:", e);
+              }
+              
+              // CRITICAL: Clear React Query cache to prevent stale dashboard data
+              try {
+                const { queryClient } = require("@/lib/query");
+                queryClient.clear();
+                // Reset all queries to ensure fresh state
+                queryClient.resetQueries();
+              } catch (e) {
+                console.warn("Failed to clear React Query cache:", e);
+              }
+            }
 
             console.log("User logged out successfully");
           }

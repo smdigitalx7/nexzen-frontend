@@ -180,6 +180,23 @@ export function useLogin() {
       // Step 9: Login user
       login(user as any, branchList as any);
 
+      // Step 9.5: CRITICAL - Clear API cache after login to prevent stale data from previous role
+      // This ensures dashboard and other data is fresh for the new role
+      try {
+        const { useCacheStore } = require("@/store/cacheStore");
+        useCacheStore.getState().clear();
+      } catch (e) {
+        console.warn("Failed to clear cache store on login:", e);
+      }
+      
+      try {
+        const { queryClient } = require("@/lib/query");
+        queryClient.clear();
+        queryClient.resetQueries();
+      } catch (e) {
+        console.warn("Failed to clear React Query cache on login:", e);
+      }
+
       // Step 10: Determine redirect path based on role and branch type
       let redirectPath = "/"; // Default for ADMIN/INSTITUTE_ADMIN
 

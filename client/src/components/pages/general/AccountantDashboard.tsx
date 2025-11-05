@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useLocation } from "wouter";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -66,7 +67,7 @@ const AccountantDashboard = () => {
     currentBranch?.branch_type === "SCHOOL" ? "/school" : "/college";
   const { data: dashboardData, loading, error } = useAccountantDashboard();
 
-  const quickLinks = [
+  const quickLinks = useMemo(() => [
     {
       title: "New Reservation",
       href: `${branchPrefix}/reservations/new`,
@@ -91,9 +92,9 @@ const AccountantDashboard = () => {
       icon: BarChart3,
       color: "text-sky-600",
     },
-  ];
+  ], [branchPrefix]);
 
-  const quickLinksDropdown = (
+  const quickLinksDropdown = useMemo(() => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="h-9">
@@ -119,7 +120,7 @@ const AccountantDashboard = () => {
         })}
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  ), [quickLinks, setLocation]);
 
   return (
     <DashboardContainer loading={loading}>

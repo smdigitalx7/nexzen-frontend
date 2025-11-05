@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useLocation } from "wouter";
 import {
   Card,
@@ -6,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -49,7 +49,7 @@ const AcademicDashboard = () => {
     currentBranch?.branch_type === "SCHOOL" ? "/school" : "/college";
   const { data: dashboardData, loading, error } = useAcademicDashboard();
 
-  const quickLinks = [
+  const quickLinks = useMemo(() => [
     {
       title: "Academic",
       href: `${branchPrefix}/academic`,
@@ -68,9 +68,9 @@ const AcademicDashboard = () => {
       icon: Trophy,
       color: "text-purple-600",
     },
-  ];
+  ], [branchPrefix]);
 
-  const quickLinksDropdown = (
+  const quickLinksDropdown = useMemo(() => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="h-9">
@@ -96,7 +96,7 @@ const AcademicDashboard = () => {
         })}
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  ), [quickLinks, setLocation]);
 
   return (
     <DashboardContainer loading={loading}>

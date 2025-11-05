@@ -227,17 +227,20 @@ export interface DashboardQueryParams {
 export function isAdminDashboard(
   response: DashboardResponse
 ): response is AdminDashboardResponse {
-  return "overview" in response.data && "financial" in response.data;
+  if (!response || !response.data) return false;
+  return "overview" in response.data && "financial" in response.data && !("academic_performance" in response.data);
 }
 
 export function isAccountantDashboard(
   response: DashboardResponse
 ): response is AccountantDashboardResponse {
-  return "financial_overview" in response.data && "income_breakdown" in response.data;
+  if (!response || !response.data) return false;
+  return "financial_overview" in response.data && "income_breakdown" in response.data && !("overview" in response.data || "academic_performance" in response.data);
 }
 
 export function isAcademicDashboard(
   response: DashboardResponse
 ): response is AcademicDashboardResponse {
-  return "overview" in response.data && "academic_performance" in response.data;
+  if (!response || !response.data) return false;
+  return "overview" in response.data && "academic_performance" in response.data && !("financial" in response.data);
 }

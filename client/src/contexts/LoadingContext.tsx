@@ -201,43 +201,51 @@ const LoadingOverlay: React.FC = () => {
     return null;
   }
 
-  return (
-    <div className="fixed inset-0 z-50 pointer-events-none">
-      {/* Global loading */}
-      {state.globalLoading && (
+  // Priority: Global loading > most recent fullScreen item > most recent overlay item
+  // Only show ONE loader at a time to prevent duplicates
+  if (state.globalLoading) {
+    return (
+      <div className="fixed inset-0 z-50 pointer-events-none">
         <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <LoadingStates.Page message={state.globalMessage} />
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {/* Individual loading items */}
-      {state.items.map((item) => {
-        if (item.fullScreen) {
-          return (
-            <div
-              key={item.id}
-              className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm"
-            >
-              <LoadingStates.Page message={item.message} />
-            </div>
-          );
-        }
+  // Find the most recent fullScreen item
+  const fullScreenItems = state.items.filter(item => item.fullScreen);
+  if (fullScreenItems.length > 0) {
+    // Get the most recent one (highest timestamp)
+    const mostRecent = fullScreenItems.reduce((latest, current) => 
+      current.timestamp > latest.timestamp ? current : latest
+    );
+    return (
+      <div className="fixed inset-0 z-50 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <LoadingStates.Page message={mostRecent.message} />
+        </div>
+      </div>
+    );
+  }
 
-        if (item.overlay) {
-          return (
-            <div
-              key={item.id}
-              className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm"
-            >
-              <LoadingStates.Data message={item.message} />
-            </div>
-          );
-        }
+  // Find the most recent overlay item
+  const overlayItems = state.items.filter(item => item.overlay);
+  if (overlayItems.length > 0) {
+    // Get the most recent one (highest timestamp)
+    const mostRecent = overlayItems.reduce((latest, current) => 
+      current.timestamp > latest.timestamp ? current : latest
+    );
+    return (
+      <div className="fixed inset-0 z-50 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <LoadingStates.Data message={mostRecent.message} />
+        </div>
+      </div>
+    );
+  }
 
-        return null;
-      })}
-    </div>
-  );
+  return null;
 };
 
 // Hook to use loading context

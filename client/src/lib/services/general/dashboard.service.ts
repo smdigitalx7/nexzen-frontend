@@ -39,9 +39,13 @@ export const DashboardService = {
   getDashboard(
     params?: DashboardQueryParams
   ): Promise<DashboardResponse> {
-    return Api.get<DashboardResponse>("/dashboard", params as
-      | Record<string, string | number | boolean | null | undefined>
-      | undefined
+    // CRITICAL: Disable caching for dashboard to prevent stale data from previous role
+    // Dashboard data is role-specific and should always be fresh
+    return Api.get<DashboardResponse>(
+      "/dashboard", 
+      params as Record<string, string | number | boolean | null | undefined> | undefined,
+      undefined,
+      { cache: false }
     );
   },
 
