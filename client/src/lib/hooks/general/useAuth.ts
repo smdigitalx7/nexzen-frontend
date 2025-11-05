@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
 import { useToast } from "@/hooks/use-toast";
 import { unifiedApi } from "@/lib/services/general/unified-api.service";
-import { normalizeRole, ROLES, type UserRole } from "@/lib/constants/auth/roles";
+import { normalizeRole, ROLES, type UserRole } from "@/lib/constants";
 import { extractPrimaryRole } from "@/lib/utils/roles";
 
 // Types for authentication
@@ -157,8 +157,25 @@ export function useLogin() {
       // Step 9: Login user
       login(user as any, branchList as any);
 
+<<<<<<< HEAD
       // Step 10: All users redirect to dashboard - DashboardRouter will show appropriate dashboard
       const redirectPath = "/";
+=======
+      // Step 10: Determine redirect path based on role and branch type
+      let redirectPath = "/"; // Default for ADMIN/INSTITUTE_ADMIN
+      
+      // Get current branch type
+      const currentBranchType = branchList.find(b => b.branch_id === currentBranchId)?.branch_type || "SCHOOL";
+      const branchPrefix = currentBranchType === "COLLEGE" ? "/college" : "/school";
+      
+      // Set redirect path based on role
+      if (normalizedRole === ROLES.ACCOUNTANT) {
+        redirectPath = `${branchPrefix}/fees`;
+      } else if (normalizedRole === ROLES.ACADEMIC) {
+        redirectPath = `${branchPrefix}/academic`;
+      }
+      // ADMIN and INSTITUTE_ADMIN go to "/" (dashboard)
+>>>>>>> 4810d931a632104ad3c6e7bd4a165623ab680201
 
       return {
         user,
