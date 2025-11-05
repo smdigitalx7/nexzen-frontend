@@ -237,14 +237,28 @@ const TransportTabComponent = () => {
       header: 'Route',
     },
     {
-      id: 'class_name',
-      accessorKey: 'class_name',
-      header: 'Class',
-    },
-    {
-      id: 'group_name',
-      accessorKey: 'group_name',
-      header: 'Group',
+      id: 'class_group',
+      header: 'Class / Group',
+      accessorFn: (row) => {
+        // Show both class and group together
+        if (row.class_name && row.group_name) {
+          return `${row.class_name} / ${row.group_name}`;
+        }
+        if (row.class_name) return row.class_name;
+        if (row.group_name) return row.group_name;
+        return '-';
+      },
+      cell: ({ row }) => {
+        const className = row.original.class_name;
+        const groupName = row.original.group_name;
+        return (
+          <div>
+            {className && groupName
+              ? `${className} / ${groupName}`
+              : className || groupName || '-'}
+          </div>
+        )
+      }
     },
     {
       id: 'pickup_point',
@@ -252,22 +266,6 @@ const TransportTabComponent = () => {
       header: 'Pickup Point',
       cell: ({ row }) => (
         <div>{row.original.pickup_point || '-'}</div>
-      ),
-    },
-    {
-      id: 'start_date',
-      accessorKey: 'start_date',
-      header: 'Start Date',
-      cell: ({ row }) => (
-        <div>{row.original.start_date ? new Date(row.original.start_date).toLocaleDateString() : '-'}</div>
-      ),
-    },
-    {
-      id: 'end_date',
-      accessorKey: 'end_date',
-      header: 'End Date',
-      cell: ({ row }) => (
-        <div>{row.original.end_date ? new Date(row.original.end_date).toLocaleDateString() : '-'}</div>
       ),
     },
     {
