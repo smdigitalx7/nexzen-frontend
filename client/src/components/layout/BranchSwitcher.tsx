@@ -41,11 +41,20 @@ const BranchSwitcher = () => {
         // Navigate to the equivalent URL
         setLocation(equivalentUrl);
 
-        // Perform browser refresh to ensure clean state
-        window.location.reload();
+        // Instead of full reload, just clear cache and refresh data
+        // This preserves authentication state
+        if (window.location.pathname !== equivalentUrl) {
+          // Only reload if URL actually changed
+          window.location.href = equivalentUrl;
+        } else {
+          // URL didn't change, just trigger a soft refresh
+          window.dispatchEvent(new Event('branch-switched'));
+        }
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error("Failed to switch branch:", error);
+        // Don't logout on error - just show error
+        // The error handling in switchBranch should preserve auth state
       }
     },
     [switchBranch, currentBranch?.branch_type, setLocation]

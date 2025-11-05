@@ -12,7 +12,7 @@ import { queryClient } from "@/lib/query";
 import { LazyLoadingWrapper } from "@/components/shared/LazyLoadingWrapper";
 import { componentPreloader } from "@/lib/utils/performance/preloader";
 import ProductionApp from "@/components/shared/ProductionApp";
-import { ROLES, type UserRole } from "@/lib/constants";
+import { ROLES, type UserRole } from "@/lib/constants/auth/roles";
 import { config } from "@/lib/config/production";
 
 // Lazy-loaded General Components
@@ -118,85 +118,96 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
 }
 
 function Router() {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, token } = useAuthStore();
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // Wait for Zustand persist to hydrate - onRehydrateStorage will restore auth state
+  // Wait for Zustand persist to hydrate - onRehydrateStorage handles auth restoration
   useEffect(() => {
-    // Check immediately
-    const sessionToken = sessionStorage.getItem('access_token');
-    const sessionExpires = sessionStorage.getItem('token_expires');
-    const store = useAuthStore.getState();
+    let mounted = true;
     
-    // CRITICAL: If we have token + user, ensure authenticated state
-    if (sessionToken && sessionExpires && store.user) {
-      const expireAt = parseInt(sessionExpires);
-      if (Date.now() < expireAt) {
-        // Valid - ensure authenticated (onRehydrateStorage should have done this, but double-check)
-        if (!store.isAuthenticated) {
-          useAuthStore.setState((state) => {
-            state.token = sessionToken;
-            state.tokenExpireAt = expireAt;
-            state.isAuthenticated = true;
-          });
-        }
-        setIsHydrated(true);
-        return;
-      } else {
-        // Expired
-        useAuthStore.getState().logout();
-        setIsHydrated(true);
-        return;
-      }
-    }
-    
-    // If we have user but no token, logout
-    if (store.user && !sessionToken) {
-      useAuthStore.getState().logout();
-    }
-    
-    // Check again after a short delay to catch async hydration
-    const timer1 = setTimeout(() => {
-      const sessionToken2 = sessionStorage.getItem('access_token');
-      const sessionExpires2 = sessionStorage.getItem('token_expires');
-      const store2 = useAuthStore.getState();
+    const checkAndRestore = () => {
+      if (!mounted) return;
       
-      if (sessionToken2 && sessionExpires2 && store2.user && !store2.isAuthenticated) {
-        const expireAt2 = parseInt(sessionExpires2);
-        if (Date.now() < expireAt2) {
-          useAuthStore.setState((state) => {
-            state.token = sessionToken2;
-            state.tokenExpireAt = expireAt2;
-            state.isAuthenticated = true;
-          });
+      const sessionToken = sessionStorage.getItem('access_token');
+      const sessionExpires = sessionStorage.getItem('token_expires');
+      const store = useAuthStore.getState();
+      
+      // CRITICAL CHECK: If we have token + user, we MUST be authenticated
+      // This is a backup check in case onRehydrateStorage didn't run
+      if (sessionToken && sessionExpires && store.user) {
+        const expireAt = parseInt(sessionExpires);
+        
+        if (Date.now() < expireAt) {
+          // Valid token - ensure authenticated state is set
+          if (!store.isAuthenticated || store.token !== sessionToken) {
+            useAuthStore.setState((state) => {
+              state.token = sessionToken;
+              state.tokenExpireAt = expireAt;
+              state.isAuthenticated = true;
+            });
+          }
+        } else {
+          // Token expired
+          useAuthStore.getState().logout();
         }
+      } else if (store.user && !sessionToken) {
+        // If we have user but no token, logout
+        useAuthStore.getState().logout();
       }
+      
       setIsHydrated(true);
-    }, 200);
+    };
+
+    // Check multiple times to catch hydration at different stages
+    // onRehydrateStorage should handle this, but this is a safety net
+    const timer1 = setTimeout(checkAndRestore, 100);
+    const timer2 = setTimeout(checkAndRestore, 300);
+    const timer3 = setTimeout(checkAndRestore, 500);
     
     return () => {
+      mounted = false;
       clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
     };
   }, []);
 
-  // Also watch for user changes to ensure auth state
+  // Also watch for user changes to ensure auth state is correct
   useEffect(() => {
-    if (user && !isAuthenticated) {
+    if (!isHydrated && user) {
       const sessionToken = sessionStorage.getItem('access_token');
       const sessionExpires = sessionStorage.getItem('token_expires');
+      const store = useAuthStore.getState();
       
+      // If we have both token and user, ensure authenticated
       if (sessionToken && sessionExpires) {
         const expireAt = parseInt(sessionExpires);
         if (Date.now() < expireAt) {
-          useAuthStore.setState((state) => {
-            state.token = sessionToken;
-            state.tokenExpireAt = expireAt;
-            state.isAuthenticated = true;
-          });
+          if (!store.isAuthenticated || store.token !== sessionToken) {
+            useAuthStore.setState((state) => {
+              state.token = sessionToken;
+              state.tokenExpireAt = expireAt;
+              state.isAuthenticated = true;
+            });
+          }
+          setIsHydrated(true);
+        } else {
+          // Expired
+          useAuthStore.getState().logout();
+          setIsHydrated(true);
         }
+      } else if (!sessionToken) {
+        // No token
+        useAuthStore.getState().logout();
+        setIsHydrated(true);
+      } else {
+        setIsHydrated(true);
       }
+    } else if (!user && !isHydrated) {
+      // No user - set hydrated after a short delay
+      setTimeout(() => setIsHydrated(true), 200);
     }
-  }, [user, isAuthenticated]);
+  }, [user, isHydrated]);
 
   // Show loading state while hydrating
   if (!isHydrated) {

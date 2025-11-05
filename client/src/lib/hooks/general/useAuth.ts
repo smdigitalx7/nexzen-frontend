@@ -1,8 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
 import { useToast } from "@/hooks/use-toast";
-import { unifiedApi } from "@/lib/services/general";
-import { normalizeRole, ROLES } from "@/lib/constants";
+import { unifiedApi } from "@/lib/services/general/unified-api.service";
+import { normalizeRole, ROLES, type UserRole } from "@/lib/constants";
 import { extractPrimaryRole } from "@/lib/utils/roles";
 
 // Types for authentication
@@ -31,8 +31,6 @@ export interface BranchInfo {
   branch_name: string;
   branch_type: "SCHOOL" | "COLLEGE";
 }
-
-import type { UserRole } from "@/lib/constants";
 
 export interface AuthUser {
   user_id: string;
