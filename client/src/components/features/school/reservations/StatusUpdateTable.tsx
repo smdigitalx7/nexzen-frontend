@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/select";
 import { Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
 import { useQueryClient } from "@tanstack/react-query";
 import { schoolKeys } from "@/lib/hooks/school/query-keys";
 import { SchoolReservationsService } from "@/lib/services/school";

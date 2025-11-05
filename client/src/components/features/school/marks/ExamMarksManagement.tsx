@@ -30,17 +30,6 @@ import {
 import { EnhancedDataTable } from "@/components/shared";
 import {
   useSchoolExamMarksList,
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { GraduationCap } from 'lucide-react';
-import type { ColumnDef } from '@tanstack/react-table';
-import { Card } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader as AlertHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { EnhancedDataTable } from '@/components/shared';
-import { 
-  useSchoolExamMarksList, 
   useSchoolExamMark,
   useCreateSchoolExamMark,
   useUpdateSchoolExamMark,
@@ -56,25 +45,14 @@ import type {
   ExamMarkWithDetails,
   ExamMarksQuery,
 } from "@/lib/types/school/exam-marks";
-  useCreateSchoolExamMark, 
-  useUpdateSchoolExamMark, 
-  useDeleteSchoolExamMark
-} from '@/lib/hooks/school';
-// Note: useSchoolClasses, useSchoolSections, useSchoolSubjects, useSchoolExams from dropdowns
-// Import dropdowns directly: import { useSchoolClasses } from "@/lib/hooks/school/use-school-dropdowns"
-import { useSchoolClasses, useSchoolSections, useSchoolSubjects, useSchoolExams } from '@/lib/hooks/school/use-school-dropdowns';
-import type { ExamMarkWithDetails, ExamMarksQuery } from '@/lib/types/school/exam-marks';
 import {
   createStudentColumn,
   createSubjectColumn,
   createMarksColumn,
   createGradeColumn,
   createTestDateColumn,
-} from "@/lib/utils/columnFactories.tsx";
-import AddExamMarkForm from "./AddExamMarkForm";
-  createTestDateColumn
 } from "@/lib/utils/factory/columnFactories";
-import AddExamMarkForm from './AddExamMarkForm';
+import AddExamMarkForm from "./AddExamMarkForm";
 
 
 interface ExamMarksManagementProps {

@@ -7,6 +7,7 @@ import {
   useCreateSchoolReservation,
 } from "@/lib/hooks/school/use-school-reservations";
 import { schoolKeys } from "@/lib/hooks/school/query-keys";
+import {
   useUpdateSchoolReservation,
   useSchoolClass,
 } from "@/lib/hooks/school";

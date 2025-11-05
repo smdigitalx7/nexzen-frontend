@@ -1210,11 +1210,10 @@ function EnhancedDataTableComponent<TData>({
 
       {/* Table */}
       <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
-        <div className="overflow-x-auto scrollbar-hide" role="region" aria-label="Data table">
         <div 
           ref={tableContainerRef}
           className={cn(
-            "overflow-x-auto",
+            "overflow-x-auto scrollbar-hide",
             shouldVirtualize && "overflow-y-auto max-h-[600px]"
           )}
           role="region" 
