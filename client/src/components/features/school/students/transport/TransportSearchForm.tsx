@@ -1,9 +1,19 @@
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Eye } from "lucide-react";
 
 interface TransportSearchFormProps {
-  query: { class_id: number | ''; section_id?: number | ''; bus_route_id?: number | '' };
+  query: {
+    class_id: number | "";
+    section_id?: number | "";
+    bus_route_id?: number | "";
+  };
   classes: any[];
   sections: any[];
   busRoutes: any[];
@@ -28,9 +38,11 @@ export const TransportSearchForm = ({
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">Class</label>
+            <label className="text-sm font-medium text-slate-700 mb-2 block">
+              Class
+            </label>
             <Select
-              value={query.class_id ? String(query.class_id) : ''}
+              value={query.class_id ? String(query.class_id) : ""}
               onValueChange={onClassChange}
             >
               <SelectTrigger className="w-full">
@@ -46,18 +58,29 @@ export const TransportSearchForm = ({
             </Select>
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">Section</label>
+            <label className="text-sm font-medium text-slate-700 mb-2 block">
+              Section
+            </label>
             <Select
-              value={query.section_id ? String(query.section_id) : ''}
+              value={query.section_id ? String(query.section_id) : ""}
               onValueChange={onSectionChange}
               disabled={!query.class_id}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder={query.class_id ? "Select section (optional)" : "Select class first"} />
+                <SelectValue
+                  placeholder={
+                    query.class_id
+                      ? "Select section (optional)"
+                      : "Select class first"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {sections.map((sec: any) => (
-                  <SelectItem key={sec.section_id} value={String(sec.section_id)}>
+                  <SelectItem
+                    key={sec.section_id}
+                    value={String(sec.section_id)}
+                  >
                     {sec.section_name}
                   </SelectItem>
                 ))}
@@ -65,9 +88,11 @@ export const TransportSearchForm = ({
             </Select>
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">Bus Route</label>
+            <label className="text-sm font-medium text-slate-700 mb-2 block">
+              Bus Route
+            </label>
             <Select
-              value={query.bus_route_id ? String(query.bus_route_id) : ''}
+              value={query.bus_route_id ? String(query.bus_route_id) : ""}
               onValueChange={onBusRouteChange}
             >
               <SelectTrigger className="w-full">
@@ -75,8 +100,12 @@ export const TransportSearchForm = ({
               </SelectTrigger>
               <SelectContent>
                 {busRoutes.map((route: any) => (
-                  <SelectItem key={route.bus_route_id} value={String(route.bus_route_id)}>
-                    {route.route_name} {route.route_no ? `(${route.route_no})` : ''}
+                  <SelectItem
+                    key={route.bus_route_id}
+                    value={String(route.bus_route_id)}
+                  >
+                    {route.route_name}{" "}
+                    {route.route_no ? `(${route.route_no})` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -84,7 +113,7 @@ export const TransportSearchForm = ({
           </div>
         </div>
 
-        <div className="flex gap-2">
+        {/* <div className="flex gap-2">
           <Button 
             onClick={onClear}
             variant="outline"
@@ -93,9 +122,8 @@ export const TransportSearchForm = ({
             <Eye className="w-4 h-4" />
             Clear
           </Button>
-        </div>
+        </div> */}
       </div>
     </div>
   );
 };
-

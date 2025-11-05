@@ -15,22 +15,29 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { PaymentValidator, getAvailableTerms } from '../../validation/PaymentValidation';
-import type { PurposeSpecificComponentProps, PaymentItem, PaymentMethod } from '../../types/PaymentTypes';
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import {
+  PaymentValidator,
+  getAvailableTerms,
+} from "../../validation/PaymentValidation";
+import type {
+  PurposeSpecificComponentProps,
+  PaymentItem,
+  PaymentMethod,
+} from "../../types/PaymentTypes";
 
 const paymentMethodOptions: Array<{ value: PaymentMethod; label: string }> = [
-  { value: 'CASH', label: 'Cash' },
-  { value: 'ONLINE', label: 'Online' }
+  { value: "CASH", label: "Cash" },
+  { value: "ONLINE", label: "Online" },
 ];
 
 interface TuitionFeeComponentProps extends PurposeSpecificComponentProps {
@@ -43,12 +50,12 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
   config,
   onAdd,
   onCancel,
-  isOpen
+  isOpen,
 }) => {
   const [selectedTerms, setSelectedTerms] = useState<number[]>([]);
   const [termAmounts, setTermAmounts] = useState<Record<number, string>>({});
   const [lockedTerms, setLockedTerms] = useState<number[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [termErrors, setTermErrors] = useState<Record<number, boolean>>({});
@@ -85,43 +92,45 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
       if (selectedTerms.includes(termNumber)) {
         return;
       }
-      
+
       // Add term to selection
       const newSelectedTerms = [...selectedTerms, termNumber];
       setSelectedTerms(newSelectedTerms);
-      
+
       // Lock all previous terms except the last one
       const termsToLock = newSelectedTerms.slice(0, -1);
       setLockedTerms(termsToLock);
-      
+
       // Set amounts for locked terms to full outstanding amount (non-editable)
       const newAmounts = { ...termAmounts };
-      termsToLock.forEach(term => {
-        const termData = availableTerms.find(t => t.term === term);
+      termsToLock.forEach((term) => {
+        const termData = availableTerms.find((t) => t.term === term);
         if (termData && termData.outstanding > 0) {
           newAmounts[term] = termData.outstanding.toString();
         }
       });
-      
+
       // Set amount for the last selected term (can be custom)
       const lastTerm = newSelectedTerms[newSelectedTerms.length - 1];
-      const lastTermData = availableTerms.find(t => t.term === lastTerm);
+      const lastTermData = availableTerms.find((t) => t.term === lastTerm);
       if (lastTermData && lastTermData.outstanding > 0) {
         newAmounts[lastTerm] = lastTermData.outstanding.toString();
       }
-      
+
       setTermAmounts(newAmounts);
     } else {
       // Remove term from selection
-      const newSelectedTerms = selectedTerms.filter(term => term !== termNumber);
+      const newSelectedTerms = selectedTerms.filter(
+        (term) => term !== termNumber
+      );
       setSelectedTerms(newSelectedTerms);
-      
+
       // Update locked terms
       const newLockedTerms = newSelectedTerms.slice(0, -1);
       setLockedTerms(newLockedTerms);
-      
+
       // Clear amount for removed term
-      setTermAmounts(prev => {
+      setTermAmounts((prev) => {
         const newAmounts = { ...prev };
         delete newAmounts[termNumber];
         return newAmounts;
@@ -135,13 +144,13 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
     if (termNumber !== lastSelectedTerm) {
       return; // Don't allow changes to locked terms
     }
-    
-    setTermAmounts(prev => {
+
+    setTermAmounts((prev) => {
       const newAmounts = { ...prev };
       newAmounts[termNumber] = value;
       return newAmounts;
     });
-    
+
     // Validate after a short delay to ensure state is updated
     setTimeout(() => {
       validateTermAmount(termNumber, value);
@@ -150,10 +159,13 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
 
   const validateTermAmount = (termNumber: number, value: string) => {
     const numAmount = parseFloat(value);
-    const validation = PaymentValidator.validateAmount(numAmount, config.validationRules);
-    
+    const validation = PaymentValidator.validateAmount(
+      numAmount,
+      config.validationRules
+    );
+
     let hasExceededAmount = false;
-    
+
     // Check if amount exceeds outstanding balance for this term
     // Both colleges and schools use term-based validation
     const termData = availableTerms.find(t => t.term === termNumber);
@@ -161,18 +173,18 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
       validation.errors.push(`Amount cannot exceed outstanding balance of ${formatAmount(termData.outstanding)}`);
       hasExceededAmount = true;
     }
-    
+
     // Clear error if amount is valid
     if (!hasExceededAmount && validation.errors.length === 0) {
       hasExceededAmount = false;
     }
-    
+
     // Update term error state
-    setTermErrors(prev => ({
+    setTermErrors((prev) => ({
       ...prev,
-      [termNumber]: hasExceededAmount
+      [termNumber]: hasExceededAmount,
     }));
-    
+
     setErrors(validation.errors);
   };
 
@@ -221,28 +233,28 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
     // Both colleges and schools use term-based payments
     const uniqueSelectedTerms = Array.from(new Set(selectedTerms)); // Remove duplicates
     setIsSubmitting(true);
-    
-    uniqueSelectedTerms.forEach(termNumber => {
+
+    uniqueSelectedTerms.forEach((termNumber) => {
       const amount = parseFloat(termAmounts[termNumber]);
       const paymentItem: PaymentItem = {
         id: `tuition-fee-term-${termNumber}-${Date.now()}-${Math.random()}`,
-        purpose: 'TUITION_FEE',
+        purpose: "TUITION_FEE",
         termNumber: termNumber,
         amount: amount,
-        paymentMethod: paymentMethod
+        paymentMethod: paymentMethod,
       };
       onAdd(paymentItem);
     });
-    
+
     setIsSubmitting(false);
   };
 
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     }).format(amount);
   };
 
@@ -254,50 +266,58 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
 
   // Helper function to determine if a term can be selected
   const canSelectTerm = (termNumber: number): boolean => {
-    const term = availableTerms.find(t => t.term === termNumber);
+    const term = availableTerms.find((t) => t.term === termNumber);
     if (!term) return false;
-    
+
     // Can't select if fully paid (no outstanding amount)
     // Allow selection if there's any outstanding balance, even if partially paid
     if (term.outstanding <= 0) return false;
-    
+
     // For sequential selection:
     // - Previous terms with outstanding balance must be fully paid OR selected in current session
     // - Exception: If current term is partially paid, allow continuing that partial payment
     if (termNumber > 1) {
       const isCurrentTermPartiallyPaid = term.paid && term.outstanding > 0;
-      
+
       for (let prevTermNum = 1; prevTermNum < termNumber; prevTermNum++) {
-        const prevTerm = availableTerms.find(t => t.term === prevTermNum);
+        const prevTerm = availableTerms.find((t) => t.term === prevTermNum);
         if (prevTerm) {
           // Skip if previous term is fully paid (no outstanding)
           if (prevTerm.outstanding <= 0) {
             continue;
           }
-          
+
           // If previous term has outstanding balance:
           // - Must be selected in current session, OR
           // - Current term is partially paid (allow continuing partial payments)
-          if (prevTerm.outstanding > 0 && !selectedTerms.includes(prevTermNum) && !isCurrentTermPartiallyPaid) {
+          if (
+            prevTerm.outstanding > 0 &&
+            !selectedTerms.includes(prevTermNum) &&
+            !isCurrentTermPartiallyPaid
+          ) {
             return false;
           }
         }
       }
     }
-    
+
     return true;
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-green-600" />
+        <DialogHeader className="pb-4 border-b border-blue-200 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 -mx-6 -mt-6 px-6 pt-6 rounded-t-lg">
+          <DialogTitle className="flex items-center gap-2 text-lg text-gray-900">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <GraduationCap className="h-5 w-5 text-blue-600" />
+            </div>
             Tuition Fee Payment
           </DialogTitle>
-          <DialogDescription className="font-semibold">
-            Add tuition fee payment for {student.name} ({student.admissionNo})
+          <DialogDescription className="text-sm text-gray-600 mt-2">
+            Add tuition fee payment for{" "}
+            <span className="font-medium text-gray-900">{student.name}</span> (
+            {student.admissionNo})
           </DialogDescription>
         </DialogHeader>
 
@@ -429,7 +449,7 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
           </div>
 
           {/* Payment Method */}
-          <div className="space-y-2">
+          {/* <div className="space-y-2">
             <Label htmlFor="payment-method" className="text-sm font-medium">
               Payment Method *
             </Label>
@@ -445,16 +465,31 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </div> */}
 
           {/* Warning Message */}
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Important:</strong> Terms must be paid sequentially (1 → 2 → 3). Previous terms that are already paid or have no outstanding balance can be skipped.
+              <strong>Important:</strong> Terms must be paid sequentially (1 → 2
+              → 3). Previous terms that are already paid or have no outstanding
+              balance can be skipped.
               {selectedTerms.length > 0 && (
                 <span className="block mt-1">
-                  Selected Terms: {selectedTerms.map(term => `Term ${term}`).join(', ')} - Total Outstanding: <strong>{formatAmount(selectedTerms.reduce((sum, term) => sum + (availableTerms.find(t => t.term === term)?.outstanding || 0), 0))}</strong>
+                  Selected Terms:{" "}
+                  {selectedTerms.map((term) => `Term ${term}`).join(", ")} -
+                  Total Outstanding:{" "}
+                  <strong>
+                    {formatAmount(
+                      selectedTerms.reduce(
+                        (sum, term) =>
+                          sum +
+                          (availableTerms.find((t) => t.term === term)
+                            ?.outstanding || 0),
+                        0
+                      )
+                    )}
+                  </strong>
                 </span>
               )}
             </AlertDescription>
@@ -462,28 +497,22 @@ export const TuitionFeeComponent: React.FC<TuitionFeeComponentProps> = ({
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <Button
-              variant="outline"
-              onClick={onCancel}
-              className="flex-1"
-            >
+            <Button variant="outline" onClick={onCancel} className="flex-1">
               Cancel
             </Button>
-            
+
             {hasOutstandingPayments ? (
-            <Button
-              onClick={handleSubmit}
-              disabled={!isFormValid}
-              className="flex-1 gap-2"
-            >
-              <GraduationCap className="h-4 w-4" />
-              Add {selectedTerms.length} Term Payment{selectedTerms.length > 1 ? 's' : ''}
-            </Button>
-            ) : (
               <Button
-                onClick={onCancel}
+                onClick={handleSubmit}
+                disabled={!isFormValid}
                 className="flex-1 gap-2"
               >
+                <GraduationCap className="h-4 w-4" />
+                Add {selectedTerms.length} Term Payment
+                {selectedTerms.length > 1 ? "s" : ""}
+              </Button>
+            ) : (
+              <Button onClick={onCancel} className="flex-1 gap-2">
                 <CheckCircle2 className="h-4 w-4" />
                 Close
               </Button>

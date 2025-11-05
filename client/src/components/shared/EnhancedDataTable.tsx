@@ -130,7 +130,11 @@ interface EnhancedDataTableProps<TData> {
   debounceDelay?: number;
   highlightSearchResults?: boolean;
   searchSuggestions?: string[];
-  customGlobalFilterFn?: <TData>(row: TData, columnId: string, value: string) => boolean;
+  customGlobalFilterFn?: <TData>(
+    row: TData,
+    columnId: string,
+    value: string
+  ) => boolean;
   // Action buttons
   actionButtons?: ActionButton<TData>[];
   actionButtonGroups?: ActionButtonGroup<TData>[];
@@ -331,22 +335,22 @@ function EnhancedDataTableComponent<TData>({
               return (
                 <Button
                   key={`${button.id}-${index}`}
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={() => button.onClick(row.original)}
                   className={cn(
                     showActionLabels
-                      ? "h-5 px-1 py-0.5 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-sm"
+                      ? "h-5 px-2.5 py-0.5 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-sm"
                       : "h-5 w-5 p-0 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-sm",
-                    index > 0 && "ml-0.5",
+                    index > 0 && "ml-2",
                     button.className
                   )}
                   title={button.label}
                   aria-label={button.label}
                 >
-                  <Icon className="h-3 w-3" />
+                  <Icon className="h-2 w-2" />
                   {showActionLabels && (
-                    <span className="ml-0.5 text-xs font-medium">
+                    <span className="ml-0.2 text-xs font-medium ">
                       {button.label}
                     </span>
                   )}
@@ -468,10 +472,9 @@ function EnhancedDataTableComponent<TData>({
 
   // Virtualization setup
   const rows = table.getRowModel().rows;
-  const shouldVirtualize = enableVirtualization && rows.length > virtualThreshold;
-  
-  // Always call the hook, but conditionally enable it
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+  const shouldVirtualize =
+    enableVirtualization && rows.length > virtualThreshold;
+
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => tableContainerRef.current,
@@ -549,10 +552,10 @@ function EnhancedDataTableComponent<TData>({
           pattern: "solid",
           fgColor: colors.headerBg,
         };
-        
+
         // Merge title cells
         worksheet.mergeCells(1, 1, 1, exportableColumns.length);
-        
+
         // Add border to title
         const titleCell = worksheet.getCell(1, 1);
         titleCell.border = {
@@ -561,7 +564,7 @@ function EnhancedDataTableComponent<TData>({
           left: { style: "medium", color: colors.headerBg },
           right: { style: "medium", color: colors.headerBg },
         };
-        
+
         worksheet.addRow([]); // Empty row for spacing
       }
 
@@ -591,7 +594,7 @@ function EnhancedDataTableComponent<TData>({
         horizontal: "left",
         vertical: "middle",
       };
-      
+
       // Merge metadata cells
       worksheet.mergeCells(
         title ? 3 : 1,
@@ -599,7 +602,7 @@ function EnhancedDataTableComponent<TData>({
         title ? 3 : 1,
         exportableColumns.length
       );
-      
+
       const metadataCell = worksheet.getCell(title ? 3 : 1, 1);
       metadataCell.alignment = {
         horizontal: "right",
@@ -734,14 +737,18 @@ function EnhancedDataTableComponent<TData>({
 
           // Right-align numeric values
           const value = cell.value;
-          if (typeof value === "number" || (!isNaN(Number(value)) && value !== "")) {
+          if (
+            typeof value === "number" ||
+            (!isNaN(Number(value)) && value !== "")
+          ) {
             cell.alignment = {
               ...cell.alignment,
               horizontal: "right",
             };
-            cell.numFmt = typeof value === "number" && !Number.isInteger(value)
-              ? "#,##0.00"
-              : "#,##0";
+            cell.numFmt =
+              typeof value === "number" && !Number.isInteger(value)
+                ? "#,##0.00"
+                : "#,##0";
           }
         });
       });
@@ -762,7 +769,7 @@ function EnhancedDataTableComponent<TData>({
 
           // Set column width with reasonable limits
           column.width = Math.max(Math.min(maxLength + 3, 50), 12);
-          
+
           // Set alignment for header
           if (headerRow.getCell(index + 1)) {
             headerRow.getCell(index + 1).alignment = {
@@ -884,34 +891,23 @@ function EnhancedDataTableComponent<TData>({
       URL.revokeObjectURL(url);
     } catch (_error) {
       // Fallback to CSV if Excel export fails
-      const exportableColumns = columns.filter((col) => {
-        const typedCol = col as ColumnDef<TData> & { accessorKey?: string; header?: unknown };
-        const hasAccessorKey = !!typedCol.accessorKey;
-        const headerStr = typeof typedCol.header === "string" 
-          ? typedCol.header 
-          : typeof typedCol.header === "function" 
-          ? col.id ?? "" 
-          : String(typedCol.header ?? "");
+      const exportableColumns = columns.filter((col: any) => {
+        const hasAccessorKey = !!col.accessorKey;
         const isActionColumn =
           col.id?.toLowerCase().includes("action") ||
           col.id?.toLowerCase().includes("actions") ||
-          headerStr.toLowerCase().includes("action");
+          col.header?.toString().toLowerCase().includes("action");
         return hasAccessorKey && !isActionColumn;
       });
 
       const csvContent = [
         exportableColumns
-          .map((col) => {
-            const typedCol = col as ColumnDef<TData> & { accessorKey?: string; header?: unknown };
-            if (typeof typedCol.header === "string") return typedCol.header;
-            return typedCol.accessorKey || col.id || "";
-          })
+          .map((col: any) => col.header || col.accessorKey)
           .join(","),
         ...memoizedFilteredData.map((row) =>
           exportableColumns
-            .map((col) => {
-              const typedCol = col as ColumnDef<TData> & { accessorKey?: string };
-              const key = typedCol.accessorKey;
+            .map((col: any) => {
+              const key = col.accessorKey;
               if (key) {
                 const value = (row as Record<string, unknown>)[key];
                 if (value === null || value === undefined) return "";
@@ -1158,7 +1154,9 @@ function EnhancedDataTableComponent<TData>({
               className=""
             >
               {isExporting ? (
-                <span className="mr-2"><ButtonLoading size="sm" /></span>
+                <span className="mr-2">
+                  <ButtonLoading size="sm" />
+                </span>
               ) : (
                 <Download className="h-4 w-4 mr-2" />
               )}
@@ -1223,13 +1221,13 @@ function EnhancedDataTableComponent<TData>({
 
       {/* Table */}
       <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
-        <div 
+        <div
           ref={tableContainerRef}
           className={cn(
             "overflow-x-auto scrollbar-hide",
             shouldVirtualize && "overflow-y-auto max-h-[600px]"
           )}
-          role="region" 
+          role="region"
           aria-label="Data table"
         >
           <Table className="w-full" role="table">
@@ -1262,8 +1260,8 @@ function EnhancedDataTableComponent<TData>({
                         header.column.getIsSorted() === "asc"
                           ? "ascending"
                           : header.column.getIsSorted() === "desc"
-                          ? "descending"
-                          : "none"
+                            ? "descending"
+                            : "none"
                       }
                       tabIndex={header.column.getCanSort() ? 0 : -1}
                       onKeyDown={(e) => {
@@ -1299,14 +1297,17 @@ function EnhancedDataTableComponent<TData>({
                 </TableRow>
               ))}
             </TableHeader>
-            <TableBody 
+            <TableBody
               ref={tableBodyRef}
               className="bg-white dark:bg-slate-900"
-              style={shouldVirtualize && rowVirtualizer ? {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-                height: `${rowVirtualizer.getTotalSize()}px`,
-                position: 'relative',
-              } : undefined}
+              style={
+                shouldVirtualize
+                  ? {
+                      height: `${rowVirtualizer.getTotalSize()}px`,
+                      position: "relative",
+                    }
+                  : undefined
+              }
             >
               {rows?.length ? (
                 shouldVirtualize && rowVirtualizer ? (
@@ -1333,12 +1334,12 @@ function EnhancedDataTableComponent<TData>({
                             }
                           }}
                         style={{
-                          position: 'absolute',
+                          position: "absolute",
                           top: 0,
                           left: 0,
-                          width: '100%',
-                          height: `${size}px`,
-                          transform: `translateY(${start}px)`,
+                          width: "100%",
+                          height: `${virtualRow.size}px`,
+                          transform: `translateY(${virtualRow.start}px)`,
                         }}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -1352,7 +1353,9 @@ function EnhancedDataTableComponent<TData>({
                             key={cell.id}
                             className={cn(
                               "py-4 text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-200",
-                              cell.column.getIndex() === 0 ? "pl-6 pr-3" : "px-3"
+                              cell.column.getIndex() === 0
+                                ? "pl-6 pr-3"
+                                : "px-3"
                             )}
                           >
                             <div
@@ -1430,7 +1433,7 @@ function EnhancedDataTableComponent<TData>({
                     colSpan={columns.length}
                     className="h-40 text-center bg-white"
                   >
-                    <div className="flex flex-col items-center justify-center space-y-4">
+                    <div className="flex flex-col items-center justify-center space-y-2">
                       <div className="text-slate-600 dark:text-slate-300 font-medium text-lg">
                         No results found
                       </div>
