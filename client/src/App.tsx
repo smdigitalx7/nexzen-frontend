@@ -124,20 +124,27 @@ function Router() {
   // Wait for Zustand persist to hydrate - onRehydrateStorage handles auth restoration
   useEffect(() => {
     let mounted = true;
+    let hydrationCheckAttempts = 0;
+    const maxAttempts = 10; // Maximum attempts to check hydration
     
     const checkAndRestore = () => {
       if (!mounted) return;
       
+      hydrationCheckAttempts++;
       const sessionToken = sessionStorage.getItem('access_token');
       const sessionExpires = sessionStorage.getItem('token_expires');
       const store = useAuthStore.getState();
+      
+      // Check if we have persisted user data (indicates hydration happened)
+      const hasPersistedData = !!store.user || !!localStorage.getItem('enhanced-auth-storage');
       
       // CRITICAL CHECK: If we have token + user, we MUST be authenticated
       // This is a backup check in case onRehydrateStorage didn't run
       if (sessionToken && sessionExpires && store.user) {
         const expireAt = parseInt(sessionExpires);
+        const now = Date.now();
         
-        if (Date.now() < expireAt) {
+        if (now < expireAt) {
           // Valid token - ensure authenticated state is set
           if (!store.isAuthenticated || store.token !== sessionToken) {
             useAuthStore.setState((state) => {
@@ -146,68 +153,41 @@ function Router() {
               state.isAuthenticated = true;
             });
           }
+          setIsHydrated(true);
+          return;
         } else {
-          // Token expired
+          // Token expired - clear everything
           useAuthStore.getState().logout();
+          setIsHydrated(true);
+          return;
         }
       } else if (store.user && !sessionToken) {
         // If we have user but no token, logout
         useAuthStore.getState().logout();
+        setIsHydrated(true);
+        return;
+      } else if (!sessionToken && !store.user) {
+        // No token and no user - not authenticated, but hydration is complete
+        setIsHydrated(true);
+        return;
       }
       
-      setIsHydrated(true);
+      // If we haven't hydrated yet and haven't exceeded max attempts, try again
+      if (!hasPersistedData && hydrationCheckAttempts < maxAttempts) {
+        setTimeout(checkAndRestore, 100);
+      } else {
+        // Either we have persisted data or we've exhausted attempts
+        setIsHydrated(true);
+      }
     };
 
-    // Check multiple times to catch hydration at different stages
-    // onRehydrateStorage should handle this, but this is a safety net
-    const timer1 = setTimeout(checkAndRestore, 100);
-    const timer2 = setTimeout(checkAndRestore, 300);
-    const timer3 = setTimeout(checkAndRestore, 500);
+    // Start checking immediately and then periodically
+    checkAndRestore();
     
     return () => {
       mounted = false;
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
     };
   }, []);
-
-  // Also watch for user changes to ensure auth state is correct
-  useEffect(() => {
-    if (!isHydrated && user) {
-      const sessionToken = sessionStorage.getItem('access_token');
-      const sessionExpires = sessionStorage.getItem('token_expires');
-      const store = useAuthStore.getState();
-      
-      // If we have both token and user, ensure authenticated
-      if (sessionToken && sessionExpires) {
-        const expireAt = parseInt(sessionExpires);
-        if (Date.now() < expireAt) {
-          if (!store.isAuthenticated || store.token !== sessionToken) {
-            useAuthStore.setState((state) => {
-              state.token = sessionToken;
-              state.tokenExpireAt = expireAt;
-              state.isAuthenticated = true;
-            });
-          }
-          setIsHydrated(true);
-        } else {
-          // Expired
-          useAuthStore.getState().logout();
-          setIsHydrated(true);
-        }
-      } else if (!sessionToken) {
-        // No token
-        useAuthStore.getState().logout();
-        setIsHydrated(true);
-      } else {
-        setIsHydrated(true);
-      }
-    } else if (!user && !isHydrated) {
-      // No user - set hydrated after a short delay
-      setTimeout(() => setIsHydrated(true), 200);
-    }
-  }, [user, isHydrated]);
 
   // Show loading state while hydrating
   if (!isHydrated) {

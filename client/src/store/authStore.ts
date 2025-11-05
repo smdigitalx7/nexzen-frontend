@@ -775,10 +775,11 @@ export const useAuthStore = create<AuthState>()(
               } as any)
             : undefined,
         partialize: (state) => {
-          // Persist user data - isAuthenticated will be restored during rehydration
+          // Persist user data - isAuthenticated will be recalculated during rehydration
+          // based on token + user existence, don't persist it directly
           return {
             user: state.user,
-            isAuthenticated: state.isAuthenticated,
+            // Don't persist isAuthenticated - it will be recalculated during rehydration
             academicYear: state.academicYear,
             academicYears: state.academicYears,
             // Don't persist token, refreshToken - stored in sessionStorage separately
@@ -813,15 +814,25 @@ export const useAuthStore = create<AuthState>()(
               const token = sessionStorage.getItem("access_token");
               const tokenExpires = sessionStorage.getItem("token_expires");
 
+              // Check if we have both token and user data
               if (token && tokenExpires && state.user) {
                 const expireAt = parseInt(tokenExpires);
                 const now = Date.now();
 
+                // Validate token expiration
                 if (now >= expireAt) {
-                  // Token expired - logout async to avoid blocking
-                  setTimeout(() => {
-                    useAuthStore.getState().logout();
-                  }, 0);
+                  // Token expired - clear everything and logout
+                  if (process.env.NODE_ENV === "development") {
+                    console.log("Token expired during rehydration, logging out");
+                  }
+                  state.user = null;
+                  state.branches = [];
+                  state.currentBranch = null;
+                  state.token = null;
+                  state.tokenExpireAt = null;
+                  state.isAuthenticated = false;
+                  sessionStorage.removeItem("access_token");
+                  sessionStorage.removeItem("token_expires");
                   return;
                 }
 
@@ -829,8 +840,19 @@ export const useAuthStore = create<AuthState>()(
                 state.token = token;
                 state.tokenExpireAt = expireAt;
                 state.isAuthenticated = true; // CRITICAL: Force authenticated
+                
+                if (process.env.NODE_ENV === "development") {
+                  console.log("Auth state restored from storage:", {
+                    hasUser: !!state.user,
+                    hasToken: !!state.token,
+                    isAuthenticated: state.isAuthenticated,
+                  });
+                }
               } else if (!token && state.user) {
-                // No token but have user - invalid, clear
+                // No token but have user - invalid state, clear everything
+                if (process.env.NODE_ENV === "development") {
+                  console.warn("User data found but no token, clearing user data");
+                }
                 state.user = null;
                 state.branches = [];
                 state.currentBranch = null;
@@ -838,12 +860,17 @@ export const useAuthStore = create<AuthState>()(
                 state.tokenExpireAt = null;
                 state.isAuthenticated = false;
               } else if (token && !state.user) {
-                // Token but no user - invalid, clear token
+                // Token but no user - invalid state, clear token
+                if (process.env.NODE_ENV === "development") {
+                  console.warn("Token found but no user data, clearing token");
+                }
                 state.token = null;
                 state.tokenExpireAt = null;
                 state.isAuthenticated = false;
+                sessionStorage.removeItem("access_token");
+                sessionStorage.removeItem("token_expires");
               } else {
-                // No token and no user
+                // No token and no user - not authenticated
                 state.token = null;
                 state.tokenExpireAt = null;
                 state.isAuthenticated = false;
