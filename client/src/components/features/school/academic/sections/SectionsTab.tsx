@@ -137,7 +137,7 @@ const SectionsTabComponent = () => {
     } else {
       const classId = parseInt(value);
       if (!isNaN(classId)) {
-        setSelectedClassId(classId);
+    setSelectedClassId(classId);
       }
     }
   }, []);
@@ -183,20 +183,20 @@ const SectionsTabComponent = () => {
           <Select
             value={selectedClassId ? selectedClassId.toString() : "all"}
             onValueChange={handleClassChange}
-          >
+        >
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Select class" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Classes</SelectItem>
-              {classes.map((c: SchoolClassRead) => (
+          {classes.map((c: SchoolClassRead) => (
                 <SelectItem
                   key={c.class_id}
                   value={c.class_id.toString()}
                 >
                   {c.class_name}
                 </SelectItem>
-              ))}
+          ))}
             </SelectContent>
           </Select>
         </div>

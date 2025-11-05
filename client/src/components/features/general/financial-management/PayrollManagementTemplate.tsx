@@ -13,7 +13,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { TabSwitcher } from "@/components/shared";
 import { usePayrollManagement, usePayrollDashboard } from "@/lib/hooks/general/usePayrollManagement";
 import { formatCurrency } from "@/lib/utils";
-import type { PayrollRead } from "@/lib/types/general/payrolls";
 import { PayrollStatsCards as OldPayrollStatsCards } from "./components/PayrollStatsCards";
 import { PayrollStatsCards } from "./PayrollStatsCards";
 import { EmployeePayrollTable } from "./components/EmployeePayrollTable";
@@ -133,11 +132,11 @@ const FilterControls = memo(({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Months</SelectItem>
-              {monthOptions.map(({ value, label }) => (
+            {monthOptions.map(({ value, label }) => (
                 <SelectItem key={value} value={value.toString()}>
-                  {label}
+                {label}
                 </SelectItem>
-              ))}
+            ))}
             </SelectContent>
           </Select>
         </div>
@@ -154,11 +153,11 @@ const FilterControls = memo(({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Years</SelectItem>
-              {yearOptions.map(({ value, label }) => (
+            {yearOptions.map(({ value, label }) => (
                 <SelectItem key={value} value={value.toString()}>
-                  {label}
+                {label}
                 </SelectItem>
-              ))}
+            ))}
             </SelectContent>
           </Select>
         </div>
