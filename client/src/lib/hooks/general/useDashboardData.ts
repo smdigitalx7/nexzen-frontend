@@ -23,12 +23,27 @@ function useAdminDashboard(): UseDashboardDataReturn<AdminDashboardResponse> {
   const [data, setData] = useState<AdminDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { token, isAuthenticated } = useAuthStore();
+  const { token, isAuthenticated, user, currentBranch } = useAuthStore();
+
+  // Reset state when user changes or logs out
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setData(null);
+      setError(null);
+      setLoading(false);
+    } else {
+      // Clear data when user, role, or branch changes (but keep loading state for new fetch)
+      setData(null);
+      setError(null);
+    }
+  }, [isAuthenticated, user?.user_id, user?.role, currentBranch?.branch_id]);
 
   const fetchDashboard = useCallback(async () => {
     // Don't fetch if not authenticated or no token
-    if (!isAuthenticated || !token) {
+    if (!isAuthenticated || !token || !user) {
       setLoading(false);
+      setData(null);
+      setError(null);
       return;
     }
 
@@ -40,14 +55,16 @@ function useAdminDashboard(): UseDashboardDataReturn<AdminDashboardResponse> {
         setData(response);
       } else {
         setError("Unexpected dashboard response type");
+        setData(null);
       }
     } catch (err: any) {
       console.error("Failed to fetch dashboard data:", err);
       setError(err.message || "Failed to load dashboard data");
+      setData(null);
     } finally {
       setLoading(false);
     }
-  }, [token, isAuthenticated]);
+  }, [token, isAuthenticated, user?.user_id, user?.role, currentBranch?.branch_id]);
 
   useEffect(() => {
     fetchDashboard();
@@ -65,12 +82,27 @@ function useAccountantDashboard(): UseDashboardDataReturn<AccountantDashboardRes
   const [data, setData] = useState<AccountantDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { token, isAuthenticated } = useAuthStore();
+  const { token, isAuthenticated, user, currentBranch } = useAuthStore();
+
+  // Reset state when user changes or logs out
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setData(null);
+      setError(null);
+      setLoading(false);
+    } else {
+      // Clear data when user, role, or branch changes (but keep loading state for new fetch)
+      setData(null);
+      setError(null);
+    }
+  }, [isAuthenticated, user?.user_id, user?.role, currentBranch?.branch_id]);
 
   const fetchDashboard = useCallback(async () => {
     // Don't fetch if not authenticated or no token
-    if (!isAuthenticated || !token) {
+    if (!isAuthenticated || !token || !user) {
       setLoading(false);
+      setData(null);
+      setError(null);
       return;
     }
 
@@ -82,14 +114,16 @@ function useAccountantDashboard(): UseDashboardDataReturn<AccountantDashboardRes
         setData(response);
       } else {
         setError("Unexpected dashboard response type");
+        setData(null);
       }
     } catch (err: any) {
       console.error("Failed to fetch dashboard data:", err);
       setError(err.message || "Failed to load dashboard data");
+      setData(null);
     } finally {
       setLoading(false);
     }
-  }, [token, isAuthenticated]);
+  }, [token, isAuthenticated, user?.user_id, user?.role, currentBranch?.branch_id]);
 
   useEffect(() => {
     fetchDashboard();
@@ -107,12 +141,27 @@ function useAcademicDashboard(): UseDashboardDataReturn<AcademicDashboardRespons
   const [data, setData] = useState<AcademicDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { token, isAuthenticated } = useAuthStore();
+  const { token, isAuthenticated, user, currentBranch } = useAuthStore();
+
+  // Reset state when user changes or logs out
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setData(null);
+      setError(null);
+      setLoading(false);
+    } else {
+      // Clear data when user, role, or branch changes (but keep loading state for new fetch)
+      setData(null);
+      setError(null);
+    }
+  }, [isAuthenticated, user?.user_id, user?.role, currentBranch?.branch_id]);
 
   const fetchDashboard = useCallback(async () => {
     // Don't fetch if not authenticated or no token
-    if (!isAuthenticated || !token) {
+    if (!isAuthenticated || !token || !user) {
       setLoading(false);
+      setData(null);
+      setError(null);
       return;
     }
 
@@ -124,14 +173,16 @@ function useAcademicDashboard(): UseDashboardDataReturn<AcademicDashboardRespons
         setData(response);
       } else {
         setError("Unexpected dashboard response type");
+        setData(null);
       }
     } catch (err: any) {
       console.error("Failed to fetch dashboard data:", err);
       setError(err.message || "Failed to load dashboard data");
+      setData(null);
     } finally {
       setLoading(false);
     }
-  }, [token, isAuthenticated]);
+  }, [token, isAuthenticated, user?.user_id, user?.role, currentBranch?.branch_id]);
 
   useEffect(() => {
     fetchDashboard();

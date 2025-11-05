@@ -1,13 +1,13 @@
-import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
-import { cva, type VariantProps } from "class-variance-authority"
+import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { cva, type VariantProps } from "class-variance-authority";
 
-import { cn } from "@/lib/utils"
-import { LoadingStates } from "./loading"
+import { cn } from "@/lib/utils";
+import { LoadingStates } from "./loading";
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0" +
-  " hover-elevate active-elevate-2 active:scale-95 disabled:active:scale-100",
+    " hover-elevate active-elevate-2 active:scale-95 disabled:active:scale-100",
   {
     variants: {
       variant: {
@@ -19,9 +19,10 @@ const buttonVariants = cva(
           // Shows the background color of whatever card / sidebar / accent background it is inside of.
           // Inherits the current text color.
           " border [border-color:var(--button-outline)]  shadow-xs active:shadow-none ",
-        secondary: "border bg-secondary text-secondary-foreground border border-secondary-border ",
+        secondary:
+          "border bg-secondary text-secondary-foreground border border-secondary-border ",
         // Add a transparent border so that when someone toggles a border on later, it doesn't shift layout/size.
-        ghost: "border border-transparent",
+        ghost: "border border-transparent hover:bg-transparent",
       },
       // Heights are set as "min" heights, because sometimes Ai will place large amount of content
       // inside buttons. With a min-height they will look appropriate with small amounts of content,
@@ -37,39 +38,42 @@ const buttonVariants = cva(
       variant: "default",
       size: "default",
     },
-  },
-)
+  }
+);
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
-  asChild?: boolean
-  loading?: boolean
-  loadingText?: string
-  leftIcon?: React.ReactNode
-  rightIcon?: React.ReactNode
-  fullWidth?: boolean
+  asChild?: boolean;
+  loading?: boolean;
+  loadingText?: string;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+  fullWidth?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ 
-    className, 
-    variant, 
-    size, 
-    asChild = false, 
-    loading = false,
-    loadingText,
-    leftIcon,
-    rightIcon,
-    fullWidth = false,
-    children,
-    disabled,
-    ...props 
-  }, ref) => {
-    const Comp = asChild ? Slot : "button"
-    const isDisabled = disabled || loading
-    const buttonText = loading && loadingText ? loadingText : children
-    
+  (
+    {
+      className,
+      variant,
+      size,
+      asChild = false,
+      loading = false,
+      loadingText,
+      leftIcon,
+      rightIcon,
+      fullWidth = false,
+      children,
+      disabled,
+      ...props
+    },
+    ref
+  ) => {
+    const Comp = asChild ? Slot : "button";
+    const isDisabled = disabled || loading;
+    const buttonText = loading && loadingText ? loadingText : children;
+
     return (
       <Comp
         className={cn(
@@ -82,9 +86,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         aria-busy={loading}
         {...props}
       >
-        {loading && (
-          <LoadingStates.Button size="sm" />
-        )}
+        {loading && <LoadingStates.Button size="sm" />}
         {!loading && leftIcon && (
           <span className="mr-2" aria-hidden="true">
             {leftIcon}
@@ -97,9 +99,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           </span>
         )}
       </Comp>
-    )
-  },
-)
-Button.displayName = "Button"
+    );
+  }
+);
+Button.displayName = "Button";
 
-export { Button, buttonVariants }
+export { Button, buttonVariants };

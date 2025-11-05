@@ -3,7 +3,11 @@ import { motion } from "framer-motion";
 import { useLocation, useSearch } from "wouter";
 import { CollectFeeSearch } from "./CollectFeeSearch";
 import { SchoolMultiplePaymentForm } from "../multiple-payment/SchoolMultiplePaymentForm";
-import type { StudentInfo, FeeBalance, MultiplePaymentData } from "@/components/shared/payment/types/PaymentTypes";
+import type {
+  StudentInfo,
+  FeeBalance,
+  MultiplePaymentData,
+} from "@/components/shared/payment/types/PaymentTypes";
 import { handleSchoolPayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/lib/api-school";
 import { useToast } from "@/hooks/use-toast";
 import { SchoolStudentsService } from "@/lib/services/school/students.service";
@@ -24,13 +28,21 @@ interface CollectFeeProps {
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSearchQuery }: CollectFeeProps) => {
+export const CollectFee = ({
+  searchResults,
+  setSearchResults,
+  searchQuery,
+  setSearchQuery,
+}: CollectFeeProps) => {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const search = useSearch();
-  const [selectedStudent, setSelectedStudent] = useState<StudentFeeDetails | null>(null);
+  const [selectedStudent, setSelectedStudent] =
+    useState<StudentFeeDetails | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [paymentMode, setPaymentMode] = useState<'single' | 'multiple'>('multiple');
+  const [paymentMode, setPaymentMode] = useState<"single" | "multiple">(
+    "multiple"
+  );
   const paymentSuccessRef = useRef<string | null>(null); // Store admission number for re-search
   const hasInitializedRef = useRef(false);
 
@@ -43,7 +55,9 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
     const newSearchParams = new URLSearchParams(search);
     newSearchParams.set("admission_no", admissionNo);
     const newSearch = newSearchParams.toString();
-    navigate(`${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`, { replace: true });
+    navigate(`${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`, {
+      replace: true,
+    });
   };
 
   // Remove admission number from URL
@@ -51,12 +65,14 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
     const newSearchParams = new URLSearchParams(search);
     newSearchParams.delete("admission_no");
     const newSearch = newSearchParams.toString();
-    navigate(`${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`, { replace: true });
+    navigate(`${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`, {
+      replace: true,
+    });
   };
 
   const handleStartPayment = (studentDetails: StudentFeeDetails) => {
     // Ensure we're in multiple payment mode
-    setPaymentMode('multiple');
+    setPaymentMode("multiple");
     setSelectedStudent(studentDetails);
     setIsFormOpen(true);
     paymentSuccessRef.current = null; // Reset payment success flag
@@ -75,7 +91,7 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
       setSearchQuery(admissionNo);
       // Update URL separately to avoid dependency issues
       setTimeout(() => updateUrlWithAdmission(admissionNo), 0);
-      
+
       // Always fetch fresh data - bypass cache
       const student = await Api.get(
         `/school/students/admission-no/${admissionNo}`,
@@ -95,22 +111,22 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
           { _t: Date.now() },
           undefined,
           { cache: false, dedupe: false }
-        ).catch(() => null)
+        ).catch(() => null),
       ]);
 
       const studentDetails: StudentFeeDetails = {
         student,
         tuitionBalance,
-        transportBalance
+        transportBalance,
       };
 
       setSearchResults([studentDetails]);
-      
+
       if (showToast) {
         toast({
           title: "Payment Successful",
           description: "Student fee information has been refreshed.",
-          variant: "default",
+          variant: "success",
         });
       }
     } catch (error) {
@@ -118,7 +134,8 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
       if (showToast) {
         toast({
           title: "Refresh Failed",
-          description: "Payment was successful but could not refresh student information. Please search again.",
+          description:
+            "Payment was successful but could not refresh student information. Please search again.",
           variant: "default",
         });
       }
@@ -144,7 +161,7 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
     const admissionNoToReSearch = paymentSuccessRef.current;
     setSelectedStudent(null);
     setIsFormOpen(false);
-    
+
     // If payment was successful, re-search the same admission number
     if (admissionNoToReSearch) {
       paymentSuccessRef.current = null; // Reset flag
@@ -152,28 +169,41 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
     }
   };
 
-  const handleMultiplePaymentComplete = async (paymentData: MultiplePaymentData) => {
+  const handleMultiplePaymentComplete = async (
+    paymentData: MultiplePaymentData
+  ) => {
     try {
       // Transform data for the specialized API
       const apiPayload = {
-        details: paymentData.details.map(detail => ({
-          purpose: detail.purpose as "BOOK_FEE" | "TUITION_FEE" | "TRANSPORT_FEE" | "OTHER" | "ADMISSION_FEE",
+        details: paymentData.details.map((detail) => ({
+          purpose: detail.purpose as
+            | "BOOK_FEE"
+            | "TUITION_FEE"
+            | "TRANSPORT_FEE"
+            | "OTHER"
+            | "ADMISSION_FEE",
           custom_purpose_name: detail.customPurposeName || undefined,
           term_number: detail.termNumber || undefined,
           paid_amount: detail.amount,
-          payment_method: detail.paymentMethod === "CHEQUE" ? "CASH" : detail.paymentMethod as "CASH" | "ONLINE",
+          payment_method:
+            detail.paymentMethod === "CHEQUE"
+              ? "CASH"
+              : (detail.paymentMethod as "CASH" | "ONLINE"),
         })),
         remarks: paymentData.remarks || undefined,
       };
 
       // Use the specialized API function that handles income_id extraction and receipt generation
-      const result = await handlePayByAdmissionWithIncomeId(paymentData.admissionNo, apiPayload);
-      
+      const result = await handlePayByAdmissionWithIncomeId(
+        paymentData.admissionNo,
+        apiPayload
+      );
+
       // Handle successful payment
-      
+
       // Store admission number for re-search after form closes
       paymentSuccessRef.current = paymentData.admissionNo;
-      
+
       // Don't close the form immediately - let MultiplePaymentForm handle it after receipt modal closes
       // setSelectedStudent(null);
       // setIsFormOpen(false);
@@ -181,65 +211,101 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
       // Return the result so MultiplePaymentForm can extract income_id
       return result;
     } catch (error) {
-      console.error('Multiple payment error:', error);
-      
+      console.error("Multiple payment error:", error);
+
       // Reset payment success flag on error
       paymentSuccessRef.current = null;
-      
+
       // Show error toast
       toast({
         title: "Payment Failed",
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
-      
+
       // Re-throw the error so MultiplePaymentForm can handle it
       throw error;
     }
   };
 
   // Transform existing student data to new format
-  const transformStudentData = (studentDetails: StudentFeeDetails): { student: StudentInfo; feeBalances: FeeBalance } => {
+  const transformStudentData = (
+    studentDetails: StudentFeeDetails
+  ): { student: StudentInfo; feeBalances: FeeBalance } => {
     const student: StudentInfo = {
       studentId: studentDetails.student.student_id || studentDetails.student.id,
       admissionNo: studentDetails.student.admission_no,
       name: studentDetails.student.student_name,
-      className: studentDetails.student.section_name || studentDetails.student.class_name || 'N/A',
-      academicYear: studentDetails.student.academic_year || '2025-2026'
+      className:
+        studentDetails.tuitionBalance?.class_name ||
+        studentDetails.student.section_name ||
+        studentDetails.student.class_name ||
+        "N/A",
+      academicYear: studentDetails.student.academic_year || "2025-2026",
     };
 
     const feeBalances: FeeBalance = {
       bookFee: {
         total: studentDetails.tuitionBalance?.book_fee || 0,
         paid: studentDetails.tuitionBalance?.book_paid || 0,
-        outstanding: Math.max(0, (studentDetails.tuitionBalance?.book_fee || 0) - (studentDetails.tuitionBalance?.book_paid || 0))
+        outstanding: Math.max(
+          0,
+          (studentDetails.tuitionBalance?.book_fee || 0) -
+            (studentDetails.tuitionBalance?.book_paid || 0)
+        ),
       },
       tuitionFee: {
-        total: (studentDetails.tuitionBalance?.term1_amount || 0) + (studentDetails.tuitionBalance?.term2_amount || 0) + (studentDetails.tuitionBalance?.term3_amount || 0),
+        total:
+          (studentDetails.tuitionBalance?.term1_amount || 0) +
+          (studentDetails.tuitionBalance?.term2_amount || 0) +
+          (studentDetails.tuitionBalance?.term3_amount || 0),
         term1: {
           paid: studentDetails.tuitionBalance?.term1_paid || 0,
-          outstanding: Math.max(0, (studentDetails.tuitionBalance?.term1_amount || 0) - (studentDetails.tuitionBalance?.term1_paid || 0))
+          outstanding: Math.max(
+            0,
+            (studentDetails.tuitionBalance?.term1_amount || 0) -
+              (studentDetails.tuitionBalance?.term1_paid || 0)
+          ),
         },
         term2: {
           paid: studentDetails.tuitionBalance?.term2_paid || 0,
-          outstanding: Math.max(0, (studentDetails.tuitionBalance?.term2_amount || 0) - (studentDetails.tuitionBalance?.term2_paid || 0))
+          outstanding: Math.max(
+            0,
+            (studentDetails.tuitionBalance?.term2_amount || 0) -
+              (studentDetails.tuitionBalance?.term2_paid || 0)
+          ),
         },
         term3: {
           paid: studentDetails.tuitionBalance?.term3_paid || 0,
-          outstanding: Math.max(0, (studentDetails.tuitionBalance?.term3_amount || 0) - (studentDetails.tuitionBalance?.term3_paid || 0))
-        }
+          outstanding: Math.max(
+            0,
+            (studentDetails.tuitionBalance?.term3_amount || 0) -
+              (studentDetails.tuitionBalance?.term3_paid || 0)
+          ),
+        },
       },
       transportFee: {
-        total: (studentDetails.transportBalance?.term1_amount || 0) + (studentDetails.transportBalance?.term2_amount || 0),
+        total:
+          (studentDetails.transportBalance?.term1_amount || 0) +
+          (studentDetails.transportBalance?.term2_amount || 0),
         term1: {
           paid: studentDetails.transportBalance?.term1_paid || 0,
-          outstanding: Math.max(0, (studentDetails.transportBalance?.term1_amount || 0) - (studentDetails.transportBalance?.term1_paid || 0))
+          outstanding: Math.max(
+            0,
+            (studentDetails.transportBalance?.term1_amount || 0) -
+              (studentDetails.transportBalance?.term1_paid || 0)
+          ),
         },
         term2: {
           paid: studentDetails.transportBalance?.term2_paid || 0,
-          outstanding: Math.max(0, (studentDetails.transportBalance?.term2_amount || 0) - (studentDetails.transportBalance?.term2_paid || 0))
-        }
-      }
+          outstanding: Math.max(
+            0,
+            (studentDetails.transportBalance?.term2_amount || 0) -
+              (studentDetails.transportBalance?.term2_paid || 0)
+          ),
+        },
+      },
     };
 
     return { student, feeBalances };
@@ -262,14 +328,18 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
 
       {/* Show search only when form is NOT open */}
       {!isFormOpen && (
-        <CollectFeeSearch 
-          onStudentSelected={() => {}} 
+        <CollectFeeSearch
+          onStudentSelected={() => {}}
           paymentMode={paymentMode}
           onStartPayment={(studentDetails) => {
             handleStartPayment(studentDetails);
             // Update URL when starting payment
             if (studentDetails?.student?.admission_no) {
-              setTimeout(() => updateUrlWithAdmission(studentDetails.student.admission_no), 0);
+              setTimeout(
+                () =>
+                  updateUrlWithAdmission(studentDetails.student.admission_no),
+                0
+              );
             }
           }}
           searchResults={searchResults}

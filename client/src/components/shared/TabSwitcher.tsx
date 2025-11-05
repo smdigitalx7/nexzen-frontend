@@ -75,7 +75,7 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
       >
         <TabsList
           className={cn(
-            "flex w-full h-auto bg-transparent p-0 justify-start",
+            "flex w-full h-auto bg-transparent p-0 justify-start border-b border-gray-200 dark:border-gray-700 mb-6",
             tabListClassName
           )}
         >
@@ -87,20 +87,22 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
                 value={tab.value}
                 disabled={tab.disabled}
                 className={cn(
-                  "flex items-center gap-2 font-semibold transition-all duration-300 ease-in-out",
-                  "hover:text-gray-800 dark:hover:text-gray-200  dark:hover:bg-gray-800/50",
-                  "focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none",
-                  "data-[state=inactive]:text-gray-600 dark:text-gray-400",
-                  "data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300 data-[state=active]:font-bold",
-                  "border-b-2 border-transparent data-[state=active]:border-blue-600 dark:data-[state=active]:border-blue-400",
-                  "rounded-none mx-0.5 relative",
-                  "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent",
+                  "flex items-center gap-2 font-medium transition-colors",
+                  "text-gray-600 dark:text-gray-400",
+                  "data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-500",
+                  "hover:text-gray-800 dark:hover:text-gray-300",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                  "relative pb-3",
                   sizeClasses.trigger,
                   tabTriggerClassName
                 )}
               >
                 <IconComponent
-                  className={cn("flex-shrink-0", sizeClasses.icon)}
+                  className={cn(
+                    "flex-shrink-0",
+                    sizeClasses.icon,
+                    "text-current"
+                  )}
                 />
                 <span className="truncate">{tab.label}</span>
                 {showBadges && tab.badge !== undefined && (

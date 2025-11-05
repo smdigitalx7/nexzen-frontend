@@ -11,11 +11,10 @@ import {
   useReactTable,
   ColumnFiltersState,
 } from "@tanstack/react-table";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { useVirtualizer, type Virtualizer } from "@tanstack/react-virtual";
 import {
   ArrowUpDown,
   Search,
-  Filter,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -25,11 +24,9 @@ import {
   Eye,
   Edit,
   Trash2,
-  Shield,
   MoreHorizontal,
 } from "lucide-react";
 import { LoadingStates, ButtonLoading } from "@/components/ui/loading";
-import { highlightText as sanitizeHighlight } from "@/lib/utils/security/sanitization";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -66,7 +63,7 @@ interface FilterOption {
  *   onClick: (row) => handleCustomAction(row)
  * }
  */
-interface ActionButton<TData = any> {
+interface ActionButton<TData = unknown> {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -133,7 +130,11 @@ interface EnhancedDataTableProps<TData> {
   debounceDelay?: number;
   highlightSearchResults?: boolean;
   searchSuggestions?: string[];
-  customGlobalFilterFn?: <TData>(row: TData, columnId: string, value: string) => boolean;
+  customGlobalFilterFn?: <TData>(
+    row: TData,
+    columnId: string,
+    value: string
+  ) => boolean;
   // Action buttons
   actionButtons?: ActionButton<TData>[];
   actionButtonGroups?: ActionButtonGroup<TData>[];
@@ -148,7 +149,6 @@ function EnhancedDataTableComponent<TData>({
   title,
   searchKey,
   searchPlaceholder = "Search...",
-  selectable = false,
   className,
   exportable = false,
   onExport,
@@ -162,7 +162,6 @@ function EnhancedDataTableComponent<TData>({
   showSearch = true,
   enableDebounce = true,
   debounceDelay = 300,
-  highlightSearchResults = true,
   searchSuggestions = [],
   customGlobalFilterFn,
   actionButtons = [],
@@ -247,14 +246,14 @@ function EnhancedDataTableComponent<TData>({
     [addToSearchHistory]
   );
 
-  // Highlight search terms in text (sanitized)
-  const highlightText = useCallback(
-    (text: string, searchTerm: string) => {
-      if (!searchTerm || !highlightSearchResults) return text;
-      return sanitizeHighlight(text, searchTerm);
-    },
-    [highlightSearchResults]
-  );
+  // Highlight search terms in text (sanitized) - kept for potential future use
+  // const highlightText = useCallback(
+  //   (text: string, searchTerm: string) => {
+  //     if (!searchTerm || !highlightSearchResults) return text;
+  //     return sanitizeHighlight(text, searchTerm);
+  //   },
+  //   [highlightSearchResults]
+  // );
 
   // Keyboard shortcuts for search
   useEffect(() => {
@@ -300,7 +299,7 @@ function EnhancedDataTableComponent<TData>({
       id: "actions",
       header: actionColumnHeader,
       cell: ({ row }) => {
-        const allButtons: ActionButton[] = [];
+        const allButtons: ActionButton<TData>[] = [];
 
         // Add individual action buttons
         actionButtons.forEach((button) => {
@@ -312,7 +311,7 @@ function EnhancedDataTableComponent<TData>({
         // Add action button groups
         actionButtonGroups.forEach((group) => {
           if (!group.show || group.show(row.original)) {
-            const button: ActionButton = {
+            const button: ActionButton<TData> = {
               id: group.type,
               label:
                 group.label ||
@@ -336,22 +335,22 @@ function EnhancedDataTableComponent<TData>({
               return (
                 <Button
                   key={`${button.id}-${index}`}
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={() => button.onClick(row.original)}
                   className={cn(
                     showActionLabels
-                      ? "h-5 px-1 py-0.5 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-sm"
-                      : "h-5 w-5 p-0 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-sm",
-                    index > 0 && "ml-0.5",
+                      ? "h-5 px-2.5 py-0.5 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-sm"
+                      : "h-5 w-5 p-4 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-sm",
+                    index > 0 && "ml-2",
                     button.className
                   )}
                   title={button.label}
                   aria-label={button.label}
                 >
-                  <Icon className="h-3 w-3" />
+                  <Icon className="h-2 w-2" />
                   {showActionLabels && (
-                    <span className="ml-0.5 text-xs font-medium">
+                    <span className="ml-0.2 text-xs font-medium ">
                       {button.label}
                     </span>
                   )}
@@ -424,10 +423,10 @@ function EnhancedDataTableComponent<TData>({
     // Apply additional filters
     filters.forEach((filter) => {
       if (filter.value && filter.value !== "all") {
-        result = result.filter((item) => {
-          const value = (item as any)[filter.key];
-          return value === filter.value;
-        });
+      result = result.filter((item) => {
+        const value = (item as Record<string, unknown>)[filter.key];
+        return value === filter.value;
+      });
       }
     });
 
@@ -448,22 +447,19 @@ function EnhancedDataTableComponent<TData>({
     onGlobalFilterChange: setGlobalFilter,
     globalFilterFn:
       customGlobalFilterFn ||
-      ((row, columnId, value) => {
+      ((row, columnId, value: string) => {
         if (!value) return true;
+        const searchValue = String(value).toLowerCase();
         if (searchKey) {
-          const cellValue = (row.original as any)[searchKey];
-          return (
-            cellValue?.toString().toLowerCase().includes(value.toLowerCase()) ??
-            false
-          );
+          const cellValue = (row.original as Record<string, unknown>)[searchKey as string];
+          if (cellValue === null || cellValue === undefined) return false;
+          const cellValueStr = String(cellValue).toLowerCase();
+          return cellValueStr.includes(searchValue);
         }
-        return (
-          row
-            .getValue(columnId)
-            ?.toString()
-            .toLowerCase()
-            .includes(value.toLowerCase()) ?? false
-        );
+        const cellValue = row.getValue(columnId);
+        if (cellValue === null || cellValue === undefined) return false;
+        const cellValueStr = String(cellValue).toLowerCase();
+        return cellValueStr.includes(searchValue);
       }),
     state: {
       sorting,
@@ -476,50 +472,24 @@ function EnhancedDataTableComponent<TData>({
 
   // Virtualization setup
   const rows = table.getRowModel().rows;
-  const shouldVirtualize = enableVirtualization && rows.length > virtualThreshold;
-  
+  const shouldVirtualize =
+    enableVirtualization && rows.length > virtualThreshold;
+
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => tableContainerRef.current,
     estimateSize: () => 60, // Estimated row height
     overscan: 10, // Number of rows to render outside visible area
     enabled: shouldVirtualize,
-  });
+  }) as Virtualizer<HTMLDivElement, Element>;
 
-  const truncateText = useCallback((text: string, maxLength: number = 20) => {
-    if (!text || text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + "...";
-  }, []);
+  // Truncate text helper - kept for potential future use
+  // const truncateText = useCallback((text: string, maxLength: number = 20) => {
+  //   if (!text || text.length <= maxLength) return text;
+  //   return text.substring(0, maxLength) + "...";
+  // }, []);
 
   // Export functionality
-  const handleExport = useCallback(async () => {
-    if (onExport) {
-      onExport();
-      return;
-    }
-
-    setIsExporting(true);
-
-    try {
-      // Use requestIdleCallback for non-blocking export
-      await new Promise<void>((resolve) => {
-        if ("requestIdleCallback" in window) {
-          requestIdleCallback(() => {
-            performExport();
-            resolve();
-          });
-        } else {
-          setTimeout(() => {
-            performExport();
-            resolve();
-          }, 0);
-        }
-      });
-    } finally {
-      setIsExporting(false);
-    }
-  }, [onExport, memoizedFilteredData, columns, title]);
-
   const performExport = useCallback(async () => {
     try {
       const workbook = new ExcelJS.Workbook();
@@ -549,11 +519,17 @@ function EnhancedDataTableComponent<TData>({
 
       // Filter out action columns
       const exportableColumns = columns.filter((col) => {
-        const hasAccessorKey = !!(col as any).accessorKey;
+        const typedCol = col as ColumnDef<TData> & { accessorKey?: string; header?: unknown };
+        const hasAccessorKey = !!typedCol.accessorKey;
+        const headerStr = typeof typedCol.header === "string" 
+          ? typedCol.header 
+          : typeof typedCol.header === "function" 
+          ? col.id ?? "" 
+          : String(typedCol.header ?? "");
         const isActionColumn =
           col.id?.toLowerCase().includes("action") ||
           col.id?.toLowerCase().includes("actions") ||
-          (col as any).header?.toString().toLowerCase().includes("action");
+          headerStr.toLowerCase().includes("action");
         return hasAccessorKey && !isActionColumn;
       });
 
@@ -576,10 +552,10 @@ function EnhancedDataTableComponent<TData>({
           pattern: "solid",
           fgColor: colors.headerBg,
         };
-        
+
         // Merge title cells
         worksheet.mergeCells(1, 1, 1, exportableColumns.length);
-        
+
         // Add border to title
         const titleCell = worksheet.getCell(1, 1);
         titleCell.border = {
@@ -588,7 +564,7 @@ function EnhancedDataTableComponent<TData>({
           left: { style: "medium", color: colors.headerBg },
           right: { style: "medium", color: colors.headerBg },
         };
-        
+
         worksheet.addRow([]); // Empty row for spacing
       }
 
@@ -618,7 +594,7 @@ function EnhancedDataTableComponent<TData>({
         horizontal: "left",
         vertical: "middle",
       };
-      
+
       // Merge metadata cells
       worksheet.mergeCells(
         title ? 3 : 1,
@@ -626,7 +602,7 @@ function EnhancedDataTableComponent<TData>({
         title ? 3 : 1,
         exportableColumns.length
       );
-      
+
       const metadataCell = worksheet.getCell(title ? 3 : 1, 1);
       metadataCell.alignment = {
         horizontal: "right",
@@ -646,8 +622,9 @@ function EnhancedDataTableComponent<TData>({
       // Add professional headers
       const headers = exportableColumns.map((col) => {
         if (typeof col.header === "string") return col.header;
-        if (typeof col.header === "function") return col.id;
-        return (col as any).accessorKey || col.id;
+        if (typeof col.header === "function") return col.id ?? "";
+        const typedCol = col as ColumnDef<TData> & { accessorKey?: string };
+        return typedCol.accessorKey ?? col.id ?? "";
       });
 
       const headerRowIndex = title ? 5 : 3;
@@ -671,7 +648,7 @@ function EnhancedDataTableComponent<TData>({
       };
 
       // Apply professional header styling to each cell
-      headerRow.eachCell((cell, colNumber) => {
+      headerRow.eachCell((cell) => {
         cell.border = {
           top: { style: "medium", color: colors.headerBg },
           bottom: { style: "medium", color: colors.headerBg },
@@ -688,9 +665,10 @@ function EnhancedDataTableComponent<TData>({
       // Add data rows with professional styling
       memoizedFilteredData.forEach((row, index) => {
         const rowData = exportableColumns.map((col) => {
-          const key = (col as any).accessorKey;
+          const typedCol = col as ColumnDef<TData> & { accessorKey?: string };
+          const key = typedCol.accessorKey;
           if (key) {
-            const value = (row as any)[key];
+            const value = (row as Record<string, unknown>)[key];
             // Professional data formatting
             if (value === null || value === undefined) return "-";
             if (typeof value === "boolean") return value ? "Yes" : "No";
@@ -734,7 +712,7 @@ function EnhancedDataTableComponent<TData>({
         const rowFillColor = isEvenRow ? colors.white : colors.alternateRow;
 
         // Apply professional cell styling
-        dataRow.eachCell((cell, colNumber) => {
+        dataRow.eachCell((cell) => {
           cell.font = {
             size: 10,
             color: colors.text,
@@ -742,7 +720,7 @@ function EnhancedDataTableComponent<TData>({
           };
           cell.alignment = {
             vertical: "middle",
-            horizontal: colNumber === 1 ? "left" : "left",
+            horizontal: "left",
             wrapText: true,
           };
           cell.fill = {
@@ -759,14 +737,18 @@ function EnhancedDataTableComponent<TData>({
 
           // Right-align numeric values
           const value = cell.value;
-          if (typeof value === "number" || (!isNaN(Number(value)) && value !== "")) {
+          if (
+            typeof value === "number" ||
+            (!isNaN(Number(value)) && value !== "")
+          ) {
             cell.alignment = {
               ...cell.alignment,
               horizontal: "right",
             };
-            cell.numFmt = typeof value === "number" && !Number.isInteger(value)
-              ? "#,##0.00"
-              : "#,##0";
+            cell.numFmt =
+              typeof value === "number" && !Number.isInteger(value)
+                ? "#,##0.00"
+                : "#,##0";
           }
         });
       });
@@ -787,7 +769,7 @@ function EnhancedDataTableComponent<TData>({
 
           // Set column width with reasonable limits
           column.width = Math.max(Math.min(maxLength + 3, 50), 12);
-          
+
           // Set alignment for header
           if (headerRow.getCell(index + 1)) {
             headerRow.getCell(index + 1).alignment = {
@@ -907,28 +889,27 @@ function EnhancedDataTableComponent<TData>({
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Export failed:", error);
+    } catch (_error) {
       // Fallback to CSV if Excel export fails
       const exportableColumns = columns.filter((col: any) => {
-        const hasAccessorKey = !!(col).accessorKey;
+        const hasAccessorKey = !!col.accessorKey;
         const isActionColumn =
           col.id?.toLowerCase().includes("action") ||
           col.id?.toLowerCase().includes("actions") ||
-          (col).header?.toString().toLowerCase().includes("action");
+          col.header?.toString().toLowerCase().includes("action");
         return hasAccessorKey && !isActionColumn;
       });
 
       const csvContent = [
         exportableColumns
-          .map((col: any) => (col).header || (col).accessorKey)
+          .map((col: any) => col.header || col.accessorKey)
           .join(","),
         ...memoizedFilteredData.map((row) =>
           exportableColumns
             .map((col: any) => {
-              const key = (col).accessorKey;
+              const key = col.accessorKey;
               if (key) {
-                const value = (row as any)[key];
+                const value = (row as Record<string, unknown>)[key];
                 if (value === null || value === undefined) return "";
                 return String(value).replace(/"/g, '""');
               }
@@ -952,6 +933,34 @@ function EnhancedDataTableComponent<TData>({
       URL.revokeObjectURL(url);
     }
   }, [memoizedFilteredData, columns, title]);
+
+  const handleExport = useCallback(async () => {
+    if (onExport) {
+      onExport();
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      // Use requestIdleCallback for non-blocking export
+      await new Promise<void>((resolve) => {
+        if ("requestIdleCallback" in window) {
+          requestIdleCallback(() => {
+            void performExport();
+            resolve();
+          });
+        } else {
+          setTimeout(() => {
+            void performExport();
+            resolve();
+          }, 0);
+        }
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [onExport, performExport]);
 
   // Loading state
   if (loading) {
@@ -1140,12 +1149,14 @@ function EnhancedDataTableComponent<TData>({
             <Button
               variant="outline"
               size="sm"
-              onClick={handleExport}
+              onClick={() => { void handleExport(); }}
               disabled={isExporting}
               className=""
             >
               {isExporting ? (
-                <span className="mr-2"><ButtonLoading size="sm" /></span>
+                <span className="mr-2">
+                  <ButtonLoading size="sm" />
+                </span>
               ) : (
                 <Download className="h-4 w-4 mr-2" />
               )}
@@ -1210,13 +1221,13 @@ function EnhancedDataTableComponent<TData>({
 
       {/* Table */}
       <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
-        <div 
+        <div
           ref={tableContainerRef}
           className={cn(
             "overflow-x-auto scrollbar-hide",
             shouldVirtualize && "overflow-y-auto max-h-[600px]"
           )}
-          role="region" 
+          role="region"
           aria-label="Data table"
         >
           <Table className="w-full" role="table">
@@ -1249,8 +1260,8 @@ function EnhancedDataTableComponent<TData>({
                         header.column.getIsSorted() === "asc"
                           ? "ascending"
                           : header.column.getIsSorted() === "desc"
-                          ? "descending"
-                          : "none"
+                            ? "descending"
+                            : "none"
                       }
                       tabIndex={header.column.getCanSort() ? 0 : -1}
                       onKeyDown={(e) => {
@@ -1286,33 +1297,47 @@ function EnhancedDataTableComponent<TData>({
                 </TableRow>
               ))}
             </TableHeader>
-            <TableBody 
+            <TableBody
               ref={tableBodyRef}
               className="bg-white dark:bg-slate-900"
-              style={shouldVirtualize ? {
-                height: `${rowVirtualizer.getTotalSize()}px`,
-                position: 'relative',
-              } : undefined}
+              style={
+                shouldVirtualize
+                  ? {
+                      height: `${rowVirtualizer.getTotalSize()}px`,
+                      position: "relative",
+                    }
+                  : undefined
+              }
             >
               {rows?.length ? (
-                shouldVirtualize ? (
+                shouldVirtualize && rowVirtualizer ? (
                   // Virtualized rendering
-                  rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                    const row = rows[virtualRow.index];
-                    return (
-                      <motion.tr
-                        key={row.id}
-                        data-index={virtualRow.index}
-                        ref={(node) => {
-                          if (node) {
-                            rowVirtualizer.measureElement(node);
-                          }
-                        }}
+                  (() => {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    const virtualizer = rowVirtualizer as Virtualizer<HTMLDivElement, Element>;
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
+                    return virtualizer.getVirtualItems().map((virtualRow: { index: number; size: number; start: number }) => {
+                      const rowIndex = typeof virtualRow.index === 'number' ? virtualRow.index : Number(virtualRow.index ?? 0);
+                      if (isNaN(rowIndex) || rowIndex < 0 || rowIndex >= rows.length) return null;
+                      const row = rows[rowIndex];
+                      if (!row) return null;
+                      const size = typeof virtualRow.size === 'number' ? virtualRow.size : Number(virtualRow.size ?? 60);
+                      const start = typeof virtualRow.start === 'number' ? virtualRow.start : Number(virtualRow.start ?? 0);
+                      return (
+                        <motion.tr
+                          key={row.id}
+                          data-index={rowIndex}
+                          ref={(node) => {
+                            if (node) {
+                              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+                              virtualizer.measureElement(node);
+                            }
+                          }}
                         style={{
-                          position: 'absolute',
+                          position: "absolute",
                           top: 0,
                           left: 0,
-                          width: '100%',
+                          width: "100%",
                           height: `${virtualRow.size}px`,
                           transform: `translateY(${virtualRow.start}px)`,
                         }}
@@ -1328,7 +1353,9 @@ function EnhancedDataTableComponent<TData>({
                             key={cell.id}
                             className={cn(
                               "py-4 text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-200",
-                              cell.column.getIndex() === 0 ? "pl-6 pr-3" : "px-3"
+                              cell.column.getIndex() === 0
+                                ? "pl-6 pr-3"
+                                : "px-3"
                             )}
                           >
                             <div
@@ -1353,8 +1380,9 @@ function EnhancedDataTableComponent<TData>({
                           </TableCell>
                         ))}
                       </motion.tr>
-                    );
-                  })
+                      );
+                    });
+                  })()
                 ) : (
                   // Non-virtualized rendering (for small lists)
                   rows.map((row, index) => (
@@ -1405,13 +1433,13 @@ function EnhancedDataTableComponent<TData>({
                     colSpan={columns.length}
                     className="h-40 text-center bg-white"
                   >
-                    <div className="flex flex-col items-center justify-center space-y-4">
+                    <div className="flex flex-col items-center justify-center space-y-2">
                       <div className="text-slate-600 dark:text-slate-300 font-medium text-lg">
                         No results found
                       </div>
                       <div className="text-sm text-slate-500 dark:text-slate-400 max-w-lg text-center">
                         Try adjusting your search criteria or filters to find
-                        what you're looking for
+                        what you&apos;re looking for
                       </div>
                     </div>
                   </TableCell>
@@ -1444,7 +1472,7 @@ function EnhancedDataTableComponent<TData>({
                 <div className="flex items-center space-x-1">
                   <span className="text-slate-400">for</span>
                   <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md text-xs font-semibold">
-                    "{globalFilter}"
+                    &quot;{globalFilter}&quot;
                   </span>
                 </div>
               </div>

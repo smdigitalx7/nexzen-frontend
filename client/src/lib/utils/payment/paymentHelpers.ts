@@ -75,6 +75,7 @@ export function PaymentFormWithModal({ admissionNo }: { admissionNo: string }) {
       toast({
         title: "Payment Successful",
         description: "Payment processed successfully. Receipt is ready for viewing.",
+        variant: "success",
       });
       
       // Reset form
@@ -293,6 +294,7 @@ const handlePaymentWithErrorHandling = async (admissionNo: string, paymentData: 
     toast({
       title: "Payment Successful",
       description: "Receipt is ready for viewing.",
+      variant: "success",
     });
     
   } catch (error) {

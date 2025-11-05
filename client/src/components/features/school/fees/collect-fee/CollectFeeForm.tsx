@@ -1,6 +1,12 @@
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Calculator, CheckCircle, AlertTriangle, Receipt, Printer } from "lucide-react";
+import {
+  Calculator,
+  CheckCircle,
+  AlertTriangle,
+  Receipt,
+  Printer,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -60,10 +66,10 @@ export const CollectFeeForm = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [generatedBill, setGeneratedBill] = useState<any>(null);
   const [showBill, setShowBill] = useState(false);
-  
+
   const billRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  
+
   // Removed individual payment hooks - now using pay-by-admission API
 
   const isSelectionValid = () => {
@@ -72,113 +78,131 @@ export const CollectFeeForm = ({
 
   const computeSelectedAmount = () => {
     if (customAmount !== "") return parseFloat(customAmount);
-    
+
     if (!selectedStudent) return 0;
-    
+
     let amount = 0;
-    
+
     // Tuition fees
     if (selectedStudent.tuitionBalance) {
       const tuition = selectedStudent.tuitionBalance;
-      if (collectSelection.books) amount += tuition.book_fee - tuition.book_paid;
-      if (collectSelection.t1) amount += tuition.term1_amount - tuition.term1_paid;
-      if (collectSelection.t2) amount += tuition.term2_amount - tuition.term2_paid;
-      if (collectSelection.t3) amount += tuition.term3_amount - tuition.term3_paid;
+      if (collectSelection.books)
+        amount += tuition.book_fee - tuition.book_paid;
+      if (collectSelection.t1)
+        amount += tuition.term1_amount - tuition.term1_paid;
+      if (collectSelection.t2)
+        amount += tuition.term2_amount - tuition.term2_paid;
+      if (collectSelection.t3)
+        amount += tuition.term3_amount - tuition.term3_paid;
     }
-    
+
     // Transport fees
     if (selectedStudent.transportBalance) {
       const transport = selectedStudent.transportBalance;
-      if (collectSelection.tr1) amount += transport.term1_amount - transport.term1_paid;
-      if (collectSelection.tr2) amount += transport.term2_amount - transport.term2_paid;
+      if (collectSelection.tr1)
+        amount += transport.term1_amount - transport.term1_paid;
+      if (collectSelection.tr2)
+        amount += transport.term2_amount - transport.term2_paid;
     }
-    
+
     return amount;
   };
 
   const handleCollect = async () => {
     if (!selectedStudent || !isSelectionValid()) return;
-    
+
     setIsProcessing(true);
     try {
       const amount = computeSelectedAmount();
       const paymentDate = new Date().toISOString();
-      
+
       // Build payment details array for the pay-by-admission API
       const paymentDetails = [];
-      
+
       if (collectSelection.books && selectedStudent.tuitionBalance) {
         paymentDetails.push({
           purpose: "BOOK_FEE",
           custom_purpose_name: null,
           term_number: null,
-          paid_amount: selectedStudent.tuitionBalance.book_fee - selectedStudent.tuitionBalance.book_paid,
-          payment_method: paymentMode
+          paid_amount:
+            selectedStudent.tuitionBalance.book_fee -
+            selectedStudent.tuitionBalance.book_paid,
+          payment_method: paymentMode,
         });
       }
-      
+
       if (collectSelection.t1 && selectedStudent.tuitionBalance) {
         paymentDetails.push({
           purpose: "TUITION_FEE",
           custom_purpose_name: null,
           term_number: 1,
-          paid_amount: selectedStudent.tuitionBalance.term1_amount - selectedStudent.tuitionBalance.term1_paid,
-          payment_method: paymentMode
+          paid_amount:
+            selectedStudent.tuitionBalance.term1_amount -
+            selectedStudent.tuitionBalance.term1_paid,
+          payment_method: paymentMode,
         });
       }
-      
+
       if (collectSelection.t2 && selectedStudent.tuitionBalance) {
         paymentDetails.push({
           purpose: "TUITION_FEE",
           custom_purpose_name: null,
           term_number: 2,
-          paid_amount: selectedStudent.tuitionBalance.term2_amount - selectedStudent.tuitionBalance.term2_paid,
-          payment_method: paymentMode
+          paid_amount:
+            selectedStudent.tuitionBalance.term2_amount -
+            selectedStudent.tuitionBalance.term2_paid,
+          payment_method: paymentMode,
         });
       }
-      
+
       if (collectSelection.t3 && selectedStudent.tuitionBalance) {
         paymentDetails.push({
           purpose: "TUITION_FEE",
           custom_purpose_name: null,
           term_number: 3,
-          paid_amount: selectedStudent.tuitionBalance.term3_amount - selectedStudent.tuitionBalance.term3_paid,
-          payment_method: paymentMode
+          paid_amount:
+            selectedStudent.tuitionBalance.term3_amount -
+            selectedStudent.tuitionBalance.term3_paid,
+          payment_method: paymentMode,
         });
       }
-      
+
       if (collectSelection.tr1 && selectedStudent.transportBalance) {
         paymentDetails.push({
           purpose: "TRANSPORT_FEE",
           custom_purpose_name: null,
           term_number: 1,
-          paid_amount: selectedStudent.transportBalance.term1_amount - selectedStudent.transportBalance.term1_paid,
-          payment_method: paymentMode
+          paid_amount:
+            selectedStudent.transportBalance.term1_amount -
+            selectedStudent.transportBalance.term1_paid,
+          payment_method: paymentMode,
         });
       }
-      
+
       if (collectSelection.tr2 && selectedStudent.transportBalance) {
         paymentDetails.push({
           purpose: "TRANSPORT_FEE",
           custom_purpose_name: null,
           term_number: 2,
-          paid_amount: selectedStudent.transportBalance.term2_amount - selectedStudent.transportBalance.term2_paid,
-          payment_method: paymentMode
+          paid_amount:
+            selectedStudent.transportBalance.term2_amount -
+            selectedStudent.transportBalance.term2_paid,
+          payment_method: paymentMode,
         });
       }
-      
+
       // Use the pay-by-admission API endpoint
       const apiPayload = {
         details: paymentDetails,
-        remarks: null
+        remarks: null,
       };
 
       const result = await api({
-        method: 'POST',
+        method: "POST",
         path: `/school/income/pay-fee/${selectedStudent.student.admission_no}`,
         body: apiPayload,
       });
-      
+
       if ((result as { success: boolean; message?: string }).success) {
         // Generate bill
         const bill = {
@@ -191,27 +215,33 @@ export const CollectFeeForm = ({
           items: getPaymentItems(),
           instituteName: "NexGen School",
           address: "123 Education Street, Learning City",
-          phone: "+1 234 567 8900"
+          phone: "+1 234 567 8900",
         };
-        
+
         setGeneratedBill(bill);
         setShowBill(true);
-        
+
         toast({
           title: "Payment Successful",
           description: `Payment of ${formatCurrency(amount)} collected successfully`,
+          variant: "success",
         });
-        
+
         onPaymentComplete();
       } else {
-        throw new Error((result as { success: boolean; message?: string }).message || 'Payment processing failed');
+        throw new Error(
+          (result as { success: boolean; message?: string }).message ||
+            "Payment processing failed"
+        );
       }
-      
     } catch (error) {
       console.error("Payment error:", error);
       toast({
         title: "Payment Failed",
-        description: error instanceof Error ? error.message : "Failed to process payment. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to process payment. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -221,60 +251,75 @@ export const CollectFeeForm = ({
 
   const getPaymentItems = () => {
     const items = [];
-    
+
     if (collectSelection.books && selectedStudent?.tuitionBalance) {
       items.push({
         description: "Book Fee",
-        amount: selectedStudent.tuitionBalance.book_fee - selectedStudent.tuitionBalance.book_paid
+        amount:
+          selectedStudent.tuitionBalance.book_fee -
+          selectedStudent.tuitionBalance.book_paid,
       });
     }
-    
+
     if (collectSelection.t1 && selectedStudent?.tuitionBalance) {
       items.push({
         description: "Tuition Term 1",
-        amount: selectedStudent.tuitionBalance.term1_amount - selectedStudent.tuitionBalance.term1_paid
+        amount:
+          selectedStudent.tuitionBalance.term1_amount -
+          selectedStudent.tuitionBalance.term1_paid,
       });
     }
-    
+
     if (collectSelection.t2 && selectedStudent?.tuitionBalance) {
       items.push({
         description: "Tuition Term 2",
-        amount: selectedStudent.tuitionBalance.term2_amount - selectedStudent.tuitionBalance.term2_paid
+        amount:
+          selectedStudent.tuitionBalance.term2_amount -
+          selectedStudent.tuitionBalance.term2_paid,
       });
     }
-    
+
     if (collectSelection.t3 && selectedStudent?.tuitionBalance) {
       items.push({
         description: "Tuition Term 3",
-        amount: selectedStudent.tuitionBalance.term3_amount - selectedStudent.tuitionBalance.term3_paid
+        amount:
+          selectedStudent.tuitionBalance.term3_amount -
+          selectedStudent.tuitionBalance.term3_paid,
       });
     }
-    
+
     if (collectSelection.tr1 && selectedStudent?.transportBalance) {
       items.push({
         description: "Transport Term 1",
-        amount: selectedStudent.transportBalance.term1_amount - selectedStudent.transportBalance.term1_paid
+        amount:
+          selectedStudent.transportBalance.term1_amount -
+          selectedStudent.transportBalance.term1_paid,
       });
     }
-    
+
     if (collectSelection.tr2 && selectedStudent?.transportBalance) {
       items.push({
         description: "Transport Term 2",
-        amount: selectedStudent.transportBalance.term2_amount - selectedStudent.transportBalance.term2_paid
+        amount:
+          selectedStudent.transportBalance.term2_amount -
+          selectedStudent.transportBalance.term2_paid,
       });
     }
-    
+
     return items;
   };
 
-  const handleSelectionChange = (key: keyof typeof collectSelection, checked: boolean) => {
-    setCollectSelection(prev => ({ ...prev, [key]: checked }));
+  const handleSelectionChange = (
+    key: keyof typeof collectSelection,
+    checked: boolean
+  ) => {
+    setCollectSelection((prev) => ({ ...prev, [key]: checked }));
     if (checked) setCustomAmount(""); // Clear custom amount when selecting items
   };
 
   const handlePrint = () => {
     if (billRef.current) {
-      const printWindow = window.open('', '_blank');
+      const printWindow = window.open("", "_blank");
       if (printWindow) {
         printWindow.document.write(`
           <html>
@@ -329,7 +374,8 @@ export const CollectFeeForm = ({
           <DialogHeader>
             <DialogTitle>Collect Fee Payment</DialogTitle>
             <DialogDescription>
-              Collect payment from {selectedStudent.student.student_name} ({selectedStudent.student.admission_no})
+              Collect payment from {selectedStudent.student.student_name} (
+              {selectedStudent.student.admission_no})
             </DialogDescription>
           </DialogHeader>
 
@@ -343,19 +389,27 @@ export const CollectFeeForm = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm font-medium">Student Name</Label>
-                    <p className="text-sm text-muted-foreground">{selectedStudent.student.student_name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedStudent.student.student_name}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Admission No</Label>
-                    <p className="text-sm text-muted-foreground">{selectedStudent.student.admission_no}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedStudent.student.admission_no}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Class</Label>
-                    <p className="text-sm text-muted-foreground">{selectedStudent.student.section_name || "N/A"}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedStudent.student.section_name || "N/A"}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Gender</Label>
-                    <p className="text-sm text-muted-foreground">{selectedStudent.student.gender || "N/A"}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedStudent.student.gender || "N/A"}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -375,44 +429,64 @@ export const CollectFeeForm = ({
                         <Checkbox
                           id="books"
                           checked={collectSelection.books}
-                          onCheckedChange={(checked) => handleSelectionChange('books', checked as boolean)}
+                          onCheckedChange={(checked) =>
+                            handleSelectionChange("books", checked as boolean)
+                          }
                         />
                         <Label htmlFor="books">Book Fee</Label>
                         <Badge variant="outline">
-                          {formatCurrency(selectedStudent.tuitionBalance.book_fee - selectedStudent.tuitionBalance.book_paid)}
+                          {formatCurrency(
+                            selectedStudent.tuitionBalance.book_fee -
+                              selectedStudent.tuitionBalance.book_paid
+                          )}
                         </Badge>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="t1"
                           checked={collectSelection.t1}
-                          onCheckedChange={(checked) => handleSelectionChange('t1', checked as boolean)}
+                          onCheckedChange={(checked) =>
+                            handleSelectionChange("t1", checked as boolean)
+                          }
                         />
                         <Label htmlFor="t1">Term 1</Label>
                         <Badge variant="outline">
-                          {formatCurrency(selectedStudent.tuitionBalance.term1_amount - selectedStudent.tuitionBalance.term1_paid)}
+                          {formatCurrency(
+                            selectedStudent.tuitionBalance.term1_amount -
+                              selectedStudent.tuitionBalance.term1_paid
+                          )}
                         </Badge>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="t2"
                           checked={collectSelection.t2}
-                          onCheckedChange={(checked) => handleSelectionChange('t2', checked as boolean)}
+                          onCheckedChange={(checked) =>
+                            handleSelectionChange("t2", checked as boolean)
+                          }
                         />
                         <Label htmlFor="t2">Term 2</Label>
                         <Badge variant="outline">
-                          {formatCurrency(selectedStudent.tuitionBalance.term2_amount - selectedStudent.tuitionBalance.term2_paid)}
+                          {formatCurrency(
+                            selectedStudent.tuitionBalance.term2_amount -
+                              selectedStudent.tuitionBalance.term2_paid
+                          )}
                         </Badge>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="t3"
                           checked={collectSelection.t3}
-                          onCheckedChange={(checked) => handleSelectionChange('t3', checked as boolean)}
+                          onCheckedChange={(checked) =>
+                            handleSelectionChange("t3", checked as boolean)
+                          }
                         />
                         <Label htmlFor="t3">Term 3</Label>
                         <Badge variant="outline">
-                          {formatCurrency(selectedStudent.tuitionBalance.term3_amount - selectedStudent.tuitionBalance.term3_paid)}
+                          {formatCurrency(
+                            selectedStudent.tuitionBalance.term3_amount -
+                              selectedStudent.tuitionBalance.term3_paid
+                          )}
                         </Badge>
                       </div>
                     </div>
@@ -427,22 +501,32 @@ export const CollectFeeForm = ({
                         <Checkbox
                           id="tr1"
                           checked={collectSelection.tr1}
-                          onCheckedChange={(checked) => handleSelectionChange('tr1', checked as boolean)}
+                          onCheckedChange={(checked) =>
+                            handleSelectionChange("tr1", checked as boolean)
+                          }
                         />
                         <Label htmlFor="tr1">Transport Term 1</Label>
                         <Badge variant="outline">
-                          {formatCurrency(selectedStudent.transportBalance.term1_amount - selectedStudent.transportBalance.term1_paid)}
+                          {formatCurrency(
+                            selectedStudent.transportBalance.term1_amount -
+                              selectedStudent.transportBalance.term1_paid
+                          )}
                         </Badge>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="tr2"
                           checked={collectSelection.tr2}
-                          onCheckedChange={(checked) => handleSelectionChange('tr2', checked as boolean)}
+                          onCheckedChange={(checked) =>
+                            handleSelectionChange("tr2", checked as boolean)
+                          }
                         />
                         <Label htmlFor="tr2">Transport Term 2</Label>
                         <Badge variant="outline">
-                          {formatCurrency(selectedStudent.transportBalance.term2_amount - selectedStudent.transportBalance.term2_paid)}
+                          {formatCurrency(
+                            selectedStudent.transportBalance.term2_amount -
+                              selectedStudent.transportBalance.term2_paid
+                          )}
                         </Badge>
                       </div>
                     </div>
@@ -511,7 +595,7 @@ export const CollectFeeForm = ({
             <Button variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleCollect}
               disabled={!isSelectionValid() || isProcessing}
               className="bg-green-600 hover:bg-green-700"
@@ -541,25 +625,40 @@ export const CollectFeeForm = ({
               Fee Receipt
             </DialogTitle>
           </DialogHeader>
-          
+
           {generatedBill && (
             <div ref={billRef} className="space-y-4">
               {/* Bill Header */}
               <div className="text-center border-b pb-4">
-                <h2 className="text-2xl font-bold">{generatedBill.instituteName}</h2>
-                <p className="text-sm text-muted-foreground">{generatedBill.address}</p>
-                <p className="text-sm text-muted-foreground">Phone: {generatedBill.phone}</p>
+                <h2 className="text-2xl font-bold">
+                  {generatedBill.instituteName}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {generatedBill.address}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Phone: {generatedBill.phone}
+                </p>
               </div>
 
               {/* Bill Details */}
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p><strong>Bill No:</strong> {generatedBill.billNumber}</p>
-                  <p><strong>Date:</strong> {new Date(generatedBill.paymentDate).toLocaleDateString()}</p>
+                  <p>
+                    <strong>Bill No:</strong> {generatedBill.billNumber}
+                  </p>
+                  <p>
+                    <strong>Date:</strong>{" "}
+                    {new Date(generatedBill.paymentDate).toLocaleDateString()}
+                  </p>
                 </div>
                 <div>
-                  <p><strong>Student:</strong> {generatedBill.studentName}</p>
-                  <p><strong>Admission No:</strong> {generatedBill.admissionNo}</p>
+                  <p>
+                    <strong>Student:</strong> {generatedBill.studentName}
+                  </p>
+                  <p>
+                    <strong>Admission No:</strong> {generatedBill.admissionNo}
+                  </p>
                 </div>
               </div>
 
@@ -576,14 +675,18 @@ export const CollectFeeForm = ({
                     {generatedBill.items.map((item: any, index: number) => (
                       <tr key={index} className="border-t">
                         <td className="p-2">{item.description}</td>
-                        <td className="p-2 text-right">{formatCurrency(item.amount)}</td>
+                        <td className="p-2 text-right">
+                          {formatCurrency(item.amount)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot className="bg-muted">
                     <tr>
                       <td className="p-2 font-bold">Total</td>
-                      <td className="p-2 text-right font-bold">{formatCurrency(generatedBill.amount)}</td>
+                      <td className="p-2 text-right font-bold">
+                        {formatCurrency(generatedBill.amount)}
+                      </td>
                     </tr>
                   </tfoot>
                 </table>
@@ -591,8 +694,13 @@ export const CollectFeeForm = ({
 
               {/* Payment Info */}
               <div className="text-sm">
-                <p><strong>Payment Mode:</strong> {generatedBill.paymentMode}</p>
-                <p><strong>Payment Date:</strong> {new Date(generatedBill.paymentDate).toLocaleString()}</p>
+                <p>
+                  <strong>Payment Mode:</strong> {generatedBill.paymentMode}
+                </p>
+                <p>
+                  <strong>Payment Date:</strong>{" "}
+                  {new Date(generatedBill.paymentDate).toLocaleString()}
+                </p>
               </div>
 
               {/* Footer */}
@@ -607,7 +715,10 @@ export const CollectFeeForm = ({
             <Button variant="outline" onClick={() => setShowBill(false)}>
               Close
             </Button>
-            <Button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700">
+            <Button
+              onClick={handlePrint}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
               <Printer className="h-4 w-4 mr-2" />
               Print Receipt
             </Button>

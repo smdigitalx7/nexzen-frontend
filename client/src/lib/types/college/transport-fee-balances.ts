@@ -154,14 +154,42 @@ export interface CollegeStudentTransportPaymentSummary {
   student_status: string;
 }
 
+// Payment Summary Item (from GET /api/v1/college/student-transport-payment)
+export interface CollegeStudentTransportPaymentSummaryItem {
+  student: string;
+  admission_no: string | null;
+  class: string;
+  group: string;
+  months_paid: number;
+  months_pending: number;
+  total_months: number;
+  total_fee: number;
+  paid_amount: number;
+  outstanding: number;
+  status: "PENDING" | "PARTIALLY_PAID" | "FULLY_PAID";
+  last_payment: string | null;
+  enrollment_id: number;
+  academic_year_name: string | null;
+  transport_assignment_id: number;
+}
+
 export interface CollegeStudentTransportPaymentSummaryListResponse {
-  items: CollegeStudentTransportPaymentSummary[];
+  items: CollegeStudentTransportPaymentSummaryItem[];
 }
 
 export interface CollegeStudentTransportPaymentSummaryParams {
-  class_id?: number | null;
-  group_id?: number | null;
-  course_id?: number | null;
-  bus_route_id?: number | null;
+  payment_status?: "PENDING" | "PARTIALLY_PAID" | "FULLY_PAID" | null;
+}
+
+// Expected Transport Payments Types
+export interface ExpectedTransportPaymentItem {
+  expected_payment_month: string; // ISO date string (YYYY-MM-DD)
+  payment_sequence_number: number; // Sequential number starting from 1
+}
+
+export interface ExpectedTransportPaymentsResponse {
+  enrollment_id: number;
+  admission_no: string | null;
+  expected_payments: ExpectedTransportPaymentItem[];
 }
 

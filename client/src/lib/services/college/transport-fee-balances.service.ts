@@ -3,6 +3,7 @@ import {
   CollegeStudentTransportPaymentSummaryListResponse,
   CollegeStudentTransportPaymentSummaryParams,
   CollegeStudentTransportPaymentSummary,
+  ExpectedTransportPaymentsResponse,
 } from "@/lib/types/college";
 
 export const CollegeTransportBalancesService = {
@@ -11,8 +12,13 @@ export const CollegeTransportBalancesService = {
     return Api.get<CollegeStudentTransportPaymentSummaryListResponse>(`/college/student-transport-payment`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
 
-  // GET /api/v1/college/student-transport-payment/{admission_no}
-  getStudentTransportPaymentSummaryByAdmissionNo(admission_no: string) {
-    return Api.get<CollegeStudentTransportPaymentSummary>(`/college/student-transport-payment/${admission_no}`);
+  // GET /api/v1/college/student-transport-payment/by-enrollment/{enrollment_id}
+  getStudentTransportPaymentSummaryByEnrollmentId(enrollment_id: number) {
+    return Api.get<CollegeStudentTransportPaymentSummary>(`/college/student-transport-payment/by-enrollment/${enrollment_id}`);
+  },
+
+  // GET /api/v1/college/student-transport-payment/expected-payments/{enrollment_id}
+  getExpectedTransportPaymentsByEnrollmentId(enrollment_id: number) {
+    return Api.get<ExpectedTransportPaymentsResponse>(`/college/student-transport-payment/expected-payments/${enrollment_id}`);
   },
 };
