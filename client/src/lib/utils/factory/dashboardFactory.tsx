@@ -1,14 +1,12 @@
 import React from "react";
-import {
-  DashboardContainer,
-  StatsCard,
-  DashboardGrid,
-  DashboardHeader,
-  DashboardFilters,
-  DashboardCharts,
-  DashboardQuickActions,
-  DashboardRecentActivity,
-} from "@/components/shared/dashboard";
+import { DashboardContainer } from "@/components/shared/dashboard/DashboardContainer";
+import { StatsCard } from "@/components/shared/dashboard/StatsCard";
+import { DashboardGrid } from "@/components/shared/dashboard/DashboardGrid";
+import { DashboardHeader } from "@/components/shared/dashboard/DashboardHeader";
+import { DashboardFilters } from "@/components/shared/dashboard/DashboardFilters";
+import { DashboardCharts } from "@/components/shared/dashboard/DashboardCharts";
+import { DashboardQuickActions } from "@/components/shared/dashboard/DashboardQuickActions";
+import { DashboardRecentActivity } from "@/components/shared/dashboard/DashboardRecentActivity";
 import { LucideIcon } from "lucide-react";
 
 // Types for dashboard configuration

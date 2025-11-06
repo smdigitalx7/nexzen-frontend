@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Calendar, User, Hash, FileText, CreditCard, Clock, Phone, Receipt } from "lucide-react";
+import { Calendar, User, FileText, CreditCard, Clock, Phone, Receipt } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -150,18 +150,12 @@ export const ViewIncomeDialog = ({
                 <h3 className="text-2xl font-bold text-gray-900">
                   {receiptData?.student_name || income.student_name || "Unknown Student"}
                 </h3>
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                  <div className="flex items-center gap-1">
-                    <Hash className="h-4 w-4" />
-                    <span>ID: #{income.income_id}</span>
+                {receiptData?.receipt_no && (
+                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                    <Receipt className="h-4 w-4" />
+                    <span>Receipt: {receiptData.receipt_no}</span>
                   </div>
-                  {receiptData?.receipt_no && (
-                    <div className="flex items-center gap-1">
-                      <Receipt className="h-4 w-4" />
-                      <span>Receipt: {receiptData.receipt_no}</span>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
               <div className="text-right space-y-2">
                 <div className="text-3xl font-bold text-green-600">
@@ -309,9 +303,6 @@ export const ViewIncomeDialog = ({
               Last updated: {income.updated_at ? formatDate(income.updated_at) : formatDate(income.created_at)}
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => onOpenChange(false)} className="px-6">
-                Close
-              </Button>
               <Button className="px-6 bg-green-600 hover:bg-green-700">
                 <Receipt className="h-4 w-4 mr-2" />
                 Print Receipt

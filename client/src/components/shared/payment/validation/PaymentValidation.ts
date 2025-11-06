@@ -410,18 +410,47 @@ export function isFeePurposeAvailable(
       
       const totalTuitionOutstanding = tuitionTerms.reduce((sum, term) => sum + term.outstanding, 0);
       
-      // If book fee is pending and not added, tuition fee is not available
-      if (bookFeePending && !bookFeeAdded) {
+      // For colleges: Book fee must be paid first before tuition fee can be selected
+      // For schools: Allow tuition fee if there are outstanding amounts, even if book fee is pending
+      if (isCollege) {
+        // College: Disable if book fee is pending and not added
+        if (bookFeePending && !bookFeeAdded) {
+          return {
+            available: false,
+            reason: 'Book fee must be paid first before tuition fee',
+            outstandingAmount: totalTuitionOutstanding
+          };
+        }
+        // College: Allow only if book fee is paid (or no book fee outstanding) AND there are outstanding amounts
+        if (totalTuitionOutstanding > 0) {
+          return {
+            available: hasAvailableTuitionTerm || totalTuitionOutstanding > 0,
+            reason: !hasAvailableTuitionTerm ? 'No tuition fee available for payment' : undefined,
+            outstandingAmount: totalTuitionOutstanding
+          };
+        }
         return {
           available: false,
-          reason: 'Book fee must be selected first before tuition fee',
+          reason: 'No tuition fee available for payment',
+          outstandingAmount: totalTuitionOutstanding
+        };
+      }
+      
+      // School: Allow tuition fee if there are outstanding amounts, even if book fee is pending
+      // Book fee requirement is shown as a warning, not a hard block
+      if (totalTuitionOutstanding > 0) {
+        return {
+          available: hasAvailableTuitionTerm || totalTuitionOutstanding > 0,
+          reason: !hasAvailableTuitionTerm && totalTuitionOutstanding > 0 
+            ? (bookFeePending && !bookFeeAdded ? 'Book fee should be selected first (recommended)' : undefined)
+            : (!hasAvailableTuitionTerm ? 'No tuition fee available for payment' : undefined),
           outstandingAmount: totalTuitionOutstanding
         };
       }
       
       return {
-        available: hasAvailableTuitionTerm,
-        reason: !hasAvailableTuitionTerm ? 'No tuition fee available for payment' : undefined,
+        available: false,
+        reason: 'No tuition fee available for payment',
         outstandingAmount: totalTuitionOutstanding
       };
     }
@@ -429,30 +458,54 @@ export function isFeePurposeAvailable(
     case 'TRANSPORT_FEE': {
       const transportTerms = getAvailableTerms('TRANSPORT_FEE', feeBalances, institutionType);
       
-      // For colleges, transport fee is monthly-based and availability depends on expected payments
-      // Since we can't check expected payments here (requires enrollment_id), we allow it to be available
-      // The TransportFeeComponent will handle showing expected payments or "no payments" message
-      // For schools, check if any transport term is available
-      const hasAvailableTransportTerm = isCollege 
-        ? true // Always allow for colleges - actual availability checked in TransportFeeComponent via expected payments
-        : transportTerms.some(term => term.available);
+      // Check if any transport term is available (for schools) or if there's total outstanding (for colleges)
+      const hasAvailableTransportTerm = transportTerms.some(term => term.available);
       
       const totalTransportOutstanding = isCollege 
         ? feeBalances.transportFee.total 
         : transportTerms.reduce((sum, term) => sum + term.outstanding, 0);
       
-      // If book fee is pending and not added, transport fee is not available
-      if (bookFeePending && !bookFeeAdded) {
+      // For colleges: Book fee must be paid first before transport fee can be selected
+      // For schools: Allow transport fee if there are outstanding amounts, even if book fee is pending
+      if (isCollege) {
+        // College: Disable if book fee is pending and not added
+        if (bookFeePending && !bookFeeAdded) {
+          return {
+            available: false,
+            reason: 'Book fee must be paid first before transport fee',
+            outstandingAmount: totalTransportOutstanding
+          };
+        }
+        // College: Allow only if book fee is paid (or no book fee outstanding) AND there are outstanding amounts
+        if (totalTransportOutstanding > 0) {
+          return {
+            available: true, // Available if book fee is paid and there's outstanding
+            reason: undefined,
+            outstandingAmount: totalTransportOutstanding
+          };
+        }
         return {
           available: false,
-          reason: 'Book fee must be selected first before transport fee',
+          reason: 'No transport fee available for payment',
+          outstandingAmount: totalTransportOutstanding
+        };
+      }
+      
+      // School: Allow transport fee if there are outstanding amounts, even if book fee is pending
+      // Book fee requirement is shown as a warning, not a hard block
+      if (totalTransportOutstanding > 0) {
+        return {
+          available: hasAvailableTransportTerm || totalTransportOutstanding > 0,
+          reason: !hasAvailableTransportTerm && totalTransportOutstanding === 0
+            ? 'No transport fee available for payment'
+            : (bookFeePending && !bookFeeAdded && totalTransportOutstanding > 0 ? 'Book fee should be selected first (recommended)' : undefined),
           outstandingAmount: totalTransportOutstanding
         };
       }
       
       return {
-        available: hasAvailableTransportTerm,
-        reason: !hasAvailableTransportTerm ? 'No transport fee available for payment' : undefined,
+        available: false,
+        reason: 'No transport fee available for payment',
         outstandingAmount: totalTransportOutstanding
       };
     }

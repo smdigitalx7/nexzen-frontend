@@ -175,8 +175,6 @@ export default function AttendanceView() {
             <div className="text-sm text-red-600">Failed to load attendance</div>
           ) : viewQuery.data ? (
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-slate-600">Attendance ID</span><span className="font-medium">{viewQuery.data.attendance_id}</span></div>
-              <div className="flex justify-between"><span className="text-slate-600">Enrollment ID</span><span className="font-medium">{viewQuery.data.enrollment_id}</span></div>
               <div className="flex justify-between"><span className="text-slate-600">Admission No</span><span className="font-medium">{viewQuery.data.admission_no}</span></div>
               <div className="flex justify-between"><span className="text-slate-600">Student</span><span className="font-medium">{viewQuery.data.student_name}</span></div>
               <div className="flex justify-between"><span className="text-slate-600">Roll</span><span className="font-medium">{viewQuery.data.roll_number}</span></div>

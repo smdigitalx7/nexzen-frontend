@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useLocation } from "wouter";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -51,13 +52,11 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import {
-  DashboardContainer,
-  DashboardHeader,
-  DashboardError,
-  StatsCard,
-  DashboardGrid,
-} from "@/components/shared/dashboard";
+import { DashboardContainer } from "@/components/shared/dashboard/DashboardContainer";
+import { DashboardHeader } from "@/components/shared/dashboard/DashboardHeader";
+import { DashboardError } from "@/components/shared/dashboard/DashboardError";
+import { StatsCard } from "@/components/shared/dashboard/StatsCard";
+import { DashboardGrid } from "@/components/shared/dashboard/DashboardGrid";
 
 const AccountantDashboard = () => {
   const { user, currentBranch } = useAuthStore();
@@ -66,7 +65,7 @@ const AccountantDashboard = () => {
     currentBranch?.branch_type === "SCHOOL" ? "/school" : "/college";
   const { data: dashboardData, loading, error } = useAccountantDashboard();
 
-  const quickLinks = [
+  const quickLinks = useMemo(() => [
     {
       title: "New Reservation",
       href: `${branchPrefix}/reservations/new`,
@@ -91,9 +90,9 @@ const AccountantDashboard = () => {
       icon: BarChart3,
       color: "text-sky-600",
     },
-  ];
+  ], [branchPrefix]);
 
-  const quickLinksDropdown = (
+  const quickLinksDropdown = useMemo(() => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="h-9">
@@ -119,7 +118,7 @@ const AccountantDashboard = () => {
         })}
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  ), [quickLinks, setLocation]);
 
   return (
     <DashboardContainer loading={loading}>

@@ -153,8 +153,8 @@ const ViewDialogContent = memo(
           <strong>Status:</strong> {viewReservation.status || "-"}
         </div>
         <div>
-          <strong>Referred By (ID):</strong>{" "}
-          {viewReservation.referred_by ?? "-"}
+          <strong>Referred By:</strong>{" "}
+          {viewReservation.referred_by_name ?? "-"}
         </div>
         <div>
           <strong>Enrollment Status:</strong>{" "}
@@ -307,50 +307,20 @@ const ViewDialogContent = memo(
         </div>
       </div>
 
-      {/* Income Records Section */}
-      {(viewReservation.application_income_id ||
-        viewReservation.admission_income_id) && (
-        <div className="border-t pt-4">
-          <div className="font-medium mb-2">Income Records</div>
-          <div className="space-y-2">
-            {viewReservation.application_income_id && (
-              <div className="flex justify-between items-center p-2 bg-blue-50 rounded-lg">
-                <span className="text-sm font-medium">
-                  Application Fee Income ID:
-                </span>
-                <Badge variant="outline" className="font-mono">
-                  {viewReservation.application_income_id}
-                </Badge>
-              </div>
-            )}
-            {viewReservation.admission_income_id && (
-              <div className="flex justify-between items-center p-2 bg-green-50 rounded-lg">
-                <span className="text-sm font-medium">
-                  Admission Fee Income ID:
-                </span>
-                <Badge variant="outline" className="font-mono">
-                  {viewReservation.admission_income_id}
-                </Badge>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       <div className="border-t pt-4">
         <div className="font-medium mb-2">Preferences</div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <strong>Preferred Class ID:</strong>{" "}
-            {viewReservation.preferred_class_id ?? "-"}
+            <strong>Preferred Class:</strong>{" "}
+            {viewReservation.class_name ?? "-"}
           </div>
           <div>
-            <strong>Preferred Transport ID:</strong>{" "}
-            {viewReservation.preferred_transport_id ?? "-"}
+            <strong>Preferred Transport:</strong>{" "}
+            {viewReservation.route_ ?? "-"}
           </div>
           <div>
-            <strong>Preferred Distance Slab ID:</strong>{" "}
-            {viewReservation.preferred_distance_slab_id ?? "-"}
+            <strong>Preferred Distance Slab:</strong>{" "}
+            {viewReservation.slab ?? "-"}
           </div>
           <div>
             <strong>Pickup Point:</strong> {viewReservation.pickup_point || "-"}
@@ -1182,35 +1152,32 @@ const ReservationManagementComponent = () => {
 
       {/* View Reservation Dialog */}
       <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
-        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
             <DialogTitle>Reservation Details</DialogTitle>
             <DialogDescription>Reservation information</DialogDescription>
           </DialogHeader>
-          {!viewReservation ? (
-            <div className="p-4 text-sm">Loading...</div>
-          ) : (
-            <ViewDialogContent viewReservation={viewReservation} />
-          )}
-          <DialogFooter className="mt-2 bg-background border-t py-3">
-            <Button type="button" onClick={() => setShowViewDialog(false)}>
-              Close
-            </Button>
-          </DialogFooter>
+          <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+            {!viewReservation ? (
+              <div className="p-4 text-sm">Loading...</div>
+            ) : (
+              <ViewDialogContent viewReservation={viewReservation} />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Edit Reservation Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
             <DialogTitle>Edit Reservation</DialogTitle>
             <DialogDescription>
               Update reservation information
             </DialogDescription>
           </DialogHeader>
-          {editForm ? (
-            <div className="flex-1 overflow-y-auto scrollbar-hide pr-1">
+          <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+            {editForm ? (
               <SchoolReservationEdit
                 form={editForm}
                 setForm={setEditForm}
@@ -1235,11 +1202,11 @@ const ReservationManagementComponent = () => {
                   await submitEdit();
                 }}
               />
-            </div>
-          ) : (
-            <div className="p-4">Loading...</div>
-          )}
-          <DialogFooter className="mt-2 bg-background border-t py-3">
+            ) : (
+              <div className="p-4">Loading...</div>
+            )}
+          </div>
+          <DialogFooter className="px-6 py-4 flex-shrink-0 bg-background border-t border-gray-200">
             <Button
               type="button"
               variant="outline"
@@ -1314,14 +1281,15 @@ const ReservationManagementComponent = () => {
           open={showPaymentProcessor}
           onOpenChange={setShowPaymentProcessor}
         >
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-            <DialogHeader>
+          <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+            <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
               <DialogTitle>Complete Payment</DialogTitle>
               <DialogDescription>
                 Process payment for reservation {paymentData.reservationNo}
               </DialogDescription>
             </DialogHeader>
-            <ReservationPaymentProcessor
+            <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+              <ReservationPaymentProcessor
               reservationData={paymentData}
               onPaymentComplete={async (
                 incomeRecord: SchoolIncomeRead,
@@ -1353,7 +1321,8 @@ const ReservationManagementComponent = () => {
                 setShowPaymentProcessor(false);
                 setPaymentData(null);
               }}
-            />
+              />
+            </div>
           </DialogContent>
         </Dialog>
       )}

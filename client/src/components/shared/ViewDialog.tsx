@@ -216,10 +216,10 @@ const ViewDialog: React.FC<ViewDialogProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn(
-        `${maxWidthClasses[maxWidth]} max-h-[90vh] overflow-y-auto scrollbar-hide`,
+        `${maxWidthClasses[maxWidth]} max-h-[90vh] flex flex-col p-0`,
         className
       )}>
-        <DialogHeader className="pb-4">
+        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
           <DialogTitle className="flex items-center gap-3 text-xl">
             {icon && (
               <div className={cn("p-2 rounded-lg", getIconColorClasses(iconColor))}>
@@ -237,12 +237,13 @@ const ViewDialog: React.FC<ViewDialogProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="space-y-6"
-        >
+        <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="space-y-6"
+          >
           {/* Custom Header Content */}
           {headerContent && (
             <>
@@ -334,7 +335,8 @@ const ViewDialog: React.FC<ViewDialogProps> = ({
               </div>
             </div>
           )}
-        </motion.div>
+          </motion.div>
+        </div>
       </DialogContent>
     </Dialog>
   );

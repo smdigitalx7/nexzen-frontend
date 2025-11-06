@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { FormDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { TabSwitcher } from "@/components/shared";
-import { User, BookOpen, ClipboardList } from "lucide-react";
-import { useTeachersByBranch } from "@/lib/hooks/general";
+import { User, BookOpen, ClipboardList, ArrowRight } from "lucide-react";
+import { useTeachersByBranch, useEmployeesByBranch } from "@/lib/hooks/general";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { TeacherCourseSubjectAssignmentsTab } from "./TeacherCourseSubjectAssignmentsTab";
@@ -15,12 +17,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 
 export const TeachersTab = () => {
-  const { data: teachers = [], isLoading, error } = useTeachersByBranch();
+  const { data: teachersList = [] } = useTeachersByBranch();
+  const { data: allEmployees = [], isLoading, error } = useEmployeesByBranch();
   const { data: assignments = [], isLoading: assignmentsLoading } = useTeacherCourseSubjectsList();
   const { data: groups = [] } = useCollegeGroups();
   const { data: courses = [] } = useCollegeCourses();
   const { data: subjects = [] } = useCollegeSubjects();
   
+  // Filter to only teaching staff and map to include all fields
+  const teachers = useMemo(() => {
+    return allEmployees
+      .filter((employee: any) => employee.employee_type === "TEACHING")
+      .map((employee: any) => ({
+        ...employee,
+        phone: employee.mobile_no,
+        is_active: employee.status === "ACTIVE",
+      }));
+  }, [allEmployees]);
+  
+  const [, navigate] = useLocation();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<any>(null);
@@ -99,7 +114,6 @@ export const TeachersTab = () => {
     if (!searchTerm) return teachers;
     return teachers.filter((teacher: any) =>
       teacher.employee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.employee_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       teacher.designation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       teacher.email?.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -115,10 +129,6 @@ export const TeachersTab = () => {
           <span className="font-medium">{row.getValue("employee_name")}</span>
         </div>
       ),
-    },
-    {
-      accessorKey: "employee_id",
-      header: "Employee ID",
     },
     {
       accessorKey: "designation",
@@ -185,7 +195,7 @@ export const TeachersTab = () => {
           <Label htmlFor="search">Search Teachers</Label>
           <Input
             id="search"
-            placeholder="Search by name, ID, designation, or email..."
+            placeholder="Search by name, designation, or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-80"
@@ -349,27 +359,29 @@ export const TeachersTab = () => {
         onOpenChange={setIsEditOpen}
         title="Edit Teacher"
         description="Update teacher information"
-        onSave={async () => {
-          toast({ 
-            title: "Feature Coming Soon", 
-            description: "Teacher editing will be available in the employee management section" 
-          });
-          setIsEditOpen(false);
-          setSelectedTeacher(null);
-        }}
         onCancel={() => {
           setIsEditOpen(false);
           setSelectedTeacher(null);
         }}
-        saveText="Update Teacher"
-        cancelText="Cancel"
+        cancelText="Close"
       >
         <div className="space-y-4">
           <div className="text-center py-8">
             <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">
+            <p className="text-gray-500 mb-6">
               To edit teacher information, please use the Employee Management section.
             </p>
+            <Button
+              onClick={() => {
+                setIsEditOpen(false);
+                setSelectedTeacher(null);
+                navigate("/employees");
+              }}
+              className="gap-2"
+            >
+              Go to Employees
+              <ArrowRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </FormDialog>

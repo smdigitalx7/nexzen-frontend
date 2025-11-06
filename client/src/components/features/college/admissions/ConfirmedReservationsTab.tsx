@@ -6,13 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -445,20 +438,6 @@ const ConfirmedReservationsTab = () => {
 
   return (
     <div className="space-y-6">
-      {/* Status Filter */}
-      <div className="flex gap-4 items-center">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-            <SelectItem value="PENDING">Pending</SelectItem>
-            <SelectItem value="CANCELLED">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* Enhanced Reservations Table */}
       <EnhancedDataTable
         data={allReservations}
@@ -476,8 +455,8 @@ const ConfirmedReservationsTab = () => {
 
       {/* Reservation Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
             <DialogTitle className="flex items-center gap-2">
               <GraduationCap className="h-5 w-5" />
               {isEditMode ? "Edit Reservation" : "Reservation Details"}
@@ -489,8 +468,9 @@ const ConfirmedReservationsTab = () => {
             </DialogDescription>
           </DialogHeader>
 
-          {selectedReservation && (
-            <div className="space-y-6">
+          <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+            {selectedReservation && (
+              <div className="space-y-6">
               {/* Student Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -549,8 +529,9 @@ const ConfirmedReservationsTab = () => {
                   </>
                 )}
               </div>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

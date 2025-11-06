@@ -30,7 +30,7 @@ const EmployeeDetailDialog = ({ open, onOpenChange, employee, newStatus, onStatu
       isLoading={isUpdating}
       onSave={handleSave}
       saveText="Update Status"
-      cancelText="Close"
+      showCancelButton={false}
       disabled={newStatus === employee?.status}
       showStatusUpdate={true}
       currentStatus={employee?.status}

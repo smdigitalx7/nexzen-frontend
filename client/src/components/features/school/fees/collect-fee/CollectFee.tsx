@@ -10,13 +10,13 @@ import type {
 } from "@/components/shared/payment/types/PaymentTypes";
 import { handleSchoolPayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/lib/api-school";
 import { useToast } from "@/hooks/use-toast";
-import { SchoolStudentsService } from "@/lib/services/school/students.service";
+import { EnrollmentsService } from "@/lib/services/school/enrollments.service";
 import { SchoolTuitionFeeBalancesService } from "@/lib/services/school/tuition-fee-balances.service";
 import { SchoolTransportFeeBalancesService } from "@/lib/services/school/transport-fee-balances.service";
-import { Api } from "@/lib/api";
+import type { SchoolEnrollmentWithStudentDetails } from "@/lib/types/school/enrollments";
 
 interface StudentFeeDetails {
-  student: any;
+  enrollment: SchoolEnrollmentWithStudentDetails;
   tuitionBalance: any;
   transportBalance: any;
 }
@@ -92,30 +92,17 @@ export const CollectFee = ({
       // Update URL separately to avoid dependency issues
       setTimeout(() => updateUrlWithAdmission(admissionNo), 0);
 
-      // Always fetch fresh data - bypass cache
-      const student = await Api.get(
-        `/school/students/admission-no/${admissionNo}`,
-        { _t: Date.now() },
-        undefined,
-        { cache: false, dedupe: false }
-      );
+      // Use enrollment endpoint to get enrollment data
+      const enrollment = await EnrollmentsService.getByAdmission(admissionNo);
+      
+      // Fetch tuition and transport balances using enrollment_id
       const [tuitionBalance, transportBalance] = await Promise.all([
-        Api.get(
-          `/school/tuition-fee-balances/by-admission/${admissionNo}`,
-          { _t: Date.now() },
-          undefined,
-          { cache: false, dedupe: false }
-        ).catch(() => null),
-        Api.get(
-          `/school/transport-fee-balances/by-admission/${admissionNo}`,
-          { _t: Date.now() },
-          undefined,
-          { cache: false, dedupe: false }
-        ).catch(() => null),
+        SchoolTuitionFeeBalancesService.getById(enrollment.enrollment_id).catch(() => null),
+        SchoolTransportFeeBalancesService.getById(enrollment.enrollment_id).catch(() => null)
       ]);
 
       const studentDetails: StudentFeeDetails = {
-        student,
+        enrollment,
         tuitionBalance,
         transportBalance,
       };
@@ -234,15 +221,11 @@ export const CollectFee = ({
     studentDetails: StudentFeeDetails
   ): { student: StudentInfo; feeBalances: FeeBalance } => {
     const student: StudentInfo = {
-      studentId: studentDetails.student.student_id || studentDetails.student.id,
-      admissionNo: studentDetails.student.admission_no,
-      name: studentDetails.student.student_name,
-      className:
-        studentDetails.tuitionBalance?.class_name ||
-        studentDetails.student.section_name ||
-        studentDetails.student.class_name ||
-        "N/A",
-      academicYear: studentDetails.student.academic_year || "2025-2026",
+      studentId: String(studentDetails.enrollment.student_id),
+      admissionNo: studentDetails.enrollment.admission_no,
+      name: studentDetails.enrollment.student_name,
+      className: studentDetails.tuitionBalance?.class_name || "N/A",
+      academicYear: "2025-2026", // Enrollment doesn't have academic year, use default
     };
 
     const feeBalances: FeeBalance = {
@@ -334,10 +317,10 @@ export const CollectFee = ({
           onStartPayment={(studentDetails) => {
             handleStartPayment(studentDetails);
             // Update URL when starting payment
-            if (studentDetails?.student?.admission_no) {
+            if (studentDetails?.enrollment?.admission_no) {
               setTimeout(
                 () =>
-                  updateUrlWithAdmission(studentDetails.student.admission_no),
+                  updateUrlWithAdmission(studentDetails.enrollment.admission_no),
                 0
               );
             }

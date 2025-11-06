@@ -110,10 +110,9 @@ export const ViewExpenditureDialog = ({
           <div className="bg-muted/50 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold">Expenditure ID: #{expenditure.expenditure_id}</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="text-lg font-semibold">
                   {expenditure.expenditure_purpose.replace(/_/g, " ")}
-                </p>
+                </h3>
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold text-red-600">
@@ -183,12 +182,6 @@ export const ViewExpenditureDialog = ({
                 </div>
               )}
             </div>
-          </div>
-
-          <div className="flex justify-end pt-4">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Close
-            </Button>
           </div>
         </motion.div>
       </DialogContent>

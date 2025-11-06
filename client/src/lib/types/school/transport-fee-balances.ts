@@ -37,6 +37,7 @@ export interface SchoolTransportFeeBalanceListRead {
   admission_no: string;
   roll_number: string;
   student_name: string;
+  class_name: string;
   section_name?: string | null;
   actual_fee: number;
   concession_amount: number;
@@ -54,7 +55,6 @@ export interface SchoolTransportFeeBalanceListRead {
 
 export interface SchoolTransportFeeBalanceFullRead extends SchoolTransportFeeBalanceListRead {
   student_id: number;
-  class_name?: string | null;
   father_name?: string | null;
   phone_number?: string | null;
   created_at: string;

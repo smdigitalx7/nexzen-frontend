@@ -1,11 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Download, ClipboardList, Eye, Edit, Trash2 } from 'lucide-react';
+import {  ClipboardList} from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Card    } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader as AlertHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,7 +28,7 @@ import {
 } from '@/lib/hooks/college';
 // Note: useCollegeTests from dropdowns (naming conflict)
 import { useCollegeTests } from '@/lib/hooks/college/use-college-dropdowns';
-import type { CollegeTestMarkMinimalRead } from '@/lib/types/college/test-marks';
+import type { CollegeTestMarkMinimalRead, CollegeTestMarksListParams } from '@/lib/types/college/test-marks';
 import {
   createStudentColumn,
   createSubjectColumn,
@@ -65,7 +65,7 @@ const testMarkFormSchema = z.object({
 });
 
 interface TestMarksManagementProps {
-  onDataChange?: (data: any[]) => void;
+  onDataChange?: (data: (CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; test_id?: number; subject_id?: number })[]) => void;
 }
 
 const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange }) => {
@@ -107,22 +107,19 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
   const viewTestError = viewingTestMarkId ? viewQuery.error : null;
 
   // Test marks hooks - only fetch when class is selected and groups are loaded
-  const testMarksQuery = useMemo(() => {
+  const testMarksQuery = useMemo((): CollegeTestMarksListParams | undefined => {
     if (!selectedClass || isNaN(parseInt(selectedClass)) || groups.length === 0) {
       return undefined;
     }
     
-    const query: any = {
-      class_id: parseInt(selectedClass),
-    };
+    const groupId = selectedGroup !== 'all' && !isNaN(parseInt(selectedGroup))
+      ? parseInt(selectedGroup)
+      : (groups[0]?.group_id ?? 0);
     
-    // Always include group_id - use first available group if 'all' is selected
-    if (selectedGroup !== 'all' && !isNaN(parseInt(selectedGroup))) {
-      query.group_id = parseInt(selectedGroup);
-    } else {
-      // Use the first group as default when 'all' is selected
-      query.group_id = groups[0].group_id;
-    }
+    const query: CollegeTestMarksListParams = {
+      class_id: parseInt(selectedClass),
+      group_id: groupId,
+    };
     
     if (selectedTest !== 'all' && !isNaN(parseInt(selectedTest))) {
       query.test_id = parseInt(selectedTest);
@@ -155,7 +152,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
   });
 
   // Form handling functions
-  const handleTestMarkSubmit = (values: any) => {
+  const handleTestMarkSubmit = useCallback((values: z.infer<typeof testMarkFormSchema>) => {
     const markData = {
       enrollment_id: parseInt(values.enrollment_id),
       test_id: parseInt(values.test_id),
@@ -182,9 +179,9 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
     testMarkForm.reset();
     setEditingTestMark(null);
     setShowTestMarkDialog(false);
-  };
+  }, [editingTestMark, updateTestMarkMutation, createTestMarkMutation, testMarkForm]);
 
-  const handleEditTestMark = (mark: CollegeTestMarkMinimalRead & { test_id?: number; subject_id?: number; percentage?: number | null; grade?: string | null; conducted_at?: string | null; remarks?: string | null; }) => {
+  const handleEditTestMark = useCallback((mark: CollegeTestMarkMinimalRead & { test_id?: number; subject_id?: number; percentage?: number | null; grade?: string | null; conducted_at?: string | null; remarks?: string | null; }) => {
     setEditingTestMark(mark);
     testMarkForm.reset({
       enrollment_id: mark.enrollment_id.toString(),
@@ -197,24 +194,188 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
       remarks: mark.remarks || '',
     });
     setShowTestMarkDialog(true);
-  };
+  }, [testMarkForm]);
 
-  const handleDeleteTestMark = (markId: number) => {
+  const handleDeleteTestMark = useCallback((markId: number) => {
     setConfirmDeleteId(markId);
-  };
+  }, []);
 
-  const handleViewTestMark = (markId: number) => {
+  const handleViewTestMark = useCallback((markId: number) => {
     setViewingTestMarkId(markId);
     setShowViewTestMarkDialog(true);
-  };
+  }, []);
 
-  // Process and filter data - flatten grouped response from backend
+  // Process and filter data - flatten nested response structure: tests -> subjects -> students
   const flattenedMarks = useMemo(() => {
-    if (!testMarksData) return [] as (CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string })[];
-    return testMarksData as (CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string })[];
+    if (!testMarksData) return [] as (CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; test_id?: number; subject_id?: number })[];
+    
+    if (Array.isArray(testMarksData) && testMarksData.length > 0) {
+      const flattened: (CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; test_id?: number; subject_id?: number })[] = [];
+      
+      // Check if data has nested structure: tests -> subjects -> students
+      const firstItem = testMarksData[0];
+      const hasNestedStructure = 
+        firstItem &&
+        typeof firstItem === 'object' &&
+        'subjects' in firstItem &&
+        Array.isArray((firstItem as { subjects?: unknown }).subjects);
+
+      if (hasNestedStructure) {
+        // Handle nested structure: tests -> subjects -> students
+        testMarksData.forEach((test: unknown) => {
+          if (
+            test &&
+            typeof test === 'object' &&
+            'test_id' in test &&
+            'test_name' in test &&
+            'subjects' in test &&
+            Array.isArray((test as { subjects?: unknown }).subjects)
+          ) {
+            const testTyped = test as {
+              test_id: number;
+              test_name: string;
+              subjects: Array<{
+                subject_id: number;
+                subject_name: string;
+                students: Array<{
+                  test_mark_id: number;
+                  enrollment_id: number;
+                  student_name: string;
+                  roll_number: string;
+                  marks_obtained: number | null;
+                  percentage: number | null;
+                  grade: string | null;
+                  remarks: string | null;
+                  conducted_at: string | null;
+                  section_name?: string;
+                }> | null;
+              }> | null;
+            };
+
+            if (testTyped.subjects && Array.isArray(testTyped.subjects)) {
+              testTyped.subjects.forEach((subject) => {
+                if (subject && subject.students && Array.isArray(subject.students)) {
+                  subject.students.forEach((student) => {
+                    flattened.push({
+                      test_mark_id: student.test_mark_id,
+                      enrollment_id: student.enrollment_id,
+                      student_name: student.student_name,
+                      roll_number: student.roll_number,
+                      section_name: student.section_name || '',
+                      marks_obtained: student.marks_obtained,
+                      percentage: student.percentage,
+                      grade: student.grade,
+                      remarks: student.remarks,
+                      conducted_at: student.conducted_at,
+                      test_name: testTyped.test_name,
+                      subject_name: subject.subject_name,
+                      test_id: testTyped.test_id,
+                      subject_id: subject.subject_id,
+                    });
+                  });
+                }
+              });
+            }
+          }
+        });
+        
+        return flattened;
+      }
+
+      // Check if data has flat structure with subjects directly (old format)
+      const hasFlatSubjectStructure = testMarksData.some(
+        (item) =>
+          item &&
+          typeof item === 'object' &&
+          'students' in item &&
+          'test_name' in item &&
+          'subject_name' in item
+      );
+
+      if (hasFlatSubjectStructure) {
+        // Flatten grouped data: iterate through groups and extract students
+        testMarksData.forEach((group: unknown) => {
+          if (
+            group &&
+            typeof group === 'object' &&
+            'students' in group &&
+            'test_name' in group &&
+            'subject_name' in group &&
+            'test_id' in group &&
+            'subject_id' in group
+          ) {
+            const groupTyped = group as {
+              test_name: string;
+              subject_name: string;
+              test_id: number;
+              subject_id: number;
+              students: CollegeTestMarkMinimalRead[] | null;
+            };
+            
+            // Handle null or empty students array
+            if (groupTyped.students && Array.isArray(groupTyped.students) && groupTyped.students.length > 0) {
+              groupTyped.students.forEach((student: CollegeTestMarkMinimalRead) => {
+                flattened.push({
+                  ...student,
+                  test_name: groupTyped.test_name,
+                  subject_name: groupTyped.subject_name,
+                  test_id: groupTyped.test_id,
+                  subject_id: groupTyped.subject_id,
+                });
+              });
+            }
+          }
+        });
+        
+        return flattened;
+      }
+      
+      // If data is already flat, ensure it has the required fields
+      return testMarksData
+        .filter((mark: unknown): mark is Record<string, unknown> => 
+          mark !== null && 
+          typeof mark === 'object' && 
+          'test_mark_id' in mark && 
+          'enrollment_id' in mark
+        )
+        .map((markObj) => {
+          const obj = markObj as unknown as Record<string, unknown>;
+          return {
+            test_mark_id: Number(obj.test_mark_id),
+            enrollment_id: Number(obj.enrollment_id),
+            student_name: String(obj.student_name || ''),
+            roll_number: String(obj.roll_number || ''),
+            section_name: String(obj.section_name || ''),
+            marks_obtained: typeof obj.marks_obtained === 'number' ? obj.marks_obtained : null,
+            percentage: typeof obj.percentage === 'number' ? obj.percentage : null,
+            grade: typeof obj.grade === 'string' ? obj.grade : null,
+            remarks: typeof obj.remarks === 'string' ? obj.remarks : null,
+            conducted_at: typeof obj.conducted_at === 'string' ? obj.conducted_at : null,
+            test_name: String(obj.test_name || ''),
+            subject_name: String(obj.subject_name || ''),
+            test_id: obj.test_id ? Number(obj.test_id) : undefined,
+            subject_id: obj.subject_id ? Number(obj.subject_id) : undefined,
+          } as CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; test_id?: number; subject_id?: number };
+        });
+    }
+    
+    return [] as (CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; test_id?: number; subject_id?: number })[];
   }, [testMarksData]);
 
   const testMarks = flattenedMarks;
+
+  // Debug: Log data structure to understand API response
+  useEffect(() => {
+    if (testMarksData && process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.log('Test Marks Data:', {
+        isArray: Array.isArray(testMarksData),
+        length: Array.isArray(testMarksData) ? testMarksData.length : 0,
+        firstItem: Array.isArray(testMarksData) && testMarksData.length > 0 ? testMarksData[0] : null,
+        flattenedCount: testMarks.length,
+      });
+    }
+  }, [testMarksData, testMarks.length]);
 
   // Notify parent component when data changes
   useEffect(() => {
@@ -225,26 +386,28 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
 
 
 
-  // Grade colors mapping
-  const gradeColors = {
-    'A+': 'bg-green-600',
-    'A': 'bg-green-500',
-    'B+': 'bg-blue-500',
-    'B': 'bg-blue-400',
-    'C+': 'bg-yellow-500',
-    'C': 'bg-yellow-400',
-    'D': 'bg-orange-500',
-    'F': 'bg-red-500',
-  };
-
   // Table columns for test marks using column factories
-  const testMarkColumns: ColumnDef<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; max_marks?: number }>[] = useMemo(() => [
-    createStudentColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string }>("student_name", "roll_number", "section_name", { header: "Student" }),
-    createSubjectColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string }>("subject_name", "test_name", { header: "Subject" }),
-    createMarksColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; max_marks?: number }>("marks_obtained", "max_marks", "percentage", { header: "Marks" }),
-    createGradeColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string }>("grade", gradeColors, { header: "Grade" }),
-    createTestDateColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string }>("conducted_at", { header: "Test Date" })
-  ], []);
+  const testMarkColumns: ColumnDef<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; max_marks?: number }>[] = useMemo(() => {
+    // Grade colors mapping
+    const gradeColors = {
+      'A+': 'bg-green-600',
+      'A': 'bg-green-500',
+      'B+': 'bg-blue-500',
+      'B': 'bg-blue-400',
+      'C+': 'bg-yellow-500',
+      'C': 'bg-yellow-400',
+      'D': 'bg-orange-500',
+      'F': 'bg-red-500',
+    };
+
+    return [
+      createStudentColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string }>("student_name", "roll_number", "section_name", { header: "Student" }),
+      createSubjectColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string }>("subject_name", "test_name", { header: "Subject" }),
+      createMarksColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; max_marks?: number }>("marks_obtained", "max_marks", "percentage", { header: "Marks" }),
+      createGradeColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string }>("grade", gradeColors, { header: "Grade" }),
+      createTestDateColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string }>("conducted_at", { header: "Test Date" })
+    ];
+  }, []);
 
   // Action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => [
@@ -274,12 +437,13 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
           >
             <div className="flex gap-3">
               <Dialog open={showTestMarkDialog} onOpenChange={setShowTestMarkDialog}>
-                <DialogContent className="sm:max-w-[600px]">
-                  <DialogHeader>
+                <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0">
+                  <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
                     <DialogTitle>{editingTestMark ? 'Edit Test Mark' : 'Add New Test Mark'}</DialogTitle>
                   </DialogHeader>
-                <Form {...testMarkForm}>
-                  <form onSubmit={testMarkForm.handleSubmit(handleTestMarkSubmit)} className="space-y-4">
+                  <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+                    <Form {...testMarkForm}>
+                      <form onSubmit={(e) => { void testMarkForm.handleSubmit(handleTestMarkSubmit)(e); }} className="space-y-4">
                     <FormField
                       control={testMarkForm.control}
                       name="enrollment_id"
@@ -292,7 +456,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                                     <SelectValue placeholder="Select student" />
                                   </SelectTrigger>
                                   <SelectContent>
-                              {students.map((student: any) => (
+                              {students.map((student: { student_id?: number; student_name: string; admission_no: string }) => (
                                   <SelectItem key={student.student_id} value={student.student_id?.toString() || ''}>
                                   {student.student_name} ({student.admission_no})
                                     </SelectItem>
@@ -317,7 +481,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                                   <SelectValue placeholder="Select test" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                {tests.map((test: any) => (
+                                {tests.map((test: { test_id?: number; id?: number; test_name: string }) => (
                                   <SelectItem key={test.test_id || test.id} value={(test.test_id || test.id)?.toString() || ''}>
                                     {test.test_name}
                                   </SelectItem>
@@ -341,8 +505,8 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                                   <SelectValue placeholder="Select subject" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                {subjects.map((subject: any) => (
-                                  <SelectItem key={subject.subject_id} value={subject.subject_id?.toString() || ''}>
+                                {subjects.map((subject: { subject_id: number; subject_name: string }) => (
+                                  <SelectItem key={subject.subject_id} value={subject.subject_id.toString()}>
                                     {subject.subject_name}
                                   </SelectItem>
                                 ))}
@@ -471,6 +635,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                       </div>
                     </form>
                   </Form>
+                  </div>
                 </DialogContent>
               </Dialog>
             </div>
@@ -491,7 +656,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                   <SelectValue placeholder="Select Class" />
                 </SelectTrigger>
                 <SelectContent>
-                  {classes.map((cls: any) => (
+                  {classes.map((cls: { class_id: number; class_name: string }) => (
                     <SelectItem key={cls.class_id} value={cls.class_id.toString()}>
                       {cls.class_name}
                     </SelectItem>
@@ -504,7 +669,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Groups</SelectItem>
-                  {groups.map((g: any) => (
+                  {groups.map((g: { group_id: number; group_name: string }) => (
                     <SelectItem key={g.group_id} value={g.group_id.toString()}>
                       {g.group_name}
                     </SelectItem>
@@ -517,7 +682,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Courses</SelectItem>
-                  {courses.map((c: any) => (
+                  {courses.map((c: { course_id: number; course_name: string }) => (
                     <SelectItem key={c.course_id} value={c.course_id.toString()}>
                       {c.course_name}
                     </SelectItem>
@@ -530,7 +695,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Subjects</SelectItem>
-                  {subjects.map((subject: any) => (
+                  {subjects.map((subject: { subject_id: number; subject_name: string }) => (
                     <SelectItem key={subject.subject_id} value={subject.subject_id.toString()}>
                       {subject.subject_name}
                     </SelectItem>
@@ -543,7 +708,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Tests</SelectItem>
-                  {tests.map((test: any) => (
+                  {tests.map((test: { test_id?: number; id?: number; test_name: string }) => (
                     <SelectItem key={test.test_id ?? test.id} value={(test.test_id ?? test.id)?.toString() || ''}>
                       {test.test_name}
                     </SelectItem>
@@ -601,7 +766,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
               <EnhancedDataTable
                 data={testMarks}
                 title="Test Marks"
-                searchKey={['student_name', 'roll_number', 'class_name', 'section_name', 'test_name', 'subject_name'] as any}
+                searchKey="student_name"
                 searchPlaceholder="Search students..."
                 columns={testMarkColumns}
                 onAdd={() => setShowTestMarkDialog(true)}
@@ -616,11 +781,12 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
 
             {/* View Test Mark Dialog */}
             <Dialog open={showViewTestMarkDialog} onOpenChange={setShowViewTestMarkDialog}>
-              <DialogContent className="sm:max-w-[520px]">
-                <DialogHeader>
+              <DialogContent className="sm:max-w-[520px] max-h-[90vh] flex flex-col p-0">
+                <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
                   <DialogTitle>Test Mark Details</DialogTitle>
                 </DialogHeader>
-                {viewTestLoading ? (
+                <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+                  {viewTestLoading ? (
                   <div className="p-6 text-center">
                     <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                     <p className="text-slate-600">Loading mark...</p>
@@ -673,6 +839,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                 ) : (
                   <div className="p-6 text-center text-slate-600">No details found.</div>
                 )}
+                </div>
               </DialogContent>
             </Dialog>
           </motion.div>

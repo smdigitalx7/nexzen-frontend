@@ -25,6 +25,7 @@ export const TransportViewDialog = ({
       icon={<Bus className="h-5 w-5" />}
       iconColor="blue"
       maxWidth="2xl"
+      showCloseButton={false}
       sections={viewAssignment ? [
         {
           title: "Student Information",

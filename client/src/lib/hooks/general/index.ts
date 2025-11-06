@@ -18,5 +18,8 @@ export * from "./use-payment-receipts";
 export * from "./useRoles";
 export * from "./useTransport";
 export * from "./useUsers";
-export * from "./useDashboardData";
 
+// Dashboard hooks
+export * from "./useAdminDashboard";
+export * from "./useAccountantDashboard";
+export * from "./useAcademicDashboard";

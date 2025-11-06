@@ -136,8 +136,8 @@ export const OtherComponent: React.FC<OtherComponentProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5 text-purple-600" />
             Custom Payment
@@ -147,7 +147,8 @@ export const OtherComponent: React.FC<OtherComponentProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+          <div className="space-y-6">
 
           {/* Custom Purpose Name */}
           <div className="space-y-2">
@@ -298,6 +299,7 @@ export const OtherComponent: React.FC<OtherComponentProps> = ({
               <Plus className="h-4 w-4" />
               Add to Payment
             </Button>
+          </div>
           </div>
         </div>
       </DialogContent>

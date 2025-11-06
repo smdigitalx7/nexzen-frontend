@@ -6,7 +6,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, GraduationCap, Truck, Plus, AlertCircle, Star } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -72,15 +71,19 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
       >);
 
   // Check if book fee is required first
-  const bookFeeOutstanding = feeBalances?.bookFee.outstanding || 0;
+  const bookFeeOutstanding = feeBalances?.bookFee?.outstanding || 0;
   const bookFeeRequired =
     bookFeeOutstanding > 0 && !addedPurposes.includes("BOOK_FEE");
 
   const handlePurposeClick = (purpose: PaymentPurpose) => {
     // Check if purpose is available based on balances
     const availability = feeAvailability[purpose];
-    if (availability && !availability.available) {
-      return; // Don't allow selection if not available due to balance constraints
+    // Check if there's outstanding amount - if there is, allow it even if book fee is pending
+    const hasOutstandingAmount = availability?.outstandingAmount && availability.outstandingAmount > 0;
+    
+    // Only block if availability is false AND there's no outstanding amount
+    if (availability && !availability.available && !hasOutstandingAmount) {
+      return; // Don't allow selection if not available due to balance constraints and no outstanding
     }
 
     // For tuition/transport fees, check if items already exist for this purpose
@@ -93,11 +96,12 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
       }
       
       // For colleges, skip term check (use total outstanding amount instead)
-      // For schools, check if terms are available
+      // For schools, check if terms are available OR if there's outstanding amount
       if (institutionType !== 'college') {
         const availableTerms = getAvailableTerms(purpose);
-        if (availableTerms.length === 0) {
-          return; // Don't allow selection if no terms are available
+        // Allow if there are terms available OR if there's outstanding amount
+        if (availableTerms.length === 0 && !hasOutstandingAmount) {
+          return; // Don't allow selection if no terms are available and no outstanding
         }
       }
       // For colleges, availability is already checked via feeAvailability above
@@ -169,10 +173,16 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
   const isPurposeAvailable = (purpose: PaymentPurpose) => {
     // First check if it's in the available purposes list
     const inAvailableList = availablePurposes.includes(purpose);
+    if (!inAvailableList) {
+      return false; // Not in available list, so definitely disabled
+    }
 
     // Then check if it's available based on fee balances
     const availability = feeAvailability[purpose];
-    const balanceAvailable = !availability || availability.available;
+    // Check if there's outstanding amount - if there is, allow it even if book fee is pending
+    // (book fee requirement is just a warning, not a hard block)
+    const hasOutstandingAmount = availability?.outstandingAmount !== undefined && availability.outstandingAmount > 0;
+    const balanceAvailable = !availability || availability.available || hasOutstandingAmount;
 
     // For tuition/transport fees, check if any terms are available AND no items exist for this purpose
     if (purpose === 'TUITION_FEE' || purpose === 'TRANSPORT_FEE') {
@@ -183,27 +193,36 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
         return false;
       }
       
-      // For tuition fees, both colleges and schools use term-based (check available terms)
-      // For transport fees, colleges use monthly payments (check total outstanding)
-      if (purpose === 'TUITION_FEE') {
-        // Both colleges and schools use term-based tuition fees
-        const availableTerms = getAvailableTerms(purpose);
-        return inAvailableList && balanceAvailable && availableTerms.length > 0;
-      } else if (purpose === 'TRANSPORT_FEE' && institutionType === 'college') {
-        // Colleges use monthly transport payments
-        // Availability is checked via feeAvailability (which now allows colleges to have transport fee)
-        // Actual expected payments are checked in TransportFeeComponent
-        return inAvailableList && balanceAvailable;
+      // For colleges: Book fee must be paid first before tuition/transport can be selected
+      // For schools: Allow if there are outstanding amounts (book fee is just a warning)
+      if (institutionType === 'college') {
+        // College: Check if book fee is pending and not added
+        if (bookFeeRequired) {
+          return false; // Disable if book fee is required
+        }
+        // College: Allow only if book fee is paid and there are outstanding amounts
+        if (purpose === 'TUITION_FEE') {
+          const availableTerms = getAvailableTerms(purpose);
+          return availableTerms.length > 0 || hasOutstandingAmount;
+        } else if (purpose === 'TRANSPORT_FEE') {
+          // For colleges, getAvailableTerms returns empty array (no terms), so rely on outstanding amount
+          return hasOutstandingAmount;
+        }
       } else {
-        // Schools use term-based transport fees
-        const availableTerms = getAvailableTerms(purpose);
-        return inAvailableList && balanceAvailable && availableTerms.length > 0;
+        // School: Allow if there are outstanding amounts (book fee is just a warning)
+        if (purpose === 'TUITION_FEE') {
+          const availableTerms = getAvailableTerms(purpose);
+          return availableTerms.length > 0 || hasOutstandingAmount;
+        } else if (purpose === 'TRANSPORT_FEE') {
+          const availableTerms = getAvailableTerms(purpose);
+          return availableTerms.length > 0 || hasOutstandingAmount;
+        }
       }
     }
 
     // For other purposes, allow re-selection if not currently added
     const notCurrentlyAdded = !addedPurposes.includes(purpose);
-    return inAvailableList && balanceAvailable && notCurrentlyAdded;
+    return balanceAvailable && notCurrentlyAdded;
   };
 
   const getPurposeDisabledReason = (purpose: PaymentPurpose) => {
@@ -234,8 +253,8 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader className="pb-4 border-b border-gray-200">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
           <DialogTitle className="text-lg font-semibold text-gray-900">
             Add Payment Item
           </DialogTitle>
@@ -244,7 +263,8 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 pt-4">
+        <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+          <div className="space-y-4">
           {/* Book Fee Required Warning - Simplified */}
           {bookFeeRequired && (
             <div className="border border-gray-300 bg-gray-50 rounded-lg p-3">
@@ -291,21 +311,21 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
                   <Card
                     className={`transition-all duration-200 min-h-[140px] ${
                       isDisabled
-                        ? "bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed"
+                        ? "bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed pointer-events-none"
                         : purposeKey === "BOOK_FEE" && bookFeeRequired
                           ? "bg-white border-2 border-gray-400 text-gray-900 hover:border-gray-500 hover:shadow-sm cursor-pointer"
                           : "bg-white border border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm cursor-pointer"
                     }`}
-                    onClick={() => handlePurposeClick(purposeKey)}
+                    onClick={() => !isDisabled && handlePurposeClick(purposeKey)}
                     title={disabledReason || undefined}
                   >
                     <CardContent className="p-4 text-center">
                       <div className="flex flex-col items-center space-y-2.5">
                         <div
-                          className={`p-2.5 rounded-lg ${isDisabled ? "bg-gray-100" : "bg-blue-100"}`}
+                          className={`p-2.5 rounded-lg ${isDisabled ? "bg-gray-100" : "bg-gray-100"}`}
                         >
                           <PurposeIcon
-                            className={`h-6 w-6 ${isDisabled ? "text-gray-400" : "text-blue-600"}`}
+                            className={`h-6 w-6 ${isDisabled ? "text-gray-400" : "text-gray-600"}`}
                           />
                         </div>
                         <div className="space-y-1.5 w-full">
@@ -424,6 +444,7 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
               </p>
             </motion.div>
           )}
+          </div>
         </div>
 
         {/* Action Buttons - Simplified */}

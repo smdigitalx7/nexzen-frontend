@@ -35,8 +35,6 @@ export const IncomeTable = ({
   const incomeData = incomeResponse?.items || [];
   const totalCount = incomeResponse?.total || 0;
 
-  const uniqueReceiptNos = Array.from(new Set(incomeData.map(i => i.receipt_no).filter(Boolean)));
-
   // Define columns for EnhancedDataTable
   const columns: ColumnDef<CollegeIncomeSummary>[] = [
     {
@@ -149,19 +147,6 @@ export const IncomeTable = ({
     }
   ], [handlePrintReceipt]);
 
-  // Prepare filter options for EnhancedDataTable
-  const filterOptions = [
-    {
-      key: 'receipt_no',
-      label: 'Receipt No',
-      options: uniqueReceiptNos.map(receiptNo => ({ value: receiptNo, label: receiptNo })),
-      value: 'all',
-      onChange: (value: string) => {
-        // This will be handled by EnhancedDataTable's built-in filtering
-      }
-    }
-  ];
-
   // Handle loading and error states
   if (isLoading) {
     return (
@@ -207,7 +192,6 @@ export const IncomeTable = ({
         searchKey="receipt_no"
         searchPlaceholder="Search by receipt no, student name, or identity no..."
         exportable={true}
-        filters={filterOptions}
         showActions={true}
         actionButtonGroups={actionButtonGroups}
         actionButtons={actionButtons}

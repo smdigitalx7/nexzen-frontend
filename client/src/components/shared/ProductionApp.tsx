@@ -1,4 +1,4 @@
-import React, { useEffect, Suspense } from "react";
+import React, { useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -152,12 +152,10 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
     >
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <Suspense fallback={<LoadingFallback />}>
-            <div className="min-h-screen bg-background text-foreground">
-              {children}
-            </div>
-            <Toaster />
-          </Suspense>
+          <div className="min-h-screen bg-background text-foreground">
+            {children}
+          </div>
+          <Toaster />
         </TooltipProvider>
       </QueryClientProvider>
     </ProductionErrorBoundary>

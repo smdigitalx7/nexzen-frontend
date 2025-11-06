@@ -75,7 +75,14 @@ export const PaymentItemCard = React.forwardRef<
       case "TUITION_FEE":
         return `Tuition Fee - Term ${item.termNumber}`;
       case "TRANSPORT_FEE":
-        return `Transport Fee - Term ${item.termNumber}`;
+        // For colleges, use paymentMonth; for schools, use termNumber
+        if (institutionType === 'college' && item.paymentMonth) {
+          return `Transport Fee - ${formatPaymentMonth(item.paymentMonth)}`;
+        } else if (item.termNumber) {
+          return `Transport Fee - Term ${item.termNumber}`;
+        } else {
+          return 'Transport Fee';
+        }
       case "OTHER":
         return item.customPurposeName || "Other";
       default:
@@ -163,15 +170,21 @@ export const PaymentItemCard = React.forwardRef<
             <div className="mt-3 pt-3 border-t border-gray-100">
               <div className="flex items-center justify-between text-xs text-gray-600">
                 <span>
-                  {institutionType === "college"
+                  {item.purpose === "TRANSPORT_FEE" && institutionType === "college" && item.paymentMonth
+                    ? "Payment Month"
+                    : institutionType === "college"
                     ? "College Term"
                     : "School Term"}
                 </span>
-                <span className="font-medium">Term {item.termNumber}</span>
+                <span className="font-medium">
+                  {item.purpose === "TRANSPORT_FEE" && institutionType === "college" && item.paymentMonth
+                    ? formatPaymentMonth(item.paymentMonth)
+                    : `Term ${item.termNumber}`}
+                </span>
               </div>
 
               {/* Deletion Order Warning */}
-              {!canDelete && (
+              {!canDelete && item.termNumber && (
                 <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded text-xs text-gray-600">
                   Delete higher terms first (Term{" "}
                   {Math.max(

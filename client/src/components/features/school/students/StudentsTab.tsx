@@ -334,8 +334,7 @@ const StudentsTabComponent = () => {
     createTextColumn<SchoolStudentRead>('admission_no', { header: 'Admission No.' }),
     createAvatarColumn<SchoolStudentRead>('student_name', 'gender', { header: 'Student Details' }),
     createTextColumn<SchoolStudentRead>('father_or_guardian_mobile', { header: 'Father/Guardian Mobile', fallback: 'N/A' }),
-    createTextColumn<SchoolStudentRead>('mother_or_guardian_mobile', { header: 'Mother/Guardian Mobile', fallback: 'N/A' }),
-    createBadgeColumn<SchoolStudentRead>('gender', { header: 'Gender', variant: 'outline', fallback: 'N/A' }),
+    createTextColumn<SchoolStudentRead>('present_address', { header: 'Present Address', fallback: 'N/A' }),
     createBadgeColumn<SchoolStudentRead>('status', { header: 'Status', variant: 'outline', fallback: 'N/A' })
   ], []);
 
@@ -382,72 +381,77 @@ const StudentsTabComponent = () => {
 
       {/* Edit Student Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
             <DialogTitle className="flex items-center gap-2">Edit Student</DialogTitle>
             <DialogDescription>Update information for {selectedStudent?.student_name}</DialogDescription>
           </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <PersonalInfoSection form={form} />
-              <ParentInfoSection form={form} />
-              <AddressInfoSection form={form} />
-              <AdmissionInfoSection form={form} />
-              <div className="flex justify-end gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={closeEditDialog}>
-                  <X className="h-4 w-4 mr-2" />Cancel
-                </Button>
-                <Button type="submit" disabled={updateStudentMutation.isPending}>
-                  {updateStudentMutation.isPending ? 'Updating...' : (<><Save className="h-4 w-4 mr-2" />Update Student</>)}
-                </Button>
-              </div>
-            </form>
-          </Form>
+          <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <PersonalInfoSection form={form} />
+                <ParentInfoSection form={form} />
+                <AddressInfoSection form={form} />
+                <AdmissionInfoSection form={form} />
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button type="button" variant="outline" onClick={closeEditDialog}>
+                    <X className="h-4 w-4 mr-2" />Cancel
+                  </Button>
+                  <Button type="submit" disabled={updateStudentMutation.isPending}>
+                    {updateStudentMutation.isPending ? 'Updating...' : (<><Save className="h-4 w-4 mr-2" />Update Student</>)}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Add Student Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
             <DialogTitle className="flex items-center gap-2">Add New Student</DialogTitle>
             <DialogDescription>Create a new student record</DialogDescription>
           </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <PersonalInfoSection form={form} />
-              <ParentInfoSection form={form} />
-              <AddressInfoSection form={form} />
-              <AdmissionInfoSection form={form} />
-              <div className="flex justify-end gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={closeAddDialog}>
-                  <X className="h-4 w-4 mr-2" />Cancel
-                </Button>
-                <Button type="submit" disabled={createStudentMutation.isPending}>
-                  {createStudentMutation.isPending ? 'Creating...' : (<><Save className="h-4 w-4 mr-2" />Create Student</>)}
-                </Button>
-              </div>
-            </form>
-          </Form>
+          <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <PersonalInfoSection form={form} />
+                <ParentInfoSection form={form} />
+                <AddressInfoSection form={form} />
+                <AdmissionInfoSection form={form} />
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button type="button" variant="outline" onClick={closeAddDialog}>
+                    <X className="h-4 w-4 mr-2" />Cancel
+                  </Button>
+                  <Button type="submit" disabled={createStudentMutation.isPending}>
+                    {createStudentMutation.isPending ? 'Creating...' : (<><Save className="h-4 w-4 mr-2" />Create Student</>)}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* View Student Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
             <DialogTitle className="flex items-center gap-2">Student Details</DialogTitle>
             <DialogDescription>View complete student information</DialogDescription>
           </DialogHeader>
-          {isViewLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-2 text-sm text-slate-600">Loading student details...</p>
+          <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+            {isViewLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-2 text-sm text-slate-600">Loading student details...</p>
+                </div>
               </div>
-            </div>
-          ) : viewStudentData ? (
-            <div className="space-y-6">
+            ) : viewStudentData ? (
+              <div className="space-y-6">
               {/* Personal Information */}
               <Card>
                 <CardHeader>
@@ -557,12 +561,13 @@ const StudentsTabComponent = () => {
                   </div>
                 </CardContent>
               </Card>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-red-600">
-              <p>Failed to load student details.</p>
-            </div>
-          )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-red-600">
+                <p>Failed to load student details.</p>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

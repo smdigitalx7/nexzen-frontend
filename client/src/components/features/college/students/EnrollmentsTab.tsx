@@ -224,14 +224,6 @@ const EnrollmentsTabComponent = () => {
   // Table columns
   const columns: ColumnDef<any>[] = useMemo(() => [
     {
-      id: 'enrollment_id',
-      accessorKey: 'enrollment_id',
-      header: 'Enrollment ID',
-      cell: ({ row }) => (
-        <div className="font-mono text-sm">{row.original.enrollment_id}</div>
-      ),
-    },
-    {
       id: 'admission_no',
       accessorKey: 'admission_no',
       header: 'Admission No',
@@ -250,14 +242,27 @@ const EnrollmentsTabComponent = () => {
       header: 'Roll Number',
     },
     {
-      id: 'class_name',
-      accessorKey: 'class_name',
-      header: 'Class',
-    },
-    {
-      id: 'group_name',
-      accessorKey: 'group_name',
-      header: 'Group',
+      id: 'class_group',
+      header: 'Class / Group',
+      accessorFn: (row) => {
+        if (row.class_name && row.group_name) {
+          return `${row.class_name} / ${row.group_name}`;
+        }
+        if (row.class_name) return row.class_name;
+        if (row.group_name) return row.group_name;
+        return '-';
+      },
+      cell: ({ row }) => {
+        const className = row.original.class_name;
+        const groupName = row.original.group_name;
+        return (
+          <div>
+            {className && groupName
+              ? `${className} / ${groupName}`
+              : className || groupName || '-'}
+          </div>
+        );
+      },
     },
     {
       id: 'course_name',

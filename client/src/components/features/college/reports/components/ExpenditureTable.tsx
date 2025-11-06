@@ -56,8 +56,6 @@ export const ExpenditureTable = ({
   const [selectedExpenditureId, setSelectedExpenditureId] = useState<number | null>(null);
   const { data: viewedExpenditure, isLoading: viewLoading, error: viewError } = useCollegeExpenditure(selectedExpenditureId);
 
-  const uniquePurposes = Array.from(new Set(expenditureData.map(e => e.expenditure_purpose)));
-
   const handleEdit = (expenditure: CollegeExpenditureRead) => {
     if (!expenditure || !expenditure.expenditure_id) {
       console.error("Invalid expenditure object:", expenditure);
@@ -197,19 +195,6 @@ export const ExpenditureTable = ({
     }
   ], [onViewExpenditure]);
 
-  // Prepare filter options for EnhancedDataTable
-  const filterOptions = [
-    {
-      key: 'expenditure_purpose',
-      label: 'Purpose',
-      options: uniquePurposes.map(purpose => ({ value: purpose, label: purpose })),
-      value: 'all',
-      onChange: (value: string) => {
-        // This will be handled by EnhancedDataTable's built-in filtering
-      }
-    }
-  ];
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -231,7 +216,6 @@ export const ExpenditureTable = ({
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
         showActionLabels={true}
-        filters={filterOptions}
       />
 
       {/* Edit Dialog */}

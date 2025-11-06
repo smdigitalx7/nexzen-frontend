@@ -57,7 +57,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
         id: t.enrollment_id,
         student_id: t.admission_no,
         student_name: t.student_name,
-        class_name: "Unknown", // class_name not available in list response
+        class_name: t.class_name || "Unknown",
         section_name: t.section_name || "Unknown",
         academic_year: "",
         total_fee: t.total_fee,

@@ -130,8 +130,7 @@ export const StudentsTab = () => {
     createTextColumn<CollegeStudentRead>('admission_no', { header: 'Admission No.'}),
     createAvatarColumn<CollegeStudentRead>('student_name', 'gender', { header: 'Student Details' }),
     createTextColumn<CollegeStudentRead>('father_or_guardian_mobile', { header: 'Father/Guardian Mobile', fallback: 'N/A' }),
-    createTextColumn<CollegeStudentRead>('mother_or_guardian_mobile', { header: 'Mother/Guardian Mobile', fallback: 'N/A' }),
-    createBadgeColumn<CollegeStudentRead>('gender', { header: 'Gender', variant: 'outline', fallback: 'N/A' }),
+    createTextColumn<CollegeStudentRead>('present_address', { header: 'Present Address', fallback: 'N/A' }),
     createBadgeColumn<CollegeStudentRead>('status', { header: 'Status', variant: 'outline', fallback: 'N/A' })
   ], []);
 
@@ -172,13 +171,14 @@ export const StudentsTab = () => {
 
       {/* Edit Student Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
             <DialogTitle className="flex items-center gap-2">Edit Student</DialogTitle>
             <DialogDescription>Update information for {selectedStudent?.student_name}</DialogDescription>
           </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">Personal Information</CardTitle>
@@ -233,18 +233,20 @@ export const StudentsTab = () => {
               </div>
             </form>
           </Form>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Add Student Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
             <DialogTitle className="flex items-center gap-2">Add New Student</DialogTitle>
             <DialogDescription>Create a new student record</DialogDescription>
           </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">Personal Information</CardTitle>
@@ -278,6 +280,7 @@ export const StudentsTab = () => {
               </div>
             </form>
           </Form>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
