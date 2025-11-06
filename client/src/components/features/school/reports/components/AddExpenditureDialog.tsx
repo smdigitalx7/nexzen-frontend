@@ -21,6 +21,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCreateSchoolExpenditure } from "@/lib/hooks/school";
 
 const expenditureSchema = z.object({
@@ -148,7 +155,6 @@ const AmountField = memo(({ control }: { control: any }) => (
         <FormControl>
           <Input
             type="number"
-            step="0.01"
             placeholder="0.00"
             {...field}
             onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
@@ -217,11 +223,26 @@ const AddExpenditureDialogComponent = ({ open, onOpenChange }: AddExpenditureDia
               type="date"
               placeholder=""
             />
-            <FormFieldWrapper
+            <FormField
               control={form.control}
               name="payment_method"
-              label="Payment Method (Optional)"
-              placeholder="e.g., Cash, Bank Transfer, Cheque"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Method (Optional)</FormLabel>
+                  <FormControl>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select payment method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CASH">CASH</SelectItem>
+                        <SelectItem value="ONLINE">ONLINE</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
             <FormFieldWrapper
               control={form.control}

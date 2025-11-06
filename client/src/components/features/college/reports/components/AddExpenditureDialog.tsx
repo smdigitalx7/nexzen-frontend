@@ -21,6 +21,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCreateCollegeExpenditure } from "@/lib/hooks/college";
 
 const expenditureSchema = z.object({
@@ -109,7 +116,6 @@ export const AddExpenditureDialog = ({ open, onOpenChange }: AddExpenditureDialo
                   <FormControl>
                     <Input
                       type="number"
-                      step="0.01"
                       placeholder="0.00"
                       {...field}
                       onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
@@ -139,7 +145,15 @@ export const AddExpenditureDialog = ({ open, onOpenChange }: AddExpenditureDialo
                 <FormItem>
                   <FormLabel>Payment Method (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Cash, Bank Transfer, Cheque" {...field} />
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select payment method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CASH">CASH</SelectItem>
+                        <SelectItem value="ONLINE">ONLINE</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
