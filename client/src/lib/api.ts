@@ -574,7 +574,41 @@ export async function api<T = unknown>({
         } else if (res.status === 404) {
           message = "Resource not found.";
         } else if (res.status === 422) {
-          message = "Validation error: " + (message || "Invalid input data.");
+          // Handle validation errors - detail can be an array of error objects
+          if (isJson && (data as any)?.detail) {
+            const detail = (data as any).detail;
+            if (Array.isArray(detail) && detail.length > 0) {
+              // Extract validation error messages from array of objects
+              const messages = detail
+                .map((item: any) => {
+                  if (typeof item === "string") {
+                    return item;
+                  }
+                  if (typeof item === "object" && item !== null) {
+                    // Format: "field_name: error message" or just "error message"
+                    const fieldPath = Array.isArray(item.loc) 
+                      ? item.loc.filter((part: string) => part !== "body").join(".") 
+                      : "";
+                    const errorMsg = item.msg || item.message || "";
+                    return fieldPath ? `${fieldPath}: ${errorMsg}` : errorMsg;
+                  }
+                  return String(item);
+                })
+                .filter((msg: string) => msg && msg.length > 0);
+              
+              if (messages.length > 0) {
+                message = messages.join("; ");
+              } else {
+                message = "Validation error: Invalid input data.";
+              }
+            } else if (typeof detail === "string") {
+              message = "Validation error: " + detail;
+            } else {
+              message = "Validation error: " + (message || "Invalid input data.");
+            }
+          } else {
+            message = "Validation error: " + (message || "Invalid input data.");
+          }
         } else if (res.status === 429) {
           message = "Too many requests. Please try again later.";
         } else if (res.status >= 500) {

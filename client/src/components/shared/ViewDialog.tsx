@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Loading } from '@/components/ui/loading';
 import { cn } from '@/lib/utils';
 
 // Icon imports
@@ -71,6 +72,8 @@ export interface ViewDialogProps {
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '6xl';
   showCloseButton?: boolean;
   closeButtonText?: string;
+  isLoading?: boolean;
+  loadingText?: string;
 }
 
 // Utility functions
@@ -202,6 +205,8 @@ const ViewDialog: React.FC<ViewDialogProps> = ({
   maxWidth = '2xl',
   showCloseButton = true,
   closeButtonText = 'Close',
+  isLoading = false,
+  loadingText = 'Loading data...',
 }) => {
   const maxWidthClasses = {
     sm: 'max-w-sm',
@@ -238,22 +243,32 @@ const ViewDialog: React.FC<ViewDialogProps> = ({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="space-y-6"
-          >
-          {/* Custom Header Content */}
-          {headerContent && (
-            <>
-              {headerContent}
-              <Separator />
-            </>
-          )}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loading 
+                size="lg" 
+                variant="spinner" 
+                context="data" 
+                message={loadingText}
+              />
+            </div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="space-y-6"
+            >
+            {/* Custom Header Content */}
+            {headerContent && (
+              <>
+                {headerContent}
+                <Separator />
+              </>
+            )}
 
-          {/* Sections */}
-          {sections && sections.length > 0 ? sections.map((section, sectionIndex) => (
+            {/* Sections */}
+            {sections && sections.length > 0 ? sections.map((section, sectionIndex) => (
             <div
               key={sectionIndex}
               className={cn(
@@ -305,37 +320,40 @@ const ViewDialog: React.FC<ViewDialogProps> = ({
           {/* Custom Children Content */}
           {children}
 
-          {/* Footer Actions */}
-          {(actions.length > 0 || showCloseButton) && (
-            <div className="flex justify-between items-center pt-6 border-t border-gray-200">
-              <div className="text-sm text-gray-500">
-                {/* You can add last updated info here if needed */}
+            {/* Footer Actions */}
+            {(actions.length > 0 || showCloseButton) && (
+              <div className="flex justify-between items-center pt-6 border-t border-gray-200">
+                <div className="text-sm text-gray-500">
+                  {/* You can add last updated info here if needed */}
+                </div>
+                <div className="flex gap-3">
+                  {actions.map((action, index) => (
+                    <Button
+                      key={index}
+                      variant={getButtonVariant(action.variant || 'default')}
+                      onClick={action.onClick}
+                      className={cn("px-6", action.className)}
+                      disabled={isLoading}
+                    >
+                      {action.icon && <span className="mr-2">{action.icon}</span>}
+                      {action.label}
+                    </Button>
+                  ))}
+                  {showCloseButton && (
+                    <Button
+                      variant="outline"
+                      onClick={() => onOpenChange(false)}
+                      className="px-6"
+                      disabled={isLoading}
+                    >
+                      {closeButtonText}
+                    </Button>
+                  )}
+                </div>
               </div>
-              <div className="flex gap-3">
-                {actions.map((action, index) => (
-                  <Button
-                    key={index}
-                    variant={getButtonVariant(action.variant || 'default')}
-                    onClick={action.onClick}
-                    className={cn("px-6", action.className)}
-                  >
-                    {action.icon && <span className="mr-2">{action.icon}</span>}
-                    {action.label}
-                  </Button>
-                ))}
-                {showCloseButton && (
-                  <Button
-                    variant="outline"
-                    onClick={() => onOpenChange(false)}
-                    className="px-6"
-                  >
-                    {closeButtonText}
-                  </Button>
-                )}
-              </div>
-            </div>
+            )}
+            </motion.div>
           )}
-          </motion.div>
         </div>
       </DialogContent>
     </Dialog>

@@ -344,28 +344,28 @@ const DialogHeader = memo(({
 }) => (
   <UIDialogHeader>
     <DialogTitle>Admission Details</DialogTitle>
-    <DialogDescription className="flex items-center justify-between">
-      <span>Complete admission information for student</span>
-      <div className="flex gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onExportSingle(admission)}
-          className="flex items-center gap-2"
-        >
-          <FileSpreadsheet className="h-4 w-4" />
-          Export Excel
-        </Button>
-        <Button
-          size="sm"
-          onClick={() => onExportPDF(admission)}
-          className="flex items-center gap-2"
-        >
-          <FileText className="h-4 w-4" />
-          Export PDF
-        </Button>
-      </div>
+    <DialogDescription>
+      Complete admission information for student
     </DialogDescription>
+    <div className="flex gap-2 justify-end mt-2">
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => onExportSingle(admission)}
+        className="flex items-center gap-2"
+      >
+        <FileSpreadsheet className="h-4 w-4" />
+        Export Excel
+      </Button>
+      <Button
+        size="sm"
+        onClick={() => onExportPDF(admission)}
+        className="flex items-center gap-2"
+      >
+        <FileText className="h-4 w-4" />
+        Export PDF
+      </Button>
+    </div>
   </UIDialogHeader>
 ));
 
