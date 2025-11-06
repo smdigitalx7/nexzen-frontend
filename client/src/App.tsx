@@ -16,11 +16,21 @@ import { config } from "@/lib/config/production";
 // Lazy-loaded General Components
 const Login = lazy(() => import("./components/pages/general/Login"));
 const NotFound = lazy(() => import("./components/pages/general/not-found"));
-const AdminDashboard = lazy(() => import("./components/pages/general/AdminDashboard"));
-const AccountantDashboard = lazy(() => import("./components/pages/general/AccountantDashboard"));
-const AcademicDashboard = lazy(() => import("./components/pages/general/AcademicDashboard"));
-const ProfilePage = lazy(() => import("./components/pages/general/ProfilePage"));
-const SettingsPage = lazy(() => import("./components/pages/general/SettingsPage"));
+const AdminDashboard = lazy(
+  () => import("./components/pages/general/AdminDashboard")
+);
+const AccountantDashboard = lazy(
+  () => import("./components/pages/general/AccountantDashboard")
+);
+const AcademicDashboard = lazy(
+  () => import("./components/pages/general/AcademicDashboard")
+);
+const ProfilePage = lazy(
+  () => import("./components/pages/general/ProfilePage")
+);
+const SettingsPage = lazy(
+  () => import("./components/pages/general/SettingsPage")
+);
 const UserManagement = lazy(
   () => import("./components/pages/general/UserManagementPage")
 );
@@ -124,21 +134,21 @@ function Router() {
     let mounted = true;
     let hydrationCheckAttempts = 0;
     const maxAttempts = 50; // Increased attempts to wait longer for hydration
-    
+
     const checkAndRestore = () => {
       if (!mounted) return;
-      
+
       hydrationCheckAttempts++;
-      const sessionToken = sessionStorage.getItem('access_token');
-      const sessionExpires = sessionStorage.getItem('token_expires');
+      const sessionToken = sessionStorage.getItem("access_token");
+      const sessionExpires = sessionStorage.getItem("token_expires");
       const store = useAuthStore.getState();
-      
+
       // CRITICAL: Check if we have token + user data to determine if we should be authenticated
       // This is a backup check in case onRehydrateStorage didn't run or is still running
       if (sessionToken && sessionExpires && store.user) {
         const expireAt = parseInt(sessionExpires);
         const now = Date.now();
-        
+
         if (now < expireAt) {
           // Valid token - ensure authenticated state is set
           if (!store.isAuthenticated || store.token !== sessionToken) {
@@ -166,7 +176,7 @@ function Router() {
         setIsHydrated(true);
         return;
       }
-      
+
       // If we have token but no user yet, wait for hydration to complete
       // This handles the case where Zustand persist is still loading user data
       if (sessionToken && !store.user) {
@@ -176,7 +186,9 @@ function Router() {
           return;
         } else {
           // Exhausted attempts - check localStorage directly one more time
-          const localStorageData = localStorage.getItem('enhanced-auth-storage');
+          const localStorageData = localStorage.getItem(
+            "enhanced-auth-storage"
+          );
           if (localStorageData) {
             try {
               const parsed = JSON.parse(localStorageData);
@@ -203,14 +215,14 @@ function Router() {
             }
           }
           // No user data found after all attempts - clear token and logout
-          sessionStorage.removeItem('access_token');
-          sessionStorage.removeItem('token_expires');
+          sessionStorage.removeItem("access_token");
+          sessionStorage.removeItem("token_expires");
           useAuthStore.getState().logout();
           setIsHydrated(true);
           return;
         }
       }
-      
+
       // If we have user but no token, wait a bit for token to be set
       if (store.user && !sessionToken) {
         if (hydrationCheckAttempts < maxAttempts) {
@@ -223,7 +235,7 @@ function Router() {
           return;
         }
       }
-      
+
       // If we reach here, something unexpected happened - complete hydration anyway
       setIsHydrated(true);
     };
@@ -231,7 +243,7 @@ function Router() {
     // Start checking after a small delay to allow Zustand to start hydration
     // Zustand persist hydration happens synchronously, but we give it a tick
     setTimeout(checkAndRestore, 50);
-    
+
     return () => {
       mounted = false;
     };
@@ -240,14 +252,15 @@ function Router() {
   // If not hydrated yet, show loading state
   // This will be replaced by LazyLoadingWrapper once hydrated to prevent double loaders
   if (!isHydrated) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-sm text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+    return null;
+    // return (
+    //   <div className="flex items-center justify-center h-screen">
+    //     <div className="text-center">
+    //       <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+    //       <p className="text-sm text-muted-foreground">Loading...</p>
+    //     </div>
+    //   </div>
+    // );
   }
 
   if (!isAuthenticated) {
@@ -438,47 +451,48 @@ function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user } = useAuthStore();
   const hasAccess = user && roles.includes(user.role);
-  
+
   const Guard = () => {
     const [location] = useLocation();
-    
+
     if (!hasAccess) return <NotAuthorized />;
-    
+
     // For ACCOUNTANT and ACADEMIC: Block direct URL access to restricted routes
     // But allow navigation from sidebar or internal navigation
     if (preventDirectAccess) {
-      const isRestrictedRole = user?.role === ROLES.ACCOUNTANT || user?.role === ROLES.ACADEMIC;
+      const isRestrictedRole =
+        user?.role === ROLES.ACCOUNTANT || user?.role === ROLES.ACADEMIC;
       if (isRestrictedRole) {
         // Check if navigation came from sidebar using path-based check with timestamp
-        const storedNavData = sessionStorage.getItem('navigation_from_sidebar');
+        const storedNavData = sessionStorage.getItem("navigation_from_sidebar");
         let fromSidebar = false;
-        
+
         if (storedNavData) {
           try {
             const { path: storedPath, timestamp } = JSON.parse(storedNavData);
             const currentTime = Date.now();
             const timeDiff = currentTime - timestamp;
-            
+
             // Check if path matches and navigation was recent (within 5 seconds)
             // Increased timeout to handle React navigation delays
             fromSidebar = storedPath === location && timeDiff < 5000;
-            
+
             // Clear the stored data after successful navigation check
             if (fromSidebar) {
-              sessionStorage.removeItem('navigation_from_sidebar');
+              sessionStorage.removeItem("navigation_from_sidebar");
             } else if (timeDiff > 5000) {
               // Clear stale data
-              sessionStorage.removeItem('navigation_from_sidebar');
+              sessionStorage.removeItem("navigation_from_sidebar");
             }
           } catch (e) {
-            sessionStorage.removeItem('navigation_from_sidebar');
+            sessionStorage.removeItem("navigation_from_sidebar");
           }
         }
-        
+
         // Also check if this is a valid route for the user's role
         // Allow navigation if user has permission for this route
         const isAllowedRoute = hasAccess;
-        
+
         // Only block if it's NOT from sidebar AND NOT an allowed route
         // Actually, if user has access, allow it - remove the blocking
         // The preventDirectAccess should only apply to unauthorized routes
@@ -487,10 +501,10 @@ function ProtectedRoute({
         }
       }
     }
-    
+
     return <Component />;
   };
-  
+
   return <Route path={path} component={Guard} />;
 }
 
@@ -498,13 +512,13 @@ function ProtectedRoute({
 function DashboardRouter() {
   const { user, token, isAuthenticated } = useAuthStore();
   const [mounted, setMounted] = React.useState(false);
-  
+
   // Wait for component to mount and state to stabilize
   React.useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 50);
     return () => clearTimeout(timer);
   }, []);
-  
+
   // CRITICAL: If user.role is not available, try to get it from token
   // This handles race conditions when logging in with a different role
   let role = user?.role;
@@ -516,7 +530,7 @@ function DashboardRouter() {
       // If we can't get role from token, fall back to user.role
     }
   }
-  
+
   // Show loading state until mounted and authenticated
   if (!mounted || !isAuthenticated || !token) {
     return (
@@ -525,7 +539,7 @@ function DashboardRouter() {
       </div>
     );
   }
-  
+
   // If we have a token but no role yet, show loading
   if (!role) {
     return (
@@ -534,7 +548,7 @@ function DashboardRouter() {
       </div>
     );
   }
-  
+
   if (role === ROLES.ADMIN || role === ROLES.INSTITUTE_ADMIN) {
     return <AdminDashboard />;
   }
@@ -544,7 +558,7 @@ function DashboardRouter() {
   if (role === ROLES.ACADEMIC) {
     return <AcademicDashboard />;
   }
-  
+
   // Default fallback
   return <AdminDashboard />;
 }
@@ -553,12 +567,12 @@ function DashboardRouter() {
 function RedirectToDashboard() {
   const { user } = useAuthStore();
   const [, setLocation] = useLocation();
-  
+
   useEffect(() => {
     // Redirect to dashboard
     setLocation("/");
   }, [setLocation]);
-  
+
   return (
     <div className="flex items-center justify-center h-full">
       <div className="text-center space-y-2">
@@ -587,20 +601,21 @@ function NotAuthorized() {
 }
 
 function App() {
-  const { token, tokenExpireAt, user, logout, isAuthenticated } = useAuthStore();
+  const { token, tokenExpireAt, user, logout, isAuthenticated } =
+    useAuthStore();
 
   // Restore authentication state on mount (after hydration)
   useEffect(() => {
     // Check if we have token and user data but isAuthenticated is false
     // This handles the case where rehydration hasn't set isAuthenticated yet
-    const sessionToken = sessionStorage.getItem('access_token');
-    const sessionExpires = sessionStorage.getItem('token_expires');
+    const sessionToken = sessionStorage.getItem("access_token");
+    const sessionExpires = sessionStorage.getItem("token_expires");
     const hasUser = user !== null;
-    
+
     if (sessionToken && sessionExpires && hasUser && !isAuthenticated) {
       const expireAt = parseInt(sessionExpires);
       const now = Date.now();
-      
+
       if (now < expireAt) {
         // Token is valid, restore authentication
         useAuthStore.setState((state) => {
@@ -656,10 +671,10 @@ function App() {
 
     const checkTokenExpiration = () => {
       const now = Date.now();
-      
+
       // Only check if token is already expired (proactive refresh should handle before expiry)
       if (now >= tokenExpireAt) {
-        if (process.env.NODE_ENV === 'development') {
+        if (process.env.NODE_ENV === "development") {
           console.log("Token expired, logging out...");
         }
         logout();

@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { SchoolFinanceReport } from '@/lib/types/school/income';
-import { exportFinanceReportToExcel, generateExportFilename } from '@/lib/utils/export/export-utils';
+import { exportFinanceReportToExcel, exportFinanceReportToPDF, generateExportFilename } from '@/lib/utils/export/export-utils';
 import { Loading } from '@/components/ui/loading';
 import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
 import { ColumnDef } from '@tanstack/react-table';
@@ -123,12 +123,21 @@ export const FinanceReportDialog: React.FC<FinanceReportDialogProps> = ({
   };
 
 
-  const handleDownload = () => {
+  const handleDownloadExcel = async () => {
     try {
       const filename = generateExportFilename(reportData);
-      exportFinanceReportToExcel(reportData, filename);
+      await exportFinanceReportToExcel(reportData, filename);
     } catch (error) {
       console.error('Error exporting finance report:', error);
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    try {
+      const filename = generateExportFilename(reportData);
+      exportFinanceReportToPDF(reportData, filename);
+    } catch (error) {
+      console.error('Error exporting PDF report:', error);
     }
   };
 
@@ -154,9 +163,13 @@ export const FinanceReportDialog: React.FC<FinanceReportDialogProps> = ({
           </div>
           
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={handleDownload}>
+            <Button variant="outline" size="sm" onClick={handleDownloadExcel}>
               <Download className="h-4 w-4 mr-2" />
               Export Excel
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
+              <FileText className="h-4 w-4 mr-2" />
+              Download PDF
             </Button>
           </div>
         </div>
