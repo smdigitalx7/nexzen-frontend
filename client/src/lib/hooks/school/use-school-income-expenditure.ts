@@ -55,6 +55,7 @@ export function useCreateSchoolIncome() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.income.root() });
       void qc.invalidateQueries({ queryKey: schoolKeys.income.list({}) });
+      void qc.refetchQueries({ queryKey: schoolKeys.income.root(), type: 'active' });
     },
   }, "Income record created successfully");
 }
@@ -65,6 +66,7 @@ export function useCreateSchoolIncomeByAdmission() {
     mutationFn: (input: { admission_no: string; payload: SchoolIncomeCreate }) => SchoolIncomeService.createByAdmission(input.admission_no, input.payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.income.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.income.root(), type: 'active' });
     },
   }, "Income record created successfully");
 }
@@ -76,6 +78,7 @@ export function useUpdateSchoolIncome(incomeId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.income.detail(incomeId) });
       void qc.invalidateQueries({ queryKey: schoolKeys.income.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.income.root(), type: 'active' });
     },
   }, "Income record updated successfully");
 }
@@ -86,6 +89,7 @@ export function useCreateSchoolIncomeByReservation() {
     mutationFn: (payload: SchoolIncomeCreateReservation) => SchoolIncomeService.createByReservation(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.income.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.income.root(), type: 'active' });
     },
   }, "Income record created successfully");
 }
@@ -113,6 +117,7 @@ export function useCreateSchoolExpenditure() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.expenditure.root() });
       void qc.invalidateQueries({ queryKey: schoolKeys.expenditure.list({}) });
+      void qc.refetchQueries({ queryKey: schoolKeys.expenditure.root(), type: 'active' });
     },
   }, "Expenditure record created successfully");
 }
@@ -124,6 +129,7 @@ export function useUpdateSchoolExpenditure(expenditureId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.expenditure.detail(expenditureId) });
       void qc.invalidateQueries({ queryKey: schoolKeys.expenditure.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.expenditure.root(), type: 'active' });
     },
   }, "Expenditure record updated successfully");
 }
@@ -134,6 +140,7 @@ export function useDeleteSchoolExpenditure() {
     mutationFn: (expenditureId: number) => SchoolExpenditureService.delete(expenditureId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.expenditure.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.expenditure.root(), type: 'active' });
     },
   }, "Expenditure record deleted successfully");
 }

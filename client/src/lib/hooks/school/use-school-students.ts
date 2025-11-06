@@ -25,6 +25,7 @@ export function useCreateSchoolStudent() {
     mutationFn: (payload: SchoolStudentCreate) => SchoolStudentsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.students.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.students.root(), type: 'active' });
     },
   }, "Student created successfully");
 }
@@ -36,6 +37,7 @@ export function useUpdateSchoolStudent(studentId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.students.detail(studentId) });
       void qc.invalidateQueries({ queryKey: schoolKeys.students.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.students.root(), type: 'active' });
     },
   }, "Student updated successfully");
 }
@@ -46,6 +48,7 @@ export function useDeleteSchoolStudent() {
     mutationFn: (studentId: number) => SchoolStudentsService.delete(studentId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.students.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.students.root(), type: 'active' });
     },
   }, "Student deleted successfully");
 }

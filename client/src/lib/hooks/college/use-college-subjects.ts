@@ -11,6 +11,7 @@ import type {
 } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
+import { invalidateAndRefetch } from "../common/useGlobalRefetch";
 
 export function useCollegeSubjects(options?: { enabled?: boolean }) {
   return useQuery({
@@ -30,18 +31,16 @@ export function useCollegeSubjectsSlim() {
 }
 
 export function useCreateCollegeSubject() {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeCreateSubject) =>
       CollegeSubjectsService.create(payload),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: collegeKeys.subjects.root() });
+      invalidateAndRefetch(collegeKeys.subjects.root());
     },
   }, "Subject created successfully");
 }
 
 export function useUpdateCollegeSubject(subjectId: number) {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeUpdateSubject) =>
       CollegeSubjectsService.update(
@@ -49,20 +48,17 @@ export function useUpdateCollegeSubject(subjectId: number) {
         payload
       ),
     onSuccess: () => {
-      void qc.invalidateQueries({
-        queryKey: collegeKeys.subjects.detail(subjectId),
-      });
-      void qc.invalidateQueries({ queryKey: collegeKeys.subjects.root() });
+      invalidateAndRefetch(collegeKeys.subjects.detail(subjectId));
+      invalidateAndRefetch(collegeKeys.subjects.root());
     },
   }, "Subject updated successfully");
 }
 
 export function useDeleteCollegeSubject() {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (subjectId: number) => CollegeSubjectsService.delete(subjectId),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: collegeKeys.subjects.root() });
+      invalidateAndRefetch(collegeKeys.subjects.root());
     },
   }, "Subject deleted successfully");
 }
@@ -78,6 +74,10 @@ export function useAddSubjectToGroup(subjectId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({
         queryKey: [...collegeKeys.subjects.detail(subjectId), "groups"],
+      });
+      void qc.refetchQueries({
+        queryKey: [...collegeKeys.subjects.detail(subjectId), "groups"],
+        type: 'active'
       });
     },
   }, "Subject added to group successfully");
@@ -98,6 +98,10 @@ export function useUpdateSubjectGroupRelation(
     onSuccess: () => {
       void qc.invalidateQueries({
         queryKey: [...collegeKeys.subjects.detail(subjectId), "groups"],
+      });
+      void qc.refetchQueries({
+        queryKey: [...collegeKeys.subjects.detail(subjectId), "groups"],
+        type: 'active'
       });
     },
   }, "Subject group relation updated successfully");

@@ -38,6 +38,7 @@ export function useCreateCollegeEnrollment() {
     mutationFn: (payload: CollegeEnrollmentCreate) => CollegeEnrollmentsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.enrollments.root(), type: 'active' });
     },
   }, "Enrollment created successfully");
 }

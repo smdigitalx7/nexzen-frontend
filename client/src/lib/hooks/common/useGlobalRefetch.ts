@@ -1,6 +1,45 @@
 import { useCallback } from "react";
 import { queryClient } from "@/lib/query";
 import type { QueryKey } from "@tanstack/react-query";
+import { CacheUtils } from "@/lib/api";
+
+/**
+ * Clear API cache for a given query key
+ * This is needed because the API layer has its own cache that intercepts requests
+ */
+function clearApiCacheForQueryKey(queryKey: QueryKey) {
+  try {
+    // Convert React Query key to API path pattern
+    // ["users"] -> "/users"
+    // ["school", "classes"] -> "/school/classes"
+    // ["college", "subjects", "detail", 123] -> "/college/subjects"
+    const pathParts = queryKey.filter((k): k is string => typeof k === 'string' && k !== 'list' && k !== 'detail' && k !== 'root' && !/^\d+$/.test(String(k)));
+    
+    if (pathParts.length === 0) return;
+    
+    const pathPattern = `/${pathParts.join('/')}`;
+    
+    // Clear all cache entries matching this path
+    // Pattern matches: "GET:/api/v1/users", "GET:/api/v1/users/roles-and-branches", etc.
+    // Use multiple patterns to catch variations
+    const patterns = [
+      new RegExp(`GET:.*${pathPattern.replace(/\//g, '\\/')}`, 'i'), // Exact match
+      new RegExp(`GET:.*${pathPattern.replace(/\//g, '\\/')}.*`, 'i'), // With query params
+    ];
+    
+    patterns.forEach(pattern => {
+      CacheUtils.clearByPattern(pattern);
+    });
+  } catch (error) {
+    console.warn('Failed to clear API cache for query key:', queryKey, error);
+    // Fallback: clear all cache if pattern matching fails
+    try {
+      CacheUtils.clearAll();
+    } catch (e) {
+      console.error('Failed to clear all API cache:', e);
+    }
+  }
+}
 
 /**
  * Entity Query Key Mapping
@@ -73,6 +112,21 @@ export type EntityType = keyof typeof ENTITY_QUERY_MAP;
  * Global Refetch Hook
  * Provides centralized query invalidation for entities
  */
+/**
+ * Utility function to invalidate and refetch queries with API cache clearing
+ * Use this in mutation hooks for consistent behavior
+ */
+export function invalidateAndRefetch(queryKey: QueryKey) {
+  // Clear API cache first
+  clearApiCacheForQueryKey(queryKey);
+  
+  // Invalidate React Query cache
+  void queryClient.invalidateQueries({ queryKey });
+  
+  // Refetch active queries immediately
+  void queryClient.refetchQueries({ queryKey, type: 'active' });
+}
+
 export function useGlobalRefetch() {
   const invalidateEntity = useCallback((entity: EntityType) => {
     const queryKeys = ENTITY_QUERY_MAP[entity];
@@ -82,9 +136,9 @@ export function useGlobalRefetch() {
       return;
     }
 
-    // Invalidate all queries for the entity
+    // Invalidate and refetch all queries for the entity
     queryKeys.forEach((key) => {
-      void queryClient.invalidateQueries({ queryKey: key });
+      invalidateAndRefetch(key);
     });
   }, []);
 

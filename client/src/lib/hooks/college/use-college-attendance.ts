@@ -33,6 +33,7 @@ export function useCreateCollegeAttendance() {
     mutationFn: (payload: CollegeStudentAttendanceCreate) => CollegeAttendanceService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.attendance.root(), type: 'active' });
     },
   }, "Attendance created successfully");
 }
@@ -43,6 +44,7 @@ export function useBulkCreateCollegeAttendance() {
     mutationFn: (payload: CollegeStudentAttendanceBulkCreate) => CollegeAttendanceService.bulkCreate(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.attendance.root(), type: 'active' });
     },
   }, "Attendance records created successfully");
 }
@@ -54,6 +56,7 @@ export function useUpdateCollegeAttendance(attendanceId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.attendance.detail(attendanceId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.attendance.root(), type: 'active' });
     },
   }, "Attendance updated successfully");
 }
@@ -64,6 +67,7 @@ export function useDeleteCollegeAttendance() {
     mutationFn: (attendanceId: number) => CollegeAttendanceService.delete(attendanceId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.attendance.root(), type: 'active' });
     },
   }, "Attendance deleted successfully");
 }

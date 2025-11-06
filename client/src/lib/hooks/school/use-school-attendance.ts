@@ -33,6 +33,7 @@ export function useCreateSchoolAttendance() {
     mutationFn: (payload: SchoolStudentAttendanceCreate) => SchoolStudentAttendanceService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.attendance.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.attendance.root(), type: 'active' });
     },
   }, "Attendance created successfully");
 }
@@ -43,6 +44,7 @@ export function useBulkCreateSchoolAttendance() {
     mutationFn: (payload: SchoolBulkStudentAttendanceCreate) => SchoolStudentAttendanceService.bulkCreate(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.attendance.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.attendance.root(), type: 'active' });
     },
   }, "Attendance records created successfully");
 }
@@ -54,6 +56,7 @@ export function useUpdateSchoolAttendance(attendanceId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.attendance.detail(attendanceId) });
       void qc.invalidateQueries({ queryKey: schoolKeys.attendance.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.attendance.root(), type: 'active' });
     },
   }, "Attendance updated successfully");
 }
@@ -64,6 +67,7 @@ export function useDeleteSchoolAttendance() {
     mutationFn: (attendanceId: number) => SchoolStudentAttendanceService.delete(attendanceId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.attendance.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.attendance.root(), type: 'active' });
     },
   }, "Attendance deleted successfully");
 }
@@ -82,6 +86,7 @@ export function useBulkUpdateSchoolAttendance() {
     mutationFn: (payload: any) => SchoolStudentAttendanceService.bulkUpdate(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.attendance.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.attendance.root(), type: 'active' });
     },
   }, "Attendance records updated successfully");
 }

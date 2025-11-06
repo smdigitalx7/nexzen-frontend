@@ -24,6 +24,7 @@ export function useGeneratePaymentReceipt() {
       PaymentReceiptsService.generateReceipt(paymentData),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: paymentReceiptKeys.all });
+      qc.refetchQueries({ queryKey: paymentReceiptKeys.all, type: 'active' });
     },
   }, "Payment receipt generated successfully");
 }

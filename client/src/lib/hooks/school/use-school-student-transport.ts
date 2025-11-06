@@ -24,6 +24,7 @@ export function useCreateSchoolStudentTransport() {
     mutationFn: (payload: SchoolStudentTransportAssignmentCreate) => StudentTransportService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: keys.root });
+      void qc.refetchQueries({ queryKey: keys.root, type: 'active' });
     },
   }, "Student transport assigned successfully");
 }
@@ -43,6 +44,7 @@ export function useUpdateSchoolStudentTransport() {
     onSuccess: (_data, { id }) => {
       void qc.invalidateQueries({ queryKey: keys.root });
       void qc.invalidateQueries({ queryKey: keys.detail(id) });
+      void qc.refetchQueries({ queryKey: keys.root, type: 'active' });
     },
   }, "Student transport updated successfully");
 }
@@ -54,6 +56,7 @@ export function useDeleteSchoolStudentTransport() {
     onSuccess: (_, id) => {
       void qc.invalidateQueries({ queryKey: keys.root });
       void qc.invalidateQueries({ queryKey: keys.detail(id) });
+      void qc.refetchQueries({ queryKey: keys.root, type: 'active' });
     },
   }, "Student transport assignment deleted successfully");
 }

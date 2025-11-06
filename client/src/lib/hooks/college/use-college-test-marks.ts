@@ -50,6 +50,7 @@ export function useCreateCollegeTestMark() {
     mutationFn: (payload: CollegeTestMarkUpdate) => CollegeTestMarksService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.testMarks.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.testMarks.root(), type: 'active' });
     },
   }, "Test mark created successfully");
 }
@@ -61,6 +62,7 @@ export function useUpdateCollegeTestMark(markId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.testMarks.detail(markId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.testMarks.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.testMarks.root(), type: 'active' });
     },
   }, "Test mark updated successfully");
 }
@@ -71,6 +73,7 @@ export function useDeleteCollegeTestMark() {
     mutationFn: (markId: number) => CollegeTestMarksService.delete(markId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.testMarks.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.testMarks.root(), type: 'active' });
     },
   }, "Test mark deleted successfully");
 }
@@ -82,6 +85,7 @@ export function useBulkCreateCollegeTestMarks() {
       CollegeTestMarksService.bulkCreate(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.testMarks.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.testMarks.root(), type: 'active' });
     },
   }, "Test marks created successfully");
 }

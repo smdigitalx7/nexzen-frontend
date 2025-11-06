@@ -58,6 +58,7 @@ export function useCreateCollegeExam() {
       CollegeExamsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.exams.root(), type: 'active' });
     },
   }, "Exam created successfully");
 }
@@ -73,6 +74,7 @@ export function useUpdateCollegeExam(examId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.exams.detail(examId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.exams.root(), type: 'active' });
     },
   }, "Exam updated successfully");
 }
@@ -83,6 +85,7 @@ export function useDeleteCollegeExam() {
     mutationFn: (examId: number) => CollegeExamsService.delete(examId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.exams.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.exams.root(), type: 'active' });
     },
   }, "Exam deleted successfully");
 }

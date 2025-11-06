@@ -58,34 +58,40 @@ export const useRecentRoutes = (limit: number = 5) => {
 // Route mutations
 export const useCreateBusRoute = () => {
   const { invalidateEntity } = useGlobalRefetch();
+  const queryClient = useQueryClient();
   
   return useMutationWithSuccessToast({
     mutationFn: (data: BusRouteCreate) => TransportService.createRoute(data),
     onSuccess: () => {
       invalidateEntity("transport");
+      queryClient.refetchQueries({ queryKey: transportKeys.all, type: 'active' });
     },
   }, "Bus route created successfully");
 };
 
 export const useUpdateBusRoute = () => {
   const { invalidateEntity } = useGlobalRefetch();
+  const queryClient = useQueryClient();
   
   return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: BusRouteUpdate }) =>
       TransportService.updateRoute(id, payload),
     onSuccess: () => {
       invalidateEntity("transport");
+      queryClient.refetchQueries({ queryKey: transportKeys.all, type: 'active' });
     },
   }, "Bus route updated successfully");
 };
 
 export const useDeleteBusRoute = () => {
   const { invalidateEntity } = useGlobalRefetch();
+  const queryClient = useQueryClient();
   
   return useMutationWithSuccessToast({
     mutationFn: (id: number) => TransportService.deleteRoute(id),
     onSuccess: () => {
       invalidateEntity("transport");
+      queryClient.refetchQueries({ queryKey: transportKeys.all, type: 'active' });
     },
   }, "Bus route deleted successfully");
 };
@@ -101,6 +107,7 @@ export const useAssignDriverToRoute = () => {
       invalidateEntity("transport");
       // Also invalidate the specific route query to refresh the dialog
       queryClient.invalidateQueries({ queryKey: transportKeys.route(variables.id) });
+      queryClient.refetchQueries({ queryKey: transportKeys.all, type: 'active' });
     },
   }, "Driver assigned successfully");
 };
@@ -123,6 +130,7 @@ export const useRemoveDriverFromRoute = () => {
       if (data) {
         queryClient.setQueryData(transportKeys.route(variables), data);
       }
+      queryClient.refetchQueries({ queryKey: transportKeys.all, type: 'active' });
     },
     onError: (error, variables) => {
       console.error("Remove driver error:", error, "variables:", variables);

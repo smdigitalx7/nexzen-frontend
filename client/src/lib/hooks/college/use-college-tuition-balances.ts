@@ -42,6 +42,7 @@ export function useCreateCollegeTuitionBalance() {
       CollegeTuitionBalancesService.create(payload as any),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.tuition.root(), type: 'active' });
     },
   }, "Tuition balance created successfully");
 }
@@ -53,6 +54,7 @@ export function useBulkCreateCollegeTuitionBalances() {
       CollegeTuitionBalancesService.bulkCreate(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.tuition.root(), type: 'active' });
     },
   }, "Tuition balances created successfully");
 }
@@ -65,6 +67,7 @@ export function useUpdateTuitionTermPayment(enrollmentId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(enrollmentId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.tuition.root(), type: 'active' });
     },
   }, "Tuition payment updated successfully");
 }
@@ -77,6 +80,7 @@ export function useUpdateBookFeePayment(enrollmentId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(enrollmentId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.tuition.root(), type: 'active' });
     },
   }, "Book fee payment updated successfully");
 }

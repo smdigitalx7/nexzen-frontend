@@ -25,6 +25,7 @@ export function useCreateCollegeExpenditure() {
     mutationFn: (payload: CollegeExpenditureCreate) => CollegeExpenditureService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.expenditure.root(), type: 'active' });
     },
   }, "Expenditure record created successfully");
 }
@@ -36,6 +37,7 @@ export function useUpdateCollegeExpenditure(expenditureId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.expenditure.detail(expenditureId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.expenditure.root(), type: 'active' });
     },
   }, "Expenditure record updated successfully");
 }
@@ -46,6 +48,7 @@ export function useDeleteCollegeExpenditure() {
     mutationFn: (expenditureId: number) => CollegeExpenditureService.delete(expenditureId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.expenditure.root(), type: 'active' });
     },
   }, "Expenditure record deleted successfully");
 }

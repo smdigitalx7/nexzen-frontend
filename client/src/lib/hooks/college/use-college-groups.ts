@@ -24,6 +24,7 @@ export function useCreateCollegeGroup() {
     mutationFn: (payload: CollegeGroupCreate) => CollegeGroupsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.groups.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.groups.root(), type: 'active' });
     },
   }, "Group created successfully");
 }
@@ -35,6 +36,7 @@ export function useUpdateCollegeGroup(groupId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.groups.detail(groupId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.groups.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.groups.root(), type: 'active' });
     },
   }, "Group updated successfully");
 }
@@ -45,6 +47,7 @@ export function useDeleteCollegeGroup() {
     mutationFn: (groupId: number) => CollegeGroupsService.delete(groupId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.groups.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.groups.root(), type: 'active' });
     },
   }, "Group deleted successfully");
 }

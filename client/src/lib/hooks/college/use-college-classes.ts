@@ -34,6 +34,7 @@ export function useCreateCollegeClass() {
       CollegeClassesService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.classes.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.classes.root(), type: 'active' });
     },
   }, "Class created successfully");
 }
@@ -49,6 +50,7 @@ export function useUpdateCollegeClass(classId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.classes.detail(classId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.classes.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.classes.root(), type: 'active' });
     },
   }, "Class updated successfully");
 }
@@ -76,6 +78,11 @@ export function useRemoveCollegeClassGroup(classId: number) {
       void qc.invalidateQueries({
         queryKey: [...collegeKeys.classes.detail(classId), "groups"],
       });
+      void qc.refetchQueries({
+        queryKey: [...collegeKeys.classes.detail(classId), "groups"],
+        type: 'active'
+      });
+      void qc.refetchQueries({ queryKey: collegeKeys.classes.root(), type: 'active' });
     },
   }, "Group removed from class successfully");
 }
