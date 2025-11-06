@@ -4,6 +4,7 @@ import { GraduationCap } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader as AlertHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -25,7 +26,6 @@ import {
   useCollegeGroups,
   useCollegeCourses,
 } from '@/lib/hooks/college';
-// Note: useCollegeExams from dropdowns (naming conflict)
 import { useCollegeExams } from '@/lib/hooks/college/use-college-dropdowns';
 import type { CollegeExamMarkMinimalRead, CollegeExamMarksListParams } from '@/lib/types/college/exam-marks';
 import type { CollegeMarksData } from '@/lib/hooks/college/use-college-marks-statistics';
@@ -612,7 +612,11 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
                           <FormItem>
                             <FormLabel>Exam Date</FormLabel>
                             <FormControl>
-                              <Input type="date" {...field} />
+                              <DatePicker
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                                placeholder="Select exam date"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

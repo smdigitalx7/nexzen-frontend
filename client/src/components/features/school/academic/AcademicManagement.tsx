@@ -14,6 +14,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
 import { useSchoolClasses, useSchoolSubjects, useSchoolExams, useSchoolTests } from "@/lib/hooks/school";
+import { useQueries } from "@tanstack/react-query";
+import { SchoolDropdownsService } from "@/lib/services/school/dropdowns.service";
 import AcademicYearManagement from "@/components/features/school/academic/academic-years/AcademicYearManagement";
 import { ClassesTab } from "@/components/features/school/academic/classes/ClassesTab";
 import { SubjectsTab } from "@/components/features/school/academic/subjects/SubjectsTab";
@@ -38,14 +40,15 @@ const AcademicManagement = () => {
   const examsEnabled = useTabEnabled("exams", "classes");
   const testsEnabled = useTabEnabled("tests", "classes");
 
-  // ✅ LAZY LOADING: Only fetch data for active tab
+  // ✅ Always fetch data for cards (not lazy loaded)
+  // Cards need data immediately, so we fetch regardless of active tab
   const {
     data: backendClasses = [],
     isLoading: classesLoading,
     isError: classesError,
     error: classesErrObj,
   } = useSchoolClasses({
-    enabled: classesEnabled,
+    enabled: true, // Always enabled for cards
   });
 
   const {
@@ -54,7 +57,7 @@ const AcademicManagement = () => {
     isError: subjectsError,
     error: subjectsErrObj,
   } = useSchoolSubjects({
-    enabled: subjectsEnabled,
+    enabled: true, // Always enabled for cards
   });
 
   const {
@@ -63,7 +66,7 @@ const AcademicManagement = () => {
     isError: examsError,
     error: examsErrObj,
   } = useSchoolExams({
-    enabled: examsEnabled,
+    enabled: true, // Always enabled for cards
   });
 
   const {
@@ -72,19 +75,43 @@ const AcademicManagement = () => {
     isError: testsError,
     error: testsErrObj,
   } = useSchoolTests({
-    enabled: testsEnabled,
+    enabled: true, // Always enabled for cards
   });
 
   // Memoized effective classes
   const effectiveClasses = useMemo(() => backendClasses, [backendClasses]);
 
+  // Fetch sections for all classes to calculate total sections (non-blocking)
+  // Using dropdown service which is cached and faster
+  const sectionsQueries = useQueries({
+    queries: effectiveClasses.map((classItem) => ({
+      queryKey: ["school-dropdowns", "sections", classItem.class_id],
+      queryFn: async () => {
+        const response = await SchoolDropdownsService.getSections(classItem.class_id);
+        return response.items || [];
+      },
+      enabled: effectiveClasses.length > 0,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: 1, // Only retry once to avoid long waits
+    })),
+  });
+
+  // Calculate total sections from all queries (non-blocking - updates as data arrives)
+  const totalSectionsCount = useMemo(() => {
+    return sectionsQueries.reduce((total, query) => {
+      if (query.data && Array.isArray(query.data)) {
+        return total + query.data.length;
+      }
+      return total;
+    }, 0);
+  }, [sectionsQueries]);
+
   // Memoized calculations
   const academicStats = useMemo(() => {
-    const totalSections = 0; // Don't fetch all sections - only fetch when user selects a class in SectionsTab
-
     const totalClasses = effectiveClasses.length;
     const totalSubjects = backendSubjects.length;
     const totalTests = tests.length;
+    const totalSections = totalSectionsCount;
 
     const today = new Date();
     const toDate = (v: any) => {
@@ -104,9 +131,11 @@ const AcademicManagement = () => {
       activeExams,
       totalTests,
     };
-  }, [effectiveClasses, backendSubjects, exams, tests]);
+  }, [effectiveClasses, backendSubjects, exams, tests, totalSectionsCount]);
 
   // Memoized loading and error states
+  // Note: sectionsLoading is excluded from main loading state to avoid blocking UI
+  // Sections count will update as data arrives (non-blocking)
   const loadingStates = useMemo(() => {
     const isLoading =
       classesLoading ||

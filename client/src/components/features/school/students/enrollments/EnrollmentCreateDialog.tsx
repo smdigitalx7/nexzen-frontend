@@ -1,6 +1,7 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
 import { FormDialog } from '@/components/shared';
 import type { SchoolEnrollmentCreate } from '@/lib/types/school';
 
@@ -125,11 +126,11 @@ export const EnrollmentCreateDialog = ({
         </div>
         <div>
           <Label htmlFor="enrollment_date">Enrollment Date</Label>
-          <Input
+          <DatePicker
             id="enrollment_date"
-            type="date"
             value={formData.enrollment_date || ''}
-            onChange={(e) => onFormDataChange({ ...formData, enrollment_date: e.target.value || null })}
+            onChange={(value) => onFormDataChange({ ...formData, enrollment_date: value || null })}
+            placeholder="Select enrollment date"
           />
         </div>
         <div className="flex items-center space-x-2">

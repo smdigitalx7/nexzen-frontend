@@ -57,6 +57,16 @@ export function useUpdateCollegeSubject(subjectId: number) {
   }, "Subject updated successfully");
 }
 
+export function useDeleteCollegeSubject() {
+  const qc = useQueryClient();
+  return useMutationWithSuccessToast({
+    mutationFn: (subjectId: number) => CollegeSubjectsService.delete(subjectId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: collegeKeys.subjects.root() });
+    },
+  }, "Subject deleted successfully");
+}
+
 export function useAddSubjectToGroup(subjectId: number) {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({

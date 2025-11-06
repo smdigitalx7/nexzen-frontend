@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type RouteOption = { id: string; name: string; fee: number };
 
@@ -113,13 +114,15 @@ const StudentDetailsSection = memo(({
         <SelectItem value="FEMALE">Female</SelectItem>
         <SelectItem value="OTHER">Other</SelectItem>
       </SelectField>
-      <FormField
-        id="dob"
-        label="Date of Birth"
-        type="date"
-        value={form.dob || ""}
-        onChange={(value) => setForm({ ...form, dob: value })}
-      />
+      <div>
+        <Label htmlFor="dob">Date of Birth</Label>
+        <DatePicker
+          id="dob"
+          value={form.dob || ""}
+          onChange={(value) => setForm({ ...form, dob: value })}
+          placeholder="Select date of birth"
+        />
+      </div>
     </div>
   );
 });

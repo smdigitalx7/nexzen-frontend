@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { useCreateSchoolSubject, useUpdateSchoolSubject } from '@/lib/hooks/school';
+import { useCreateSchoolSubject, useUpdateSchoolSubject, useDeleteSchoolSubject } from '@/lib/hooks/school';
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
 import { 
@@ -52,6 +52,7 @@ const SubjectsTabComponent = ({
   const { toast } = useToast();
   const createSubjectMutation = useCreateSchoolSubject();
   const updateSubjectMutation = useUpdateSchoolSubject(selectedSubject?.subject_id || 0);
+  const deleteSubjectMutation = useDeleteSchoolSubject();
 
   // Memoized validation functions
   const validateSubjectForm = useCallback((form: typeof initialSubjectForm) => {
@@ -102,22 +103,14 @@ const SubjectsTabComponent = ({
     if (!selectedSubject) return;
 
     try {
-      // Add delete logic here
-      toast({
-        title: "Success",
-        description: "Subject deleted successfully",
-      });
-      
+      await deleteSubjectMutation.mutateAsync(selectedSubject.subject_id);
       setSelectedSubject(null);
       setIsDeleteDialogOpen(false);
+      // Success toast is handled by mutation hook
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete subject",
-        variant: "destructive",
-      });
+      // Error toast is handled by mutation hook
     }
-  }, [selectedSubject, toast]);
+  }, [selectedSubject, deleteSubjectMutation]);
 
   // Memoized action handlers
   const handleEditClick = useCallback((subject: SchoolSubjectRead) => {

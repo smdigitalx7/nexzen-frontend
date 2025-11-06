@@ -10,6 +10,7 @@ import { useTableState } from "@/lib/hooks/common/useTableState";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { createTextColumn, createCurrencyColumn } from "@/lib/utils/factory/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -250,11 +251,11 @@ export const ExpenditureTable = ({
             </div>
             <div>
               <Label htmlFor="bill_date">Bill Date</Label>
-              <Input
+              <DatePicker
                 id="bill_date"
-                type="date"
                 value={editForm.bill_date}
-                onChange={(e) => setEditForm(prev => ({ ...prev, bill_date: e.target.value }))}
+                onChange={(value) => setEditForm(prev => ({ ...prev, bill_date: value }))}
+                placeholder="Select bill date"
               />
             </div>
             <div>

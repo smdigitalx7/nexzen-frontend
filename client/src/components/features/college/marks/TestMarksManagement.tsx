@@ -4,6 +4,7 @@ import {  ClipboardList} from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Card    } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader as AlertHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -591,7 +592,11 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                           <FormItem>
                             <FormLabel>Test Date</FormLabel>
                             <FormControl>
-                              <Input type="date" {...field} />
+                              <DatePicker
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                                placeholder="Select test date"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

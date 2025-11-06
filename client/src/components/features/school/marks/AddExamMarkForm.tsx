@@ -3,10 +3,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormDialog } from '@/components/shared/FormDialog';
-// Note: useSchoolClasses, useSchoolSections, useSchoolSubjects, useSchoolExams from dropdowns (naming conflict)
 import { useSchoolClasses, useSchoolSections, useSchoolSubjects, useSchoolExams } from '@/lib/hooks/school/use-school-dropdowns';
 import { useSchoolStudentsList } from '@/lib/hooks/school';
 import type { ExamMarkWithDetails } from '@/lib/types/school/exam-marks';
@@ -335,7 +335,11 @@ const AddExamMarkForm = ({
                 <FormItem>
                   <FormLabel>Exam Date</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <DatePicker
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      placeholder="Select exam date"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

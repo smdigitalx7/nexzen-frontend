@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
@@ -132,7 +133,11 @@ export const AddExpenditureDialog = ({ open, onOpenChange }: AddExpenditureDialo
                 <FormItem>
                   <FormLabel>Bill Date</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <DatePicker
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      placeholder="Select bill date"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -166,7 +171,11 @@ export const AddExpenditureDialog = ({ open, onOpenChange }: AddExpenditureDialo
                 <FormItem>
                   <FormLabel>Payment Date (Optional)</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <DatePicker
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      placeholder="Select payment date"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FormDialog, ConfirmDialog } from "@/components/shared";
+import { FormDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { useCreateSchoolClass, useUpdateSchoolClass, useSchoolClassById, useDeleteSchoolClassSubject, useSchoolSubjects, useCreateSchoolClassSubject } from '@/lib/hooks/school';
 import { useToast } from '@/hooks/use-toast';
@@ -27,16 +27,11 @@ const ClassSubjectsCell = memo(({ subjects }: { subjects?: { subject_id: number;
 
     return (
       <div className="flex flex-wrap gap-1">
-        {subjects.slice(0, 3).map((subject) => (
+        {subjects.map((subject) => (
           <Badge key={subject.subject_id} variant="secondary" className="text-xs">
             {subject.subject_name}
           </Badge>
         ))}
-        {subjects.length > 3 && (
-          <Badge variant="outline" className="text-xs">
-            +{subjects.length - 3} more
-          </Badge>
-        )}
       </div>
     );
   }, [subjects]);
@@ -128,7 +123,6 @@ export const ClassesTab = memo(({
   // Dialog states
   const [isAddClassOpen, setIsAddClassOpen] = useState(false);
   const [isEditClassOpen, setIsEditClassOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isManageSubjectsOpen, setIsManageSubjectsOpen] = useState(false);
   
@@ -208,27 +202,6 @@ export const ClassesTab = memo(({
     }
   }, [editClass, selectedClass, validateClassForm, updateClassMutation]);
 
-  const handleDeleteClass = useCallback(async () => {
-    if (!selectedClass) return;
-
-    try {
-      // Add delete logic here
-      toast({
-        title: "Success",
-        description: "Class deleted successfully",
-      });
-      
-      setSelectedClass(null);
-      setIsDeleteDialogOpen(false);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete class",
-        variant: "destructive",
-      });
-    }
-  }, [selectedClass, toast]);
-
   // Memoized action handlers
   const handleManageSubjectsClick = useCallback((classItem: SchoolClassRead) => {
     setSelectedClass(classItem);
@@ -248,11 +221,6 @@ export const ClassesTab = memo(({
       tuition_fee: classItem.tuition_fee,
     });
     setIsEditClassOpen(true);
-  }, []);
-
-  const handleDeleteClick = useCallback((classItem: SchoolClassRead) => {
-    setSelectedClass(classItem);
-    setIsDeleteDialogOpen(true);
   }, []);
 
   // Subject assignment handlers
@@ -318,12 +286,8 @@ export const ClassesTab = memo(({
     {
       type: 'edit' as const,
       onClick: handleEditClick
-    },
-    {
-      type: 'delete' as const,
-      onClick: handleDeleteClick
     }
-  ], [handleViewClick, handleEditClick, handleDeleteClick]);
+  ], [handleViewClick, handleEditClick]);
 
   // Memoized available subjects for assignment
   const availableSubjects = useMemo(() => {
@@ -343,11 +307,6 @@ export const ClassesTab = memo(({
   const closeEditDialog = useCallback(() => {
     setIsEditClassOpen(false);
     setEditClass(initialClassForm);
-    setSelectedClass(null);
-  }, []);
-
-  const closeDeleteDialog = useCallback(() => {
-    setIsDeleteDialogOpen(false);
     setSelectedClass(null);
   }, []);
 
@@ -492,18 +451,6 @@ export const ClassesTab = memo(({
           </div>
         </div>
       </FormDialog>
-
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        title="Delete Class"
-        description={`Are you sure you want to delete the class "${selectedClass?.class_name}"? This action cannot be undone.`}
-        onConfirm={handleDeleteClass}
-        onCancel={closeDeleteDialog}
-        confirmText="Delete"
-        variant="destructive"
-      />
 
       {/* View Class Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>

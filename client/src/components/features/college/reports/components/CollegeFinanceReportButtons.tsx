@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCollegeFinanceReport } from '@/lib/hooks/college';
 import { CollegeFinanceReportDialog } from './CollegeFinanceReportDialog';
@@ -155,22 +156,20 @@ export const CollegeFinanceReportButtons: React.FC<CollegeFinanceReportButtonsPr
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="start-date">Start Date</Label>
-              <Input
+              <DatePicker
                 id="start-date"
-                type="date"
                 value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
+                onChange={(value) => setCustomStartDate(value)}
                 placeholder="Select start date"
               />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="end-date">End Date</Label>
-              <Input
+              <DatePicker
                 id="end-date"
-                type="date"
                 value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
+                onChange={(value) => setCustomEndDate(value)}
                 placeholder="Select end date"
               />
             </div>

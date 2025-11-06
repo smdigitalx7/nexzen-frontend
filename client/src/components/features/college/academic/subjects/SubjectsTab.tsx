@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { useCreateSchoolSubject, useUpdateSchoolSubject } from '@/lib/hooks/school';
+import { useCreateCollegeSubject, useUpdateCollegeSubject, useDeleteCollegeSubject } from '@/lib/hooks/college';
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
 import { 
@@ -42,8 +42,9 @@ export const SubjectsTab = ({
   });
 
   const { toast } = useToast();
-  const createSubjectMutation = useCreateSchoolSubject();
-  const updateSubjectMutation = useUpdateSchoolSubject(selectedSubject?.subject_id || 0);
+  const createSubjectMutation = useCreateCollegeSubject();
+  const updateSubjectMutation = useUpdateCollegeSubject(selectedSubject?.subject_id || 0);
+  const deleteSubjectMutation = useDeleteCollegeSubject();
 
   const handleCreateSubject = async () => {
     if (!newSubject.subject_name.trim()) {
@@ -96,10 +97,10 @@ export const SubjectsTab = ({
     if (!selectedSubject) return;
 
     try {
-      // Add delete logic here
+      await deleteSubjectMutation.mutateAsync(selectedSubject.subject_id);
       setSelectedSubject(null);
       setIsDeleteDialogOpen(false);
-      // Toast handled by mutation hook
+      // Success toast is handled by mutation hook
     } catch (error) {
       // Error toast is handled by mutation hook
     }

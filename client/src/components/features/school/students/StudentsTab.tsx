@@ -1,18 +1,19 @@
 import { useState, useMemo, memo, useCallback } from 'react';
-import { Users, Plus, Save, X, Edit, Trash2 } from 'lucide-react';
+import { Users, Save, X, Edit, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
 import { EnhancedDataTable } from '@/components/shared';
 import { 
   createAvatarColumn, 
   createTextColumn,
   createBadgeColumn
 } from '@/lib/utils/factory/columnFactories';
-import { useSchoolStudentsList, useCreateSchoolStudent, useUpdateSchoolStudent, useSchoolStudent } from '@/lib/hooks/school';
+import { useSchoolStudentsList, useUpdateSchoolStudent, useSchoolStudent } from '@/lib/hooks/school';
 import type { SchoolStudentRead, SchoolStudentFullDetails } from '@/lib/types/school';
 import { useAuthStore } from '@/store/authStore';
 import { useForm } from 'react-hook-form';
@@ -100,7 +101,13 @@ const PersonalInfoSection = memo(({ form }: { form: any }) => (
         <FormField control={form.control} name="dob" render={({ field }) => (
           <FormItem>
             <FormLabel>Date of Birth</FormLabel>
-            <FormControl><Input type="date" {...field} /></FormControl>
+            <FormControl>
+              <DatePicker
+                value={field.value || ""}
+                onChange={field.onChange}
+                placeholder="Select date of birth"
+              />
+            </FormControl>
             <FormMessage />
           </FormItem>
         )} />
@@ -219,7 +226,13 @@ const AdmissionInfoSection = memo(({ form }: { form: any }) => (
         <FormField control={form.control} name="admission_date" render={({ field }) => (
           <FormItem>
             <FormLabel>Admission Date</FormLabel>
-            <FormControl><Input type="date" {...field} /></FormControl>
+            <FormControl>
+              <DatePicker
+                value={field.value || ""}
+                onChange={field.onChange}
+                placeholder="Select admission date"
+              />
+            </FormControl>
             <FormMessage />
           </FormItem>
         )} />
@@ -249,7 +262,6 @@ const StudentsTabComponent = () => {
   // State management
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [viewStudentId, setViewStudentId] = useState<number | null>(null);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
@@ -257,7 +269,6 @@ const StudentsTabComponent = () => {
   const { currentBranch } = useAuthStore();
   const { data: studentsResp, isLoading, error } = useSchoolStudentsList({ page: 1, page_size: 50 });
   const { data: viewStudentData, isLoading: isViewLoading } = useSchoolStudent(viewStudentId);
-  const createStudentMutation = useCreateSchoolStudent();
   const updateStudentMutation = useUpdateSchoolStudent(selectedStudent?.student_id || 0);
 
   // Memoized students data
@@ -270,12 +281,6 @@ const StudentsTabComponent = () => {
   });
 
   // Memoized handlers
-  const handleAddStudent = useCallback(() => {
-    form.reset();
-    setSelectedStudent(null);
-    setIsAddDialogOpen(true);
-  }, [form]);
-
   const handleEditStudent = useCallback((student: SchoolStudentFullDetails) => {
     setSelectedStudent(student);
     const gender = student.gender;
@@ -305,25 +310,15 @@ const StudentsTabComponent = () => {
 
   const onSubmit = useCallback(async (data: StudentFormData) => {
     try {
-      if (selectedStudent) {
-        await updateStudentMutation.mutateAsync(data as any);
-        setIsEditDialogOpen(false);
-      } else {
-        await createStudentMutation.mutateAsync(data as any);
-        setIsAddDialogOpen(false);
-      }
+      await updateStudentMutation.mutateAsync(data as any);
+      setIsEditDialogOpen(false);
       form.reset();
     } catch (error: any) {
       // Error toast is handled by mutation hook
     }
-  }, [selectedStudent, updateStudentMutation, createStudentMutation, form]);
+  }, [updateStudentMutation, form]);
 
   // Memoized dialog close handlers
-  const closeAddDialog = useCallback(() => {
-    setIsAddDialogOpen(false);
-    form.reset();
-  }, [form]);
-
   const closeEditDialog = useCallback(() => {
     setIsEditDialogOpen(false);
     setSelectedStudent(null);
@@ -370,8 +365,6 @@ const StudentsTabComponent = () => {
           searchKey="student_name"
           exportable={true}
           selectable={true}
-          onAdd={handleAddStudent}
-          addButtonText="Add Student"
           showActions={true}
           actionButtonGroups={actionButtonGroups}
           actionColumnHeader="Actions"
@@ -399,34 +392,6 @@ const StudentsTabComponent = () => {
                   </Button>
                   <Button type="submit" disabled={updateStudentMutation.isPending}>
                     {updateStudentMutation.isPending ? 'Updating...' : (<><Save className="h-4 w-4 mr-2" />Update Student</>)}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Student Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
-            <DialogTitle className="flex items-center gap-2">Add New Student</DialogTitle>
-            <DialogDescription>Create a new student record</DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <PersonalInfoSection form={form} />
-                <ParentInfoSection form={form} />
-                <AddressInfoSection form={form} />
-                <AdmissionInfoSection form={form} />
-                <div className="flex justify-end gap-3 pt-4">
-                  <Button type="button" variant="outline" onClick={closeAddDialog}>
-                    <X className="h-4 w-4 mr-2" />Cancel
-                  </Button>
-                  <Button type="submit" disabled={createStudentMutation.isPending}>
-                    {createStudentMutation.isPending ? 'Creating...' : (<><Save className="h-4 w-4 mr-2" />Create Student</>)}
                   </Button>
                 </div>
               </form>

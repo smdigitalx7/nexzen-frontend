@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Award, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { useToast } from '@/hooks/use-toast';
@@ -273,11 +274,11 @@ export const ExamsTab = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="exam_date">Exam Date</Label>
-            <Input
+            <DatePicker
               id="exam_date"
-              type="date"
               value={newExam.exam_date}
-              onChange={(e) => updateNewExamField('exam_date', e.target.value)}
+              onChange={(value) => updateNewExamField('exam_date', value)}
+              placeholder="Select exam date"
             />
           </div>
           <div className="space-y-2">
@@ -330,11 +331,11 @@ export const ExamsTab = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="edit_exam_date">Exam Date</Label>
-            <Input
+            <DatePicker
               id="edit_exam_date"
-              type="date"
               value={editExam.exam_date}
-              onChange={(e) => updateEditExamField('exam_date', e.target.value)}
+              onChange={(value) => updateEditExamField('exam_date', value)}
+              placeholder="Select exam date"
             />
           </div>
           <div className="space-y-2">

@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Award, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +39,7 @@ export const ExamsTab = ({
   const [isEditExamOpen, setIsEditExamOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedExam, setSelectedExam] = useState<any>(null);
+  const updateExam = useUpdateSchoolExam(selectedExam?.exam_id || 0);
   
   // Using shared form state management for new exam
   const {
@@ -108,15 +110,26 @@ export const ExamsTab = ({
       return;
     }
 
+    const maxMarks = parseInt(editExam.max_marks || "100") || 100;
+    const passMarks = parseInt(editExam.pass_marks || "35") || 35;
+
+    if (passMarks >= maxMarks) {
+      toast({
+        title: "Error",
+        description: "Pass marks must be less than max marks",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const updatePayload: SchoolExamUpdate = {
         exam_name: editExam.exam_name?.trim() || undefined,
         exam_date: editExam.exam_date || undefined,
-        pass_marks: parseInt(editExam.pass_marks || "35") || 35,
-        max_marks: parseInt(editExam.max_marks || "100") || 100,
+        pass_marks: passMarks,
+        max_marks: maxMarks,
       };
-      const updater = useUpdateSchoolExam(selectedExam.exam_id);
-      await updater.mutateAsync(updatePayload);
+      await updateExam.mutateAsync(updatePayload);
       
       resetEditExam();
       setSelectedExam(null);
@@ -249,11 +262,11 @@ export const ExamsTab = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="exam_date">Exam Date</Label>
-            <Input
+            <DatePicker
               id="exam_date"
-              type="date"
               value={newExam.exam_date}
-              onChange={(e) => updateNewExamField('exam_date', e.target.value)}
+              onChange={(value) => updateNewExamField('exam_date', value)}
+              placeholder="Select exam date"
             />
           </div>
           <div className="space-y-2">
@@ -292,6 +305,7 @@ export const ExamsTab = ({
         }}
         saveText="Update Exam"
         cancelText="Cancel"
+        disabled={updateExam.isPending}
       >
         <div className="space-y-4">
           <div className="space-y-2">
@@ -305,11 +319,11 @@ export const ExamsTab = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="edit_exam_date">Exam Date</Label>
-            <Input
+            <DatePicker
               id="edit_exam_date"
-              type="date"
               value={editExam.exam_date}
-              onChange={(e) => updateEditExamField('exam_date', e.target.value)}
+              onChange={(value) => updateEditExamField('exam_date', value)}
+              placeholder="Select exam date"
             />
           </div>
           <div className="space-y-2">

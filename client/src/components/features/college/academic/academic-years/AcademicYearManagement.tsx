@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Calendar, Edit, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
 import { FormDialog, ConfirmDialog } from '@/components/shared';
 import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
 import { useAcademicYears, useCreateAcademicYear, useUpdateAcademicYear, useDeleteAcademicYear } from '@/lib/hooks/general/useAcademicYear';
@@ -208,20 +209,20 @@ const AcademicYearManagement = () => {
           </div>
           <div className="space-y-2">
             <Label htmlFor="start_date">Start Date</Label>
-            <Input
+            <DatePicker
               id="start_date"
-              type="date"
               value={newAcademicYear.start_date}
-              onChange={(e) => setNewAcademicYear({ ...newAcademicYear, start_date: e.target.value })}
+              onChange={(value) => setNewAcademicYear({ ...newAcademicYear, start_date: value })}
+              placeholder="Select start date"
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="end_date">End Date</Label>
-            <Input
+            <DatePicker
               id="end_date"
-              type="date"
               value={newAcademicYear.end_date}
-              onChange={(e) => setNewAcademicYear({ ...newAcademicYear, end_date: e.target.value })}
+              onChange={(value) => setNewAcademicYear({ ...newAcademicYear, end_date: value })}
+              placeholder="Select end date"
             />
           </div>
           <div className="flex items-center space-x-2">
@@ -265,20 +266,20 @@ const AcademicYearManagement = () => {
           </div>
           <div className="space-y-2">
             <Label htmlFor="edit_start_date">Start Date</Label>
-            <Input
+            <DatePicker
               id="edit_start_date"
-              type="date"
               value={editAcademicYear.start_date}
-              onChange={(e) => setEditAcademicYear({ ...editAcademicYear, start_date: e.target.value })}
+              onChange={(value) => setEditAcademicYear({ ...editAcademicYear, start_date: value })}
+              placeholder="Select start date"
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="edit_end_date">End Date</Label>
-            <Input
+            <DatePicker
               id="edit_end_date"
-              type="date"
               value={editAcademicYear.end_date}
-              onChange={(e) => setEditAcademicYear({ ...editAcademicYear, end_date: e.target.value })}
+              onChange={(value) => setEditAcademicYear({ ...editAcademicYear, end_date: value })}
+              placeholder="Select end date"
             />
           </div>
           <div className="flex items-center space-x-2">

@@ -42,14 +42,15 @@ const AcademicManagement = () => {
   const groupsEnabled = useTabEnabled("groups", "classes");
   const coursesEnabled = useTabEnabled("courses", "classes");
 
-  // ✅ LAZY LOADING: Only fetch data for active tab
+  // ✅ Always fetch data for cards (not lazy loaded)
+  // Cards need data immediately, so we fetch regardless of active tab
   const {
     data: backendClasses = [],
     isLoading: classesLoading,
     isError: classesError,
     error: classesErrObj,
   } = useCollegeClasses({
-    enabled: classesEnabled,
+    enabled: true, // Always enabled for cards
   });
 
   const {
@@ -58,7 +59,7 @@ const AcademicManagement = () => {
     isError: subjectsError,
     error: subjectsErrObj,
   } = useCollegeSubjects({
-    enabled: subjectsEnabled,
+    enabled: true, // Always enabled for cards
   });
 
   const {
@@ -67,10 +68,11 @@ const AcademicManagement = () => {
     isError: examsError,
     error: examsErrObj,
   } = useCollegeExams({
-    enabled: examsEnabled,
+    enabled: true, // Always enabled for cards
   });
 
   // Note: useCollegeTests, useCollegeGroups, useCollegeCourses from specific hooks (not dropdowns)
+  // These are always enabled since they're used in cards
   const {
     data: testsData,
     isLoading: testsLoading,

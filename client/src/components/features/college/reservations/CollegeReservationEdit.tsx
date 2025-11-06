@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type RouteOption = { id: string; name: string; fee: number };
 
@@ -49,7 +50,12 @@ export default function SchoolReservationEdit({ form, setForm, classFee, transpo
         </div>
         <div>
           <Label htmlFor="dob">Date of Birth</Label>
-          <Input id="dob" type="date" value={form.dob || ""} onChange={(e) => setForm({ ...form, dob: e.target.value })} />
+          <DatePicker
+            id="dob"
+            value={form.dob || ""}
+            onChange={(value) => setForm({ ...form, dob: value })}
+            placeholder="Select date of birth"
+          />
         </div>
       </div>
 

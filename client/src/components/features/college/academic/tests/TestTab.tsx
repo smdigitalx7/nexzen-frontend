@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { FileText, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { useToast } from '@/hooks/use-toast';
@@ -234,11 +235,11 @@ export const TestTab = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="test_date">Test Date</Label>
-            <Input
+            <DatePicker
               id="test_date"
-              type="date"
               value={newTest.test_date}
-              onChange={(e) => updateNewTestField('test_date', e.target.value)}
+              onChange={(value) => updateNewTestField('test_date', value)}
+              placeholder="Select test date"
             />
           </div>
           <div className="space-y-2">
@@ -291,11 +292,11 @@ export const TestTab = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="edit_test_date">Test Date</Label>
-            <Input
+            <DatePicker
               id="edit_test_date"
-              type="date"
               value={editTest.test_date}
-              onChange={(e) => updateEditTestField('test_date', e.target.value)}
+              onChange={(value) => updateEditTestField('test_date', value)}
+              placeholder="Select test date"
             />
           </div>
           <div className="space-y-2">

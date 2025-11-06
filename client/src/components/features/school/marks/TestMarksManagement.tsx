@@ -4,6 +4,7 @@ import { ClipboardList, Eye, Edit, Trash2 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -675,7 +676,11 @@ const TestMarksManagementComponent = ({
                           <FormItem>
                             <FormLabel>Test Date</FormLabel>
                             <FormControl>
-                              <Input type="date" {...field} />
+                              <DatePicker
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                                placeholder="Select test date"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

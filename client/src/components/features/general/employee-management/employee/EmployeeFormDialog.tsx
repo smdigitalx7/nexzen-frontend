@@ -2,6 +2,7 @@ import React from "react";
 import { FormDialog } from "@/components/shared";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -129,11 +130,11 @@ const EmployeeFormDialog = ({ open, onOpenChange, isEditing, formData, onChange,
             </div>
             <div className="space-y-2">
               <Label htmlFor="date_of_birth">Date of Birth</Label>
-              <Input
+              <DatePicker
                 id="date_of_birth"
                 value={formData.date_of_birth || ''}
-                onChange={(e) => onChange("date_of_birth", e.target.value)}
-                type="date"
+                onChange={(value) => onChange("date_of_birth", value)}
+                placeholder="Select date of birth"
               />
             </div>
           </div>
@@ -170,11 +171,11 @@ const EmployeeFormDialog = ({ open, onOpenChange, isEditing, formData, onChange,
             </div>
             <div className="space-y-2">
               <Label htmlFor="date_of_joining">Date of Joining *</Label>
-              <Input
+              <DatePicker
                 id="date_of_joining"
                 value={formData.date_of_joining || ''}
-                onChange={(e) => onChange("date_of_joining", e.target.value)}
-                type="date"
+                onChange={(value) => onChange("date_of_joining", value)}
+                placeholder="Select date of joining"
                 required
               />
             </div>

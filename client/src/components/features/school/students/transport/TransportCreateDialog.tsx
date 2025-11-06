@@ -1,6 +1,7 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
 import { FormDialog } from '@/components/shared';
 import type { SchoolStudentTransportAssignmentCreate } from '@/lib/types/school';
 
@@ -111,21 +112,21 @@ export const TransportCreateDialog = ({
         </div>
         <div>
           <Label htmlFor="start_date">Start Date *</Label>
-          <Input
+          <DatePicker
             id="start_date"
-            type="date"
             value={formData.start_date}
-            onChange={(e) => onFormDataChange({ ...formData, start_date: e.target.value })}
+            onChange={(value) => onFormDataChange({ ...formData, start_date: value })}
+            placeholder="Select start date"
             required
           />
         </div>
         <div>
           <Label htmlFor="end_date">End Date (Optional)</Label>
-          <Input
+          <DatePicker
             id="end_date"
-            type="date"
             value={formData.end_date || ''}
-            onChange={(e) => onFormDataChange({ ...formData, end_date: e.target.value || null })}
+            onChange={(value) => onFormDataChange({ ...formData, end_date: value || null })}
+            placeholder="Select end date"
           />
         </div>
         <div className="flex items-center space-x-2">

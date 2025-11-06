@@ -12,6 +12,7 @@ import {
   handlePayByAdmission,
 } from "@/lib/api-school";
 import { SchoolReservationsService } from "@/lib/services/school/reservations.service";
+import { DatePicker } from "@/components/ui/date-picker";
 
 /**
  * Example payment data structure
@@ -149,14 +150,14 @@ export function PaymentFormWithModal({ admissionNo }: { admissionNo: string }) {
           
           <div>
             <Label htmlFor="payment_date">Payment Date</Label>
-            <Input
+            <DatePicker
               id="payment_date"
-              type="date"
               value={paymentData.payment_date}
-              onChange={(e) => setPaymentData(prev => ({
+              onChange={(value) => setPaymentData(prev => ({
                 ...prev,
-                payment_date: e.target.value
+                payment_date: value
               }))}
+              placeholder="Select payment date"
             />
           </div>
           
