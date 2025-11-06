@@ -15,6 +15,9 @@ import {
   Menu,
   FileText,
   BarChart3,
+  LogOut,
+  ChevronDown,
+  ChevronsDown,
 } from "lucide-react";
 import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { cn } from "@/lib/utils";
@@ -23,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
 import { useNavigationStore } from "@/store/navigationStore";
 import { ROLES } from "@/lib/constants";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface NavigationItem {
   title: string;
@@ -35,9 +39,10 @@ interface NavigationItem {
 }
 
 const Sidebar = () => {
-  const [location] = useLocation();
-  const { user, currentBranch } = useAuthStore();
+  const [location, setLocation] = useLocation();
+  const { user, currentBranch, logoutAsync } = useAuthStore();
   const { sidebarOpen, setActiveModule, toggleSidebar } = useNavigationStore();
+  const queryClient = useQueryClient();
 
   // Debug logging (only in development)
   useEffect(() => {
@@ -286,6 +291,16 @@ const Sidebar = () => {
     setActiveModule(title.toLowerCase());
   };
 
+  const handleLogout = async () => {
+    try {
+      await logoutAsync();
+      queryClient.clear();
+      setLocation("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
   const NavItem = ({
     item,
     isActive,
@@ -313,36 +328,42 @@ const Sidebar = () => {
         variant={isActive ? "secondary" : "ghost"}
         size="sm"
         className={cn(
-          "w-full justify-start gap-3 h-10 hover-elevate relative transition-all duration-200 group rounded-lg",
+          "w-full justify-start gap-3 h-10 hover-elevate relative transition-all duration-200 group rounded-lg overflow-hidden",
           isActive
             ? "bg-blue-100/80 text-blue-700 font-medium hover:bg-blue-100/90 "
             : "hover:bg-slate-50/70 text-slate-600 hover:text-slate-800"
         )}
         data-testid={`nav-${item.title.toLowerCase().replace(" ", "-")}`}
       >
-        <item.icon
-          className={cn(
-            "h-4 w-4 shrink-0 transition-colors duration-200",
-            isActive
-              ? "text-blue-600"
-              : "text-slate-400 group-hover:text-slate-600"
-          )}
-        />
-        {sidebarOpen && (
-          <>
-            <span className="truncate text-sm" title={item.title}>
-              {item.title}
-            </span>
-            {item.badge && (
-              <Badge
-                variant="secondary"
-                className="ml-auto h-5 px-1.5 text-xs bg-slate-200 text-slate-700 border-slate-300/50"
-              >
-                {item.badge}
-              </Badge>
+        <motion.div
+          className="flex items-center gap-3 flex-1"
+          whileHover={{ x: 4 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+        >
+          <item.icon
+            className={cn(
+              "h-4 w-4 shrink-0 transition-colors duration-200",
+              isActive
+                ? "text-blue-600"
+                : "text-slate-400 group-hover:text-slate-600"
             )}
-          </>
-        )}
+          />
+          {sidebarOpen && (
+            <>
+              <span className="truncate text-sm" title={item.title}>
+                {item.title}
+              </span>
+              {item.badge && (
+                <Badge
+                  variant="secondary"
+                  className="ml-auto h-5 px-1.5 text-xs bg-slate-200 text-slate-700 border-slate-300/50"
+                >
+                  {item.badge}
+                </Badge>
+              )}
+            </>
+          )}
+        </motion.div>
       </Button>
     </Link>
   );
@@ -428,12 +449,12 @@ const Sidebar = () => {
 
           {/* Schema-specific Modules */}
           {(() => {
-            console.log("🎨 Rendering Schema Modules:", {
-              hasCurrentBranch: !!currentBranch,
-              schemaModulesLength: schemaModules.length,
-              schemaModules: schemaModules.map((m) => m.title),
-              willRender: currentBranch && schemaModules.length > 0,
-            });
+            // console.log("🎨 Rendering Schema Modules:", {
+            //   hasCurrentBranch: !!currentBranch,
+            //   schemaModulesLength: schemaModules.length,
+            //   schemaModules: schemaModules.map((m) => m.title),
+            //   willRender: currentBranch && schemaModules.length > 0,
+            // });
             return null;
           })()}
           {currentBranch && schemaModules.length > 0 && (
@@ -467,11 +488,11 @@ const Sidebar = () => {
 
           {/* General/Public Modules - Only for ADMIN and INSTITUTE_ADMIN */}
           {(() => {
-            console.log("🎨 Rendering General Modules:", {
-              generalModulesLength: generalModules.length,
-              generalModules: generalModules.map((m) => m.title),
-              willRender: generalModules.length > 0,
-            });
+            // console.log("🎨 Rendering General Modules:", {
+            //   generalModulesLength: generalModules.length,
+            //   generalModules: generalModules.map((m) => m.title),
+            //   willRender: generalModules.length > 0,
+            // });
             return null;
           })()}
           {generalModules.length > 0 && (
@@ -503,21 +524,44 @@ const Sidebar = () => {
         </div>
       </div>
 
-      {/* Footer */}
-      {/* {sidebarOpen && (
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="text-xs text-muted-foreground text-center">
-            {user?.role === "institute_admin"
-              ? "Full Access"
-              : user?.role === "academic"
-              ? "Academic Access"
-              : "Financial Access"}
+      {/* <div className="relative mt-auto bg-transparent border-t border-slate-200/80">
+        {sidebarOpen && (
+          <div className="flex justify-center items-center py-3 absolute bottom-0 left-0 right-0   pt-10 pb-4 bg-gradient-to-b from-transparent to-white">
+            <ChevronsDown className="h-4 w-4 text-slate-400/70" />
           </div>
-          <div className="text-xs text-muted-foreground text-center mt-1">
-            v1.0.0
-          </div>
+        )}
+        
+        <div className="px-4 pb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className={cn(
+              "w-full justify-start gap-3 h-10 hover-elevate relative transition-all duration-200 group rounded-lg overflow-hidden",
+              "text-slate-600 hover:text-red-600 hover:bg-red-50/50"
+            )}
+            data-testid="button-sidebar-logout"
+          >
+            <motion.div
+              className="flex items-center gap-3 flex-1"
+              whileHover={{ x: 4 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              <LogOut
+                className={cn(
+                  "h-4 w-4 shrink-0 transition-colors duration-200",
+                  "text-slate-400 group-hover:text-red-600"
+                )}
+              />
+              {sidebarOpen && (
+                <span className="truncate text-sm" title="Logout">
+                  Logout
+                </span>
+              )}
+            </motion.div>
+          </Button>
         </div>
-      )} */}
+      </div> */}
     </motion.aside>
   );
 };
