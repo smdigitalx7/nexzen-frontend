@@ -1,11 +1,8 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { ConfirmDialog } from '@/components/shared';
+import { useState, useMemo, useCallback } from 'react';
 import { EnhancedDataTable } from '@/components/shared';
 import {
   EnrollmentSearchForm,
   EnrollmentCreateDialog,
-  EnrollmentEditDialog,
   EnrollmentViewDialog,
 } from './enrollments';
 import { 
@@ -13,14 +10,12 @@ import {
   useSchoolEnrollment,
   useSchoolEnrollmentByAdmission,
   useCreateSchoolEnrollment,
-  useUpdateSchoolEnrollment,
-  useDeleteSchoolEnrollment,
   useSchoolStudentsList,
 } from '@/lib/hooks/school';
 // Note: useSchoolClasses, useSchoolSections from dropdowns (naming conflict)
 import { useSchoolClasses, useSchoolSections } from '@/lib/hooks/school/use-school-dropdowns';
 import type { ColumnDef } from '@tanstack/react-table';
-import type { SchoolEnrollmentCreate, SchoolEnrollmentUpdate, SchoolEnrollmentRead } from '@/lib/types/school';
+import type { SchoolEnrollmentCreate, SchoolEnrollmentRead } from '@/lib/types/school';
 
 const EnrollmentsTabComponent = () => {
   // State management
@@ -68,19 +63,13 @@ const EnrollmentsTabComponent = () => {
   const isError = shouldUseAdmissionNo ? admissionNoResult.isError : result.isError;
   
   const createMutation = useCreateSchoolEnrollment();
-  const updateMutation = useUpdateSchoolEnrollment();
-  const deleteMutation = useDeleteSchoolEnrollment();
 
   // Dialog state
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<number | null>(null);
   const [viewEnrollmentId, setViewEnrollmentId] = useState<number | null>(null);
 
-  // Fetch selected enrollment for editing/viewing
-  const { data: selectedEnrollment } = useSchoolEnrollment(selectedEnrollmentId);
+  // Fetch selected enrollment for viewing
   const { data: viewEnrollment, isLoading: isLoadingView } = useSchoolEnrollment(viewEnrollmentId);
 
   const [formData, setFormData] = useState<SchoolEnrollmentCreate>({
@@ -92,14 +81,6 @@ const EnrollmentsTabComponent = () => {
     is_active: true,
   });
 
-  const [editFormData, setEditFormData] = useState({
-    class_id: 0,
-    section_id: 0,
-    roll_number: '',
-    enrollment_date: null as string | null,
-    is_active: true,
-  });
-
   // Reset form
   const resetForm = useCallback(() => {
     setFormData({
@@ -108,16 +89,6 @@ const EnrollmentsTabComponent = () => {
       section_id: 0,
       roll_number: '',
       enrollment_date: new Date().toISOString().split('T')[0],
-      is_active: true,
-    });
-  }, []);
-
-  const resetEditForm = useCallback(() => {
-    setEditFormData({
-      class_id: 0,
-      section_id: 0,
-      roll_number: '',
-      enrollment_date: null,
       is_active: true,
     });
   }, []);
@@ -141,65 +112,6 @@ const EnrollmentsTabComponent = () => {
     setViewEnrollmentId(enrollment.enrollment_id);
     setIsViewDialogOpen(true);
   }, []);
-
-  // Handle edit
-  const handleEdit = useCallback((enrollment: any) => {
-    setSelectedEnrollmentId(enrollment.enrollment_id);
-    setIsEditDialogOpen(true);
-  }, []);
-
-  // Handle delete
-  const handleDelete = useCallback((enrollment: any) => {
-    setSelectedEnrollmentId(enrollment.enrollment_id);
-    setIsDeleteDialogOpen(true);
-  }, []);
-
-  // Handle update
-  const handleUpdate = useCallback(async () => {
-    if (!selectedEnrollmentId || !selectedEnrollment) return;
-    
-    const updatePayload: SchoolEnrollmentUpdate = {
-      class_id: editFormData.class_id || undefined,
-      section_id: editFormData.section_id || undefined,
-      roll_number: editFormData.roll_number || undefined,
-      enrollment_date: editFormData.enrollment_date || undefined,
-      is_active: editFormData.is_active ?? undefined,
-    };
-    
-    try {
-      await updateMutation.mutateAsync({ id: selectedEnrollmentId, payload: updatePayload });
-      setIsEditDialogOpen(false);
-      setSelectedEnrollmentId(null);
-      resetEditForm();
-    } catch (error) {
-      // Error handled by mutation hook
-    }
-  }, [selectedEnrollmentId, selectedEnrollment, editFormData, updateMutation, resetEditForm]);
-
-  // Handle delete confirm
-  const handleDeleteConfirm = useCallback(async () => {
-    if (!selectedEnrollmentId) return;
-    try {
-      await deleteMutation.mutateAsync(selectedEnrollmentId);
-      setIsDeleteDialogOpen(false);
-      setSelectedEnrollmentId(null);
-    } catch (error) {
-      // Error handled by mutation hook
-    }
-  }, [selectedEnrollmentId, deleteMutation]);
-
-  // Populate form when enrollment is loaded for editing
-  useEffect(() => {
-    if (isEditDialogOpen && selectedEnrollment) {
-      setEditFormData({
-        class_id: selectedEnrollment.class_id,
-        section_id: selectedEnrollment.section_id,
-        roll_number: selectedEnrollment.roll_number,
-        enrollment_date: selectedEnrollment.enrollment_date || null,
-        is_active: selectedEnrollment.is_active,
-      });
-    }
-  }, [isEditDialogOpen, selectedEnrollment]);
 
   // Memoized handlers
   const handleSectionChange = useCallback((value: string) => {
@@ -273,16 +185,8 @@ const EnrollmentsTabComponent = () => {
     {
       type: 'view' as const,
       onClick: (row: any) => handleView(row)
-    },
-    {
-      type: 'edit' as const,
-      onClick: (row: any) => handleEdit(row)
-    },
-    {
-      type: 'delete' as const,
-      onClick: (row: any) => handleDelete(row)
     }
-  ], [handleView, handleEdit, handleDelete]);
+  ], [handleView]);
 
   // Define columns
   const columns: ColumnDef<SchoolEnrollmentRead>[] = useMemo(() => [
@@ -363,29 +267,6 @@ const EnrollmentsTabComponent = () => {
         sections={sections}
       />
 
-      {/* Edit Enrollment Dialog */}
-      <EnrollmentEditDialog
-        open={isEditDialogOpen}
-        onOpenChange={(open) => {
-          setIsEditDialogOpen(open);
-          if (!open) {
-            setSelectedEnrollmentId(null);
-            resetEditForm();
-          }
-        }}
-        isLoading={updateMutation.isPending}
-        formData={editFormData}
-        onFormDataChange={setEditFormData}
-        onSave={handleUpdate}
-        onCancel={() => {
-          setIsEditDialogOpen(false);
-          setSelectedEnrollmentId(null);
-          resetEditForm();
-        }}
-        classes={classes}
-        sections={sections}
-      />
-
       {/* View Enrollment Dialog */}
       <EnrollmentViewDialog
         open={isViewDialogOpen}
@@ -399,20 +280,6 @@ const EnrollmentsTabComponent = () => {
         isLoading={isLoadingView}
         classes={classes}
         sections={sections}
-      />
-
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        title="Delete Enrollment"
-        description="Are you sure you want to delete this enrollment? This action cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
-        variant="destructive"
-        isLoading={deleteMutation.isPending}
-        loadingText="Deleting..."
-        onConfirm={handleDeleteConfirm}
       />
     </div>
   );

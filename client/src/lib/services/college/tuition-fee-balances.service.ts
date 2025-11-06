@@ -22,7 +22,7 @@ export const CollegeTuitionBalancesService = {
 
   // GET /api/v1/college/tuition-fee-balances/by-admission-no/{admission_no}
   getByAdmissionNo(admission_no: string) {
-    return Api.get<CollegeTuitionFeeBalanceRead[]>(`/college/tuition-fee-balances/by-admission-no/${admission_no}`);
+    return Api.get<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances/by-admission-no/${admission_no}`);
   },
 
   // GET /api/v1/college/tuition-fee-balances/{enrollment_id}

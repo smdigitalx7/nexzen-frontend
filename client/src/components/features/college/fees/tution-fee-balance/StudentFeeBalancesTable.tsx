@@ -1,12 +1,8 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { User } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/lib/utils";
-import { useUpdateCollegeTuitionBalance, useDeleteCollegeTuitionBalance } from "@/lib/hooks/college";
 import { ColumnDef } from "@tanstack/react-table";
 import { EnhancedDataTable } from "@/components/shared";
 import {
@@ -14,24 +10,6 @@ import {
   createCurrencyColumn,
   createDateColumn,
 } from "@/lib/utils/factory/columnFactories";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 interface StudentFeeBalance {
   id: number;
@@ -85,19 +63,6 @@ export const StudentFeeBalancesTable = ({
   title = "Student Fee Balances",
   loading = false,
 }: StudentFeeBalancesTableProps) => {
-  const deleteMutation = useDeleteCollegeTuitionBalance();
-  
-  // State for edit and delete dialogs
-  const [editOpen, setEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<StudentFeeBalance | null>(null);
-  const [editForm, setEditForm] = useState({
-    total_fee: 0,
-    term1_paid: 0,
-    term2_paid: 0,
-    term3_paid: 0,
-    book_paid: 0,
-  });
 
   // Get unique classes for filter options
   const uniqueClasses = Array.from(new Set(studentBalances.map(s => s.class_name)));
@@ -159,60 +124,8 @@ export const StudentFeeBalancesTable = ({
     {
       type: 'view' as const,
       onClick: (row: StudentFeeBalance) => onViewStudent(row)
-    },
-    {
-      type: 'edit' as const,
-      onClick: (row: StudentFeeBalance) => handleEdit(row)
-    },
-    {
-      type: 'delete' as const,
-      onClick: (row: StudentFeeBalance) => handleDelete(row)
     }
   ], [onViewStudent]);
-
-  const handleEdit = (student: StudentFeeBalance) => {
-    setSelectedStudent(student);
-    setEditForm({
-      total_fee: student.total_fee,
-      term1_paid: 0, // These would need to be fetched from the actual balance data
-      term2_paid: 0,
-      term3_paid: 0,
-      book_paid: 0,
-    });
-    setEditOpen(true);
-  };
-
-  const handleDelete = (student: StudentFeeBalance) => {
-    setSelectedStudent(student);
-    setDeleteOpen(true);
-  };
-
-  const updateMutation = useUpdateCollegeTuitionBalance(selectedStudent?.id || 0);
-
-  const handleUpdate = async () => {
-    if (!selectedStudent) return;
-    
-    try {
-      await updateMutation.mutateAsync(editForm);
-      setEditOpen(false);
-      // Toast handled by mutation hook
-    } catch (error) {
-      // Error toast handled by mutation hook
-    }
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!selectedStudent) return;
-    
-    try {
-      await deleteMutation.mutateAsync(selectedStudent.id);
-      setDeleteOpen(false);
-      setSelectedStudent(null);
-      // Toast handled by mutation hook
-    } catch (error) {
-      // Error toast handled by mutation hook
-    }
-  };
 
   // Calculate summary statistics
   const totalCollected = studentBalances.reduce((sum, s) => sum + s.paid_amount, 0);
@@ -292,100 +205,6 @@ export const StudentFeeBalancesTable = ({
           <div className="text-sm text-muted-foreground">Students</div>
         </div>
       </div>
-
-      {/* Edit Dialog */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Tuition Fee Balance</DialogTitle>
-            <DialogDescription>
-              Update the tuition fee balance for {selectedStudent?.student_name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="total_fee">Total Fee</Label>
-              <Input
-                id="total_fee"
-                type="number"
-                value={editForm.total_fee}
-                onChange={(e) => setEditForm({ ...editForm, total_fee: parseFloat(e.target.value) || 0 })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="term1_paid">Term 1 Paid</Label>
-              <Input
-                id="term1_paid"
-                type="number"
-                value={editForm.term1_paid}
-                onChange={(e) => setEditForm({ ...editForm, term1_paid: parseFloat(e.target.value) || 0 })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="term2_paid">Term 2 Paid</Label>
-              <Input
-                id="term2_paid"
-                type="number"
-                value={editForm.term2_paid}
-                onChange={(e) => setEditForm({ ...editForm, term2_paid: parseFloat(e.target.value) || 0 })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="term3_paid">Term 3 Paid</Label>
-              <Input
-                id="term3_paid"
-                type="number"
-                value={editForm.term3_paid}
-                onChange={(e) => setEditForm({ ...editForm, term3_paid: parseFloat(e.target.value) || 0 })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="book_paid">Book Fee Paid</Label>
-              <Input
-                id="book_paid"
-                type="number"
-                value={editForm.book_paid}
-                onChange={(e) => setEditForm({ ...editForm, book_paid: parseFloat(e.target.value) || 0 })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => { void handleUpdate(); }}>
-              Update Balance
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Tuition Fee Balance</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this tuition fee balance? This action cannot be undone.
-              {selectedStudent && (
-                <span className="block mt-2 p-2 bg-red-50 rounded">
-                  <strong>Student:</strong> {selectedStudent.student_name} ({selectedStudent.student_id})
-                </span>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => { void handleDeleteConfirm(); }}
-              disabled={deleteMutation.isPending}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </motion.div>
   );
 };
