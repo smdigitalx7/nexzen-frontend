@@ -1,5 +1,5 @@
 import { Api } from "@/lib/api";
-import { CollegeBookFeePaymentUpdate, CollegeTermPaymentUpdate, CollegeTuitionBalanceBulkCreate, CollegeTuitionBalanceBulkCreateResult, CollegeTuitionFeeBalanceCreate, CollegeTuitionFeeBalanceFullRead, CollegeTuitionFeeBalanceRead, CollegeTuitionFeeBalanceUpdate, CollegeTuitionPaginatedResponse, CollegeTuitionUnpaidTermsResponse, CollegeTuitionFeeBalanceDashboardStats } from "@/lib/types/college";
+import { CollegeBookFeePaymentUpdate, CollegeTermPaymentUpdate, CollegeTuitionBalanceBulkCreate, CollegeTuitionBalanceBulkCreateResult, CollegeTuitionFeeBalanceCreate, CollegeTuitionFeeBalanceFullRead, CollegeTuitionFeeBalanceRead, CollegeTuitionPaginatedResponse, CollegeTuitionUnpaidTermsResponse, CollegeTuitionFeeBalanceDashboardStats } from "@/lib/types/college";
 
 export interface CollegeTuitionBalancesListParams {
   page?: number;
@@ -35,16 +35,6 @@ export const CollegeTuitionBalancesService = {
     return Api.post<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances`, payload);
   },
 
-  // PUT /api/v1/college/tuition-fee-balances/{enrollment_id}
-  update(enrollment_id: number, payload: CollegeTuitionFeeBalanceUpdate) {
-    return Api.put<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances/${enrollment_id}`, payload);
-  },
-
-  // DELETE /api/v1/college/tuition-fee-balances/{enrollment_id}
-  delete(enrollment_id: number) {
-    return Api.delete<void>(`/college/tuition-fee-balances/${enrollment_id}`);
-  },
-
   // POST /api/v1/college/tuition-fee-balances/bulk-create
   bulkCreate(payload: CollegeTuitionBalanceBulkCreate) {
     return Api.post<CollegeTuitionBalanceBulkCreateResult>(`/college/tuition-fee-balances/bulk-create`, payload);
@@ -65,5 +55,3 @@ export const CollegeTuitionBalancesService = {
     return Api.put<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances/${enrollment_id}/book-payment`, payload);
   },
 };
-
-

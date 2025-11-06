@@ -18,11 +18,13 @@ export interface CollegeTestMarkUpdate {
 }
 
 export interface CollegeTestMarkMinimalRead {
-  test_mark_id: number;
+  mark_id: number;
   enrollment_id: number;
   student_name: string;
   roll_number: string;
-  section_name: string;
+  admission_no: string;
+  class_name: string;
+  group_name: string;
   marks_obtained: number | null;
   percentage: number | null;
   grade: string | null;
@@ -40,11 +42,13 @@ export interface CollegeTestGroupAndClassResponse {
 }
 
 export interface CollegeTestMarkFullReadResponse {
-  test_mark_id: number;
+  mark_id: number;
   enrollment_id: number;
   student_name: string;
   roll_number: string;
-  section_name: string;
+  admission_no: string;
+  class_name: string;
+  group_name: string;
   test_id: number;
   test_name: string;
   subject_id: number;
@@ -82,5 +86,3 @@ export interface CollegeTestMarksListParams {
   page?: number;
   pageSize?: number;
 }
-
-

@@ -3,7 +3,6 @@ import { CollegeEnrollmentsService } from "@/lib/services/college/enrollments.se
 import type {
   CollegeEnrollmentCreate,
   CollegeEnrollmentFilterParams,
-  CollegeEnrollmentUpdate,
   CollegeEnrollmentWithStudentDetails,
   CollegeEnrollmentsPaginatedResponse,
 } from "@/lib/types/college/index.ts";
@@ -41,29 +40,6 @@ export function useCreateCollegeEnrollment() {
       void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.root() });
     },
   }, "Enrollment created successfully");
-}
-
-export function useUpdateCollegeEnrollment() {
-  const qc = useQueryClient();
-  return useMutationWithSuccessToast({
-    mutationFn: ({ id, payload }: { id: number; payload: CollegeEnrollmentUpdate }) =>
-      CollegeEnrollmentsService.update(id, payload),
-    onSuccess: (_data, { id }) => {
-      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.root() });
-      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.detail(id) });
-    },
-  }, "Enrollment updated successfully");
-}
-
-export function useDeleteCollegeEnrollment() {
-  const qc = useQueryClient();
-  return useMutationWithSuccessToast({
-    mutationFn: (enrollmentId: number) => CollegeEnrollmentsService.delete(enrollmentId),
-    onSuccess: (_, enrollmentId) => {
-      void qc.invalidateQueries({ queryKey: collegeKeys.enrollments.root() });
-      qc.invalidateQueries({ queryKey: collegeKeys.enrollments.detail(enrollmentId) });
-    },
-  }, "Enrollment deleted successfully");
 }
 
 

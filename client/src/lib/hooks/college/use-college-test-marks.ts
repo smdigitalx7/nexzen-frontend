@@ -15,8 +15,32 @@ export function useCollegeTestMarksList(params?: CollegeTestMarksListParams) {
 export function useCollegeTestMark(markId: number | null | undefined) {
   return useQuery({
     queryKey: typeof markId === "number" ? collegeKeys.testMarks.detail(markId) : [...collegeKeys.testMarks.root(), "detail", "nil"],
-    queryFn: () => CollegeTestMarksService.getById(markId as number),
+    queryFn: async () => {
+      try {
+        return await CollegeTestMarksService.getById(markId as number);
+      } catch (error: unknown) {
+        // Extract error message - Api class attaches status and data to Error
+        let errorMessage = "Failed to load test mark details";
+        
+        if (error instanceof Error) {
+          const apiError = error as Error & { status?: number; data?: { detail?: string; message?: string } };
+          
+          if (apiError.status === 422) {
+            errorMessage = apiError.data?.detail || apiError.data?.message || apiError.message || "Invalid test mark data. The backend response may be missing required fields (admission_no, class_name).";
+          } else if (apiError.status === 404) {
+            errorMessage = "Test mark not found";
+          } else {
+            errorMessage = apiError.data?.detail || apiError.data?.message || apiError.message || errorMessage;
+          }
+        } else if (error && typeof error === 'object' && 'message' in error) {
+          errorMessage = String(error.message);
+        }
+        
+        throw new Error(errorMessage);
+      }
+    },
     enabled: typeof markId === "number" && markId > 0,
+    retry: false, // Don't retry on errors
   });
 }
 

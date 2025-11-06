@@ -1,5 +1,5 @@
 import { Api } from "@/lib/api";
-import { CollegeEnrollmentCreate, CollegeEnrollmentUpdate, CollegeEnrollmentsPaginatedResponse, CollegeEnrollmentWithStudentDetails } from "@/lib/types/college";
+import { CollegeEnrollmentCreate, CollegeEnrollmentsPaginatedResponse, CollegeEnrollmentWithStudentDetails } from "@/lib/types/college";
 
 export interface CollegeEnrollmentsListParams {
   page?: number;
@@ -24,13 +24,5 @@ export const CollegeEnrollmentsService = {
 
   create(payload: CollegeEnrollmentCreate) {
     return Api.post<CollegeEnrollmentWithStudentDetails>(`/college/student-enrollments`, payload);
-  },
-
-  update(enrollment_id: number, payload: CollegeEnrollmentUpdate) {
-    return Api.put<CollegeEnrollmentWithStudentDetails>(`/college/student-enrollments/${enrollment_id}`, payload);
-  },
-
-  delete(enrollment_id: number) {
-    return Api.delete<void>(`/college/student-enrollments/${enrollment_id}`);
   },
 };

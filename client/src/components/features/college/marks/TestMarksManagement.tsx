@@ -26,7 +26,7 @@ import {
   useCollegeGroups,
   useCollegeCourses,
 } from '@/lib/hooks/college';
-// Note: useCollegeTests from dropdowns (naming conflict)
+
 import { useCollegeTests } from '@/lib/hooks/college/use-college-dropdowns';
 import type { CollegeTestMarkMinimalRead, CollegeTestMarksListParams } from '@/lib/types/college/test-marks';
 import {
@@ -101,10 +101,10 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
   const { data: courses = [] } = useCollegeCourses();
 
   // Single test mark view data (enabled only when an id is set)
-  const viewQuery = useCollegeTestMark(viewingTestMarkId || 0);
-  const viewedTestMark = viewingTestMarkId ? viewQuery.data : null;
-  const viewTestLoading = viewingTestMarkId ? viewQuery.isLoading : false;
-  const viewTestError = viewingTestMarkId ? viewQuery.error : null;
+  const viewQuery = useCollegeTestMark(viewingTestMarkId);
+  const viewedTestMark = viewQuery.data || null;
+  const viewTestLoading = viewQuery.isLoading;
+  const viewTestError = viewQuery.error;
 
   // Test marks hooks - only fetch when class is selected and groups are loaded
   const testMarksQuery = useMemo((): CollegeTestMarksListParams | undefined => {
@@ -133,7 +133,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
 
   const { data: testMarksData, isLoading: testMarksLoading, error: testMarksError } = useCollegeTestMarksList(testMarksQuery);
   const createTestMarkMutation = useCreateCollegeTestMark();
-  const updateTestMarkMutation = useUpdateCollegeTestMark(editingTestMark?.test_mark_id || 0);
+  const updateTestMarkMutation = useUpdateCollegeTestMark(editingTestMark?.mark_id || 0);
   const deleteTestMarkMutation = useDeleteCollegeTestMark();
 
   // Form
@@ -238,16 +238,18 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                 subject_id: number;
                 subject_name: string;
                 students: Array<{
-                  test_mark_id: number;
+                  mark_id: number;
                   enrollment_id: number;
                   student_name: string;
                   roll_number: string;
+                  admission_no: string;
+                  class_name: string;
+                  group_name: string;
                   marks_obtained: number | null;
                   percentage: number | null;
                   grade: string | null;
                   remarks: string | null;
                   conducted_at: string | null;
-                  section_name?: string;
                 }> | null;
               }> | null;
             };
@@ -257,11 +259,13 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                 if (subject && subject.students && Array.isArray(subject.students)) {
                   subject.students.forEach((student) => {
                     flattened.push({
-                      test_mark_id: student.test_mark_id,
+                      mark_id: student.mark_id,
                       enrollment_id: student.enrollment_id,
                       student_name: student.student_name,
                       roll_number: student.roll_number,
-                      section_name: student.section_name || '',
+                      admission_no: student.admission_no,
+                      class_name: student.class_name,
+                      group_name: student.group_name,
                       marks_obtained: student.marks_obtained,
                       percentage: student.percentage,
                       grade: student.grade,
@@ -335,17 +339,19 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
         .filter((mark: unknown): mark is Record<string, unknown> => 
           mark !== null && 
           typeof mark === 'object' && 
-          'test_mark_id' in mark && 
+          ('mark_id' in mark || 'test_mark_id' in mark) && 
           'enrollment_id' in mark
         )
         .map((markObj) => {
           const obj = markObj as unknown as Record<string, unknown>;
           return {
-            test_mark_id: Number(obj.test_mark_id),
+            mark_id: Number(obj.mark_id || obj.test_mark_id || 0),
             enrollment_id: Number(obj.enrollment_id),
             student_name: String(obj.student_name || ''),
             roll_number: String(obj.roll_number || ''),
-            section_name: String(obj.section_name || ''),
+            admission_no: String(obj.admission_no || ''),
+            class_name: String(obj.class_name || ''),
+            group_name: String(obj.group_name || ''),
             marks_obtained: typeof obj.marks_obtained === 'number' ? obj.marks_obtained : null,
             percentage: typeof obj.percentage === 'number' ? obj.percentage : null,
             grade: typeof obj.grade === 'string' ? obj.grade : null,
@@ -363,19 +369,6 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
   }, [testMarksData]);
 
   const testMarks = flattenedMarks;
-
-  // Debug: Log data structure to understand API response
-  useEffect(() => {
-    if (testMarksData && process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
-      console.log('Test Marks Data:', {
-        isArray: Array.isArray(testMarksData),
-        length: Array.isArray(testMarksData) ? testMarksData.length : 0,
-        firstItem: Array.isArray(testMarksData) && testMarksData.length > 0 ? testMarksData[0] : null,
-        flattenedCount: testMarks.length,
-      });
-    }
-  }, [testMarksData, testMarks.length]);
 
   // Notify parent component when data changes
   useEffect(() => {
@@ -401,7 +394,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
     };
 
     return [
-      createStudentColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string }>("student_name", "roll_number", "section_name", { header: "Student" }),
+      createStudentColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string }>("student_name", "roll_number", "group_name", { header: "Student" }),
       createSubjectColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string }>("subject_name", "test_name", { header: "Subject" }),
       createMarksColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; max_marks?: number }>("marks_obtained", "max_marks", "percentage", { header: "Marks" }),
       createGradeColumn<CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string }>("grade", gradeColors, { header: "Grade" }),
@@ -413,7 +406,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
   const actionButtonGroups = useMemo(() => [
     {
       type: 'view' as const,
-      onClick: (row: CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; max_marks?: number }) => handleViewTestMark(row.test_mark_id)
+      onClick: (row: CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; max_marks?: number }) => handleViewTestMark(row.mark_id)
     },
     {
       type: 'edit' as const,
@@ -421,7 +414,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
     },
     {
       type: 'delete' as const,
-      onClick: (row: CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; max_marks?: number }) => handleDeleteTestMark(row.test_mark_id)
+      onClick: (row: CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; max_marks?: number }) => handleDeleteTestMark(row.mark_id)
     }
   ], [handleViewTestMark, handleEditTestMark, handleDeleteTestMark]);
 
@@ -780,29 +773,59 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
             ))}
 
             {/* View Test Mark Dialog */}
-            <Dialog open={showViewTestMarkDialog} onOpenChange={setShowViewTestMarkDialog}>
+            <Dialog 
+              open={showViewTestMarkDialog} 
+              onOpenChange={(open) => {
+                setShowViewTestMarkDialog(open);
+                if (!open) {
+                  setViewingTestMarkId(null);
+                }
+              }}
+            >
               <DialogContent className="sm:max-w-[520px] max-h-[90vh] flex flex-col p-0">
                 <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
                   <DialogTitle>Test Mark Details</DialogTitle>
                 </DialogHeader>
                 <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
-                  {viewTestLoading ? (
-                  <div className="p-6 text-center">
-                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                    <p className="text-slate-600">Loading mark...</p>
-                  </div>
-                ) : viewTestError ? (
-                  <div className="p-6 text-center text-red-600">Failed to load mark details.</div>
-                ) : viewedTestMark ? (
+                  {!viewingTestMarkId ? (
+                    <div className="p-6 text-center text-slate-600">No mark selected.</div>
+                  ) : viewTestLoading ? (
+                    <div className="p-6 text-center">
+                      <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                      <p className="text-slate-600">Loading mark...</p>
+                    </div>
+                  ) : viewTestError ? (
+                    <div className="p-6 text-center space-y-2">
+                      <div className="text-red-600 font-semibold">Failed to load mark details</div>
+                      <div className="text-sm text-red-500">
+                        {viewTestError instanceof Error ? viewTestError.message : 'Unknown error occurred'}
+                      </div>
+                      <div className="text-xs text-slate-500 mt-2">
+                        The test mark may not exist or you may not have permission to view it.
+                      </div>
+                    </div>
+                  ) : viewedTestMark ? (
                   <div className="space-y-4 p-2">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <div className="text-xs text-slate-500">Student</div>
-                        <div className="font-medium text-slate-900">{viewedTestMark.student_name} ({viewedTestMark.roll_number})</div>
+                        <div className="text-xs text-slate-500">Student Name</div>
+                        <div className="font-medium text-slate-900">{viewedTestMark.student_name}</div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-500">Section</div>
-                        <div className="font-medium text-slate-900">{viewedTestMark.section_name}</div>
+                        <div className="text-xs text-slate-500">Admission No</div>
+                        <div className="font-medium text-slate-900">{viewedTestMark.admission_no}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Roll Number</div>
+                        <div className="font-medium text-slate-900">{viewedTestMark.roll_number}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Class</div>
+                        <div className="font-medium text-slate-900">{viewedTestMark.class_name}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Group</div>
+                        <div className="font-medium text-slate-900">{viewedTestMark.group_name}</div>
                       </div>
                       <div>
                         <div className="text-xs text-slate-500">Test</div>
@@ -813,19 +836,19 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                         <div className="font-medium text-slate-900">{viewedTestMark.subject_name}</div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-500">Marks</div>
+                        <div className="text-xs text-slate-500">Marks Obtained</div>
                         <div className="font-semibold text-slate-900">{viewedTestMark.marks_obtained ?? 0}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-slate-500">Grade</div>
-                        <div className="font-semibold text-slate-900">{viewedTestMark.grade ?? 'N/A'}</div>
                       </div>
                       <div>
                         <div className="text-xs text-slate-500">Percentage</div>
                         <div className="font-semibold text-slate-900">{viewedTestMark.percentage ?? 0}%</div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-500">Date</div>
+                        <div className="text-xs text-slate-500">Grade</div>
+                        <div className="font-semibold text-slate-900">{viewedTestMark.grade ?? 'N/A'}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Conducted At</div>
                         <div className="font-medium text-slate-900">{viewedTestMark.conducted_at ? new Date(viewedTestMark.conducted_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}</div>
                       </div>
                     </div>

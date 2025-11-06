@@ -46,28 +46,6 @@ export function useCreateCollegeTuitionBalance() {
   }, "Tuition balance created successfully");
 }
 
-export function useUpdateCollegeTuitionBalance(enrollmentId: number) {
-  const qc = useQueryClient();
-  return useMutationWithSuccessToast({
-    mutationFn: (payload: Partial<CollegeTuitionFeeBalanceRead>) =>
-      CollegeTuitionBalancesService.update(enrollmentId, payload as any),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: collegeKeys.tuition.detail(enrollmentId) });
-      void qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
-    },
-  }, "Tuition balance updated successfully");
-}
-
-export function useDeleteCollegeTuitionBalance() {
-  const qc = useQueryClient();
-  return useMutationWithSuccessToast({
-    mutationFn: (enrollmentId: number) => CollegeTuitionBalancesService.delete(enrollmentId),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: collegeKeys.tuition.root() });
-    },
-  }, "Tuition balance deleted successfully");
-}
-
 export function useBulkCreateCollegeTuitionBalances() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({

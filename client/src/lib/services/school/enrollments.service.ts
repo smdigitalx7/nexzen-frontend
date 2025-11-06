@@ -1,7 +1,6 @@
 import { Api } from "@/lib/api";
 import type {
   SchoolEnrollmentCreate,
-  SchoolEnrollmentUpdate,
   SchoolEnrollmentWithStudentDetails,
   SchoolEnrollmentsPaginatedResponse,
   SchoolEnrollmentFilterParams,
@@ -34,16 +33,6 @@ export const EnrollmentsService = {
   // POST /api/v1/school/enrollments/
   create(payload: SchoolEnrollmentCreate): Promise<SchoolEnrollmentWithStudentDetails> {
     return Api.post<SchoolEnrollmentWithStudentDetails>(`/school/enrollments`, payload);
-  },
-
-  // PUT /api/v1/school/enrollments/{enrollment_id}
-  update(enrollment_id: number, payload: SchoolEnrollmentUpdate): Promise<SchoolEnrollmentWithStudentDetails> {
-    return Api.put<SchoolEnrollmentWithStudentDetails>(`/school/enrollments/${enrollment_id}`, payload);
-  },
-
-  // DELETE /api/v1/school/enrollments/{enrollment_id}
-  delete(enrollment_id: number): Promise<void> {
-    return Api.delete<void>(`/school/enrollments/${enrollment_id}`);
   },
 };
 

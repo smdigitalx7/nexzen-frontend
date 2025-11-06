@@ -7,9 +7,9 @@ export const CollegeTestMarksService = {
     return Api.get<CollegeTestMarkMinimalRead[]>(`/college/test-marks`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
 
-  // GET /api/v1/college/test-marks/{test_mark_id}
-  getById(test_mark_id: number) {
-    return Api.get<CollegeTestMarkFullReadResponse>(`/college/test-marks/${test_mark_id}`);
+  // GET /api/v1/college/test-marks/{mark_id}
+  getById(mark_id: number) {
+    return Api.get<CollegeTestMarkFullReadResponse>(`/college/test-marks/${mark_id}`);
   },
 
   // POST /api/v1/college/test-marks
@@ -17,14 +17,14 @@ export const CollegeTestMarksService = {
     return Api.post<CollegeTestMarkFullReadResponse>(`/college/test-marks`, payload);
   },
 
-  // PUT /api/v1/college/test-marks/{test_mark_id}
-  update(test_mark_id: number, payload: CollegeTestMarkUpdate) {
-    return Api.put<CollegeTestMarkFullReadResponse>(`/college/test-marks/${test_mark_id}`, payload);
+  // PUT /api/v1/college/test-marks/{mark_id}
+  update(mark_id: number, payload: CollegeTestMarkUpdate) {
+    return Api.put<CollegeTestMarkFullReadResponse>(`/college/test-marks/${mark_id}`, payload);
   },
 
-  // DELETE /api/v1/college/test-marks/{test_mark_id}
-  delete(test_mark_id: number) {
-    return Api.delete<void>(`/college/test-marks/${test_mark_id}`);
+  // DELETE /api/v1/college/test-marks/{mark_id}
+  delete(mark_id: number) {
+    return Api.delete<void>(`/college/test-marks/${mark_id}`);
   },
 
   // POST /api/v1/college/test-marks/bulk-create
@@ -32,5 +32,3 @@ export const CollegeTestMarksService = {
     return Api.post<CollegeTestMarkBulkCreateResult>(`/college/test-marks/bulk-create`, payload);
   },
 };
-
-
