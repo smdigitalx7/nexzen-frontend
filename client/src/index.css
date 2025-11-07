@@ -287,6 +287,15 @@
     width: 6px;
     height: 6px;
   }
+
+  /* Ensure SelectItem hover highlighting works for all dropdown instances */
+  /* This global rule ensures hover works regardless of CSS specificity issues */
+  button[data-highlighted],
+  [role="option"][data-highlighted] {
+    background-color: hsl(var(--accent)) !important;
+    color: hsl(var(--accent-foreground)) !important;
+    font-weight: 500;
+  }
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }

@@ -19,6 +19,8 @@ export function useCreateSchoolSection(classId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) });
       void qc.refetchQueries({ queryKey: schoolKeys.sections.listByClass(classId), type: 'active' });
+      // Invalidate dropdown cache
+      void qc.invalidateQueries({ queryKey: ["school-dropdowns", "sections", classId] });
     },
   }, "Section created successfully");
 }
@@ -31,6 +33,8 @@ export function useUpdateSchoolSection(classId: number, sectionId: number) {
       void qc.invalidateQueries({ queryKey: schoolKeys.sections.detail(classId, sectionId) });
       void qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) });
       void qc.refetchQueries({ queryKey: schoolKeys.sections.listByClass(classId), type: 'active' });
+      // Invalidate dropdown cache
+      void qc.invalidateQueries({ queryKey: ["school-dropdowns", "sections", classId] });
     },
   }, "Section updated successfully");
 }
@@ -42,6 +46,8 @@ export function useDeleteSchoolSection(classId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) });
       void qc.refetchQueries({ queryKey: schoolKeys.sections.listByClass(classId), type: 'active' });
+      // Invalidate dropdown cache
+      void qc.invalidateQueries({ queryKey: ["school-dropdowns", "sections", classId] });
     },
   }, "Section deleted successfully");
 }

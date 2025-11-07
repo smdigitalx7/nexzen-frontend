@@ -6,18 +6,16 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { useSchoolClasses, useSchoolSectionsByClass, useBulkCreateSchoolAttendance, useBulkUpdateSchoolAttendance, useCreateSchoolAttendance } from '@/lib/hooks/school';
+import { SchoolClassDropdown, SchoolSectionDropdown } from '@/components/shared/Dropdowns';
+import { useSchoolSectionsByClass, useBulkCreateSchoolAttendance, useBulkUpdateSchoolAttendance, useCreateSchoolAttendance } from '@/lib/hooks/school';
 
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 export default function AttendanceCreate() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const classesQuery = useSchoolClasses();
-  const classes = (classesQuery.data as any[]) || [];
-  const firstClassId = classes.length > 0 ? (classes[0]?.class_id as number | undefined) : undefined;
-  const [selectedClassId, setSelectedClassId] = useState<number | undefined>(firstClassId);
-  const { data: sections = [] } = useSchoolSectionsByClass(selectedClassId as number);
-  const [selectedSectionId, setSelectedSectionId] = useState<number | undefined>(undefined);
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+  const { data: sections = [] } = useSchoolSectionsByClass(selectedClassId || 0);
+  const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
   const month = selectedDate ? selectedDate.getMonth() + 1 : undefined;
   const year = selectedDate ? selectedDate.getFullYear() : undefined;
   const bulkCreate = useBulkCreateSchoolAttendance();
@@ -52,23 +50,25 @@ export default function AttendanceCreate() {
         {/* Filters & Actions Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={selectedClassId ? String(selectedClassId) : ''} onValueChange={(v) => setSelectedClassId(parseInt(v))}>
-              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Class" /></SelectTrigger>
-              <SelectContent>
-                {classes.map((c: any) => (
-                  <SelectItem key={c.class_id} value={String(c.class_id)}>{c.class_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={selectedSectionId ? String(selectedSectionId) : 'all'} onValueChange={(v) => setSelectedSectionId(v === 'all' ? undefined : parseInt(v))}>
-              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Section" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                {(sections as any[]).map((s: any) => (
-                  <SelectItem key={s.section_id} value={String(s.section_id)}>{s.section_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SchoolClassDropdown
+              value={selectedClassId}
+              onChange={(value) => {
+                setSelectedClassId(value);
+                setSelectedSectionId(null); // Reset section when class changes
+              }}
+              placeholder="Select class"
+              className="w-[160px]"
+            />
+            <SchoolSectionDropdown
+              classId={selectedClassId || 0}
+              value={selectedSectionId}
+              onChange={(value) => setSelectedSectionId(value)}
+              disabled={!selectedClassId}
+              placeholder={selectedClassId ? "All Sections" : "Select class first"}
+              className="w-[160px]"
+              emptyValue
+              emptyValueLabel="All Sections"
+            />
             <Select value={month ? String(month) : ''} onValueChange={(v) => { const m = parseInt(v); const d = selectedDate || new Date(); setSelectedDate(new Date(d.getFullYear(), m - 1, d.getDate())); }}>
               <SelectTrigger className="w-[140px]"><SelectValue placeholder="Month" /></SelectTrigger>
               <SelectContent>
@@ -142,26 +142,26 @@ export default function AttendanceCreate() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-slate-700 mb-1 block">Class</label>
-              <Select value={selectedClassId ? String(selectedClassId) : ''} onValueChange={(v) => { const id = parseInt(v); setSelectedClassId(id); setSelectedSectionId(undefined); }}>
-                <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
-                <SelectContent>
-                  {classes.map((c: any) => (
-                    <SelectItem key={c.class_id} value={String(c.class_id)}>{c.class_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SchoolClassDropdown
+                value={selectedClassId}
+                onChange={(value) => {
+                  setSelectedClassId(value);
+                  setSelectedSectionId(null); // Reset section when class changes
+                }}
+                placeholder="Select class"
+              />
             </div>
             <div>
               <label className="text-sm font-medium text-slate-700 mb-1 block">Section</label>
-              <Select value={selectedSectionId ? String(selectedSectionId) : 'all'} onValueChange={(v) => setSelectedSectionId(v === 'all' ? undefined : parseInt(v))}>
-                <SelectTrigger><SelectValue placeholder="Select section" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  {(sections as any[]).map((s: any) => (
-                    <SelectItem key={s.section_id} value={String(s.section_id)}>{s.section_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SchoolSectionDropdown
+                classId={selectedClassId || 0}
+                value={selectedSectionId}
+                onChange={(value) => setSelectedSectionId(value)}
+                disabled={!selectedClassId}
+                placeholder={selectedClassId ? "All Sections" : "Select class first"}
+                emptyValue
+                emptyValueLabel="All Sections"
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -210,5 +210,3 @@ export default function AttendanceCreate() {
     </>
   );
 }
-
-

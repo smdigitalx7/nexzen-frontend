@@ -7,7 +7,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormDialog } from '@/components/shared/FormDialog';
-import { useSchoolClasses, useSchoolSections, useSchoolSubjects, useSchoolExams } from '@/lib/hooks/school/use-school-dropdowns';
+import { SchoolExamDropdown, SchoolSubjectDropdown } from '@/components/shared/Dropdowns';
 import { useSchoolStudentsList } from '@/lib/hooks/school';
 import type { ExamMarkWithDetails } from '@/lib/types/school/exam-marks';
 
@@ -54,18 +54,11 @@ const AddExamMarkForm = ({
   selectedClass = ''
 }: AddExamMarkFormProps) => {
   // API hooks
-  const { data: classesData } = useSchoolClasses();
-  const { data: sectionsData } = useSchoolSections(selectedClass ? parseInt(selectedClass) : 0);
-  const { data: subjectsData } = useSchoolSubjects(selectedClass ? parseInt(selectedClass) : 0);
   const { data: studentsData } = useSchoolStudentsList();
-  const { data: examsData, isLoading: examsLoading, error: examsError } = useSchoolExams();
-
-  // Extract items from response data
-  const classes = classesData?.items || [];
-  const sections = sectionsData?.items || [];
-  const subjects = subjectsData?.items || [];
   const students = studentsData?.data || [];
-  const exams = examsData?.items || [];
+  
+  // Get classId for subject dropdown
+  const classId = selectedClass ? parseInt(selectedClass) : 0;
 
   // Form
   const examMarkForm = useForm({
@@ -190,65 +183,80 @@ const AddExamMarkForm = ({
               <FormField
                 control={examMarkForm.control}
                 name="exam_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Exam</FormLabel>
-                    <FormControl>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={!!editingExamMark}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select exam" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {examsLoading ? (
-                            <SelectItem value="loading" disabled>
-                              Loading exams...
-                            </SelectItem>
-                          ) : examsError ? (
-                            <SelectItem value="error" disabled>
-                              Error loading exams
-                            </SelectItem>
-                          ) : exams.length === 0 ? (
-                            <SelectItem value="no-exams" disabled>
-                              No exams available
-                            </SelectItem>
-                          ) : (
-                            exams.map((exam: any) => (
-                              <SelectItem key={exam.exam_id} value={exam.exam_id?.toString() || ''}>
-                                {exam.exam_name}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  // Convert form string value to number for dropdown
+                  let numValue: number | null = null;
+                  if (field.value && field.value !== '') {
+                    const parsed = typeof field.value === 'string' 
+                      ? parseInt(field.value, 10) 
+                      : Number(field.value);
+                    if (!isNaN(parsed) && parsed > 0) {
+                      numValue = parsed;
+                    }
+                  }
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>Exam</FormLabel>
+                      <FormControl>
+                        <SchoolExamDropdown
+                          value={numValue}
+                          onChange={(value) => {
+                            // Convert number back to string for form
+                            if (value !== null && value !== undefined) {
+                              field.onChange(value.toString());
+                            } else {
+                              field.onChange('');
+                            }
+                          }}
+                          disabled={!!editingExamMark}
+                          placeholder="Select exam"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
               
               <FormField
                 control={examMarkForm.control}
                 name="subject_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Subject</FormLabel>
-                    <FormControl>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={!!editingExamMark}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select subject" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {subjects.map((subject) => (
-                            <SelectItem key={subject.subject_id} value={subject.subject_id?.toString() || ''}>
-                              {subject.subject_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  // Convert form string value to number for dropdown
+                  let numValue: number | null = null;
+                  if (field.value && field.value !== '') {
+                    const parsed = typeof field.value === 'string' 
+                      ? parseInt(field.value, 10) 
+                      : Number(field.value);
+                    if (!isNaN(parsed) && parsed > 0) {
+                      numValue = parsed;
+                    }
+                  }
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>Subject</FormLabel>
+                      <FormControl>
+                        <SchoolSubjectDropdown
+                          classId={classId}
+                          value={numValue}
+                          onChange={(value) => {
+                            // Convert number back to string for form
+                            if (value !== null && value !== undefined) {
+                              field.onChange(value.toString());
+                            } else {
+                              field.onChange('');
+                            }
+                          }}
+                          disabled={!!editingExamMark || classId <= 0}
+                          placeholder={classId <= 0 ? "Select class first" : "Select subject"}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
             

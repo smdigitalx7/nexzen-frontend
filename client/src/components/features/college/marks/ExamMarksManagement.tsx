@@ -14,19 +14,27 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { EnhancedDataTable } from '@/components/shared';
+import {
+  CollegeClassDropdown,
+  CollegeGroupDropdown,
+  CollegeCourseDropdown,
+  CollegeSubjectDropdown,
+  CollegeExamDropdown,
+} from '@/components/shared/Dropdowns';
 import { 
   useCollegeExamMarksList, 
   useCollegeExamMark,
   useCreateCollegeExamMark, 
   useUpdateCollegeExamMark, 
   useDeleteCollegeExamMark,
-  useCollegeClasses,
   useCollegeStudentsList,
-  useCollegeSubjects,
+} from '@/lib/hooks/college';
+import {
   useCollegeGroups,
   useCollegeCourses,
-} from '@/lib/hooks/college';
-import { useCollegeExams } from '@/lib/hooks/college/use-college-dropdowns';
+  useCollegeSubjects,
+  useCollegeExams,
+} from '@/lib/hooks/college/use-college-dropdowns';
 import type { CollegeExamMarkMinimalRead, CollegeExamMarksListParams } from '@/lib/types/college/exam-marks';
 import type { CollegeMarksData } from '@/lib/hooks/college/use-college-marks-statistics';
 import {
@@ -69,12 +77,12 @@ interface ExamMarksManagementProps {
 }
 
 const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange }) => {
-  // State
-  const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('all');
-  const [selectedGroup, setSelectedGroup] = useState('all');
-  const [selectedCourse, setSelectedCourse] = useState('all');
-  const [selectedExam, setSelectedExam] = useState('all');
+  // State - using IDs for dropdowns
+  const [selectedClass, setSelectedClass] = useState<number | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
+  const [selectedExam, setSelectedExam] = useState<number | null>(null);
   
   // Dialog states
   const [showExamMarkDialog, setShowExamMarkDialog] = useState(false);
@@ -84,21 +92,26 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   // API hooks
-  const { data: classes = [] } = useCollegeClasses();
-
-  // Auto-select first class when available
-  useEffect(() => {
-    if (!selectedClass && classes.length > 0) {
-      setSelectedClass(classes[0].class_id.toString());
-    }
-  }, [selectedClass, classes]);
   const { data: studentsData } = useCollegeStudentsList();
   const students = studentsData?.data || [];
-  const { data: subjects = [] } = useCollegeSubjects();
+  const { data: groupsData } = useCollegeGroups(selectedClass || undefined);
+  const { data: coursesData } = useCollegeCourses(selectedGroup || 0);
+  const { data: subjectsData } = useCollegeSubjects(selectedGroup || 0);
   const { data: examsData } = useCollegeExams();
+
+  // Get groups and courses for lookup maps (for filtering)
+  const groups = groupsData?.items || [];
+  const courses = coursesData?.items || [];
+  const subjects = subjectsData?.items || [];
   const exams = examsData?.items || [];
-  const { data: groups = [] } = useCollegeGroups();
-  const { data: courses = [] } = useCollegeCourses();
+
+  // Reset dependent dropdowns when class changes
+  useEffect(() => {
+    setSelectedGroup(null);
+    setSelectedCourse(null);
+    setSelectedSubject(null);
+    setSelectedExam(null);
+  }, [selectedClass]);
 
   // Single exam mark view data (enabled only when an id is set)
   const viewQuery = useCollegeExamMark(viewingExamMarkId || 0);
@@ -108,16 +121,16 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
 
   // Exam marks hooks - only fetch when class is selected and groups are loaded
   const examMarksQuery = useMemo((): CollegeExamMarksListParams | undefined => {
-    if (!selectedClass || isNaN(parseInt(selectedClass)) || groups.length === 0) {
+    if (!selectedClass || groups.length === 0) {
       return undefined;
     }
     
     // Determine group_id to use
     let groupId: number;
-    if (selectedGroup !== 'all' && !isNaN(parseInt(selectedGroup))) {
-      groupId = parseInt(selectedGroup);
+    if (selectedGroup !== null && selectedGroup !== undefined) {
+      groupId = selectedGroup;
     } else if (groups[0]?.group_id) {
-      // Use the first group as default when 'all' is selected
+      // Use the first group as default when null is selected
       groupId = groups[0].group_id;
     } else {
       // No valid group_id available
@@ -125,15 +138,15 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
     }
     
     const query: CollegeExamMarksListParams = {
-      class_id: parseInt(selectedClass),
+      class_id: selectedClass,
       group_id: groupId,
     };
     
-    if (selectedSubject !== 'all' && !isNaN(parseInt(selectedSubject))) {
-      query.subject_id = parseInt(selectedSubject);
+    if (selectedSubject !== null && selectedSubject !== undefined) {
+      query.subject_id = selectedSubject;
     }
-    if (selectedExam !== 'all' && !isNaN(parseInt(selectedExam))) {
-      query.exam_id = parseInt(selectedExam);
+    if (selectedExam !== null && selectedExam !== undefined) {
+      query.exam_id = selectedExam;
     }
     
     return query;
@@ -486,50 +499,79 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
                         <FormField
                           control={examMarkForm.control}
                           name="exam_id"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Exam</FormLabel>
-                              <FormControl>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={!!editingExamMark}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select exam" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                  {exams.map((exam: { exam_id?: number; id?: number; exam_name?: string }) => (
-                                    <SelectItem key={exam.exam_id || exam.id} value={(exam.exam_id || exam.id)?.toString() || ''}>
-                                      {exam.exam_name}
-                                    </SelectItem>
-                                  ))}
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          render={({ field }) => {
+                            // Convert form string value to number for dropdown
+                            let numValue: number | null = null;
+                            if (field.value && field.value !== '') {
+                              const parsed = typeof field.value === 'string'
+                                ? parseInt(field.value, 10)
+                                : Number(field.value);
+                              if (!isNaN(parsed) && parsed > 0) {
+                                numValue = parsed;
+                              }
+                            }
+
+                            return (
+                              <FormItem>
+                                <FormLabel>Exam</FormLabel>
+                                <FormControl>
+                                  <CollegeExamDropdown
+                                    value={numValue}
+                                    onChange={(value) => {
+                                      // Convert number back to string for form
+                                      if (value !== null && value !== undefined) {
+                                        field.onChange(value.toString());
+                                      } else {
+                                        field.onChange('');
+                                      }
+                                    }}
+                                    disabled={!!editingExamMark}
+                                    placeholder="Select exam"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
                         />
                         <FormField
                           control={examMarkForm.control}
                           name="subject_id"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Subject</FormLabel>
-                              <FormControl>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={!!editingExamMark}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select subject" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                  {subjects.map((subject: { subject_id?: number; subject_name?: string }) => (
-                                    <SelectItem key={subject.subject_id} value={subject.subject_id?.toString() || ''}>
-                                      {subject.subject_name}
-                                    </SelectItem>
-                                  ))}
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          render={({ field }) => {
+                            // Convert form string value to number for dropdown
+                            let numValue: number | null = null;
+                            if (field.value && field.value !== '') {
+                              const parsed = typeof field.value === 'string'
+                                ? parseInt(field.value, 10)
+                                : Number(field.value);
+                              if (!isNaN(parsed) && parsed > 0) {
+                                numValue = parsed;
+                              }
+                            }
+
+                            return (
+                              <FormItem>
+                                <FormLabel>Subject</FormLabel>
+                                <FormControl>
+                                  <CollegeSubjectDropdown
+                                    groupId={selectedGroup || 0}
+                                    value={numValue}
+                                    onChange={(value) => {
+                                      // Convert number back to string for form
+                                      if (value !== null && value !== undefined) {
+                                        field.onChange(value.toString());
+                                      } else {
+                                        field.onChange('');
+                                      }
+                                    }}
+                                    disabled={!!editingExamMark || !selectedGroup || selectedGroup <= 0}
+                                    placeholder={!selectedGroup || selectedGroup <= 0 ? "Select group first" : "Select subject"}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
                         />
                       </div>
                         <FormField
@@ -669,70 +711,47 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
           >
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger className="w-full sm:w-[150px]" >
-                  <SelectValue placeholder="Select Class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((cls: { class_id?: number; class_name?: string }) => (
-                    <SelectItem key={cls.class_id} value={cls.class_id?.toString() || ''}>
-                      {cls.class_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-                <SelectTrigger className="w-full sm:w-[150px]" >
-                  <SelectValue placeholder="All Groups" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Groups</SelectItem>
-                  {groups.map((g: { group_id?: number; group_name?: string }) => (
-                    <SelectItem key={g.group_id} value={g.group_id?.toString() || ''}>
-                      {g.group_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                <SelectTrigger className="w-full sm:w-[150px]" >
-                  <SelectValue placeholder="All Courses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Courses</SelectItem>
-                  {courses.map((c: { course_id?: number; course_name?: string }) => (
-                    <SelectItem key={c.course_id} value={c.course_id?.toString() || ''}>
-                      {c.course_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                <SelectTrigger className="w-full sm:w-[150px]" >
-                  <SelectValue placeholder="All Subjects" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Subjects</SelectItem>
-                  {subjects.map((subject: { subject_id?: number; subject_name?: string }) => (
-                    <SelectItem key={subject.subject_id} value={subject.subject_id?.toString() || ''}>
-                      {subject.subject_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedExam} onValueChange={setSelectedExam}>
-                <SelectTrigger className="w-full sm:w-[150px]" >
-                  <SelectValue placeholder="All Exams" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Exams</SelectItem>
-                  {exams.map((exam: { exam_id?: number; exam_name?: string }) => (
-                    <SelectItem key={exam.exam_id} value={exam.exam_id?.toString() || ''}>
-                      {exam.exam_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CollegeClassDropdown
+                value={selectedClass}
+                onChange={setSelectedClass}
+                placeholder="Select Class"
+                className="w-full sm:w-[150px]"
+              />
+              <CollegeGroupDropdown
+                classId={selectedClass || undefined}
+                value={selectedGroup}
+                onChange={setSelectedGroup}
+                placeholder="All Groups"
+                className="w-full sm:w-[150px]"
+                emptyValue
+                emptyValueLabel="All Groups"
+              />
+              <CollegeCourseDropdown
+                groupId={selectedGroup || 0}
+                value={selectedCourse}
+                onChange={setSelectedCourse}
+                placeholder="All Courses"
+                className="w-full sm:w-[150px]"
+                emptyValue
+                emptyValueLabel="All Courses"
+              />
+              <CollegeSubjectDropdown
+                groupId={selectedGroup || 0}
+                value={selectedSubject}
+                onChange={setSelectedSubject}
+                placeholder="All Subjects"
+                className="w-full sm:w-[150px]"
+                emptyValue
+                emptyValueLabel="All Subjects"
+              />
+              <CollegeExamDropdown
+                value={selectedExam}
+                onChange={setSelectedExam}
+                placeholder="All Exams"
+                className="w-full sm:w-[150px]"
+                emptyValue
+                emptyValueLabel="All Exams"
+              />
             </div>
 
             {/* Data Table */}

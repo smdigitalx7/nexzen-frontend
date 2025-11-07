@@ -29,6 +29,12 @@ import {
 } from "@/components/ui/select";
 import { EnhancedDataTable } from "@/components/shared";
 import {
+  SchoolClassDropdown,
+  SchoolSectionDropdown,
+  SchoolSubjectDropdown,
+  SchoolExamDropdown,
+} from "@/components/shared/Dropdowns";
+import {
   useSchoolExamMarksList,
   useSchoolExamMark,
   useCreateSchoolExamMark,
@@ -36,7 +42,6 @@ import {
   useDeleteSchoolExamMark,
 } from "@/lib/hooks/school/use-school-exam-marks";
 import {
-  useSchoolClasses,
   useSchoolSections,
   useSchoolSubjects,
   useSchoolExams,
@@ -74,12 +79,12 @@ const GRADE_COLORS = {
 const ExamMarksManagementComponent = ({
   onDataChange,
 }: ExamMarksManagementProps) => {
-  // State management
-  const [selectedClass, setSelectedClass] = useState("");
-  const [selectedSection, setSelectedSection] = useState("all");
-  const [selectedSubject, setSelectedSubject] = useState("all");
+  // State management - using IDs for dropdowns, converting to names for filtering
+  const [selectedClass, setSelectedClass] = useState<number | null>(null);
+  const [selectedSection, setSelectedSection] = useState<number | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
   const [selectedGrade, setSelectedGrade] = useState("all");
-  const [selectedExam, setSelectedExam] = useState("all");
+  const [selectedExam, setSelectedExam] = useState<number | null>(null);
 
   // Dialog states
   const [showExamMarkDialog, setShowExamMarkDialog] = useState(false);
@@ -93,50 +98,45 @@ const ExamMarksManagementComponent = ({
 
   // Memoized class ID for API calls
   const classId = useMemo(
-    () => (selectedClass ? parseInt(selectedClass) : 0),
+    () => selectedClass || 0,
     [selectedClass]
   );
 
-  // API hooks with memoized parameters
-  const {
-    data: classesData,
-    isLoading: classesLoading,
-    error: classesError,
-  } = useSchoolClasses();
-  const {
-    data: sectionsData,
-    isLoading: sectionsLoading,
-    error: sectionsError,
-  } = useSchoolSections(classId);
-  const {
-    data: subjectsData,
-    isLoading: subjectsLoading,
-    error: subjectsError,
-  } = useSchoolSubjects(classId);
-  const {
-    data: examsData,
-    isLoading: examsLoading,
-    error: examsError,
-  } = useSchoolExams();
+  // Get sections, subjects, and exams data for lookup maps (for filtering by name)
+  const { data: sectionsData } = useSchoolSections(classId);
+  const { data: subjectsData } = useSchoolSubjects(classId);
+  const { data: examsData } = useSchoolExams();
 
-  // Memoized extracted data
-  const classes = useMemo(() => classesData?.items || [], [classesData]);
-  const sections = useMemo(() => sectionsData?.items || [], [sectionsData]);
-  const subjects = useMemo(() => subjectsData?.items || [], [subjectsData]);
-  const exams = useMemo(() => examsData?.items || [], [examsData]);
+  // Create lookup maps: ID -> Name (for filtering)
+  const sectionIdToName = useMemo(() => {
+    const map = new Map<number, string>();
+    sectionsData?.items?.forEach((section) => {
+      map.set(section.section_id, section.section_name);
+    });
+    return map;
+  }, [sectionsData]);
 
-  // Auto-select first class when available
-  useEffect(() => {
-    if (!selectedClass && classes.length > 0) {
-      setSelectedClass(classes[0].class_id.toString());
-    }
-  }, [selectedClass, classes]);
+  const subjectIdToName = useMemo(() => {
+    const map = new Map<number, string>();
+    subjectsData?.items?.forEach((subject) => {
+      map.set(subject.subject_id, subject.subject_name);
+    });
+    return map;
+  }, [subjectsData]);
+
+  const examIdToName = useMemo(() => {
+    const map = new Map<number, string>();
+    examsData?.items?.forEach((exam) => {
+      map.set(exam.exam_id, exam.exam_name);
+    });
+    return map;
+  }, [examsData]);
 
   // Reset section, subject, and exam when class changes
   useEffect(() => {
-    setSelectedSection("all");
-    setSelectedSubject("all");
-    setSelectedExam("all");
+    setSelectedSection(null);
+    setSelectedSubject(null);
+    setSelectedExam(null);
   }, [selectedClass]);
 
   // Single exam mark view data (enabled only when an id is set)
@@ -147,13 +147,13 @@ const ExamMarksManagementComponent = ({
 
   // Exam marks hooks - only fetch when class is selected
   const examMarksQuery = useMemo(() => {
-    if (!selectedClass || isNaN(parseInt(selectedClass))) {
+    if (!selectedClass) {
       return undefined;
     }
 
     // Only fetch by class, let EnhancedDataTable handle other filters
     const query: ExamMarksQuery = {
-      class_id: parseInt(selectedClass),
+      class_id: selectedClass,
     };
 
     return query;
@@ -172,15 +172,15 @@ const ExamMarksManagementComponent = ({
   const deleteExamMarkMutation = useDeleteSchoolExamMark();
 
   // Memoized handlers
-  const handleClassChange = useCallback((value: string) => {
-    setSelectedClass(value === "all" ? "" : value);
+  const handleClassChange = useCallback((value: number | null) => {
+    setSelectedClass(value);
   }, []);
 
-  const handleSectionChange = useCallback((value: string) => {
+  const handleSectionChange = useCallback((value: number | null) => {
     setSelectedSection(value);
   }, []);
 
-  const handleSubjectChange = useCallback((value: string) => {
+  const handleSubjectChange = useCallback((value: number | null) => {
     setSelectedSubject(value);
   }, []);
 
@@ -188,7 +188,7 @@ const ExamMarksManagementComponent = ({
     setSelectedGrade(value);
   }, []);
 
-  const handleExamChange = useCallback((value: string) => {
+  const handleExamChange = useCallback((value: number | null) => {
     setSelectedExam(value);
   }, []);
 
@@ -275,17 +275,20 @@ const ExamMarksManagementComponent = ({
   const filteredMarks = useMemo(() => {
     let filtered = flattenedMarks;
 
-    // Apply section filter (client-side)
-    if (selectedSection !== "all") {
-      filtered = filtered.filter(
-        (mark) => mark.section_name === selectedSection
-      );
+    // Apply section filter (client-side) - filter by section_name using lookup
+    if (selectedSection !== null) {
+      const sectionName = sectionIdToName.get(selectedSection);
+      if (sectionName) {
+        filtered = filtered.filter(
+          (mark) => mark.section_name === sectionName
+        );
+      }
     }
 
-    // Apply subject filter (client-side)
-    if (selectedSubject !== "all") {
+    // Apply subject filter (client-side) - filter by subject_id
+    if (selectedSubject !== null) {
       filtered = filtered.filter(
-        (mark) => mark.subject_name === selectedSubject
+        (mark) => mark.subject_id !== undefined && mark.subject_id === selectedSubject
       );
     }
 
@@ -294,9 +297,11 @@ const ExamMarksManagementComponent = ({
       filtered = filtered.filter((mark) => mark.grade === selectedGrade);
     }
 
-    // Apply exam filter (client-side)
-    if (selectedExam !== "all") {
-      filtered = filtered.filter((mark) => mark.exam_name === selectedExam);
+    // Apply exam filter (client-side) - filter by exam_id
+    if (selectedExam !== null) {
+      filtered = filtered.filter(
+        (mark) => mark.exam_id !== undefined && mark.exam_id === selectedExam
+      );
     }
 
     return filtered;
@@ -306,17 +311,18 @@ const ExamMarksManagementComponent = ({
     selectedSubject,
     selectedGrade,
     selectedExam,
+    sectionIdToName,
   ]);
 
   // Use filtered marks for the table
   const examMarks = filteredMarks;
 
-  // Notify parent component when data changes
+  // Notify parent component when data changes - use flattenedMarks (all data) for statistics
   useEffect(() => {
     if (onDataChange) {
-      onDataChange(examMarks);
+      onDataChange(flattenedMarks);
     }
-  }, [examMarks, onDataChange]);
+  }, [flattenedMarks, onDataChange]);
 
   // Table columns for exam marks using column factories
   const examMarkColumns: ColumnDef<ExamMarkWithDetails>[] = useMemo(
@@ -377,6 +383,82 @@ const ExamMarksManagementComponent = ({
             transition={{ delay: 0.2 }}
             className="space-y-6"
           >
+            {/* Unified Filter Controls */}
+            <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Class:</label>
+                <SchoolClassDropdown
+                  value={selectedClass}
+                  onChange={handleClassChange}
+                  placeholder="Select class"
+                  emptyValue
+                  emptyValueLabel="Select class"
+                  className="w-40"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Section:</label>
+                <SchoolSectionDropdown
+                  classId={classId}
+                  value={selectedSection}
+                  onChange={handleSectionChange}
+                  placeholder="Select section"
+                  emptyValue
+                  emptyValueLabel="Select section"
+                  className="w-40"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Subject:</label>
+                <SchoolSubjectDropdown
+                  classId={classId}
+                  value={selectedSubject}
+                  onChange={handleSubjectChange}
+                  placeholder="Select subject"
+                  emptyValue
+                  emptyValueLabel="Select subject"
+                  className="w-40"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Grade:</label>
+                <Select
+                  value={selectedGrade}
+                  onValueChange={handleGradeChange}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="All Grades" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Grades</SelectItem>
+                    <SelectItem value="A+">A+</SelectItem>
+                    <SelectItem value="A">A</SelectItem>
+                    <SelectItem value="B+">B+</SelectItem>
+                    <SelectItem value="B">B</SelectItem>
+                    <SelectItem value="C+">C+</SelectItem>
+                    <SelectItem value="C">C</SelectItem>
+                    <SelectItem value="D">D</SelectItem>
+                    <SelectItem value="F">F</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Exam:</label>
+                <SchoolExamDropdown
+                  value={selectedExam}
+                  onChange={handleExamChange}
+                  placeholder="Select exam"
+                  emptyValue
+                  emptyValueLabel="Select exam"
+                  className="w-40"
+                />
+              </div>
+            </div>
+
             {/* Data Table */}
             {!selectedClass ? (
               <Card className="p-8 text-center">
@@ -437,146 +519,29 @@ const ExamMarksManagementComponent = ({
                 </div>
               </Card>
             ) : (
-              <div className="space-y-4">
-                {/* Unified Filter Controls */}
-                <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">Class:</label>
-                    <Select
-                      value={selectedClass || "all"}
-                      onValueChange={handleClassChange}
-                    >
-                      <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Select class" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Classes</SelectItem>
-                        {classes.map((cls) => (
-                          <SelectItem
-                            key={cls.class_id}
-                            value={cls.class_id.toString()}
-                          >
-                            {cls.class_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">Section:</label>
-                    <Select
-                      value={selectedSection}
-                      onValueChange={handleSectionChange}
-                    >
-                      <SelectTrigger className="w-40">
-                        <SelectValue placeholder="All Sections" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Sections</SelectItem>
-                        {sections.map((section) => (
-                          <SelectItem
-                            key={section.section_id}
-                            value={section.section_name}
-                          >
-                            {section.section_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">Subject:</label>
-                    <Select
-                      value={selectedSubject}
-                      onValueChange={handleSubjectChange}
-                    >
-                      <SelectTrigger className="w-40">
-                        <SelectValue placeholder="All Subjects" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Subjects</SelectItem>
-                        {subjects.map((subject) => (
-                          <SelectItem
-                            key={subject.subject_id}
-                            value={subject.subject_name}
-                          >
-                            {subject.subject_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">Grade:</label>
-                    <Select
-                      value={selectedGrade}
-                      onValueChange={handleGradeChange}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue placeholder="All Grades" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Grades</SelectItem>
-                        <SelectItem value="A+">A+</SelectItem>
-                        <SelectItem value="A">A</SelectItem>
-                        <SelectItem value="B+">B+</SelectItem>
-                        <SelectItem value="B">B</SelectItem>
-                        <SelectItem value="C+">C+</SelectItem>
-                        <SelectItem value="C">C</SelectItem>
-                        <SelectItem value="D">D</SelectItem>
-                        <SelectItem value="F">F</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">Exam:</label>
-                    <Select
-                      value={selectedExam}
-                      onValueChange={handleExamChange}
-                    >
-                      <SelectTrigger className="w-40">
-                        <SelectValue placeholder="All Exams" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Exams</SelectItem>
-                        {exams.map((exam: any) => (
-                          <SelectItem key={exam.exam_id} value={exam.exam_name}>
-                            {exam.exam_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <EnhancedDataTable
-                  data={examMarks}
-                  title="Exam Marks"
-                  searchKey={
-                    [
-                      "student_name",
-                      "roll_number",
-                      "class_name",
-                      "section_name",
-                      "exam_name",
-                      "subject_name",
-                    ] as any
-                  }
-                  searchPlaceholder="Search students..."
-                  columns={examMarkColumns}
-                  onAdd={() => setShowExamMarkDialog(true)}
-                  addButtonText="Add Exam Mark"
-                  exportable={true}
-                  showActions={true}
-                  actionButtonGroups={actionButtonGroups}
-                  actionColumnHeader="Actions"
-                  showActionLabels={true}
-                />
-              </div>
+              <EnhancedDataTable
+                data={examMarks}
+                title="Exam Marks"
+                searchKey={
+                  [
+                    "student_name",
+                    "roll_number",
+                    "class_name",
+                    "section_name",
+                    "exam_name",
+                    "subject_name",
+                  ] as any
+                }
+                searchPlaceholder="Search students..."
+                columns={examMarkColumns}
+                onAdd={() => setShowExamMarkDialog(true)}
+                addButtonText="Add Exam Mark"
+                exportable={true}
+                showActions={true}
+                actionButtonGroups={actionButtonGroups}
+                actionColumnHeader="Actions"
+                showActionLabels={true}
+              />
             )}
 
             {/* View Exam Mark Dialog */}
@@ -709,7 +674,7 @@ const ExamMarksManagementComponent = ({
               onClose={closeExamMarkDialog}
               onSubmit={handleExamMarkSubmit}
               editingExamMark={editingExamMark}
-              selectedClass={selectedClass}
+              selectedClass={selectedClass?.toString() || ""}
             />
           </motion.div>
         </div>

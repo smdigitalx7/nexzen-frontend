@@ -15,20 +15,27 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { EnhancedDataTable } from '@/components/shared';
 import { LoadingStates } from '@/components/ui/loading';
+import {
+  CollegeClassDropdown,
+  CollegeGroupDropdown,
+  CollegeCourseDropdown,
+  CollegeSubjectDropdown,
+  CollegeTestDropdown,
+} from '@/components/shared/Dropdowns';
 import { 
   useCollegeTestMarksList,
   useCollegeTestMark,
   useCreateCollegeTestMark,
   useUpdateCollegeTestMark,
   useDeleteCollegeTestMark,
-  useCollegeClasses,
   useCollegeStudentsList,
-  useCollegeSubjects,
+} from '@/lib/hooks/college';
+import {
   useCollegeGroups,
   useCollegeCourses,
-} from '@/lib/hooks/college';
-
-import { useCollegeTests } from '@/lib/hooks/college/use-college-dropdowns';
+  useCollegeSubjects,
+  useCollegeTests,
+} from '@/lib/hooks/college/use-college-dropdowns';
 import type { CollegeTestMarkMinimalRead, CollegeTestMarksListParams } from '@/lib/types/college/test-marks';
 import {
   createStudentColumn,
@@ -70,12 +77,12 @@ interface TestMarksManagementProps {
 }
 
 const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange }) => {
-  
-  const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('all');
-  const [selectedGroup, setSelectedGroup] = useState('all');
-  const [selectedCourse, setSelectedCourse] = useState('all');
-  const [selectedTest, setSelectedTest] = useState('all');
+  // State - using IDs for dropdowns
+  const [selectedClass, setSelectedClass] = useState<number | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
+  const [selectedTest, setSelectedTest] = useState<number | null>(null);
   
   // Dialog states
   const [showTestMarkDialog, setShowTestMarkDialog] = useState(false);
@@ -85,21 +92,26 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   // API hooks
-  const { data: classes = [] } = useCollegeClasses();
-  
-  // Auto-select first class when available
-  useEffect(() => {
-    if (!selectedClass && classes.length > 0) {
-      setSelectedClass(classes[0].class_id.toString());
-    }
-  }, [selectedClass, classes]);
   const { data: studentsData } = useCollegeStudentsList();
   const students = studentsData?.data || [];
-  const { data: subjects = [] } = useCollegeSubjects();
+  const { data: groupsData } = useCollegeGroups(selectedClass || undefined);
+  const { data: coursesData } = useCollegeCourses(selectedGroup || 0);
+  const { data: subjectsData } = useCollegeSubjects(selectedGroup || 0);
   const { data: testsData } = useCollegeTests();
+
+  // Get groups and courses for lookup maps (for filtering)
+  const groups = groupsData?.items || [];
+  const courses = coursesData?.items || [];
+  const subjects = subjectsData?.items || [];
   const tests = testsData?.items || [];
-  const { data: groups = [] } = useCollegeGroups();
-  const { data: courses = [] } = useCollegeCourses();
+
+  // Reset dependent dropdowns when class changes
+  useEffect(() => {
+    setSelectedGroup(null);
+    setSelectedCourse(null);
+    setSelectedSubject(null);
+    setSelectedTest(null);
+  }, [selectedClass]);
 
   // Single test mark view data (enabled only when an id is set)
   const viewQuery = useCollegeTestMark(viewingTestMarkId);
@@ -109,24 +121,24 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
 
   // Test marks hooks - only fetch when class is selected and groups are loaded
   const testMarksQuery = useMemo((): CollegeTestMarksListParams | undefined => {
-    if (!selectedClass || isNaN(parseInt(selectedClass)) || groups.length === 0) {
+    if (!selectedClass || groups.length === 0) {
       return undefined;
     }
     
-    const groupId = selectedGroup !== 'all' && !isNaN(parseInt(selectedGroup))
-      ? parseInt(selectedGroup)
+    const groupId = selectedGroup !== null && selectedGroup !== undefined
+      ? selectedGroup
       : (groups[0]?.group_id ?? 0);
     
     const query: CollegeTestMarksListParams = {
-      class_id: parseInt(selectedClass),
+      class_id: selectedClass,
       group_id: groupId,
     };
     
-    if (selectedTest !== 'all' && !isNaN(parseInt(selectedTest))) {
-      query.test_id = parseInt(selectedTest);
+    if (selectedTest !== null && selectedTest !== undefined) {
+      query.test_id = selectedTest;
     }
-    if (selectedSubject !== 'all' && !isNaN(parseInt(selectedSubject))) {
-      query.subject_id = parseInt(selectedSubject);
+    if (selectedSubject !== null && selectedSubject !== undefined) {
+      query.subject_id = selectedSubject;
     }
     
     return query;
@@ -466,50 +478,79 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                         <FormField
                         control={testMarkForm.control}
                         name="test_id"
-                          render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Test</FormLabel>
-                            <FormControl>
-                              <Select onValueChange={field.onChange} value={field.value} disabled={!!editingTestMark}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select test" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                {tests.map((test: { test_id?: number; id?: number; test_name: string }) => (
-                                  <SelectItem key={test.test_id || test.id} value={(test.test_id || test.id)?.toString() || ''}>
-                                    {test.test_name}
-                                  </SelectItem>
-                                ))}
-                                </SelectContent>
-                              </Select>
-                            </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          render={({ field }) => {
+                            // Convert form string value to number for dropdown
+                            let numValue: number | null = null;
+                            if (field.value && field.value !== '') {
+                              const parsed = typeof field.value === 'string'
+                                ? parseInt(field.value, 10)
+                                : Number(field.value);
+                              if (!isNaN(parsed) && parsed > 0) {
+                                numValue = parsed;
+                              }
+                            }
+
+                            return (
+                              <FormItem>
+                                <FormLabel>Test</FormLabel>
+                                <FormControl>
+                                  <CollegeTestDropdown
+                                    value={numValue}
+                                    onChange={(value) => {
+                                      // Convert number back to string for form
+                                      if (value !== null && value !== undefined) {
+                                        field.onChange(value.toString());
+                                      } else {
+                                        field.onChange('');
+                                      }
+                                    }}
+                                    disabled={!!editingTestMark}
+                                    placeholder="Select test"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
                         />
                         <FormField
                         control={testMarkForm.control}
                         name="subject_id"
-                          render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Subject</FormLabel>
-                            <FormControl>
-                              <Select onValueChange={field.onChange} value={field.value} disabled={!!editingTestMark}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select subject" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                {subjects.map((subject: { subject_id: number; subject_name: string }) => (
-                                  <SelectItem key={subject.subject_id} value={subject.subject_id.toString()}>
-                                    {subject.subject_name}
-                                  </SelectItem>
-                                ))}
-                                </SelectContent>
-                              </Select>
-                            </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          render={({ field }) => {
+                            // Convert form string value to number for dropdown
+                            let numValue: number | null = null;
+                            if (field.value && field.value !== '') {
+                              const parsed = typeof field.value === 'string'
+                                ? parseInt(field.value, 10)
+                                : Number(field.value);
+                              if (!isNaN(parsed) && parsed > 0) {
+                                numValue = parsed;
+                              }
+                            }
+
+                            return (
+                              <FormItem>
+                                <FormLabel>Subject</FormLabel>
+                                <FormControl>
+                                  <CollegeSubjectDropdown
+                                    groupId={selectedGroup || 0}
+                                    value={numValue}
+                                    onChange={(value) => {
+                                      // Convert number back to string for form
+                                      if (value !== null && value !== undefined) {
+                                        field.onChange(value.toString());
+                                      } else {
+                                        field.onChange('');
+                                      }
+                                    }}
+                                    disabled={!!editingTestMark || !selectedGroup || selectedGroup <= 0}
+                                    placeholder={!selectedGroup || selectedGroup <= 0 ? "Select group first" : "Select subject"}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
                         />
                       </div>
                       <FormField
@@ -649,70 +690,47 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
           >
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger className="w-full sm:w-[150px]" >
-                  <SelectValue placeholder="Select Class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((cls: { class_id: number; class_name: string }) => (
-                    <SelectItem key={cls.class_id} value={cls.class_id.toString()}>
-                      {cls.class_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-                <SelectTrigger className="w-full sm:w-[150px]" >
-                  <SelectValue placeholder="All Groups" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Groups</SelectItem>
-                  {groups.map((g: { group_id: number; group_name: string }) => (
-                    <SelectItem key={g.group_id} value={g.group_id.toString()}>
-                      {g.group_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                <SelectTrigger className="w-full sm:w-[150px]" >
-                  <SelectValue placeholder="All Courses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Courses</SelectItem>
-                  {courses.map((c: { course_id: number; course_name: string }) => (
-                    <SelectItem key={c.course_id} value={c.course_id.toString()}>
-                      {c.course_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                <SelectTrigger className="w-full sm:w-[150px]" >
-                  <SelectValue placeholder="All Subjects" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Subjects</SelectItem>
-                  {subjects.map((subject: { subject_id: number; subject_name: string }) => (
-                    <SelectItem key={subject.subject_id} value={subject.subject_id.toString()}>
-                      {subject.subject_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedTest} onValueChange={setSelectedTest}>
-                <SelectTrigger className="w-full sm:w-[150px]" >
-                  <SelectValue placeholder="All Tests" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Tests</SelectItem>
-                  {tests.map((test: { test_id?: number; id?: number; test_name: string }) => (
-                    <SelectItem key={test.test_id ?? test.id} value={(test.test_id ?? test.id)?.toString() || ''}>
-                      {test.test_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CollegeClassDropdown
+                value={selectedClass}
+                onChange={setSelectedClass}
+                placeholder="Select Class"
+                className="w-full sm:w-[150px]"
+              />
+              <CollegeGroupDropdown
+                classId={selectedClass || undefined}
+                value={selectedGroup}
+                onChange={setSelectedGroup}
+                placeholder="All Groups"
+                className="w-full sm:w-[150px]"
+                emptyValue
+                emptyValueLabel="All Groups"
+              />
+              <CollegeCourseDropdown
+                groupId={selectedGroup || 0}
+                value={selectedCourse}
+                onChange={setSelectedCourse}
+                placeholder="All Courses"
+                className="w-full sm:w-[150px]"
+                emptyValue
+                emptyValueLabel="All Courses"
+              />
+              <CollegeSubjectDropdown
+                groupId={selectedGroup || 0}
+                value={selectedSubject}
+                onChange={setSelectedSubject}
+                placeholder="All Subjects"
+                className="w-full sm:w-[150px]"
+                emptyValue
+                emptyValueLabel="All Subjects"
+              />
+              <CollegeTestDropdown
+                value={selectedTest}
+                onChange={setSelectedTest}
+                placeholder="All Tests"
+                className="w-full sm:w-[150px]"
+                emptyValue
+                emptyValueLabel="All Tests"
+              />
             </div>
 
             {/* Data Table */}

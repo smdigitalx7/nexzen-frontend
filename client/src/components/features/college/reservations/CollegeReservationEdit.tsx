@@ -5,6 +5,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
+import {
+  CollegeClassDropdown,
+  DistanceSlabDropdown,
+} from "@/components/shared/Dropdowns";
 
 type RouteOption = { id: string; name: string; fee: number };
 
@@ -102,16 +106,19 @@ export default function SchoolReservationEdit({ form, setForm, classFee, transpo
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label>Preferred Class</Label>
-            <Select value={form.preferred_class_id?.toString?.() || ""} onValueChange={(v) => onClassChange(v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select class" />
-              </SelectTrigger>
-              <SelectContent>
-                {classes.map((c) => (
-                  <SelectItem key={c.class_id} value={c.class_id.toString()}>{c.class_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CollegeClassDropdown
+              value={
+                form.preferred_class_id
+                  ? typeof form.preferred_class_id === "string"
+                    ? parseInt(form.preferred_class_id, 10)
+                    : form.preferred_class_id
+                  : null
+              }
+              onChange={(value) => {
+                onClassChange(value !== null ? value.toString() : "0");
+              }}
+              placeholder="Select class"
+            />
           </div>
           <div>
             <Label htmlFor="previous_class">Previous Class</Label>
@@ -171,16 +178,21 @@ export default function SchoolReservationEdit({ form, setForm, classFee, transpo
           </div>
           <div>
             <Label>Distance Slab</Label>
-            <Select value={form.preferred_distance_slab_id?.toString?.() || "0"} onValueChange={(v) => onDistanceSlabChange(v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select distance slab" />
-              </SelectTrigger>
-              <SelectContent>
-                {distanceSlabs.map((s) => (
-                  <SelectItem key={s.slab_id} value={s.slab_id.toString()}>{s.slab_name || `Slab ${s.slab_id}`}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <DistanceSlabDropdown
+              value={
+                form.preferred_distance_slab_id &&
+                form.preferred_distance_slab_id !== "0"
+                  ? typeof form.preferred_distance_slab_id === "string"
+                    ? parseInt(form.preferred_distance_slab_id, 10)
+                    : form.preferred_distance_slab_id
+                  : null
+              }
+              onChange={(value) => {
+                const valueStr = value !== null ? value.toString() : "0";
+                onDistanceSlabChange(valueStr);
+              }}
+              placeholder="Select distance slab"
+            />
           </div>
           <div>
             <Label htmlFor="pickup_point">Pickup Point</Label>

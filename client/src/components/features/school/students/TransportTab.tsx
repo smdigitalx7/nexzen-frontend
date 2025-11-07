@@ -319,9 +319,6 @@ const TransportTabComponent = () => {
       {/* Search Form */}
       <TransportSearchForm
         query={query}
-        classes={classes}
-        sections={sections}
-        busRoutes={busRoutes}
         onClassChange={handleClassChange}
         onSectionChange={handleSectionChange}
         onBusRouteChange={handleBusRouteChange}

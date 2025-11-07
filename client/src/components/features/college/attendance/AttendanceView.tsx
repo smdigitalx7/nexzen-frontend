@@ -8,7 +8,8 @@ import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { useCollegeAttendance, useUpdateCollegeAttendance, useDeleteCollegeAttendance, useCollegeClasses, useCollegeClassGroups } from '@/lib/hooks/college';
+import { CollegeClassDropdown, CollegeGroupDropdown } from '@/components/shared/Dropdowns';
+import { useCollegeAttendance, useUpdateCollegeAttendance, useDeleteCollegeAttendance, useCollegeClassGroups } from '@/lib/hooks/college';
 import { useToast } from '@/hooks/use-toast';
 import { CollegeAttendanceService } from '@/lib/services/college';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -20,13 +21,10 @@ export default function AttendanceView() {
   const queryClient = useQueryClient();
   const deleteAttendanceMutation = useDeleteCollegeAttendance();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const classesQuery = useCollegeClasses();
-  const classes = (classesQuery.data as any[]) || [];
-  const firstClassId = classes.length > 0 ? (classes[0]?.class_id as number | undefined) : undefined;
-  const [selectedClassId, setSelectedClassId] = useState<number | undefined>(firstClassId);
-  const { data: classGroups } = useCollegeClassGroups(selectedClassId as number);
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+  const { data: classGroups } = useCollegeClassGroups(selectedClassId || 0);
   const groups = (classGroups as any)?.groups || [];
-  const [selectedGroupId, setSelectedGroupId] = useState<number | undefined>(undefined);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const month = selectedDate ? selectedDate.getMonth() + 1 : undefined;
   const year = selectedDate ? selectedDate.getFullYear() : undefined;
   const studentsQuery = useQuery({
@@ -46,9 +44,9 @@ export default function AttendanceView() {
   const [viewingRow, setViewingRow] = useState<any | null>(null);
   const viewQuery = useCollegeAttendance(viewingRow?.attendance_id ?? null);
 
-  const isLoading = classesQuery.isLoading || studentsQuery.isLoading;
-  const hasError = classesQuery.isError || studentsQuery.isError;
-  const errorMessage = ((classesQuery.error as any)?.message) || ((studentsQuery.error as any)?.message) || undefined;
+  const isLoading = studentsQuery.isLoading;
+  const hasError = studentsQuery.isError;
+  const errorMessage = ((studentsQuery.error as any)?.message) || undefined;
 
   const markAttendance = async (studentId: number, status: string) => {
     if (!selectedClassId) {
@@ -118,18 +116,23 @@ export default function AttendanceView() {
       <CardContent>
         {/* Filters & Actions Bar */}
         <div className="flex flex-wrap items-center justify-end gap-2 mb-4">
-          <Select value={selectedClassId ? String(selectedClassId) : ''} onValueChange={(v) => setSelectedClassId(parseInt(v))}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Class" /></SelectTrigger>
-            <SelectContent>
-              {classes.map((c: CollegeClassResponse) => (<SelectItem key={c.class_id} value={String(c.class_id)}>{c.class_name}</SelectItem>))}
-            </SelectContent>
-          </Select>
-          <Select value={selectedGroupId ? String(selectedGroupId) : ''} onValueChange={(v) => setSelectedGroupId(parseInt(v))}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Group" /></SelectTrigger>
-            <SelectContent>
-              {(groups as CollegeGroupResponse[]).map((g: CollegeGroupResponse) => (<SelectItem key={g.group_id} value={String(g.group_id)}>{g.group_name}</SelectItem>))}
-            </SelectContent>
-          </Select>
+          <CollegeClassDropdown
+            value={selectedClassId}
+            onChange={(value) => {
+              setSelectedClassId(value);
+              setSelectedGroupId(null); // Reset group when class changes
+            }}
+            placeholder="Select class"
+            className="w-[160px]"
+          />
+          <CollegeGroupDropdown
+            classId={selectedClassId || undefined}
+            value={selectedGroupId}
+            onChange={(value) => setSelectedGroupId(value)}
+            disabled={!selectedClassId}
+            placeholder={selectedClassId ? "Select group" : "Select class first"}
+            className="w-[160px]"
+          />
           <Select value={month ? String(month) : ''} onValueChange={(v) => { const m = parseInt(v); const d = selectedDate || new Date(); setSelectedDate(new Date(d.getFullYear(), m - 1, d.getDate())); }}>
             <SelectTrigger className="w-[140px]"><SelectValue placeholder="Month" /></SelectTrigger>
             <SelectContent>
@@ -140,8 +143,6 @@ export default function AttendanceView() {
 
         {hasError ? (
           <div className="py-6 text-center text-red-600">{errorMessage || 'Failed to load data'}</div>
-        ) : classes.length === 0 ? (
-          <div className="py-6 text-center text-slate-500">No classes available</div>
         ) : isLoading ? (
           <div className="py-6 text-center text-slate-500">Loading...</div>
         ) : allStudents.length === 0 ? (

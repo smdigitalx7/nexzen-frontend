@@ -6,19 +6,17 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { useCollegeClasses, useCollegeClassGroups, useBulkCreateCollegeAttendance, useCreateCollegeAttendance } from '@/lib/hooks/college';
+import { CollegeClassDropdown, CollegeGroupDropdown } from '@/components/shared/Dropdowns';
+import { useCollegeClassGroups, useBulkCreateCollegeAttendance, useCreateCollegeAttendance } from '@/lib/hooks/college';
 
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 export default function AttendanceCreate() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const classesQuery = useCollegeClasses();
-  const classes = (classesQuery.data as any[]) || [];
-  const firstClassId = classes.length > 0 ? (classes[0]?.class_id as number | undefined) : undefined;
-  const [selectedClassId, setSelectedClassId] = useState<number | undefined>(firstClassId);
-  const { data: classGroups } = useCollegeClassGroups(selectedClassId as number);
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+  const { data: classGroups } = useCollegeClassGroups(selectedClassId || 0);
   const groups = (classGroups as any)?.groups || [];
-  const [selectedGroupId, setSelectedGroupId] = useState<number | undefined>(undefined);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const month = selectedDate ? selectedDate.getMonth() + 1 : undefined;
   const year = selectedDate ? selectedDate.getFullYear() : undefined;
   const bulkCreate = useBulkCreateCollegeAttendance();
@@ -52,22 +50,23 @@ export default function AttendanceCreate() {
         {/* Filters & Actions Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={selectedClassId ? String(selectedClassId) : ''} onValueChange={(v) => setSelectedClassId(parseInt(v))}>
-              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Class" /></SelectTrigger>
-              <SelectContent>
-                {classes.map((c: any) => (
-                  <SelectItem key={c.class_id} value={String(c.class_id)}>{c.class_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={selectedGroupId ? String(selectedGroupId) : ''} onValueChange={(v) => setSelectedGroupId(parseInt(v))}>
-              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Group" /></SelectTrigger>
-              <SelectContent>
-                {(groups as any[]).map((g: any) => (
-                  <SelectItem key={g.group_id} value={String(g.group_id)}>{g.group_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CollegeClassDropdown
+              value={selectedClassId}
+              onChange={(value) => {
+                setSelectedClassId(value);
+                setSelectedGroupId(null); // Reset group when class changes
+              }}
+              placeholder="Select class"
+              className="w-[160px]"
+            />
+            <CollegeGroupDropdown
+              classId={selectedClassId || undefined}
+              value={selectedGroupId}
+              onChange={(value) => setSelectedGroupId(value)}
+              disabled={!selectedClassId}
+              placeholder={selectedClassId ? "Select group" : "Select class first"}
+              className="w-[160px]"
+            />
             <Select value={month ? String(month) : ''} onValueChange={(v) => { const m = parseInt(v); const d = selectedDate || new Date(); setSelectedDate(new Date(d.getFullYear(), m - 1, d.getDate())); }}>
               <SelectTrigger className="w-[140px]"><SelectValue placeholder="Month" /></SelectTrigger>
               <SelectContent>
@@ -141,25 +140,24 @@ export default function AttendanceCreate() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-slate-700 mb-1 block">Class</label>
-              <Select value={selectedClassId ? String(selectedClassId) : ''} onValueChange={(v) => { const id = parseInt(v); setSelectedClassId(id); setSelectedGroupId(undefined); }}>
-                <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
-                <SelectContent>
-                  {classes.map((c: any) => (
-                    <SelectItem key={c.class_id} value={String(c.class_id)}>{c.class_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CollegeClassDropdown
+                value={selectedClassId}
+                onChange={(value) => {
+                  setSelectedClassId(value);
+                  setSelectedGroupId(null); // Reset group when class changes
+                }}
+                placeholder="Select class"
+              />
             </div>
             <div>
               <label className="text-sm font-medium text-slate-700 mb-1 block">Group</label>
-              <Select value={selectedGroupId ? String(selectedGroupId) : ''} onValueChange={(v) => setSelectedGroupId(parseInt(v))}>
-                <SelectTrigger><SelectValue placeholder="Select group" /></SelectTrigger>
-                <SelectContent>
-                  {(groups as any[]).map((g: any) => (
-                    <SelectItem key={g.group_id} value={String(g.group_id)}>{g.group_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CollegeGroupDropdown
+                classId={selectedClassId || undefined}
+                value={selectedGroupId}
+                onChange={(value) => setSelectedGroupId(value)}
+                disabled={!selectedClassId}
+                placeholder={selectedClassId ? "Select group" : "Select class first"}
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">

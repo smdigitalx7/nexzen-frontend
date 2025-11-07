@@ -2,6 +2,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormDialog } from '@/components/shared';
+import { CollegeClassDropdown, CollegeGroupDropdown, CollegeCourseDropdown } from '@/components/shared/Dropdowns';
 import type { CollegeEnrollmentCreate } from '@/lib/types/college';
 
 interface EnrollmentCreateDialogProps {
@@ -32,16 +33,6 @@ export const EnrollmentCreateDialog = ({
   courses,
 }: EnrollmentCreateDialogProps) => {
   const isDisabled = !formData.student_id || !formData.class_id || !formData.group_id || !formData.roll_number;
-
-  // Filter groups based on selected class
-  const availableGroups = formData.class_id 
-    ? groups.filter((grp: any) => grp.class_id === formData.class_id)
-    : [];
-  
-  // Filter courses based on selected group
-  const availableCourses = formData.group_id 
-    ? courses.filter((crs: any) => crs.group_id === formData.group_id)
-    : [];
 
   return (
     <FormDialog
@@ -78,73 +69,48 @@ export const EnrollmentCreateDialog = ({
         </div>
         <div>
           <Label htmlFor="class_id">Class *</Label>
-          <Select
-            value={formData.class_id ? String(formData.class_id) : ''}
-            onValueChange={(value) => {
+          <CollegeClassDropdown
+            value={formData.class_id || null}
+            onChange={(value) => {
               onFormDataChange({ 
                 ...formData, 
-                class_id: Number(value),
+                class_id: value || 0,
                 group_id: 0,
                 course_id: null
               });
             }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select class" />
-            </SelectTrigger>
-            <SelectContent>
-              {classes.map((cls: any) => (
-                <SelectItem key={cls.class_id} value={String(cls.class_id)}>
-                  {cls.class_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder="Select class"
+            required
+          />
         </div>
         <div>
           <Label htmlFor="group_id">Group *</Label>
-          <Select
-            value={formData.group_id ? String(formData.group_id) : ''}
-            onValueChange={(value) => {
+          <CollegeGroupDropdown
+            classId={formData.class_id || undefined}
+            value={formData.group_id || null}
+            onChange={(value) => {
               onFormDataChange({ 
                 ...formData, 
-                group_id: Number(value),
+                group_id: value || 0,
                 course_id: null
               });
             }}
             disabled={!formData.class_id}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={formData.class_id ? "Select group" : "Select class first"} />
-            </SelectTrigger>
-            <SelectContent>
-              {availableGroups.map((grp: any) => (
-                <SelectItem key={grp.group_id} value={String(grp.group_id)}>
-                  {grp.group_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder={formData.class_id ? "Select group" : "Select class first"}
+            required
+          />
         </div>
         <div>
           <Label htmlFor="course_id">Course (Optional)</Label>
-          <Select
-            value={formData.course_id ? String(formData.course_id) : ''}
-            onValueChange={(value) => onFormDataChange({ ...formData, course_id: value ? Number(value) : null })}
+          <CollegeCourseDropdown
+            groupId={formData.group_id || 0}
+            value={formData.course_id || null}
+            onChange={(value) => onFormDataChange({ ...formData, course_id: value || null })}
             disabled={!formData.group_id}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={formData.group_id ? "Select course (optional)" : "Select group first"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">None</SelectItem>
-              {availableCourses.map((crs: any) => (
-                <SelectItem key={crs.course_id} value={String(crs.course_id)}>
-                  {crs.course_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder={formData.group_id ? "Select course (optional)" : "Select group first"}
+            emptyValue
+            emptyValueLabel="None"
+          />
         </div>
         <div>
           <Label htmlFor="roll_number">Roll Number *</Label>

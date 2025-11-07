@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CollegeClassDropdown, CollegeGroupDropdown, CollegeCourseDropdown } from '@/components/shared/Dropdowns';
 import { Eye } from 'lucide-react';
 
 interface EnrollmentSearchFormProps {
@@ -32,59 +33,40 @@ export const EnrollmentSearchForm = ({
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div>
             <label className="text-sm font-medium text-slate-700 mb-2 block">Class</label>
-            <Select
-              value={query.class_id ? String(query.class_id) : ''}
-              onValueChange={onClassChange}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select class" />
-              </SelectTrigger>
-              <SelectContent>
-                {classes.map((cls: any) => (
-                  <SelectItem key={cls.class_id} value={String(cls.class_id)}>
-                    {cls.class_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CollegeClassDropdown
+              value={typeof query.class_id === 'number' ? query.class_id : null}
+              onChange={(value) => onClassChange(value !== null ? value.toString() : '')}
+              placeholder="Select class"
+              className="w-full"
+              emptyValue
+              emptyValueLabel="Select class"
+            />
           </div>
           <div>
             <label className="text-sm font-medium text-slate-700 mb-2 block">Group</label>
-            <Select
-              value={query.group_id ? String(query.group_id) : ''}
-              onValueChange={onGroupChange}
-              disabled={!query.class_id}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={query.class_id ? "Select group (optional)" : "Select class first"} />
-              </SelectTrigger>
-              <SelectContent>
-                {groups.map((grp: any) => (
-                  <SelectItem key={grp.group_id} value={String(grp.group_id)}>
-                    {grp.group_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CollegeGroupDropdown
+              classId={typeof query.class_id === 'number' ? query.class_id : undefined}
+              value={typeof query.group_id === 'number' ? query.group_id : null}
+              onChange={(value) => onGroupChange(value !== null ? value.toString() : '')}
+              disabled={typeof query.class_id !== 'number'}
+              placeholder={typeof query.class_id === 'number' ? "All Groups" : "Select class first"}
+              className="w-full"
+              emptyValue
+              emptyValueLabel="Select group"
+            />
           </div>
           <div>
             <label className="text-sm font-medium text-slate-700 mb-2 block">Course</label>
-            <Select
-              value={query.course_id ? String(query.course_id) : ''}
-              onValueChange={onCourseChange}
-              disabled={!query.group_id}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={query.group_id ? "Select course (optional)" : "Select group first"} />
-              </SelectTrigger>
-              <SelectContent>
-                {courses.map((crs: any) => (
-                  <SelectItem key={crs.course_id} value={String(crs.course_id)}>
-                    {crs.course_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CollegeCourseDropdown
+              groupId={typeof query.group_id === 'number' ? query.group_id : 0}
+              value={typeof query.course_id === 'number' ? query.course_id : null}
+              onChange={(value) => onCourseChange(value !== null ? value.toString() : '')}
+              disabled={typeof query.group_id !== 'number'}
+              placeholder={typeof query.group_id === 'number' ? "All Courses" : "Select group first"}
+              className="w-full"
+              emptyValue
+              emptyValueLabel="Select course"
+            />
           </div>
           <div>
             <label className="text-sm font-medium text-slate-700 mb-2 block">Admission No (optional)</label>

@@ -11,6 +11,11 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
+import {
+  SchoolClassDropdown,
+  BusRouteDropdown,
+  DistanceSlabDropdown,
+} from "@/components/shared/Dropdowns";
 
 type RouteOption = { id: string; name: string; fee: number };
 
@@ -231,18 +236,22 @@ const AcademicDetailsSection = memo(
     <div className="border-t pt-4">
       <div className="font-medium mb-2">Academic Details</div>
       <div className="grid grid-cols-2 gap-4">
-        <SelectField
-          label="Preferred Class"
-          value={form.preferred_class_id?.toString?.() || ""}
-          onValueChange={onClassChange}
-          placeholder="Select class"
-        >
-          {classes.map((c) => (
-            <SelectItem key={c.class_id} value={c.class_id.toString()}>
-              {c.class_name}
-            </SelectItem>
-          ))}
-        </SelectField>
+        <div>
+          <Label>Preferred Class</Label>
+          <SchoolClassDropdown
+            value={
+              form.preferred_class_id
+                ? typeof form.preferred_class_id === "string"
+                  ? parseInt(form.preferred_class_id, 10)
+                  : form.preferred_class_id
+                : null
+            }
+            onChange={(value) => {
+              onClassChange(value !== null ? value.toString() : "0");
+            }}
+            placeholder="Select class"
+          />
+        </div>
         <FormField
           id="previous_class"
           label="Previous Class"
@@ -388,40 +397,43 @@ const TransportSection = memo(
         </SelectField>
         {form.transport_required && (
           <>
-            <SelectField
-              label="Transport Route"
-              value={form.preferred_transport_id?.toString?.() || "0"}
-              onValueChange={(value) =>
-                setForm({ ...form, preferred_transport_id: value })
-              }
-              placeholder="Select transport route"
-            >
-              {routes.map((route) => (
-                <SelectItem key={route.id} value={route.id}>
-                  {route.name}
-                </SelectItem>
-              ))}
-            </SelectField>
-            <SelectField
-              label="Distance Slab"
-              value={form.preferred_distance_slab_id?.toString?.() || "0"}
-              onValueChange={onDistanceSlabChange}
-              placeholder="Select distance slab"
-            >
-              {distanceSlabs.map((s) => (
-                <SelectItem key={s.slab_id} value={s.slab_id.toString()}>
-                  {s.slab_name || `Slab ${s.slab_id}`}
-                  {s.min_distance !== undefined && (
-                    <>
-                      {" "}
-                      - {s.min_distance}km
-                      {s.max_distance ? `-${s.max_distance}km` : "+"} (₹
-                      {s.fee_amount})
-                    </>
-                  )}
-                </SelectItem>
-              ))}
-            </SelectField>
+            <div>
+              <Label>Transport Route</Label>
+              <BusRouteDropdown
+                value={
+                  form.preferred_transport_id && form.preferred_transport_id !== "0"
+                    ? typeof form.preferred_transport_id === "string"
+                      ? parseInt(form.preferred_transport_id, 10)
+                      : form.preferred_transport_id
+                    : null
+                }
+                onChange={(value) => {
+                  setForm({
+                    ...form,
+                    preferred_transport_id: value !== null ? value.toString() : "0",
+                  });
+                }}
+                placeholder="Select transport route"
+              />
+            </div>
+            <div>
+              <Label>Distance Slab</Label>
+              <DistanceSlabDropdown
+                value={
+                  form.preferred_distance_slab_id &&
+                  form.preferred_distance_slab_id !== "0"
+                    ? typeof form.preferred_distance_slab_id === "string"
+                      ? parseInt(form.preferred_distance_slab_id, 10)
+                      : form.preferred_distance_slab_id
+                    : null
+                }
+                onChange={(value) => {
+                  const valueStr = value !== null ? value.toString() : "0";
+                  onDistanceSlabChange(valueStr);
+                }}
+                placeholder="Select distance slab"
+              />
+            </div>
             <FormField
               id="pickup_point"
               label="Pickup Point"

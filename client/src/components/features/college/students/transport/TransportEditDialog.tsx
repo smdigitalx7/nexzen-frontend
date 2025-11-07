@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { FormDialog } from '@/components/shared';
+import { BusRouteDropdown, DistanceSlabDropdown } from '@/components/shared/Dropdowns';
 import type { CollegeTransportAssignmentUpdate } from '@/lib/types/college';
 
 interface TransportEditDialogProps {
@@ -58,39 +59,19 @@ export const TransportEditDialog = ({
       <div className="space-y-4">
         <div>
           <Label htmlFor="edit_bus_route_id">Bus Route</Label>
-          <Select
-            value={formData.bus_route_id ? String(formData.bus_route_id) : ''}
-            onValueChange={(value) => onFormDataChange({ ...formData, bus_route_id: Number(value) })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select bus route" />
-            </SelectTrigger>
-            <SelectContent>
-              {busRoutes.map((route: any) => (
-                <SelectItem key={route.bus_route_id} value={String(route.bus_route_id)}>
-                  {route.route_name} {route.route_no ? `(${route.route_no})` : ''}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <BusRouteDropdown
+            value={formData.bus_route_id || null}
+            onChange={(value) => onFormDataChange({ ...formData, bus_route_id: value || 0 })}
+            placeholder="Select bus route"
+          />
         </div>
         <div>
           <Label htmlFor="edit_slab_id">Distance Slab</Label>
-          <Select
-            value={formData.slab_id ? String(formData.slab_id) : ''}
-            onValueChange={(value) => onFormDataChange({ ...formData, slab_id: Number(value) })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select distance slab" />
-            </SelectTrigger>
-            <SelectContent>
-              {slabs.map((slab: any) => (
-                <SelectItem key={slab.slab_id} value={String(slab.slab_id)}>
-                  {slab.slab_name} ({slab.min_distance}-{slab.max_distance ?? '∞'} km) - ₹{slab.fee_amount}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <DistanceSlabDropdown
+            value={formData.slab_id || null}
+            onChange={(value) => onFormDataChange({ ...formData, slab_id: value || 0 })}
+            placeholder="Select distance slab"
+          />
         </div>
         <div>
           <Label htmlFor="edit_pickup_point">Pickup Point</Label>

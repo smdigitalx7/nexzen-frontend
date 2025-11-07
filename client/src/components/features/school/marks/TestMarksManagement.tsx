@@ -45,6 +45,12 @@ import { EnhancedDataTable } from "@/components/shared";
 import { LoadingStates } from "@/components/ui/loading";
 import { useSearchFilters } from "@/lib/hooks/common";
 import {
+  SchoolClassDropdown,
+  SchoolSectionDropdown,
+  SchoolSubjectDropdown,
+  SchoolTestDropdown,
+} from "@/components/shared/Dropdowns";
+import {
   useSchoolTestMarksList,
   useSchoolTestMark,
   useCreateSchoolTestMark,
@@ -52,9 +58,11 @@ import {
   useDeleteSchoolTestMark,
   useSchoolStudentsList,
 } from '@/lib/hooks/school';
-// Note: useSchoolClasses, useSchoolSections, useSchoolSubjects, useSchoolTests from dropdowns
-// Import dropdowns directly: import { useSchoolClasses } from "@/lib/hooks/school/use-school-dropdowns"
-import { useSchoolClasses, useSchoolSections, useSchoolSubjects, useSchoolTests } from '@/lib/hooks/school/use-school-dropdowns';
+import {
+  useSchoolSections,
+  useSchoolSubjects,
+  useSchoolTests,
+} from '@/lib/hooks/school/use-school-dropdowns';
 import type { TestMarkWithDetails, TestMarksQuery } from '@/lib/types/school/test-marks';
 import {
   createStudentColumn,
@@ -113,12 +121,12 @@ interface TestMarksManagementProps {
 const TestMarksManagementComponent = ({
   onDataChange,
 }: TestMarksManagementProps) => {
-  // State management
-  const [selectedClass, setSelectedClass] = useState("");
-  const [selectedSection, setSelectedSection] = useState("all");
-  const [selectedSubject, setSelectedSubject] = useState("all");
+  // State management - using IDs for dropdowns, converting to names for filtering
+  const [selectedClass, setSelectedClass] = useState<number | null>(null);
+  const [selectedSection, setSelectedSection] = useState<number | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
   const [selectedGrade, setSelectedGrade] = useState("all");
-  const [selectedTest, setSelectedTest] = useState("all");
+  const [selectedTest, setSelectedTest] = useState<number | null>(null);
 
   // Dialog states
   const [showTestMarkDialog, setShowTestMarkDialog] = useState(false);
@@ -132,48 +140,49 @@ const TestMarksManagementComponent = ({
 
   // Memoized class ID for API calls
   const classId = useMemo(
-    () => (selectedClass ? parseInt(selectedClass) : 0),
+    () => selectedClass || 0,
     [selectedClass]
   );
 
-  // API hooks with memoized parameters
-  const {
-    data: classesData,
-    isLoading: classesLoading,
-    error: classesError,
-  } = useSchoolClasses();
-  const {
-    data: sectionsData,
-    isLoading: sectionsLoading,
-    error: sectionsError,
-  } = useSchoolSections(classId);
-  const {
-    data: subjectsData,
-    isLoading: subjectsLoading,
-    error: subjectsError,
-  } = useSchoolSubjects(classId);
-  const { data: studentsData } = useSchoolStudentsList();
+  // Get sections, subjects, and tests data for lookup maps (for filtering by name)
+  const { data: sectionsData } = useSchoolSections(classId);
+  const { data: subjectsData } = useSchoolSubjects(classId);
   const { data: testsData } = useSchoolTests();
+  const { data: studentsData } = useSchoolStudentsList();
 
   // Memoized extracted data
-  const classes = useMemo(() => classesData?.items || [], [classesData]);
-  const sections = useMemo(() => sectionsData?.items || [], [sectionsData]);
-  const subjects = useMemo(() => subjectsData?.items || [], [subjectsData]);
   const students = useMemo(() => studentsData?.data || [], [studentsData]);
-  const tests = useMemo(() => testsData?.items || [], [testsData]);
 
-  // Auto-select first class when available
-  useEffect(() => {
-    if (!selectedClass && classes.length > 0) {
-      setSelectedClass(classes[0].class_id.toString());
-    }
-  }, [selectedClass, classes]);
+  // Create lookup maps: ID -> Name (for filtering)
+  const sectionIdToName = useMemo(() => {
+    const map = new Map<number, string>();
+    sectionsData?.items?.forEach((section) => {
+      map.set(section.section_id, section.section_name);
+    });
+    return map;
+  }, [sectionsData]);
+
+  const subjectIdToName = useMemo(() => {
+    const map = new Map<number, string>();
+    subjectsData?.items?.forEach((subject) => {
+      map.set(subject.subject_id, subject.subject_name);
+    });
+    return map;
+  }, [subjectsData]);
+
+  const testIdToName = useMemo(() => {
+    const map = new Map<number, string>();
+    testsData?.items?.forEach((test) => {
+      map.set(test.test_id, test.test_name);
+    });
+    return map;
+  }, [testsData]);
 
   // Reset section, subject, and test when class changes
   useEffect(() => {
-    setSelectedSection("all");
-    setSelectedSubject("all");
-    setSelectedTest("all");
+    setSelectedSection(null);
+    setSelectedSubject(null);
+    setSelectedTest(null);
   }, [selectedClass]);
 
   // Single test mark view data (enabled only when an id is set)
@@ -184,13 +193,13 @@ const TestMarksManagementComponent = ({
 
   // Test marks query - only filter by class (server-side)
   const testMarksQuery = useMemo(() => {
-    if (!selectedClass || isNaN(parseInt(selectedClass))) {
+    if (!selectedClass) {
       return undefined;
     }
 
     // Only fetch by class, let client-side handle other filters
     const query: TestMarksQuery = {
-      class_id: parseInt(selectedClass),
+      class_id: selectedClass,
     };
 
     return query;
@@ -224,15 +233,15 @@ const TestMarksManagementComponent = ({
   });
 
   // Memoized handlers
-  const handleClassChange = useCallback((value: string) => {
-    setSelectedClass(value === "all" ? "" : value);
+  const handleClassChange = useCallback((value: number | null) => {
+    setSelectedClass(value);
   }, []);
 
-  const handleSectionChange = useCallback((value: string) => {
+  const handleSectionChange = useCallback((value: number | null) => {
     setSelectedSection(value);
   }, []);
 
-  const handleSubjectChange = useCallback((value: string) => {
+  const handleSubjectChange = useCallback((value: number | null) => {
     setSelectedSubject(value);
   }, []);
 
@@ -240,7 +249,7 @@ const TestMarksManagementComponent = ({
     setSelectedGrade(value);
   }, []);
 
-  const handleTestChange = useCallback((value: string) => {
+  const handleTestChange = useCallback((value: number | null) => {
     setSelectedTest(value);
   }, []);
 
@@ -357,17 +366,20 @@ const TestMarksManagementComponent = ({
   const filteredMarks = useMemo(() => {
     let filtered = flattenedMarks;
 
-    // Apply section filter (client-side)
-    if (selectedSection !== "all") {
-      filtered = filtered.filter(
-        (mark) => mark.section_name === selectedSection
-      );
+    // Apply section filter (client-side) - filter by section_name using lookup
+    if (selectedSection !== null) {
+      const sectionName = sectionIdToName.get(selectedSection);
+      if (sectionName) {
+        filtered = filtered.filter(
+          (mark) => mark.section_name === sectionName
+        );
+      }
     }
 
-    // Apply subject filter (client-side)
-    if (selectedSubject !== "all") {
+    // Apply subject filter (client-side) - filter by subject_id
+    if (selectedSubject !== null) {
       filtered = filtered.filter(
-        (mark) => mark.subject_name === selectedSubject
+        (mark) => mark.subject_id !== undefined && mark.subject_id === selectedSubject
       );
     }
 
@@ -376,9 +388,11 @@ const TestMarksManagementComponent = ({
       filtered = filtered.filter((mark) => mark.grade === selectedGrade);
     }
 
-    // Apply test filter (client-side)
-    if (selectedTest !== "all") {
-      filtered = filtered.filter((mark) => mark.test_name === selectedTest);
+    // Apply test filter (client-side) - filter by test_id
+    if (selectedTest !== null) {
+      filtered = filtered.filter(
+        (mark) => mark.test_id !== undefined && mark.test_id === selectedTest
+      );
     }
 
     return filtered;
@@ -388,6 +402,7 @@ const TestMarksManagementComponent = ({
     selectedSubject,
     selectedGrade,
     selectedTest,
+    sectionIdToName,
   ]);
 
   const {
@@ -398,12 +413,12 @@ const TestMarksManagementComponent = ({
     keys: ["student_name", "subject_name", "roll_number"] as any,
   });
 
-  // Notify parent component when data changes
+  // Notify parent component when data changes - use flattenedMarks (all data) for statistics
   useEffect(() => {
     if (onDataChange) {
-      onDataChange(testMarks);
+      onDataChange(flattenedMarks);
     }
-  }, [testMarks, onDataChange]);
+  }, [flattenedMarks, onDataChange]);
 
   // Table columns for test marks using column factories
   const testMarkColumns: ColumnDef<TestMarkWithDetails>[] = useMemo(
@@ -518,70 +533,79 @@ const TestMarksManagementComponent = ({
                         <FormField
                           control={testMarkForm.control}
                           name="test_id"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Test</FormLabel>
-                              <FormControl>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  value={field.value}
-                                  disabled={!!editingTestMark}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select test" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {tests.map((test: any) => (
-                                      <SelectItem
-                                        key={test.test_id || test.id}
-                                        value={
-                                          (
-                                            test.test_id || test.id
-                                          )?.toString() || ""
-                                        }
-                                      >
-                                        {test.test_name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          render={({ field }) => {
+                            // Convert form string value to number for dropdown
+                            let numValue: number | null = null;
+                            if (field.value && field.value !== '') {
+                              const parsed = typeof field.value === 'string'
+                                ? parseInt(field.value, 10)
+                                : Number(field.value);
+                              if (!isNaN(parsed) && parsed > 0) {
+                                numValue = parsed;
+                              }
+                            }
+
+                            return (
+                              <FormItem>
+                                <FormLabel>Test</FormLabel>
+                                <FormControl>
+                                  <SchoolTestDropdown
+                                    value={numValue}
+                                    onChange={(value) => {
+                                      // Convert number back to string for form
+                                      if (value !== null && value !== undefined) {
+                                        field.onChange(value.toString());
+                                      } else {
+                                        field.onChange('');
+                                      }
+                                    }}
+                                    disabled={!!editingTestMark}
+                                    placeholder="Select test"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
                         />
                         <FormField
                           control={testMarkForm.control}
                           name="subject_id"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Subject</FormLabel>
-                              <FormControl>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  value={field.value}
-                                  disabled={!!editingTestMark}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select subject" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {subjects.map((subject: any) => (
-                                      <SelectItem
-                                        key={subject.subject_id}
-                                        value={
-                                          subject.subject_id?.toString() || ""
-                                        }
-                                      >
-                                        {subject.subject_name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          render={({ field }) => {
+                            // Convert form string value to number for dropdown
+                            let numValue: number | null = null;
+                            if (field.value && field.value !== '') {
+                              const parsed = typeof field.value === 'string'
+                                ? parseInt(field.value, 10)
+                                : Number(field.value);
+                              if (!isNaN(parsed) && parsed > 0) {
+                                numValue = parsed;
+                              }
+                            }
+
+                            return (
+                              <FormItem>
+                                <FormLabel>Subject</FormLabel>
+                                <FormControl>
+                                  <SchoolSubjectDropdown
+                                    classId={classId}
+                                    value={numValue}
+                                    onChange={(value) => {
+                                      // Convert number back to string for form
+                                      if (value !== null && value !== undefined) {
+                                        field.onChange(value.toString());
+                                      } else {
+                                        field.onChange('');
+                                      }
+                                    }}
+                                    disabled={!!editingTestMark || classId <= 0}
+                                    placeholder={classId <= 0 ? "Select class first" : "Select subject"}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
                         />
                       </div>
                       <FormField
@@ -732,71 +756,40 @@ const TestMarksManagementComponent = ({
             <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium">Class:</label>
-                <Select
-                  value={selectedClass || "all"}
-                  onValueChange={handleClassChange}
-                >
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Select class" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Classes</SelectItem>
-                    {classes.map((cls) => (
-                      <SelectItem
-                        key={cls.class_id}
-                        value={cls.class_id.toString()}
-                      >
-                        {cls.class_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SchoolClassDropdown
+                  value={selectedClass}
+                  onChange={handleClassChange}
+                  placeholder="Select class"
+                  emptyValue
+                  emptyValueLabel="Select class"
+                  className="w-40"
+                />
               </div>
 
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium">Section:</label>
-                <Select
+                <SchoolSectionDropdown
+                  classId={classId}
                   value={selectedSection}
-                  onValueChange={handleSectionChange}
-                >
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="All Sections" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Sections</SelectItem>
-                    {sections.map((section) => (
-                      <SelectItem
-                        key={section.section_id}
-                        value={section.section_name}
-                      >
-                        {section.section_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={handleSectionChange}
+                  placeholder="Select section"
+                  emptyValue
+                  emptyValueLabel="Select section"
+                  className="w-40"
+                />
               </div>
 
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium">Subject:</label>
-                <Select
+                <SchoolSubjectDropdown
+                  classId={classId}
                   value={selectedSubject}
-                  onValueChange={handleSubjectChange}
-                >
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="All Subjects" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Subjects</SelectItem>
-                    {subjects.map((subject) => (
-                      <SelectItem
-                        key={subject.subject_id}
-                        value={subject.subject_name}
-                      >
-                        {subject.subject_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={handleSubjectChange}
+                  placeholder="Select subject"
+                  emptyValue
+                  emptyValueLabel="Select subject"
+                  className="w-40"
+                />
               </div>
 
               <div className="flex items-center gap-2">
@@ -821,19 +814,14 @@ const TestMarksManagementComponent = ({
 
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium">Test:</label>
-                <Select value={selectedTest} onValueChange={handleTestChange}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="All Tests" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Tests</SelectItem>
-                    {tests.map((test: any) => (
-                      <SelectItem key={test.test_id} value={test.test_name}>
-                        {test.test_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SchoolTestDropdown
+                  value={selectedTest}
+                  onChange={handleTestChange}
+                  placeholder="Select test"
+                  emptyValue
+                  emptyValueLabel="Select test"
+                  className="w-40"
+                />
               </div>
             </div>
 

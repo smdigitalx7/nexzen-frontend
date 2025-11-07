@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { FormDialog } from '@/components/shared';
+import { SchoolClassDropdown, SchoolSectionDropdown } from '@/components/shared/Dropdowns';
 import type { SchoolEnrollmentCreate } from '@/lib/types/school';
 
 interface EnrollmentCreateDialogProps {
@@ -31,11 +32,6 @@ export const EnrollmentCreateDialog = ({
   sections,
 }: EnrollmentCreateDialogProps) => {
   const isDisabled = !formData.student_id || !formData.class_id || !formData.section_id || !formData.roll_number;
-
-  // Filter sections based on selected class
-  const availableSections = formData.class_id 
-    ? sections.filter((sec: any) => sec.class_id === formData.class_id)
-    : [];
 
   return (
     <FormDialog
@@ -72,47 +68,29 @@ export const EnrollmentCreateDialog = ({
         </div>
         <div>
           <Label htmlFor="class_id">Class *</Label>
-          <Select
-            value={formData.class_id ? String(formData.class_id) : ''}
-            onValueChange={(value) => {
-              const newClassId = Number(value);
+          <SchoolClassDropdown
+            value={formData.class_id || null}
+            onChange={(value) => {
               onFormDataChange({ 
                 ...formData, 
-                class_id: newClassId,
+                class_id: value || 0,
                 section_id: 0 // Reset section when class changes
               });
             }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select class" />
-            </SelectTrigger>
-            <SelectContent>
-              {classes.map((cls: any) => (
-                <SelectItem key={cls.class_id} value={String(cls.class_id)}>
-                  {cls.class_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder="Select class"
+            required
+          />
         </div>
         <div>
           <Label htmlFor="section_id">Section *</Label>
-          <Select
-            value={formData.section_id ? String(formData.section_id) : ''}
-            onValueChange={(value) => onFormDataChange({ ...formData, section_id: Number(value) })}
+          <SchoolSectionDropdown
+            classId={formData.class_id || 0}
+            value={formData.section_id || null}
+            onChange={(value) => onFormDataChange({ ...formData, section_id: value || 0 })}
             disabled={!formData.class_id}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={formData.class_id ? "Select section" : "Select class first"} />
-            </SelectTrigger>
-            <SelectContent>
-              {availableSections.map((sec: any) => (
-                <SelectItem key={sec.section_id} value={String(sec.section_id)}>
-                  {sec.section_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder={formData.class_id ? "Select section" : "Select class first"}
+            required
+          />
         </div>
         <div>
           <Label htmlFor="roll_number">Roll Number *</Label>

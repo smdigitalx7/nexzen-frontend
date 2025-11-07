@@ -12,6 +12,13 @@ import { Button } from "@/components/ui/button";
 import { EmployeeCombobox } from "@/components/ui/employee-combobox";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DatePicker } from "@/components/ui/date-picker";
+import {
+  CollegeClassDropdown,
+  CollegeGroupDropdown,
+  CollegeCourseDropdown,
+  BusRouteDropdown,
+  DistanceSlabDropdown,
+} from "@/components/shared/Dropdowns";
 import { useMemo, useState } from "react";
 import { Save } from "lucide-react";
 
@@ -631,57 +638,26 @@ export default function ReservationForm({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="preferred_class_id">Preferred Class *</Label>
-                <Select
-                  value={form.preferred_class_id.toString()}
-                  onOpenChange={(open) => {
-                    if (open && onDropdownOpen) {
-                      onDropdownOpen("classes");
-                    }
-                  }}
-                  onValueChange={(value) => {
-                    const selectedClass = classes.find(
-                      (c) => c.class_id.toString() === value
-                    );
-                    if (selectedClass) {
+                <CollegeClassDropdown
+                  value={form.preferred_class_id || null}
+                  onChange={(value) => {
+                    if (value !== null) {
                       setForm({
                         ...form,
-                        preferred_class_id: selectedClass.class_id,
+                        preferred_class_id: value,
                       });
-                      onClassChange(selectedClass.class_id);
+                      onClassChange(value);
+                    } else {
+                      setForm({
+                        ...form,
+                        preferred_class_id: 0,
+                      });
+                      onClassChange(0);
                     }
                   }}
-                >
-                  <SelectTrigger disabled={isLoadingClasses}>
-                    <SelectValue
-                      placeholder={
-                        isLoadingClasses ? "Loading..." : "Select class"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {isLoadingClasses ? (
-                      <div className="flex items-center justify-center p-4">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                        <span className="ml-2 text-sm text-muted-foreground">
-                          Loading classes...
-                        </span>
-                      </div>
-                    ) : (classes || []).length === 0 ? (
-                      <div className="p-4 text-sm text-muted-foreground text-center">
-                        No classes available
-                      </div>
-                    ) : (
-                      (classes || []).map((classItem) => (
-                        <SelectItem
-                          key={classItem.class_id}
-                          value={classItem.class_id.toString()}
-                        >
-                          {classItem.class_name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                  placeholder="Select class"
+                  required
+                />
               </div>
               <div>
                 <Label htmlFor="previous_class">Previous Class</Label>
@@ -710,115 +686,71 @@ export default function ReservationForm({
               </div>
               <div>
                 <Label htmlFor="group_name">Group Name *</Label>
-                <Select
-                  value={form.group_name}
-                  onOpenChange={(open) => {
-                    if (open && onDropdownOpen) {
-                      onDropdownOpen("groups");
-                    }
-                  }}
-                  onValueChange={(value) => {
-                    const selectedGroup = groups.find(
-                      (g) => g.group_name === value
-                    );
-                    if (selectedGroup) {
+                <CollegeGroupDropdown
+                  classId={form.preferred_class_id || undefined}
+                  value={form.preferred_group_id || null}
+                  onChange={(value) => {
+                    if (value !== null) {
+                      const selectedGroup = groups.find(
+                        (g) => g.group_id === value
+                      );
+                      if (selectedGroup) {
+                        setForm({
+                          ...form,
+                          group_name: selectedGroup.group_name,
+                          preferred_group_id: value,
+                          group_fee: selectedGroup.fee,
+                        });
+                        onGroupChange(value);
+                      }
+                    } else {
                       setForm({
                         ...form,
-                        group_name: value,
-                        preferred_group_id: selectedGroup.group_id,
-                        group_fee: selectedGroup.fee,
+                        group_name: "",
+                        preferred_group_id: 0,
+                        group_fee: 0,
                       });
-                      onGroupChange(selectedGroup.group_id);
+                      onGroupChange(0);
                     }
                   }}
-                >
-                  <SelectTrigger disabled={isLoadingGroups}>
-                    <SelectValue
-                      placeholder={
-                        isLoadingGroups ? "Loading..." : "Select group"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {isLoadingGroups ? (
-                      <div className="flex items-center justify-center p-4">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                        <span className="ml-2 text-sm text-muted-foreground">
-                          Loading groups...
-                        </span>
-                      </div>
-                    ) : (groups || []).length === 0 ? (
-                      <div className="p-4 text-sm text-muted-foreground text-center">
-                        No groups available
-                      </div>
-                    ) : (
-                      (groups || []).map((group) => (
-                        <SelectItem
-                          key={group.group_id}
-                          value={group.group_name}
-                        >
-                          {group.group_name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                  placeholder="Select group"
+                  required
+                  disabled={!form.preferred_class_id || form.preferred_class_id === 0}
+                />
               </div>
               <div>
                 <Label htmlFor="course_name">Course Name *</Label>
-                <Select
-                  value={form.course_name}
-                  onOpenChange={(open) => {
-                    if (open && onDropdownOpen) {
-                      onDropdownOpen("courses");
-                    }
-                  }}
-                  onValueChange={(value) => {
-                    const selectedCourse = courses.find(
-                      (c) => c.course_name === value
-                    );
-                    if (selectedCourse) {
+                <CollegeCourseDropdown
+                  groupId={form.preferred_group_id || 0}
+                  value={form.preferred_course_id || null}
+                  onChange={(value) => {
+                    if (value !== null) {
+                      const selectedCourse = courses.find(
+                        (c) => c.course_id === value
+                      );
+                      if (selectedCourse) {
+                        setForm({
+                          ...form,
+                          course_name: selectedCourse.course_name,
+                          preferred_course_id: value,
+                          course_fee: selectedCourse.fee,
+                        });
+                        onCourseChange(value);
+                      }
+                    } else {
                       setForm({
                         ...form,
-                        course_name: value,
-                        preferred_course_id: selectedCourse.course_id,
-                        course_fee: selectedCourse.fee,
+                        course_name: "",
+                        preferred_course_id: 0,
+                        course_fee: 0,
                       });
-                      onCourseChange(selectedCourse.course_id);
+                      onCourseChange(0);
                     }
                   }}
-                >
-                  <SelectTrigger disabled={isLoadingCourses}>
-                    <SelectValue
-                      placeholder={
-                        isLoadingCourses ? "Loading..." : "Select course"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {isLoadingCourses ? (
-                      <div className="flex items-center justify-center p-4">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                        <span className="ml-2 text-sm text-muted-foreground">
-                          Loading courses...
-                        </span>
-                      </div>
-                    ) : (courses || []).length === 0 ? (
-                      <div className="p-4 text-sm text-muted-foreground text-center">
-                        No courses available
-                      </div>
-                    ) : (
-                      (courses || []).map((course) => (
-                        <SelectItem
-                          key={course.course_id}
-                          value={course.course_name}
-                        >
-                          {course.course_name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                  placeholder="Select course"
+                  required
+                  disabled={!form.preferred_group_id || form.preferred_group_id === 0}
+                />
               </div>
               <div>
                 <Label htmlFor="total_tuition_fee">Total Tuition Fee</Label>
@@ -924,110 +856,33 @@ export default function ReservationForm({
                     <Label htmlFor="preferred_transport_id">
                       Transport Route
                     </Label>
-                    <Select
-                      value={form.preferred_transport_id.toString()}
-                      onOpenChange={(open) => {
-                        if (open && onDropdownOpen) {
-                          onDropdownOpen("routes");
-                        }
-                      }}
-                      onValueChange={(value) =>
+                    <BusRouteDropdown
+                      value={form.preferred_transport_id || null}
+                      onChange={(value) => {
                         setForm({
                           ...form,
-                          preferred_transport_id: Number(value),
-                        })
-                      }
-                    >
-                      <SelectTrigger disabled={isLoadingRoutes}>
-                        <SelectValue
-                          placeholder={
-                            isLoadingRoutes
-                              ? "Loading..."
-                              : "Select transport route"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {isLoadingRoutes ? (
-                          <div className="flex items-center justify-center p-4">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                            <span className="ml-2 text-sm text-muted-foreground">
-                              Loading routes...
-                            </span>
-                          </div>
-                        ) : (routes || []).length === 0 ? (
-                          <div className="p-4 text-sm text-muted-foreground text-center">
-                            No routes available
-                          </div>
-                        ) : (
-                          (routes || []).map((route) => (
-                            <SelectItem
-                              key={route.id}
-                              value={route.id.toString()}
-                            >
-                              {route.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                          preferred_transport_id: value || 0,
+                        });
+                      }}
+                      placeholder="Select transport route"
+                    />
                   </div>
                   <div>
                     <Label htmlFor="preferred_distance_slab_id">
                       Distance Slab
                     </Label>
-                    <Select
-                      value={form.preferred_distance_slab_id.toString()}
-                      onOpenChange={(open) => {
-                        if (open && onDropdownOpen) {
-                          onDropdownOpen("distanceSlabs");
-                        }
-                      }}
-                      onValueChange={(value) => {
+                    <DistanceSlabDropdown
+                      value={form.preferred_distance_slab_id || null}
+                      onChange={(value) => {
+                        const valueNum = value || 0;
                         setForm({
                           ...form,
-                          preferred_distance_slab_id: Number(value),
+                          preferred_distance_slab_id: valueNum,
                         });
-                        onDistanceSlabChange(Number(value));
+                        onDistanceSlabChange(valueNum);
                       }}
-                    >
-                      <SelectTrigger disabled={isLoadingDistanceSlabs}>
-                        <SelectValue
-                          placeholder={
-                            isLoadingDistanceSlabs
-                              ? "Loading..."
-                              : "Select distance slab"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {isLoadingDistanceSlabs ? (
-                          <div className="flex items-center justify-center p-4">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                            <span className="ml-2 text-sm text-muted-foreground">
-                              Loading distance slabs...
-                            </span>
-                          </div>
-                        ) : (distanceSlabs || []).length === 0 ? (
-                          <div className="p-4 text-sm text-muted-foreground text-center">
-                            No distance slabs available
-                          </div>
-                        ) : (
-                          (distanceSlabs || []).map((slab) => (
-                            <SelectItem
-                              key={slab.slab_id}
-                              value={slab.slab_id.toString()}
-                            >
-                              {slab.slab_name} - {slab.min_distance}km
-                              {slab.max_distance
-                                ? `-${slab.max_distance}km`
-                                : "+"}{" "}
-                              (₹{slab.fee_amount})
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select distance slab"
+                    />
                   </div>
                   <div>
                     <Label htmlFor="pickup_point">Pickup Point</Label>

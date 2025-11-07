@@ -8,7 +8,8 @@ import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { useSchoolAttendance, useUpdateSchoolAttendance, useDeleteSchoolAttendance, useSchoolAttendanceAllStudents, useSchoolClasses, useSchoolSectionsByClass } from '@/lib/hooks/school';
+import { SchoolClassDropdown, SchoolSectionDropdown } from '@/components/shared/Dropdowns';
+import { useSchoolAttendance, useUpdateSchoolAttendance, useDeleteSchoolAttendance, useSchoolAttendanceAllStudents, useSchoolSectionsByClass } from '@/lib/hooks/school';
 import { useToast } from '@/hooks/use-toast';
 import { SchoolStudentAttendanceService } from '@/lib/services/school';
 import type { SchoolStudentAttendanceMonthlyGroupedResponse, SchoolClassRead, SchoolSectionRead } from '@/lib/types/school';
@@ -20,15 +21,12 @@ export default function AttendanceView() {
   const queryClient = useQueryClient();
   const deleteAttendanceMutation = useDeleteSchoolAttendance();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const classesQuery = useSchoolClasses();
-  const classes = (classesQuery.data as any[]) || [];
-  const firstClassId = classes.length > 0 ? (classes[0]?.class_id as number | undefined) : undefined;
-  const [selectedClassId, setSelectedClassId] = useState<number | undefined>(firstClassId);
-  const { data: sections = [] } = useSchoolSectionsByClass(selectedClassId as number);
-  const [selectedSectionId, setSelectedSectionId] = useState<number | undefined>(undefined);
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+  const { data: sections = [] } = useSchoolSectionsByClass(selectedClassId || 0);
+  const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
   const month = selectedDate ? selectedDate.getMonth() + 1 : undefined;
   const year = selectedDate ? selectedDate.getFullYear() : undefined;
-  const attendeeParams = selectedClassId ? { class_id: selectedClassId, section_id: selectedSectionId, month, year } : null;
+  const attendeeParams = selectedClassId ? { class_id: selectedClassId, section_id: selectedSectionId || undefined, month, year } : null;
   const studentsQuery = useSchoolAttendanceAllStudents(attendeeParams);
   const grouped: SchoolStudentAttendanceMonthlyGroupedResponse = studentsQuery.data || { groups: [] };
   const allStudents = ((grouped as any)?.groups?.[0]?.data as any[]) || [];
@@ -43,9 +41,9 @@ export default function AttendanceView() {
   const [rowToDelete, setRowToDelete] = useState<any | null>(null);
   const viewQuery = useSchoolAttendance(viewingRow?.attendance_id ?? null);
 
-  const isLoading = classesQuery.isLoading || studentsQuery.isLoading;
-  const hasError = classesQuery.isError || studentsQuery.isError;
-  const errorMessage = ((classesQuery.error as any)?.message) || ((studentsQuery.error as any)?.message) || undefined;
+  const isLoading = studentsQuery.isLoading;
+  const hasError = studentsQuery.isError;
+  const errorMessage = ((studentsQuery.error as any)?.message) || undefined;
 
 
   const handleView = (row: any) => {
@@ -96,19 +94,25 @@ export default function AttendanceView() {
       <CardContent>
         {/* Filters & Actions Bar */}
         <div className="flex flex-wrap items-center justify-end gap-2 mb-4">
-          <Select value={selectedClassId ? String(selectedClassId) : ''} onValueChange={(v) => setSelectedClassId(parseInt(v))}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Class" /></SelectTrigger>
-            <SelectContent>
-              {classes.map((c: SchoolClassRead) => (<SelectItem key={c.class_id} value={String(c.class_id)}>{c.class_name}</SelectItem>))}
-            </SelectContent>
-          </Select>
-          <Select value={selectedSectionId ? String(selectedSectionId) : 'all'} onValueChange={(v) => setSelectedSectionId(v === 'all' ? undefined : parseInt(v))}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Section" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              {(sections).map((s: SchoolSectionRead) => (<SelectItem key={s.section_id} value={String(s.section_id)}>{s.section_name}</SelectItem>))}
-            </SelectContent>
-          </Select>
+          <SchoolClassDropdown
+            value={selectedClassId}
+            onChange={(value) => {
+              setSelectedClassId(value);
+              setSelectedSectionId(null); // Reset section when class changes
+            }}
+            placeholder="Select class"
+            className="w-[160px]"
+          />
+          <SchoolSectionDropdown
+            classId={selectedClassId || 0}
+            value={selectedSectionId}
+            onChange={(value) => setSelectedSectionId(value)}
+            disabled={!selectedClassId}
+            placeholder={selectedClassId ? "All Sections" : "Select class first"}
+            className="w-[160px]"
+            emptyValue
+            emptyValueLabel="All Sections"
+          />
           <Select value={month ? String(month) : ''} onValueChange={(v) => { const m = parseInt(v); const d = selectedDate || new Date(); setSelectedDate(new Date(d.getFullYear(), m - 1, d.getDate())); }}>
             <SelectTrigger className="w-[140px]"><SelectValue placeholder="Month" /></SelectTrigger>
             <SelectContent>
@@ -119,8 +123,6 @@ export default function AttendanceView() {
 
         {hasError ? (
           <div className="py-6 text-center text-red-600">{errorMessage || 'Failed to load data'}</div>
-        ) : classes.length === 0 ? (
-          <div className="py-6 text-center text-slate-500">No classes available</div>
         ) : isLoading ? (
           <div className="py-6 text-center text-slate-500">Loading...</div>
         ) : allStudents.length === 0 ? (

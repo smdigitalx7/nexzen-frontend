@@ -2,6 +2,7 @@ import { useMemo, useState, useCallback } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -17,7 +18,8 @@ import type { SchoolSectionRead, SchoolClassRead } from "@/lib/types/school";
 // Initial form state
 const initialSectionForm = { 
   section_name: "", 
-  current_enrollment: 0 
+  current_enrollment: 0,
+  is_active: true
 };
 
 const SectionsTabComponent = () => {
@@ -62,7 +64,7 @@ const SectionsTabComponent = () => {
       await createSection.mutateAsync({
         section_name: newSection.section_name.trim(),
         current_enrollment: Number(newSection.current_enrollment) || 0,
-        is_active: true,
+        is_active: newSection.is_active,
       });
       
       setNewSection(initialSectionForm);
@@ -80,6 +82,7 @@ const SectionsTabComponent = () => {
       await updateSection.mutateAsync({
         section_name: editSection.section_name.trim(),
         current_enrollment: Number(editSection.current_enrollment) || 0,
+        is_active: editSection.is_active,
       });
       
       setIsEditOpen(false);
@@ -103,6 +106,7 @@ const SectionsTabComponent = () => {
     setEditSection({
       section_name: row.section_name,
       current_enrollment: row.current_enrollment,
+      is_active: !!row.is_active,
     });
     setIsEditOpen(true);
   }, []);
@@ -164,11 +168,11 @@ const SectionsTabComponent = () => {
   }, []);
 
   // Memoized form update handlers
-  const updateNewSection = useCallback((field: keyof typeof initialSectionForm, value: string | number) => {
+  const updateNewSection = useCallback((field: keyof typeof initialSectionForm, value: string | number | boolean) => {
     setNewSection(prev => ({ ...prev, [field]: value }));
   }, []);
 
-  const updateEditSection = useCallback((field: keyof typeof initialSectionForm, value: string | number) => {
+  const updateEditSection = useCallback((field: keyof typeof initialSectionForm, value: string | number | boolean) => {
     setEditSection(prev => ({ ...prev, [field]: value }));
   }, []);
 
@@ -186,7 +190,7 @@ const SectionsTabComponent = () => {
               <SelectValue placeholder="Select class" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Classes</SelectItem>
+              <SelectItem value="all">Select class</SelectItem>
           {classes.map((c: SchoolClassRead) => (
                 <SelectItem
                   key={c.class_id}
@@ -251,6 +255,14 @@ const SectionsTabComponent = () => {
               placeholder="0" 
             />
           </div>
+          <div className="flex items-center gap-2">
+            <Switch 
+              id="is_active" 
+              checked={Boolean(newSection.is_active)} 
+              onCheckedChange={(checked) => updateNewSection('is_active', checked)} 
+            />
+            <Label htmlFor="is_active">Active</Label>
+          </div>
         </div>
       </FormDialog>
 
@@ -284,6 +296,14 @@ const SectionsTabComponent = () => {
               onChange={(e) => updateEditSection('current_enrollment', Number(e.target.value))} 
               placeholder="0" 
             />
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch 
+              id="edit_is_active" 
+              checked={Boolean(editSection.is_active)} 
+              onCheckedChange={(checked) => updateEditSection('is_active', checked)} 
+            />
+            <Label htmlFor="edit_is_active">Active</Label>
           </div>
         </div>
       </FormDialog>
