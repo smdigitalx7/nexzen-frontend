@@ -45,6 +45,7 @@ export function useCreateSchoolReservation() {
     mutationFn: (form: FormData) => SchoolReservationsService.create(form),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.reservations.root(), type: 'active' });
     },
   }, "Reservation created successfully");
 }
@@ -59,6 +60,7 @@ export function useUpdateSchoolReservation(reservationId: number) {
         queryKey: schoolKeys.reservations.detail(reservationId),
       });
       void qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.reservations.root(), type: 'active' });
     },
   }, "Reservation updated successfully");
 }
@@ -70,6 +72,7 @@ export function useDeleteSchoolReservation() {
       SchoolReservationsService.delete(reservationId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.reservations.root(), type: 'active' });
     },
   }, "Reservation deleted successfully");
 }
@@ -90,6 +93,7 @@ export function useUpdateSchoolReservationStatus(reservationId: number) {
         queryKey: schoolKeys.reservations.detail(reservationId),
       });
       void qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.reservations.root(), type: 'active' });
     },
   }, "Reservation status updated successfully");
 }
@@ -118,6 +122,7 @@ export function useUpdateSchoolReservationConcession(reservationId: number) {
         queryKey: schoolKeys.reservations.detail(reservationId),
       });
       void qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.reservations.root(), type: 'active' });
     },
   }, "Reservation concession updated successfully");
 }

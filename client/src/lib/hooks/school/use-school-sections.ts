@@ -18,6 +18,7 @@ export function useCreateSchoolSection(classId: number) {
     mutationFn: (payload: SchoolSectionCreate) => SchoolSectionsService.create(classId, payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) });
+      void qc.refetchQueries({ queryKey: schoolKeys.sections.listByClass(classId), type: 'active' });
     },
   }, "Section created successfully");
 }
@@ -29,6 +30,7 @@ export function useUpdateSchoolSection(classId: number, sectionId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.sections.detail(classId, sectionId) });
       void qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) });
+      void qc.refetchQueries({ queryKey: schoolKeys.sections.listByClass(classId), type: 'active' });
     },
   }, "Section updated successfully");
 }
@@ -39,6 +41,7 @@ export function useDeleteSchoolSection(classId: number) {
     mutationFn: (sectionId: number) => SchoolSectionsService.delete(classId, sectionId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.sections.listByClass(classId) });
+      void qc.refetchQueries({ queryKey: schoolKeys.sections.listByClass(classId), type: 'active' });
     },
   }, "Section deleted successfully");
 }

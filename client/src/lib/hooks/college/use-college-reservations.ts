@@ -45,6 +45,7 @@ export function useCreateCollegeReservation() {
       CollegeReservationsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.reservations.root(), type: 'active' });
     },
   }, "Reservation created successfully");
 }
@@ -59,6 +60,7 @@ export function useUpdateCollegeReservation(reservationId: number) {
         queryKey: collegeKeys.reservations.detail(reservationId),
       });
       void qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.reservations.root(), type: 'active' });
     },
   }, "Reservation updated successfully");
 }
@@ -70,6 +72,7 @@ export function useDeleteCollegeReservation() {
       CollegeReservationsService.delete(reservationId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.reservations.root(), type: 'active' });
     },
   }, "Reservation deleted successfully");
 }
@@ -86,6 +89,7 @@ export function useUpdateCollegeReservationStatus(reservationId: number) {
         queryKey: collegeKeys.reservations.detail(reservationId),
       });
       void qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.reservations.root(), type: 'active' });
     },
   }, "Reservation status updated successfully");
 }
@@ -102,6 +106,8 @@ export function useUpdateCollegeReservationConcessions(reservationId: number) {
       void qc.invalidateQueries({
         queryKey: collegeKeys.reservations.detail(reservationId),
       });
+      void qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.reservations.root(), type: 'active' });
     },
   }, "Reservation concessions updated successfully");
 }

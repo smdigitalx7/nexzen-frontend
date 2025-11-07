@@ -25,6 +25,7 @@ export function useCreateTeacherGroupSubject() {
     mutationFn: (payload: CollegeTeacherGroupSubjectCreate) => CollegeTeacherGroupSubjectsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.teacherGroupSubjects.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.teacherGroupSubjects.root(), type: 'active' });
     },
   }, "Teacher assignment created successfully");
 }
@@ -35,6 +36,7 @@ export function useDeleteTeacherGroupSubjectsByTeacher() {
     mutationFn: (teacherId: number) => CollegeTeacherGroupSubjectsService.deleteByTeacher(teacherId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.teacherGroupSubjects.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.teacherGroupSubjects.root(), type: 'active' });
     },
   }, "Teacher assignments removed successfully");
 }
@@ -46,6 +48,7 @@ export function useDeleteTeacherGroupSubjectRelation() {
       CollegeTeacherGroupSubjectsService.deleteRelation(input.teacherId, input.groupId, input.subjectId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.teacherGroupSubjects.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.teacherGroupSubjects.root(), type: 'active' });
     },
   }, "Teacher assignment removed successfully");
 }

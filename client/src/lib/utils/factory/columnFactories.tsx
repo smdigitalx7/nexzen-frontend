@@ -377,16 +377,11 @@ export const createSubjectsColumn = <T extends Record<string, any>>(
     const subjects = (row.original[accessorKey] as string[]) || [];
     return (
       <div className="flex flex-wrap gap-1 max-w-[200px]">
-        {subjects.slice(0, 3).map((subject, idx) => (
+        {subjects.map((subject, idx) => (
           <Badge key={idx} variant="secondary" className="text-xs">
             {subject}
           </Badge>
         ))}
-        {subjects.length > 3 && (
-          <Badge variant="outline" className="text-xs">
-            +{subjects.length - 3}
-          </Badge>
-        )}
       </div>
     );
   },

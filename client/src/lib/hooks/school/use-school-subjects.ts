@@ -24,6 +24,7 @@ export function useCreateSchoolSubject() {
       SchoolSubjectsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.subjects.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.subjects.root(), type: 'active' });
     },
   }, "Subject created successfully");
 }
@@ -39,6 +40,7 @@ export function useUpdateSchoolSubject(subjectId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.subjects.detail(subjectId) });
       void qc.invalidateQueries({ queryKey: schoolKeys.subjects.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.subjects.root(), type: 'active' });
     },
   }, "Subject updated successfully");
 }
@@ -49,6 +51,7 @@ export function useDeleteSchoolSubject() {
     mutationFn: (subjectId: number) => SchoolSubjectsService.delete(subjectId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.subjects.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.subjects.root(), type: 'active' });
     },
   }, "Subject deleted successfully");
 }
@@ -77,6 +80,7 @@ export function useRemoveClassFromSubject() {
     }) => SchoolSubjectsService.removeClassFromSubject(subjectId, classId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.subjects.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.subjects.root(), type: 'active' });
     },
   }, "Class removed from subject successfully");
 }

@@ -2,6 +2,7 @@ import React from "react";
 import { FormDialog } from "@/components/shared";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -91,33 +92,33 @@ const LeaveFormDialog = ({ open, onOpenChange, isEditing, employees, formData, o
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="from_date">From Date *</Label>
-              <Input
+              <DatePicker
                 id="from_date"
-                type="date"
                 value={formData.from_date}
-                onChange={(e) => {
-                  onChange("from_date", e.target.value);
+                onChange={(value) => {
+                  onChange("from_date", value);
                   if (formData.to_date) {
-                    const days = calculateLeaveDays(e.target.value, formData.to_date);
+                    const days = calculateLeaveDays(value, formData.to_date);
                     onChange("total_days", days);
                   }
                 }}
+                placeholder="Select from date"
                 required
               />
             </div>
             <div>
               <Label htmlFor="to_date">To Date *</Label>
-              <Input
+              <DatePicker
                 id="to_date"
-                type="date"
                 value={formData.to_date}
-                onChange={(e) => {
-                  onChange("to_date", e.target.value);
+                onChange={(value) => {
+                  onChange("to_date", value);
                   if (formData.from_date) {
-                    const days = calculateLeaveDays(formData.from_date, e.target.value);
+                    const days = calculateLeaveDays(formData.from_date, value);
                     onChange("total_days", days);
                   }
                 }}
+                placeholder="Select to date"
                 required
               />
             </div>
@@ -138,11 +139,11 @@ const LeaveFormDialog = ({ open, onOpenChange, isEditing, employees, formData, o
             </div>
             <div>
               <Label htmlFor="applied_date">Applied Date *</Label>
-              <Input
+              <DatePicker
                 id="applied_date"
-                type="date"
                 value={formData.applied_date}
-                onChange={(e) => onChange("applied_date", e.target.value)}
+                onChange={(value) => onChange("applied_date", value)}
+                placeholder="Select applied date"
                 required
               />
             </div>

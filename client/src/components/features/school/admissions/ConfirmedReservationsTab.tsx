@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, memo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -167,6 +168,12 @@ const FormField = memo(
               ))}
             </SelectContent>
           </Select>
+        ) : type === "date" ? (
+          <DatePicker
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder || "Select date"}
+          />
         ) : (
           <Input
             type={type}

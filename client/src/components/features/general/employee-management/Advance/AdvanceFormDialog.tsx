@@ -2,6 +2,7 @@ import React from "react";
 import { FormDialog } from "@/components/shared";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency } from "@/lib/utils";
@@ -93,11 +94,11 @@ const AdvanceFormDialog = ({ open, onOpenChange, isEditing, employees, formData,
                   className="bg-gray-100 dark:bg-gray-800"
                 />
               ) : (
-                <Input
+                <DatePicker
                   id="advance_date"
-                  type="date"
                   value={formData.advance_date}
-                  onChange={(e) => onChange("advance_date", e.target.value)}
+                  onChange={(value) => onChange("advance_date", value)}
+                  placeholder="Select advance date"
                   required
                 />
               )}

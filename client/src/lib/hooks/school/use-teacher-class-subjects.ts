@@ -30,6 +30,7 @@ export function useCreateTeacherClassSubject() {
     mutationFn: (payload: SchoolTeacherClassSubjectCreate) => SchoolTeacherClassSubjectsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.teacherClassSubjects.root(), type: 'active' });
     },
   }, "Teacher assignment created successfully");
 }
@@ -42,6 +43,7 @@ export function useDeleteTeacherClassSubject() {
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.teacherClassSubjects.root(), type: 'active' });
     },
   }, "Teacher assignment removed successfully");
 }
@@ -52,6 +54,7 @@ export function useCreateClassTeacher() {
     mutationFn: (payload: ClassTeacherCreate) => SchoolTeacherClassSubjectsService.createClassTeacher(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.teacherClassSubjects.root(), type: 'active' });
     },
   }, "Class teacher assigned successfully");
 }
@@ -62,6 +65,7 @@ export function useDeleteClassTeacher() {
     mutationFn: (payload: ClassTeacherDelete) => SchoolTeacherClassSubjectsService.deleteClassTeacher(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.teacherClassSubjects.root(), type: 'active' });
     },
   }, "Class teacher removed successfully");
 }

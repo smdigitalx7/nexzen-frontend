@@ -1,5 +1,6 @@
 import { useMutation, type UseMutationOptions } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { CacheUtils } from '@/lib/api';
 
 /**
  * Centralized mutation hook with automatic toast notifications
@@ -47,6 +48,15 @@ export function useMutationWithSuccessToast<TData = unknown, TError = unknown, T
   return useMutation<TData, TError, TVariables, TContext>({
     ...mutationOptions,
     onSuccess: (data: TData, variables: TVariables, onMutateResult: TContext | undefined, context: any) => {
+      // CRITICAL: Clear ALL API cache on any mutation success
+      // This ensures fresh data is fetched when queries are refetched
+      // The API layer cache was preventing UI updates after mutations
+      try {
+        CacheUtils.clearAll();
+      } catch (error) {
+        console.warn('Failed to clear API cache on mutation success:', error);
+      }
+
       // Show success toast
       toast({
         title: 'Success',

@@ -60,6 +60,7 @@ export function useCreateSchoolExam() {
       SchoolExamsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
+      void qc.refetchQueries({ queryKey: schoolKeys.exams.list(), type: 'active' });
     },
   }, "Exam created successfully");
 }
@@ -72,6 +73,7 @@ export function useUpdateSchoolExam(examId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.exams.detail(examId) });
       void qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
+      void qc.refetchQueries({ queryKey: schoolKeys.exams.list(), type: 'active' });
     },
   }, "Exam updated successfully");
 }
@@ -83,6 +85,7 @@ export function useDeleteSchoolExam() {
       SchoolExamsService.delete(examId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
+      void qc.refetchQueries({ queryKey: schoolKeys.exams.list(), type: 'active' });
     },
   }, "Exam deleted successfully");
 }
@@ -95,6 +98,7 @@ export function useCreateSchoolTest() {
       SchoolTestsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
+      void qc.refetchQueries({ queryKey: schoolKeys.tests.list(), type: 'active' });
     },
   }, "Test created successfully");
 }
@@ -107,6 +111,7 @@ export function useUpdateSchoolTest(testId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.tests.detail(testId) });
       void qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
+      void qc.refetchQueries({ queryKey: schoolKeys.tests.list(), type: 'active' });
     },
   }, "Test updated successfully");
 }
@@ -118,6 +123,7 @@ export function useDeleteSchoolTest() {
       SchoolTestsService.delete(testId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
+      void qc.refetchQueries({ queryKey: schoolKeys.tests.list(), type: 'active' });
     },
   }, "Test deleted successfully");
 }

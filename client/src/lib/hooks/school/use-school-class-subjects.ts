@@ -18,6 +18,7 @@ export function useCreateSchoolClassSubject() {
     mutationFn: (payload: SchoolClassSubjectCreate) => SchoolClassSubjectsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.classSubjects.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.classSubjects.root(), type: 'active' });
     },
   }, "Subject assigned to class successfully");
 }

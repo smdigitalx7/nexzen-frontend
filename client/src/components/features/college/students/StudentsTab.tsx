@@ -1,18 +1,19 @@
 import { useState, useMemo } from 'react';
-import { Users, Plus, Save, X, Edit, Trash2 } from 'lucide-react';
+import { Users, Save, X, Edit, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
 import { EnhancedDataTable } from '@/components/shared';
 import { 
   createAvatarColumn,
   createTextColumn,
   createBadgeColumn
 } from '@/lib/utils/factory/columnFactories';
-import { useCollegeStudentsList, useDeleteCollegeStudent, useCreateCollegeStudent, useUpdateCollegeStudent } from '@/lib/hooks/college';
+import { useCollegeStudentsList, useDeleteCollegeStudent, useUpdateCollegeStudent } from '@/lib/hooks/college';
 import { useAuthStore } from '@/store/authStore';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -45,11 +46,9 @@ export const StudentsTab = () => {
   const { data: studentsResp, isLoading, error } = useCollegeStudentsList({ page: 1, pageSize: 50 });
   const students: CollegeStudentRead[] = studentsResp?.data ?? [];
   const deleteStudentMutation = useDeleteCollegeStudent();
-  const createStudentMutation = useCreateCollegeStudent();
   const [selectedStudent, setSelectedStudent] = useState<CollegeStudentFullDetails | null>(null);
   const updateStudentMutation = useUpdateCollegeStudent(selectedStudent?.student_id || 0);
 
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const form = useForm<StudentFormData>({
@@ -73,12 +72,6 @@ export const StudentsTab = () => {
       status: 'ACTIVE',
     },
   });
-
-  const handleAddStudent = () => {
-    form.reset();
-    setSelectedStudent(null);
-    setIsAddDialogOpen(true);
-  };
 
   const handleEditStudent = (student: CollegeStudentRead) => {
     setSelectedStudent(student as unknown as CollegeStudentFullDetails);
@@ -113,13 +106,8 @@ export const StudentsTab = () => {
 
   const onSubmit = async (data: StudentFormData) => {
     try {
-      if (selectedStudent) {
-        await updateStudentMutation.mutateAsync(data as any);
-        setIsEditDialogOpen(false);
-      } else {
-        await createStudentMutation.mutateAsync(data as any);
-        setIsAddDialogOpen(false);
-      }
+      await updateStudentMutation.mutateAsync(data as any);
+      setIsEditDialogOpen(false);
       form.reset();
     } catch (error: any) {
       // Error toast is handled by mutation hook
@@ -160,8 +148,6 @@ export const StudentsTab = () => {
           searchKey="student_name"
           exportable={true}
           selectable={true}
-          onAdd={handleAddStudent}
-          addButtonText="Add Student"
           showActions={true}
           actionButtonGroups={actionButtonGroups}
           actionColumnHeader="Actions"
@@ -216,7 +202,13 @@ export const StudentsTab = () => {
                     <FormField control={form.control} name="dob" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Date of Birth</FormLabel>
-                        <FormControl><Input type="date" {...field} /></FormControl>
+                        <FormControl>
+                          <DatePicker
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                            placeholder="Select date of birth"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
@@ -229,53 +221,6 @@ export const StudentsTab = () => {
                 </Button>
                 <Button type="submit" disabled={updateStudentMutation.isPending}>
                   {updateStudentMutation.isPending ? 'Updating...' : (<><Save className="h-4 w-4 mr-2" />Update Student</>)}
-                </Button>
-              </div>
-            </form>
-          </Form>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Student Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
-            <DialogTitle className="flex items-center gap-2">Add New Student</DialogTitle>
-            <DialogDescription>Create a new student record</DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">Personal Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="student_name" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Student Name *</FormLabel>
-                        <FormControl><Input placeholder="Enter student name" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="aadhar_no" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Aadhar Number</FormLabel>
-                        <FormControl><Input placeholder="12-digit Aadhar number" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                  </div>
-                </CardContent>
-              </Card>
-              <div className="flex justify-end gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  <X className="h-4 w-4 mr-2" />Cancel
-                </Button>
-                <Button type="submit" disabled={createStudentMutation.isPending}>
-                  {createStudentMutation.isPending ? 'Creating...' : (<><Save className="h-4 w-4 mr-2" />Create Student</>)}
                 </Button>
               </div>
             </form>

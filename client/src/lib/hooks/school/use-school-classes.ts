@@ -24,6 +24,7 @@ export function useCreateSchoolClass() {
       SchoolClassesService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' });
     },
   }, "Class created successfully");
 }
@@ -36,6 +37,7 @@ export function useUpdateSchoolClass(classId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.classes.detail(classId) });
       void qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' });
     },
   }, "Class updated successfully");
 }
@@ -74,6 +76,7 @@ export function useDeleteSchoolClassSubject() {
     }) => SchoolClassesService.deleteClassSubject(classId, subjectId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' });
     },
   }, "Subject removed from class successfully");
 }

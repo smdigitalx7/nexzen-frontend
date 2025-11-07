@@ -26,6 +26,7 @@ export function useCreateSchoolTestMark() {
     mutationFn: (payload: TestMarkCreate) => SchoolTestMarksService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.testMarks.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.testMarks.root(), type: 'active' });
     },
   }, "Test mark created successfully");
 }
@@ -37,6 +38,7 @@ export function useUpdateSchoolTestMark(markId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.testMarks.detail(markId) });
       void qc.invalidateQueries({ queryKey: schoolKeys.testMarks.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.testMarks.root(), type: 'active' });
     },
   }, "Test mark updated successfully");
 }
@@ -47,6 +49,7 @@ export function useDeleteSchoolTestMark() {
     mutationFn: (markId: number) => SchoolTestMarksService.delete(markId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.testMarks.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.testMarks.root(), type: 'active' });
     },
   }, "Test mark deleted successfully");
 }
@@ -57,6 +60,7 @@ export function useBulkCreateSchoolTestMarks() {
     mutationFn: (payload: CreateTestMarkBulk) => SchoolTestMarksService.bulkCreate(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.testMarks.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.testMarks.root(), type: 'active' });
     },
   }, "Test marks created successfully");
 }

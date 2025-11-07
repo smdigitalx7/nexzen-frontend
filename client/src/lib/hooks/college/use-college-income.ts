@@ -26,6 +26,7 @@ export function useCreateCollegeIncomeByAdmission() {
       CollegeIncomeService.createByAdmission(input.admission_no, input.payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.income.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.income.root(), type: 'active' });
     },
   }, "Income record created successfully");
 }
@@ -37,6 +38,7 @@ export function useUpdateCollegeIncome(incomeId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.income.detail(incomeId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.income.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.income.root(), type: 'active' });
     },
   }, "Income record updated successfully");
 }
@@ -47,6 +49,7 @@ export function useCreateCollegeIncomeByReservation() {
     mutationFn: (payload: CollegeIncomeCreateReservation) => CollegeIncomeService.createByReservation(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.income.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.income.root(), type: 'active' });
     },
   }, "Income record created successfully");
 }

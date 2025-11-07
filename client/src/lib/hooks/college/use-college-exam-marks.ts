@@ -26,6 +26,7 @@ export function useCreateCollegeExamMark() {
     mutationFn: (payload: CollegeExamMarkUpdate) => CollegeExamMarksService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.examMarks.root(), type: 'active' });
     },
   }, "Exam mark created successfully");
 }
@@ -37,6 +38,7 @@ export function useUpdateCollegeExamMark(markId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.examMarks.detail(markId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.examMarks.root(), type: 'active' });
     },
   }, "Exam mark updated successfully");
 }
@@ -47,6 +49,7 @@ export function useDeleteCollegeExamMark() {
     mutationFn: (markId: number) => CollegeExamMarksService.delete(markId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.examMarks.root(), type: 'active' });
     },
   }, "Exam mark deleted successfully");
 }
@@ -58,6 +61,7 @@ export function useBulkCreateCollegeExamMarks() {
       CollegeExamMarksService.bulkCreate(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.examMarks.root(), type: 'active' });
     },
   }, "Exam marks created successfully");
 }

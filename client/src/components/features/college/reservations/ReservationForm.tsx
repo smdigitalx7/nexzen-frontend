@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { EmployeeCombobox } from "@/components/ui/employee-combobox";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { DatePicker } from "@/components/ui/date-picker";
 import { useMemo, useState } from "react";
 import { Save } from "lucide-react";
 
@@ -401,11 +402,11 @@ export default function ReservationForm({
               </div>
               <div>
                 <Label htmlFor="dob">Date of Birth</Label>
-                <Input
+                <DatePicker
                   id="dob"
-                  type="date"
                   value={form.dob}
-                  onChange={(e) => setForm({ ...form, dob: e.target.value })}
+                  onChange={(value) => setForm({ ...form, dob: value })}
+                  placeholder="Select date of birth"
                 />
               </div>
               <div className="md:col-span-2"></div>
@@ -1117,13 +1118,13 @@ export default function ReservationForm({
               </div>
               <div>
                 <Label htmlFor="reservation_date">Reservation Date</Label>
-                <Input
+                <DatePicker
                   id="reservation_date"
-                  type="date"
                   value={form.reservation_date}
-                  onChange={(e) =>
-                    setForm({ ...form, reservation_date: e.target.value })
+                  onChange={(value) =>
+                    setForm({ ...form, reservation_date: value })
                   }
+                  placeholder="Select reservation date"
                 />
               </div>
               <div></div>

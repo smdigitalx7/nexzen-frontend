@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -88,6 +89,12 @@ const FormFieldWrapper = memo(({
               placeholder={placeholder}
               rows={rows}
               {...field}
+            />
+          ) : type === "date" ? (
+            <DatePicker
+              value={field.value || ""}
+              onChange={field.onChange}
+              placeholder={placeholder || "Select date"}
             />
           ) : (
             <Input

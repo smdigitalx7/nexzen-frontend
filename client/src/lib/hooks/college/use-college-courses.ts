@@ -24,6 +24,7 @@ export function useCreateCollegeCourse() {
     mutationFn: (payload: CollegeCourseCreate) => CollegeCoursesService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.courses.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.courses.root(), type: 'active' });
     },
   }, "Course created successfully");
 }
@@ -35,6 +36,7 @@ export function useUpdateCollegeCourse(courseId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.courses.detail(courseId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.courses.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.courses.root(), type: 'active' });
     },
   }, "Course updated successfully");
 }
@@ -45,6 +47,7 @@ export function useDeleteCollegeCourse() {
     mutationFn: (courseId: number) => CollegeCoursesService.delete(courseId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.courses.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.courses.root(), type: 'active' });
     },
   }, "Course deleted successfully");
 }

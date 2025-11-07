@@ -43,6 +43,7 @@ export function useCreateCollegeTest() {
     mutationFn: (payload: CollegeTestCreate) => CollegeTestsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.tests.root(), type: 'active' });
     },
   }, "Test created successfully");
 }
@@ -54,6 +55,7 @@ export function useUpdateCollegeTest(testId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.tests.detail(testId) });
       void qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.tests.root(), type: 'active' });
     },
   }, "Test updated successfully");
 }
@@ -64,6 +66,7 @@ export function useDeleteCollegeTest() {
     mutationFn: (testId: number) => CollegeTestsService.delete(testId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.tests.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.tests.root(), type: 'active' });
     },
   }, "Test deleted successfully");
 }

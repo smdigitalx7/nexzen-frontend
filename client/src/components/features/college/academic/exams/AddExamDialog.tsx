@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
   SelectContent,
@@ -103,27 +104,27 @@ export const AddExamDialog = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="start_date">Start Date</Label>
-              <Input
+              <DatePicker
                 id="start_date"
-                type="date"
                 value={examData.start_date}
-                onChange={(e) =>
+                onChange={(value) =>
                   setExamData({
                     ...examData,
-                    start_date: e.target.value,
+                    start_date: value,
                   })
                 }
+                placeholder="Select start date"
               />
             </div>
             <div>
               <Label htmlFor="end_date">End Date</Label>
-              <Input
+              <DatePicker
                 id="end_date"
-                type="date"
                 value={examData.end_date}
-                onChange={(e) =>
-                  setExamData({ ...examData, end_date: e.target.value })
+                onChange={(value) =>
+                  setExamData({ ...examData, end_date: value })
                 }
+                placeholder="Select end date"
               />
             </div>
           </div>

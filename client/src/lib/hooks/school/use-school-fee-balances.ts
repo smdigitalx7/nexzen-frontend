@@ -65,6 +65,7 @@ export function useCreateSchoolTuitionBalance() {
     mutationFn: (payload: any) => SchoolTuitionFeeBalancesService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.tuition.root(), type: 'active' });
     },
   }, "Tuition balance created successfully");
 }
@@ -76,6 +77,7 @@ export function useUpdateSchoolTuitionBalance(enrollmentId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
       void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.tuition.root(), type: 'active' });
     },
   }, "Tuition balance updated successfully");
 }
@@ -86,6 +88,7 @@ export function useDeleteSchoolTuitionBalance() {
     mutationFn: (enrollmentId: number) => SchoolTuitionFeeBalancesService.delete(enrollmentId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.tuition.root(), type: 'active' });
     },
   }, "Tuition balance deleted successfully");
 }
@@ -96,6 +99,7 @@ export function useBulkCreateSchoolTuitionBalances() {
     mutationFn: (payload: SchoolTuitionBalanceBulkCreate) => SchoolTuitionFeeBalancesService.bulkCreate(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.tuition.root(), type: 'active' });
     },
   }, "Tuition balances created successfully");
 }
@@ -107,6 +111,7 @@ export function useUpdateSchoolTuitionTermPayment(enrollmentId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
       void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.tuition.root(), type: 'active' });
     },
   }, "Tuition payment updated successfully");
 }
@@ -118,6 +123,7 @@ export function useUpdateSchoolBookFeePayment(enrollmentId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
       void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.tuition.root(), type: 'active' });
     },
   }, "Book fee payment updated successfully");
 }
@@ -145,6 +151,7 @@ export function useCreateSchoolTransportBalance() {
     mutationFn: (payload: any) => SchoolTransportFeeBalancesService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.transport.root(), type: 'active' });
     },
   }, "Transport balance created successfully");
 }
@@ -156,6 +163,7 @@ export function useUpdateSchoolTransportBalance(enrollmentId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.transport.detail(enrollmentId) });
       void qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.transport.root(), type: 'active' });
     },
   }, "Transport balance updated successfully");
 }
@@ -166,6 +174,7 @@ export function useDeleteSchoolTransportBalance() {
     mutationFn: (enrollmentId: number) => SchoolTransportFeeBalancesService.delete(enrollmentId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.transport.root(), type: 'active' });
     },
   }, "Transport balance deleted successfully");
 }
@@ -176,6 +185,7 @@ export function useBulkCreateSchoolTransportBalances() {
     mutationFn: (payload: SchoolTransportBalanceBulkCreate) => SchoolTransportFeeBalancesService.bulkCreate(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.transport.root(), type: 'active' });
     },
   }, "Transport balances created successfully");
 }
@@ -187,6 +197,7 @@ export function useUpdateSchoolTransportTermPayment(enrollmentId: number) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.transport.detail(enrollmentId) });
       void qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.transport.root(), type: 'active' });
     },
   }, "Transport payment updated successfully");
 }

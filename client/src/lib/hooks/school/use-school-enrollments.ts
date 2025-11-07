@@ -26,6 +26,7 @@ export function useCreateSchoolEnrollment() {
     mutationFn: (payload: SchoolEnrollmentCreate) => EnrollmentsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.enrollments.root(), type: 'active' });
     },
   }, "Enrollment created successfully");
 }
