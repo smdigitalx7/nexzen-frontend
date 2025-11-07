@@ -697,43 +697,46 @@ const ReservationManagementComponent = () => {
       // Map form fields to backend schema as JSON object
       const payload: SchoolReservationCreate = {
         student_name: form.student_name,
-        aadhar_no: form.aadhar_no || null,
-        gender: (form.gender || "OTHER").toUpperCase() as "MALE" | "FEMALE" | "OTHER",
-        dob: form.dob || null,
-        father_or_guardian_name: form.father_or_guardian_name || null,
-        father_or_guardian_aadhar_no: form.father_or_guardian_aadhar_no || null,
-        father_or_guardian_mobile: form.father_or_guardian_mobile || null,
-        father_or_guardian_occupation: form.father_or_guardian_occupation || null,
+        aadhar_no: form.aadhar_no || "",
+        gender: (form.gender || "OTHER").toUpperCase() as
+          | "MALE"
+          | "FEMALE"
+          | "OTHER",
+        dob: form.dob || "",
+        father_or_guardian_name: form.father_or_guardian_name || "",
+        father_or_guardian_aadhar_no: form.father_or_guardian_aadhar_no || "",
+        father_or_guardian_mobile: form.father_or_guardian_mobile || "",
+        father_or_guardian_occupation: form.father_or_guardian_occupation || "",
         mother_or_guardian_name: form.mother_or_guardian_name || "",
         mother_or_guardian_aadhar_no: form.mother_or_guardian_aadhar_no || "",
         mother_or_guardian_mobile: form.mother_or_guardian_mobile || "",
         mother_or_guardian_occupation: form.mother_or_guardian_occupation || "",
-        siblings: form.siblings.length > 0 ? form.siblings : null,
-        previous_class: form.previous_class || null,
-        previous_school_details: form.previous_school_details || null,
+        siblings: form.siblings.length > 0 ? form.siblings : [],
+        previous_class: form.previous_class || "",
+        previous_school_details: form.previous_school_details || "",
         present_address: form.present_address || "",
         permanent_address: form.permanent_address || "",
         application_fee: Number(form.application_fee || 0),
         application_fee_paid: form.application_fee_paid || false,
         preferred_class_id: getPreferredClassId(),
-        class_name: form.class_name || null,
+        class_name: form.class_name || "",
         tuition_fee: Number(form.tuition_fee || 0),
         book_fee: Number(form.book_fee || 0),
         transport_required: form.transport_required || false,
         preferred_transport_id:
           form.transport_required && form.preferred_transport_id
             ? Number(form.preferred_transport_id)
-            : null,
+            : 0,
         preferred_distance_slab_id:
           form.transport_required && form.preferred_distance_slab_id
             ? getPreferredDistanceSlabId()
-            : null,
-        pickup_point: form.transport_required ? form.pickup_point || null : null,
-        transport_fee: form.transport_required ? Number(transportFee || 0) : null,
+            : 0,
+        pickup_point: form.transport_required ? form.pickup_point || "" : "",
+        transport_fee: form.transport_required ? Number(transportFee || 0) : 0,
         status: "PENDING" as const,
-        referred_by: form.referred_by ? Number(form.referred_by) : null,
-        remarks: form.remarks || null,
-        reservation_date: form.reservation_date || null,
+        referred_by: form.referred_by ? Number(form.referred_by) : 0,
+        remarks: form.remarks || "",
+        reservation_date: form.reservation_date || "",
       };
 
       try {
@@ -1077,7 +1080,7 @@ const ReservationManagementComponent = () => {
       });
       await queryClient.refetchQueries({
         queryKey: schoolKeys.reservations.root(),
-        type: 'active'
+        type: "active",
       });
       await refetchReservations();
 

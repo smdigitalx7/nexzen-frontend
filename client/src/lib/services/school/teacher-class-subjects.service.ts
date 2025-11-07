@@ -1,4 +1,4 @@
-import { Api } from "@/lib/api";
+import { Api, api } from "@/lib/api";
 import type { 
   SchoolTeacherClassSubjectCreate, 
   SchoolTeacherClassSubjectRead,
@@ -34,6 +34,12 @@ export const SchoolTeacherClassSubjectsService = {
 
   // Delete class teacher assignment
   deleteClassTeacher(payload: ClassTeacherDelete) {
-    return Api.delete<void>(`/school/teacher-class-subjects/class-teacher`, undefined, undefined, { body: payload });
+    // For DELETE with body, we need to use the api function directly or modify Api.delete
+    // Since Api.delete doesn't support body, we'll use fetch directly or modify the api call
+    return api<void>({
+      method: "DELETE",
+      path: `/school/teacher-class-subjects/class-teacher`,
+      body: payload,
+    });
   },
 };

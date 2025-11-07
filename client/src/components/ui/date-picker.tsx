@@ -1,30 +1,50 @@
-import * as React from "react"
-import { format } from "date-fns"
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react"
-import { Calendar } from "@/components/ui/calendar"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
-import { CaptionProps, useNavigation } from "react-day-picker"
+import * as React from "react";
+import { format } from "date-fns";
+import {
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { CaptionProps, useNavigation } from "react-day-picker";
 
 interface DatePickerProps {
-  value?: string // yyyy-mm-dd format
-  onChange: (value: string) => void
-  placeholder?: string
-  disabled?: boolean
-  className?: string
-  id?: string
-  required?: boolean
+  value?: string; // yyyy-mm-dd format
+  onChange: (value: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  className?: string;
+  id?: string;
+  required?: boolean;
 }
 
 // Custom Caption with navigation buttons between month and year
-function DatePickerCaption(props: CaptionProps & { fromYear?: number; toYear?: number }) {
+function DatePickerCaption(
+  props: CaptionProps & { fromYear?: number; toYear?: number }
+) {
   const { displayMonth, fromYear, toYear } = props;
   const { goToMonth, previousMonth, nextMonth } = useNavigation();
 
   const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
 
   const currentYear = displayMonth.getFullYear();
@@ -125,25 +145,25 @@ export function DatePicker({
   id,
   required = false,
 }: DatePickerProps) {
-  const [open, setOpen] = React.useState(false)
-  
+  const [open, setOpen] = React.useState(false);
+
   // Convert string (yyyy-mm-dd) to Date object
-  const dateValue = value ? new Date(value + "T00:00:00") : undefined
-  
+  const dateValue = value ? new Date(value + "T00:00:00") : undefined;
+
   // Check if date is valid
-  const isValidDate = dateValue && !isNaN(dateValue.getTime())
-  const selectedDate = isValidDate ? dateValue : undefined
+  const isValidDate = dateValue && !isNaN(dateValue.getTime());
+  const selectedDate = isValidDate ? dateValue : undefined;
 
   const handleSelect = (date: Date | undefined) => {
     if (date) {
       // Convert Date to yyyy-mm-dd format
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, "0")
-      const day = String(date.getDate()).padStart(2, "0")
-      onChange(`${year}-${month}-${day}`)
-      setOpen(false)
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      onChange(`${year}-${month}-${day}`);
+      setOpen(false);
     }
-  }
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -160,23 +180,27 @@ export function DatePicker({
           type="button"
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {selectedDate ? format(selectedDate, "PPP") : <span>{placeholder}</span>}
+          {selectedDate ? (
+            format(selectedDate, "PPP")
+          ) : (
+            <span>{placeholder}</span>
+          )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent 
-        className="w-auto p-0 z-[10001]" 
+      <PopoverContent
+        className="w-auto p-0 z-[10001]"
         align="start"
-        style={{ pointerEvents: 'auto' }}
+        style={{ pointerEvents: "auto" }}
         onInteractOutside={(e) => {
           // Prevent closing when clicking inside calendar elements
-          const target = e.target as HTMLElement
-          if (target.closest('[role="grid"]') || target.closest('select')) {
-            e.preventDefault()
+          const target = e.target as HTMLElement;
+          if (target.closest('[role="grid"]') || target.closest("select")) {
+            e.preventDefault();
           }
         }}
       >
-        <div 
-          style={{ pointerEvents: 'auto' }}
+        <div
+          style={{ pointerEvents: "auto" }}
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
@@ -186,8 +210,8 @@ export function DatePicker({
             onSelect={handleSelect}
             initialFocus
             captionLayout="dropdown"
-            fromYear={2020}
-            toYear={new Date().getFullYear() + 1}
+            fromYear={2024}
+            toYear={new Date().getFullYear() + 4}
             components={{
               Caption: DatePickerCaption,
             }}
@@ -198,6 +222,5 @@ export function DatePicker({
         </div>
       </PopoverContent>
     </Popover>
-  )
+  );
 }
-
