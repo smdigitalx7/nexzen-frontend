@@ -229,7 +229,7 @@ export default function AttendanceView() {
                 // Invalidate cache to refresh the list
                 void queryClient.invalidateQueries({ queryKey: ["college", "attendance"] });
                 
-                toast({ title: 'Updated', description: 'Attendance updated' });
+                toast({ title: 'Updated', description: 'Attendance updated', variant: 'success' });
                 setEditOpen(false);
                 setEditingRow(null);
                 setEditAbsent("0");

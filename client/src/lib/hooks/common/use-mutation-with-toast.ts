@@ -61,6 +61,7 @@ export function useMutationWithSuccessToast<TData = unknown, TError = unknown, T
       toast({
         title: 'Success',
         description: successMessage,
+        variant: 'success',
       });
 
       // Call the provided onSuccess callback if it exists

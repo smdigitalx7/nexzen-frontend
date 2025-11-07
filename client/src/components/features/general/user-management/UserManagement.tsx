@@ -160,6 +160,7 @@ const UserManagement = () => {
           toast({
             title: "User Deleted Successfully",
             description: `${userToDelete.full_name} has been deleted successfully.`,
+            variant: "success",
           });
           setShowDeleteDialog(false);
           setUserToDelete(null);
@@ -208,6 +209,7 @@ const UserManagement = () => {
         toast({
           title: "Access Granted Successfully",
           description: `Access has been granted to ${selectedUser.full_name} successfully.`,
+          variant: "success",
         });
         setShowAccessDialog(false);
         setFormError(null);
@@ -243,6 +245,7 @@ const UserManagement = () => {
           toast({
             title: "Access Revoked Successfully",
             description: `Access has been revoked from ${accessToRevokeFromDialog.roleName} at ${accessToRevokeFromDialog.branchName} successfully.`,
+            variant: "success",
           });
           setShowAccessRevokeDialog(false);
           setAccessToRevokeFromDialog(null);
@@ -312,6 +315,7 @@ const UserManagement = () => {
           toast({
             title: "User Updated Successfully",
             description: `${formData.full_name} has been updated successfully.`,
+            variant: "success",
           });
           setShowUserForm(false);
           setFormError(null);
@@ -344,6 +348,7 @@ const UserManagement = () => {
           toast({
             title: "User Created Successfully",
             description: `${formData.full_name} has been created successfully.`,
+            variant: "success",
           });
           setShowUserForm(false);
           setFormError(null);

@@ -93,7 +93,7 @@ export default function AttendanceView() {
     <>
       <CardContent>
         {/* Filters & Actions Bar */}
-        <div className="flex flex-wrap items-center justify-end gap-2 mb-4">
+        <div className="flex flex-wrap items-center justify-start gap-2 mb-4">
           <SchoolClassDropdown
             value={selectedClassId}
             onChange={(value) => {
@@ -126,7 +126,7 @@ export default function AttendanceView() {
         ) : isLoading ? (
           <div className="py-6 text-center text-slate-500">Loading...</div>
         ) : allStudents.length === 0 ? (
-          <div className="py-6 text-center text-slate-500">No students to display</div>
+          <div className="py-6 text-center text-slate-500">No Students Attendance to display</div>
         ) : (
           <EnhancedDataTable 
             data={allStudents} 
@@ -139,7 +139,7 @@ export default function AttendanceView() {
             actionButtonGroups={[
               { type: 'view', onClick: handleView },
               { type: 'edit', onClick: handleEdit },
-              { type: 'delete', onClick: handleDelete },
+              // { type: 'delete', onClick: handleDelete },
             ]}
           />
         )}
@@ -210,7 +210,7 @@ export default function AttendanceView() {
                 // Invalidate cache to refresh the list
                 void queryClient.invalidateQueries({ queryKey: ["school", "attendance"] });
                 
-                toast({ title: 'Updated', description: 'Attendance updated' });
+                toast({ title: 'Updated', description: 'Attendance updated', variant: 'success' });
                 setEditOpen(false);
               } catch (err: unknown) {
                 const serverMsg = (err as any)?.response?.data?.detail || (err as any)?.message || 'Failed to update attendance';

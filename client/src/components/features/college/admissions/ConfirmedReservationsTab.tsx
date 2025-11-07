@@ -192,6 +192,7 @@ const ConfirmedReservationsTab = () => {
         toast({
           title: "Enrollment Successful",
           description: `Student enrolled with admission number: ${response.admission_no}`,
+          variant: "success",
         });
       }
     } catch (error: any) {
@@ -272,6 +273,7 @@ const ConfirmedReservationsTab = () => {
       toast({
         title: "Reservation Updated",
         description: "Reservation details have been updated successfully.",
+        variant: "success",
       });
       handleCancelEdit();
     } catch (error: any) {

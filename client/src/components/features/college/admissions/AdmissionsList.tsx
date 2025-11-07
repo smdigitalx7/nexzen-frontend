@@ -65,6 +65,7 @@ const AdmissionsList = () => {
       toast({
         title: "Export Successful",
         description: `Exported ${admissions.length} admissions to Excel`,
+        variant: "success",
       });
     } catch (error: any) {
       console.error("Export failed:", error);
@@ -82,6 +83,7 @@ const AdmissionsList = () => {
       toast({
         title: "Export Successful",
         description: `Exported admission ${admission.admission_no} to Excel`,
+        variant: "success",
       });
     } catch (error: any) {
       console.error("Export failed:", error);
@@ -99,6 +101,7 @@ const AdmissionsList = () => {
       toast({
         title: "PDF Generated",
         description: `Admission form for ${admission.admission_no} downloaded`,
+        variant: "success",
       });
     } catch (error: any) {
       console.error("PDF export failed:", error);

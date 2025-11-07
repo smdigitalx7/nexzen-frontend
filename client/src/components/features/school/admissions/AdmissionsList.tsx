@@ -13,6 +13,7 @@ import {
   FileSpreadsheet,
   FileText,
   GraduationCap,
+  CreditCard,
 } from "lucide-react";
 import {
   useSchoolAdmissions,
@@ -27,6 +28,9 @@ import {
 import type { SchoolAdmissionDetails, SchoolAdmissionListItem } from "@/lib/types/school/admissions";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { CircleSpinner } from "@/components/ui/loading";
+import { ReceiptPreviewModal } from "@/components/shared";
+import { handleSchoolPayByAdmissionWithIncomeId } from "@/lib/api-school";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Memoized status badge component
 const StatusBadge = memo(({ status }: { status: string }) => {
@@ -193,30 +197,54 @@ const AddressInfo = memo(({ admission }: { admission: SchoolAdmissionDetails }) 
 AddressInfo.displayName = "AddressInfo";
 
 // Memoized fee structure component
-const FeeStructure = memo(({ admission }: { admission: SchoolAdmissionDetails }) => (
-  <div className="border rounded-lg p-4">
-    <h3 className="text-lg font-semibold mb-4">Fee Structure</h3>
-    <div className="overflow-hidden rounded-lg border">
-      <table className="w-full">
-        <thead className="bg-slate-100 dark:bg-slate-800">
-          <tr>
-            <th className="text-left py-3 px-4 font-semibold text-sm">Fee Type</th>
-            <th className="text-right py-3 px-4 font-semibold text-sm">Amount</th>
-            <th className="text-right py-3 px-4 font-semibold text-sm">Concession</th>
-            <th className="text-right py-3 px-4 font-semibold text-sm">Payable</th>
-            <th className="text-center py-3 px-4 font-semibold text-sm">Status</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-            <td className="py-3 px-4 font-medium">Admission Fee</td>
-            <td className="text-right py-3 px-4">₹{admission.admission_fee}</td>
-            <td className="text-right py-3 px-4 text-muted-foreground">-</td>
-            <td className="text-right py-3 px-4 font-semibold">₹{admission.admission_fee}</td>
-            <td className="text-center py-3 px-4">
-              <StatusBadge status={admission.admission_fee_paid} />
-            </td>
-          </tr>
+const FeeStructure = memo(({ 
+  admission, 
+  onPayAdmissionFee 
+}: { 
+  admission: SchoolAdmissionDetails;
+  onPayAdmissionFee?: () => void;
+}) => {
+  const isPending = admission.admission_fee_paid === "PENDING";
+
+  return (
+    <div className="border rounded-lg p-4">
+      <h3 className="text-lg font-semibold mb-4">Fee Structure</h3>
+      <div className="overflow-hidden rounded-lg border">
+        <table className="w-full">
+          <thead className="bg-slate-100 dark:bg-slate-800">
+            <tr>
+              <th className="text-left py-3 px-4 font-semibold text-sm">Fee Type</th>
+              <th className="text-right py-3 px-4 font-semibold text-sm">Amount</th>
+              <th className="text-right py-3 px-4 font-semibold text-sm">Concession</th>
+              <th className="text-right py-3 px-4 font-semibold text-sm">Payable</th>
+              <th className="text-center py-3 px-4 font-semibold text-sm">Status</th>
+              {isPending && onPayAdmissionFee && (
+                <th className="text-center py-3 px-4 font-semibold text-sm">Action</th>
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+              <td className="py-3 px-4 font-medium">Admission Fee</td>
+              <td className="text-right py-3 px-4">₹{admission.admission_fee}</td>
+              <td className="text-right py-3 px-4 text-muted-foreground">-</td>
+              <td className="text-right py-3 px-4 font-semibold">₹{admission.admission_fee}</td>
+              <td className="text-center py-3 px-4">
+                <StatusBadge status={admission.admission_fee_paid} />
+              </td>
+              {isPending && onPayAdmissionFee && (
+                <td className="text-center py-3 px-4">
+                  <Button
+                    size="sm"
+                    onClick={onPayAdmissionFee}
+                    className="flex items-center gap-2"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    Pay Admission Fee
+                  </Button>
+                </td>
+              )}
+            </tr>
           <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
             <td className="py-3 px-4 font-medium">Tuition Fee</td>
             <td className="text-right py-3 px-4">₹{admission.tuition_fee}</td>
@@ -268,11 +296,12 @@ const FeeStructure = memo(({ admission }: { admission: SchoolAdmissionDetails })
               </td>
             </tr>
           )}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
-));
+  );
+});
 
 FeeStructure.displayName = "FeeStructure";
 
@@ -372,10 +401,15 @@ const DialogHeader = memo(({
 DialogHeader.displayName = "DialogHeader";
 
 const AdmissionsListComponent = () => {
+  const queryClient = useQueryClient();
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(
     null
   );
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const { data: admissions = [], isLoading } = useSchoolAdmissions();
   const { data: selectedAdmission, isLoading: isLoadingAdmission } = useSchoolAdmissionById(selectedStudentId);
@@ -392,6 +426,7 @@ const AdmissionsListComponent = () => {
       toast({
         title: "Export Successful",
         description: `Exported ${admissions.length} admissions to Excel`,
+        variant: "success",
       });
     } catch (error: any) {
       console.error("Export failed:", error);
@@ -409,6 +444,7 @@ const AdmissionsListComponent = () => {
       toast({
         title: "Export Successful",
         description: `Exported admission ${admission.admission_no} to Excel`,
+        variant: "success",
       });
     } catch (error: any) {
       console.error("Export failed:", error);
@@ -426,6 +462,7 @@ const AdmissionsListComponent = () => {
       toast({
         title: "PDF Generated",
         description: `Admission form for ${admission.admission_no} downloaded`,
+        variant: "success",
       });
     } catch (error: any) {
       console.error("PDF export failed:", error);
@@ -436,6 +473,89 @@ const AdmissionsListComponent = () => {
       });
     }
   }, []);
+
+  const handlePayAdmissionFee = useCallback(() => {
+    if (selectedAdmission) {
+      setShowPaymentDialog(true);
+    }
+  }, [selectedAdmission]);
+
+  const handleProcessPayment = useCallback(async () => {
+    if (!selectedAdmission) return;
+
+    const admissionFee = parseFloat(selectedAdmission.admission_fee?.toString() || "0");
+    if (admissionFee <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Admission fee amount is invalid",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessingPayment(true);
+
+    try {
+      const paymentResponse = await handleSchoolPayByAdmissionWithIncomeId(
+        selectedAdmission.admission_no,
+        {
+          details: [
+            {
+              purpose: "ADMISSION_FEE",
+              paid_amount: admissionFee,
+              payment_method: "CASH",
+            },
+          ],
+          remarks: "Admission fee payment",
+        }
+      );
+
+      const { blobUrl } = paymentResponse;
+
+      if (blobUrl) {
+        setReceiptBlobUrl(blobUrl);
+        setShowPaymentDialog(false);
+        setShowReceiptModal(true);
+      }
+
+      toast({
+        title: "Payment Successful",
+        description: "Admission fee payment processed successfully",
+        variant: "success",
+      });
+
+      // Invalidate admissions cache to refresh the list
+      void queryClient.invalidateQueries({ queryKey: ["school", "admissions"] });
+      // Refetch the current admission to update the status
+      if (selectedStudentId) {
+        void queryClient.invalidateQueries({ 
+          queryKey: ["school", "admissions", selectedStudentId] 
+        });
+      }
+    } catch (error: any) {
+      console.error("Payment failed:", error);
+      toast({
+        title: "Payment Failed",
+        description:
+          error?.message ||
+          "Failed to process admission fee payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  }, [selectedAdmission, queryClient, selectedStudentId]);
+
+  const handleCloseReceiptModal = useCallback(() => {
+    setShowReceiptModal(false);
+    setReceiptBlobUrl(null);
+    // Refetch admission details to show updated status
+    if (selectedStudentId) {
+      void queryClient.invalidateQueries({ 
+        queryKey: ["school", "admissions", selectedStudentId] 
+      });
+    }
+  }, [selectedStudentId, queryClient]);
 
   // Memoized action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => [
@@ -535,7 +655,10 @@ const AdmissionsListComponent = () => {
                 <StudentInfo admission={selectedAdmission} />
                 <ParentInfo admission={selectedAdmission} />
                 <AddressInfo admission={selectedAdmission} />
-                <FeeStructure admission={selectedAdmission} />
+                <FeeStructure 
+                  admission={selectedAdmission} 
+                  onPayAdmissionFee={handlePayAdmissionFee}
+                />
                 <TransportInfo admission={selectedAdmission} />
                 <SiblingsInfo admission={selectedAdmission} />
               </div>
@@ -543,6 +666,62 @@ const AdmissionsListComponent = () => {
           ) : null}
         </DialogContent>
       </Dialog>
+
+      {/* Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent>
+          <UIDialogHeader>
+            <DialogTitle>Pay Admission Fee</DialogTitle>
+            <DialogDescription>
+              Process admission fee payment for {selectedAdmission?.admission_no}
+            </DialogDescription>
+          </UIDialogHeader>
+
+          <div className="space-y-4">
+            {selectedAdmission && (
+              <>
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-medium">Admission Fee:</span>
+                    <span className="text-2xl font-bold text-blue-600">
+                      ₹{parseFloat(selectedAdmission.admission_fee?.toString() || "0").toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Student: {selectedAdmission.student_name}
+                  </p>
+                </div>
+
+                <Button
+                  onClick={handleProcessPayment}
+                  className="w-full"
+                  size="lg"
+                  disabled={isProcessingPayment}
+                >
+                  {isProcessingPayment ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Processing Payment...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-5 w-5 mr-2" />
+                      Process Payment & Print Receipt
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Receipt Modal */}
+      <ReceiptPreviewModal
+        isOpen={showReceiptModal}
+        onClose={handleCloseReceiptModal}
+        blobUrl={receiptBlobUrl}
+      />
     </div>
   );
 };

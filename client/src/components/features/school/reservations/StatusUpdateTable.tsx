@@ -77,14 +77,16 @@ const StatusSelect = memo(
   }) => {
     const current = (reservation.status || "").toUpperCase();
     const selected = (statusChanges[reservation.id] || current);
+    const isConfirmed = current === "CONFIRMED";
 
     return (
       <div className="w-48">
         <Select
           value={selected}
           onValueChange={(v) => onStatusChange(reservation.id, v as any)}
+          disabled={isConfirmed}
         >
-          <SelectTrigger aria-label="Select status">
+          <SelectTrigger aria-label="Select status" disabled={isConfirmed}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
