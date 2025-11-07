@@ -135,42 +135,6 @@ const StudentDetailsSection = memo(
     );
   }
 );
-  return (
-    <div className="grid grid-cols-2 gap-4">
-      <FormField
-        id="student_name"
-        label="Student Name"
-        value={form.student_name || ""}
-        onChange={(value) => setForm({ ...form, student_name: value })}
-      />
-      <FormField
-        id="aadhar_no"
-        label="Aadhar No"
-        value={form.aadhar_no || ""}
-        onChange={(value) => setForm({ ...form, aadhar_no: value })}
-      />
-      <SelectField
-        label="Gender"
-        value={genderValue}
-        onValueChange={(value) => setForm({ ...form, gender: value })}
-        placeholder="Select gender"
-      >
-        <SelectItem value="MALE">Male</SelectItem>
-        <SelectItem value="FEMALE">Female</SelectItem>
-        <SelectItem value="OTHER">Other</SelectItem>
-      </SelectField>
-      <div>
-        <Label htmlFor="dob">Date of Birth</Label>
-        <DatePicker
-          id="dob"
-          value={form.dob || ""}
-          onChange={(value) => setForm({ ...form, dob: value })}
-          placeholder="Select date of birth"
-        />
-      </div>
-    </div>
-  );
-});
 
 StudentDetailsSection.displayName = "StudentDetailsSection";
 
