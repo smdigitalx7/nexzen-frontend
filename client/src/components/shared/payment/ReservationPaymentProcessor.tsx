@@ -8,33 +8,16 @@ import {
   AlertCircle,
   Receipt,
   User,
-  GraduationCap,
-  MapPin,
+  IndianRupee,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { handlePayByReservation } from "@/lib/api-school";
-import type {
-  SchoolIncomeCreateReservation,
-  SchoolIncomeRead,
-} from "@/lib/types/school";
+import type { SchoolIncomeRead } from "@/lib/types/school";
 import { cn } from "@/lib/utils";
 
 export interface ReservationPaymentData {
@@ -117,7 +100,9 @@ const ReservationPaymentProcessor: React.FC<
         application_income_id: income_id, // Use the same income_id
         reservation_id: reservationData.reservationId,
         purpose: "APPLICATION_FEE",
-        amount: paymentData.data?.context?.total_amount || reservationData.totalAmount,
+        amount:
+          paymentData.data?.context?.total_amount ||
+          reservationData.totalAmount,
         income_date: new Date().toISOString().split("T")[0],
         payment_method: selectedPaymentMethod,
         note: reservationData.note,
@@ -179,7 +164,7 @@ const ReservationPaymentProcessor: React.FC<
   const StatusIcon = getStatusIcon(currentStep);
 
   return (
-    <div className={cn("w-full max-w-2xl mx-auto", className)}>
+    <div className={cn("w-full max-w-3xl mx-auto", className)}>
       <Card className="overflow-hidden">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
@@ -243,20 +228,54 @@ const ReservationPaymentProcessor: React.FC<
               <CreditCard className="w-4 h-4" />
               Payment Method
             </h3>
-            <div className="space-y-2">
-              <Label htmlFor="payment-method">Select Payment Method</Label>
-              <Select
+            <div className="space-y-3">
+              <Label>Select Payment Method</Label>
+              <RadioGroup
                 value={selectedPaymentMethod}
-                onValueChange={(value: any) => setSelectedPaymentMethod(value)}
+                onValueChange={(value: "CASH" | "ONLINE") =>
+                  setSelectedPaymentMethod(value)
+                }
+                className="grid grid-cols-2 gap-3"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select payment method" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CASH">Cash</SelectItem>
-                  <SelectItem value="ONLINE">Online</SelectItem>
-                </SelectContent>
-              </Select>
+                <label
+                  htmlFor="cash"
+                  className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    selectedPaymentMethod === "CASH"
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/30"
+                  }`}
+                >
+                  <RadioGroupItem value="CASH" id="cash" />
+                  <span
+                    className={`font-medium ${
+                      selectedPaymentMethod === "CASH"
+                        ? "text-blue-700"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    Cash
+                  </span>
+                </label>
+                <label
+                  htmlFor="online"
+                  className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    selectedPaymentMethod === "ONLINE"
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/30"
+                  }`}
+                >
+                  <RadioGroupItem value="ONLINE" id="online" />
+                  <span
+                    className={`font-medium ${
+                      selectedPaymentMethod === "ONLINE"
+                        ? "text-blue-700"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    Online
+                  </span>
+                </label>
+              </RadioGroup>
             </div>
           </div>
 
@@ -265,7 +284,7 @@ const ReservationPaymentProcessor: React.FC<
           {/* Payment Details */}
           <div className="space-y-4">
             <h3 className="text-md font-semibold flex items-center gap-2">
-              <Receipt className="w-4 h-4" />
+              <IndianRupee className="w-4 h-4" />
               Payment Details
             </h3>
             <div className="space-y-2">
@@ -309,8 +328,8 @@ const ReservationPaymentProcessor: React.FC<
                 size="lg"
               >
                 <CreditCard className="w-4 h-4 mr-2" />
-                Record Payment Method ₹
-                {reservationData.totalAmount.toLocaleString()}
+                Record Payment (₹
+                {reservationData.totalAmount.toLocaleString()})
               </Button>
             )}
 

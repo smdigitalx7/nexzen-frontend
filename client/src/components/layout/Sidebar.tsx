@@ -295,9 +295,11 @@ const Sidebar = () => {
     try {
       await logoutAsync();
       queryClient.clear();
-      setLocation("/login");
+      setLocation("/");
     } catch (error) {
       console.error("Logout failed:", error);
+      // Still navigate to root even if logout fails
+      setLocation("/");
     }
   };
 

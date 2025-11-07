@@ -177,8 +177,13 @@ export function useLogin() {
         });
       }
 
-      // Step 9: Login user
-      login(user as any, branchList as any);
+      // Step 9: Login user - pass token and refreshToken explicitly
+      await login(
+        user as any, 
+        branchList as any, 
+        loginResponse.access_token,
+        undefined // refreshToken is in httpOnly cookie, not in response
+      );
 
       // Step 9.5: CRITICAL - Clear API cache after login to prevent stale data from previous role
       // This ensures dashboard and other data is fresh for the new role

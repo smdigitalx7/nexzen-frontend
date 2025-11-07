@@ -233,11 +233,17 @@ export const useAuthStore = create<AuthState>()(
               state.isLoading = false;
               state.error = null;
 
+              // CRITICAL: Set token and authenticated state
+              // Token should already be set via setTokenAndExpiry before login is called
+              // But we ensure it's set here as well for safety
               if (token) {
                 state.token = token;
-                // Set authenticated only if we have token
-                state.isAuthenticated = true;
+                // Set authenticated only if we have both token and user
+                if (user) {
+                  state.isAuthenticated = true;
+                }
               }
+              
               if (refreshToken) {
                 state.refreshToken = refreshToken;
               }

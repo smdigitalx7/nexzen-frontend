@@ -305,8 +305,8 @@ async function tryRefreshToken(
         refreshMetrics.failedRefreshes++;
         refreshMetrics.consecutiveFailures++;
 
-        // Only logout on 401/403 - other errors might be temporary
-        if (res.status === 401 || res.status === 403) {
+        // Only logout on 401 (Unauthorized) - 403 (Forbidden) might be permission-based, not auth issue
+        if (res.status === 401) {
           uiStore.hideToast(toastId);
           uiStore.showToast({
             type: "error",
@@ -315,6 +315,19 @@ async function tryRefreshToken(
             duration: 5000,
           });
           useAuthStore.getState().logout();
+          throw new TokenRefreshError(errorMessage);
+        }
+        
+        // For 403, don't logout - it might be a permission issue, not authentication
+        // Just show warning and throw error
+        if (res.status === 403) {
+          uiStore.hideToast(toastId);
+          uiStore.showToast({
+            type: "warning",
+            title: "Access denied",
+            description: "You don't have permission to refresh token",
+            duration: 3000,
+          });
           throw new TokenRefreshError(errorMessage);
         }
 
@@ -528,9 +541,9 @@ export async function api<T = unknown>({
         }
       }
 
-      // Attempt refresh on 401 or 403 once for authenticated calls
-      // 403 can also indicate token expiration in some API implementations
-      if (!noAuth && (res.status === 401 || res.status === 403) && !_isRetry) {
+      // Attempt refresh on 401 only (Unauthorized) - 403 (Forbidden) is permission-based, not auth
+      // Only retry with refresh on 401, not 403
+      if (!noAuth && res.status === 401 && !_isRetry) {
         try {
           const refreshed = await tryRefreshToken(token);
           if (refreshed) {
@@ -553,10 +566,13 @@ export async function api<T = unknown>({
           // If refresh fails, let the error propagate
           // The error handler below will handle it
           if (process.env.NODE_ENV === "development") {
-            console.warn("Token refresh failed on 401/403:", refreshError);
+            console.warn("Token refresh failed on 401:", refreshError);
           }
         }
       }
+      
+      // For 403 errors, don't attempt refresh - it's a permission issue, not authentication
+      // Just let the error propagate normally
 
       if (!res.ok) {
         // Handle specific error cases

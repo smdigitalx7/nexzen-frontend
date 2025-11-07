@@ -225,8 +225,13 @@ const Header = () => {
 
       // Clear React Query cache after logout
       queryClient.clear();
+      
+      // Navigate to root after logout
+      setLocation("/");
     } catch (error) {
       // Error handling is done by the auth store
+      // Still navigate to root even if logout fails
+      setLocation("/");
     }
   };
 

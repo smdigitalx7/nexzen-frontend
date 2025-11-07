@@ -166,7 +166,7 @@ const ClassesManagement = () => {
       // Backend only supports updating class_name
       updateClassMutation.mutate({ class_name: values.class_name }, {
         onSuccess: () => {
-          toast({ title: "Class Updated", description: `${values.class_name} has been updated successfully.` });
+          toast({ title: "Class Updated", description: `${values.class_name} has been updated successfully.`, variant: "success" });
           // Optimistic local update for UI-only fields
           setClasses(classes.map(c => c.class_id === editingClass.class_id ? {
             ...c,
@@ -189,7 +189,7 @@ const ClassesManagement = () => {
       // Create on backend (only class_name required)
       createClassMutation.mutate({ class_name: values.class_name }, {
         onSuccess: () => {
-          toast({ title: "Class Added", description: `${values.class_name} has been added successfully.` });
+          toast({ title: "Class Added", description: `${values.class_name} has been added successfully.`, variant: "success" });
           // Append optimistic UI row until refetch updates from backend
           setClasses([
             ...classes,

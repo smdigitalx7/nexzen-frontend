@@ -7,10 +7,7 @@ import {
   useCreateSchoolReservation,
 } from "@/lib/hooks/school/use-school-reservations";
 import { schoolKeys } from "@/lib/hooks/school/query-keys";
-import {
-  useUpdateSchoolReservation,
-  useSchoolClass,
-} from "@/lib/hooks/school";
+import { useUpdateSchoolReservation, useSchoolClass } from "@/lib/hooks/school";
 // Note: useSchoolClasses from dropdowns (naming conflict)
 import { useSchoolClasses } from "@/lib/hooks/school/use-school-dropdowns";
 import { useDistanceSlabs } from "@/lib/hooks/general";
@@ -41,7 +38,10 @@ import ReservationForm from "../reservations/ReservationForm";
 import SchoolReservationEdit from "../reservations/SchoolReservationEdit";
 import AllReservationsTable from "../reservations/AllReservationsTable";
 import StatusUpdateTable from "../reservations/StatusUpdateTable";
-import { TransportService, SchoolReservationsService } from "@/lib/services/school";
+import {
+  TransportService,
+  SchoolReservationsService,
+} from "@/lib/services/school";
 import { toast } from "@/hooks/use-toast";
 import { Plus, List, BarChart3, School, Building2 } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
@@ -101,39 +101,26 @@ const initialFormState = {
 };
 
 // Memoized header component
-const ReservationHeader = memo(
-  ({
-    currentBranch,
-    reservationNo,
-  }: {
-    currentBranch: any;
-    reservationNo: string;
-  }) => (
-    <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Reservations</h1>
-          <p className="text-muted-foreground">Manage student reservations</p>
-        </div>
-        {reservationNo && (
-          <Badge variant="outline" className="text-lg px-4 py-2">
-            Reservation No: {reservationNo}
-          </Badge>
-        )}
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="gap-1">
-            {currentBranch?.branch_type === "SCHOOL" ? (
-              <School className="h-3 w-3" />
-            ) : (
-              <Building2 className="h-3 w-3" />
-            )}
-            {currentBranch?.branch_name}
-          </Badge>
-        </div>
+const ReservationHeader = memo(({ currentBranch }: { currentBranch: any }) => (
+  <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+    <div className="flex items-start justify-between">
+      <div>
+        <h1 className="text-3xl font-bold">Reservations</h1>
+        <p className="text-muted-foreground">Manage student reservations</p>
       </div>
-    </motion.div>
-  )
-);
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className="gap-1">
+          {currentBranch?.branch_type === "SCHOOL" ? (
+            <School className="h-3 w-3" />
+          ) : (
+            <Building2 className="h-3 w-3" />
+          )}
+          {currentBranch?.branch_name}
+        </Badge>
+      </div>
+    </div>
+  </motion.div>
+));
 
 ReservationHeader.displayName = "ReservationHeader";
 
@@ -658,8 +645,11 @@ const ReservationManagementComponent = () => {
           remarks: remarks || null,
         });
 
-        // Invalidate and refetch reservations to show updated data
+        // Invalidate and refetch all reservation-related queries
         await queryClient.invalidateQueries({
+          queryKey: schoolKeys.reservations.root(),
+        });
+        await queryClient.refetchQueries({
           queryKey: schoolKeys.reservations.root(),
         });
         await refetchReservations();
@@ -667,6 +657,7 @@ const ReservationManagementComponent = () => {
         toast({
           title: "Concession Updated",
           description: "Concession amounts have been updated successfully.",
+          variant: "success",
         });
       } catch (error: any) {
         console.error("Failed to update concession:", error);
@@ -723,7 +714,6 @@ const ReservationManagementComponent = () => {
         present_address: form.present_address || "",
         permanent_address: form.permanent_address || "",
         application_fee: Number(form.application_fee || 0),
-        application_fee_paid: form.application_fee_paid,
         preferred_class_id: getPreferredClassId(),
         class_name: form.class_name || "",
         tuition_fee: Number(form.tuition_fee || 0),
@@ -746,28 +736,29 @@ const ReservationManagementComponent = () => {
       };
 
       try {
-        // Convert payload to FormData as required by the service
-        const formData = new FormData();
-        Object.keys(payload).forEach((key) => {
-          const value = payload[key as keyof typeof payload];
-          if (value !== undefined && value !== null) {
-            if (Array.isArray(value)) {
-              formData.append(key, JSON.stringify(value));
-            } else {
-              formData.append(key, String(value));
-            }
-          }
-        });
-
+        // Send payload as JSON (API expects JSON, not FormData)
         // Use mutation hook which handles cache invalidation automatically
         const res: SchoolReservationRead =
-          await createReservationMutation.mutateAsync(formData);
+          await createReservationMutation.mutateAsync(payload);
 
         if (import.meta.env.DEV) {
           console.log("Reservation creation response:", res);
         }
+
         // Use backend reservation_id to display receipt number
-        setReservationNo(String(res?.reservation_id || ""));
+        const reservationId = res?.reservation_id || res?.reservation_no || "";
+        setReservationNo(String(reservationId));
+
+        // Show success toast message
+        toast({
+          title: "Reservation Created Successfully",
+          description: `Successfully created reservation with id ${reservationId}`,
+          variant: "success",
+        });
+
+        // Clear form fields only after successful reservation creation
+        setForm(initialFormState);
+        setSelectedClassId(null);
 
         // Invalidate and refetch reservations to show updated data
         await queryClient.invalidateQueries({
@@ -797,6 +788,7 @@ const ReservationManagementComponent = () => {
       } catch (e: any) {
         console.error("Failed to create reservation:", e);
         // Error toast is handled by mutation hook
+        // Don't clear form on error - keep all field data
       }
     },
     [
@@ -834,7 +826,8 @@ const ReservationManagementComponent = () => {
     class_name: r.class_name || "",
     tuition_fee: r.tuition_fee != null ? String(r.tuition_fee) : "0",
     book_fee: r.book_fee != null ? String(r.book_fee) : "0",
-    transport_required: r.preferred_transport_id ? true : false,
+    transport_required:
+      r.transport_required || (r.preferred_transport_id ? true : false),
     preferred_transport_id: r.preferred_transport_id
       ? String(r.preferred_transport_id)
       : "0",
@@ -883,6 +876,13 @@ const ReservationManagementComponent = () => {
             setEditSelectedClassId(selectedClass.class_id);
           }
         }
+
+        // Enable distanceSlabs and routes queries for edit form
+        setDropdownsOpened((prev) => ({
+          ...prev,
+          distanceSlabs: true,
+          routes: true,
+        }));
 
         setSelectedReservation({ id: r.reservation_id });
         setShowEditDialog(true);
@@ -1070,12 +1070,19 @@ const ReservationManagementComponent = () => {
         formData
       );
 
-      // Refetch reservations to show updated data
+      // Invalidate and refetch all reservation-related queries
+      await queryClient.invalidateQueries({
+        queryKey: schoolKeys.reservations.root(),
+      });
+      await queryClient.refetchQueries({
+        queryKey: schoolKeys.reservations.root(),
+      });
       await refetchReservations();
 
       toast({
         title: "Reservation Updated",
         description: "Reservation details have been updated successfully.",
+        variant: "success",
       });
       setShowEditDialog(false);
     } catch (e: any) {
@@ -1118,10 +1125,7 @@ const ReservationManagementComponent = () => {
 
   return (
     <div className="space-y-6 p-6">
-      <ReservationHeader
-        currentBranch={currentBranch}
-        reservationNo={reservationNo}
-      />
+      <ReservationHeader currentBranch={currentBranch} />
 
       {/* Reservation Dashboard Stats */}
       {dashboardStats && (
@@ -1140,12 +1144,17 @@ const ReservationManagementComponent = () => {
       {/* Receipt Preview Modal - Shows PDF receipt after payment */}
       <ReceiptPreviewModal
         isOpen={showReceipt}
-        onClose={() => {
+        onClose={async () => {
           setShowReceipt(false);
           if (receiptBlobUrl) {
             URL.revokeObjectURL(receiptBlobUrl);
             setReceiptBlobUrl(null);
           }
+          // Refresh reservations after closing receipt
+          await queryClient.invalidateQueries({
+            queryKey: schoolKeys.reservations.root(),
+          });
+          await refetchReservations();
         }}
         blobUrl={receiptBlobUrl}
       />
@@ -1256,7 +1265,13 @@ const ReservationManagementComponent = () => {
                     reservationToDelete.reservation_id
                   );
 
-                  // Refetch reservations to show updated data
+                  // Invalidate and refetch all reservation-related queries
+                  await queryClient.invalidateQueries({
+                    queryKey: schoolKeys.reservations.root(),
+                  });
+                  await queryClient.refetchQueries({
+                    queryKey: schoolKeys.reservations.root(),
+                  });
                   await refetchReservations();
 
                   // Toast handled by mutation hook
@@ -1281,7 +1296,7 @@ const ReservationManagementComponent = () => {
           open={showPaymentProcessor}
           onOpenChange={setShowPaymentProcessor}
         >
-          <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+          <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0">
             <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
               <DialogTitle>Complete Payment</DialogTitle>
               <DialogDescription>
@@ -1290,37 +1305,37 @@ const ReservationManagementComponent = () => {
             </DialogHeader>
             <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
               <ReservationPaymentProcessor
-              reservationData={paymentData}
-              onPaymentComplete={async (
-                incomeRecord: SchoolIncomeRead,
-                blobUrl: string
-              ) => {
-                setPaymentIncomeRecord(incomeRecord);
-                setReceiptBlobUrl(blobUrl);
-                setShowPaymentProcessor(false);
-                // Show receipt modal after closing payment processor
-                setTimeout(() => {
-                  setShowReceipt(true);
-                }, 100);
-                // Invalidate and refetch reservations to show updated data
-                await queryClient.invalidateQueries({
-                  queryKey: schoolKeys.reservations.root(),
-                });
-                await refetchReservations();
-              }}
-              onPaymentFailed={(error: string) => {
-                toast({
-                  title: "Payment Failed",
-                  description:
-                    error || "Could not process payment. Please try again.",
-                  variant: "destructive",
-                });
-                setShowPaymentProcessor(false);
-              }}
-              onPaymentCancel={() => {
-                setShowPaymentProcessor(false);
-                setPaymentData(null);
-              }}
+                reservationData={paymentData}
+                onPaymentComplete={async (
+                  incomeRecord: SchoolIncomeRead,
+                  blobUrl: string
+                ) => {
+                  setPaymentIncomeRecord(incomeRecord);
+                  setReceiptBlobUrl(blobUrl);
+                  setShowPaymentProcessor(false);
+                  // Show receipt modal after closing payment processor
+                  setTimeout(() => {
+                    setShowReceipt(true);
+                  }, 100);
+                  // Invalidate and refetch reservations to show updated data
+                  await queryClient.invalidateQueries({
+                    queryKey: schoolKeys.reservations.root(),
+                  });
+                  await refetchReservations();
+                }}
+                onPaymentFailed={(error: string) => {
+                  toast({
+                    title: "Payment Failed",
+                    description:
+                      error || "Could not process payment. Please try again.",
+                    variant: "destructive",
+                  });
+                  setShowPaymentProcessor(false);
+                }}
+                onPaymentCancel={() => {
+                  setShowPaymentProcessor(false);
+                  setPaymentData(null);
+                }}
               />
             </div>
           </DialogContent>

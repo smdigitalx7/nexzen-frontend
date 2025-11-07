@@ -410,6 +410,7 @@ export default function ReservationNew() {
       toast({
         title: "Concession Updated",
         description: "Concession amounts have been updated successfully.",
+        variant: "success",
       });
 
       // Refresh the reservations list

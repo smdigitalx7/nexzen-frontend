@@ -11,8 +11,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { EmployeeCombobox } from "@/components/ui/employee-combobox";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useMemo, useState, memo, useCallback } from "react";
-import { Save } from "lucide-react";
+import { Save, Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 type ReservationFormState = {
   student_name: string;
@@ -245,12 +253,43 @@ const StudentInfoSection = memo(
         </div>
         <div>
           <Label htmlFor="dob">Date of Birth</Label>
-          <Input
-            id="dob"
-            type="date"
-            value={form.dob}
-            onChange={(e) => setForm({ ...form, dob: e.target.value })}
-          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id="dob"
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !form.dob && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {form.dob ? (
+                  format(new Date(form.dob), "PPP")
+                ) : (
+                  <span>Pick a date</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={form.dob ? new Date(form.dob) : undefined}
+                onSelect={(date) => {
+                  if (date) {
+                    setForm({
+                      ...form,
+                      dob: format(date, "yyyy-MM-dd"),
+                    });
+                  }
+                }}
+                captionLayout="dropdown"
+                fromYear={1900}
+                toYear={new Date().getFullYear()}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="md:col-span-2"></div>
       </div>
@@ -930,14 +969,47 @@ const ReservationFormComponent = ({
               </div>
               <div>
                 <Label htmlFor="reservation_date">Reservation Date</Label>
-                <Input
-                  id="reservation_date"
-                  type="date"
-                  value={form.reservation_date}
-                  onChange={(e) =>
-                    setForm({ ...form, reservation_date: e.target.value })
-                  }
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="reservation_date"
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !form.reservation_date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {form.reservation_date ? (
+                        format(new Date(form.reservation_date), "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={
+                        form.reservation_date
+                          ? new Date(form.reservation_date)
+                          : undefined
+                      }
+                      onSelect={(date) => {
+                        if (date) {
+                          setForm({
+                            ...form,
+                            reservation_date: format(date, "yyyy-MM-dd"),
+                          });
+                        }
+                      }}
+                      captionLayout="dropdown"
+                      fromYear={2020}
+                      toYear={new Date().getFullYear() + 1}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div></div>
               <div className="md:col-span-3">
