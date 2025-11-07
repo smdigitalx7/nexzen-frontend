@@ -8,6 +8,8 @@ import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 import { CollegeClassDropdown, CollegeGroupDropdown } from '@/components/shared/Dropdowns';
 import { useCollegeAttendance, useUpdateCollegeAttendance, useDeleteCollegeAttendance, useCollegeClassGroups } from '@/lib/hooks/college';
 import { useToast } from '@/hooks/use-toast';
@@ -124,15 +126,22 @@ export default function AttendanceView() {
             }}
             placeholder="Select class"
             className="w-[160px]"
+            required={true}
+            emptyValue={true}
+            emptyValueLabel="Select class"
           />
-          <CollegeGroupDropdown
-            classId={selectedClassId || undefined}
-            value={selectedGroupId}
-            onChange={(value) => setSelectedGroupId(value)}
-            disabled={!selectedClassId}
-            placeholder={selectedClassId ? "Select group" : "Select class first"}
-            className="w-[160px]"
-          />
+          {selectedClassId && (
+            <CollegeGroupDropdown
+              classId={selectedClassId}
+              value={selectedGroupId}
+              onChange={(value) => setSelectedGroupId(value)}
+              disabled={!selectedClassId}
+              placeholder="All Groups"
+              className="w-[160px]"
+              emptyValue
+              emptyValueLabel="All Groups"
+            />
+          )}
           <Select value={month ? String(month) : ''} onValueChange={(v) => { const m = parseInt(v); const d = selectedDate || new Date(); setSelectedDate(new Date(d.getFullYear(), m - 1, d.getDate())); }}>
             <SelectTrigger className="w-[140px]"><SelectValue placeholder="Month" /></SelectTrigger>
             <SelectContent>
@@ -141,7 +150,14 @@ export default function AttendanceView() {
           </Select>
         </div>
 
-        {hasError ? (
+        {!selectedClassId || !selectedGroupId ? (
+          <Alert className="mb-4">
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Please select a class and group first to view attendance records.
+            </AlertDescription>
+          </Alert>
+        ) : hasError ? (
           <div className="py-6 text-center text-red-600">{errorMessage || 'Failed to load data'}</div>
         ) : isLoading ? (
           <div className="py-6 text-center text-slate-500">Loading...</div>

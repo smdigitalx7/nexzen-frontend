@@ -4,6 +4,7 @@ import type {
   SchoolReservationListResponse,
   SchoolReservationRead,
   SchoolReservationStatusEnum,
+  SchoolReservationCreate,
 } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
@@ -42,7 +43,7 @@ export function useSchoolReservation(reservationId: number | null | undefined) {
 export function useCreateSchoolReservation() {
   const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (form: FormData) => SchoolReservationsService.create(form),
+    mutationFn: (payload: SchoolReservationCreate) => SchoolReservationsService.create(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
       void qc.refetchQueries({ queryKey: schoolKeys.reservations.root(), type: 'active' });

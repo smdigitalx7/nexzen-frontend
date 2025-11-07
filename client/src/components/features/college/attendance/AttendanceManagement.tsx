@@ -1,24 +1,96 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Check, X, Download, Clock, TrendingUp, Eye, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TabSwitcher } from "@/components/shared";
 import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import AttendanceView from "./AttendanceView";
 import AttendanceCreate from "./AttendanceCreate";
 
 const AttendanceManagement = () => {
-  const [selectedDate] = useState<Date | undefined>(new Date());
   const { activeTab, setActiveTab } = useTabNavigation("view");
-  const attendanceStats = {
-    totalRecords: 0,
-    presentCount: 0,
-    absentCount: 0,
-    lateCount: 0,
-    presentPercentage: "0",
-    absentPercentage: "0",
-  };
+  const queryClient = useQueryClient();
+  
+  // Get cached data from AttendanceView's query and subscribe to updates
+  const [finalStudents, setFinalStudents] = useState<any[]>([]);
+  
+  useEffect(() => {
+    // Get all queries matching the attendance pattern
+    const cachedQueries = queryClient.getQueriesData({
+      queryKey: ["college-attendance-all"],
+      exact: false,
+    });
+    
+    // Find the most recent query with student data
+    let students: any[] = [];
+    for (const [, queryData] of cachedQueries) {
+      const data = queryData as any;
+      if (data?.[0]?.attendance?.[0]?.students && Array.isArray(data[0].attendance[0].students)) {
+        students = data[0].attendance[0].students;
+        break; // Use the first one we find
+      }
+    }
+    
+    setFinalStudents(students);
+    
+    // Subscribe to query cache updates
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      if (event?.query?.queryKey?.[0] === "college-attendance-all") {
+        const data = event.query.state.data as any;
+        if (data?.[0]?.attendance?.[0]?.students && Array.isArray(data[0].attendance[0].students)) {
+          setFinalStudents(data[0].attendance[0].students);
+        }
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [queryClient]);
+
+  const attendanceStats = useMemo(() => {
+    if (!finalStudents || finalStudents.length === 0) {
+      return {
+        totalRecords: 0,
+        presentCount: 0,
+        absentCount: 0,
+        lateCount: 0,
+        presentPercentage: "0",
+        absentPercentage: "0",
+      };
+    }
+
+    const totalRecords = finalStudents.length;
+    let totalPresentDays = 0;
+    let totalAbsentDays = 0;
+    let totalWorkingDays = 0;
+
+    finalStudents.forEach((student: any) => {
+      const workingDays = student.total_working_days || 0;
+      const presentDays = student.present_days || 0;
+      const absentDays = student.absent_days || 0;
+      
+      totalWorkingDays += workingDays;
+      totalPresentDays += presentDays;
+      totalAbsentDays += absentDays;
+    });
+
+    const presentPercentage = totalWorkingDays > 0 
+      ? ((totalPresentDays / totalWorkingDays) * 100).toFixed(1)
+      : "0";
+    const absentPercentage = totalWorkingDays > 0
+      ? ((totalAbsentDays / totalWorkingDays) * 100).toFixed(1)
+      : "0";
+
+    return {
+      totalRecords,
+      presentCount: totalPresentDays,
+      absentCount: totalAbsentDays,
+      lateCount: 0, // Late count not available in current data structure
+      presentPercentage,
+      absentPercentage,
+    };
+  }, [finalStudents]);
 
   return (
     <div className="flex flex-col h-full bg-slate-50/30">
@@ -68,9 +140,9 @@ const AttendanceManagement = () => {
                   <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
                     <Check className="h-5 w-5 text-white" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm font-medium text-slate-600">
-                      Present
+                      Present Days
                     </p>
                     <p className="text-2xl font-bold text-slate-900">
                       {attendanceStats.presentCount}
@@ -88,8 +160,8 @@ const AttendanceManagement = () => {
                   <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
                     <X className="h-5 w-5 text-white" />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Absent</p>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-600">Absent Days</p>
                     <p className="text-2xl font-bold text-slate-900">
                       {attendanceStats.absentCount}
                     </p>
@@ -106,11 +178,16 @@ const AttendanceManagement = () => {
                   <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center">
                     <Clock className="h-5 w-5 text-white" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm font-medium text-slate-600">Late</p>
                     <p className="text-2xl font-bold text-slate-900">
                       {attendanceStats.lateCount}
                     </p>
+                    {attendanceStats.totalRecords === 0 && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        Select class in View tab
+                      </p>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -121,13 +198,18 @@ const AttendanceManagement = () => {
                   <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                     <TrendingUp className="h-5 w-5 text-white" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm font-medium text-slate-600">
-                      Total Records
+                      Total Students
                     </p>
                     <p className="text-2xl font-bold text-slate-900">
                       {attendanceStats.totalRecords}
                     </p>
+                    {attendanceStats.totalRecords === 0 && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        Select class in View tab
+                      </p>
+                    )}
                   </div>
                 </div>
               </CardContent>

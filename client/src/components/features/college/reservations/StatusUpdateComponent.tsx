@@ -272,7 +272,7 @@ const StatusUpdateTableComponent = ({
         );
 
         // Step 2: Remove the query data to force fresh fetch
-        queryClient.removeQueries({ queryKey: collegeKeys.reservations.list({ page: 1, page_size: 20 }) });
+        queryClient.removeQueries({ queryKey: collegeKeys.reservations.list({}) });
         
         // Step 3: Invalidate all reservation queries
         queryClient.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
@@ -285,7 +285,7 @@ const StatusUpdateTableComponent = ({
         
         // Step 5: Also explicitly refetch to ensure network request
         await queryClient.refetchQueries({
-          queryKey: collegeKeys.reservations.list({ page: 1, page_size: 20 }),
+          queryKey: collegeKeys.reservations.list({}),
           type: 'active'
         });
         

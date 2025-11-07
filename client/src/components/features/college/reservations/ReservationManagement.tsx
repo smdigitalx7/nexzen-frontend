@@ -171,8 +171,8 @@ export default function ReservationNew() {
     error: reservationsErrObj,
     refetch: refetchReservations,
   } = useQuery({
-    queryKey: collegeKeys.reservations.list({ page: 1, page_size: 20 }),
-    queryFn: () => CollegeReservationsService.list({ page: 1, page_size: 20 }),
+    queryKey: collegeKeys.reservations.list({}),
+    queryFn: () => CollegeReservationsService.list({}),
     enabled: activeTab === "all" || activeTab === "status",
   });
 

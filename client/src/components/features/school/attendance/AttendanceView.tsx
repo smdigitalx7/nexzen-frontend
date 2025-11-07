@@ -8,6 +8,8 @@ import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 import { SchoolClassDropdown, SchoolSectionDropdown } from '@/components/shared/Dropdowns';
 import { useSchoolAttendance, useUpdateSchoolAttendance, useDeleteSchoolAttendance, useSchoolAttendanceAllStudents, useSchoolSectionsByClass } from '@/lib/hooks/school';
 import { useToast } from '@/hooks/use-toast';
@@ -102,17 +104,22 @@ export default function AttendanceView() {
             }}
             placeholder="Select class"
             className="w-[160px]"
+            required={true}
+            emptyValue={true}
+            emptyValueLabel="Select class"
           />
-          <SchoolSectionDropdown
-            classId={selectedClassId || 0}
-            value={selectedSectionId}
-            onChange={(value) => setSelectedSectionId(value)}
-            disabled={!selectedClassId}
-            placeholder={selectedClassId ? "All Sections" : "Select class first"}
-            className="w-[160px]"
-            emptyValue
-            emptyValueLabel="All Sections"
-          />
+          {selectedClassId && (
+            <SchoolSectionDropdown
+              classId={selectedClassId}
+              value={selectedSectionId}
+              onChange={(value) => setSelectedSectionId(value)}
+              disabled={!selectedClassId}
+              placeholder="All Sections"
+              className="w-[160px]"
+              emptyValue
+              emptyValueLabel="All Sections"
+            />
+          )}
           <Select value={month ? String(month) : ''} onValueChange={(v) => { const m = parseInt(v); const d = selectedDate || new Date(); setSelectedDate(new Date(d.getFullYear(), m - 1, d.getDate())); }}>
             <SelectTrigger className="w-[140px]"><SelectValue placeholder="Month" /></SelectTrigger>
             <SelectContent>
@@ -121,7 +128,14 @@ export default function AttendanceView() {
           </Select>
         </div>
 
-        {hasError ? (
+        {!selectedClassId ? (
+          <Alert className="mb-4">
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Please select a class first to view attendance records.
+            </AlertDescription>
+          </Alert>
+        ) : hasError ? (
           <div className="py-6 text-center text-red-600">{errorMessage || 'Failed to load data'}</div>
         ) : isLoading ? (
           <div className="py-6 text-center text-slate-500">Loading...</div>

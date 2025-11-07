@@ -39,8 +39,12 @@ export function SchoolSectionDropdown({
   const { data, isLoading, error, refetch } = useSchoolSections(classId);
 
   const options = React.useMemo(() => {
+    // Don't show options when classId is invalid
+    if (classId <= 0) {
+      return [];
+    }
     return data?.items || [];
-  }, [data]);
+  }, [data, classId]);
 
   // Auto-clear value when classId changes
   React.useEffect(() => {
@@ -57,25 +61,34 @@ export function SchoolSectionDropdown({
   );
 
   const isDisabled = disabled || classId <= 0;
+  const hasNoClass = classId <= 0;
+
+  // Use the provided placeholder when classId <= 0, or default to "Select class first"
+  const displayPlaceholder = hasNoClass 
+    ? (placeholder || "Select class first")
+    : placeholder;
+
+  // When no class is selected, don't use emptyValue so placeholder can show
+  const shouldUseEmptyValue = hasNoClass ? false : emptyValue;
 
   return (
     <BaseDropdown<SectionOption>
       value={value}
       onChange={handleChange}
       options={options}
-      isLoading={isLoading}
-      error={error}
+      isLoading={hasNoClass ? false : isLoading}
+      error={hasNoClass ? null : error}
       disabled={isDisabled}
       required={required}
-      placeholder={classId <= 0 ? "Select class first" : placeholder}
+      placeholder={displayPlaceholder}
       className={className}
       getValue={(option) => option.section_id}
       getLabel={(option) => option.section_name}
-      noOptionsText="No sections available"
+      noOptionsText={hasNoClass ? displayPlaceholder : "No sections available"}
       loadingText="Loading sections..."
       errorText="Failed to load sections"
       onRetry={() => refetch()}
-      emptyValue={emptyValue}
+      emptyValue={shouldUseEmptyValue}
       emptyValueLabel={emptyValueLabel}
     />
   );

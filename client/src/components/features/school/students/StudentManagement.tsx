@@ -75,12 +75,12 @@ const StudentManagement = () => {
 
       <TabSwitcher
         tabs={[
-          {
-            value: "students",
-            label: "Students",
-            icon: Users,
-            content: <StudentsTab />,
-          },
+          // {
+          //   value: "students",
+          //   label: "Students",
+          //   icon: Users,
+          //   content: <StudentsTab />,
+          // },
           {
             value: "enrollments",
             label: "Enrollments",
