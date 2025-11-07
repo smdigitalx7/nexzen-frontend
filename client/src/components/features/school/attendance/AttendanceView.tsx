@@ -11,9 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 import { SchoolClassDropdown, SchoolSectionDropdown } from '@/components/shared/Dropdowns';
-import { useSchoolAttendance, useUpdateSchoolAttendance, useDeleteSchoolAttendance, useSchoolAttendanceAllStudents, useSchoolSectionsByClass } from '@/lib/hooks/school';
+import { useSchoolAttendance, useDeleteSchoolAttendance, useSchoolAttendanceAllStudents, useSchoolSectionsByClass } from '@/lib/hooks/school';
 import { useToast } from '@/hooks/use-toast';
 import { SchoolStudentAttendanceService } from '@/lib/services/school';
+import { schoolKeys } from '@/lib/hooks/school/query-keys';
 import type { SchoolStudentAttendanceMonthlyGroupedResponse, SchoolClassRead, SchoolSectionRead } from '@/lib/types/school';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -218,14 +219,20 @@ export default function AttendanceView() {
                 return;
               }
               try {
-                // Use service directly with cache invalidation
+                // Update attendance via service
                 await SchoolStudentAttendanceService.update(editingRow.attendance_id, { absent_days: absent, remarks: editRemarks || null });
                 
-                // Invalidate cache to refresh the list
-                void queryClient.invalidateQueries({ queryKey: ["school", "attendance"] });
+                // Invalidate and refetch queries to refresh the UI
+                await queryClient.invalidateQueries({ queryKey: schoolKeys.attendance.detail(editingRow.attendance_id) });
+                await queryClient.invalidateQueries({ queryKey: schoolKeys.attendance.root() });
+                await queryClient.refetchQueries({ queryKey: schoolKeys.attendance.root(), type: 'active' });
+                
+                // Refetch the students list to show updated data
+                await studentsQuery.refetch();
                 
                 toast({ title: 'Updated', description: 'Attendance updated', variant: 'success' });
                 setEditOpen(false);
+                setEditingRow(null);
               } catch (err: unknown) {
                 const serverMsg = (err as any)?.response?.data?.detail || (err as any)?.message || 'Failed to update attendance';
                 toast({ title: 'Error', description: serverMsg, variant: 'destructive' });

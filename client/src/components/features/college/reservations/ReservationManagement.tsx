@@ -756,18 +756,26 @@ export default function ReservationNew() {
     try {
       const payload = buildPayloadFromForm(editForm);
 
-      // Use service directly and invalidate cache
+      // Use service directly with proper cache invalidation and refetch
       await CollegeReservationsService.update(
         Number(selectedReservation.reservation_id),
         payload
       );
 
-      // Invalidate cache to refresh the list
-      void queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
+      // Invalidate and refetch all reservation-related queries
+      await queryClient.invalidateQueries({
+        queryKey: collegeKeys.reservations.root(),
+      });
+      await queryClient.refetchQueries({
+        queryKey: collegeKeys.reservations.root(),
+        type: 'active'
+      });
+      await refetchReservations();
 
       toast({
         title: "Reservation Updated",
         description: "Reservation details have been updated successfully.",
+        variant: "success",
       });
       setShowEditDialog(false);
     } catch (e: any) {

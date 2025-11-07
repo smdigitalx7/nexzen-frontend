@@ -4,6 +4,8 @@ import type {
   SchoolEnrollmentWithStudentDetails,
   SchoolEnrollmentsPaginatedResponse,
   SchoolEnrollmentFilterParams,
+  SchoolEnrollmentForSectionAssignment,
+  AssignSectionsRequest,
 } from "@/lib/types/school/enrollments";
 
 export const EnrollmentsService = {
@@ -34,6 +36,14 @@ export const EnrollmentsService = {
   create(payload: SchoolEnrollmentCreate): Promise<SchoolEnrollmentWithStudentDetails> {
     return Api.post<SchoolEnrollmentWithStudentDetails>(`/school/enrollments`, payload);
   },
+
+  // GET /api/v1/school/enrollments/for-section-assignment
+  getForSectionAssignment(class_id: number): Promise<SchoolEnrollmentForSectionAssignment[]> {
+    return Api.get<SchoolEnrollmentForSectionAssignment[]>(`/school/enrollments/for-section-assignment?class_id=${class_id}`);
+  },
+
+  // PUT /api/v1/school/enrollments/assign-sections
+  assignSections(payload: AssignSectionsRequest): Promise<void> {
+    return Api.put<void>(`/school/enrollments/assign-sections`, payload);
+  },
 };
-
-

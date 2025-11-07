@@ -66,4 +66,27 @@ export interface SchoolEnrollmentsPaginatedResponse {
   total_pages: number;
 }
 
+export interface SchoolEnrollmentForSectionAssignment {
+  enrollment_id: number;
+  student_id: number;
+  student_name: string;
+  admission_no: string;
+  class_id: number;
+  class_name: string;
+  current_section_id: number;
+  current_section_name: string;
+  current_roll_number: string;
+  alphabetical_order: number;
+}
 
+export interface SectionGroup {
+  section_id: number;
+  enrollment_ids: number[];
+  start_position: number;
+  end_position: number;
+}
+
+export interface AssignSectionsRequest {
+  class_id: number;
+  section_groups: SectionGroup[];
+}

@@ -11,9 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 import { CollegeClassDropdown, CollegeGroupDropdown } from '@/components/shared/Dropdowns';
-import { useCollegeAttendance, useUpdateCollegeAttendance, useDeleteCollegeAttendance, useCollegeClassGroups } from '@/lib/hooks/college';
+import { useCollegeAttendance, useDeleteCollegeAttendance, useCollegeClassGroups } from '@/lib/hooks/college';
 import { useToast } from '@/hooks/use-toast';
 import { CollegeAttendanceService } from '@/lib/services/college';
+import { collegeKeys } from '@/lib/hooks/college/query-keys';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CollegeClassResponse, CollegeGroupResponse } from '@/lib/types/college';
 
@@ -62,11 +63,16 @@ export default function AttendanceView() {
     }
     const nextAbsent = (student.absent_days ?? 0) + (status === 'absent' ? 1 : -1);
     try {
-      // Use service directly with cache invalidation
+      // Update attendance via service
       await CollegeAttendanceService.update(student.attendance_id, { absent_days: Math.max(0, nextAbsent) });
       
-      // Invalidate cache to refresh the list
-      void queryClient.invalidateQueries({ queryKey: ["college", "attendance"] });
+      // Invalidate and refetch queries to refresh the UI
+      await queryClient.invalidateQueries({ queryKey: collegeKeys.attendance.detail(student.attendance_id) });
+      await queryClient.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
+      await queryClient.refetchQueries({ queryKey: collegeKeys.attendance.root(), type: 'active' });
+      
+      // Refetch the students list to show updated data
+      await studentsQuery.refetch();
     } catch {
       toast({ title: 'Error', description: 'Failed to update attendance', variant: 'destructive' });
     }
@@ -239,11 +245,16 @@ export default function AttendanceView() {
                 return;
               }
               try {
-                // Use service directly with cache invalidation
+                // Update attendance via service
                 await CollegeAttendanceService.update(editingRow.attendance_id, { absent_days: absent, remarks: editRemarks || null });
                 
-                // Invalidate cache to refresh the list
-                void queryClient.invalidateQueries({ queryKey: ["college", "attendance"] });
+                // Invalidate and refetch queries to refresh the UI
+                await queryClient.invalidateQueries({ queryKey: collegeKeys.attendance.detail(editingRow.attendance_id) });
+                await queryClient.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
+                await queryClient.refetchQueries({ queryKey: collegeKeys.attendance.root(), type: 'active' });
+                
+                // Refetch the students list to show updated data
+                await studentsQuery.refetch();
                 
                 toast({ title: 'Updated', description: 'Attendance updated', variant: 'success' });
                 setEditOpen(false);

@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { EnrollmentsService } from "@/lib/services/school/enrollments.service";
-import type { SchoolEnrollmentCreate, SchoolEnrollmentFilterParams, SchoolEnrollmentWithStudentDetails, SchoolEnrollmentsPaginatedResponse } from "@/lib/types/school";
+import type { SchoolEnrollmentCreate, SchoolEnrollmentFilterParams, SchoolEnrollmentWithStudentDetails, SchoolEnrollmentsPaginatedResponse, SchoolEnrollmentForSectionAssignment, AssignSectionsRequest } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
@@ -39,4 +39,25 @@ export function useSchoolEnrollmentByAdmission(admissionNo: string | null | unde
   });
 }
 
+export function useSchoolEnrollmentsForSectionAssignment(classId: number | null | undefined) {
+  return useQuery({
+    queryKey: classId ? [...schoolKeys.enrollments.root(), "for-section-assignment", classId] : [...schoolKeys.enrollments.root(), "for-section-assignment", "nil"],
+    queryFn: () => EnrollmentsService.getForSectionAssignment(classId as number),
+    enabled: typeof classId === "number" && classId > 0,
+  });
+}
 
+export function useAssignSectionsToEnrollments() {
+  const qc = useQueryClient();
+  return useMutationWithSuccessToast({
+    mutationFn: (payload: AssignSectionsRequest) => EnrollmentsService.assignSections(payload),
+    onSuccess: (_, variables) => {
+      // Invalidate enrollment queries to refresh the data
+      void qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
+      void qc.invalidateQueries({ 
+        queryKey: [...schoolKeys.enrollments.root(), "for-section-assignment", variables.class_id] 
+      });
+      void qc.refetchQueries({ queryKey: schoolKeys.enrollments.root(), type: 'active' });
+    },
+  }, "Sections assigned successfully");
+}

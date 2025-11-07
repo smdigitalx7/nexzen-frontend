@@ -1065,7 +1065,7 @@ const ReservationManagementComponent = () => {
         }
       });
 
-      // Use service directly and invalidate cache
+      // Use service directly with proper cache invalidation and refetch
       await SchoolReservationsService.update(
         Number(selectedReservation.id),
         formData
@@ -1077,6 +1077,7 @@ const ReservationManagementComponent = () => {
       });
       await queryClient.refetchQueries({
         queryKey: schoolKeys.reservations.root(),
+        type: 'active'
       });
       await refetchReservations();
 
