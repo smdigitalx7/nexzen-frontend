@@ -5,6 +5,12 @@ import { visualizer } from "rollup-plugin-visualizer";
 import viteCompression from "vite-plugin-compression";
 
 export default defineConfig({
+  // Base public path when served in production
+  // Set VITE_BASE_PATH environment variable if deploying to a subdirectory
+  // e.g., VITE_BASE_PATH=/app/ for deployment at https://example.com/app/
+  // Defaults to '/' for root deployment
+  base: process.env.VITE_BASE_PATH || "/",
+
   plugins: [
     react({
       babel: {

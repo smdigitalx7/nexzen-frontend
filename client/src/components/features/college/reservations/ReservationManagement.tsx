@@ -140,6 +140,18 @@ export default function ReservationNew() {
 
   const { activeTab, setActiveTab } = useTabNavigation("new");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Enable groups dropdown when form tab is active
+  React.useEffect(() => {
+    if (activeTab === "new") {
+      setDropdownsOpened((prev) => ({
+        ...prev,
+        groups: true,
+        classes: true,
+      }));
+    }
+  }, [activeTab]);
+
   const [reservationNo, setReservationNo] = useState<string>("");
   const [showReceipt, setShowReceipt] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -284,6 +296,16 @@ export default function ReservationNew() {
     // Remarks
     remarks: "",
   });
+
+  // Enable groups when a class is selected
+  React.useEffect(() => {
+    if (form.preferredClassId && Number(form.preferredClassId) > 0) {
+      setDropdownsOpened((prev) => ({
+        ...prev,
+        groups: true,
+      }));
+    }
+  }, [form.preferredClassId]);
 
   // Fee calculations based on selected group, course, and transport options
   const groupFee = useMemo(() => {

@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useNavigationStore } from "@/store/navigationStore";
 import { cn } from "@/lib/utils";
 import { AuthTokenTimers } from "@/lib/api";
+import { getRoleFromToken } from "@/lib/utils/auth/jwt";
 
 import { LazyLoadingWrapper } from "@/components/shared/LazyLoadingWrapper";
 import { componentPreloader } from "@/lib/utils/performance/preloader";
@@ -524,7 +525,6 @@ function DashboardRouter() {
   let role = user?.role;
   if (!role && token) {
     try {
-      const { getRoleFromToken } = require("@/lib/utils/auth/jwt");
       role = getRoleFromToken(token, user?.current_branch_id);
     } catch (e) {
       // If we can't get role from token, fall back to user.role

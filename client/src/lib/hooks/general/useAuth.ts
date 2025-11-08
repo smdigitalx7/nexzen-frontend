@@ -4,6 +4,8 @@ import { useToast } from "@/hooks/use-toast";
 import { unifiedApi } from "@/lib/services/general/unified-api.service";
 import { normalizeRole, ROLES, type UserRole } from "@/lib/constants";
 import { extractPrimaryRole } from "@/lib/utils/roles";
+import { useCacheStore } from "@/store/cacheStore";
+import { queryClient } from "@/lib/query";
 
 // Types for authentication
 export interface LoginRequest {
@@ -188,14 +190,12 @@ export function useLogin() {
       // Step 9.5: CRITICAL - Clear API cache after login to prevent stale data from previous role
       // This ensures dashboard and other data is fresh for the new role
       try {
-        const { useCacheStore } = require("@/store/cacheStore");
         useCacheStore.getState().clear();
       } catch (e) {
         console.warn("Failed to clear cache store on login:", e);
       }
       
       try {
-        const { queryClient } = require("@/lib/query");
         queryClient.clear();
         queryClient.resetQueries();
       } catch (e) {

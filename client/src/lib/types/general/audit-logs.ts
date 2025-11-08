@@ -24,3 +24,30 @@ export interface ActivitySummaryParams {
   limit?: number;
 }
 
+export interface AuditLogReadable {
+  audit_id: number;
+  operation_type: string;
+  branch_name: string;
+  description: string;
+}
+
+export interface AuditLogReadableParams {
+  start_date?: string | null;
+  end_date?: string | null;
+  limit?: number;
+  offset?: number;
+}
+
+export interface AuditLogDeleteParams {
+  start_date: string;
+  end_date: string;
+  audit_ids: number[];
+  confirm_deletion: boolean;
+}
+
+export interface AuditLogDeletePreview {
+  count?: number;
+  audit_ids?: number[];
+  message?: string;
+}
+

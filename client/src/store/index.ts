@@ -1,6 +1,12 @@
 // Enhanced Zustand Stores
 // This file provides a centralized export for all enhanced stores
 
+import { setupCacheCleanup, stopCacheCleanup } from './cacheStore';
+import { useAuthStore } from './authStore';
+import { useNavigationStore } from './navigationStore';
+import { useCacheStore } from './cacheStore';
+import { useUIStore } from './uiStore';
+
 // Auth Store
 export {
   useAuthStore,
@@ -108,7 +114,6 @@ export const storeUtils = {
 // Store initialization
 export const initializeStores = () => {
   // Setup cache cleanup
-  const { setupCacheCleanup } = require('./cacheStore');
   setupCacheCleanup();
 
   // Setup any other store initializations here
@@ -118,15 +123,9 @@ export const initializeStores = () => {
 // Store cleanup
 export const cleanupStores = () => {
   // Stop cache cleanup
-  const { stopCacheCleanup } = require('./cacheStore');
   stopCacheCleanup();
 
   // Clear all stores
-  const { useAuthStore } = require('./authStore');
-  const { useNavigationStore } = require('./navigationStore');
-  const { useCacheStore } = require('./cacheStore');
-  const { useUIStore } = require('./uiStore');
-
   useAuthStore.getState().logout();
   useNavigationStore.getState().clearHistory();
   useCacheStore.getState().clear();

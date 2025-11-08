@@ -41,15 +41,26 @@ import {
   Tooltip,
 } from "recharts";
 import { useAdminDashboard } from "@/lib/hooks/general";
+import { useActivitySummary } from "@/lib/hooks/general/useAuditLogs";
 import { formatCurrency } from "@/lib/utils";
 import { DashboardContainer } from "@/components/shared/dashboard/DashboardContainer";
 import { DashboardHeader } from "@/components/shared/dashboard/DashboardHeader";
 import { DashboardError } from "@/components/shared/dashboard/DashboardError";
+import { Badge } from "@/components/ui/badge";
 
 const AdminDashboard = () => {
   const { user } = useAuthStore();
   const { data: dashboardData, loading, error } = useAdminDashboard();
   const [, setLocation] = useLocation();
+
+  // Fetch recent audit log activity summary (last 24 hours, maximum 5 records)
+  const { data: auditLogSummary = [] } = useActivitySummary({
+    hours_back: 24,
+    limit: 5,
+  });
+
+  // Ensure we only show maximum 5 records
+  const displaySummary = auditLogSummary.slice(0, 5);
 
   const quickLinks = [
     {
@@ -168,7 +179,7 @@ const AdminDashboard = () => {
 
       <DashboardError error={error} />
 
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Overview Section - Enhanced Design */}
         <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-100/50 shadow-sm">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDYwIDAgTCAwIDAgMCA2MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTVlN2ViIiBzdHJva2Utd2lkdGg9IjEiIG9wYWNpdHk9IjAuMyIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-40"></div>
@@ -183,74 +194,102 @@ const AdminDashboard = () => {
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white/80 backdrop-blur-sm rounded-lg p-5 border border-white/50 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
-                <div className="flex items-center gap-3 mb-3">
-                  <Users className="h-6 w-6 text-blue-600" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div
+                className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-white/60 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
+                onClick={() => setLocation("/school/admissions")}
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors">
+                    <Users className="h-5 w-5 text-blue-600" />
+                  </div>
                   <div className="flex-1">
-                    <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">
+                    <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
                       Students
                     </p>
-                    <p className="text-3xl font-bold text-slate-900 mt-1">
+                    <p className="text-3xl font-bold text-slate-900">
                       {dashboardData.data.overview.total_students.toLocaleString()}
                     </p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500">Across all branches</p>
+                <p className="text-xs text-slate-500 font-medium">
+                  Across all branches
+                </p>
               </div>
 
-              <div className="bg-white/80 backdrop-blur-sm rounded-lg p-5 border border-white/50 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
-                <div className="flex items-center gap-3 mb-3">
-                  <GraduationCap className="h-6 w-6 text-purple-600" />
+              <div
+                className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-white/60 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
+                onClick={() => setLocation("/employees")}
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-colors">
+                    <GraduationCap className="h-5 w-5 text-purple-600" />
+                  </div>
                   <div className="flex-1">
-                    <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">
+                    <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
                       Teachers
                     </p>
-                    <p className="text-3xl font-bold text-slate-900 mt-1">
+                    <p className="text-3xl font-bold text-slate-900">
                       {dashboardData.data.overview.total_teachers.toLocaleString()}
                     </p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500">Teaching staff</p>
+                <p className="text-xs text-slate-500 font-medium">
+                  Teaching staff
+                </p>
               </div>
 
-              <div className="bg-white/80 backdrop-blur-sm rounded-lg p-5 border border-white/50 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
-                <div className="flex items-center gap-3 mb-3">
-                  <BookOpen className="h-6 w-6 text-indigo-600" />
+              <div
+                className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-white/60 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
+                onClick={() => setLocation("/school/academic")}
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-indigo-100 group-hover:bg-indigo-200 transition-colors">
+                    <BookOpen className="h-5 w-5 text-indigo-600" />
+                  </div>
                   <div className="flex-1">
-                    <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">
+                    <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
                       Classes
                     </p>
-                    <p className="text-3xl font-bold text-slate-900 mt-1">
+                    <p className="text-3xl font-bold text-slate-900">
                       {dashboardData.data.overview.total_classes.toLocaleString()}
                     </p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500">Active classes</p>
+                <p className="text-xs text-slate-500 font-medium">
+                  Active classes
+                </p>
               </div>
 
-              <div className="bg-white/80 backdrop-blur-sm rounded-lg p-5 border border-white/50 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
-                <div className="flex items-center gap-3 mb-3">
-                  <Building2 className="h-6 w-6 text-teal-600" />
+              <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-white/60 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-teal-100 group-hover:bg-teal-200 transition-colors">
+                    <Building2 className="h-5 w-5 text-teal-600" />
+                  </div>
                   <div className="flex-1">
-                    <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">
+                    <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
                       Branches
                     </p>
-                    <p className="text-3xl font-bold text-slate-900 mt-1">
+                    <p className="text-3xl font-bold text-slate-900">
                       {dashboardData.data.overview.total_branches.toLocaleString()}
                     </p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500">Institute branches</p>
+                <p className="text-xs text-slate-500 font-medium">
+                  Institute branches
+                </p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Financial Performance - Enhanced Design */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Total Financials */}
-          <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <div
+            className="lg:col-span-8 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => setLocation("/school/financial-reports")}
+          >
             <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
               <h3 className="text-lg font-semibold text-slate-900">
                 Financial Performance
@@ -315,7 +354,7 @@ const AdminDashboard = () => {
           </div>
 
           {/* Period Breakdown */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <div className="lg:col-span-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
               <h3 className="text-lg font-semibold text-slate-900">
                 Current Period
@@ -391,8 +430,11 @@ const AdminDashboard = () => {
         </div>
 
         {/* Academic & Operations */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div
+            className="lg:col-span-6 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => setLocation("/school/academic")}
+          >
             <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-white">
               <div className="flex items-center gap-2">
                 <Award className="h-5 w-5 text-purple-600" />
@@ -443,7 +485,7 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <div className="lg:col-span-6 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-teal-50 to-white">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-teal-600" />
@@ -477,8 +519,11 @@ const AdminDashboard = () => {
         </div>
 
         {/* Enrollments & Reservations */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div
+            className="lg:col-span-6 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => setLocation("/school/admissions")}
+          >
             <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-white">
               <div className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-blue-600" />
@@ -536,7 +581,10 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <div
+            className="lg:col-span-6 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => setLocation("/school/reservations/new")}
+          >
             <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-white">
               <div className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-purple-600" />
@@ -594,6 +642,91 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Audit Log Summary */}
+        {displaySummary.length > 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-sky-50 to-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Receipt className="h-5 w-5 text-sky-600" />
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Recent Activity Summary
+                  </h3>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setLocation("/audit-log")}
+                  className="text-sky-600 hover:text-sky-700"
+                >
+                  View All
+                </Button>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Latest audit log activities (Last 24 hours)
+              </p>
+            </div>
+            <div className="p-6">
+              <div className="space-y-3">
+                {displaySummary.map((activity, index) => {
+                  const getCategoryColor = (category: string) => {
+                    const colors: Record<string, string> = {
+                      CREATE:
+                        "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+                      UPDATE:
+                        "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+                      DELETE:
+                        "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+                      VIEW: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
+                    };
+                    return (
+                      colors[category.toUpperCase()] ||
+                      "bg-muted text-muted-foreground"
+                    );
+                  };
+
+                  return (
+                    <div
+                      key={`${activity.user_id}-${activity.changed_at}-${index}`}
+                      className="flex items-start justify-between p-4 rounded-lg border border-slate-100 hover:border-slate-200 hover:bg-slate-50/50 transition-all"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium text-slate-900">
+                            {activity.user_full_name || "System"}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${getCategoryColor(activity.category)}`}
+                          >
+                            {activity.category}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-slate-600 mb-1">
+                          {activity.activity_description}
+                        </p>
+                        <div className="flex items-center gap-4 text-xs text-slate-500">
+                          <span>{activity.branch_name || "N/A"}</span>
+                          <span>•</span>
+                          <span>{activity.time_ago}</span>
+                          {activity.count_or_amount && (
+                            <>
+                              <span>•</span>
+                              <span className="font-medium text-slate-700">
+                                {activity.count_or_amount}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Charts Section */}
         {dashboardData.data.charts.income_by_category.length > 0 && (

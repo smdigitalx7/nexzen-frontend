@@ -50,8 +50,8 @@ function DatePickerCaption(
   const currentYear = displayMonth.getFullYear();
   const currentMonth = displayMonth.getMonth();
 
-  const yearFrom = fromYear ?? 2020;
-  const yearTo = toYear ?? new Date().getFullYear() + 1;
+  const yearFrom = fromYear ?? 1900;
+  const yearTo = toYear ?? new Date().getFullYear() + 10;
 
   const years = Array.from(
     { length: yearTo - yearFrom + 1 },
@@ -143,8 +143,10 @@ export function DatePicker({
   disabled = false,
   className,
   id,
-  required = false,
-}: DatePickerProps) {
+  required: _required = false,
+  fromYear = 1900,
+  toYear = new Date().getFullYear() + 10,
+}: DatePickerProps & { fromYear?: number; toYear?: number }) {
   const [open, setOpen] = React.useState(false);
 
   // Convert string (yyyy-mm-dd) to Date object
@@ -164,6 +166,18 @@ export function DatePicker({
       setOpen(false);
     }
   };
+
+  // Create caption component with fromYear and toYear props
+  const CaptionWithProps = React.useCallback(
+    (captionProps: CaptionProps) => (
+      <DatePickerCaption
+        {...captionProps}
+        fromYear={fromYear}
+        toYear={toYear}
+      />
+    ),
+    [fromYear, toYear]
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -208,12 +222,12 @@ export function DatePicker({
             mode="single"
             selected={selectedDate}
             onSelect={handleSelect}
-            initialFocus
+            initialFocus={true}
             captionLayout="dropdown"
-            fromYear={2024}
-            toYear={new Date().getFullYear() + 4}
+            fromYear={fromYear}
+            toYear={toYear}
             components={{
-              Caption: DatePickerCaption,
+              Caption: CaptionWithProps,
             }}
             classNames={{
               nav_button: "hidden",

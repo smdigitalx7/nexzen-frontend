@@ -56,6 +56,8 @@ export function CollegeGroupDropdown({
     [onChange]
   );
 
+  // Only disable if explicitly disabled or if classId is explicitly set to 0 or negative
+  // Allow dropdown to work when classId is undefined (shows all groups)
   const isDisabled = disabled || (classId !== undefined && classId <= 0);
 
   return (
@@ -70,6 +72,8 @@ export function CollegeGroupDropdown({
       placeholder={
         classId !== undefined && classId <= 0
           ? "Select class first"
+          : isLoading
+          ? "Loading groups..."
           : placeholder
       }
       className={className}

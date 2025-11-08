@@ -76,7 +76,7 @@ export const SchoolIncomeStatsCards: React.FC<SchoolIncomeStatsCardsProps> = ({
     },
     {
       title: "Reservation Fee Income",
-      value: formatCurrency(stats.reservation_fee_income),
+      value: formatCurrency(stats.application_fee_income),
       icon: CreditCard,
       color: "teal" as const,
       description: "From reservation fees",
@@ -110,15 +110,15 @@ export const SchoolIncomeStatsCards: React.FC<SchoolIncomeStatsCardsProps> = ({
       variant: "elevated" as const,
       size: "sm" as const,
     },
-    {
-      title: "Records This Month",
-      value: stats.income_records_this_month,
-      icon: Users,
-      color: "rose" as const,
-      description: "Transactions this month",
-      variant: "elevated" as const,
-      size: "sm" as const,
-    },
+    // {
+    //   title: "Records This Month",
+    //   value: stats.income_records_this_month,
+    //   icon: Users,
+    //   color: "rose" as const,
+    //   description: "Transactions this month",
+    //   variant: "elevated" as const,
+    //   size: "sm" as const,
+    // },
     {
       title: "Records This Year",
       value: stats.income_records_this_year,
@@ -133,7 +133,7 @@ export const SchoolIncomeStatsCards: React.FC<SchoolIncomeStatsCardsProps> = ({
   return (
     <div className={className}>
       {/* Stats Cards */}
-      <DashboardGrid columns={6} gap="md">
+      <DashboardGrid columns={5} gap="md">
         {statsCards.map((stat, index) => (
           <StatsCard key={stat.title} {...stat} loading={loading} />
         ))}

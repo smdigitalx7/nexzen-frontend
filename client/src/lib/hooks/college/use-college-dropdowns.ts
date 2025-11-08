@@ -14,15 +14,15 @@ export const useCollegeClasses = () => {
 };
 
 /**
- * Hook for fetching college groups - only fetches when a valid classId is provided
+ * Hook for fetching college groups - fetches all groups if classId is undefined, or filtered by classId if provided
  */
 export const useCollegeGroups = (classId?: number) => {
   return useQuery({
-    queryKey: classId && classId > 0 ? ["college-dropdowns", "groups", classId] : ["college-dropdowns", "groups", "disabled"],
+    queryKey: classId && classId > 0 ? ["college-dropdowns", "groups", classId] : ["college-dropdowns", "groups"],
     queryFn: () => CollegeDropdownsService.getGroups(classId),
     staleTime: 5 * 60 * 1000, // 5 minutes - dropdowns don't change often
     gcTime: 10 * 60 * 1000, // 10 minutes
-    enabled: classId !== undefined && classId > 0, // Only fetch when classId is valid
+    enabled: classId === undefined || classId > 0, // Fetch when classId is undefined (all groups) or valid
   });
 };
 

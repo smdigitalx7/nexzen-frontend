@@ -2,9 +2,11 @@ import { create } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { AuthService } from "@/lib/services/general";
-import { AuthTokenTimers } from "@/lib/api";
+import { AuthTokenTimers, DedupeUtils } from "@/lib/api";
 import { ROLES, type UserRole, normalizeRole } from "@/lib/constants";
 import { extractPrimaryRole } from "@/lib/utils/roles";
+import { useCacheStore } from "@/store/cacheStore";
+import { queryClient } from "@/lib/query";
 
 export interface AuthUser {
   user_id: string;
@@ -271,7 +273,6 @@ export const useAuthStore = create<AuthState>()(
 
           // CRITICAL: Clear pending API requests to prevent them from completing with old token
           try {
-            const { DedupeUtils } = require("@/lib/api");
             DedupeUtils.clearAll();
           } catch (e) {
             console.warn("Failed to clear pending requests:", e);
@@ -306,7 +307,6 @@ export const useAuthStore = create<AuthState>()(
             
             // Clear API cache
             try {
-              const { useCacheStore } = require("@/store/cacheStore");
               useCacheStore.getState().clear();
             } catch (e) {
               console.warn("Failed to clear cache store:", e);
@@ -314,7 +314,6 @@ export const useAuthStore = create<AuthState>()(
             
             // CRITICAL: Clear React Query cache to prevent stale dashboard data
             try {
-              const { queryClient } = require("@/lib/query");
               queryClient.clear();
               // Reset all queries to ensure fresh state
               queryClient.resetQueries();
@@ -339,7 +338,6 @@ export const useAuthStore = create<AuthState>()(
 
             // CRITICAL: Clear pending API requests to prevent them from completing with old token
             try {
-              const { DedupeUtils } = require("@/lib/api");
               DedupeUtils.clearAll();
             } catch (e) {
               console.warn("Failed to clear pending requests:", e);
@@ -370,7 +368,6 @@ export const useAuthStore = create<AuthState>()(
               localStorage.removeItem("enhanced-auth-storage");
               
               try {
-                const { useCacheStore } = require("@/store/cacheStore");
                 useCacheStore.getState().clear();
               } catch (e) {
                 console.warn("Failed to clear cache store:", e);
@@ -378,7 +375,6 @@ export const useAuthStore = create<AuthState>()(
               
               // CRITICAL: Clear React Query cache to prevent stale dashboard data
               try {
-                const { queryClient } = require("@/lib/query");
                 queryClient.clear();
                 // Reset all queries to ensure fresh state
                 queryClient.resetQueries();
