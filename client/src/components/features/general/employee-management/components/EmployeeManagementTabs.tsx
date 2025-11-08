@@ -40,6 +40,7 @@ interface EmployeeManagementTabsProps {
   
   // Attendance handlers
   onAddAttendance: () => void;
+  onBulkCreateAttendance?: () => void;
   onEditAttendance: (record: any) => void;
   onDeleteAttendance: (id: number) => void;
   onViewAttendance: (record: any) => void;
@@ -85,6 +86,7 @@ export const EmployeeManagementTabs = ({
   onViewEmployee,
   onUpdateStatus,
   onAddAttendance,
+  onBulkCreateAttendance,
   onEditAttendance,
   onDeleteAttendance,
   onViewAttendance,
@@ -147,6 +149,7 @@ export const EmployeeManagementTabs = ({
           attendance={attendance}
           isLoading={attendanceLoading}
           onAddAttendance={onAddAttendance}
+          onBulkCreateAttendance={onBulkCreateAttendance}
           onEditAttendance={onEditAttendance}
           onDeleteAttendance={onDeleteAttendance}
           onViewAttendance={onViewAttendance}

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { CreditCard, Plus, Download, Users, Calculator, Eye } from "lucide-react";
+import { CreditCard, Plus, Download, Users, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +17,7 @@ import { PayrollStatsCards as OldPayrollStatsCards } from "./components/PayrollS
 import { PayrollStatsCards } from "./PayrollStatsCards";
 import { EmployeePayrollTable } from "./components/EmployeePayrollTable";
 import { SalaryCalculationForm } from "./components/SalaryCalculationForm";
-import { BulkPayrollOperations } from "./components/BulkPayrollOperations";
+import { EditPayrollForm } from "./components/EditPayrollForm";
 import { memo, useMemo, useCallback } from "react";
 import type { Branch } from "@/store/authStore";
 import type { EmployeeRead } from "@/lib/types/general/employees";
@@ -33,11 +33,9 @@ interface PayrollWithEmployee extends Omit<PayrollRead, "payroll_month"> {
 
 // Memoized header component
 const PayrollHeader = memo(({ 
-  currentBranch, 
-  onCreatePayroll 
+  currentBranch
 }: { 
   currentBranch: Branch | null;
-  onCreatePayroll: () => void;
 }) => (
   <motion.div
     initial={{ opacity: 0, y: -20 }}
@@ -55,10 +53,6 @@ const PayrollHeader = memo(({
         <CreditCard className="h-3 w-3" />
         {currentBranch?.branch_name || "Branch Name"}
       </Badge>
-      <Button onClick={onCreatePayroll}>
-        <Plus className="h-4 w-4 mr-2" />
-        Add Payroll
-      </Button>
     </div>
   </motion.div>
 ));
@@ -386,52 +380,6 @@ const ActionButtons = memo(({
 
 ActionButtons.displayName = "ActionButtons";
 
-// Memoized bulk operations content component
-const BulkOperationsContent = memo(({ 
-  employees, 
-  onBulkCreate, 
-  onBulkExport, 
-  isLoading 
-}: { 
-  employees: EmployeeRead[];
-  onBulkCreate: (data: unknown) => void;
-  onBulkExport: () => void;
-  isLoading: boolean;
-}) => {
-  const handleBulkCreateWrapper = useCallback((data: unknown[]) => {
-    void onBulkCreate(data as unknown);
-  }, [onBulkCreate]);
-
-  const handleBulkExportWrapper = useCallback(() => {
-    void onBulkExport();
-  }, [onBulkExport]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.1 }}
-      className="space-y-4"
-    >
-      <div>
-        <h2 className="text-2xl font-bold">Bulk Operations</h2>
-        <p className="text-muted-foreground">
-          Process multiple payrolls efficiently with bulk operations
-        </p>
-      </div>
-      
-      <BulkPayrollOperations
-        employees={employees}
-        onBulkCreate={handleBulkCreateWrapper}
-        onBulkExport={handleBulkExportWrapper}
-        isLoading={isLoading}
-      />
-    </motion.div>
-  );
-});
-
-BulkOperationsContent.displayName = "BulkOperationsContent";
-
 // Interface for detailed payroll response that includes employee information
 interface DetailedPayrollRead {
   payroll_id: number;
@@ -530,10 +478,6 @@ export const PayrollManagementTemplateComponent = () => {
     handleEditPayroll,
     handleFormSubmit,
     
-    // Bulk operations
-    handleBulkCreate,
-    handleBulkExport,
-    
     // Utilities
     getStatusColor,
     getStatusText,
@@ -585,32 +529,13 @@ export const PayrollManagementTemplateComponent = () => {
           <EmployeePayrollTable
             payrolls={payrolls}
             isLoading={isLoading}
+            onAddPayroll={handleCreatePayrollClick}
             onEditPayroll={handleEditPayroll}
             onViewPayslip={handleViewPayslip}
-            onUpdateStatus={(id: number, status: string) => {
-              void handleUpdateStatus(id, status);
-            }}
             getStatusColor={getStatusColor}
             getStatusText={getStatusText}
           />
         </div>
-      ),
-    },
-    {
-      value: "bulk",
-      label: "Bulk Operations",
-      icon: Calculator,
-      content: (
-        <BulkOperationsContent
-          employees={employees}
-          onBulkCreate={(data: unknown) => {
-            void handleBulkCreate(Array.isArray(data) ? data : []);
-          }}
-          onBulkExport={() => {
-            void handleBulkExport();
-          }}
-          isLoading={isLoading}
-        />
       ),
     },
   ], [
@@ -627,9 +552,6 @@ export const PayrollManagementTemplateComponent = () => {
     handleUpdateStatus,
     getStatusColor,
     getStatusText,
-    employees,
-    handleBulkCreate,
-    handleBulkExport,
   ]);
 
   // Memoized stats cards
@@ -668,7 +590,6 @@ export const PayrollManagementTemplateComponent = () => {
       {/* Header */}
       <PayrollHeader
         currentBranch={currentBranch}
-        onCreatePayroll={handleCreatePayrollClick}
       />
 
       {/* Payroll Overview Cards */}
@@ -681,14 +602,28 @@ export const PayrollManagementTemplateComponent = () => {
         onTabChange={setActiveTab}
       />
 
-      {/* Salary Calculation Form Dialog */}
+      {/* Create Payroll Form Dialog */}
       <SalaryCalculationForm
-        isOpen={showCreateDialog || showUpdateDialog}
-        onClose={handleCloseDialogs}
+        isOpen={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
         onSubmit={(data) => {
           void handleFormSubmit(data);
         }}
         employees={employees}
+      />
+
+      {/* Edit Payroll Form Dialog */}
+      <EditPayrollForm
+        isOpen={showUpdateDialog}
+        onClose={() => {
+          setShowUpdateDialog(false);
+          setSelectedPayroll(null);
+        }}
+        onSubmit={(data) => {
+          if (selectedPayroll) {
+            void handleFormSubmit(data);
+          }
+        }}
         selectedPayroll={selectedPayroll}
       />
 

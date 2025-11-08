@@ -7,6 +7,7 @@ import { ROLES, type UserRole, normalizeRole } from "@/lib/constants";
 import { extractPrimaryRole } from "@/lib/utils/roles";
 import { useCacheStore } from "@/store/cacheStore";
 import { queryClient } from "@/lib/query";
+import { getTokenExpiration, decodeJWT, getRoleFromToken } from "@/lib/utils/auth/jwt";
 
 export interface AuthUser {
   user_id: string;
@@ -632,10 +633,6 @@ export const useAuthStore = create<AuthState>()(
             }
 
             // Decode new token to extract expiration and update role if needed
-            const { getTokenExpiration, decodeJWT, getRoleFromToken } =
-              await import("@/lib/utils/auth/jwt");
-            const { normalizeRole } = await import("@/lib/constants");
-
             const tokenPayload = decodeJWT(response.access_token);
             let expireAtMs: number | null = null;
 

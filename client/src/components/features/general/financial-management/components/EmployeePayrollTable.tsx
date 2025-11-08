@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { Edit, Eye, Download, Trash2 } from "lucide-react";
 
 import { formatCurrency } from "@/lib/utils";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
@@ -22,9 +21,9 @@ interface PayrollWithEmployee extends Omit<PayrollRead, 'payroll_month'> {
 interface EmployeePayrollTableProps {
   payrolls: PayrollWithEmployee[];
   isLoading: boolean;
+  onAddPayroll?: () => void;
   onEditPayroll: (payroll: PayrollWithEmployee) => void;
   onViewPayslip: (payroll: PayrollWithEmployee) => void;
-  onUpdateStatus: (id: number, status: string) => void;
   getStatusColor: (status: string) => string;
   getStatusText: (status: string) => string;
 }
@@ -32,9 +31,9 @@ interface EmployeePayrollTableProps {
 export const EmployeePayrollTable = ({
   payrolls,
   isLoading,
+  onAddPayroll,
   onEditPayroll,
   onViewPayslip,
-  onUpdateStatus,
   getStatusColor,
   getStatusText,
 }: EmployeePayrollTableProps) => {
@@ -88,12 +87,8 @@ export const EmployeePayrollTable = ({
     {
       type: 'edit' as const,
       onClick: (row: PayrollWithEmployee) => onEditPayroll(row)
-    },
-    {
-      type: 'delete' as const,
-      onClick: (row: PayrollWithEmployee) => onUpdateStatus(row.payroll_id, "PAID")
     }
-  ], [onViewPayslip, onEditPayroll, onUpdateStatus]);
+  ], [onViewPayslip, onEditPayroll]);
 
   if (isLoading) {
     return (
@@ -129,10 +124,13 @@ export const EmployeePayrollTable = ({
       title="Employee Payrolls"
       searchKey="employee_name"
       exportable={true}
+      onAdd={onAddPayroll}
+      addButtonText="Preview Payroll"
+      addButtonVariant="default"
       showActions={true}
       actionButtonGroups={actionButtonGroups}
       actionColumnHeader="Actions"
-      showActionLabels={false}
+      showActionLabels={true}
     />
   );
 };

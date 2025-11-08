@@ -3,6 +3,7 @@ import EmployeeFormDialog from "../employee/EmployeeFormDialog";
 import EmployeeDetailDialog from "../employee/EmployeeDetailDialog";
 import EmployeeDeleteDialog from "../employee/EmployeeDeleteDialog";
 import AttendanceFormDialog from "../Attendance/AttendanceFormDialog";
+import AttendanceBulkCreateDialog from "../Attendance/AttendanceBulkCreateDialog";
 import { AttendanceViewDialog } from "../Attendance/AttendanceViewDialog";
 import LeaveFormDialog from "../Leave/LeaveFormDialog";
 import { LeaveViewDialog } from "../Leave/LeaveViewDialog";
@@ -34,6 +35,9 @@ interface EmployeeManagementDialogsProps {
   // Attendance dialogs
   showAttendanceForm: boolean;
   setShowAttendanceForm: (show: boolean) => void;
+  showAttendanceBulkCreateDialog: boolean;
+  setShowAttendanceBulkCreateDialog: (show: boolean) => void;
+  isBulkCreatingAttendance: boolean;
   showAttendanceViewDialog: boolean;
   setShowAttendanceViewDialog: (show: boolean) => void;
   attendanceToView: any;
@@ -114,7 +118,9 @@ interface EmployeeManagementDialogsProps {
   handleUpdateAdvanceStatus: (id: number, status: string, reason?: string) => Promise<void>;
   handleUpdateAdvanceAmountPaid: (id: number, amount: number) => Promise<void>;
   handleCreateAttendance: (data: any) => Promise<void>;
+  handleBulkCreateAttendance: (data: { total_working_days: number; month: number; year: number }) => Promise<void>;
   handleUpdateAttendance: (id: number, data: any) => Promise<void>;
+  handleUpdateAttendanceBulk: (data: { total_working_days: number; month: number; year: number }) => Promise<void>;
   handleDeleteAttendance: (id: number) => Promise<void>;
   
   // Loading states
@@ -141,6 +147,9 @@ export const EmployeeManagementDialogs = ({
   // Attendance dialogs
   showAttendanceForm,
   setShowAttendanceForm,
+  showAttendanceBulkCreateDialog,
+  setShowAttendanceBulkCreateDialog,
+  isBulkCreatingAttendance,
   showAttendanceViewDialog,
   setShowAttendanceViewDialog,
   attendanceToView,
@@ -221,7 +230,9 @@ export const EmployeeManagementDialogs = ({
   handleUpdateAdvanceStatus,
   handleUpdateAdvanceAmountPaid,
   handleCreateAttendance,
+  handleBulkCreateAttendance,
   handleUpdateAttendance,
+  handleUpdateAttendanceBulk,
   handleDeleteAttendance,
   createEmployeePending = false,
   updateEmployeePending = false,
@@ -505,6 +516,16 @@ export const EmployeeManagementDialogs = ({
         isPending={false}
       />
 
+      {/* Attendance Bulk Create Dialog */}
+      <AttendanceBulkCreateDialog
+        open={showAttendanceBulkCreateDialog}
+        onOpenChange={setShowAttendanceBulkCreateDialog}
+        onSubmit={async (data) => {
+          await handleBulkCreateAttendance(data);
+        }}
+        isPending={isBulkCreatingAttendance}
+      />
+
       {/* Attendance Form Dialog */}
       <AttendanceFormDialog
         open={showAttendanceForm}
@@ -521,19 +542,36 @@ export const EmployeeManagementDialogs = ({
         onSubmit={async (e) => {
           e.preventDefault();
           if (isEditingAttendance) {
-            // For editing, we need the attendance_id from the selected record
-            // This would need to be tracked in the state
-            if (import.meta.env.DEV) {
-              console.log("Update attendance not implemented yet");
+            // For editing, use bulk update with total_working_days, month, year
+            if (attendanceFormData.attendance_month && attendanceFormData.total_working_days) {
+              const dateStr = attendanceFormData.attendance_month as string;
+              const date = new Date(dateStr);
+              const month = date.getMonth() + 1;
+              const year = date.getFullYear();
+              
+              await handleUpdateAttendanceBulk({
+                total_working_days: attendanceFormData.total_working_days,
+                month,
+                year,
+              });
             }
           } else {
-            // Convert AttendanceFormData to EmployeeAttendanceCreate
-            const createData = {
-              employee_id: attendanceFormData.employee_id,
-              date: attendanceFormData.attendance_month,
-              status: attendanceFormData.days_present > 0 ? 'PRESENT' : 'ABSENT'
-            };
-            await handleCreateAttendance(createData);
+            // Convert AttendanceFormData to IndividualAttendanceCreateRequest
+            // attendance_month is in format "YYYY-MM-DD"
+            if (attendanceFormData.employee_id && attendanceFormData.attendance_month && attendanceFormData.total_working_days) {
+              const dateStr = attendanceFormData.attendance_month as string;
+              const date = new Date(dateStr);
+              const month = date.getMonth() + 1;
+              const year = date.getFullYear();
+              
+              const createData = {
+                employee_id: attendanceFormData.employee_id,
+                total_working_days: attendanceFormData.total_working_days,
+                month,
+                year,
+              };
+              await handleCreateAttendance(createData);
+            }
           }
           setShowAttendanceForm(false);
         }}

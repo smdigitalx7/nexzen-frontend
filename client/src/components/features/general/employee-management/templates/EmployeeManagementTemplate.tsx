@@ -75,7 +75,9 @@ export const EmployeeManagementTemplate = () => {
     handleUpdateAdvanceStatus,
     handleUpdateAdvanceAmountPaid,
     handleCreateAttendance,
+    handleBulkCreateAttendance,
     handleUpdateAttendance,
+    handleUpdateAttendanceBulk,
     handleDeleteAttendance,
     handleViewAttendance,
     
@@ -108,6 +110,9 @@ export const EmployeeManagementTemplate = () => {
     // Attendance state
     showAttendanceForm,
     setShowAttendanceForm,
+    showAttendanceBulkCreateDialog,
+    setShowAttendanceBulkCreateDialog,
+    isBulkCreatingAttendance,
     showAttendanceViewDialog,
     setShowAttendanceViewDialog,
     attendanceToView,
@@ -289,19 +294,18 @@ export const EmployeeManagementTemplate = () => {
                 setIsEditingAttendance(false);
                 setShowAttendanceForm(true);
               }}
+              onBulkCreateAttendance={() => {
+                setShowAttendanceBulkCreateDialog(true);
+              }}
               onEditAttendance={(record: any) => {
                 setIsEditingAttendance(true);
                 setShowAttendanceForm(true);
+                // Format month as YYYY-MM-DD for the month input
+                const monthStr = `${record.attendance_year}-${String(record.attendance_month).padStart(2, '0')}-01`;
                 setAttendanceFormData({
                   employee_id: record.employee_id,
-                  attendance_month: record.attendance_month,
+                  attendance_month: monthStr,
                   total_working_days: record.total_working_days,
-                  days_present: record.days_present,
-                  days_absent: record.days_absent,
-                  paid_leaves: record.paid_leaves,
-                  unpaid_leaves: record.unpaid_leaves,
-                  late_arrivals: record.late_arrivals,
-                  early_departures: record.early_departures,
                 });
               }}
               onDeleteAttendance={(id: number) => {
@@ -417,6 +421,9 @@ export const EmployeeManagementTemplate = () => {
         // Attendance dialogs
         showAttendanceForm={showAttendanceForm}
         setShowAttendanceForm={setShowAttendanceForm}
+        showAttendanceBulkCreateDialog={showAttendanceBulkCreateDialog}
+        setShowAttendanceBulkCreateDialog={setShowAttendanceBulkCreateDialog}
+        isBulkCreatingAttendance={isBulkCreatingAttendance}
         showAttendanceViewDialog={showAttendanceViewDialog}
         setShowAttendanceViewDialog={setShowAttendanceViewDialog}
         attendanceToView={attendanceToView}
@@ -497,7 +504,9 @@ export const EmployeeManagementTemplate = () => {
         handleUpdateAdvanceStatus={handleUpdateAdvanceStatus}
         handleUpdateAdvanceAmountPaid={handleUpdateAdvanceAmountPaid}
         handleCreateAttendance={handleCreateAttendance}
+        handleBulkCreateAttendance={handleBulkCreateAttendance}
         handleUpdateAttendance={handleUpdateAttendance}
+        handleUpdateAttendanceBulk={handleUpdateAttendanceBulk}
         handleDeleteAttendance={handleDeleteAttendance}
         createEmployeePending={createEmployeePending}
         updateEmployeePending={updateEmployeePending}

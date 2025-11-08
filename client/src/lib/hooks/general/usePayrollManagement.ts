@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
 import { useTabNavigation } from "../use-tab-navigation";
 import { PayrollsService } from "@/lib/services/general/payrolls.service";
-import { useEmployeesByBranch } from "@/lib/hooks/general/useEmployees";
+import { useEmployeesByBranch, employeeKeys } from "@/lib/hooks/general/useEmployees";
 import type {
   PayrollRead,
   PayrollCreate,
@@ -12,13 +12,9 @@ import type {
   PayrollDashboardStats,
   RecentPayroll,
 } from "@/lib/types/general/payrolls";
-import {
-  PayrollStatusEnum,
-  PaymentMethodEnum,
-} from "@/lib/types/general/payrolls";
+import { PayrollStatusEnum } from "@/lib/types/general/payrolls";
 import { formatCurrency } from "@/lib/utils";
-import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
-import { useGlobalRefetch } from "../common/useGlobalRefetch";
+import { useMutationWithSuccessToast } from "@/lib/hooks/common/use-mutation-with-toast";
 
 // Extended interface that includes employee information
 interface PayrollWithEmployee extends Omit<PayrollRead, "payroll_month"> {
@@ -56,8 +52,6 @@ export const usePayrollsByBranch = (query?: PayrollQuery) => {
     queryKey: [...payrollKeys.byBranch(), query || {}],
     queryFn: () =>
       PayrollsService.listByBranch(
-        query?.limit || 10,
-        1,
         query?.month,
         query?.year,
         query?.status
@@ -71,41 +65,6 @@ export const usePayroll = (id: number) => {
     queryFn: () => PayrollsService.getById(id),
     enabled: !!id,
   });
-};
-
-export const useCreatePayroll = () => {
-  const { invalidateEntity } = useGlobalRefetch();
-
-  return useMutationWithSuccessToast({
-    mutationFn: (payload: PayrollCreate) => PayrollsService.create(payload),
-    onSuccess: () => {
-      invalidateEntity("payrolls");
-    },
-  }, "Payroll created successfully");
-};
-
-export const useUpdatePayroll = () => {
-  const { invalidateEntity } = useGlobalRefetch();
-
-  return useMutationWithSuccessToast({
-    mutationFn: ({ id, payload }: { id: number; payload: PayrollUpdate }) =>
-      PayrollsService.update(id, payload),
-    onSuccess: () => {
-      invalidateEntity("payrolls");
-    },
-  }, "Payroll updated successfully");
-};
-
-export const useUpdatePayrollStatus = () => {
-  const { invalidateEntity } = useGlobalRefetch();
-
-  return useMutationWithSuccessToast({
-    mutationFn: ({ id, new_status }: { id: number; new_status: string }) =>
-      PayrollsService.updateStatus(id, new_status),
-    onSuccess: () => {
-      invalidateEntity("payrolls");
-    },
-  }, "Payroll status updated successfully");
 };
 
 export const usePayrollDashboard = () => {
@@ -138,13 +97,12 @@ export const usePayrollManagement = () => {
     useState<PayrollWithEmployee | null>(null);
   const [selectedPayrollId, setSelectedPayrollId] = useState<number | null>(null);
 
-  // API Hooks - Always fetch all data, do client-side filtering
-  // This ensures we have data to work with regardless of API filtering capabilities
+  // API Hooks - Fetch payrolls filtered by current branch
   const {
     data: payrollsResp,
     isLoading: payrollsLoading,
     error,
-  } = usePayrolls({});
+  } = usePayrollsByBranch({});
 
   const { data: employees = [], isLoading: employeesLoading } =
     useEmployeesByBranch();
@@ -167,18 +125,6 @@ export const usePayrollManagement = () => {
     enabled: !!selectedPayrollId,
   });
 
-  const createPayrollMutation = useCreatePayroll();
-  const updatePayrollMutation = useUpdatePayroll();
-  const updatePayrollStatusMutation = useUpdatePayrollStatus();
-
-  // Bulk operations mutation
-  const { invalidateEntity } = useGlobalRefetch();
-  const bulkCreateMutation = useMutation({
-    mutationFn: (data: PayrollCreate[]) => PayrollsService.bulkCreate(data),
-    onSuccess: () => {
-      invalidateEntity("payrolls");
-    },
-  });
 
   // Interface for API response structure (month groups)
   interface PayrollMonthGroup {
@@ -189,9 +135,10 @@ export const usePayrollManagement = () => {
   // Computed values - Flatten nested payroll data structure and enrich with employee names
   const currentPayrolls = useMemo(() => {
     // Flatten the nested structure: data -> monthGroups -> payrolls
+    // Both listAll and listByBranch return the same structure: PayrollListResponse with data as PayrollMonthGroup[]
     const flattenedPayrolls =
       Array.isArray(payrollsResp?.data)
-        ? payrollsResp.data.flatMap(
+        ? (payrollsResp.data as unknown as PayrollMonthGroup[]).flatMap(
             (monthGroup: PayrollMonthGroup) => monthGroup.payrolls || []
           )
         : [];
@@ -357,31 +304,71 @@ export const usePayrollManagement = () => {
       .reduce((sum: number, payroll: any) => sum + (payroll.gross_pay || 0), 0);
   }, [currentPayrolls]);
 
+  const queryClient = useQueryClient();
+
+  // Create payroll mutation with centralized toast handling
+  const createPayrollMutation = useMutationWithSuccessToast(
+    {
+      mutationFn: (data: PayrollCreate) => PayrollsService.create(data),
+      onSuccess: async () => {
+        // Aggressive cache invalidation for immediate UI updates
+        // Step 1: Remove query data to force fresh fetch
+        queryClient.removeQueries({ queryKey: payrollKeys.all });
+        queryClient.removeQueries({ queryKey: employeeKeys.all });
+        
+        // Step 2: Invalidate all payroll and employee-related queries
+        queryClient.invalidateQueries({ queryKey: payrollKeys.all });
+        queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+        
+        // Step 3: Force refetch active queries
+        await queryClient.refetchQueries({ queryKey: payrollKeys.byBranch(), type: 'active' });
+        await queryClient.refetchQueries({ queryKey: payrollKeys.dashboard(), type: 'active' });
+        await queryClient.refetchQueries({ queryKey: employeeKeys.byBranch(), type: 'active' });
+        
+        setShowCreateDialog(false);
+      },
+    },
+    "Payroll created successfully"
+  );
+
+  // Update payroll mutation with centralized toast handling
+  const updatePayrollMutation = useMutationWithSuccessToast(
+    {
+      mutationFn: ({ id, data }: { id: number; data: PayrollUpdate }) => 
+        PayrollsService.update(id, data),
+      onSuccess: async () => {
+        // Aggressive cache invalidation for immediate UI updates
+        // Step 1: Remove query data to force fresh fetch
+        queryClient.removeQueries({ queryKey: payrollKeys.all });
+        queryClient.removeQueries({ queryKey: employeeKeys.all });
+        
+        // Step 2: Invalidate all payroll and employee-related queries
+        queryClient.invalidateQueries({ queryKey: payrollKeys.all });
+        queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+        
+        // Step 3: Force refetch active queries
+        await queryClient.refetchQueries({ queryKey: payrollKeys.byBranch(), type: 'active' });
+        await queryClient.refetchQueries({ queryKey: payrollKeys.dashboard(), type: 'active' });
+        await queryClient.refetchQueries({ queryKey: employeeKeys.byBranch(), type: 'active' });
+        
+        setShowUpdateDialog(false);
+        setSelectedPayroll(null);
+      },
+    },
+    "Payroll updated successfully"
+  );
+
   // Handlers
   const handleCreatePayroll = async (data: PayrollCreate) => {
-    try {
-      await createPayrollMutation.mutateAsync(data);
-      setShowCreateDialog(false);
-    } catch (error) {
-      console.error("Failed to create payroll:", error);
-    }
+    await createPayrollMutation.mutateAsync(data);
   };
 
   const handleUpdatePayroll = async (id: number, data: PayrollUpdate) => {
-    try {
-      await updatePayrollMutation.mutateAsync({ id, payload: data });
-      setShowUpdateDialog(false);
-    } catch (error) {
-      console.error("Failed to update payroll:", error);
-    }
+    await updatePayrollMutation.mutateAsync({ id, data });
   };
 
   const handleUpdateStatus = async (id: number, status: string) => {
-    try {
-      await updatePayrollStatusMutation.mutateAsync({ id, new_status: status });
-    } catch (error) {
-      console.error("Failed to update payroll status:", error);
-    }
+    console.warn("Update payroll status endpoint is not implemented in the backend");
   };
 
   const handleViewPayslip = (payroll: PayrollWithEmployee) => {
@@ -409,34 +396,6 @@ export const usePayrollManagement = () => {
     }
   };
 
-  // Bulk operations handlers
-  const handleBulkCreate = async (data: any[]) => {
-    try {
-      await bulkCreateMutation.mutateAsync(data);
-    } catch (error) {
-      console.error("Failed to create bulk payrolls:", error);
-    }
-  };
-
-  const handleBulkExport = async () => {
-    try {
-      // Implement export functionality
-      const data = currentPayrolls;
-      const blob = new Blob([JSON.stringify(data, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `payrolls-${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Failed to export payrolls:", error);
-    }
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -511,10 +470,6 @@ export const usePayrollManagement = () => {
     handleViewPayslip,
     handleEditPayroll,
     handleFormSubmit,
-
-    // Bulk operations
-    handleBulkCreate,
-    handleBulkExport,
 
     // Utilities
     formatCurrency,

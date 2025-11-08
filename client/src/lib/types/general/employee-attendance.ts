@@ -13,6 +13,19 @@ export interface EmployeeAttendanceBase {
 
 export interface EmployeeAttendanceCreate extends EmployeeAttendanceBase {}
 
+export interface IndividualAttendanceCreateRequest {
+  employee_id: number;
+  total_working_days: number;
+  month: number; // 1-12
+  year: number; // 1900-2100
+}
+
+export interface IndividualAttendanceUpdateRequest {
+  employee_id: number;
+  month: number; // 1-12
+  year: number; // 1900-2100
+}
+
 export interface EmployeeAttendanceUpdate {
   attendance_month?: number;
   attendance_year?: number;
@@ -34,11 +47,8 @@ export interface EmployeeAttendanceRead {
   attendance_year: number;
   total_working_days: number;
   days_present: number;
-  days_absent: number;
   paid_leaves: number;
   unpaid_leaves: number;
-  late_arrivals: number;
-  early_departures: number;
   created_at: string;
   updated_at?: string;
   created_by?: number;

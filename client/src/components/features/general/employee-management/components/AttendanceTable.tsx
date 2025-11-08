@@ -1,6 +1,7 @@
 import { useMemo } from "react";
-import { Eye, Edit, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
+import { Button } from "@/components/ui/button";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn
@@ -14,17 +15,15 @@ interface EmployeeAttendanceRead {
   attendance_year: number; // 1900-2100
   total_working_days: number;
   days_present: number;
-  days_absent: number;
   paid_leaves: number;
   unpaid_leaves: number;
-  late_arrivals: number;
-  early_departures: number;
 }
 
 interface AttendanceTableProps {
   attendance: EmployeeAttendanceRead[];
   isLoading: boolean;
   onAddAttendance: () => void;
+  onBulkCreateAttendance?: () => void;
   onEditAttendance: (attendance: EmployeeAttendanceRead) => void;
   onDeleteAttendance: (id: number) => void;
   onViewAttendance: (attendance: EmployeeAttendanceRead) => void;
@@ -35,6 +34,7 @@ export const AttendanceTable = ({
   attendance,
   isLoading,
   onAddAttendance,
+  onBulkCreateAttendance,
   onEditAttendance,
   onDeleteAttendance,
   onViewAttendance,
@@ -58,9 +58,8 @@ export const AttendanceTable = ({
     },
     createTextColumn<EmployeeAttendanceRead>("total_working_days", { header: "Working Days", fallback: "-" }),
     createTextColumn<EmployeeAttendanceRead>("days_present", { header: "Present", fallback: "-" }),
-    createTextColumn<EmployeeAttendanceRead>("days_absent", { header: "Absent", fallback: "-" }),
-    createTextColumn<EmployeeAttendanceRead>("late_arrivals", { header: "Late", fallback: "-" }),
-    createTextColumn<EmployeeAttendanceRead>("early_departures", { header: "Early", fallback: "-" }),
+    createTextColumn<EmployeeAttendanceRead>("paid_leaves", { header: "Paid Leaves", fallback: "-" }),
+    createTextColumn<EmployeeAttendanceRead>("unpaid_leaves", { header: "Unpaid Leaves", fallback: "-" }),
   ], []);
 
   // Action button groups for EnhancedDataTable
@@ -95,12 +94,35 @@ export const AttendanceTable = ({
       searchKey="employee_name"
       showSearch={showSearch}
       exportable={true}
-      onAdd={onAddAttendance}
-      addButtonText="Add Attendance"
+      onAdd={onBulkCreateAttendance}
+      addButtonText="Bulk Create"
+      addButtonVariant="default"
       showActions={true}
       actionButtonGroups={actionButtonGroups}
       actionColumnHeader="Actions"
       showActionLabels={false}
+      customAddButton={
+        onBulkCreateAttendance ? (
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={onAddAttendance}
+              variant="outline"
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Attendance
+            </Button>
+            <Button
+              onClick={onBulkCreateAttendance}
+              variant="default"
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Bulk Create
+            </Button>
+          </div>
+        ) : undefined
+      }
     />
   );
 };

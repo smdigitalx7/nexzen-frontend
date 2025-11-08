@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Calculator, Save, X, User, Calendar, CreditCard, AlertCircle, CheckCircle } from "lucide-react";
+import { Calculator, Save, X, User, Calendar, CreditCard, AlertCircle, CheckCircle, Eye, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,17 +22,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { PayrollCreate, PayrollUpdate } from "@/lib/types/general/payrolls";
+import type { PayrollCreate, PayrollUpdate, PayrollPreview } from "@/lib/types/general/payrolls";
 import { PayrollStatusEnum, PaymentMethodEnum } from "@/lib/types/general/payrolls";
 import { formatCurrency } from "@/lib/utils";
 import { useFormState } from "@/lib/hooks/common";
+import { PayrollsService } from "@/lib/services/general/payrolls.service";
+import { toast } from "@/hooks/use-toast";
 
 interface SalaryCalculationFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: PayrollCreate | PayrollUpdate) => void;
+  onSubmit: (data: PayrollCreate) => void;
   employees: any[];
-  selectedPayroll?: any;
 }
 
 export const SalaryCalculationForm = ({
@@ -40,31 +41,28 @@ export const SalaryCalculationForm = ({
   onClose,
   onSubmit,
   employees,
-  selectedPayroll,
 }: SalaryCalculationFormProps) => {
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [previewData, setPreviewData] = useState<PayrollPreview | null>(null);
+
   // Using shared form state management
   const {
     formData,
-    setFormData,
     updateField,
-    resetForm,
-    errors,
-    setFieldError,
-    clearFieldError,
   } = useFormState({
     initialData: {
-      employee_id: selectedPayroll?.employee_id || "",
-      payroll_month: selectedPayroll?.payroll_month || new Date().getMonth() + 1,
-      payroll_year: selectedPayroll?.payroll_year || new Date().getFullYear(),
-      previous_balance: selectedPayroll?.previous_balance || 0,
-      gross_pay: selectedPayroll?.gross_pay || 0,
-      lop: selectedPayroll?.lop || 0,
-      advance_deduction: selectedPayroll?.advance_deduction || 0,
-      other_deductions: selectedPayroll?.other_deductions || 0,
-      paid_amount: selectedPayroll?.paid_amount || 0,
-      payment_method: selectedPayroll?.payment_method || PaymentMethodEnum.BANK_TRANSFER,
-      payment_notes: selectedPayroll?.payment_notes || "",
-      status: selectedPayroll?.status || PayrollStatusEnum.PENDING,
+      employee_id: "",
+      payroll_month: new Date().getMonth() + 1,
+      payroll_year: new Date().getFullYear(),
+      previous_balance: 0,
+      gross_pay: 0,
+      lop: 0,
+      advance_deduction: 0,
+      other_deductions: 0,
+      paid_amount: 0,
+      payment_method: PaymentMethodEnum.CASH,
+      payment_notes: "",
+      status: PayrollStatusEnum.PENDING,
     }
   });
 
@@ -76,20 +74,106 @@ export const SalaryCalculationForm = ({
     return gross - lop - advance - other;
   }, [formData.gross_pay, formData.lop, formData.advance_deduction, formData.other_deductions]);
 
+  const handlePreview = async () => {
+    if (!formData.employee_id || !formData.payroll_month || !formData.payroll_year) {
+      toast({
+        title: "Validation Error",
+        description: "Please select employee, month, and year to preview",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoadingPreview(true);
+    setPreviewData(null);
+    try {
+      const preview = await PayrollsService.getPreview({
+        employee_id: Number(formData.employee_id),
+        month: Number(formData.payroll_month),
+        year: Number(formData.payroll_year),
+      });
+      
+      setPreviewData(preview);
+      
+      // Auto-populate form with preview data
+      updateField("gross_pay", preview.gross_pay);
+      updateField("previous_balance", preview.previous_balance);
+      updateField("lop", preview.lop);
+      updateField("advance_deduction", preview.advance_deduction);
+      updateField("other_deductions", preview.other_deductions);
+      
+      toast({
+        title: "Success",
+        description: "Payroll preview loaded successfully",
+        variant: "success",
+      });
+    } catch (error: any) {
+      console.error("Failed to get payroll preview:", error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to load payroll preview. Please check if employee has attendance for this month.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
+  const canPreview = formData.employee_id && formData.payroll_month && formData.payroll_year;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const netSalary = calculatedNet;
     
-    const payrollData = {
-      ...formData,
+    // Create new payroll
+    if (!previewData) {
+      toast({
+        title: "Validation Error",
+        description: "Please get preview data first before creating payroll",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate payment information
+    if (!formData.payment_method) {
+      toast({
+        title: "Validation Error",
+        description: "Payment method is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.paid_amount || Number(formData.paid_amount) <= 0) {
+      toast({
+        title: "Validation Error",
+        description: "Paid amount is required and must be greater than 0",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.payment_notes || formData.payment_notes.trim() === "") {
+      toast({
+        title: "Validation Error",
+        description: "Payment notes are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const payrollData: PayrollCreate = {
       employee_id: Number(formData.employee_id),
       payroll_month: Number(formData.payroll_month),
       payroll_year: Number(formData.payroll_year),
-      net_salary: netSalary,
+      other_deductions: Number(formData.other_deductions) || 0,
+      advance_amount: Number(formData.advance_deduction) || 0, // Use advance_deduction value
+      paid_amount: Number(formData.paid_amount),
+      payment_method: formData.payment_method,
+      payment_notes: formData.payment_notes,
     };
 
     onSubmit(payrollData);
-    onClose();
   };
 
   const handleInputChange = (field: string, value: any) => {
@@ -104,13 +188,10 @@ export const SalaryCalculationForm = ({
             <div className="p-2 bg-primary/10 rounded-lg">
               <Calculator className="h-6 w-6 text-primary" />
             </div>
-            {selectedPayroll ? "Edit Payroll Entry" : "Create New Payroll"}
+            Preview Payroll
           </DialogTitle>
           <DialogDescription className="text-base">
-            {selectedPayroll 
-              ? "Update employee payroll information and calculations."
-              : "Add a new payroll entry for an employee with automatic calculations."
-            }
+            Preview payroll calculations for an employee. Use the 'Get Preview' button to load calculated values from attendance data.
           </DialogDescription>
         </DialogHeader>
 
@@ -135,8 +216,11 @@ export const SalaryCalculationForm = ({
                     Select Employee
                   </Label>
                   <Select
-                    value={formData.employee_id.toString()}
-                    onValueChange={(value) => handleInputChange("employee_id", value)}
+                    value={formData.employee_id?.toString() || ""}
+                    onValueChange={(value) => {
+                      handleInputChange("employee_id", value);
+                      setPreviewData(null); // Clear preview when employee changes
+                    }}
                   >
                     <SelectTrigger className="h-11">
                       <SelectValue placeholder="Choose an employee" />
@@ -167,8 +251,11 @@ export const SalaryCalculationForm = ({
                   <div className="flex gap-3">
                     <div className="flex-1">
                       <Select
-                        value={formData.payroll_month.toString()}
-                        onValueChange={(value) => handleInputChange("payroll_month", value)}
+                        value={formData.payroll_month?.toString() || ""}
+                        onValueChange={(value) => {
+                          handleInputChange("payroll_month", value);
+                          setPreviewData(null); // Clear preview when month changes
+                        }}
                       >
                         <SelectTrigger className="h-11">
                           <SelectValue placeholder="Month" />
@@ -186,7 +273,10 @@ export const SalaryCalculationForm = ({
                       <Input
                         type="number"
                         value={formData.payroll_year}
-                        onChange={(e) => handleInputChange("payroll_year", e.target.value)}
+                        onChange={(e) => {
+                          handleInputChange("payroll_year", e.target.value);
+                          setPreviewData(null); // Clear preview when year changes
+                        }}
                         placeholder="Year"
                         className="h-11"
                         min="2020"
@@ -194,6 +284,25 @@ export const SalaryCalculationForm = ({
                       />
                     </div>
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePreview}
+                    disabled={!canPreview || isLoadingPreview}
+                    className="w-full mt-2"
+                  >
+                    {isLoadingPreview ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Loading Preview...
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Get Preview
+                      </>
+                    )}
+                  </Button>
                 </div>
               </Card>
             </div>
@@ -201,7 +310,10 @@ export const SalaryCalculationForm = ({
 
           <Separator />
 
-          {/* Salary Calculation Section */}
+          {/* Show full form only after preview is loaded */}
+          {previewData ? (
+            <>
+              {/* Salary Calculation Section */}
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -221,6 +333,8 @@ export const SalaryCalculationForm = ({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Gross Pay and Previous Balance */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Gross Pay */}
                 <div className="space-y-3">
                   <Label htmlFor="gross_pay" className="text-sm font-medium">Gross Salary</Label>
@@ -233,7 +347,28 @@ export const SalaryCalculationForm = ({
                       onChange={(e) => handleInputChange("gross_pay", Number(e.target.value))}
                       placeholder="Enter gross salary amount"
                       className="pl-10 h-11 text-lg font-medium"
+                      readOnly
+                      disabled
                     />
+                  </div>
+                </div>
+
+                  {/* Previous Balance */}
+                  <div className="space-y-3">
+                    <Label htmlFor="previous_balance" className="text-sm font-medium">Previous Balance</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm font-bold text-muted-foreground">₹</span>
+                      <Input
+                        type="number"
+                        id="previous_balance"
+                        value={formData.previous_balance}
+                        onChange={(e) => handleInputChange("previous_balance", Number(e.target.value))}
+                        placeholder="Previous balance amount"
+                        className="pl-10 h-11"
+                        readOnly
+                        disabled
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -248,6 +383,8 @@ export const SalaryCalculationForm = ({
                       onChange={(e) => handleInputChange("lop", Number(e.target.value))}
                       placeholder="0"
                       className="h-10"
+                      readOnly
+                      disabled
                     />
                   </div>
 
@@ -260,7 +397,13 @@ export const SalaryCalculationForm = ({
                       onChange={(e) => handleInputChange("advance_deduction", Number(e.target.value))}
                       placeholder="0"
                       className="h-10"
+                      min="0"
                     />
+                    {previewData && (
+                      <p className="text-xs text-muted-foreground mt-1.5">
+                        Available Balance: <span className="font-medium">₹{previewData.advance_deduction?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</span>
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -272,6 +415,8 @@ export const SalaryCalculationForm = ({
                       onChange={(e) => handleInputChange("other_deductions", Number(e.target.value))}
                       placeholder="0"
                       className="h-10"
+                      min="0"
+                      step="0.01"
                     />
                   </div>
                 </div>
@@ -311,93 +456,85 @@ export const SalaryCalculationForm = ({
               Payment Information
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <Label htmlFor="payment_method" className="text-sm font-medium">Payment Method</Label>
-                <Select
-                  value={formData.payment_method}
-                  onValueChange={(value) => handleInputChange("payment_method", value)}
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Select payment method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={PaymentMethodEnum.BANK_TRANSFER}>
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="h-4 w-4" />
-                        Bank Transfer
-                      </div>
-                    </SelectItem>
-                    <SelectItem value={PaymentMethodEnum.CASH}>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold">₹</span>
-                        Cash
-                      </div>
-                    </SelectItem>
-                    <SelectItem value={PaymentMethodEnum.CHEQUE}>Cheque</SelectItem>
-                    <SelectItem value={PaymentMethodEnum.UPI}>UPI</SelectItem>
-                    <SelectItem value={PaymentMethodEnum.OTHER}>Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-3">
+              <Label htmlFor="payment_method" className="text-sm font-medium">
+                Payment Method <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={formData.payment_method}
+                onValueChange={(value) => handleInputChange("payment_method", value)}
+                required
+              >
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Select payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={PaymentMethodEnum.CASH}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold">₹</span>
+                      Cash
+                    </div>
+                  </SelectItem>
+                  <SelectItem value={PaymentMethodEnum.ONLINE}>
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4" />
+                      Online
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="space-y-3">
-                <Label htmlFor="status" className="text-sm font-medium">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) => handleInputChange("status", value)}
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={PayrollStatusEnum.PENDING}>
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-yellow-500" />
-                        Pending
-                      </div>
-                    </SelectItem>
-                    <SelectItem value={PayrollStatusEnum.PAID}>
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        Paid
-                      </div>
-                    </SelectItem>
-                    <SelectItem value={PayrollStatusEnum.HOLD}>
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-red-500" />
-                        On Hold
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="space-y-3">
+              <Label htmlFor="paid_amount" className="text-sm font-medium">
+                Paid Amount <span className="text-red-500">*</span>
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm font-bold text-muted-foreground">₹</span>
+                <Input
+                  type="number"
+                  id="paid_amount"
+                  value={formData.paid_amount || ""}
+                  onChange={(e) => handleInputChange("paid_amount", e.target.value === "" ? "" : Number(e.target.value))}
+                  placeholder="Enter paid amount"
+                  className="pl-10 h-11"
+                  min="0"
+                  required
+                />
               </div>
             </div>
 
             <div className="space-y-3">
-              <Label htmlFor="payment_notes" className="text-sm font-medium">Payment Notes</Label>
+              <Label htmlFor="payment_notes" className="text-sm font-medium">
+                Payment Notes <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="payment_notes"
                 value={formData.payment_notes}
                 onChange={(e) => handleInputChange("payment_notes", e.target.value)}
-                placeholder="Add any additional notes about this payment (optional)"
+                placeholder="Enter payment notes"
                 className="h-11"
+                required
               />
             </div>
           </motion.div>
 
           <Separator />
+            </>
+          ) : null}
 
           <DialogFooter className="pt-4">
             <div className="flex gap-3 w-full">
               <Button type="button" variant="outline" onClick={onClose} className="flex-1">
                 <X className="h-4 w-4 mr-2" />
-                Cancel
+                Close
               </Button>
-              <Button type="submit" className="flex-1">
-                <Save className="h-4 w-4 mr-2" />
-                {selectedPayroll ? "Update Payroll" : "Create Payroll"}
-              </Button>
+              {previewData && (
+                <Button type="submit" className="flex-1">
+                  <Save className="h-4 w-4 mr-2" />
+                  Create Payroll
+                </Button>
+              )}
             </div>
           </DialogFooter>
         </form>
