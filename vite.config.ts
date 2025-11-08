@@ -74,10 +74,57 @@ export default defineConfig({
 
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ["react", "react-dom", "wouter"],
-          ui: ["lucide-react", "framer-motion", "clsx", "tailwind-merge"],
-          state: ["zustand", "@tanstack/react-query", "@tanstack/react-table"],
+        manualChunks: (id) => {
+          // Split large vendor libraries into separate chunks
+          if (id.includes("node_modules")) {
+            // React core
+            if (id.includes("react") || id.includes("react-dom") || id.includes("scheduler")) {
+              return "vendor-react";
+            }
+            
+            // Router
+            if (id.includes("wouter")) {
+              return "vendor-router";
+            }
+            
+            // State management
+            if (id.includes("zustand") || id.includes("@tanstack/react-query") || id.includes("@tanstack/react-table")) {
+              return "vendor-state";
+            }
+            
+            // UI libraries
+            if (id.includes("lucide-react") || id.includes("framer-motion") || id.includes("clsx") || id.includes("tailwind-merge")) {
+              return "vendor-ui";
+            }
+            
+            // Radix UI components (large library)
+            if (id.includes("@radix-ui")) {
+              return "vendor-radix";
+            }
+            
+            // Large charting library - split separately
+            if (id.includes("recharts")) {
+              return "vendor-charts";
+            }
+            
+            // PDF and export libraries - split separately
+            if (id.includes("jspdf") || id.includes("html2canvas") || id.includes("exceljs")) {
+              return "vendor-export";
+            }
+            
+            // Form libraries
+            if (id.includes("react-hook-form") || id.includes("@hookform") || id.includes("zod")) {
+              return "vendor-forms";
+            }
+            
+            // Date libraries
+            if (id.includes("date-fns") || id.includes("react-day-picker")) {
+              return "vendor-dates";
+            }
+            
+            // Other vendor code
+            return "vendor";
+          }
         },
         entryFileNames: "js/[name]-[hash].js",
         chunkFileNames: "js/[name]-[hash].js",

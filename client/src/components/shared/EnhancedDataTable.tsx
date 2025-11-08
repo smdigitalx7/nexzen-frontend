@@ -141,6 +141,7 @@ interface EnhancedDataTableProps<TData> {
   showActions?: boolean;
   actionColumnHeader?: string;
   showActionLabels?: boolean;
+  customAddButton?: React.ReactNode;
 }
 
 function EnhancedDataTableComponent<TData>({
@@ -169,6 +170,7 @@ function EnhancedDataTableComponent<TData>({
   showActions = false,
   actionColumnHeader = "Actions",
   showActionLabels = true,
+  customAddButton,
 }: EnhancedDataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -1163,7 +1165,9 @@ function EnhancedDataTableComponent<TData>({
               {isExporting ? "Exporting..." : "Export Excel"}
             </Button>
           )}
-          {onAdd && (
+          {customAddButton ? (
+            customAddButton
+          ) : onAdd ? (
             <Button
               onClick={onAdd}
               variant={addButtonVariant}
@@ -1173,7 +1177,7 @@ function EnhancedDataTableComponent<TData>({
               <Plus className="h-4 w-4 mr-2" />
               {addButtonText}
             </Button>
-          )}
+          ) : null}
         </div>
       </div>
 

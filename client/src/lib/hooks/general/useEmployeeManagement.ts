@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
 import { useTabNavigation } from "../use-tab-navigation";
+import { toast } from "@/hooks/use-toast";
 import {
   useEmployeesByBranch,
   useEmployee,
@@ -8,6 +10,7 @@ import {
   useUpdateEmployee,
   useDeleteEmployee,
   useUpdateEmployeeStatus,
+  employeeKeys,
 } from "@/lib/hooks/general/useEmployees";
 import {
   useAttendanceAll,
@@ -17,6 +20,7 @@ import {
   useDeleteAttendance,
   useAttendanceByBranch,
 } from "@/lib/hooks/general/useEmployeeAttendance";
+import { EmployeeAttendanceService } from "@/lib/services/general/employee-attendance.service";
 import {
   useEmployeeLeaves,
   useEmployeeLeavesByBranch,
@@ -26,6 +30,7 @@ import {
   useApproveEmployeeLeave,
   useRejectEmployeeLeave,
   useDeleteEmployeeLeave,
+  employeeLeaveKeys,
 } from "@/lib/hooks/general/useEmployeeLeave";
 import {
   useAdvancesAll,
@@ -35,6 +40,7 @@ import {
   useUpdateAdvance,
   useUpdateAdvanceStatus,
   useUpdateAdvanceAmountPaid,
+  advanceKeys,
 } from "@/lib/hooks/general/useAdvances";
 import { EmployeeCreate, EmployeeUpdate } from "@/lib/types/general/employees";
 import {
@@ -119,6 +125,7 @@ export interface AdvanceRead {
 export const useEmployeeManagement = (
   viewMode: "branch" | "institute" = "branch"
 ) => {
+  const queryClient = useQueryClient();
   const { user, currentBranch } = useAuthStore();
   const { activeTab, setActiveTab } = useTabNavigation("employees");
 
@@ -177,6 +184,8 @@ export const useEmployeeManagement = (
 
   // Attendance form state
   const [showAttendanceForm, setShowAttendanceForm] = useState(false);
+  const [showAttendanceBulkCreateDialog, setShowAttendanceBulkCreateDialog] = useState(false);
+  const [isBulkCreatingAttendance, setIsBulkCreatingAttendance] = useState(false);
   const [showAttendanceViewDialog, setShowAttendanceViewDialog] =
     useState(false);
   const [attendanceToView, setAttendanceToView] =
@@ -190,12 +199,6 @@ export const useEmployeeManagement = (
     employee_id: 0,
     attendance_month: new Date().toISOString().split("T")[0],
     total_working_days: 0,
-    days_present: 0,
-    days_absent: 0,
-    paid_leaves: 0,
-    unpaid_leaves: 0,
-    late_arrivals: 0,
-    early_departures: 0,
   });
 
   // Leave form state
@@ -308,6 +311,14 @@ export const useEmployeeManagement = (
     try {
       await createEmployeeMutation.mutateAsync(data);
       setShowEmployeeForm(false);
+      
+      // Aggressive cache invalidation for immediate UI updates
+      queryClient.removeQueries({ queryKey: employeeKeys.all });
+      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+      await queryClient.refetchQueries({
+        queryKey: employeeKeys.byBranch(),
+        type: 'active'
+      });
     } catch (error) {
       console.error("Error creating employee:", error);
     }
@@ -318,6 +329,14 @@ export const useEmployeeManagement = (
       await updateEmployeeMutation.mutateAsync({ id, payload: data });
       setShowEmployeeForm(false);
       setIsEditingEmployee(false);
+      
+      // Aggressive cache invalidation for immediate UI updates
+      queryClient.removeQueries({ queryKey: employeeKeys.all });
+      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+      await queryClient.refetchQueries({
+        queryKey: employeeKeys.byBranch(),
+        type: 'active'
+      });
     } catch (error) {
       console.error("Error updating employee:", error);
     }
@@ -327,6 +346,14 @@ export const useEmployeeManagement = (
     try {
       await deleteEmployeeMutation.mutateAsync(id);
       setShowDeleteEmployeeDialog(false);
+      
+      // Aggressive cache invalidation for immediate UI updates
+      queryClient.removeQueries({ queryKey: employeeKeys.all });
+      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+      await queryClient.refetchQueries({
+        queryKey: employeeKeys.byBranch(),
+        type: 'active'
+      });
     } catch (error) {
       console.error("Error deleting employee:", error);
     }
@@ -335,17 +362,85 @@ export const useEmployeeManagement = (
   const handleUpdateEmployeeStatus = async (id: number, status: string) => {
     try {
       await updateStatusMutation.mutateAsync({ id, status });
+      
+      // Aggressive cache invalidation for immediate UI updates
+      queryClient.removeQueries({ queryKey: employeeKeys.all });
+      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+      await queryClient.refetchQueries({
+        queryKey: employeeKeys.byBranch(),
+        type: 'active'
+      });
     } catch (error) {
       console.error("Error updating employee status:", error);
     }
   };
 
-  const handleCreateAttendance = async (data: EmployeeAttendanceCreate) => {
+  const handleCreateAttendance = async (data: { employee_id: number; total_working_days: number; month: number; year: number }) => {
     try {
-      await createAttendanceMutation.mutateAsync(data);
+      await EmployeeAttendanceService.create(data);
       setShowAttendanceForm(false);
-    } catch (error) {
+      
+      // Aggressive cache invalidation for immediate UI updates
+      queryClient.removeQueries({ queryKey: ['employee-attendances'] });
+      queryClient.invalidateQueries({ queryKey: ['employee-attendances'] });
+      await queryClient.refetchQueries({
+        queryKey: ['employee-attendances'],
+        type: 'active'
+      });
+      
+      toast({
+        title: "Attendance Created",
+        description: "Attendance record has been created successfully.",
+        variant: "success",
+      });
+    } catch (error: any) {
       console.error("Error creating attendance:", error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to create attendance record. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const handleBulkCreateAttendance = async (data: { total_working_days: number; month: number; year: number }) => {
+    setIsBulkCreatingAttendance(true);
+    try {
+      await EmployeeAttendanceService.createBulk(data);
+      setShowAttendanceBulkCreateDialog(false);
+      
+      // Aggressive cache invalidation for immediate UI updates
+      // Remove query data to force fresh fetch
+      queryClient.removeQueries({ queryKey: ['employee-attendances'] });
+      
+      // Invalidate all attendance-related queries
+      queryClient.invalidateQueries({ queryKey: ['employee-attendances'] });
+      
+      // Force refetch active queries
+      await queryClient.refetchQueries({
+        queryKey: ['employee-attendances'],
+        type: 'active'
+      });
+      
+      // Wait for React to process state updates
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      toast({
+        title: "Bulk Attendance Created",
+        description: "Attendance records have been created successfully for all active employees.",
+        variant: "success",
+      });
+    } catch (error: any) {
+      console.error("Error creating bulk attendance:", error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to create bulk attendance records. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setIsBulkCreatingAttendance(false);
     }
   };
 
@@ -357,8 +452,46 @@ export const useEmployeeManagement = (
       await updateAttendanceMutation.mutateAsync({ id, payload: data });
       setShowAttendanceForm(false);
       setIsEditingAttendance(false);
+      
+      // Aggressive cache invalidation for immediate UI updates
+      queryClient.removeQueries({ queryKey: ['employee-attendances'] });
+      queryClient.invalidateQueries({ queryKey: ['employee-attendances'] });
+      await queryClient.refetchQueries({
+        queryKey: ['employee-attendances'],
+        type: 'active'
+      });
     } catch (error) {
       console.error("Error updating attendance:", error);
+    }
+  };
+
+  const handleUpdateAttendanceBulk = async (data: { total_working_days: number; month: number; year: number }) => {
+    try {
+      await EmployeeAttendanceService.updateBulk(data);
+      setShowAttendanceForm(false);
+      setIsEditingAttendance(false);
+      
+      // Aggressive cache invalidation for immediate UI updates
+      queryClient.removeQueries({ queryKey: ['employee-attendances'] });
+      queryClient.invalidateQueries({ queryKey: ['employee-attendances'] });
+      await queryClient.refetchQueries({
+        queryKey: ['employee-attendances'],
+        type: 'active'
+      });
+      
+      toast({
+        title: "Attendance Updated",
+        description: "Attendance records have been updated successfully for all employees in the branch.",
+        variant: "success",
+      });
+    } catch (error: any) {
+      console.error("Error updating attendance:", error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to update attendance records. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
     }
   };
 
@@ -366,6 +499,14 @@ export const useEmployeeManagement = (
     try {
       await deleteAttendanceMutation.mutateAsync(id);
       setShowAttendanceDeleteDialog(false);
+      
+      // Aggressive cache invalidation for immediate UI updates
+      queryClient.removeQueries({ queryKey: ['employee-attendances'] });
+      queryClient.invalidateQueries({ queryKey: ['employee-attendances'] });
+      await queryClient.refetchQueries({
+        queryKey: ['employee-attendances'],
+        type: 'active'
+      });
     } catch (error) {
       console.error("Error deleting attendance:", error);
     }
@@ -380,6 +521,22 @@ export const useEmployeeManagement = (
     try {
       await createLeaveMutation.mutateAsync(data);
       setShowLeaveForm(false);
+      
+      // Aggressive cache invalidation for immediate UI updates
+      // Step 1: Remove query data to force fresh fetch
+      queryClient.removeQueries({ queryKey: employeeLeaveKeys.all });
+      
+      // Step 2: Invalidate all leave-related queries
+      queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
+      
+      // Step 3: Force refetch active queries
+      await queryClient.refetchQueries({
+        queryKey: employeeLeaveKeys.all,
+        type: 'active'
+      });
+      
+      // Step 4: Wait for React to process state updates
+      await new Promise(resolve => setTimeout(resolve, 200));
     } catch (error) {
       console.error("Error creating leave:", error);
     }
@@ -390,6 +547,22 @@ export const useEmployeeManagement = (
       await updateLeaveMutation.mutateAsync({ id, data });
       setShowLeaveForm(false);
       setIsEditingLeave(false);
+      
+      // Aggressive cache invalidation for immediate UI updates
+      // Step 1: Remove query data to force fresh fetch
+      queryClient.removeQueries({ queryKey: employeeLeaveKeys.all });
+      
+      // Step 2: Invalidate all leave-related queries
+      queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
+      
+      // Step 3: Force refetch active queries
+      await queryClient.refetchQueries({
+        queryKey: employeeLeaveKeys.all,
+        type: 'active'
+      });
+      
+      // Step 4: Wait for React to process state updates
+      await new Promise(resolve => setTimeout(resolve, 200));
     } catch (error) {
       console.error("Error updating leave:", error);
     }
@@ -399,6 +572,22 @@ export const useEmployeeManagement = (
     try {
       await deleteLeaveMutation.mutateAsync(id);
       setShowLeaveDeleteDialog(false);
+      
+      // Aggressive cache invalidation for immediate UI updates
+      // Step 1: Remove query data to force fresh fetch
+      queryClient.removeQueries({ queryKey: employeeLeaveKeys.all });
+      
+      // Step 2: Invalidate all leave-related queries
+      queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
+      
+      // Step 3: Force refetch active queries
+      await queryClient.refetchQueries({
+        queryKey: employeeLeaveKeys.all,
+        type: 'active'
+      });
+      
+      // Step 4: Wait for React to process state updates
+      await new Promise(resolve => setTimeout(resolve, 200));
     } catch (error) {
       console.error("Error deleting leave:", error);
     }
@@ -408,6 +597,22 @@ export const useEmployeeManagement = (
     try {
       await approveLeaveMutation.mutateAsync(id);
       setShowLeaveApproveDialog(false);
+      
+      // Aggressive cache invalidation for immediate UI updates
+      // Step 1: Remove query data to force fresh fetch
+      queryClient.removeQueries({ queryKey: employeeLeaveKeys.all });
+      
+      // Step 2: Invalidate all leave-related queries
+      queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
+      
+      // Step 3: Force refetch active queries
+      await queryClient.refetchQueries({
+        queryKey: employeeLeaveKeys.all,
+        type: 'active'
+      });
+      
+      // Step 4: Wait for React to process state updates
+      await new Promise(resolve => setTimeout(resolve, 200));
     } catch (error) {
       console.error("Error approving leave:", error);
     }
@@ -420,6 +625,22 @@ export const useEmployeeManagement = (
         data: { rejection_reason: reason },
       });
       setShowLeaveRejectDialog(false);
+      
+      // Aggressive cache invalidation for immediate UI updates
+      // Step 1: Remove query data to force fresh fetch
+      queryClient.removeQueries({ queryKey: employeeLeaveKeys.all });
+      
+      // Step 2: Invalidate all leave-related queries
+      queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
+      
+      // Step 3: Force refetch active queries
+      await queryClient.refetchQueries({
+        queryKey: employeeLeaveKeys.all,
+        type: 'active'
+      });
+      
+      // Step 4: Wait for React to process state updates
+      await new Promise(resolve => setTimeout(resolve, 200));
     } catch (error) {
       console.error("Error rejecting leave:", error);
     }
@@ -434,6 +655,14 @@ export const useEmployeeManagement = (
     try {
       await createAdvanceMutation.mutateAsync(data);
       setShowAdvanceForm(false);
+      
+      // Aggressive cache invalidation for immediate UI updates
+      queryClient.removeQueries({ queryKey: advanceKeys.all });
+      queryClient.invalidateQueries({ queryKey: advanceKeys.all });
+      await queryClient.refetchQueries({
+        queryKey: advanceKeys.all,
+        type: 'active'
+      });
     } catch (error) {
       console.error("Error creating advance:", error);
     }
@@ -444,6 +673,14 @@ export const useEmployeeManagement = (
       await updateAdvanceMutation.mutateAsync({ id, payload: data });
       setShowAdvanceForm(false);
       setIsEditingAdvance(false);
+      
+      // Aggressive cache invalidation for immediate UI updates
+      queryClient.removeQueries({ queryKey: advanceKeys.all });
+      queryClient.invalidateQueries({ queryKey: advanceKeys.all });
+      await queryClient.refetchQueries({
+        queryKey: advanceKeys.all,
+        type: 'active'
+      });
     } catch (error) {
       console.error("Error updating advance:", error);
     }
@@ -459,6 +696,14 @@ export const useEmployeeManagement = (
       setShowAdvanceStatusDialog(false);
       setAdvanceStatus("");
       setAdvanceStatusReason("");
+      
+      // Aggressive cache invalidation for immediate UI updates
+      queryClient.removeQueries({ queryKey: advanceKeys.all });
+      queryClient.invalidateQueries({ queryKey: advanceKeys.all });
+      await queryClient.refetchQueries({
+        queryKey: advanceKeys.all,
+        type: 'active'
+      });
     } catch (error) {
       console.error("Error updating advance status:", error);
     }
@@ -472,6 +717,14 @@ export const useEmployeeManagement = (
         payload,
       });
       setShowAdvanceAmountDialog(false);
+      
+      // Aggressive cache invalidation for immediate UI updates
+      queryClient.removeQueries({ queryKey: advanceKeys.all });
+      queryClient.invalidateQueries({ queryKey: advanceKeys.all });
+      await queryClient.refetchQueries({
+        queryKey: advanceKeys.all,
+        type: 'active'
+      });
     } catch (error) {
       console.error("Error updating advance amount:", error);
     }
@@ -480,7 +733,7 @@ export const useEmployeeManagement = (
   return {
     // Data
     employees,
-    attendance: paginatedAttendance,
+    attendance: enrichedAttendance,
     leaves: paginatedLeaves,
     advances: paginatedAdvances,
 
@@ -530,6 +783,9 @@ export const useEmployeeManagement = (
     // Attendance state
     showAttendanceForm,
     setShowAttendanceForm,
+    showAttendanceBulkCreateDialog,
+    setShowAttendanceBulkCreateDialog,
+    isBulkCreatingAttendance,
     showAttendanceViewDialog,
     setShowAttendanceViewDialog,
     attendanceToView,
@@ -601,7 +857,9 @@ export const useEmployeeManagement = (
     handleDeleteEmployee,
     handleUpdateEmployeeStatus,
     handleCreateAttendance,
+    handleBulkCreateAttendance,
     handleUpdateAttendance,
+    handleUpdateAttendanceBulk,
     handleDeleteAttendance,
     handleViewAttendance,
     handleCreateLeave,

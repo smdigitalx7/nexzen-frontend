@@ -1,5 +1,5 @@
 import { Api } from "@/lib/api";
-import type { PayrollRead, PayrollCreate, PayrollUpdate, PayrollQuery, PayrollListResponse, PayrollDashboardStats, RecentPayroll } from "@/lib/types/general/payrolls";
+import type { PayrollRead, PayrollQuery, PayrollListResponse, PayrollDashboardStats, RecentPayroll, PayrollPreview, PayrollPreviewRequest, PayrollCreate, PayrollUpdate } from "@/lib/types/general/payrolls";
 
 export const PayrollsService = {
   /**
@@ -21,18 +21,16 @@ export const PayrollsService = {
 
   /**
    * Get all payrolls with optional filters
-   * @param pageSize - Number of records per page (default: 10)
-   * @param page - Page number (default: 1)
-   * @param month - Filter by month (1-12)
-   * @param year - Filter by year
-   * @param status - Filter by status
-   * @returns Promise<PayrollListResponse> - Paginated payroll list
+   * @param month - Filter by month (1-12, requires year)
+   * @param year - Filter by year (2000-2100, requires month)
+   * @param status - Filter by payroll status (PENDING|PAID|HOLD)
+   * @returns Promise<PayrollListResponse> - Payroll list grouped by month
    */
   listAll(month?: number, year?: number, status?: string): Promise<any> {
     const params = new URLSearchParams();
     if (month) params.append('month', month.toString());
     if (year) params.append('year', year.toString());
-    if (status) params.append('status', status);
+    if (status) params.append('payroll_status', status);
     
     const url = `/payrolls?${params.toString()}`;
     return Api.get<any>(url);
@@ -40,20 +38,16 @@ export const PayrollsService = {
 
   /**
    * Get all payrolls by branch with optional filters
-   * @param pageSize - Number of records per page (default: 10)
-   * @param page - Page number (default: 1)
-   * @param month - Filter by month (1-12)
-   * @param year - Filter by year
-   * @param status - Filter by status
-   * @returns Promise<PayrollListResponse> - Paginated payroll list
+   * @param month - Filter by month (1-12, requires year)
+   * @param year - Filter by year (2000-2100, requires month)
+   * @param status - Filter by payroll status (PENDING|PAID|HOLD)
+   * @returns Promise<PayrollListResponse> - Payroll list grouped by month (filtered by current branch)
    */
-  listByBranch(pageSize: number = 10, page: number = 1, month?: number, year?: number, status?: string): Promise<PayrollListResponse> {
+  listByBranch(month?: number, year?: number, status?: string): Promise<PayrollListResponse> {
     const params = new URLSearchParams();
-    params.append('pageSize', pageSize.toString());
-    params.append('page', page.toString());
     if (month) params.append('month', month.toString());
     if (year) params.append('year', year.toString());
-    if (status) params.append('status', status);
+    if (status) params.append('payroll_status', status);
     
     return Api.get<PayrollListResponse>(`/payrolls/branch?${params.toString()}`);
   },
@@ -68,7 +62,69 @@ export const PayrollsService = {
   },
 
   /**
-   * Create a new payroll
+   * Get employee payroll summary
+   * @param employeeId - Employee ID
+   * @param year - Year (2000-2100, required)
+   * @returns Promise<any> - Employee payroll summary
+   */
+  getEmployeeSummary(employeeId: number, year: number): Promise<any> {
+    return Api.get(`/payrolls/employee/${employeeId}/summary?year=${year}`);
+  },
+
+  /**
+   * Get pending payroll count
+   * @returns Promise<number> - Pending payroll count
+   */
+  getPendingCount(): Promise<number> {
+    return Api.get<number>("/payrolls/pending/count");
+  },
+
+  /**
+   * Get payrolls in date range
+   * @param startDate - Start date (YYYY-MM-DD)
+   * @param endDate - End date (YYYY-MM-DD)
+   * @param branchId - Optional branch ID filter
+   * @returns Promise<PayrollListResponse> - Payrolls in date range
+   */
+  getByDateRange(startDate: string, endDate: string, branchId?: number): Promise<PayrollListResponse> {
+    const params = new URLSearchParams();
+    params.append('start_date', startDate);
+    params.append('end_date', endDate);
+    if (branchId) params.append('branch_id', branchId.toString());
+    
+    return Api.get<PayrollListResponse>(`/payrolls/date-range?${params.toString()}`);
+  },
+
+  /**
+   * Get employee payroll balance
+   * @param employeeId - Employee ID
+   * @param year - Year (2000-2100, required)
+   * @returns Promise<any> - Employee payroll balance
+   */
+  getEmployeeBalance(employeeId: number, year: number): Promise<any> {
+    return Api.get(`/payrolls/employee/${employeeId}/balance?year=${year}`);
+  },
+
+  /**
+   * Get employee payrolls
+   * @param employeeId - Employee ID
+   * @returns Promise<PayrollListResponse> - Employee payrolls
+   */
+  getEmployeePayrolls(employeeId: number): Promise<PayrollListResponse> {
+    return Api.get<PayrollListResponse>(`/payrolls/employee/${employeeId}/payrolls`);
+  },
+
+  /**
+   * Get payroll preview for an employee
+   * @param payload - Preview request data (employee_id, month, year)
+   * @returns Promise<PayrollPreview> - Payroll preview with calculated values
+   */
+  getPreview(payload: PayrollPreviewRequest): Promise<PayrollPreview> {
+    return Api.post<PayrollPreview>("/payrolls/preview", payload);
+  },
+
+  /**
+   * Create a new payroll for an employee
    * @param payload - Payroll creation data
    * @returns Promise<PayrollRead> - Created payroll details
    */
@@ -84,83 +140,6 @@ export const PayrollsService = {
    */
   update(id: number, payload: PayrollUpdate): Promise<PayrollRead> {
     return Api.put<PayrollRead>(`/payrolls/${id}`, payload);
-  },
-
-  /**
-   * Delete a payroll
-   * @param id - Payroll ID
-   * @returns Promise<boolean> - Success status
-   */
-  remove(id: number): Promise<boolean> {
-    return Api.delete<boolean>(`/payrolls/${id}`);
-  },
-
-  /**
-   * Bulk create payrolls
-   * @param payload - Array of payroll creation data
-   * @returns Promise<PayrollRead[]> - Created payrolls
-   */
-  bulkCreate(payload: PayrollCreate[]): Promise<PayrollRead[]> {
-    return Api.post<PayrollRead[]>("/payrolls/bulk", payload);
-  },
-
-  /**
-   * Update payroll status
-   * @param id - Payroll ID
-   * @param status - New status
-   * @returns Promise<PayrollRead> - Updated payroll details
-   */
-  updateStatus(id: number, status: string): Promise<PayrollRead> {
-    return Api.put<PayrollRead>(`/payrolls/${id}/status`, { status });
-  },
-
-  /**
-   * Get employee payroll summary
-   * @param employeeId - Employee ID
-   * @returns Promise<any> - Employee payroll summary
-   */
-  getEmployeeSummary(employeeId: number): Promise<any> {
-    return Api.get(`/payrolls/employee/${employeeId}/summary`);
-  },
-
-  /**
-   * Get pending payroll count
-   * @returns Promise<number> - Pending payroll count
-   */
-  getPendingCount(): Promise<number> {
-    return Api.get<number>("/payrolls/pending/count");
-  },
-
-  /**
-   * Get payrolls in date range
-   * @param startDate - Start date
-   * @param endDate - End date
-   * @returns Promise<PayrollListResponse> - Payrolls in date range
-   */
-  getByDateRange(startDate: string, endDate: string): Promise<PayrollListResponse> {
-    const params = new URLSearchParams();
-    params.append('start_date', startDate);
-    params.append('end_date', endDate);
-    
-    return Api.get<PayrollListResponse>(`/payrolls/date-range?${params.toString()}`);
-  },
-
-  /**
-   * Get employee payroll balance
-   * @param employeeId - Employee ID
-   * @returns Promise<any> - Employee payroll balance
-   */
-  getEmployeeBalance(employeeId: number): Promise<any> {
-    return Api.get(`/payrolls/employee/${employeeId}/balance`);
-  },
-
-  /**
-   * Get employee payrolls
-   * @param employeeId - Employee ID
-   * @returns Promise<PayrollListResponse> - Employee payrolls
-   */
-  getEmployeePayrolls(employeeId: number): Promise<PayrollListResponse> {
-    return Api.get<PayrollListResponse>(`/payrolls/employee/${employeeId}/payrolls`);
   },
 };
 

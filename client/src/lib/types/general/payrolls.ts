@@ -6,10 +6,7 @@ export enum PayrollStatusEnum {
 
 export enum PaymentMethodEnum {
   CASH = "CASH",
-  BANK_TRANSFER = "BANK_TRANSFER",
-  CHEQUE = "CHEQUE",
-  UPI = "UPI",
-  OTHER = "OTHER"
+  ONLINE = "ONLINE",
 }
 
 export interface PayrollRead {
@@ -36,24 +33,20 @@ export interface PayrollRead {
 
 export interface PayrollCreate {
   employee_id: number;
-  payroll_month: string; // date as string
-  previous_balance?: number;
-  gross_pay: number;
-  lop?: number;
-  advance_deduction?: number;
-  other_deductions?: number;
+  payroll_month: number; // 1-12
+  payroll_year: number; // 1900-2100
+  other_deductions: number;
+  advance_amount: number;
+  paid_amount: number;
+  payment_method: PaymentMethodEnum;
+  payment_notes?: string;
 }
 
 export interface PayrollUpdate {
-  previous_balance?: number;
-  gross_pay?: number;
-  lop?: number;
-  advance_deduction?: number;
-  other_deductions?: number;
-  paid_amount?: number;
-  payment_method?: PaymentMethodEnum;
-  payment_notes?: string;
-  status?: PayrollStatusEnum;
+  other_deductions: number;
+  advance_amount: number;
+  paid_amount: number;
+  payment_notes: string;
 }
 
 export interface PayrollQuery {
@@ -96,5 +89,21 @@ export interface RecentPayroll {
   net_pay: number;
   status: PayrollStatusEnum;
   generated_at: string;
+}
+
+export interface PayrollPreview {
+  gross_pay: number;
+  previous_balance: number;
+  lop: number;
+  advance_deduction: number;
+  other_deductions: number;
+  total_deductions: number;
+  net_pay: number;
+}
+
+export interface PayrollPreviewRequest {
+  employee_id: number;
+  month: number;
+  year: number;
 }
 

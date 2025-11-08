@@ -3,6 +3,8 @@ import type {
   EmployeeAttendanceRead, 
   EmployeeAttendanceCreate, 
   EmployeeAttendanceUpdate,
+  IndividualAttendanceCreateRequest,
+  IndividualAttendanceUpdateRequest,
   AttendanceListResponse,
   AttendanceDashboardStats
 } from "@/lib/types/general/employee-attendance";
@@ -74,22 +76,42 @@ export const EmployeeAttendanceService = {
   },
 
   /**
-   * Create a new attendance record
-   * @param payload - Attendance creation data
+   * Create a new attendance record (individual)
+   * Uses stored procedure to automatically calculate paid and unpaid leaves from approved leave records.
+   * @param payload - Individual attendance creation data (employee_id, total_working_days, month, year)
    * @returns Promise<EmployeeAttendanceRead> - Created attendance details
    */
-  create(payload: EmployeeAttendanceCreate): Promise<EmployeeAttendanceRead> {
-    return Api.post<EmployeeAttendanceRead>("/employee-attendances", payload);
+  create(payload: IndividualAttendanceCreateRequest): Promise<EmployeeAttendanceRead> {
+    return Api.post<EmployeeAttendanceRead>("/employee-attendances/individual", payload);
   },
 
   /**
-   * Update an existing attendance record
+   * Create bulk attendance records for all active employees
+   * @param payload - Bulk attendance creation data (total_working_days, month, year)
+   * @returns Promise<string> - Success message
+   */
+  createBulk(payload: { total_working_days: number; month: number; year: number }): Promise<string> {
+    return Api.post<string>("/employee-attendances/bulk", payload);
+  },
+
+  /**
+   * Update an existing attendance record (by ID)
    * @param id - Attendance ID
    * @param payload - Attendance update data
    * @returns Promise<EmployeeAttendanceRead> - Updated attendance details
    */
   update(id: number, payload: EmployeeAttendanceUpdate): Promise<EmployeeAttendanceRead> {
     return Api.put<EmployeeAttendanceRead>(`/employee-attendances/${id}`, payload);
+  },
+
+  /**
+   * Update bulk attendance records for the current branch, month, and year
+   * Recalculates paid and unpaid leaves based on approved leave records. Only updates records where there are actual changes.
+   * @param payload - Bulk attendance update data (total_working_days, month, year)
+   * @returns Promise<string> - Success message
+   */
+  updateBulk(payload: { total_working_days: number; month: number; year: number }): Promise<string> {
+    return Api.put<string>("/employee-attendances/bulk", payload);
   },
 
   /**
