@@ -10,12 +10,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Save } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
-import { schoolKeys } from "@/lib/hooks/school/query-keys";
 import { SchoolReservationsService } from "@/lib/services/school";
 import { EnhancedDataTable } from "@/components/shared";
 import { ColumnDef } from "@tanstack/react-table";
+import { toast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { schoolKeys } from "@/lib/hooks/school/query-keys";
 
 export type Reservation = {
   id: string;
@@ -30,7 +30,7 @@ export type StatusUpdateTableProps = {
   isLoading: boolean;
   isError: boolean;
   error?: any;
-  onRefetch: () => void | Promise<void>;
+  onRefetch?: () => void | Promise<void>; // Optional - cache invalidation handled by hooks
   totalCount?: number;
 };
 
@@ -215,13 +215,13 @@ const StatusUpdateTableComponent = ({
   onRefetch,
   totalCount,
 }: StatusUpdateTableProps) => {
-  const queryClient = useQueryClient();
   const [statusChanges, setStatusChanges] = useState<
     Record<string, "PENDING" | "CONFIRMED" | "CANCELLED">
   >({});
   const [statusRemarks, setStatusRemarks] = useState<Record<string, string>>(
     {}
   );
+  const queryClient = useQueryClient();
 
   const handleStatusChange = useCallback(
     (reservationId: string, status: "PENDING" | "CONFIRMED" | "CANCELLED") => {
@@ -250,35 +250,26 @@ const StatusUpdateTableComponent = ({
       remarks: string
     ) => {
       try {
-        // Update status via API
+        // Update status via service
         await SchoolReservationsService.updateStatus(
           reservation.reservation_id,
           newStatus,
           remarks.trim() ? remarks : undefined
         );
 
-        // Clear ALL reservation cache
-        queryClient.removeQueries({
-          queryKey: schoolKeys.reservations.root(),
-        });
-
-        // Invalidate all reservation queries
-        await queryClient.invalidateQueries({
-          queryKey: schoolKeys.reservations.root(),
-        });
-
-        // Force refetch all reservation queries
+        // After successful response, perform get all reservations API request immediately
+        // Explicitly refetch the reservations list query to ensure fresh data from server
         await queryClient.refetchQueries({
-          queryKey: schoolKeys.reservations.root(),
-          type: "active",
+          queryKey: schoolKeys.reservations.list(undefined),
+          type: 'active',
         });
 
-        // Also call parent refetch
+        // Also call onRefetch if provided - this ensures immediate API call
         if (onRefetch) {
           await onRefetch();
         }
 
-        // Clear local state
+        // Clear local state after successful update
         setStatusChanges((prev) => {
           const updated = { ...prev };
           delete updated[reservation.id];
@@ -289,25 +280,23 @@ const StatusUpdateTableComponent = ({
           updated[reservation.id] = "";
           return updated;
         });
-
+        
+        // Show success toast
         toast({
-          title: "Successful",
-          description: `Reservation ${reservation.no} status updated to ${newStatus}.`,
+          title: "Status Updated",
+          description: `Reservation ${reservation.no} status updated to ${newStatus} successfully.`,
           variant: "success",
         });
       } catch (e: any) {
         console.error("Failed to update status:", e);
         toast({
-          title: "Status Update Failed",
-          description:
-            e?.response?.data?.detail ||
-            e?.message ||
-            "Could not update reservation status. Please try again.",
+          title: "Update Failed",
+          description: e?.response?.data?.detail || e?.message || "Failed to update reservation status.",
           variant: "destructive",
         });
       }
     },
-    [onRefetch, queryClient]
+    [queryClient, onRefetch]
   );
 
   // Column definitions

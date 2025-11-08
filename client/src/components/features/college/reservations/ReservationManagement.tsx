@@ -37,7 +37,10 @@ import ReservationForm from "../reservations/ReservationForm";
 import ReservationsTable from "../reservations/ReservationsTable";
 import { TransportService } from "@/lib/services/general";
 import { toast } from "@/hooks/use-toast";
-import { CollegeReservationsService, CollegeDropdownsService } from "@/lib/services/college";
+import {
+  CollegeReservationsService,
+  CollegeDropdownsService,
+} from "@/lib/services/college";
 import type { CollegeReservationView } from "@/lib/types/college/reservations";
 import { Plus, List, BarChart3, Save } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
@@ -64,8 +67,8 @@ export default function ReservationNew() {
   });
 
   // Dashboard stats hook
-  const { 
-    data: dashboardStats, 
+  const {
+    data: dashboardStats,
     isLoading: dashboardLoading,
     isError: dashboardError,
     error: dashboardErrObj,
@@ -279,10 +282,11 @@ export default function ReservationNew() {
     // Advanced (new fields)
     preferredClassId: "0",
     preferredGroupId: "0",
-    preferredDistanceSlabId: "0",
     bookFee: "0",
     tuitionConcession: "0",
     transportConcession: "0",
+    bookFeeRequired: false,
+    courseRequired: true,
     referredBy: "",
     reservationDate: "",
     siblingsJson: "",
@@ -340,19 +344,8 @@ export default function ReservationNew() {
     return selectedGroup?.book_fee || 0;
   }, [selectedGroupId, groupsData]);
 
-  const transportFee = useMemo(() => {
-    if (form.transport !== "Yes") return 0;
-
-    const selectedSlabId = Number(form.preferredDistanceSlabId || 0);
-    if (selectedSlabId && distanceSlabs) {
-      const selectedSlab = distanceSlabs.find(
-        (slab) => slab.slab_id === selectedSlabId
-      );
-      return selectedSlab?.fee_amount || 0;
-    }
-
-    return 0;
-  }, [form.transport, form.preferredDistanceSlabId, distanceSlabs]);
+  // Transport fee is not used for college reservations
+  const transportFee = 0;
 
   // Class, group and course change handlers
   const handleClassChange = (classId: number) => {
@@ -384,16 +377,6 @@ export default function ReservationNew() {
         ...prev,
         course: courseId.toString(), // Store course ID for fee calculation
         courseName: selectedCourse.course_name, // Store course name for display
-      }));
-    }
-  };
-
-  const handleDistanceSlabChange = (slabId: number) => {
-    const selectedSlab = distanceSlabs?.find((slab) => slab.slab_id === slabId);
-    if (selectedSlab) {
-      setForm((prev) => ({
-        ...prev,
-        preferredDistanceSlabId: slabId.toString(),
       }));
     }
   };
@@ -506,7 +489,7 @@ export default function ReservationNew() {
         | "MALE"
         | "FEMALE"
         | "OTHER",
-      dob: form.dob ? new Date(form.dob).toISOString() : null, // Convert string to ISO datetime
+      dob: form.dob || null, // Date string in YYYY-MM-DD format
       father_or_guardian_name: form.fatherName || null,
       father_or_guardian_aadhar_no: form.fatherAadhar || null,
       father_or_guardian_mobile: form.fatherMobile || null,
@@ -534,15 +517,10 @@ export default function ReservationNew() {
       preferred_transport_id:
         form.transport === "Yes" && form.busRoute
           ? Number(form.busRoute)
-          : null, // Use null instead of 0 for optional fields
-      preferred_distance_slab_id: form.preferredDistanceSlabId
-        ? Number(form.preferredDistanceSlabId)
-        : null, // Use null instead of 0 for optional fields
-      pickup_point: form.pickupPoint || null,
-      transport_fee:
-        form.transport === "Yes" ? Number(transportFee || 0) : null, // Use null instead of 0
-      book_fee_required: false,
-      course_required: false,
+          : null,
+      pickup_point: form.transport === "Yes" ? form.pickupPoint || null : null,
+      book_fee_required: form.bookFeeRequired || false,
+      course_required: form.courseRequired || false,
       status: "PENDING" as "PENDING" | "CONFIRMED" | "CANCELLED",
       referred_by: form.referredBy ? Number(form.referredBy) : null, // Use null instead of 0
       remarks: form.remarks || null,
@@ -553,7 +531,9 @@ export default function ReservationNew() {
       const res: any = await createReservationMutation.mutateAsync(payload);
 
       // Invalidate cache to refresh the list
-      void queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["college", "reservations"],
+      });
 
       // Use backend reservation_id to display receipt number
       setReservationNo(String(res?.reservation_id || ""));
@@ -582,7 +562,7 @@ export default function ReservationNew() {
         | "MALE"
         | "FEMALE"
         | "OTHER",
-      dob: f.dob ? new Date(f.dob).toISOString() : null, // Convert string to ISO datetime
+      dob: f.dob || null, // Date string in YYYY-MM-DD format
       father_or_guardian_name: f.fatherName || null,
       father_or_guardian_aadhar_no: f.fatherAadhar || null,
       father_or_guardian_mobile: f.fatherMobile || null,
@@ -608,14 +588,10 @@ export default function ReservationNew() {
       total_tuition_fee: Number(groupFee + courseFee || 0),
       transport_required: f.transport === "Yes",
       preferred_transport_id:
-        f.transport === "Yes" && f.busRoute ? Number(f.busRoute) : null, // Use null instead of 0
-      preferred_distance_slab_id: f.preferredDistanceSlabId
-        ? Number(f.preferredDistanceSlabId)
-        : null, // Use null instead of 0
-      pickup_point: f.pickupPoint || null,
-      transport_fee: f.transport === "Yes" ? Number(transportFee || 0) : null, // Use null instead of 0
-      book_fee_required: false,
-      course_required: false,
+        f.transport === "Yes" && f.busRoute ? Number(f.busRoute) : null,
+      pickup_point: f.transport === "Yes" ? f.pickupPoint || null : null,
+      book_fee_required: f.bookFeeRequired || false,
+      course_required: f.courseRequired || false,
       status: "PENDING" as "PENDING" | "CONFIRMED" | "CANCELLED",
       referred_by: f.referredBy ? Number(f.referredBy) : null, // Use null instead of 0
       remarks: f.remarks || null,
@@ -656,15 +632,13 @@ export default function ReservationNew() {
       r.preferred_class_id != null ? String(r.preferred_class_id) : "0",
     preferredGroupId:
       r.preferred_group_id != null ? String(r.preferred_group_id) : "0",
-    preferredDistanceSlabId:
-      r.preferred_distance_slab_id != null
-        ? String(r.preferred_distance_slab_id)
-        : "0",
     bookFee: r.book_fee != null ? String(r.book_fee) : "0",
     tuitionConcession:
       r.tuition_concession != null ? String(r.tuition_concession) : "0",
     transportConcession:
       r.transport_concession != null ? String(r.transport_concession) : "0",
+    bookFeeRequired: r.book_fee_required || false,
+    courseRequired: r.course_required || false,
     referredBy: r.referred_by != null ? String(r.referred_by) : "",
     reservationDate: r.reservation_date || "",
     siblingsJson: JSON.stringify(r.siblings || []),
@@ -790,7 +764,7 @@ export default function ReservationNew() {
       });
       await queryClient.refetchQueries({
         queryKey: collegeKeys.reservations.root(),
-        type: 'active'
+        type: "active",
       });
       await refetchReservations();
 
@@ -936,21 +910,23 @@ export default function ReservationNew() {
 
       {/* College Reservation Dashboard Stats */}
       <CollegeReservationStatsCards
-        stats={dashboardStats || {
-          total_reservations: 0,
-          pending_reservations: 0,
-          confirmed_reservations: 0,
-          cancelled_reservations: 0,
-          total_reservation_fees: 0,
-          total_tuition_fees: 0,
-          total_transport_fees: 0,
-          total_tuition_concessions: 0,
-          total_transport_concessions: 0,
-          reservations_this_month: 0,
-          reservations_this_year: 0,
-          male_students: 0,
-          female_students: 0,
-        }}
+        stats={
+          dashboardStats || {
+            total_reservations: 0,
+            pending_reservations: 0,
+            confirmed_reservations: 0,
+            cancelled_reservations: 0,
+            total_reservation_fees: 0,
+            total_tuition_fees: 0,
+            total_transport_fees: 0,
+            total_tuition_concessions: 0,
+            total_transport_concessions: 0,
+            reservations_this_month: 0,
+            reservations_this_year: 0,
+            male_students: 0,
+            female_students: 0,
+          }
+        }
         loading={dashboardLoading}
       />
 
@@ -994,13 +970,9 @@ export default function ReservationNew() {
                     transport_required: form.transport === "Yes",
                     preferred_transport_id:
                       form.transport === "Yes" ? Number(form.busRoute || 0) : 0,
-                    preferred_distance_slab_id: Number(
-                      form.preferredDistanceSlabId || 0
-                    ),
                     pickup_point: form.pickupPoint,
-                    transport_fee: transportFee,
-                    book_fee_required: true,
-                    course_required: true,
+                    book_fee_required: form.bookFeeRequired || false,
+                    course_required: form.courseRequired || false,
                     status: "PENDING",
                     referred_by: Number(form.referredBy || 0),
                     remarks: form.remarks,
@@ -1038,16 +1010,15 @@ export default function ReservationNew() {
                       transport: next.transport_required ? "Yes" : "No",
                       busRoute: next.preferred_transport_id.toString(),
                       pickupPoint: next.pickup_point,
-                      preferredDistanceSlabId:
-                        next.preferred_distance_slab_id.toString(),
                       referredBy: next.referred_by.toString(),
                       remarks: next.remarks,
                       reservationDate: next.reservation_date,
+                      bookFeeRequired: next.book_fee_required,
+                      courseRequired: next.course_required,
                     });
                   }}
                   groupFee={groupFee}
                   courseFee={courseFee}
-                  transportFee={transportFee}
                   routes={routeNames.map(
                     (route: {
                       bus_route_id: number;
@@ -1066,6 +1037,7 @@ export default function ReservationNew() {
                       group_id: g.group_id,
                       group_name: g.group_name,
                       fee: g.group_fee,
+                      book_fee: g.book_fee,
                     })) || []
                   }
                   courses={
@@ -1081,24 +1053,13 @@ export default function ReservationNew() {
                       class_name: c.class_name,
                     })) || []
                   }
-                  distanceSlabs={
-                    distanceSlabs?.map((slab) => ({
-                      slab_id: slab.slab_id,
-                      slab_name: slab.slab_name,
-                      min_distance: slab.min_distance,
-                      max_distance: slab.max_distance,
-                      fee_amount: slab.fee_amount,
-                    })) || []
-                  }
                   onClassChange={handleClassChange}
                   onGroupChange={handleGroupChange}
                   onCourseChange={handleCourseChange}
-                  onDistanceSlabChange={handleDistanceSlabChange}
                   onSave={handleSave}
                   isLoadingClasses={classesLoading}
                   isLoadingGroups={groupsLoading}
                   isLoadingCourses={coursesLoading}
-                  isLoadingDistanceSlabs={isLoadingDistanceSlabs}
                   isLoadingRoutes={routesLoading}
                   onDropdownOpen={(dropdown) => {
                     setDropdownsOpened((prev) => ({
@@ -1516,16 +1477,12 @@ export default function ReservationNew() {
                   total_tuition_fee: groupFee + courseFee,
                   transport_required: editForm.transport === "Yes",
                   preferred_transport_id:
-                    editForm.transport === "Yes"
-                      ? Number(editForm.busRoute || 0)
+                    editForm.transport === "Yes" && editForm.busRoute
+                      ? Number(editForm.busRoute)
                       : 0,
-                  preferred_distance_slab_id: Number(
-                    editForm.preferredDistanceSlabId || 0
-                  ),
-                  pickup_point: editForm.pickupPoint,
-                  transport_fee: transportFee,
-                  book_fee_required: true,
-                  course_required: true,
+                  pickup_point: editForm.pickupPoint || "",
+                  book_fee_required: editForm.bookFeeRequired || false,
+                  course_required: editForm.courseRequired || false,
                   status: "PENDING",
                   referred_by: Number(editForm.referredBy || 0),
                   remarks: editForm.remarks,
@@ -1563,16 +1520,15 @@ export default function ReservationNew() {
                     transport: next.transport_required ? "Yes" : "No",
                     busRoute: next.preferred_transport_id.toString(),
                     pickupPoint: next.pickup_point,
-                    preferredDistanceSlabId:
-                      next.preferred_distance_slab_id.toString(),
                     referredBy: next.referred_by.toString(),
                     remarks: next.remarks,
                     reservationDate: next.reservation_date,
+                    bookFeeRequired: next.book_fee_required,
+                    courseRequired: next.course_required,
                   });
                 }}
                 groupFee={groupFee}
                 courseFee={courseFee}
-                transportFee={transportFee}
                 routes={routeNames.map(
                   (route: {
                     bus_route_id: number;
@@ -1589,6 +1545,7 @@ export default function ReservationNew() {
                     group_id: g.group_id,
                     group_name: g.group_name,
                     fee: g.group_fee,
+                    book_fee: g.book_fee,
                   })) || []
                 }
                 courses={
@@ -1604,19 +1561,9 @@ export default function ReservationNew() {
                     class_name: c.class_name,
                   })) || []
                 }
-                distanceSlabs={
-                  distanceSlabs?.map((slab) => ({
-                    slab_id: slab.slab_id,
-                    slab_name: slab.slab_name,
-                    min_distance: slab.min_distance,
-                    max_distance: slab.max_distance,
-                    fee_amount: slab.fee_amount,
-                  })) || []
-                }
                 onClassChange={handleClassChange}
                 onGroupChange={handleGroupChange}
                 onCourseChange={handleCourseChange}
-                onDistanceSlabChange={handleDistanceSlabChange}
                 onSave={async () => {
                   await submitEdit();
                 }}

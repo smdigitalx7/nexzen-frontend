@@ -10,8 +10,6 @@ import { FormDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { useCreateSchoolClass, useUpdateSchoolClass, useSchoolClassById, useDeleteSchoolClassSubject, useSchoolSubjects, useCreateSchoolClassSubject } from '@/lib/hooks/school';
 import { useToast } from '@/hooks/use-toast';
-import { useQueryClient } from '@tanstack/react-query';
-import { schoolKeys } from '@/lib/hooks/school/query-keys';
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createIconTextColumn
@@ -141,10 +139,9 @@ export const ClassesTab = memo(({
   
   // Subject management hooks
   const { data: allSubjects = [] } = useSchoolSubjects();
-  const { data: classWithSubjects, refetch: refetchClassWithSubjects } = useSchoolClassById(selectedClass?.class_id || null);
+  const { data: classWithSubjects } = useSchoolClassById(selectedClass?.class_id || null);
   const createClassSubjectMutation = useCreateSchoolClassSubject();
   const deleteClassSubjectMutation = useDeleteSchoolClassSubject();
-  const queryClient = useQueryClient();
 
   // Optimistic state for subjects management
   const [optimisticSubjects, setOptimisticSubjects] = useState<{ subject_id: number; subject_name: string }[] | null>(null);
@@ -261,8 +258,7 @@ export const ClassesTab = memo(({
         class_id: selectedClass.class_id,
         subject_id: subjectId,
       });
-      // Immediately refetch the class data to sync with server
-      await refetchClassWithSubjects();
+      // Mutation hook automatically handles cache invalidation and refetch
     } catch (error) {
       // On error, revert optimistic update
       setOptimisticSubjects(prev => {
@@ -271,7 +267,7 @@ export const ClassesTab = memo(({
       });
       // Error toast is handled by mutation hook
     }
-  }, [selectedClass, createClassSubjectMutation, allSubjects, refetchClassWithSubjects]);
+  }, [selectedClass, createClassSubjectMutation, allSubjects]);
 
   const handleRemoveSubject = useCallback(async (subjectId: number) => {
     if (!selectedClass) return;
@@ -287,8 +283,7 @@ export const ClassesTab = memo(({
         classId: selectedClass.class_id,
         subjectId: subjectId,
       });
-      // Immediately refetch the class data to sync with server
-      await refetchClassWithSubjects();
+      // Mutation hook automatically handles cache invalidation and refetch
     } catch (error) {
       // On error, revert optimistic update by restoring from server data
       if (classWithSubjects?.subjects) {
@@ -296,7 +291,7 @@ export const ClassesTab = memo(({
       }
       // Error toast is handled by mutation hook
     }
-  }, [selectedClass, deleteClassSubjectMutation, classWithSubjects, refetchClassWithSubjects]);
+  }, [selectedClass, deleteClassSubjectMutation, classWithSubjects]);
 
   // Memoized columns definition
   const columns: ColumnDef<SchoolClassRead>[] = useMemo(() => [

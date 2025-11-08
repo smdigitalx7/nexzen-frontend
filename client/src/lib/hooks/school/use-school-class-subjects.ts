@@ -8,6 +8,8 @@ export function useSchoolClassSubjectsList() {
   return useQuery({
     queryKey: schoolKeys.classSubjects.list(),
     queryFn: () => SchoolClassSubjectsService.list(),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
@@ -18,13 +20,13 @@ export function useCreateSchoolClassSubject() {
     mutationFn: (payload: SchoolClassSubjectCreate) => SchoolClassSubjectsService.create(payload),
     onSuccess: (_, variables) => {
       // Invalidate all class-related queries
-      void qc.invalidateQueries({ queryKey: schoolKeys.classSubjects.root() });
-      void qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
+      qc.invalidateQueries({ queryKey: schoolKeys.classSubjects.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.classes.root() }).catch(console.error);
       // Specifically invalidate the class detail query to refresh the subjects list
-      void qc.invalidateQueries({ queryKey: schoolKeys.classes.detail(variables.class_id) });
+      qc.invalidateQueries({ queryKey: schoolKeys.classes.detail(variables.class_id) }).catch(console.error);
       // Refetch active queries
-      void qc.refetchQueries({ queryKey: schoolKeys.classSubjects.root(), type: 'active' });
-      void qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' });
+      qc.refetchQueries({ queryKey: schoolKeys.classSubjects.root(), type: 'active' }).catch(console.error);
+      qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' }).catch(console.error);
     },
   }, "Subject assigned to class successfully");
 }

@@ -490,24 +490,14 @@ const AllReservationsTableComponent = ({
                   setReceiptBlobUrl(blobUrl);
                   setShowPaymentProcessor(false);
                   
-                  // Clear cache and refresh after payment
-                  queryClient.removeQueries({
-                    queryKey: schoolKeys.reservations.list(undefined),
-                  });
-                  
-                  queryClient.removeQueries({
-                    queryKey: schoolKeys.reservations.detail(paymentData.reservationId),
-                  });
-                  
-                  await queryClient.invalidateQueries({
-                    queryKey: schoolKeys.reservations.root(),
-                  });
-                  
+                  // After application fee payment completed, recall get all reservations API immediately
+                  // Explicitly refetch the reservations list query to ensure fresh data from server
                   await queryClient.refetchQueries({
-                    queryKey: schoolKeys.reservations.root(),
-                    type: "active",
+                    queryKey: schoolKeys.reservations.list(undefined),
+                    type: 'active',
                   });
                   
+                  // Also call onRefetch if provided - this ensures immediate API call
                   if (onRefetch) {
                     await onRefetch();
                   }
@@ -549,31 +539,14 @@ const AllReservationsTableComponent = ({
             setReceiptBlobUrl(null);
           }
           
-          // Clear cache and refresh reservations after closing receipt
-          // Step 1: Remove the reservations list cache to force fresh fetch
-          queryClient.removeQueries({ 
-            queryKey: schoolKeys.reservations.list(undefined) 
-          });
-          
-          // Step 2: If we have payment data, clear the specific reservation detail cache
-          if (paymentData?.reservationId) {
-            queryClient.removeQueries({
-              queryKey: schoolKeys.reservations.detail(paymentData.reservationId),
-            });
-          }
-          
-          // Step 3: Invalidate all reservation queries
-          await queryClient.invalidateQueries({
-            queryKey: schoolKeys.reservations.root(),
-          });
-          
-          // Step 4: Refetch all reservation queries
+          // After closing receipt, recall get all reservations API immediately
+          // Explicitly refetch the reservations list query to ensure fresh data from server
           await queryClient.refetchQueries({
-            queryKey: schoolKeys.reservations.root(),
-            type: 'active'
+            queryKey: schoolKeys.reservations.list(undefined),
+            type: 'active',
           });
           
-          // Step 5: Also call the refetch function
+          // Also call onRefetch if provided - this ensures immediate API call
           if (onRefetch) {
             await onRefetch();
           }

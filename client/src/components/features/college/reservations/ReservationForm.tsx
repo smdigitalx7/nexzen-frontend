@@ -17,7 +17,6 @@ import {
   CollegeGroupDropdown,
   CollegeCourseDropdown,
   BusRouteDropdown,
-  DistanceSlabDropdown,
 } from "@/components/shared/Dropdowns";
 import { useMemo, useState } from "react";
 import { Save } from "lucide-react";
@@ -57,9 +56,7 @@ type ReservationFormState = {
   total_tuition_fee: number;
   transport_required: boolean;
   preferred_transport_id: number;
-  preferred_distance_slab_id: number;
   pickup_point: string;
-  transport_fee: number;
   book_fee_required: boolean;
   course_required: boolean;
   status: string;
@@ -69,32 +66,27 @@ type ReservationFormState = {
 };
 
 type RouteItem = { id: number; name: string; fee: number };
-type GroupItem = { group_id: number; group_name: string; fee: number };
+type GroupItem = {
+  group_id: number;
+  group_name: string;
+  fee: number;
+  book_fee?: number;
+};
 type CourseItem = { course_id: number; course_name: string; fee: number };
 type ClassItem = { class_id: number; class_name: string };
-type DistanceSlabItem = {
-  slab_id: number;
-  slab_name: string;
-  min_distance: number;
-  max_distance?: number;
-  fee_amount: number;
-};
 
 export type ReservationFormProps = {
   form: ReservationFormState;
   setForm: (next: ReservationFormState) => void;
   groupFee: number;
   courseFee: number;
-  transportFee: number;
   routes: RouteItem[];
   groups: GroupItem[];
   courses: CourseItem[];
   classes: ClassItem[];
-  distanceSlabs: DistanceSlabItem[];
   onClassChange: (classId: number) => void;
   onGroupChange: (groupId: number) => void;
   onCourseChange: (courseId: number) => void;
-  onDistanceSlabChange: (slabId: number) => void;
   onSave: (withPayment: boolean) => void;
   isEdit?: boolean;
   // Loading states for dropdowns
@@ -105,7 +97,7 @@ export type ReservationFormProps = {
   isLoadingRoutes?: boolean;
   // Handlers to trigger dropdown data fetching
   onDropdownOpen?: (
-    dropdown: "classes" | "groups" | "courses" | "distanceSlabs" | "routes"
+    dropdown: "classes" | "groups" | "courses" | "routes"
   ) => void;
 };
 
@@ -114,22 +106,18 @@ export default function ReservationForm({
   setForm,
   groupFee,
   courseFee,
-  transportFee,
   routes,
   groups,
   courses,
   classes,
-  distanceSlabs,
   onClassChange,
   onGroupChange,
   onCourseChange,
-  onDistanceSlabChange,
   onSave,
   isEdit = false,
   isLoadingClasses = false,
   isLoadingGroups = false,
   isLoadingCourses = false,
-  isLoadingDistanceSlabs = false,
   isLoadingRoutes = false,
   onDropdownOpen,
 }: ReservationFormProps) {
@@ -139,14 +127,24 @@ export default function ReservationForm({
       !form.preferred_class_id ||
       form.preferred_class_id === 0 ||
       !form.group_name?.trim() ||
-      !form.course_name?.trim(),
+      !form.course_name?.trim() ||
+      // Course is mandatory after selecting group
+      (form.preferred_group_id > 0 &&
+        (!form.preferred_course_id || form.preferred_course_id === 0)),
     [
       form.student_name,
       form.preferred_class_id,
       form.group_name,
       form.course_name,
+      form.preferred_group_id,
+      form.preferred_course_id,
     ]
   );
+
+  // Calculate total tuition fee as group_fee + course_fee
+  const totalTuitionFee = useMemo(() => {
+    return (form.group_fee || 0) + (form.course_fee || 0);
+  }, [form.group_fee, form.course_fee]);
 
   // Confirmation dialog states
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
@@ -237,12 +235,7 @@ export default function ReservationForm({
       total_tuition_fee: 0, // Will be calculated
       transport_required: true,
       preferred_transport_id: routes && routes.length > 0 ? routes[0].id : 0,
-      preferred_distance_slab_id:
-        distanceSlabs && distanceSlabs.length > 0
-          ? distanceSlabs[0].slab_id
-          : 0,
       pickup_point: "Near City Mall",
-      transport_fee: 2000,
       book_fee_required: true,
       course_required: true,
       status: "PENDING",
@@ -260,11 +253,6 @@ export default function ReservationForm({
     // Trigger course change to populate fees
     if (courses && courses.length > 0) {
       onCourseChange(courses[0].course_id);
-    }
-
-    // Trigger distance slab change to populate transport fee
-    if (distanceSlabs && distanceSlabs.length > 0) {
-      onDistanceSlabChange(distanceSlabs[0].slab_id);
     }
   };
 
@@ -299,11 +287,9 @@ export default function ReservationForm({
       total_tuition_fee: 0,
       transport_required: false,
       preferred_transport_id: 0,
-      preferred_distance_slab_id: 0,
       pickup_point: "",
-      transport_fee: 0,
       book_fee_required: false,
-      course_required: false,
+      course_required: true,
       status: "PENDING",
       referred_by: 0,
       remarks: "",
@@ -700,6 +686,16 @@ export default function ReservationForm({
                           group_name: selectedGroup.group_name,
                           preferred_group_id: value,
                           group_fee: selectedGroup.fee,
+                          // Auto-fill book_fee if book_fee_required is true and group has book_fee
+                          book_fee:
+                            form.book_fee_required && selectedGroup.book_fee
+                              ? selectedGroup.book_fee
+                              : 0,
+                          // Reset course when group changes
+                          preferred_course_id: 0,
+                          course_name: "",
+                          course_fee: 0,
+                          total_tuition_fee: selectedGroup.fee, // Update total with group fee only
                         });
                         onGroupChange(value);
                       }
@@ -709,13 +705,16 @@ export default function ReservationForm({
                         group_name: "",
                         preferred_group_id: 0,
                         group_fee: 0,
+                        book_fee: 0, // Reset book_fee when group is cleared
                       });
                       onGroupChange(0);
                     }
                   }}
                   placeholder="Select group"
                   required
-                  disabled={!form.preferred_class_id || form.preferred_class_id === 0}
+                  disabled={
+                    !form.preferred_class_id || form.preferred_class_id === 0
+                  }
                 />
               </div>
               <div>
@@ -734,6 +733,8 @@ export default function ReservationForm({
                           course_name: selectedCourse.course_name,
                           preferred_course_id: value,
                           course_fee: selectedCourse.fee,
+                          total_tuition_fee:
+                            (form.group_fee || 0) + selectedCourse.fee, // Update total with group_fee + course_fee
                         });
                         onCourseChange(value);
                       }
@@ -743,21 +744,31 @@ export default function ReservationForm({
                         course_name: "",
                         preferred_course_id: 0,
                         course_fee: 0,
+                        total_tuition_fee: form.group_fee || 0, // Update total when course is cleared
                       });
                       onCourseChange(0);
                     }
                   }}
                   placeholder="Select course"
                   required
-                  disabled={!form.preferred_group_id || form.preferred_group_id === 0}
+                  disabled={
+                    !form.preferred_group_id || form.preferred_group_id === 0
+                  }
                 />
+                {form.preferred_group_id > 0 &&
+                  (!form.preferred_course_id ||
+                    form.preferred_course_id === 0) && (
+                    <p className="text-sm text-destructive mt-1">
+                      Course is required after selecting a group
+                    </p>
+                  )}
               </div>
               <div>
                 <Label htmlFor="total_tuition_fee">Total Tuition Fee</Label>
                 <Input
                   id="total_tuition_fee"
                   type="number"
-                  value={form.total_tuition_fee || ""}
+                  value={totalTuitionFee || ""}
                   readOnly
                   placeholder="Calculated from group and course fees"
                 />
@@ -767,7 +778,7 @@ export default function ReservationForm({
                 <Input
                   id="group_fee"
                   type="number"
-                  value={form.group_fee || ""}
+                  value={groupFee || form.group_fee || ""}
                   readOnly
                   placeholder="Select a group to auto-populate"
                 />
@@ -777,22 +788,57 @@ export default function ReservationForm({
                 <Input
                   id="course_fee"
                   type="number"
-                  value={form.course_fee || ""}
+                  value={courseFee || form.course_fee || ""}
                   readOnly
                   placeholder="Select a course to auto-populate"
                 />
               </div>
               <div>
-                <Label htmlFor="book_fee">Book Fee</Label>
-                <Input
-                  id="book_fee"
-                  type="number"
-                  value={form.book_fee || ""}
-                  onChange={(e) =>
-                    setForm({ ...form, book_fee: Number(e.target.value) })
-                  }
-                />
+                <Label htmlFor="book_fee_required">Book Fee Required</Label>
+                <Select
+                  value={form.book_fee_required ? "true" : "false"}
+                  onValueChange={(value) => {
+                    const isRequired = value === "true";
+                    const selectedGroup = groups.find(
+                      (g) => g.group_id === form.preferred_group_id
+                    );
+                    setForm({
+                      ...form,
+                      book_fee_required: isRequired,
+                      // Auto-fill book_fee from group if required and available, otherwise set to 0
+                      book_fee:
+                        isRequired && selectedGroup?.book_fee
+                          ? selectedGroup.book_fee
+                          : 0,
+                    });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select book fee requirement" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Yes</SelectItem>
+                    <SelectItem value="false">No</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+              {form.book_fee_required && (
+                <div>
+                  <Label htmlFor="book_fee">Book Fee *</Label>
+                  <Input
+                    id="book_fee"
+                    type="number"
+                    value={form.book_fee || ""}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        book_fee: Number(e.target.value) || 0,
+                      })
+                    }
+                    placeholder="Book fee amount"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -868,23 +914,6 @@ export default function ReservationForm({
                     />
                   </div>
                   <div>
-                    <Label htmlFor="preferred_distance_slab_id">
-                      Distance Slab
-                    </Label>
-                    <DistanceSlabDropdown
-                      value={form.preferred_distance_slab_id || null}
-                      onChange={(value) => {
-                        const valueNum = value || 0;
-                        setForm({
-                          ...form,
-                          preferred_distance_slab_id: valueNum,
-                        });
-                        onDistanceSlabChange(valueNum);
-                      }}
-                      placeholder="Select distance slab"
-                    />
-                  </div>
-                  <div>
                     <Label htmlFor="pickup_point">Pickup Point</Label>
                     <Input
                       id="pickup_point"
@@ -892,17 +921,10 @@ export default function ReservationForm({
                       onChange={(e) =>
                         setForm({ ...form, pickup_point: e.target.value })
                       }
+                      placeholder="Enter pickup point"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="transport_fee">Transport Fee</Label>
-                    <Input
-                      id="transport_fee"
-                      type="number"
-                      value={transportFee}
-                      readOnly
-                    />
-                  </div>
+                  <div></div>
                   <div></div>
                 </>
               )}
@@ -910,7 +932,7 @@ export default function ReservationForm({
           </div>
 
           {/* College-Specific Settings Section */}
-          <div className="space-y-4">
+          {/* <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-2">
               College Settings
             </h3>
@@ -919,9 +941,20 @@ export default function ReservationForm({
                 <Label htmlFor="book_fee_required">Book Fee Required</Label>
                 <Select
                   value={form.book_fee_required ? "true" : "false"}
-                  onValueChange={(value) =>
-                    setForm({ ...form, book_fee_required: value === "true" })
-                  }
+                  onValueChange={(value) => {
+                    const isRequired = value === "true";
+                    const selectedGroup = groups.find(
+                      (g) => g.group_id === form.preferred_group_id
+                    );
+                    setForm({ 
+                      ...form, 
+                      book_fee_required: isRequired,
+                      // Auto-fill book_fee from group if required and available, otherwise set to 0
+                      book_fee: isRequired && selectedGroup?.book_fee 
+                        ? selectedGroup.book_fee 
+                        : 0
+                    });
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select book fee requirement" />
@@ -950,7 +983,7 @@ export default function ReservationForm({
                 </Select>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Additional Information Section */}
           <div className="space-y-4">
@@ -1018,7 +1051,24 @@ export default function ReservationForm({
                   className="w-full mb-5"
                 />
               </div>
-              <div></div>
+
+              {/* <div>
+                <Label htmlFor="course_required">Course Required</Label>
+                <Select
+                  value={form.course_required ? "true" : "false"}
+                  onValueChange={(value) =>
+                    setForm({ ...form, course_required: value === "true" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select course requirement" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Yes</SelectItem>
+                    <SelectItem value="false">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div> */}
             </div>
           </div>
         </div>

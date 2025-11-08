@@ -129,20 +129,38 @@ ReservationHeader.displayName = "ReservationHeader";
 const ViewDialogContent = memo(
   ({ viewReservation }: { viewReservation: any }) => (
     <div className="space-y-6 text-sm flex-1 overflow-y-auto scrollbar-hide pr-1">
+      {/* Reservation Information */}
       <div className="grid grid-cols-2 gap-4">
+        <div>
+          <strong>Reservation ID:</strong>{" "}
+          {viewReservation.reservation_id || "-"}
+        </div>
         <div>
           <strong>Reservation No:</strong>{" "}
           {viewReservation.reservation_no || "-"}
         </div>
         <div>
-          <strong>Date:</strong> {viewReservation.reservation_date || "-"}
+          <strong>Reservation Date:</strong>{" "}
+          {viewReservation.reservation_date || "-"}
         </div>
         <div>
-          <strong>Status:</strong> {viewReservation.status || "-"}
-        </div>
-        <div>
-          <strong>Referred By:</strong>{" "}
-          {viewReservation.referred_by_name ?? "-"}
+          <strong>Status:</strong>{" "}
+          <Badge
+            variant={
+              viewReservation.status === "CONFIRMED"
+                ? "secondary"
+                : viewReservation.status === "CANCELLED"
+                  ? "destructive"
+                  : "default"
+            }
+            className={
+              viewReservation.status === "CONFIRMED"
+                ? "bg-green-500 text-white"
+                : ""
+            }
+          >
+            {viewReservation.status || "-"}
+          </Badge>
         </div>
         <div>
           <strong>Enrollment Status:</strong>{" "}
@@ -154,8 +172,25 @@ const ViewDialogContent = memo(
             <Badge variant="outline">Not Enrolled</Badge>
           )}
         </div>
+        <div>
+          <strong>Referred By:</strong>{" "}
+          {viewReservation.referred_by_name ||
+            viewReservation.referred_by ||
+            "-"}
+        </div>
+        <div>
+          <strong>Concession Lock:</strong>{" "}
+          {viewReservation.concession_lock ? (
+            <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+              Locked
+            </Badge>
+          ) : (
+            <Badge variant="outline">Unlocked</Badge>
+          )}
+        </div>
       </div>
 
+      {/* Student Details */}
       <div className="border-t pt-4">
         <div className="font-medium mb-2">Student Details</div>
         <div className="grid grid-cols-2 gap-4">
@@ -169,57 +204,96 @@ const ViewDialogContent = memo(
             <strong>Gender:</strong> {viewReservation.gender || "-"}
           </div>
           <div>
-            <strong>DOB:</strong> {viewReservation.dob || "-"}
+            <strong>Date of Birth:</strong> {viewReservation.dob || "-"}
+          </div>
+        </div>
+      </div>
+
+      {/* Parent/Guardian Details */}
+      <div className="border-t pt-4">
+        <div className="font-medium mb-2">Father/Guardian Details</div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <strong>Name:</strong>{" "}
+            {viewReservation.father_or_guardian_name || "-"}
+          </div>
+          <div>
+            <strong>Aadhar No:</strong>{" "}
+            {viewReservation.father_or_guardian_aadhar_no || "-"}
+          </div>
+          <div>
+            <strong>Mobile:</strong>{" "}
+            {viewReservation.father_or_guardian_mobile || "-"}
+          </div>
+          <div>
+            <strong>Occupation:</strong>{" "}
+            {viewReservation.father_or_guardian_occupation || "-"}
           </div>
         </div>
       </div>
 
       <div className="border-t pt-4">
-        <div className="font-medium mb-2">Parent Details</div>
+        <div className="font-medium mb-2">Mother/Guardian Details</div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <strong>Father/Guardian Name:</strong>{" "}
-            {viewReservation.father_or_guardian_name || "-"}
-          </div>
-          <div>
-            <strong>Father/Guardian Aadhar:</strong>{" "}
-            {viewReservation.father_or_guardian_aadhar_no || "-"}
-          </div>
-          <div>
-            <strong>Father/Guardian Mobile:</strong>{" "}
-            {viewReservation.father_or_guardian_mobile || "-"}
-          </div>
-          <div>
-            <strong>Father/Guardian Occupation:</strong>{" "}
-            {viewReservation.father_or_guardian_occupation || "-"}
-          </div>
-          <div>
-            <strong>Mother/Guardian Name:</strong>{" "}
+            <strong>Name:</strong>{" "}
             {viewReservation.mother_or_guardian_name || "-"}
           </div>
           <div>
-            <strong>Mother/Guardian Aadhar:</strong>{" "}
+            <strong>Aadhar No:</strong>{" "}
             {viewReservation.mother_or_guardian_aadhar_no || "-"}
           </div>
           <div>
-            <strong>Mother/Guardian Mobile:</strong>{" "}
+            <strong>Mobile:</strong>{" "}
             {viewReservation.mother_or_guardian_mobile || "-"}
           </div>
           <div>
-            <strong>Mother/Guardian Occupation:</strong>{" "}
+            <strong>Occupation:</strong>{" "}
             {viewReservation.mother_or_guardian_occupation || "-"}
           </div>
         </div>
       </div>
 
+      {/* Siblings */}
+      {viewReservation.siblings &&
+        Array.isArray(viewReservation.siblings) &&
+        viewReservation.siblings.length > 0 && (
+          <div className="border-t pt-4">
+            <div className="font-medium mb-2">Siblings</div>
+            <div className="space-y-2">
+              {viewReservation.siblings.map((sibling: any, index: number) => (
+                <div
+                  key={index}
+                  className="grid grid-cols-4 gap-4 p-2 bg-muted rounded"
+                >
+                  <div>
+                    <strong>Name:</strong> {sibling.name || "-"}
+                  </div>
+                  <div>
+                    <strong>Class:</strong> {sibling.class_name || "-"}
+                  </div>
+                  <div>
+                    <strong>Where:</strong> {sibling.where || "-"}
+                  </div>
+                  <div>
+                    <strong>Gender:</strong> {sibling.gender || "-"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      {/* Academic Details */}
       <div className="border-t pt-4">
         <div className="font-medium mb-2">Academic Details</div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <strong>Preferred Class:</strong>{" "}
-            {viewReservation.class_name ||
-              viewReservation.preferred_class_id ||
-              "-"}
+            <strong>Preferred Class ID:</strong>{" "}
+            {viewReservation.preferred_class_id || "-"}
+          </div>
+          <div>
+            <strong>Class Name:</strong> {viewReservation.class_name || "-"}
           </div>
           <div>
             <strong>Previous Class:</strong>{" "}
@@ -232,8 +306,9 @@ const ViewDialogContent = memo(
         </div>
       </div>
 
+      {/* Address Details */}
       <div className="border-t pt-4">
-        <div className="font-medium mb-2">Contact Details</div>
+        <div className="font-medium mb-2">Address Details</div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <strong>Present Address:</strong>{" "}
@@ -246,9 +321,10 @@ const ViewDialogContent = memo(
         </div>
       </div>
 
+      {/* Fee Details */}
       <div className="border-t pt-4">
-        <div className="font-medium mb-2">Fees</div>
-        <div className="space-y-1">
+        <div className="font-medium mb-2">Fee Details</div>
+        <div className="space-y-2">
           <div className="flex justify-between">
             <span>Application Fee:</span>
             <span>
@@ -257,7 +333,22 @@ const ViewDialogContent = memo(
           </div>
           <div className="flex justify-between">
             <span>Application Fee Paid:</span>
-            <span>{viewReservation.application_fee_paid ? "Yes" : "No"}</span>
+            <span>
+              {viewReservation.application_fee_paid ? (
+                <Badge
+                  variant="secondary"
+                  className="bg-green-100 text-green-800"
+                >
+                  Yes
+                </Badge>
+              ) : (
+                <Badge variant="outline">No</Badge>
+              )}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>Application Income ID:</span>
+            <span>{viewReservation.application_income_id || "-"}</span>
           </div>
           <div className="flex justify-between">
             <span>Tuition Fee:</span>
@@ -265,57 +356,103 @@ const ViewDialogContent = memo(
               ₹{Number(viewReservation.tuition_fee || 0).toLocaleString()}
             </span>
           </div>
-          {viewReservation.book_fee != null && (
-            <div className="flex justify-between">
-              <span>Book Fee:</span>
-              <span>
-                ₹{Number(viewReservation.book_fee || 0).toLocaleString()}
-              </span>
-            </div>
-          )}
-          {viewReservation.transport_fee != null && (
-            <div className="flex justify-between">
-              <span>Transport Fee:</span>
-              <span>
-                ₹{Number(viewReservation.transport_fee || 0).toLocaleString()}
-              </span>
-            </div>
-          )}
-          {viewReservation.transport_concession != null && (
-            <div className="flex justify-between">
-              <span>Transport Concession:</span>
-              <span>
-                ₹
-                {Number(
-                  viewReservation.transport_concession || 0
-                ).toLocaleString()}
-              </span>
-            </div>
-          )}
+          <div className="flex justify-between">
+            <span>Tuition Concession:</span>
+            <span>
+              ₹
+              {Number(viewReservation.tuition_concession || 0).toLocaleString()}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>Book Fee:</span>
+            <span>
+              ₹{Number(viewReservation.book_fee || 0).toLocaleString()}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>Transport Fee:</span>
+            <span>
+              ₹{Number(viewReservation.transport_fee || 0).toLocaleString()}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>Transport Concession:</span>
+            <span>
+              ₹
+              {Number(
+                viewReservation.transport_concession || 0
+              ).toLocaleString()}
+            </span>
+          </div>
         </div>
       </div>
 
+      {/* Transport Details */}
+      {viewReservation.transport_required && (
+        <div className="border-t pt-4">
+          <div className="font-medium mb-2">Transport Details</div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <strong>Transport Required:</strong>{" "}
+              <Badge
+                variant="secondary"
+                className="bg-green-100 text-green-800"
+              >
+                Yes
+              </Badge>
+            </div>
+            <div>
+              <strong>Preferred Transport ID:</strong>{" "}
+              {viewReservation.preferred_transport_id || "-"}
+            </div>
+            <div>
+              <strong>Preferred Distance Slab ID:</strong>{" "}
+              {viewReservation.preferred_distance_slab_id || "-"}
+            </div>
+            <div>
+              <strong>Pickup Point:</strong>{" "}
+              {viewReservation.pickup_point || "-"}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Additional Information */}
       <div className="border-t pt-4">
-        <div className="font-medium mb-2">Preferences</div>
+        <div className="font-medium mb-2">Additional Information</div>
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <strong>Preferred Class:</strong>{" "}
-            {viewReservation.class_name ?? "-"}
-          </div>
-          <div>
-            <strong>Preferred Transport:</strong>{" "}
-            {viewReservation.route_ ?? "-"}
-          </div>
-          <div>
-            <strong>Preferred Distance Slab:</strong>{" "}
-            {viewReservation.slab ?? "-"}
-          </div>
-          <div>
-            <strong>Pickup Point:</strong> {viewReservation.pickup_point || "-"}
-          </div>
           <div>
             <strong>Remarks:</strong> {viewReservation.remarks || "-"}
           </div>
+          {/* <div>
+            <strong>Admission Income ID:</strong>{" "}
+            {viewReservation.admission_income_id || "-"}
+          </div> */}
+        </div>
+      </div>
+
+      {/* System Information */}
+      <div className="border-t pt-4">
+        <div className="font-medium mb-2">System Information</div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <strong>Created At:</strong>{" "}
+            {viewReservation.created_at
+              ? new Date(viewReservation.created_at).toLocaleString()
+              : "-"}
+          </div>
+          {/* <div>
+            <strong>Created By:</strong> {viewReservation.created_by || "-"}
+          </div> */}
+          <div>
+            <strong>Updated At:</strong>{" "}
+            {viewReservation.updated_at
+              ? new Date(viewReservation.updated_at).toLocaleString()
+              : "-"}
+          </div>
+          {/* <div>
+            <strong>Updated By:</strong> {viewReservation.updated_by || "-"}
+          </div> */}
         </div>
       </div>
     </div>
@@ -650,6 +787,8 @@ const ReservationManagementComponent = () => {
     [queryClient]
   );
 
+  // Use the hook for concession updates - create hook with a placeholder ID
+  // We'll use the service directly but follow the same cache invalidation pattern
   const handleConcessionUpdate = useCallback(
     async (
       reservationId: number,
@@ -658,33 +797,25 @@ const ReservationManagementComponent = () => {
       remarks: string
     ) => {
       try {
+        // Update concession via service
         await SchoolReservationsService.updateConcession(reservationId, {
           tuition_concession: tuitionConcession,
           transport_concession: transportConcession,
           remarks: remarks || null,
         });
 
-        // Clear ALL reservation cache
-        queryClient.removeQueries({
-          queryKey: schoolKeys.reservations.root(),
-        });
-
-        // Invalidate all reservation queries
-        await queryClient.invalidateQueries({
-          queryKey: schoolKeys.reservations.root(),
-        });
-
-        // Force refetch all reservation queries
+        // After concession update API call, recall get all reservations API immediately
+        // Explicitly refetch the reservations list query to ensure fresh data from server
         await queryClient.refetchQueries({
-          queryKey: schoolKeys.reservations.root(),
+          queryKey: schoolKeys.reservations.list(undefined),
           type: "active",
         });
 
-        // Also call the refetch function
+        // Also call refetchReservations to ensure immediate API call
         await refetchReservations();
 
         // Fetch fresh reservation data immediately after update
-        // This ensures if user reopens the dialog, it has the latest data
+        // This ensures if user reopens the dialog, it has the latest data with updated concession_lock status
         try {
           const updatedReservation =
             await SchoolReservationsService.getById(reservationId);
@@ -714,7 +845,7 @@ const ReservationManagementComponent = () => {
         throw error; // Re-throw to let the dialog handle it
       }
     },
-    [refetchReservations, queryClient]
+    [queryClient]
   );
 
   // Memoized route mapping
@@ -1029,8 +1160,8 @@ const ReservationManagementComponent = () => {
             isLoading={isLoadingReservations}
             isError={reservationsError}
             error={reservationsErrObj}
-            onRefetch={refetchReservations}
             totalCount={reservationsData?.total_count}
+            onRefetch={refetchReservations}
           />
         ),
       },
@@ -1209,33 +1340,14 @@ const ReservationManagementComponent = () => {
             setReceiptBlobUrl(null);
           }
 
-          // Clear cache and refresh reservations after closing receipt
-          // Step 1: Remove the reservations list cache to force fresh fetch
-          queryClient.removeQueries({
-            queryKey: schoolKeys.reservations.list(undefined),
-          });
-
-          // Step 2: If we have payment data, clear the specific reservation detail cache
-          if (paymentData?.reservationId) {
-            queryClient.removeQueries({
-              queryKey: schoolKeys.reservations.detail(
-                paymentData.reservationId
-              ),
-            });
-          }
-
-          // Step 3: Invalidate all reservation queries
-          await queryClient.invalidateQueries({
-            queryKey: schoolKeys.reservations.root(),
-          });
-
-          // Step 4: Refetch all reservation queries
+          // After closing receipt, recall get all reservations API immediately
+          // Explicitly refetch the reservations list query to ensure fresh data from server
           await queryClient.refetchQueries({
-            queryKey: schoolKeys.reservations.root(),
+            queryKey: schoolKeys.reservations.list(undefined),
             type: "active",
           });
 
-          // Step 5: Also call the refetch function
+          // Also call refetchReservations to ensure immediate API call
           await refetchReservations();
         }}
         blobUrl={receiptBlobUrl}
@@ -1395,15 +1507,21 @@ const ReservationManagementComponent = () => {
                   setPaymentIncomeRecord(incomeRecord);
                   setReceiptBlobUrl(blobUrl);
                   setShowPaymentProcessor(false);
+
+                  // After application fee payment completed, recall get all reservations API immediately
+                  // Explicitly refetch the reservations list query to ensure fresh data from server
+                  await queryClient.refetchQueries({
+                    queryKey: schoolKeys.reservations.list(undefined),
+                    type: "active",
+                  });
+
+                  // Also call refetchReservations to ensure immediate API call
+                  await refetchReservations();
+
                   // Show receipt modal after closing payment processor
                   setTimeout(() => {
                     setShowReceipt(true);
                   }, 100);
-                  // Invalidate and refetch reservations to show updated data
-                  await queryClient.invalidateQueries({
-                    queryKey: schoolKeys.reservations.root(),
-                  });
-                  await refetchReservations();
                 }}
                 onPaymentFailed={(error: string) => {
                   toast({

@@ -17,6 +17,8 @@ export function useSchoolExams(options?: { enabled?: boolean }) {
     queryKey: schoolKeys.exams.list(),
     queryFn: () => SchoolExamsService.list(),
     enabled: options?.enabled !== false,
+    staleTime: 2 * 60 * 1000, // 2 minutes - exams change moderately
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
@@ -29,6 +31,8 @@ export function useSchoolExam(examId: number | null | undefined) {
     queryFn: () =>
       SchoolExamsService.getById(examId as number),
     enabled: typeof examId === "number" && examId > 0,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
@@ -37,6 +41,8 @@ export function useSchoolTests(options?: { enabled?: boolean }) {
     queryKey: schoolKeys.tests.list(),
     queryFn: () => SchoolTestsService.list(),
     enabled: options?.enabled !== false,
+    staleTime: 2 * 60 * 1000, // 2 minutes - tests change moderately
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
@@ -49,6 +55,8 @@ export function useSchoolTest(testId: number | null | undefined) {
     queryFn: () =>
       SchoolTestsService.getById(testId as number),
     enabled: typeof testId === "number" && testId > 0,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
@@ -59,8 +67,8 @@ export function useCreateSchoolExam() {
     mutationFn: (payload: SchoolExamCreate) =>
       SchoolExamsService.create(payload),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
-      void qc.refetchQueries({ queryKey: schoolKeys.exams.list(), type: 'active' });
+      qc.invalidateQueries({ queryKey: schoolKeys.exams.root() }).catch(console.error);
+      qc.refetchQueries({ queryKey: schoolKeys.exams.root(), type: 'active' }).catch(console.error);
     },
   }, "Exam created successfully");
 }
@@ -71,9 +79,9 @@ export function useUpdateSchoolExam(examId: number) {
     mutationFn: (payload: SchoolExamUpdate) =>
       SchoolExamsService.update(examId, payload),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.exams.detail(examId) });
-      void qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
-      void qc.refetchQueries({ queryKey: schoolKeys.exams.list(), type: 'active' });
+      qc.invalidateQueries({ queryKey: schoolKeys.exams.detail(examId) }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.exams.root() }).catch(console.error);
+      qc.refetchQueries({ queryKey: schoolKeys.exams.root(), type: 'active' }).catch(console.error);
     },
   }, "Exam updated successfully");
 }
@@ -84,8 +92,8 @@ export function useDeleteSchoolExam() {
     mutationFn: (examId: number) =>
       SchoolExamsService.delete(examId),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.exams.list() });
-      void qc.refetchQueries({ queryKey: schoolKeys.exams.list(), type: 'active' });
+      qc.invalidateQueries({ queryKey: schoolKeys.exams.root() }).catch(console.error);
+      qc.refetchQueries({ queryKey: schoolKeys.exams.root(), type: 'active' }).catch(console.error);
     },
   }, "Exam deleted successfully");
 }
@@ -97,8 +105,8 @@ export function useCreateSchoolTest() {
     mutationFn: (payload: SchoolTestCreate) =>
       SchoolTestsService.create(payload),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
-      void qc.refetchQueries({ queryKey: schoolKeys.tests.list(), type: 'active' });
+      qc.invalidateQueries({ queryKey: schoolKeys.tests.root() }).catch(console.error);
+      qc.refetchQueries({ queryKey: schoolKeys.tests.root(), type: 'active' }).catch(console.error);
     },
   }, "Test created successfully");
 }
@@ -109,9 +117,9 @@ export function useUpdateSchoolTest(testId: number) {
     mutationFn: (payload: SchoolTestUpdate) =>
       SchoolTestsService.update(testId, payload),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.tests.detail(testId) });
-      void qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
-      void qc.refetchQueries({ queryKey: schoolKeys.tests.list(), type: 'active' });
+      qc.invalidateQueries({ queryKey: schoolKeys.tests.detail(testId) }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.tests.root() }).catch(console.error);
+      qc.refetchQueries({ queryKey: schoolKeys.tests.root(), type: 'active' }).catch(console.error);
     },
   }, "Test updated successfully");
 }
@@ -122,8 +130,8 @@ export function useDeleteSchoolTest() {
     mutationFn: (testId: number) =>
       SchoolTestsService.delete(testId),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.tests.list() });
-      void qc.refetchQueries({ queryKey: schoolKeys.tests.list(), type: 'active' });
+      qc.invalidateQueries({ queryKey: schoolKeys.tests.root() }).catch(console.error);
+      qc.refetchQueries({ queryKey: schoolKeys.tests.root(), type: 'active' }).catch(console.error);
     },
   }, "Test deleted successfully");
 }
