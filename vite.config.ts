@@ -74,89 +74,8 @@ export default defineConfig({
 
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          // Split large vendor libraries into separate chunks
-          if (id.includes("node_modules")) {
-            // React core - keep in main bundle to ensure it's always available
-            // This prevents Radix UI and other libraries from trying to access React
-            // before it's initialized
-            if (
-              id.includes("node_modules/react/") || 
-              id.includes("node_modules/react-dom/") || 
-              id.includes("node_modules/scheduler/") ||
-              id.includes("node_modules\\react\\") || 
-              id.includes("node_modules\\react-dom\\") || 
-              id.includes("node_modules\\scheduler\\") ||
-              // Also match if it's exactly react or react-dom (for edge cases)
-              /[\/\\]react$/.test(id) ||
-              /[\/\\]react-dom$/.test(id) ||
-              /[\/\\]scheduler$/.test(id)
-            ) {
-              // Skip if it's a React-related package but not core React
-              if (
-                id.includes("react-hook-form") ||
-                id.includes("react-day-picker") ||
-                id.includes("react-icons") ||
-                id.includes("react-resizable") ||
-                id.includes("react-query") ||
-                id.includes("react-table") ||
-                id.includes("react-virtual")
-              ) {
-                // Let these fall through to their respective chunks
-              } else {
-                // Keep React in main bundle - this ensures it's always available
-                // when other chunks (like Radix UI) try to import it
-                return undefined;
-              }
-            }
-            
-            // Router
-            if (id.includes("wouter")) {
-              return "vendor-router";
-            }
-            
-            // State management
-            if (id.includes("zustand") || id.includes("@tanstack/react-query") || id.includes("@tanstack/react-table")) {
-              return "vendor-state";
-            }
-            
-            // UI libraries
-            if (id.includes("lucide-react") || id.includes("framer-motion") || id.includes("clsx") || id.includes("tailwind-merge")) {
-              return "vendor-ui";
-            }
-            
-            // Radix UI components - keep with React to avoid initialization issues
-            // Radix UI must have React available when it loads, so we keep it in main bundle
-            // or in a chunk that loads after React is initialized
-            // For now, we'll keep it in main bundle to avoid the forwardRef error
-            if (id.includes("@radix-ui")) {
-              return undefined; // Keep with React in main bundle
-            }
-            
-            // Large charting library - split separately
-            if (id.includes("recharts")) {
-              return "vendor-charts";
-            }
-            
-            // PDF and export libraries - split separately
-            if (id.includes("jspdf") || id.includes("html2canvas") || id.includes("exceljs")) {
-              return "vendor-export";
-            }
-            
-            // Form libraries
-            if (id.includes("react-hook-form") || id.includes("@hookform") || id.includes("zod")) {
-              return "vendor-forms";
-            }
-            
-            // Date libraries
-            if (id.includes("date-fns") || id.includes("react-day-picker")) {
-              return "vendor-dates";
-            }
-            
-            // Other vendor code
-            return "vendor";
-          }
-        },
+        // Let Vite automatically handle code splitting based on dependencies
+        // This ensures proper module loading order and avoids initialization issues
         entryFileNames: "js/[name]-[hash].js",
         chunkFileNames: "js/[name]-[hash].js",
         assetFileNames: (assetInfo) => {
@@ -167,8 +86,7 @@ export default defineConfig({
           return `assets/[name]-[hash].${ext}`;
         },
       },
-      // Remove strict entry signatures to allow Vite to properly handle chunk dependencies
-      // This ensures React loads before Radix UI chunks
+      // Let Vite handle entry signatures automatically for proper dependency resolution
       preserveEntrySignatures: false,
     },
 

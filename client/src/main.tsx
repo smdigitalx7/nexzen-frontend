@@ -1,8 +1,4 @@
-// CRITICAL: Import React FIRST, then react-utils to ensure React is available globally
-// before any other code (including Radix UI chunks) tries to access it
 import React from "react";
-import "./lib/react-utils";
-
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
