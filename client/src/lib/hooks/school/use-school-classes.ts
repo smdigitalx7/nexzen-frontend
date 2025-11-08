@@ -14,6 +14,8 @@ export function useSchoolClasses(options?: { enabled?: boolean }) {
     queryKey: schoolKeys.classes.list(),
     queryFn: () => SchoolClassesService.list(),
     enabled: options?.enabled !== false,
+    staleTime: 5 * 60 * 1000, // 5 minutes - classes don't change often
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 }
 
@@ -23,8 +25,8 @@ export function useCreateSchoolClass() {
     mutationFn: (payload: SchoolClassCreate) =>
       SchoolClassesService.create(payload),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
-      void qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' });
+      qc.invalidateQueries({ queryKey: schoolKeys.classes.root() }).catch(console.error);
+      qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' }).catch(console.error);
     },
   }, "Class created successfully");
 }
@@ -35,9 +37,14 @@ export function useUpdateSchoolClass(classId: number) {
     mutationFn: (payload: SchoolClassUpdate) =>
       SchoolClassesService.update(classId, payload),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.classes.detail(classId) });
-      void qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
-      void qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' });
+      // Invalidate class-related queries
+      qc.invalidateQueries({ queryKey: schoolKeys.classes.detail(classId) }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.classes.root() }).catch(console.error);
+      // Invalidate cross-module caches that depend on classes
+      qc.invalidateQueries({ queryKey: schoolKeys.classSubjects.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() }).catch(console.error);
+      // Refetch active queries
+      qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' }).catch(console.error);
     },
   }, "Class updated successfully");
 }
@@ -47,6 +54,8 @@ export function useSchoolClassById(classId: number | null | undefined) {
     queryKey: schoolKeys.classes.detail(classId || 0),
     queryFn: () => SchoolClassesService.getById(classId as number),
     enabled: typeof classId === "number" && classId > 0,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
@@ -61,6 +70,8 @@ export function useSchoolClassSubjects(classId: number | null | undefined) {
         classId as number
       ),
     enabled: typeof classId === "number" && classId > 0,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
@@ -76,13 +87,13 @@ export function useDeleteSchoolClassSubject() {
     }) => SchoolClassesService.deleteClassSubject(classId, subjectId),
     onSuccess: (_, variables) => {
       // Invalidate all class-related queries
-      void qc.invalidateQueries({ queryKey: schoolKeys.classSubjects.root() });
-      void qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
+      qc.invalidateQueries({ queryKey: schoolKeys.classSubjects.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.classes.root() }).catch(console.error);
       // Specifically invalidate the class detail query to refresh the subjects list
-      void qc.invalidateQueries({ queryKey: schoolKeys.classes.detail(variables.classId) });
+      qc.invalidateQueries({ queryKey: schoolKeys.classes.detail(variables.classId) }).catch(console.error);
       // Refetch active queries
-      void qc.refetchQueries({ queryKey: schoolKeys.classSubjects.root(), type: 'active' });
-      void qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' });
+      qc.refetchQueries({ queryKey: schoolKeys.classSubjects.root(), type: 'active' }).catch(console.error);
+      qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' }).catch(console.error);
     },
   }, "Subject removed from class successfully");
 }

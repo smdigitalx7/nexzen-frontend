@@ -14,6 +14,8 @@ export function useTeacherClassSubjectsHierarchical() {
   return useQuery({
     queryKey: schoolKeys.teacherClassSubjects.hierarchical(),
     queryFn: () => SchoolTeacherClassSubjectsService.getHierarchical(),
+    staleTime: 30 * 1000, // 30 seconds - teacher assignments change more frequently
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
@@ -21,6 +23,8 @@ export function useClassTeachers() {
   return useQuery({
     queryKey: schoolKeys.teacherClassSubjects.classTeachers(),
     queryFn: () => SchoolTeacherClassSubjectsService.getClassTeachers(),
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
@@ -29,8 +33,14 @@ export function useCreateTeacherClassSubject() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolTeacherClassSubjectCreate) => SchoolTeacherClassSubjectsService.create(payload),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
-      void qc.refetchQueries({ queryKey: schoolKeys.teacherClassSubjects.root(), type: 'active' });
+      // Invalidate teacher assignment queries
+      qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() }).catch(console.error);
+      // Invalidate cross-module caches that may show teacher info
+      qc.invalidateQueries({ queryKey: schoolKeys.classes.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.subjects.root() }).catch(console.error);
+      // Refetch active queries
+      qc.refetchQueries({ queryKey: schoolKeys.teacherClassSubjects.root(), type: 'active' }).catch(console.error);
+      qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' }).catch(console.error);
     },
   }, "Teacher assignment created successfully");
 }
@@ -42,8 +52,14 @@ export function useDeleteTeacherClassSubject() {
       return SchoolTeacherClassSubjectsService.delete(teacherId, classId, subjectId, sectionId);
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
-      void qc.refetchQueries({ queryKey: schoolKeys.teacherClassSubjects.root(), type: 'active' });
+      // Invalidate teacher assignment queries
+      qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() }).catch(console.error);
+      // Invalidate cross-module caches that may show teacher info
+      qc.invalidateQueries({ queryKey: schoolKeys.classes.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.subjects.root() }).catch(console.error);
+      // Refetch active queries
+      qc.refetchQueries({ queryKey: schoolKeys.teacherClassSubjects.root(), type: 'active' }).catch(console.error);
+      qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' }).catch(console.error);
     },
   }, "Teacher assignment removed successfully");
 }
@@ -53,8 +69,10 @@ export function useCreateClassTeacher() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: ClassTeacherCreate) => SchoolTeacherClassSubjectsService.createClassTeacher(payload),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
-      void qc.refetchQueries({ queryKey: schoolKeys.teacherClassSubjects.root(), type: 'active' });
+      qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.classes.root() }).catch(console.error);
+      qc.refetchQueries({ queryKey: schoolKeys.teacherClassSubjects.root(), type: 'active' }).catch(console.error);
+      qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' }).catch(console.error);
     },
   }, "Class teacher assigned successfully");
 }
@@ -64,8 +82,10 @@ export function useDeleteClassTeacher() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: ClassTeacherDelete) => SchoolTeacherClassSubjectsService.deleteClassTeacher(payload),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() });
-      void qc.refetchQueries({ queryKey: schoolKeys.teacherClassSubjects.root(), type: 'active' });
+      qc.invalidateQueries({ queryKey: schoolKeys.teacherClassSubjects.root() }).catch(console.error);
+      qc.invalidateQueries({ queryKey: schoolKeys.classes.root() }).catch(console.error);
+      qc.refetchQueries({ queryKey: schoolKeys.teacherClassSubjects.root(), type: 'active' }).catch(console.error);
+      qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' }).catch(console.error);
     },
   }, "Class teacher removed successfully");
 }

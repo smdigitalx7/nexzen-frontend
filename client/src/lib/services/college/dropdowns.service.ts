@@ -32,20 +32,59 @@ export const CollegeDropdownsService = {
 
   /**
    * Get all groups
-   * @param classId - Optional class ID to filter groups
-   * @returns Promise<GroupsResponse> - List of groups
+   * Uses: GET /api/v1/college/groups
+   * @param classId - Optional class ID to filter groups (not used in API, kept for compatibility)
+   * @returns Promise<GroupsResponse> - List of groups with group_fee
    */
-  getGroups(classId?: number): Promise<GroupsResponse> {
-    return Api.get<GroupsResponse>("/college/dropdowns/groups", classId ? { class_id: classId } : undefined);
+  async getGroups(classId?: number): Promise<GroupsResponse> {
+    // Use the direct groups API endpoint
+    const groups = await Api.get<Array<{
+      group_id: number;
+      group_name: string;
+      book_fee: number;
+      group_fee: number;
+    }>>("/college/groups");
+    
+    // Transform to GroupsResponse format
+    return {
+      items: groups.map(g => ({
+        group_id: g.group_id,
+        group_name: g.group_name,
+        group_fee: g.group_fee,
+        book_fee: g.book_fee,
+      })),
+    };
   },
 
   /**
-   * Get all courses
-   * @param groupId - Group ID to filter courses
-   * @returns Promise<CoursesResponse> - List of courses
+   * Get courses for a group
+   * Uses: GET /api/v1/college/groups/{group_id}/courses
+   * @param groupId - Group ID to get courses for
+   * @returns Promise<CoursesResponse> - List of courses with course_fee
    */
-  getCourses(groupId: number): Promise<CoursesResponse> {
-    return Api.get<CoursesResponse>("/college/dropdowns/courses", { group_id: groupId });
+  async getCourses(groupId: number): Promise<CoursesResponse> {
+    // Use the group with courses API endpoint
+    const groupWithCourses = await Api.get<{
+      group_id: number;
+      group_name: string;
+      book_fee: number;
+      group_fee: number;
+      courses: Array<{
+        course_id: number;
+        course_name: string;
+        course_fee: number;
+      }>;
+    }>(`/college/groups/${groupId}/courses`);
+    
+    // Transform to CoursesResponse format
+    return {
+      items: (groupWithCourses.courses || []).map(c => ({
+        group_id: groupWithCourses.group_id,
+        course_id: c.course_id,
+        course_name: c.course_name,
+        course_fee: c.course_fee,
+      })),
+    };
   },
 
   /**
