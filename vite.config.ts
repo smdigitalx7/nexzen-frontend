@@ -77,8 +77,8 @@ export default defineConfig({
         manualChunks: (id) => {
           // Split large vendor libraries into separate chunks
           if (id.includes("node_modules")) {
-            // React core - ensure react, react-dom, and scheduler are in the same chunk
-            // This prevents initialization issues when React is split
+            // React core - keep in main bundle OR ensure it loads first
+            // For now, we'll split it but ensure proper dependencies
             // Match exact React packages, not packages that contain "react" in their name
             if (
               id.includes("node_modules/react/") || 
@@ -104,7 +104,12 @@ export default defineConfig({
               ) {
                 // Let these fall through to their respective chunks
               } else {
-                return "vendor-react";
+                // Return undefined to keep React in main bundle, or "vendor-react" to split
+                // Splitting React can cause issues with libraries like Radix UI
+                // that need React to be available immediately
+                // For better compatibility, we'll keep React in the main bundle
+                // return "vendor-react";
+                return undefined; // Keep React in main bundle to avoid initialization issues
               }
             }
             
@@ -153,13 +158,7 @@ export default defineConfig({
           }
         },
         entryFileNames: "js/[name]-[hash].js",
-        chunkFileNames: (chunkInfo) => {
-          // Ensure React chunk has a consistent name for proper loading order
-          if (chunkInfo.name === "vendor-react") {
-            return "js/vendor-react-[hash].js";
-          }
-          return "js/[name]-[hash].js";
-        },
+        chunkFileNames: "js/[name]-[hash].js",
         assetFileNames: (assetInfo) => {
           const ext = assetInfo.name?.split(".").pop() ?? "";
           if (/\.(css)$/.test(assetInfo.name ?? "")) {
@@ -171,7 +170,9 @@ export default defineConfig({
       preserveEntrySignatures: "strict",
     },
 
-    modulePreload: { polyfill: true },
+    modulePreload: { 
+      polyfill: true,
+    },
 
     terserOptions: {
       compress: {

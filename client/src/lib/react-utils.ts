@@ -16,28 +16,25 @@ export const useLayoutEffect = React.useLayoutEffect;
 export const useImperativeHandle = React.useImperativeHandle;
 export const useDebugValue = React.useDebugValue;
 
-// Ensure React is available globally (safely)
-// Use a deferred assignment to avoid initialization issues
+// Ensure React is available globally IMMEDIATELY
+// This is critical for libraries like Radix UI that may load before React is fully initialized
+// They need React to be available on window.React when their chunks execute
 if (typeof window !== "undefined") {
-  // Use requestIdleCallback or setTimeout to defer assignment
-  // This ensures React is fully initialized before assignment
-  const assignReact = () => {
-    try {
-      if (React && typeof React === "object" && typeof React.forwardRef === "function") {
-        (window as any).React = React;
-      }
-    } catch (error) {
-      // Silently fail if React is not fully initialized yet
-      if (process.env.NODE_ENV === "development") {
-        console.warn("React not available for global assignment:", error);
-      }
+  try {
+    // Assign React immediately - this must happen synchronously
+    // so that other chunks (like vendor-radix) can access it
+    (window as any).React = React;
+    
+    // Also ensure React.forwardRef is available (some libraries check for this)
+    if (React && typeof React === "object") {
+      (window as any).React.forwardRef = React.forwardRef;
+      (window as any).React.createElement = React.createElement;
+      (window as any).React.Fragment = React.Fragment;
     }
-  };
-
-  // Try immediate assignment, but defer if needed
-  if (typeof requestIdleCallback !== "undefined") {
-    requestIdleCallback(assignReact, { timeout: 100 });
-  } else {
-    setTimeout(assignReact, 0);
+  } catch (error) {
+    // If assignment fails, log in development
+    if (process.env.NODE_ENV === "development") {
+      console.error("Failed to assign React to window:", error);
+    }
   }
 }
