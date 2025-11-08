@@ -125,10 +125,12 @@ export default defineConfig({
               return "vendor-ui";
             }
             
-            // Radix UI components (large library)
-            // Note: Radix UI depends on React, so React must be in main bundle
+            // Radix UI components - keep with React to avoid initialization issues
+            // Radix UI must have React available when it loads, so we keep it in main bundle
+            // or in a chunk that loads after React is initialized
+            // For now, we'll keep it in main bundle to avoid the forwardRef error
             if (id.includes("@radix-ui")) {
-              return "vendor-radix";
+              return undefined; // Keep with React in main bundle
             }
             
             // Large charting library - split separately
@@ -165,7 +167,9 @@ export default defineConfig({
           return `assets/[name]-[hash].${ext}`;
         },
       },
-      preserveEntrySignatures: "strict",
+      // Remove strict entry signatures to allow Vite to properly handle chunk dependencies
+      // This ensures React loads before Radix UI chunks
+      preserveEntrySignatures: false,
     },
 
     modulePreload: { 
