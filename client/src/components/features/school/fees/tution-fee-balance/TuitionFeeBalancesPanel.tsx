@@ -3,8 +3,10 @@ import { motion } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useSchoolClasses, useSchoolTuitionBalancesList, useSchoolTuitionBalance, useBulkCreateSchoolTuitionBalances } from "@/lib/hooks/school";
+import { SchoolClassDropdown } from "@/components/shared/Dropdowns";
 import type { SchoolTuitionFeeBalanceRead, SchoolTuitionFeeBalanceFullRead } from "@/lib/types/school";
 import { StudentFeeBalancesTable } from "./StudentFeeBalancesTable";
 import { Plus } from "lucide-react";
@@ -226,7 +228,10 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
   // Auto-select first class when available
   useEffect(() => {
     if (!balanceClass && classes.length > 0) {
-      setBalanceClass(classes[0].class_id?.toString() || '');
+      const firstClassId = classes[0]?.class_id;
+      if (firstClassId) {
+        setBalanceClass(firstClassId.toString());
+      }
     }
   }, [classes, balanceClass]);
 
@@ -304,15 +309,42 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
       transition={{ delay: 0.1 }}
       className="space-y-4"
     >
+      {/* Class Selection Dropdown */}
+      <div className="bg-white p-4 rounded-lg border shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex-1 max-w-xs">
+            <Label htmlFor="class-select">Select Class *</Label>
+            <SchoolClassDropdown
+              value={classIdNum || null}
+              onChange={(value) => {
+                if (value !== null) {
+                  setBalanceClass(value.toString());
+                } else {
+                  setBalanceClass("");
+                }
+              }}
+              placeholder="Select a class"
+              required
+            />
+          </div>
+          {!classIdNum && (
+            <p className="text-sm text-red-500">
+              Please select a class to view fee balances
+            </p>
+          )}
+        </div>
+      </div>
 
-      <StudentFeeBalancesTable
+      {classIdNum && (
+        <StudentFeeBalancesTable
         studentBalances={rows}
         onViewStudent={handleViewStudent}
         onExportCSV={onExportCSV}
         onBulkCreate={handleOpenBulkCreate}
         showHeader={false}
         classes={classes}
-      />
+        />
+      )}
 
       {/* Details Dialog */}
       <DetailsDialog

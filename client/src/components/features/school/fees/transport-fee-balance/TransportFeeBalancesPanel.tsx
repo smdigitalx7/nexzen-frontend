@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useSchoolClasses, useSchoolTransportBalancesList, useSchoolTransportBalance, useBulkCreateSchoolTransportBalances } from "@/lib/hooks/school";
+import { SchoolClassDropdown } from "@/components/shared/Dropdowns";
 import type { SchoolTransportFeeBalanceListRead, SchoolTransportFeeBalanceFullRead } from "@/lib/types/school";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import StudentFeeBalancesTable from "../tution-fee-balance/StudentFeeBalancesTable";
@@ -13,17 +15,23 @@ type StudentRow = React.ComponentProps<typeof StudentFeeBalancesTable>["studentB
 
 export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onViewStudent: (s: StudentRow) => void; onExportCSV: () => void; }) {
   const { data: classes = [] } = useSchoolClasses();
-  const [balanceClass, setBalanceClass] = useState<string>(classes[0]?.class_id?.toString() || "");
+  const [balanceClass, setBalanceClass] = useState<string>("");
   const { toast } = useToast();
   const bulkCreateMutation = useBulkCreateSchoolTransportBalances();
 
   useEffect(() => {
     if (!balanceClass && classes.length > 0) {
-      setBalanceClass(classes[0].class_id?.toString() || '');
+      const firstClassId = classes[0]?.class_id;
+      if (firstClassId) {
+        setBalanceClass(firstClassId.toString());
+      }
     }
   }, [classes, balanceClass]);
 
-  const classIdNum = balanceClass ? parseInt(balanceClass) : undefined;
+  const classIdNum = useMemo(() => 
+    balanceClass ? parseInt(balanceClass) : undefined,
+    [balanceClass]
+  );
   const { data: transportResp, refetch } = useSchoolTransportBalancesList({ class_id: classIdNum, page: 1, page_size: 50 });
   const [selectedBalanceId, setSelectedBalanceId] = useState<number | undefined>();
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -82,8 +90,34 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
       transition={{ delay: 0.1 }}
       className="space-y-4"
     >
+      {/* Class Selection Dropdown */}
+      <div className="bg-white p-4 rounded-lg border shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex-1 max-w-xs">
+            <Label htmlFor="class-select">Select Class *</Label>
+            <SchoolClassDropdown
+              value={classIdNum || null}
+              onChange={(value) => {
+                if (value !== null) {
+                  setBalanceClass(value.toString());
+                } else {
+                  setBalanceClass("");
+                }
+              }}
+              placeholder="Select a class"
+              required
+            />
+          </div>
+          {!classIdNum && (
+            <p className="text-sm text-red-500">
+              Please select a class to view fee balances
+            </p>
+          )}
+        </div>
+      </div>
 
-      <StudentFeeBalancesTable
+      {classIdNum && (
+        <StudentFeeBalancesTable
         studentBalances={rows}
         onViewStudent={(student) => {
           setSelectedBalanceId(student.id);
@@ -93,7 +127,8 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
         onExportCSV={onExportCSV}
         onBulkCreate={() => setBulkCreateOpen(true)}
         showHeader={false}
-      />
+        />
+      )}
 
       {/* Details Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>

@@ -10,7 +10,7 @@ export function useSchoolTuitionBalancesList(params?: { page?: number; page_size
   return useQuery({
     queryKey: schoolKeys.tuition.list(params as Record<string, unknown> | undefined),
     queryFn: () => SchoolTuitionFeeBalancesService.list(params),
-    enabled: !!params?.class_id,
+    enabled: !!params?.class_id && params.class_id > 0,
   });
 }
 
@@ -133,7 +133,7 @@ export function useSchoolTransportBalancesList(params?: { page?: number; page_si
   return useQuery({
     queryKey: schoolKeys.transport.list(params as Record<string, unknown> | undefined),
     queryFn: () => SchoolTransportFeeBalancesService.list(params),
-    enabled: !!params?.class_id,
+    enabled: !!params?.class_id && params.class_id > 0,
   });
 }
 

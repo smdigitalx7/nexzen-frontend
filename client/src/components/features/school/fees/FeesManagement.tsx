@@ -3,9 +3,11 @@ import React, { useMemo, memo, useCallback } from "react";
 import { CreditCard, Building2, Truck } from "lucide-react";
 import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { TabSwitcher } from "@/components/shared";
-import { useSchoolFeesManagement } from "@/lib/hooks/school";
+import { useSchoolFeesManagement, useSchoolTuitionBalancesDashboard, useSchoolTransportBalancesDashboard } from "@/lib/hooks/school";
 import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalancesPanel";
 import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeBalancesPanel";
+import { SchoolTuitionFeeBalanceStatsCards } from "./tution-fee-balance/SchoolTuitionFeeBalanceStatsCards";
+import { SchoolTransportFeeBalanceStatsCards } from "./transport-fee-balance/SchoolTransportFeeBalanceStatsCards";
 import { CollectFee } from "./collect-fee/CollectFee";
 import { useAuthStore } from "@/store/authStore";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +73,10 @@ HeaderContent.displayName = "HeaderContent";
 const FeesManagementComponent = () => {
   const { currentBranch } = useAuthStore();
   const { activeTab, setActiveTab, tuitionBalances } = useSchoolFeesManagement();
+  
+  // Dashboard stats hooks
+  const { data: tuitionDashboardStats, isLoading: tuitionDashboardLoading } = useSchoolTuitionBalancesDashboard();
+  const { data: transportDashboardStats, isLoading: transportDashboardLoading } = useSchoolTransportBalancesDashboard();
   
   // State for collect fee search persistence across tab switches
   const [collectFeeSearchResults, setCollectFeeSearchResults] = React.useState<any[]>([]);
@@ -156,6 +162,22 @@ const FeesManagementComponent = () => {
     <div className="space-y-6 p-6">
       {/* Header */}
       <HeaderContent currentBranch={currentBranch} />
+
+      {/* School Tuition Fee Balance Dashboard Stats - Only show when tuition-balances tab is active */}
+      {activeTab === 'tuition-balances' && tuitionDashboardStats && (
+        <SchoolTuitionFeeBalanceStatsCards
+          stats={tuitionDashboardStats}
+          loading={tuitionDashboardLoading}
+        />
+      )}
+
+      {/* School Transport Fee Balance Dashboard Stats - Only show when transport-balances tab is active */}
+      {activeTab === 'transport-balances' && transportDashboardStats && (
+        <SchoolTransportFeeBalanceStatsCards
+          stats={transportDashboardStats}
+          loading={transportDashboardLoading}
+        />
+      )}
 
       {/* Main Content Tabs */}
       <TabSwitcher
