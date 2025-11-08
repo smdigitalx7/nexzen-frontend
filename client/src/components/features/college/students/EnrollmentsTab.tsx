@@ -1,7 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
 import { EnhancedDataTable } from '@/components/shared';
 import {
   EnrollmentSearchForm,
@@ -14,7 +12,6 @@ import {
   useCreateCollegeEnrollment,
   useCollegeStudentsList,
 } from '@/lib/hooks/college';
-// Note: useCollegeClasses, useCollegeGroups, useCollegeCourses from dropdowns (naming conflict)
 import { useCollegeClasses, useCollegeGroups, useCollegeCourses } from '@/lib/hooks/college/use-college-dropdowns';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { CollegeEnrollmentCreate, CollegeEnrollmentRead } from '@/lib/types/college';
@@ -39,18 +36,22 @@ const EnrollmentsTabComponent = () => {
   const courses = coursesData?.items || [];
   const students = studentsData?.data || [];
 
-  // Memoized API parameters
+  // Memoized API parameters - both class_id and group_id are required
   const apiParams = useMemo(() => {
-    const params: any = {};
-    if (query.class_id) {
-      params.class_id = Number(query.class_id);
-      if (query.group_id) {
-        params.group_id = Number(query.group_id);
-      }
-      if (query.course_id) {
-        params.course_id = Number(query.course_id);
-      }
+    // Both class_id and group_id are required
+    if (!query.class_id || !query.group_id) {
+      return undefined;
     }
+    
+    const params: any = {
+      class_id: Number(query.class_id),
+      group_id: Number(query.group_id),
+    };
+    
+    if (query.course_id) {
+      params.course_id = Number(query.course_id);
+    }
+    
     return params;
   }, [query.class_id, query.group_id, query.course_id]);
 
@@ -109,6 +110,43 @@ const EnrollmentsTabComponent = () => {
     setIsViewDialogOpen(true);
   }, []);
 
+  // Memoized handlers
+  const handleGroupChange = useCallback((value: string) => {
+    setQuery(prev => ({ 
+      ...prev, 
+      group_id: value ? Number(value) : '',
+      course_id: '' // Reset course when group changes
+    }));
+  }, []);
+
+  const handleCourseChange = useCallback((value: string) => {
+    setQuery(prev => ({ 
+      ...prev, 
+      course_id: value ? Number(value) : '' 
+    }));
+  }, []);
+
+  const handleAdmissionNoChange = useCallback((value: string) => {
+    setQuery(prev => ({ 
+      ...prev, 
+      admission_no: value 
+    }));
+  }, []);
+
+  const handleClear = useCallback(() => {
+    setQuery({ class_id: '', group_id: '', course_id: '', admission_no: '' });
+  }, []);
+
+  // Handle class change - reset group and course when class changes
+  const handleClassChange = useCallback((value: string) => {
+    setQuery(prev => ({ 
+      ...prev, 
+      class_id: value ? Number(value) : '', 
+      group_id: '', // Reset group when class changes
+      course_id: '' // Reset course when class changes
+    }));
+  }, []);
+
   // Flatten enrollments for table display
   const flattenedEnrollments = useMemo(() => {
     if (!result.data?.enrollments) return [];
@@ -131,67 +169,39 @@ const EnrollmentsTabComponent = () => {
     return flattened;
   }, [result.data]);
 
-  // Table columns
-  const columns: ColumnDef<any>[] = useMemo(() => [
+  // Define columns
+  const columns: ColumnDef<CollegeEnrollmentRead & { class_name?: string; group_name?: string; course_name?: string }>[] = useMemo(() => [
     {
-      id: 'admission_no',
       accessorKey: 'admission_no',
       header: 'Admission No',
-      cell: ({ row }) => (
-        <div className="font-medium">{row.original.admission_no}</div>
-      ),
     },
     {
-      id: 'student_name',
       accessorKey: 'student_name',
       header: 'Student Name',
     },
     {
-      id: 'roll_number',
       accessorKey: 'roll_number',
-      header: 'Roll Number',
+      header: 'Roll No',
     },
     {
-      id: 'class_group',
-      header: 'Class / Group',
-      accessorFn: (row) => {
-        if (row.class_name && row.group_name) {
-          return `${row.class_name} / ${row.group_name}`;
-        }
-        if (row.class_name) return row.class_name;
-        if (row.group_name) return row.group_name;
-        return '-';
-      },
-      cell: ({ row }) => {
-        const className = row.original.class_name;
-        const groupName = row.original.group_name;
-        return (
-          <div>
-            {className && groupName
-              ? `${className} / ${groupName}`
-              : className || groupName || '-'}
-          </div>
-        );
-      },
+      accessorKey: 'class_name',
+      header: 'Class',
     },
     {
-      id: 'course_name',
+      accessorKey: 'group_name',
+      header: 'Group',
+    },
+    {
       accessorKey: 'course_name',
       header: 'Course',
-      cell: ({ row }) => (
-        <div>{row.original.course_name || '-'}</div>
-      ),
+      cell: ({ row }) => row.original.course_name || '-',
     },
     {
-      id: 'enrollment_date',
       accessorKey: 'enrollment_date',
-      header: 'Enrollment Date',
-      cell: ({ row }) => (
-        <div>{row.original.enrollment_date ? new Date(row.original.enrollment_date).toLocaleDateString() : '-'}</div>
-      ),
+      header: 'Date',
+      cell: ({ row }) => row.original.enrollment_date || '-',
     },
     {
-      id: 'is_active',
       accessorKey: 'is_active',
       header: 'Status',
       cell: ({ row }) => (
@@ -218,43 +228,31 @@ const EnrollmentsTabComponent = () => {
         classes={classes}
         groups={groups}
         courses={courses}
-        onClassChange={(value) => setQuery(prev => ({ ...prev, class_id: value ? Number(value) : '', group_id: '', course_id: '' }))}
-        onGroupChange={(value) => setQuery(prev => ({ ...prev, group_id: value ? Number(value) : '', course_id: '' }))}
-        onCourseChange={(value) => setQuery(prev => ({ ...prev, course_id: value ? Number(value) : '' }))}
-        onAdmissionNoChange={(value) => setQuery(prev => ({ ...prev, admission_no: value }))}
-        onClear={() => setQuery({ class_id: '', group_id: '', course_id: '', admission_no: '' })}
+        onClassChange={handleClassChange}
+        onGroupChange={handleGroupChange}
+        onCourseChange={handleCourseChange}
+        onAdmissionNoChange={handleAdmissionNoChange}
+        onClear={handleClear}
       />
 
-      {/* Create Button */}
-      <div className="flex justify-between items-center">
-        <div>
-          {result.data && (
-            <div className="text-sm text-slate-600">
-              Total: {result.data.total_count} enrollments
-              {result.data.total_pages > 1 && (
-                <span> • Page {result.data.current_page} of {result.data.total_pages}</span>
-              )}
-            </div>
-          )}
+      {/* Enhanced Data Table */}
+      {!query.class_id || !query.group_id ? (
+        <div className="text-sm text-slate-600 p-4 text-center">
+          {!query.class_id 
+            ? 'Please select a class and group to view enrollments.'
+            : 'Please select a group to view enrollments.'}
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Create Enrollment
-        </Button>
-      </div>
-
-      {/* Data Table */}
-      {query.class_id === '' ? (
-        <div className="text-sm text-slate-600">Select a class to load enrollments.</div>
-      ) : result.isLoading ? (
-        <div className="text-sm text-slate-600">Loading enrollments...</div>
-      ) : result.isError ? (
-        <div className="text-sm text-red-600">Failed to load enrollments</div>
       ) : (
         <EnhancedDataTable
           data={flattenedEnrollments}
           columns={columns}
+          title="Enrollments"
           searchKey="student_name"
+          searchPlaceholder="Search by student name..."
+          loading={result.isLoading}
+          onAdd={() => setIsCreateDialogOpen(true)}
+          addButtonText="Add Enrollment"
+          addButtonVariant="default"
           showActions={true}
           actionButtonGroups={actionButtonGroups}
           actionColumnHeader="Actions"

@@ -92,7 +92,7 @@ export const collegeKeys = {
   },
   studentTransport: {
     root: () => [...collegeKeys.root, "student-transport-assignments"] as const,
-    list: () => [...collegeKeys.studentTransport.root(), "list"] as const,
+    list: (params?: { class_id?: number; group_id?: number; bus_route_id?: number }) => [...collegeKeys.studentTransport.root(), "list", params ?? {}] as const,
     detail: (id: number) => [...collegeKeys.studentTransport.root(), "detail", id] as const,
   },
   teacherGroupSubjects: {

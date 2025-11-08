@@ -1,10 +1,10 @@
 import { Api } from "@/lib/api";
-import { CollegeCreateExamMarkBulk, CollegeExamMarkBulkCreateResult, CollegeExamMarkFullReadResponse, CollegeExamMarkMinimalRead, CollegeExamMarkUpdate, CollegeExamMarksListParams } from "@/lib/types/college";
+import { CollegeCreateExamMarkBulk, CollegeExamMarkBulkCreateResult, CollegeExamMarkCreate, CollegeExamMarkFullReadResponse, CollegeExamGroupAndClassResponse, CollegeExamMarkUpdate, CollegeExamMarksListParams } from "@/lib/types/college";
 
 export const CollegeExamMarksService = {
   // GET /api/v1/college/exam-marks
   list(params?: CollegeExamMarksListParams) {
-    return Api.get<CollegeExamMarkMinimalRead[]>(`/college/exam-marks`, params as Record<string, string | number | boolean | null | undefined> | undefined);
+    return Api.get<CollegeExamGroupAndClassResponse[]>(`/college/exam-marks`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
 
   // GET /api/v1/college/exam-marks/{mark_id}
@@ -13,7 +13,7 @@ export const CollegeExamMarksService = {
   },
 
   // POST /api/v1/college/exam-marks
-  create(payload: CollegeExamMarkUpdate) {
+  create(payload: CollegeExamMarkCreate) {
     return Api.post<CollegeExamMarkFullReadResponse>(`/college/exam-marks`, payload);
   },
 

@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useEffect, useMemo } from "react";
-import { Users, IdCard, MapPin, Building2, LayoutGrid } from "lucide-react";
+import { Users, IdCard, MapPin, Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
 import { useAuthStore } from "@/store/authStore";
@@ -8,20 +8,13 @@ import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 import { StudentsTab } from "./StudentsTab";
 import { EnrollmentsTab } from "./EnrollmentsTab";
 import { TransportTab } from "./TransportTab";
-import SectionMappingTab from "./SectionMappingTab";
 
 const StudentManagement = () => {
   const { currentBranch } = useAuthStore();
   const { activeTab: activePageTab, setActiveTab: setActivePageTab } =
-    useTabNavigation("section-mapping");
+    useTabNavigation("enrollments");
 
   const tabs = useMemo(() => [
-    {
-      value: "section-mapping",
-      label: "Section Mapping",
-      icon: LayoutGrid,
-      content: <SectionMappingTab />,
-    },
     {
       value: "enrollments",
       label: "Enrollments",

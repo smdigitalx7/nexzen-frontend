@@ -13,6 +13,7 @@ export function useCollegeEnrollmentsList(params?: CollegeEnrollmentFilterParams
   return useQuery({
     queryKey: collegeKeys.enrollments.list(params),
     queryFn: () => CollegeEnrollmentsService.list(params),
+    enabled: !!params && !!params.class_id && !!params.group_id,
   });
 }
 

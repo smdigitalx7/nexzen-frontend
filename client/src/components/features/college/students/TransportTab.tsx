@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog, EnhancedDataTable } from '@/components/shared';
 import {
+  TransportSearchForm,
   TransportCreateDialog,
   TransportEditDialog,
   TransportViewDialog,
@@ -19,10 +20,27 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { CollegeTransportAssignmentCreate, CollegeTransportAssignmentUpdate, CollegeTransportRoute, CollegeTransportStudent } from '@/lib/types/college';
 
 const TransportTabComponent = () => {
+  // State management
+  const [query, setQuery] = useState<{ class_id: number | ''; group_id?: number | ''; bus_route_id?: number | '' }>({ 
+    class_id: '', 
+    group_id: '', 
+    bus_route_id: '' 
+  });
+
   // Fetch dropdown data
   const { data: routesData } = useBusRoutes();
   const { distanceSlabs } = useDistanceSlabs();
-  const { data: enrollmentsData } = useCollegeEnrollmentsList();
+  
+  // Get enrollments for create dialog - only fetch when class and group are selected
+  const enrollmentsApiParams = useMemo(() => {
+    if (!query.class_id || !query.group_id) return undefined;
+    return {
+      class_id: Number(query.class_id),
+      group_id: Number(query.group_id),
+    };
+  }, [query.class_id, query.group_id]);
+  
+  const { data: enrollmentsData } = useCollegeEnrollmentsList(enrollmentsApiParams);
   
   const busRoutes = Array.isArray(routesData) ? routesData : [];
   const slabs = distanceSlabs || [];
@@ -45,8 +63,27 @@ const TransportTabComponent = () => {
     return flattened;
   }, [enrollmentsData]);
 
+  // Memoized API parameters - both class_id and group_id are required
+  const apiParams = useMemo(() => {
+    // Both class_id and group_id are required
+    if (!query.class_id || !query.group_id) {
+      return undefined;
+    }
+    
+    const params: any = {
+      class_id: Number(query.class_id),
+      group_id: Number(query.group_id),
+    };
+    
+    if (query.bus_route_id) {
+      params.bus_route_id = Number(query.bus_route_id);
+    }
+    
+    return params;
+  }, [query.class_id, query.group_id, query.bus_route_id]);
+
   // API hooks
-  const result = useCollegeStudentTransportAssignments();
+  const result = useCollegeStudentTransportAssignments(apiParams);
   const createMutation = useCreateCollegeStudentTransportAssignment();
   const updateMutation = useUpdateCollegeStudentTransportAssignment();
   const deleteMutation = useDeleteCollegeStudentTransportAssignment();
@@ -138,6 +175,34 @@ const TransportTabComponent = () => {
     setIsDeleteDialogOpen(true);
   }, []);
 
+  // Memoized handlers
+  const handleGroupChange = useCallback((value: string) => {
+    setQuery(prev => ({ 
+      ...prev, 
+      group_id: value ? Number(value) : '' 
+    }));
+  }, []);
+
+  const handleBusRouteChange = useCallback((value: string) => {
+    setQuery(prev => ({ 
+      ...prev, 
+      bus_route_id: value ? Number(value) : '' 
+    }));
+  }, []);
+
+  const handleClear = useCallback(() => {
+    setQuery({ class_id: '', group_id: '', bus_route_id: '' });
+  }, []);
+
+  // Handle class change - reset group when class changes
+  const handleClassChange = useCallback((value: string) => {
+    setQuery(prev => ({ 
+      ...prev, 
+      class_id: value ? Number(value) : '', 
+      group_id: '' // Reset group when class changes
+    }));
+  }, []);
+
   // Handle update
   const handleUpdate = useCallback(async () => {
     if (!selectedAssignmentId || !selectedAssignment) return;
@@ -211,65 +276,33 @@ const TransportTabComponent = () => {
     return flattened;
   }, [result.data]);
 
-  // Table columns
+  // Define columns
   const columns: ColumnDef<any>[] = useMemo(() => [
     {
-      id: 'admission_no',
       accessorKey: 'admission_no',
       header: 'Admission No',
-      cell: ({ row }) => (
-        <div className="font-medium">{row.original.admission_no}</div>
-      ),
     },
     {
-      id: 'student_name',
       accessorKey: 'student_name',
       header: 'Student Name',
     },
     {
-      id: 'roll_number',
       accessorKey: 'roll_number',
-      header: 'Roll Number',
+      header: 'Roll No',
     },
     {
-      id: 'route_name',
+      accessorKey: 'class_name',
+      header: 'Class',
+    },
+    {
+      accessorKey: 'group_name',
+      header: 'Group',
+    },
+    {
       accessorKey: 'route_name',
       header: 'Route',
     },
     {
-      id: 'class_group',
-      header: 'Class / Group',
-      accessorFn: (row) => {
-        // Show both class and group together
-        if (row.class_name && row.group_name) {
-          return `${row.class_name} / ${row.group_name}`;
-        }
-        if (row.class_name) return row.class_name;
-        if (row.group_name) return row.group_name;
-        return '-';
-      },
-      cell: ({ row }) => {
-        const className = row.original.class_name;
-        const groupName = row.original.group_name;
-        return (
-          <div>
-            {className && groupName
-              ? `${className} / ${groupName}`
-              : className || groupName || '-'}
-          </div>
-        )
-      }
-    },
-    {
-      id: 'pickup_point',
-      accessorKey: 'pickup_point',
-      header: 'Pickup Point',
-      cell: ({ row }) => (
-        <div>{row.original.pickup_point || '-'}</div>
-      ),
-    },
-    {
-      id: 'is_active',
       accessorKey: 'is_active',
       header: 'Status',
       cell: ({ row }) => (
@@ -298,22 +331,39 @@ const TransportTabComponent = () => {
 
   return (
     <div className="space-y-4">
-      {/* Enhanced Data Table */}
-      <EnhancedDataTable
-        data={flatData}
-        columns={columns}
-        title="Transport Assignments"
-        searchKey="student_name"
-        searchPlaceholder="Search by student name..."
-        loading={result.isLoading}
-        onAdd={() => setIsCreateDialogOpen(true)}
-        addButtonText="Add Transport Assignment"
-        addButtonVariant="default"
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={false}
+      {/* Search Form */}
+      <TransportSearchForm
+        query={query}
+        onClassChange={handleClassChange}
+        onGroupChange={handleGroupChange}
+        onBusRouteChange={handleBusRouteChange}
+        onClear={handleClear}
       />
+
+      {/* Enhanced Data Table */}
+      {!query.class_id || !query.group_id ? (
+        <div className="text-sm text-slate-600 p-4 text-center">
+          {!query.class_id 
+            ? 'Please select a class and group to view transport assignments.'
+            : 'Please select a group to view transport assignments.'}
+        </div>
+      ) : (
+        <EnhancedDataTable
+          data={flatData}
+          columns={columns}
+          title="Transport Assignments"
+          searchKey="student_name"
+          searchPlaceholder="Search by student name..."
+          loading={result.isLoading}
+          onAdd={() => setIsCreateDialogOpen(true)}
+          addButtonText="Add Transport Assignment"
+          addButtonVariant="default"
+          showActions={true}
+          actionButtonGroups={actionButtonGroups}
+          actionColumnHeader="Actions"
+          showActionLabels={true}
+        />
+      )}
 
       {/* Create Transport Assignment Dialog */}
       <TransportCreateDialog

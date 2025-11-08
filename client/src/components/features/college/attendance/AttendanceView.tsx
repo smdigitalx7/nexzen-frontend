@@ -113,7 +113,6 @@ export default function AttendanceView() {
     { accessorKey: 'admission_no', header: 'Admission No' },
     { accessorKey: 'roll_number', header: 'Roll' },
     { accessorKey: 'student_name', header: 'Student' },
-    { accessorKey: 'group_name', header: 'Group' },
     { accessorKey: 'total_working_days', header: 'Working Days', cell: ({ getValue }) => (getValue<number>() ?? 0) },
     { accessorKey: 'present_days', header: 'Present', cell: ({ getValue }) => (getValue<number>() ?? 0) },
     { accessorKey: 'absent_days', header: 'Absent', cell: ({ getValue }) => (getValue<number>() ?? 0) },
@@ -123,7 +122,7 @@ export default function AttendanceView() {
     <>
       <CardContent>
         {/* Filters & Actions Bar */}
-        <div className="flex flex-wrap items-center justify-end gap-2 mb-2">
+        <div className="flex flex-wrap items-center justify-start gap-2 mb-2">
           <CollegeClassDropdown
             value={selectedClassId}
             onChange={(value) => {

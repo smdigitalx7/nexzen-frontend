@@ -8,8 +8,13 @@ export const CollegeStudentTransportAssignmentsService = {
   },
 
   // GET /api/v1/college/student-transport-assignments
-  list() {
-    return Api.get<CollegeTransportRoute[]>(`/college/student-transport-assignments`);
+  list(params?: { class_id?: number; group_id?: number; bus_route_id?: number }) {
+    const qs = new URLSearchParams();
+    if (params?.class_id != null) qs.append("class_id", String(params.class_id));
+    if (params?.group_id != null) qs.append("group_id", String(params.group_id));
+    if (params?.bus_route_id != null) qs.append("bus_route_id", String(params.bus_route_id));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return Api.get<CollegeTransportRoute[]>(`/college/student-transport-assignments${suffix}`);
   },
 
   // GET /api/v1/college/student-transport-assignments/{assignment_id}

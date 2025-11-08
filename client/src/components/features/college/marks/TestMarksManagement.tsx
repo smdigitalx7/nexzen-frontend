@@ -18,7 +18,6 @@ import { LoadingStates } from '@/components/ui/loading';
 import {
   CollegeClassDropdown,
   CollegeGroupDropdown,
-  CollegeCourseDropdown,
   CollegeSubjectDropdown,
   CollegeTestDropdown,
 } from '@/components/shared/Dropdowns';
@@ -32,7 +31,6 @@ import {
 } from '@/lib/hooks/college';
 import {
   useCollegeGroups,
-  useCollegeCourses,
   useCollegeSubjects,
   useCollegeTests,
 } from '@/lib/hooks/college/use-college-dropdowns';
@@ -81,7 +79,6 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
   const [selectedClass, setSelectedClass] = useState<number | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
-  const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
   const [selectedTest, setSelectedTest] = useState<number | null>(null);
   
   // Dialog states
@@ -95,20 +92,17 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
   const { data: studentsData } = useCollegeStudentsList();
   const students = studentsData?.data || [];
   const { data: groupsData } = useCollegeGroups(selectedClass || undefined);
-  const { data: coursesData } = useCollegeCourses(selectedGroup || 0);
   const { data: subjectsData } = useCollegeSubjects(selectedGroup || 0);
   const { data: testsData } = useCollegeTests();
 
-  // Get groups and courses for lookup maps (for filtering)
+  // Get groups for lookup maps (for filtering)
   const groups = groupsData?.items || [];
-  const courses = coursesData?.items || [];
   const subjects = subjectsData?.items || [];
   const tests = testsData?.items || [];
 
   // Reset dependent dropdowns when class changes
   useEffect(() => {
     setSelectedGroup(null);
-    setSelectedCourse(null);
     setSelectedSubject(null);
     setSelectedTest(null);
   }, [selectedClass]);
@@ -119,19 +113,16 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
   const viewTestLoading = viewQuery.isLoading;
   const viewTestError = viewQuery.error;
 
-  // Test marks hooks - only fetch when class is selected and groups are loaded
+  // Test marks hooks - only fetch when both class and group are explicitly selected
   const testMarksQuery = useMemo((): CollegeTestMarksListParams | undefined => {
-    if (!selectedClass || groups.length === 0) {
+    // Both class_id and group_id are required
+    if (!selectedClass || !selectedGroup) {
       return undefined;
     }
     
-    const groupId = selectedGroup !== null && selectedGroup !== undefined
-      ? selectedGroup
-      : (groups[0]?.group_id ?? 0);
-    
     const query: CollegeTestMarksListParams = {
       class_id: selectedClass,
-      group_id: groupId,
+      group_id: selectedGroup,
     };
     
     if (selectedTest !== null && selectedTest !== undefined) {
@@ -142,7 +133,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
     }
     
     return query;
-  }, [selectedClass, selectedGroup, selectedTest, selectedSubject, groups]);
+  }, [selectedClass, selectedGroup, selectedTest, selectedSubject]);
 
   const { data: testMarksData, isLoading: testMarksLoading, error: testMarksError } = useCollegeTestMarksList(testMarksQuery);
   const createTestMarkMutation = useCreateCollegeTestMark();
@@ -705,15 +696,6 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                 emptyValue
                 emptyValueLabel="All Groups"
               />
-              <CollegeCourseDropdown
-                groupId={selectedGroup || 0}
-                value={selectedCourse}
-                onChange={setSelectedCourse}
-                placeholder="All Courses"
-                className="w-full sm:w-[150px]"
-                emptyValue
-                emptyValueLabel="All Courses"
-              />
               <CollegeSubjectDropdown
                 groupId={selectedGroup || 0}
                 value={selectedSubject}
@@ -734,16 +716,20 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
             </div>
 
             {/* Data Table */}
-            {!selectedClass ? (
+            {!selectedClass || !selectedGroup ? (
               <Card className="p-8 text-center">
                 <div className="flex flex-col items-center space-y-4">
                   <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
                     <ClipboardList className="h-8 w-8 text-slate-400" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-slate-900">Select a Class</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      {!selectedClass ? 'Select a Class' : 'Select a Group'}
+                    </h3>
                     <p className="text-slate-600 mt-1">
-                      Please select a class from the dropdown above to view test marks.
+                      {!selectedClass 
+                        ? 'Please select a class and group from the dropdowns above to view test marks.'
+                        : 'Please select a group from the dropdown above to view test marks.'}
                     </p>
                   </div>
                 </div>

@@ -78,7 +78,7 @@ export const EnrollmentSearchForm = ({
           </div>
         </div>
 
-        <div className="flex gap-2">
+        {/* <div className="flex gap-2">
           <Button
             onClick={onClear}
             variant="outline"
@@ -87,7 +87,7 @@ export const EnrollmentSearchForm = ({
             <Eye className="w-4 h-4" />
             Clear
           </Button>
-        </div>
+        </div> */}
       </div>
     </div>
   );

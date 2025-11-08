@@ -20,9 +20,9 @@ export interface CollegeExamMarkUpdate {
 export interface CollegeExamMarkMinimalRead {
   mark_id: number;
   enrollment_id: number;
+  admission_no: string;
   student_name: string;
   roll_number: string;
-  section_name: string;
   marks_obtained: number | null;
   percentage: number | null;
   grade: string | null;
@@ -30,13 +30,17 @@ export interface CollegeExamMarkMinimalRead {
   conducted_at: string | null;
 }
 
-export interface CollegeExamGroupAndClassResponse {
-  exam_id: number;
-  exam_name: string;
-  conducted_at: string;
+export interface CollegeExamSubjectWiseResponse {
   subject_id: number;
   subject_name: string;
   students: CollegeExamMarkMinimalRead[] | null;
+}
+
+export interface CollegeExamGroupAndClassResponse {
+  exam_id: number;
+  exam_name: string;
+  conducted_at: string | null;
+  subjects: CollegeExamSubjectWiseResponse[] | null;
 }
 
 export interface CollegeExamMarkFullReadResponse {
@@ -45,7 +49,7 @@ export interface CollegeExamMarkFullReadResponse {
   student_name: string;
   roll_number: string;
   class_name: string;
-  section_name: string;
+  group_name: string;
   exam_id: number;
   exam_name: string;
   subject_id: number;
@@ -63,7 +67,7 @@ export interface CollegeExamMarkFullReadResponse {
 
 export interface CollegeCreateExamMarkBulk {
   class_id: number;
-  section_id?: number;
+  group_id?: number;
   exam_id: number;
   subject_id: number;
   conducted_at: string;

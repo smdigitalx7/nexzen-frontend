@@ -4,10 +4,11 @@ import type { CollegeTransportAssignmentCreate, CollegeTransportAssignmentRead, 
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
-export function useCollegeStudentTransportAssignments() {
+export function useCollegeStudentTransportAssignments(params?: { class_id?: number; group_id?: number; bus_route_id?: number }) {
   return useQuery({
-    queryKey: collegeKeys.studentTransport.list(),
-    queryFn: () => CollegeStudentTransportAssignmentsService.list(),
+    queryKey: collegeKeys.studentTransport.list(params),
+    queryFn: () => CollegeStudentTransportAssignmentsService.list(params),
+    enabled: !!params && !!params.class_id && !!params.group_id,
   });
 }
 

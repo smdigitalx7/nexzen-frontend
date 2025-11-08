@@ -17,7 +17,6 @@ import { EnhancedDataTable } from '@/components/shared';
 import {
   CollegeClassDropdown,
   CollegeGroupDropdown,
-  CollegeCourseDropdown,
   CollegeSubjectDropdown,
   CollegeExamDropdown,
 } from '@/components/shared/Dropdowns';
@@ -31,7 +30,6 @@ import {
 } from '@/lib/hooks/college';
 import {
   useCollegeGroups,
-  useCollegeCourses,
   useCollegeSubjects,
   useCollegeExams,
 } from '@/lib/hooks/college/use-college-dropdowns';
@@ -81,7 +79,6 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
   const [selectedClass, setSelectedClass] = useState<number | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
-  const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
   const [selectedExam, setSelectedExam] = useState<number | null>(null);
   
   // Dialog states
@@ -95,20 +92,17 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
   const { data: studentsData } = useCollegeStudentsList();
   const students = studentsData?.data || [];
   const { data: groupsData } = useCollegeGroups(selectedClass || undefined);
-  const { data: coursesData } = useCollegeCourses(selectedGroup || 0);
   const { data: subjectsData } = useCollegeSubjects(selectedGroup || 0);
   const { data: examsData } = useCollegeExams();
 
-  // Get groups and courses for lookup maps (for filtering)
+  // Get groups for lookup maps (for filtering)
   const groups = groupsData?.items || [];
-  const courses = coursesData?.items || [];
   const subjects = subjectsData?.items || [];
   const exams = examsData?.items || [];
 
   // Reset dependent dropdowns when class changes
   useEffect(() => {
     setSelectedGroup(null);
-    setSelectedCourse(null);
     setSelectedSubject(null);
     setSelectedExam(null);
   }, [selectedClass]);
@@ -119,27 +113,16 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
   const viewExamLoading = viewingExamMarkId ? viewQuery.isLoading : false;
   const viewExamError = viewingExamMarkId ? viewQuery.error : null;
 
-  // Exam marks hooks - only fetch when class is selected and groups are loaded
+  // Exam marks hooks - only fetch when both class and group are explicitly selected
   const examMarksQuery = useMemo((): CollegeExamMarksListParams | undefined => {
-    if (!selectedClass || groups.length === 0) {
-      return undefined;
-    }
-    
-    // Determine group_id to use
-    let groupId: number;
-    if (selectedGroup !== null && selectedGroup !== undefined) {
-      groupId = selectedGroup;
-    } else if (groups[0]?.group_id) {
-      // Use the first group as default when null is selected
-      groupId = groups[0].group_id;
-    } else {
-      // No valid group_id available
+    // Both class_id and group_id are required
+    if (!selectedClass || !selectedGroup) {
       return undefined;
     }
     
     const query: CollegeExamMarksListParams = {
       class_id: selectedClass,
-      group_id: groupId,
+      group_id: selectedGroup,
     };
     
     if (selectedSubject !== null && selectedSubject !== undefined) {
@@ -150,7 +133,7 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
     }
     
     return query;
-  }, [selectedClass, selectedSubject, selectedGroup, selectedExam, groups]);
+  }, [selectedClass, selectedSubject, selectedGroup, selectedExam]);
 
   const { data: examMarksData, isLoading: examMarksLoading, error: examMarksError } = useCollegeExamMarksList(examMarksQuery);
   const createExamMarkMutation = useCreateCollegeExamMark();
@@ -262,6 +245,7 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
                 students: Array<{
                   mark_id: number;
                   enrollment_id: number;
+                  admission_no: string;
                   student_name: string;
                   roll_number: string;
                   marks_obtained: number | null;
@@ -269,7 +253,6 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
                   grade: string | null;
                   remarks: string | null;
                   conducted_at: string | null;
-                  section_name?: string;
                 }> | null;
               }> | null;
             };
@@ -281,9 +264,9 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
                     flattened.push({
                       mark_id: student.mark_id,
                       enrollment_id: student.enrollment_id,
+                      admission_no: student.admission_no,
                       student_name: student.student_name,
                       roll_number: student.roll_number,
-                      section_name: student.section_name || '',
                       marks_obtained: student.marks_obtained,
                       percentage: student.percentage,
                       grade: student.grade,
@@ -367,9 +350,9 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
           return {
             mark_id: Number(obj.mark_id),
             enrollment_id: Number(obj.enrollment_id),
+            admission_no: String(obj.admission_no || ''),
             student_name: String(obj.student_name || ''),
             roll_number: String(obj.roll_number || ''),
-            section_name: String(obj.section_name || ''),
             marks_obtained: typeof obj.marks_obtained === 'number' ? obj.marks_obtained : null,
             percentage: typeof obj.percentage === 'number' ? obj.percentage : null,
             grade: typeof obj.grade === 'string' ? obj.grade : null,
@@ -425,7 +408,7 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
     };
 
     return [
-      createStudentColumn<ExamMarkRow>("student_name", "roll_number", "section_name", { header: "Student" }),
+      createStudentColumn<ExamMarkRow>("student_name", "roll_number", "admission_no", { header: "Student" }),
       createSubjectColumn<ExamMarkRow>("subject_name", "exam_name", { header: "Subject" }),
       createMarksColumn<ExamMarkRow>("marks_obtained", "max_marks", "percentage", { header: "Marks" }),
       createGradeColumn<ExamMarkRow>("grade", gradeColors, { header: "Grade" }),
@@ -726,15 +709,6 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
                 emptyValue
                 emptyValueLabel="All Groups"
               />
-              <CollegeCourseDropdown
-                groupId={selectedGroup || 0}
-                value={selectedCourse}
-                onChange={setSelectedCourse}
-                placeholder="All Courses"
-                className="w-full sm:w-[150px]"
-                emptyValue
-                emptyValueLabel="All Courses"
-              />
               <CollegeSubjectDropdown
                 groupId={selectedGroup || 0}
                 value={selectedSubject}
@@ -755,16 +729,20 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
             </div>
 
             {/* Data Table */}
-            {!selectedClass ? (
+            {!selectedClass || !selectedGroup ? (
               <Card className="p-8 text-center">
                 <div className="flex flex-col items-center space-y-4">
                   <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
                     <GraduationCap className="h-8 w-8 text-slate-400" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-slate-900">Select a Class</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      {!selectedClass ? 'Select a Class' : 'Select a Group'}
+                    </h3>
                     <p className="text-slate-600 mt-1">
-                      Please select a class from the dropdown above to view exam marks.
+                      {!selectedClass 
+                        ? 'Please select a class and group from the dropdowns above to view exam marks.'
+                        : 'Please select a group from the dropdown above to view exam marks.'}
                     </p>
                   </div>
                 </div>
@@ -841,8 +819,8 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({ onDataChange 
                         <div className="font-medium text-slate-900">{viewedExamMark.student_name} ({viewedExamMark.roll_number})</div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-500">Class / Section</div>
-                        <div className="font-medium text-slate-900">{viewedExamMark.class_name} • {viewedExamMark.section_name}</div>
+                        <div className="text-xs text-slate-500">Class / Group</div>
+                        <div className="font-medium text-slate-900">{viewedExamMark.class_name} • {viewedExamMark.group_name || 'N/A'}</div>
                       </div>
                       <div>
                         <div className="text-xs text-slate-500">Exam</div>
