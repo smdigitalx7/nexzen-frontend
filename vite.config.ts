@@ -77,9 +77,35 @@ export default defineConfig({
         manualChunks: (id) => {
           // Split large vendor libraries into separate chunks
           if (id.includes("node_modules")) {
-            // React core
-            if (id.includes("react") || id.includes("react-dom") || id.includes("scheduler")) {
-              return "vendor-react";
+            // React core - ensure react, react-dom, and scheduler are in the same chunk
+            // This prevents initialization issues when React is split
+            // Match exact React packages, not packages that contain "react" in their name
+            if (
+              id.includes("node_modules/react/") || 
+              id.includes("node_modules/react-dom/") || 
+              id.includes("node_modules/scheduler/") ||
+              id.includes("node_modules\\react\\") || 
+              id.includes("node_modules\\react-dom\\") || 
+              id.includes("node_modules\\scheduler\\") ||
+              // Also match if it's exactly react or react-dom (for edge cases)
+              /[\/\\]react$/.test(id) ||
+              /[\/\\]react-dom$/.test(id) ||
+              /[\/\\]scheduler$/.test(id)
+            ) {
+              // Skip if it's a React-related package but not core React
+              if (
+                id.includes("react-hook-form") ||
+                id.includes("react-day-picker") ||
+                id.includes("react-icons") ||
+                id.includes("react-resizable") ||
+                id.includes("react-query") ||
+                id.includes("react-table") ||
+                id.includes("react-virtual")
+              ) {
+                // Let these fall through to their respective chunks
+              } else {
+                return "vendor-react";
+              }
             }
             
             // Router
@@ -127,7 +153,13 @@ export default defineConfig({
           }
         },
         entryFileNames: "js/[name]-[hash].js",
-        chunkFileNames: "js/[name]-[hash].js",
+        chunkFileNames: (chunkInfo) => {
+          // Ensure React chunk has a consistent name for proper loading order
+          if (chunkInfo.name === "vendor-react") {
+            return "js/vendor-react-[hash].js";
+          }
+          return "js/[name]-[hash].js";
+        },
         assetFileNames: (assetInfo) => {
           const ext = assetInfo.name?.split(".").pop() ?? "";
           if (/\.(css)$/.test(assetInfo.name ?? "")) {
