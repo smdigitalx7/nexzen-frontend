@@ -694,6 +694,17 @@ const ReservationManagementComponent = () => {
 
   const handleSave = useCallback(
     async (withPayment: boolean) => {
+      // Validate application fee
+      const applicationFee = Number(form.application_fee || 0);
+      if (!form.application_fee || applicationFee <= 0) {
+        toast({
+          title: "Validation Error",
+          description: "Application fee is required and must be greater than 0",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Map form fields to backend schema as JSON object
       const payload: SchoolReservationCreate = {
         student_name: form.student_name,

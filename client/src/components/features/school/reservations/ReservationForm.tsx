@@ -460,10 +460,15 @@ const ReservationFormComponent = ({
   onDropdownOpen,
 }: ReservationFormProps) => {
   // Memoized validation
-  const isSaveDisabled = useMemo(
-    () => !form.student_name || !form.class_name,
-    [form.student_name, form.class_name]
-  );
+  const isSaveDisabled = useMemo(() => {
+    const applicationFee = Number(form.application_fee || 0);
+    return (
+      !form.student_name ||
+      !form.class_name ||
+      !form.application_fee ||
+      applicationFee <= 0
+    );
+  }, [form.student_name, form.class_name, form.application_fee]);
 
   // Confirmation dialog states
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
@@ -719,7 +724,10 @@ const ReservationFormComponent = ({
                       onClassChange(value.toString());
                       // Update class_name if found in prop, otherwise it will be updated by parent
                       if (selectedClass) {
-                        setForm({ ...form, class_name: selectedClass.class_name });
+                        setForm({
+                          ...form,
+                          class_name: selectedClass.class_name,
+                        });
                       }
                     } else {
                       setForm({ ...form, class_name: "" });
@@ -814,14 +822,16 @@ const ReservationFormComponent = ({
                     </Label>
                     <BusRouteDropdown
                       value={
-                        form.preferred_transport_id && form.preferred_transport_id !== "0"
+                        form.preferred_transport_id &&
+                        form.preferred_transport_id !== "0"
                           ? parseInt(form.preferred_transport_id, 10)
                           : null
                       }
                       onChange={(value) => {
                         setForm({
                           ...form,
-                          preferred_transport_id: value !== null ? value.toString() : "0",
+                          preferred_transport_id:
+                            value !== null ? value.toString() : "0",
                         });
                       }}
                       placeholder="Select transport route"
@@ -839,8 +849,12 @@ const ReservationFormComponent = ({
                           : null
                       }
                       onChange={(value) => {
-                        const valueStr = value !== null ? value.toString() : "0";
-                        setForm({ ...form, preferred_distance_slab_id: valueStr });
+                        const valueStr =
+                          value !== null ? value.toString() : "0";
+                        setForm({
+                          ...form,
+                          preferred_distance_slab_id: valueStr,
+                        });
                         onDistanceSlabChange(valueStr);
                       }}
                       placeholder="Select distance slab"
@@ -956,16 +970,31 @@ const ReservationFormComponent = ({
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="application_fee">Application Fee</Label>
+                <Label htmlFor="application_fee">
+                  Application Fee <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="application_fee"
                   type="number"
+                  min="1"
                   value={form.application_fee}
                   onChange={(e) =>
                     setForm({ ...form, application_fee: e.target.value })
                   }
-                  className="w-full mb-5"
+                  className={cn(
+                    "w-full mb-5",
+                    (!form.application_fee ||
+                      Number(form.application_fee || 0) <= 0) &&
+                      "border-red-500 focus:ring-red-500"
+                  )}
+                  required
                 />
+                {(!form.application_fee ||
+                  Number(form.application_fee || 0) <= 0) && (
+                  <p className="text-sm text-red-500 mt-1">
+                    Application fee is required and must be greater than 0
+                  </p>
+                )}
               </div>
               <div></div>
             </div>
