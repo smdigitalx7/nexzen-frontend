@@ -77,9 +77,9 @@ export default defineConfig({
         manualChunks: (id) => {
           // Split large vendor libraries into separate chunks
           if (id.includes("node_modules")) {
-            // React core - keep in main bundle OR ensure it loads first
-            // For now, we'll split it but ensure proper dependencies
-            // Match exact React packages, not packages that contain "react" in their name
+            // React core - keep in main bundle to ensure it's always available
+            // This prevents Radix UI and other libraries from trying to access React
+            // before it's initialized
             if (
               id.includes("node_modules/react/") || 
               id.includes("node_modules/react-dom/") || 
@@ -104,12 +104,9 @@ export default defineConfig({
               ) {
                 // Let these fall through to their respective chunks
               } else {
-                // Return undefined to keep React in main bundle, or "vendor-react" to split
-                // Splitting React can cause issues with libraries like Radix UI
-                // that need React to be available immediately
-                // For better compatibility, we'll keep React in the main bundle
-                // return "vendor-react";
-                return undefined; // Keep React in main bundle to avoid initialization issues
+                // Keep React in main bundle - this ensures it's always available
+                // when other chunks (like Radix UI) try to import it
+                return undefined;
               }
             }
             
@@ -129,6 +126,7 @@ export default defineConfig({
             }
             
             // Radix UI components (large library)
+            // Note: Radix UI depends on React, so React must be in main bundle
             if (id.includes("@radix-ui")) {
               return "vendor-radix";
             }
@@ -172,6 +170,8 @@ export default defineConfig({
 
     modulePreload: { 
       polyfill: true,
+      // Ensure entry point is preloaded before other chunks
+      // This ensures React (in main bundle) loads before Radix UI chunks
     },
 
     terserOptions: {

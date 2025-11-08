@@ -1,11 +1,12 @@
+// CRITICAL: Import React FIRST, then react-utils to ensure React is available globally
+// before any other code (including Radix UI chunks) tries to access it
 import React from "react";
+import "./lib/react-utils";
+
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { useAuthStore } from "./store/authStore";
-
-// Import react-utils to ensure React APIs are available
-import "./lib/react-utils";
 
 // Runtime check to ensure React.forwardRef is available
 // if (typeof window !== "undefined") {
