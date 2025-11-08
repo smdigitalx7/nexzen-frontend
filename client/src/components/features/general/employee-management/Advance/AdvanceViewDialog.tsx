@@ -43,14 +43,14 @@ export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee, onCha
       size="LARGE"
       showFooter={false}
     >
-      <div className="space-y-6">
+      <div className="space-y-1.5 -mt-2">
         {/* Employee Information */}
-        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-          <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+        <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+          <h3 className="font-semibold text-lg mb-1.5 flex items-center gap-2">
             <User className="h-4 w-4" />
             Employee Information
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Employee Name</label>
               <p className="text-lg font-semibold">{employee?.employee_name || `Employee ${advance.employee_id}`}</p>
@@ -59,15 +59,15 @@ export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee, onCha
         </div>
 
         {/* Advance Information */}
-        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-          <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+        <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+          <h3 className="font-semibold text-lg mb-1.5 flex items-center gap-2">
             <span className="text-sm font-bold">₹</span>
             Advance Information
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Status</label>
-              <div className="mt-1">
+              <div className="mt-0.5">
                 <Badge className={`${getStatusColor(advance.status)}`}>
                   {advance.status}
                 </Badge>
@@ -90,12 +90,12 @@ export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee, onCha
         </div>
 
         {/* Payment Information */}
-        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-          <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+        <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+          <h3 className="font-semibold text-lg mb-1.5 flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Payment Information
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Amount Paid</label>
               <p className="text-lg font-semibold text-blue-600">
@@ -113,8 +113,8 @@ export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee, onCha
 
         {/* Request Reason */}
         {advance.request_reason && (
-          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-            <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+            <h3 className="font-semibold text-lg mb-1.5 flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Request Reason
             </h3>
@@ -126,8 +126,8 @@ export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee, onCha
 
         {/* Rejection/Cancellation Reason - Show if status is REJECTED or CANCELLED */}
         {(advance.status === "REJECTED" || advance.status === "CANCELLED") && (
-          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-            <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+            <h3 className="font-semibold text-lg mb-1.5 flex items-center gap-2">
               <X className="h-4 w-4" />
               {advance.status === "REJECTED" ? "Rejection Information" : "Cancellation Information"}
             </h3>
@@ -135,7 +135,7 @@ export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee, onCha
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">
                 {advance.status === "REJECTED" ? "Rejection Reason" : "Cancellation Reason"}
               </label>
-              <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap mt-1">
+              <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap mt-0.5">
                 {advance.reason || "No reason provided"}
               </p>
             </div>
@@ -144,7 +144,7 @@ export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee, onCha
 
         {/* Action Buttons */}
         {(onChangeStatus || onUpdateAmount) && (
-          <div className="flex items-center justify-end gap-3 pt-4 border-t">
+          <div className="flex items-center justify-end gap-3 pt-2 border-t">
             {onChangeStatus && (
               <Button
                 variant="outline"

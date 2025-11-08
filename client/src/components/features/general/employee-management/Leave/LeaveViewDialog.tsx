@@ -1,7 +1,15 @@
-import { FormDialog } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Calendar, User, FileText, Clock, CalendarDays, Check, X } from "lucide-react";
+import { DIALOG_SIZES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 interface LeaveViewDialogProps {
   open: boolean;
@@ -40,22 +48,63 @@ export const LeaveViewDialog = ({ open, onOpenChange, leave, employee, onApprove
   };
 
   return (
-    <FormDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Leave Request Details"
-      description="View leave request information and status"
-      size="LARGE"
-      showFooter={false}
-    >
-      <div className="space-y-6">
-        {/* Employee Information */}
-        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-          <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent 
+        className={cn(DIALOG_SIZES.LARGE, "max-h-[90vh] flex flex-col p-0")}
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+        }}
+      >
+        <DialogHeader className="px-6 pt-4 pb-2 flex-shrink-0 border-b border-gray-200 pr-12">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <DialogTitle>Leave Request Details</DialogTitle>
+              <DialogDescription className="mt-0.5">
+                View leave request information and status
+              </DialogDescription>
+            </div>
+            {/* Action Buttons - Show only for pending leaves - Beside heading */}
+            {(leave.leave_status === "PENDING" || leave.status === "PENDING") && (onApprove || onReject) && (
+              <div className="flex items-center gap-3 ml-4 mr-2">
+                {onReject && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => onReject(leave.leave_id)}
+                    className="flex items-center gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    Reject
+                  </Button>
+                )}
+                {onApprove && (
+                  <Button
+                    variant="default"
+                    onClick={() => onApprove(leave.leave_id)}
+                    className="flex items-center gap-2"
+                  >
+                    <Check className="h-4 w-4" />
+                    Approve
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </DialogHeader>
+        
+        <div 
+          className="flex-1 overflow-y-auto scrollbar-hide px-6 pt-2 pb-3" 
+          role="main" 
+          aria-label="Form content"
+          tabIndex={-1}
+        >
+          <div className="space-y-1.5">
+            {/* Employee Information */}
+        <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+          <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
             <User className="h-4 w-4" />
             Employee Information
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Employee Name</label>
               <p className="text-lg font-semibold">{leave.employee_name || employee?.employee_name || `Employee ${leave.employee_id}`}</p>
@@ -68,15 +117,15 @@ export const LeaveViewDialog = ({ open, onOpenChange, leave, employee, onApprove
         </div>
 
         {/* Leave Information */}
-        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-          <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+        <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+          <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
             Leave Information
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Status</label>
-              <div className="mt-1">
+              <div className="mt-0.5">
                 <Badge className={`${getStatusColor(leave.leave_status || leave.status)}`}>
                   {leave.leave_status || leave.status}
                 </Badge>
@@ -84,7 +133,7 @@ export const LeaveViewDialog = ({ open, onOpenChange, leave, employee, onApprove
             </div>
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Leave Type</label>
-              <div className="mt-1">
+              <div className="mt-0.5">
                 <Badge className={`${getLeaveTypeColor(leave.leave_type)}`}>
                   {leave.leave_type}
                 </Badge>
@@ -100,12 +149,12 @@ export const LeaveViewDialog = ({ open, onOpenChange, leave, employee, onApprove
         </div>
 
         {/* Date Information */}
-        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-          <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+        <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+          <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             Date Information
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">From Date</label>
               <p className="text-lg font-semibold flex items-center gap-1">
@@ -138,8 +187,8 @@ export const LeaveViewDialog = ({ open, onOpenChange, leave, employee, onApprove
 
         {/* Reason */}
         {leave.reason && (
-          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-            <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+            <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Leave Reason
             </h3>
@@ -151,12 +200,12 @@ export const LeaveViewDialog = ({ open, onOpenChange, leave, employee, onApprove
 
         {/* Additional Information */}
         {leave.approved_by && (
-          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-            <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+            <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
               <User className="h-4 w-4" />
               Approval Information
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Approved By</label>
                 <p className="text-lg font-semibold">{leave.approved_by}</p>
@@ -176,46 +225,22 @@ export const LeaveViewDialog = ({ open, onOpenChange, leave, employee, onApprove
 
         {/* Rejection Information */}
         {leave.rejection_reason && (
-          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-            <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+            <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
               <X className="h-4 w-4" />
               Rejection Information
             </h3>
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Rejection Reason</label>
-              <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap mt-1">
+              <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap mt-0.5">
                 {leave.rejection_reason}
               </p>
             </div>
           </div>
         )}
-
-        {/* Action Buttons - Show only for pending leaves */}
-        {(leave.leave_status === "PENDING" || leave.status === "PENDING") && (onApprove || onReject) && (
-          <div className="flex items-center justify-end gap-3 pt-4 border-t">
-            {onReject && (
-              <Button
-                variant="destructive"
-                onClick={() => onReject(leave.leave_id)}
-                className="flex items-center gap-2"
-              >
-                <X className="h-4 w-4" />
-                Reject
-              </Button>
-            )}
-            {onApprove && (
-              <Button
-                variant="default"
-                onClick={() => onApprove(leave.leave_id)}
-                className="flex items-center gap-2"
-              >
-                <Check className="h-4 w-4" />
-                Approve
-              </Button>
-            )}
           </div>
-        )}
-      </div>
-    </FormDialog>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };

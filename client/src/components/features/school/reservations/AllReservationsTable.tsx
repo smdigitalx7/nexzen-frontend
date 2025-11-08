@@ -1,11 +1,28 @@
-import { useMemo, memo } from "react";
+import { useMemo, memo, useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Percent } from "lucide-react";
+import { Percent, CreditCard } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared";
 import { ColumnDef } from "@tanstack/react-table";
 import { useAuthStore } from "@/store/authStore";
 import { ROLES } from "@/lib/constants";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  ReservationPaymentProcessor,
+  ReservationPaymentData,
+} from "@/components/shared/payment";
+import { ReceiptPreviewModal } from "@/components/shared";
+import type { SchoolIncomeRead } from "@/lib/types/school";
+import { useQueryClient } from "@tanstack/react-query";
+import { schoolKeys } from "@/lib/hooks/school/query-keys";
+import { toast } from "@/hooks/use-toast";
+import { SchoolReservationsService } from "@/lib/services/school";
 
 // Helper function to format date from ISO format to YYYY-MM-DD
 const formatDate = (dateString: string | null | undefined): string => {
@@ -137,6 +154,25 @@ const AllReservationsTableComponent = ({
   onStatusFilterChange,
 }: AllReservationsTableProps) => {
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+
+  // Payment related state
+  const [showPaymentProcessor, setShowPaymentProcessor] = useState(false);
+  const [paymentData, setPaymentData] = useState<ReservationPaymentData | null>(
+    null
+  );
+  const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [isLoadingPaymentData, setIsLoadingPaymentData] = useState(false);
+
+  // Cleanup blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (receiptBlobUrl) {
+        URL.revokeObjectURL(receiptBlobUrl);
+      }
+    };
+  }, [receiptBlobUrl]);
 
   // Check if user has permission to view concession button
   const canViewConcession = useMemo(() => {
@@ -221,40 +257,170 @@ const AllReservationsTableComponent = ({
     []
   );
 
+  // Helper function to check if application fee is paid
+  const isApplicationFeePaid = useCallback((row: Reservation): boolean => {
+    const applicationIncomeId = row.application_income_id;
+    
+    // Fee is paid if application_income_id exists and is a valid positive number
+    const hasIncomeId = 
+      applicationIncomeId !== null && 
+      applicationIncomeId !== undefined && 
+      applicationIncomeId !== 0 &&
+      (typeof applicationIncomeId === 'number' && applicationIncomeId > 0);
+    
+    // Fee is paid if application_fee_paid flag is true
+    const isPaidByFlag = row.application_fee_paid === true;
+    
+    return hasIncomeId || isPaidByFlag;
+  }, []);
+
   // Memoized action buttons for EnhancedDataTable
   // Use actionButtonGroups for standard actions (view, edit, delete) to use EnhancedDataTable's built-in icons
+  // Show view/edit buttons ONLY when fee IS paid
+  // Show delete button when fee IS paid OR status is PENDING
   const actionButtonGroups = useMemo(
     () => [
       {
         type: "view" as const,
         onClick: (row: Reservation) => onView(row),
+        show: (row: Reservation) => isApplicationFeePaid(row),
       },
       {
         type: "edit" as const,
         onClick: (row: Reservation) => onEdit(row),
+        show: (row: Reservation) => isApplicationFeePaid(row),
       },
       {
         type: "delete" as const,
         onClick: (row: Reservation) => onDelete(row),
+        show: (row: Reservation) => {
+          // Show delete button if:
+          // 1. Application fee is paid, OR
+          // 2. Status is PENDING (allow deletion of pending reservations)
+          const isPending = row.status === "PENDING";
+          return isApplicationFeePaid(row) || isPending;
+        },
       },
     ],
-    [onView, onEdit, onDelete]
+    [onView, onEdit, onDelete, isApplicationFeePaid]
   );
 
-  // Custom action button for concession (no built-in icon available)
-  // Only visible for ADMIN and INSTITUTE_ADMIN roles
+  // Handle pay fee button click
+  const handlePayFee = useCallback(async (reservation: Reservation) => {
+    try {
+      setIsLoadingPaymentData(true);
+
+      // Get reservation number - use reservation_no if available, otherwise fallback to reservation_id
+      const reservationNo = reservation.no && reservation.no.trim() !== "" 
+        ? reservation.no 
+        : String(reservation.reservation_id);
+      
+      if (!reservationNo) {
+        toast({
+          title: "Error",
+          description: `Reservation number is missing for reservation ID: ${reservation.reservation_id}`,
+          variant: "destructive",
+        });
+        setIsLoadingPaymentData(false);
+        return;
+      }
+
+      // Fetch full reservation details to get application_fee
+      const fullReservationData = await SchoolReservationsService.getById(
+        reservation.reservation_id
+      );
+
+      // Get application fee from full reservation data
+      // Handle null, undefined, or 0 values - allow payment to proceed and let backend validate
+      const applicationFee = fullReservationData.application_fee;
+      
+      // Check if application_fee is explicitly null or undefined (not just 0)
+      if (applicationFee === null || applicationFee === undefined) {
+        toast({
+          title: "Error",
+          description: `Application fee is not set for reservation ${reservationNo}. Please set the application fee first before processing payment.`,
+          variant: "destructive",
+        });
+        setIsLoadingPaymentData(false);
+        return;
+      }
+
+      // Convert to number and use 0 as fallback if conversion fails
+      const feeAmount = Number(applicationFee) || 0;
+      
+      // If fee is 0, warn but allow payment to proceed (backend will handle validation)
+      if (feeAmount === 0) {
+        toast({
+          title: "Warning",
+          description: `Application fee is set to 0 for reservation ${reservationNo}. Payment will proceed with 0 amount.`,
+          variant: "default",
+        });
+      }
+
+      const paymentData: ReservationPaymentData = {
+        reservationId: reservation.reservation_id,
+        reservationNo: reservationNo,
+        studentName: reservation.studentName || fullReservationData.student_name,
+        className: reservation.classAdmission || fullReservationData.class_name || "N/A",
+        reservationFee: feeAmount,
+        totalAmount: feeAmount,
+        paymentMethod: "CASH",
+        purpose: "APPLICATION_FEE",
+        note: `Payment for reservation ${reservationNo}`,
+      };
+
+      setPaymentData(paymentData);
+      setShowPaymentProcessor(true);
+    } catch (error: any) {
+      console.error("Failed to load reservation for payment:", error);
+      toast({
+        title: "Failed to Load Reservation",
+        description: error?.message || "Could not load reservation details. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingPaymentData(false);
+    }
+  }, []);
+
+  // Custom action buttons
   const actionButtons = useMemo(
     () => [
+      {
+        id: "pay-fee",
+        label: "Pay Application Fee",
+        icon: CreditCard,
+        variant: "default" as const,
+        onClick: handlePayFee,
+        show: (row: Reservation) => {
+          // Show "Pay Application Fee" button ONLY when application fee is NOT paid
+          // Hide the button after fee is paid
+          return !isApplicationFeePaid(row);
+        },
+      },
       {
         id: "concession",
         label: "Concession",
         icon: Percent,
         variant: "outline" as const,
         onClick: (row: Reservation) => onUpdateConcession?.(row),
-        show: (row: Reservation) => canViewConcession && !row.concession_lock,
+        show: (row: Reservation) => {
+          // Show concession button if:
+          // 1. User has permission
+          // 2. Concession is not locked
+          // 3. Status is PENDING (show for pending reservations)
+          // Note: Backend will validate that reservation fee exists when applying concession
+          const isPending = row.status === "PENDING";
+          
+          return Boolean(
+            canViewConcession && 
+            !row.concession_lock &&
+            isPending
+          );
+        },
       },
     ],
-    [onUpdateConcession, canViewConcession]
+    [onUpdateConcession, canViewConcession, handlePayFee, isApplicationFeePaid]
   );
 
   // Memoized status filter options
@@ -276,29 +442,144 @@ const AllReservationsTableComponent = ({
   }
 
   return (
-    <EnhancedDataTable
-      data={reservations}
-      columns={reservationColumns}
-      title="All Reservations"
-      searchPlaceholder="Search by student name, reservation number, or class..."
-      exportable={true}
-      loading={isLoading}
-      showActions={true}
-      actionButtons={actionButtons}
-      actionButtonGroups={actionButtonGroups}
-      actionColumnHeader="Actions"
-      customGlobalFilterFn={customSearchFunction}
-      filters={[
-        {
-          key: "status",
-          label: "Status",
-          options: statusFilterOptions,
-          value: statusFilter,
-          onChange: onStatusFilterChange,
-        },
-      ]}
-      className="w-full max-w-full mt-6"
-    />
+    <>
+      <EnhancedDataTable
+        data={reservations}
+        columns={reservationColumns}
+        title="All Reservations"
+        searchPlaceholder="Search by student name, reservation number, or class..."
+        exportable={true}
+        loading={isLoading}
+        showActions={true}
+        actionButtons={actionButtons}
+        actionButtonGroups={actionButtonGroups}
+        actionColumnHeader="Actions"
+        customGlobalFilterFn={customSearchFunction}
+        filters={[
+          {
+            key: "status",
+            label: "Status",
+            options: statusFilterOptions,
+            value: statusFilter,
+            onChange: onStatusFilterChange,
+          },
+        ]}
+        className="w-full max-w-full mt-6"
+      />
+
+      {/* Payment Processor Dialog */}
+      {paymentData && (
+        <Dialog
+          open={showPaymentProcessor}
+          onOpenChange={setShowPaymentProcessor}
+        >
+          <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0">
+            <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
+              <DialogTitle>Pay Application Fee (Reservation Fee)</DialogTitle>
+              <DialogDescription>
+                Process application fee payment for reservation {paymentData.reservationNo}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+              <ReservationPaymentProcessor
+                reservationData={paymentData}
+                onPaymentComplete={async (
+                  incomeRecord: SchoolIncomeRead,
+                  blobUrl: string
+                ) => {
+                  setReceiptBlobUrl(blobUrl);
+                  setShowPaymentProcessor(false);
+                  
+                  try {
+                    // Aggressive cache invalidation for immediate UI updates
+                    // Step 1: Remove query data to force fresh fetch (clears cache completely)
+                    // Use undefined params to match the exact query key used in useSchoolReservationsList
+                    queryClient.removeQueries({ 
+                      queryKey: schoolKeys.reservations.list(undefined)
+                    });
+                    
+                    // Step 2: Invalidate all reservation-related queries
+                    queryClient.invalidateQueries({
+                      queryKey: schoolKeys.reservations.root(),
+                    });
+                    
+                    // Step 3: Also invalidate income queries since payment creates income record
+                    queryClient.invalidateQueries({
+                      queryKey: schoolKeys.income.root(),
+                    });
+                    
+                    // Step 4: Call onRefetch callback FIRST to trigger parent component refetch
+                    // This ensures the parent's useSchoolReservationsList hook refetches
+                    if (onRefetch) {
+                      await onRefetch();
+                    }
+                    
+                    // Step 5: Force refetch active queries immediately after onRefetch
+                    // This ensures any other active queries also get fresh data
+                    await queryClient.refetchQueries({
+                      queryKey: schoolKeys.reservations.list(undefined),
+                      type: 'active'
+                    });
+                    
+                    // Step 6: Also refetch all reservation queries to be thorough
+                    await queryClient.refetchQueries({
+                      queryKey: schoolKeys.reservations.root(),
+                      type: 'active'
+                    });
+                    
+                    // Step 7: Wait for React to process state updates and network requests
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    
+                    // Step 8: Show receipt modal after cache operations complete
+                    setShowReceipt(true);
+                    
+                    toast({
+                      title: "Payment Successful",
+                      description: "Application fee has been paid successfully",
+                    });
+                  } catch (error) {
+                    console.error("Error during cache invalidation:", error);
+                    // Still show receipt even if cache invalidation fails
+                    setShowReceipt(true);
+                    toast({
+                      title: "Payment Successful",
+                      description: "Application fee has been paid successfully. Please refresh to see updates.",
+                    });
+                  }
+                }}
+                onPaymentFailed={(error: string) => {
+                  toast({
+                    title: "Payment Failed",
+                    description:
+                      error || "Could not process payment. Please try again.",
+                    variant: "destructive",
+                  });
+                  setShowPaymentProcessor(false);
+                }}
+                onPaymentCancel={() => {
+                  setShowPaymentProcessor(false);
+                  setPaymentData(null);
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Receipt Preview Modal */}
+      <ReceiptPreviewModal
+        isOpen={showReceipt}
+        onClose={() => {
+          setShowReceipt(false);
+          if (receiptBlobUrl) {
+            URL.revokeObjectURL(receiptBlobUrl);
+            setReceiptBlobUrl(null);
+          }
+          setPaymentData(null);
+        }}
+        blobUrl={receiptBlobUrl}
+      />
+    </>
   );
 };
 

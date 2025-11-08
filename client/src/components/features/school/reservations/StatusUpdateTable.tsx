@@ -1,4 +1,4 @@
-import { useState, useMemo, memo, useCallback } from "react";
+import { useState, useMemo, memo, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -231,6 +231,17 @@ const StatusUpdateTableComponent = ({
   );
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // Watch for reservations data changes and force re-render
+  // Use reservations length and a hash of statuses to detect actual data changes
+  const reservationsHash = useMemo(() => {
+    return reservations.map(r => `${r.id}-${r.status}`).join('|');
+  }, [reservations]);
+  
+  useEffect(() => {
+    // When reservations data actually changes (not just reference), force table re-render
+    setRefreshKey((prev) => prev + 1);
+  }, [reservationsHash]);
+
   // Memoized handlers
   const handleStatusChange = useCallback(
     (reservationId: string, status: "PENDING" | "CONFIRMED" | "CANCELLED") => {
@@ -267,7 +278,8 @@ const StatusUpdateTableComponent = ({
         );
 
         // Step 2: Remove the query data to force fresh fetch
-        queryClient.removeQueries({ queryKey: schoolKeys.reservations.list({}) });
+        // Use undefined to match the exact query key used in useSchoolReservationsList
+        queryClient.removeQueries({ queryKey: schoolKeys.reservations.list(undefined) });
         
         // Step 3: Invalidate all reservation queries
         queryClient.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
@@ -280,14 +292,20 @@ const StatusUpdateTableComponent = ({
         
         // Step 5: Also explicitly refetch to ensure network request
         await queryClient.refetchQueries({
-          queryKey: schoolKeys.reservations.list({}),
+          queryKey: schoolKeys.reservations.list(undefined),
           type: 'active'
         });
         
-        // Step 6: Wait for React to process the state update
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Step 6: Also refetch all reservation queries to be thorough
+        await queryClient.refetchQueries({
+          queryKey: schoolKeys.reservations.root(),
+          type: 'active'
+        });
         
-        // Step 7: Force table refresh by updating refresh key
+        // Step 7: Wait for React to process the state update and network requests
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Step 8: Force table refresh by updating refresh key
         setRefreshKey((prev) => prev + 1);
 
         toast({

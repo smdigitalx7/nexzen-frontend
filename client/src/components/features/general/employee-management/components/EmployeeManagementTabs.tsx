@@ -1,13 +1,12 @@
-import { Button } from "@/components/ui/button";
 import { TabSwitcher } from "@/components/shared";
 import { EmployeeTable } from "./EmployeeTable";
 import { AttendanceTable } from "./AttendanceTable";
 import { LeavesTable } from "./LeavesTable";
 import { AdvancesTable } from "../Advance/AdvancesTable";
-import EmployeeLeavesList from "../employee/EmployeeLeavesList";
 import { Users, Calendar, FileText } from "lucide-react";
 import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import type { TabItem } from "@/components/shared/TabSwitcher";
+import type { LucideIcon } from "lucide-react";
 
 interface EmployeeManagementTabsProps {
   // Data
@@ -122,22 +121,6 @@ export const EmployeeManagementTabs = ({
       ),
     },
     {
-      value: "attendance",
-      label: "Attendance",
-      icon: Calendar,
-      content: (
-        <AttendanceTable
-          attendance={attendance}
-          isLoading={attendanceLoading}
-          onAddAttendance={onAddAttendance}
-          onEditAttendance={onEditAttendance}
-          onDeleteAttendance={onDeleteAttendance}
-          onViewAttendance={onViewAttendance}
-          showSearch={true}
-        />
-      ),
-    },
-    {
       value: "leaves",
       label: "Leaves",
       icon: FileText,
@@ -156,9 +139,25 @@ export const EmployeeManagementTabs = ({
       ),
     },
     {
+      value: "attendance",
+      label: "Attendance",
+      icon: Calendar,
+      content: (
+        <AttendanceTable
+          attendance={attendance}
+          isLoading={attendanceLoading}
+          onAddAttendance={onAddAttendance}
+          onEditAttendance={onEditAttendance}
+          onDeleteAttendance={onDeleteAttendance}
+          onViewAttendance={onViewAttendance}
+          showSearch={true}
+        />
+      ),
+    },
+    {
       value: "advances",
       label: "Advances",
-      icon: IndianRupeeIcon,
+      icon: IndianRupeeIcon as LucideIcon,
       content: (
         <AdvancesTable
           advances={advances}

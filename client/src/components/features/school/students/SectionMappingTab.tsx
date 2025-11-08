@@ -106,9 +106,6 @@ const SectionMappingTab = () => {
     }
 
     try {
-      // Calculate start and end positions based on alphabetical order
-      const startPosition = selectedEnrollmentsData[0].alphabetical_order;
-      const endPosition = selectedEnrollmentsData[selectedEnrollmentsData.length - 1].alphabetical_order;
       const enrollmentIds = selectedEnrollmentsData.map((e) => e.enrollment_id);
 
       const payload: AssignSectionsRequest = {
@@ -117,8 +114,6 @@ const SectionMappingTab = () => {
           {
             section_id: selectedSectionId,
             enrollment_ids: enrollmentIds,
-            start_position: startPosition,
-            end_position: endPosition,
           },
         ],
       };

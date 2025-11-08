@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, memo } from "react";
+import { useState, useMemo, useCallback, memo, useEffect } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,7 @@ import { handleSchoolPayByAdmissionWithIncomeId as handlePayByAdmissionWithIncom
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { SchoolReservationListItem } from "@/lib/types/school/reservations";
 import { useQueryClient } from "@tanstack/react-query";
+import { schoolKeys } from "@/lib/hooks/school/query-keys";
 
 // Helper function to format date from ISO format to YYYY-MM-DD
 const formatDate = (dateString: string | null | undefined): string => {
@@ -759,6 +760,7 @@ const ConfirmedReservationsTabComponent = () => {
   const [admissionFee, setAdmissionFee] = useState<number>(0);
   const [editForm, setEditForm] = useState<Reservation | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const {
     data: reservationsData,
@@ -781,6 +783,16 @@ const ConfirmedReservationsTabComponent = () => {
     if (!Array.isArray(reservationsData.reservations)) return [];
     return reservationsData.reservations;
   }, [reservationsData]);
+
+  // Watch for reservations data changes and force table re-render
+  const reservationsHash = useMemo(() => {
+    return allReservations.map(r => `${r.reservation_id}-${r.is_enrolled}`).join('|');
+  }, [allReservations]);
+  
+  useEffect(() => {
+    // When reservations data actually changes, force table re-render
+    setRefreshKey((prev) => prev + 1);
+  }, [reservationsHash]);
 
   // Memoized handlers
   const handleEnrollStudent = useCallback(async (reservationId: number) => {
@@ -909,8 +921,29 @@ const ConfirmedReservationsTabComponent = () => {
       // Use mutation hook which handles cache invalidation automatically
       await updateReservationMutation.mutateAsync(formData);
 
-      // Invalidating queries to refresh the list
-      void queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
+      // Aggressive cache invalidation for immediate UI updates
+      // Step 1: Remove query data to force fresh fetch
+      queryClient.removeQueries({ queryKey: schoolKeys.reservations.list(undefined) });
+      
+      // Step 2: Invalidate all reservation-related queries
+      queryClient.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+      
+      // Step 3: Force refetch active queries
+      await queryClient.refetchQueries({
+        queryKey: schoolKeys.reservations.list(undefined),
+        type: 'active'
+      });
+      
+      // Step 4: Also refetch all reservation queries
+      await queryClient.refetchQueries({
+        queryKey: schoolKeys.reservations.root(),
+        type: 'active'
+      });
+      
+      // Step 5: Call refetch callback
+      if (refetch) {
+        await refetch();
+      }
 
       // Refresh reservation details
       const updatedReservation = await SchoolReservationsService.getById(
@@ -923,7 +956,7 @@ const ConfirmedReservationsTabComponent = () => {
       // Error toast is handled by mutation hook
       console.error("Failed to update reservation:", error);
     }
-  }, [editForm, selectedReservation, updateReservationMutation, queryClient]);
+  }, [editForm, selectedReservation, updateReservationMutation, queryClient, refetch]);
 
   const handleEnrollConfirm = useCallback(async () => {
     if (!selectedReservation) return;
@@ -975,6 +1008,27 @@ const ConfirmedReservationsTabComponent = () => {
       setShowDetailsDialog(false);
       setShowPaymentDialog(true);
 
+      // Aggressive cache invalidation after enrollment
+      // Step 1: Remove query data to force fresh fetch
+      queryClient.removeQueries({ queryKey: schoolKeys.reservations.list(undefined) });
+      
+      // Step 2: Invalidate all reservation-related queries
+      queryClient.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+      
+      // Step 3: Also invalidate students queries since enrollment creates a student
+      queryClient.invalidateQueries({ queryKey: schoolKeys.students.root() });
+      
+      // Step 4: Force refetch active queries
+      await queryClient.refetchQueries({
+        queryKey: schoolKeys.reservations.list(undefined),
+        type: 'active'
+      });
+      
+      // Step 5: Call refetch callback
+      if (refetch) {
+        await refetch();
+      }
+
       toast({
         title: "Student Enrolled Successfully",
         description: `Student enrolled with admission number ${admissionNo}`,
@@ -989,7 +1043,7 @@ const ConfirmedReservationsTabComponent = () => {
         variant: "destructive",
       });
     }
-  }, [selectedReservation, admissionFee]);
+  }, [selectedReservation, admissionFee, queryClient, refetch]);
 
   const handlePaymentProcess = useCallback(async () => {
     if (!createdAdmissionNo) return;
@@ -1025,8 +1079,35 @@ const ConfirmedReservationsTabComponent = () => {
         variant: "success",
       });
 
-      // Invalidate reservations cache to refresh the list
-      void queryClient.invalidateQueries({ queryKey: ["school", "reservations"] });
+      // Aggressive cache invalidation for immediate UI updates
+      // Step 1: Remove query data to force fresh fetch
+      queryClient.removeQueries({ queryKey: schoolKeys.reservations.list(undefined) });
+      
+      // Step 2: Invalidate all reservation-related queries
+      queryClient.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+      
+      // Step 3: Also invalidate students queries since enrollment creates a student
+      queryClient.invalidateQueries({ queryKey: schoolKeys.students.root() });
+      
+      // Step 4: Force refetch active queries
+      await queryClient.refetchQueries({
+        queryKey: schoolKeys.reservations.list(undefined),
+        type: 'active'
+      });
+      
+      // Step 5: Also refetch all reservation queries
+      await queryClient.refetchQueries({
+        queryKey: schoolKeys.reservations.root(),
+        type: 'active'
+      });
+      
+      // Step 6: Call refetch callback
+      if (refetch) {
+        await refetch();
+      }
+      
+      // Step 7: Wait for React to process state updates
+      await new Promise(resolve => setTimeout(resolve, 200));
     } catch (error: any) {
       console.error("Payment failed:", error);
       toast({
@@ -1128,6 +1209,7 @@ const ConfirmedReservationsTabComponent = () => {
     <div className="space-y-6">
       {/* Enhanced Reservations Table */}
       <EnhancedDataTable
+        key={`confirmed-reservations-${refreshKey}`}
         data={allReservations}
         columns={columns}
         title="Confirmed Reservations"
@@ -1145,24 +1227,26 @@ const ConfirmedReservationsTabComponent = () => {
       {/* Reservation Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>Student Enrollment Details</span>
+          <DialogHeader className="pr-10">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <DialogTitle>Student Enrollment Details</DialogTitle>
+                <DialogDescription>
+                  Review and confirm student details before enrollment
+                </DialogDescription>
+              </div>
               {!isEditMode && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleEditDetails}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 ml-4 shrink-0"
                 >
                   <Edit className="h-4 w-4" />
                   Edit Details
                 </Button>
               )}
-            </DialogTitle>
-            <DialogDescription>
-              Review and confirm student details before enrollment
-            </DialogDescription>
+            </div>
           </DialogHeader>
 
           {editForm && (
