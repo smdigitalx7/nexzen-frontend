@@ -523,11 +523,45 @@ export async function api<T = unknown>({
 
       clearTimeout(timeoutId);
 
+      // Handle 204 No Content and other empty responses - no body to parse
+      if (res.status === 204 || res.status === 205) {
+        return undefined as T;
+      }
+
       const contentType = res.headers.get("content-type") || "";
       const isJson = contentType.includes("application/json");
-      const data = isJson
-        ? await res.json()
-        : ((await res.text()) as unknown as T);
+      
+      // Check if response has content before trying to parse
+      const contentLength = res.headers.get("content-length");
+      const hasContent = contentLength !== "0" && contentLength !== null;
+      
+      let data: T;
+      if (!hasContent) {
+        // No content, return undefined
+        data = undefined as T;
+      } else if (isJson) {
+        try {
+          data = await res.json();
+        } catch (error) {
+          // If JSON parsing fails, it might be an empty response
+          // For successful responses (2xx), return undefined if parsing fails
+          if (res.ok) {
+            data = undefined as T;
+          } else {
+            // For error responses, try to get text for error message
+            try {
+              const text = await res.text();
+              throw new Error(text || "Failed to parse response");
+            } catch (textError) {
+              // If we can't get text either, use the original error
+              throw error instanceof Error ? error : new Error("Failed to parse response");
+            }
+          }
+        }
+      } else {
+        const text = await res.text();
+        data = (text || undefined) as unknown as T;
+      }
 
       // If this was a login call, store token and schedule proactive refresh
       if (path === "/auth/login" && res.ok && isJson) {

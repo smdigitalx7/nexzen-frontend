@@ -490,62 +490,35 @@ const AllReservationsTableComponent = ({
                   setReceiptBlobUrl(blobUrl);
                   setShowPaymentProcessor(false);
                   
-                  try {
-                    // Aggressive cache invalidation for immediate UI updates
-                    // Step 1: Remove query data to force fresh fetch (clears cache completely)
-                    // Use undefined params to match the exact query key used in useSchoolReservationsList
-                    queryClient.removeQueries({ 
-                      queryKey: schoolKeys.reservations.list(undefined)
-                    });
-                    
-                    // Step 2: Invalidate all reservation-related queries
-                    queryClient.invalidateQueries({
-                      queryKey: schoolKeys.reservations.root(),
-                    });
-                    
-                    // Step 3: Also invalidate income queries since payment creates income record
-                    queryClient.invalidateQueries({
-                      queryKey: schoolKeys.income.root(),
-                    });
-                    
-                    // Step 4: Call onRefetch callback FIRST to trigger parent component refetch
-                    // This ensures the parent's useSchoolReservationsList hook refetches
-                    if (onRefetch) {
-                      await onRefetch();
-                    }
-                    
-                    // Step 5: Force refetch active queries immediately after onRefetch
-                    // This ensures any other active queries also get fresh data
-                    await queryClient.refetchQueries({
-                      queryKey: schoolKeys.reservations.list(undefined),
-                      type: 'active'
-                    });
-                    
-                    // Step 6: Also refetch all reservation queries to be thorough
-                    await queryClient.refetchQueries({
-                      queryKey: schoolKeys.reservations.root(),
-                      type: 'active'
-                    });
-                    
-                    // Step 7: Wait for React to process state updates and network requests
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                    
-                    // Step 8: Show receipt modal after cache operations complete
-                    setShowReceipt(true);
-                    
-                    toast({
-                      title: "Payment Successful",
-                      description: "Application fee has been paid successfully",
-                    });
-                  } catch (error) {
-                    console.error("Error during cache invalidation:", error);
-                    // Still show receipt even if cache invalidation fails
-                    setShowReceipt(true);
-                    toast({
-                      title: "Payment Successful",
-                      description: "Application fee has been paid successfully. Please refresh to see updates.",
-                    });
+                  // Clear cache and refresh after payment
+                  queryClient.removeQueries({
+                    queryKey: schoolKeys.reservations.list(undefined),
+                  });
+                  
+                  queryClient.removeQueries({
+                    queryKey: schoolKeys.reservations.detail(paymentData.reservationId),
+                  });
+                  
+                  await queryClient.invalidateQueries({
+                    queryKey: schoolKeys.reservations.root(),
+                  });
+                  
+                  await queryClient.refetchQueries({
+                    queryKey: schoolKeys.reservations.root(),
+                    type: "active",
+                  });
+                  
+                  if (onRefetch) {
+                    await onRefetch();
                   }
+                  
+                  setShowReceipt(true);
+                  
+                  toast({
+                    title: "Payment Successful",
+                    description: "Application fee has been paid successfully",
+                    variant: "success",
+                  });
                 }}
                 onPaymentFailed={(error: string) => {
                   toast({
@@ -569,12 +542,42 @@ const AllReservationsTableComponent = ({
       {/* Receipt Preview Modal */}
       <ReceiptPreviewModal
         isOpen={showReceipt}
-        onClose={() => {
+        onClose={async () => {
           setShowReceipt(false);
           if (receiptBlobUrl) {
             URL.revokeObjectURL(receiptBlobUrl);
             setReceiptBlobUrl(null);
           }
+          
+          // Clear cache and refresh reservations after closing receipt
+          // Step 1: Remove the reservations list cache to force fresh fetch
+          queryClient.removeQueries({ 
+            queryKey: schoolKeys.reservations.list(undefined) 
+          });
+          
+          // Step 2: If we have payment data, clear the specific reservation detail cache
+          if (paymentData?.reservationId) {
+            queryClient.removeQueries({
+              queryKey: schoolKeys.reservations.detail(paymentData.reservationId),
+            });
+          }
+          
+          // Step 3: Invalidate all reservation queries
+          await queryClient.invalidateQueries({
+            queryKey: schoolKeys.reservations.root(),
+          });
+          
+          // Step 4: Refetch all reservation queries
+          await queryClient.refetchQueries({
+            queryKey: schoolKeys.reservations.root(),
+            type: 'active'
+          });
+          
+          // Step 5: Also call the refetch function
+          if (onRefetch) {
+            await onRefetch();
+          }
+          
           setPaymentData(null);
         }}
         blobUrl={receiptBlobUrl}

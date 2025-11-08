@@ -41,8 +41,12 @@ export function EmployeeCombobox({
   // Handle empty or invalid values
   const hasValidValue = value && value !== "" && value !== "0"
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen)
+  }
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -63,7 +67,14 @@ export function EmployeeCombobox({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
+      <PopoverContent 
+        className="p-0 w-[var(--radix-popover-trigger-width)]" 
+        align="start"
+        sideOffset={4}
+        onInteractOutside={(e) => {
+          // Allow closing when clicking outside
+        }}
+      >
         <Command>
           <CommandInput placeholder="Search employees..." />
           <CommandList>
@@ -73,39 +84,57 @@ export function EmployeeCombobox({
             <CommandGroup>
               {hasValidValue && (
                 <CommandItem
-                  value="clear-selection"
+                  value="__clear__"
                   onSelect={() => {
                     onValueChange("")
                     setOpen(false)
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
                   }}
                 >
                   <Check className="mr-2 h-4 w-4 opacity-0" />
                   <span className="text-muted-foreground">Clear selection</span>
                 </CommandItem>
               )}
-              {employees.map((employee) => (
-                <CommandItem
-                  key={employee.employee_id}
-                  value={`${employee.employee_name} ${employee.employee_code} ${employee.designation}`}
-                  onSelect={() => {
-                    onValueChange(employee.employee_id.toString())
-                    setOpen(false)
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      hasValidValue && value === employee.employee_id.toString() ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  <div className="flex flex-col">
-                    <span className="font-medium">{employee.employee_name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {employee.designation} • {employee.employee_code}
-                    </span>
-                  </div>
-                </CommandItem>
-              ))}
+              {employees.map((employee) => {
+                const employeeId = employee.employee_id.toString()
+                // Create searchable value - Command will filter based on this
+                const searchValue = `${employee.employee_name} ${employee.employee_code || ""} ${employee.designation || ""}`.trim()
+                
+                return (
+                  <CommandItem
+                    key={employee.employee_id}
+                    value={searchValue}
+                    onSelect={() => {
+                      // Use the employee from closure to ensure correct selection
+                      onValueChange(employeeId)
+                      setOpen(false)
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4 shrink-0",
+                        hasValidValue && value === employeeId ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <div 
+                      className="flex flex-col flex-1"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onValueChange(employeeId)
+                        setOpen(false)
+                      }}
+                    >
+                      <span className="font-medium">{employee.employee_name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {employee.designation || "N/A"} • {employee.employee_code || "N/A"}
+                      </span>
+                    </div>
+                  </CommandItem>
+                )
+              })}
             </CommandGroup>
           </CommandList>
         </Command>

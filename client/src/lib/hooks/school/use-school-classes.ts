@@ -74,8 +74,14 @@ export function useDeleteSchoolClassSubject() {
       classId: number;
       subjectId: number;
     }) => SchoolClassesService.deleteClassSubject(classId, subjectId),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // Invalidate all class-related queries
+      void qc.invalidateQueries({ queryKey: schoolKeys.classSubjects.root() });
       void qc.invalidateQueries({ queryKey: schoolKeys.classes.root() });
+      // Specifically invalidate the class detail query to refresh the subjects list
+      void qc.invalidateQueries({ queryKey: schoolKeys.classes.detail(variables.classId) });
+      // Refetch active queries
+      void qc.refetchQueries({ queryKey: schoolKeys.classSubjects.root(), type: 'active' });
       void qc.refetchQueries({ queryKey: schoolKeys.classes.root(), type: 'active' });
     },
   }, "Subject removed from class successfully");

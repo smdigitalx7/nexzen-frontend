@@ -3,9 +3,22 @@ import { Label } from "@/components/ui/label";
 import { FormDialog } from "@/components/shared";
 import { UserCheck, ClipboardList } from "lucide-react";
 import { useTeachersByBranch, useEmployeesByBranch } from "@/lib/hooks/general";
-import { useTeacherClassSubjectsHierarchical, useCreateTeacherClassSubject, useDeleteTeacherClassSubject, useSchoolClasses, useSchoolSectionsByClass, useSchoolSubjects } from "@/lib/hooks/school";
+import {
+  useTeacherClassSubjectsHierarchical,
+  useCreateTeacherClassSubject,
+  useDeleteTeacherClassSubject,
+  useSchoolClasses,
+  useSchoolSectionsByClass,
+  useSchoolSubjects,
+} from "@/lib/hooks/school";
 import { useToast } from "@/hooks/use-toast";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TeacherAssignmentsTab } from "./TeacherAssignmentsTab";
@@ -14,7 +27,8 @@ import { ClassTeacherTab } from "./ClassTeacherTab";
 export const TeachersTab = () => {
   const { data: teachersList = [], error } = useTeachersByBranch();
   const { data: allEmployees = [] } = useEmployeesByBranch();
-  const { data: hierarchicalAssignments = [], isLoading: assignmentsLoading } = useTeacherClassSubjectsHierarchical();
+  const { data: hierarchicalAssignments = [], isLoading: assignmentsLoading } =
+    useTeacherClassSubjectsHierarchical();
 
   // Create a map of full employee details by employee_id for quick lookup
   const teacherDetailsMap = useMemo(() => {
@@ -28,10 +42,10 @@ export const TeachersTab = () => {
   const { data: classes = [] } = useSchoolClasses();
   const createMutation = useCreateTeacherClassSubject();
   const deleteMutation = useDeleteTeacherClassSubject();
-  
+
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState("assignments");
-  
+
   // Form state
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
   const [selectedClassId, setSelectedClassId] = useState<string>("");
@@ -44,16 +58,18 @@ export const TeachersTab = () => {
   const { data: sections = [] } = useSchoolSectionsByClass(
     selectedClassId ? parseInt(selectedClassId) : null
   );
-  
+
   // Get subjects based on selected class
   const { data: subjects = [] } = useSchoolSubjects();
 
-  const [expandedTeachers, setExpandedTeachers] = useState<Set<number>>(new Set());
+  const [expandedTeachers, setExpandedTeachers] = useState<Set<number>>(
+    new Set()
+  );
 
   const { toast } = useToast();
 
   const toggleTeacher = (teacherId: number) => {
-    setExpandedTeachers(prev => {
+    setExpandedTeachers((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(teacherId)) {
         newSet.delete(teacherId);
@@ -81,8 +97,12 @@ export const TeachersTab = () => {
     });
   };
 
-
-  const handleDelete = async (teacherId: number, classId: number, subjectId: number, sectionId: number) => {
+  const handleDelete = async (
+    teacherId: number,
+    classId: number,
+    subjectId: number,
+    sectionId: number
+  ) => {
     try {
       await deleteMutation.mutateAsync({
         teacherId,
@@ -97,7 +117,12 @@ export const TeachersTab = () => {
   };
 
   const handleFormSubmit = async () => {
-    if (!selectedTeacherId || !selectedClassId || !selectedSectionId || !selectedSubjectId) {
+    if (
+      !selectedTeacherId ||
+      !selectedClassId ||
+      !selectedSectionId ||
+      !selectedSubjectId
+    ) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -124,7 +149,6 @@ export const TeachersTab = () => {
     }
   };
 
-
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -139,12 +163,15 @@ export const TeachersTab = () => {
   return (
     <div className="space-y-6">
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid grid-cols-2 w-auto max-w-md">
           <TabsTrigger value="assignments" className="flex items-center gap-2">
             <ClipboardList className="h-4 w-4" />
             Teacher Assignments
           </TabsTrigger>
-          <TabsTrigger value="class-teacher" className="flex items-center gap-2">
+          <TabsTrigger
+            value="class-teacher"
+            className="flex items-center gap-2"
+          >
             <UserCheck className="h-4 w-4" />
             Class Teacher
           </TabsTrigger>
@@ -189,13 +216,19 @@ export const TeachersTab = () => {
           {/* Teacher Selection */}
           <div className="space-y-2">
             <Label htmlFor="teacher">Teacher *</Label>
-            <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId}>
+            <Select
+              value={selectedTeacherId}
+              onValueChange={setSelectedTeacherId}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select teacher" />
               </SelectTrigger>
               <SelectContent>
                 {allEmployees.map((teacher: any) => (
-                  <SelectItem key={teacher.employee_id} value={teacher.employee_id.toString()}>
+                  <SelectItem
+                    key={teacher.employee_id}
+                    value={teacher.employee_id.toString()}
+                  >
                     {teacher.employee_name}
                   </SelectItem>
                 ))}
@@ -206,8 +239,8 @@ export const TeachersTab = () => {
           {/* Class Selection */}
           <div className="space-y-2">
             <Label htmlFor="class">Class *</Label>
-            <Select 
-              value={selectedClassId} 
+            <Select
+              value={selectedClassId}
               onValueChange={(value) => {
                 setSelectedClassId(value);
                 setSelectedSectionId(""); // Reset section when class changes
@@ -218,28 +251,38 @@ export const TeachersTab = () => {
               </SelectTrigger>
               <SelectContent>
                 {classes.map((classItem) => (
-                  <SelectItem key={classItem.class_id} value={classItem.class_id.toString()}>
+                  <SelectItem
+                    key={classItem.class_id}
+                    value={classItem.class_id.toString()}
+                  >
                     {classItem.class_name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-        </div>
+          </div>
 
           {/* Section Selection */}
           <div className="space-y-2">
             <Label htmlFor="section">Section *</Label>
-            <Select 
-              value={selectedSectionId} 
+            <Select
+              value={selectedSectionId}
               onValueChange={setSelectedSectionId}
               disabled={!selectedClassId}
             >
               <SelectTrigger>
-                <SelectValue placeholder={selectedClassId ? "Select section" : "Select class first"} />
+                <SelectValue
+                  placeholder={
+                    selectedClassId ? "Select section" : "Select class first"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {sections.map((section) => (
-                  <SelectItem key={section.section_id} value={section.section_id.toString()}>
+                  <SelectItem
+                    key={section.section_id}
+                    value={section.section_id.toString()}
+                  >
                     {section.section_name}
                   </SelectItem>
                 ))}
@@ -250,13 +293,19 @@ export const TeachersTab = () => {
           {/* Subject Selection */}
           <div className="space-y-2">
             <Label htmlFor="subject">Subject *</Label>
-            <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
+            <Select
+              value={selectedSubjectId}
+              onValueChange={setSelectedSubjectId}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select subject" />
               </SelectTrigger>
               <SelectContent>
                 {subjects.map((subject) => (
-                  <SelectItem key={subject.subject_id} value={subject.subject_id.toString()}>
+                  <SelectItem
+                    key={subject.subject_id}
+                    value={subject.subject_id.toString()}
+                  >
                     {subject.subject_name}
                   </SelectItem>
                 ))}
@@ -266,24 +315,32 @@ export const TeachersTab = () => {
 
           {/* Options */}
           <div className="space-y-3 pt-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="is_class_teacher" 
+            {/* <div className="flex items-center space-x-2">
+              <Checkbox
+                id="is_class_teacher"
                 checked={isClassTeacher}
-                onCheckedChange={(checked) => setIsClassTeacher(checked as boolean)}
+                onCheckedChange={(checked) =>
+                  setIsClassTeacher(checked as boolean)
+                }
               />
-              <Label htmlFor="is_class_teacher" className="text-sm font-normal cursor-pointer">
+              <Label
+                htmlFor="is_class_teacher"
+                className="text-sm font-normal cursor-pointer"
+              >
                 Class Teacher
               </Label>
-            </div>
-            
+            </div> */}
+
             <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="is_active" 
+              <Checkbox
+                id="is_active"
                 checked={isActive}
                 onCheckedChange={(checked) => setIsActive(checked as boolean)}
               />
-              <Label htmlFor="is_active" className="text-sm font-normal cursor-pointer">
+              <Label
+                htmlFor="is_active"
+                className="text-sm font-normal cursor-pointer"
+              >
                 Active
               </Label>
             </div>
@@ -293,4 +350,3 @@ export const TeachersTab = () => {
     </div>
   );
 };
-

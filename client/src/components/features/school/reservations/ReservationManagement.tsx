@@ -613,23 +613,42 @@ const ReservationManagementComponent = () => {
     distanceSlabs,
   ]);
 
-  const handleUpdateConcession = useCallback(async (reservation: any) => {
-    try {
-      // Fetch the full reservation details for the dialog
-      const fullReservationData = await SchoolReservationsService.getById(
-        reservation.reservation_id
-      );
-      setSelectedReservationForConcession(fullReservationData);
-      setShowConcessionDialog(true);
-    } catch (error) {
-      console.error("Failed to load reservation for concession update:", error);
-      toast({
-        title: "Failed to Load Reservation",
-        description: "Could not load reservation details. Please try again.",
-        variant: "destructive",
-      });
-    }
-  }, []);
+  const handleUpdateConcession = useCallback(
+    async (reservation: any) => {
+      try {
+        // Always clear cache first to ensure fresh data
+        queryClient.removeQueries({
+          queryKey: schoolKeys.reservations.detail(reservation.reservation_id),
+        });
+
+        // Also invalidate to ensure no stale cache
+        await queryClient.invalidateQueries({
+          queryKey: schoolKeys.reservations.detail(reservation.reservation_id),
+        });
+
+        // Fetch the full reservation details for the dialog (fresh from API)
+        // This will always get the latest data from backend
+        const fullReservationData = await SchoolReservationsService.getById(
+          reservation.reservation_id
+        );
+
+        // Update state with fresh data
+        setSelectedReservationForConcession(fullReservationData);
+        setShowConcessionDialog(true);
+      } catch (error) {
+        console.error(
+          "Failed to load reservation for concession update:",
+          error
+        );
+        toast({
+          title: "Failed to Load Reservation",
+          description: "Could not load reservation details. Please try again.",
+          variant: "destructive",
+        });
+      }
+    },
+    [queryClient]
+  );
 
   const handleConcessionUpdate = useCallback(
     async (
@@ -645,14 +664,37 @@ const ReservationManagementComponent = () => {
           remarks: remarks || null,
         });
 
-        // Invalidate and refetch all reservation-related queries
+        // Clear ALL reservation cache
+        queryClient.removeQueries({
+          queryKey: schoolKeys.reservations.root(),
+        });
+
+        // Invalidate all reservation queries
         await queryClient.invalidateQueries({
           queryKey: schoolKeys.reservations.root(),
         });
+
+        // Force refetch all reservation queries
         await queryClient.refetchQueries({
           queryKey: schoolKeys.reservations.root(),
+          type: "active",
         });
+
+        // Also call the refetch function
         await refetchReservations();
+
+        // Fetch fresh reservation data immediately after update
+        // This ensures if user reopens the dialog, it has the latest data
+        try {
+          const updatedReservation =
+            await SchoolReservationsService.getById(reservationId);
+          // Update the state with fresh data so if dialog reopens, it shows updated values
+          setSelectedReservationForConcession(updatedReservation);
+        } catch (fetchError) {
+          console.error("Failed to fetch updated reservation:", fetchError);
+          // If fetch fails, just clear the state - next open will fetch fresh
+          setSelectedReservationForConcession(null);
+        }
 
         toast({
           title: "Concession Updated",
@@ -1166,10 +1208,34 @@ const ReservationManagementComponent = () => {
             URL.revokeObjectURL(receiptBlobUrl);
             setReceiptBlobUrl(null);
           }
-          // Refresh reservations after closing receipt
+
+          // Clear cache and refresh reservations after closing receipt
+          // Step 1: Remove the reservations list cache to force fresh fetch
+          queryClient.removeQueries({
+            queryKey: schoolKeys.reservations.list(undefined),
+          });
+
+          // Step 2: If we have payment data, clear the specific reservation detail cache
+          if (paymentData?.reservationId) {
+            queryClient.removeQueries({
+              queryKey: schoolKeys.reservations.detail(
+                paymentData.reservationId
+              ),
+            });
+          }
+
+          // Step 3: Invalidate all reservation queries
           await queryClient.invalidateQueries({
             queryKey: schoolKeys.reservations.root(),
           });
+
+          // Step 4: Refetch all reservation queries
+          await queryClient.refetchQueries({
+            queryKey: schoolKeys.reservations.root(),
+            type: "active",
+          });
+
+          // Step 5: Also call the refetch function
           await refetchReservations();
         }}
         blobUrl={receiptBlobUrl}

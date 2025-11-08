@@ -1,4 +1,4 @@
-import { useState, memo, useMemo, useCallback } from "react";
+import { useState, memo, useMemo, useCallback, useEffect } from "react";
 import { BookOpen, Plus, Edit, Trash2, Users, Eye, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import { FormDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { useCreateSchoolClass, useUpdateSchoolClass, useSchoolClassById, useDeleteSchoolClassSubject, useSchoolSubjects, useCreateSchoolClassSubject } from '@/lib/hooks/school';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
+import { schoolKeys } from '@/lib/hooks/school/query-keys';
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createIconTextColumn
@@ -139,9 +141,22 @@ export const ClassesTab = memo(({
   
   // Subject management hooks
   const { data: allSubjects = [] } = useSchoolSubjects();
-  const { data: classWithSubjects } = useSchoolClassById(selectedClass?.class_id || null);
+  const { data: classWithSubjects, refetch: refetchClassWithSubjects } = useSchoolClassById(selectedClass?.class_id || null);
   const createClassSubjectMutation = useCreateSchoolClassSubject();
   const deleteClassSubjectMutation = useDeleteSchoolClassSubject();
+  const queryClient = useQueryClient();
+
+  // Optimistic state for subjects management
+  const [optimisticSubjects, setOptimisticSubjects] = useState<{ subject_id: number; subject_name: string }[] | null>(null);
+
+  // Sync optimistic state with server data when dialog opens or data changes
+  useEffect(() => {
+    if (isManageSubjectsOpen && classWithSubjects?.subjects) {
+      setOptimisticSubjects(classWithSubjects.subjects);
+    } else if (!isManageSubjectsOpen) {
+      setOptimisticSubjects(null);
+    }
+  }, [isManageSubjectsOpen, classWithSubjects?.subjects]);
 
   // Memoized validation functions
   const validateClassForm = useCallback((form: typeof initialClassForm) => {
@@ -206,6 +221,8 @@ export const ClassesTab = memo(({
   const handleManageSubjectsClick = useCallback((classItem: SchoolClassRead) => {
     setSelectedClass(classItem);
     setIsManageSubjectsOpen(true);
+    // Reset optimistic state when opening dialog
+    setOptimisticSubjects(null);
   }, []);
 
   const handleViewClick = useCallback((classItem: SchoolClassRead) => {
@@ -223,32 +240,63 @@ export const ClassesTab = memo(({
     setIsEditClassOpen(true);
   }, []);
 
-  // Subject assignment handlers
+  // Subject assignment handlers with optimistic updates
   const handleAssignSubject = useCallback(async (subjectId: number) => {
     if (!selectedClass) return;
+
+    // Find the subject to add
+    const subjectToAdd = allSubjects.find(s => s.subject_id === subjectId);
+    if (!subjectToAdd) return;
+
+    // Optimistically update UI immediately
+    setOptimisticSubjects(prev => {
+      if (!prev) return prev;
+      // Check if already added
+      if (prev.some(s => s.subject_id === subjectId)) return prev;
+      return [...prev, { subject_id: subjectToAdd.subject_id, subject_name: subjectToAdd.subject_name }];
+    });
 
     try {
       await createClassSubjectMutation.mutateAsync({
         class_id: selectedClass.class_id,
         subject_id: subjectId,
       });
+      // Immediately refetch the class data to sync with server
+      await refetchClassWithSubjects();
     } catch (error) {
+      // On error, revert optimistic update
+      setOptimisticSubjects(prev => {
+        if (!prev) return prev;
+        return prev.filter(s => s.subject_id !== subjectId);
+      });
       // Error toast is handled by mutation hook
     }
-  }, [selectedClass, createClassSubjectMutation]);
+  }, [selectedClass, createClassSubjectMutation, allSubjects, refetchClassWithSubjects]);
 
   const handleRemoveSubject = useCallback(async (subjectId: number) => {
     if (!selectedClass) return;
+
+    // Optimistically update UI immediately
+    setOptimisticSubjects(prev => {
+      if (!prev) return prev;
+      return prev.filter(s => s.subject_id !== subjectId);
+    });
 
     try {
       await deleteClassSubjectMutation.mutateAsync({
         classId: selectedClass.class_id,
         subjectId: subjectId,
       });
+      // Immediately refetch the class data to sync with server
+      await refetchClassWithSubjects();
     } catch (error) {
+      // On error, revert optimistic update by restoring from server data
+      if (classWithSubjects?.subjects) {
+        setOptimisticSubjects(classWithSubjects.subjects);
+      }
       // Error toast is handled by mutation hook
     }
-  }, [selectedClass, deleteClassSubjectMutation]);
+  }, [selectedClass, deleteClassSubjectMutation, classWithSubjects, refetchClassWithSubjects]);
 
   // Memoized columns definition
   const columns: ColumnDef<SchoolClassRead>[] = useMemo(() => [
@@ -289,14 +337,19 @@ export const ClassesTab = memo(({
     }
   ], [handleViewClick, handleEditClick]);
 
+  // Use optimistic subjects if available, otherwise use server data
+  const currentSubjects = optimisticSubjects !== null 
+    ? optimisticSubjects 
+    : classWithSubjects?.subjects || [];
+
   // Memoized available subjects for assignment
   const availableSubjects = useMemo(() => {
     return allSubjects.filter(subject => 
-      !classWithSubjects?.subjects?.some(assignedSubject => 
+      !currentSubjects.some(assignedSubject => 
         assignedSubject.subject_id === subject.subject_id
       )
     );
-  }, [allSubjects, classWithSubjects?.subjects]);
+  }, [allSubjects, currentSubjects]);
 
   // Memoized dialog close handlers
   const closeAddDialog = useCallback(() => {
@@ -533,9 +586,9 @@ export const ClassesTab = memo(({
               {/* Current Subjects */}
               <div className="space-y-3">
                 <Label className="text-sm font-medium text-muted-foreground">Current Subjects</Label>
-                {classWithSubjects?.subjects && classWithSubjects.subjects.length > 0 ? (
+                {currentSubjects && currentSubjects.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {classWithSubjects.subjects.map((subject) => (
+                    {currentSubjects.map((subject) => (
                       <div
                         key={subject.subject_id}
                         className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border"

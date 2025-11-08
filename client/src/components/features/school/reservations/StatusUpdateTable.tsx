@@ -30,11 +30,11 @@ export type StatusUpdateTableProps = {
   isLoading: boolean;
   isError: boolean;
   error?: any;
-  onRefetch: () => void;
+  onRefetch: () => void | Promise<void>;
   totalCount?: number;
 };
 
-// Memoized status badge component
+// Status badge component
 const StatusBadge = memo(({ status }: { status: string }) => {
   const current = status.toUpperCase();
   return (
@@ -61,7 +61,7 @@ const StatusBadge = memo(({ status }: { status: string }) => {
 
 StatusBadge.displayName = "StatusBadge";
 
-// Memoized status select component
+// Status select component
 const StatusSelect = memo(
   ({
     reservation,
@@ -76,14 +76,19 @@ const StatusSelect = memo(
     ) => void;
   }) => {
     const current = (reservation.status || "").toUpperCase();
-    const selected = (statusChanges[reservation.id] || current);
+    const selected = (statusChanges[reservation.id] || current) as
+      | "PENDING"
+      | "CONFIRMED"
+      | "CANCELLED";
     const isConfirmed = current === "CONFIRMED";
 
     return (
       <div className="w-48">
         <Select
           value={selected}
-          onValueChange={(v) => onStatusChange(reservation.id, v as any)}
+          onValueChange={(v) =>
+            onStatusChange(reservation.id, v as "PENDING" | "CONFIRMED" | "CANCELLED")
+          }
           disabled={isConfirmed}
         >
           <SelectTrigger aria-label="Select status" disabled={isConfirmed}>
@@ -102,32 +107,58 @@ const StatusSelect = memo(
 
 StatusSelect.displayName = "StatusSelect";
 
-// Memoized remarks textarea component
-const RemarksTextarea = memo(
-  ({
-    reservation,
-    statusRemarks,
-    onRemarksChange,
-  }: {
-    reservation: Reservation;
-    statusRemarks: Record<string, string>;
-    onRemarksChange: (reservationId: string, remarks: string) => void;
-  }) => (
+// Remarks textarea component - fully isolated to prevent re-renders
+const RemarksTextarea = ({
+  reservation,
+  statusRemarks,
+  onRemarksChange,
+}: {
+  reservation: Reservation;
+  statusRemarks: Record<string, string>;
+  onRemarksChange: (reservationId: string, remarks: string) => void;
+}) => {
+  const externalValue = statusRemarks[reservation.id] || "";
+  const [localValue, setLocalValue] = useState(externalValue);
+  const currentStatus = (reservation.status || "").toUpperCase();
+  const isConfirmed = currentStatus === "CONFIRMED";
+
+  // Sync localValue only when external value is cleared (after successful update)
+  useEffect(() => {
+    // Only sync if external value is empty and local is not (after update clears it)
+    if (externalValue === "" && localValue !== "") {
+      setLocalValue("");
+    }
+  }, [externalValue]); // Remove localValue from deps to prevent loop
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      if (isConfirmed) return;
+      const newValue = e.target.value;
+      setLocalValue(newValue);
+      // Call parent callback - this updates state but table won't re-render
+      // because statusRemarks is not in statusColumns dependencies
+      onRemarksChange(reservation.id, newValue);
+    },
+    [isConfirmed, reservation.id, onRemarksChange]
+  );
+
+  return (
     <div className="w-48">
       <Textarea
         placeholder="Enter remarks..."
-        value={statusRemarks[reservation.id] || ""}
-        onChange={(e) => onRemarksChange(reservation.id, e.target.value)}
+        value={localValue}
+        onChange={handleChange}
+        disabled={isConfirmed}
         rows={1}
         className="text-sm resize-none"
       />
     </div>
-  )
-);
+  );
+};
 
 RemarksTextarea.displayName = "RemarksTextarea";
 
-// Memoized update button component
+// Update button component
 const UpdateButton = memo(
   ({
     reservation,
@@ -145,7 +176,10 @@ const UpdateButton = memo(
     ) => void | Promise<void>;
   }) => {
     const current = (reservation.status || "").toUpperCase();
-    const selected = (statusChanges[reservation.id] || current);
+    const selected = (statusChanges[reservation.id] || current) as
+      | "PENDING"
+      | "CONFIRMED"
+      | "CANCELLED";
     const same = selected === current;
 
     return (
@@ -155,7 +189,10 @@ const UpdateButton = memo(
           variant={same ? "outline" : "default"}
           disabled={same}
           onClick={() => {
-            const to = (statusChanges[reservation.id] || current);
+            const to = (statusChanges[reservation.id] || current) as
+              | "PENDING"
+              | "CONFIRMED"
+              | "CANCELLED";
             const remarks = statusRemarks[reservation.id] || "";
             onUpdate(reservation, to, remarks);
           }}
@@ -169,50 +206,6 @@ const UpdateButton = memo(
 );
 
 UpdateButton.displayName = "UpdateButton";
-
-// Memoized header component
-const StatusUpdateHeader = memo(
-  ({
-    reservations,
-    totalCount,
-    isLoading,
-    onRefetch,
-  }: {
-    reservations: Reservation[];
-    totalCount?: number;
-    isLoading: boolean;
-    onRefetch: () => void;
-  }) => (
-    <div className="flex items-center justify-between">
-      {/* <div>
-      <h3 className="text-lg font-semibold">Update Status</h3>
-      <p className="text-sm text-muted-foreground">
-        Modify reservation statuses quickly
-      </p>
-    </div>
-    <div className="flex items-center gap-2">
-      <Badge variant="outline">
-        {reservations.length} items
-      </Badge>
-      {totalCount && (
-        <Badge variant="secondary">
-          Total: {totalCount}
-        </Badge>
-      )}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onRefetch}
-        disabled={isLoading}
-      >
-        Refresh
-      </Button>
-    </div> */}
-    </div>
-  )
-);
-
-StatusUpdateHeader.displayName = "StatusUpdateHeader";
 
 const StatusUpdateTableComponent = ({
   reservations,
@@ -229,20 +222,7 @@ const StatusUpdateTableComponent = ({
   const [statusRemarks, setStatusRemarks] = useState<Record<string, string>>(
     {}
   );
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Watch for reservations data changes and force re-render
-  // Use reservations length and a hash of statuses to detect actual data changes
-  const reservationsHash = useMemo(() => {
-    return reservations.map(r => `${r.id}-${r.status}`).join('|');
-  }, [reservations]);
-  
-  useEffect(() => {
-    // When reservations data actually changes (not just reference), force table re-render
-    setRefreshKey((prev) => prev + 1);
-  }, [reservationsHash]);
-
-  // Memoized handlers
   const handleStatusChange = useCallback(
     (reservationId: string, status: "PENDING" | "CONFIRMED" | "CANCELLED") => {
       setStatusChanges((prev) => ({
@@ -270,60 +250,51 @@ const StatusUpdateTableComponent = ({
       remarks: string
     ) => {
       try {
-        // Step 1: Update the status via API
+        // Update status via API
         await SchoolReservationsService.updateStatus(
           reservation.reservation_id,
           newStatus,
           remarks.trim() ? remarks : undefined
         );
 
-        // Step 2: Remove the query data to force fresh fetch
-        // Use undefined to match the exact query key used in useSchoolReservationsList
-        queryClient.removeQueries({ queryKey: schoolKeys.reservations.list(undefined) });
-        
-        // Step 3: Invalidate all reservation queries
-        queryClient.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
-        
-        // Step 4: FORCE REFETCH - This will make a network request to /school/reservations
-        // The refetch will fetch fresh data from server since we removed the cache
+        // Clear ALL reservation cache
+        queryClient.removeQueries({
+          queryKey: schoolKeys.reservations.root(),
+        });
+
+        // Invalidate all reservation queries
+        await queryClient.invalidateQueries({
+          queryKey: schoolKeys.reservations.root(),
+        });
+
+        // Force refetch all reservation queries
+        await queryClient.refetchQueries({
+          queryKey: schoolKeys.reservations.root(),
+          type: "active",
+        });
+
+        // Also call parent refetch
         if (onRefetch) {
           await onRefetch();
         }
-        
-        // Step 5: Also explicitly refetch to ensure network request
-        await queryClient.refetchQueries({
-          queryKey: schoolKeys.reservations.list(undefined),
-          type: 'active'
+
+        // Clear local state
+        setStatusChanges((prev) => {
+          const updated = { ...prev };
+          delete updated[reservation.id];
+          return updated;
         });
-        
-        // Step 6: Also refetch all reservation queries to be thorough
-        await queryClient.refetchQueries({
-          queryKey: schoolKeys.reservations.root(),
-          type: 'active'
+        setStatusRemarks((prev) => {
+          const updated = { ...prev };
+          updated[reservation.id] = "";
+          return updated;
         });
-        
-        // Step 7: Wait for React to process the state update and network requests
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Step 8: Force table refresh by updating refresh key
-        setRefreshKey((prev) => prev + 1);
 
         toast({
           title: "Successful",
           description: `Reservation ${reservation.no} status updated to ${newStatus}.`,
           variant: "success",
         });
-
-        // Clear the status change and remarks after successful update
-        setStatusChanges((prev) => {
-          const updated = { ...prev };
-          delete updated[reservation.id];
-          return updated;
-        });
-        setStatusRemarks((prev) => ({
-          ...prev,
-          [reservation.id]: "",
-        }));
       } catch (e: any) {
         console.error("Failed to update status:", e);
         toast({
@@ -339,7 +310,8 @@ const StatusUpdateTableComponent = ({
     [onRefetch, queryClient]
   );
 
-  // Column definitions for EnhancedDataTable
+  // Column definitions
+  // Note: statusRemarks is intentionally NOT in dependencies to prevent table re-render on every keystroke
   const statusColumns: ColumnDef<Reservation>[] = useMemo(
     () => [
       {
@@ -412,24 +384,16 @@ const StatusUpdateTableComponent = ({
     ],
     [
       statusChanges,
-      statusRemarks,
       handleStatusChange,
       handleRemarksChange,
       handleStatusUpdate,
+      // statusRemarks intentionally excluded to prevent re-render on every keystroke
     ]
   );
 
   return (
     <div className="space-y-4">
-      <StatusUpdateHeader
-        reservations={reservations}
-        totalCount={totalCount}
-        isLoading={isLoading}
-        onRefetch={onRefetch}
-      />
-
       <EnhancedDataTable
-        key={`status-table-${refreshKey}`}
         data={reservations}
         columns={statusColumns}
         title="Status Updates"
