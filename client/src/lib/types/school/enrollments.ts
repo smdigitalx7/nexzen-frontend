@@ -82,8 +82,6 @@ export interface SchoolEnrollmentForSectionAssignment {
 export interface SectionGroup {
   section_id: number;
   enrollment_ids: number[];
-  start_position: number;
-  end_position: number;
 }
 
 export interface AssignSectionsRequest {

@@ -62,14 +62,14 @@ export const AttendanceViewDialog = ({ open, onOpenChange, attendance, employee 
       size="LARGE"
       showFooter={false}
     >
-      <div className="space-y-6">
+      <div className="space-y-3">
         {/* Employee Information */}
-        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-          <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+        <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+          <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
             <User className="h-4 w-4" />
             Employee Information
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Employee Name</label>
               <p className="text-lg font-semibold">{employee?.employee_name || `Employee ${attendance.employee_id}`}</p>
@@ -82,16 +82,12 @@ export const AttendanceViewDialog = ({ open, onOpenChange, attendance, employee 
         </div>
 
         {/* Attendance Period */}
-        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-          <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+        <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+          <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
             Attendance Period
           </h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Attendance ID</label>
-              <p className="text-lg font-semibold">{attendance.attendance_id}</p>
-            </div>
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Month</label>
               <p className="text-lg font-semibold flex items-center gap-1">
@@ -113,12 +109,12 @@ export const AttendanceViewDialog = ({ open, onOpenChange, attendance, employee 
         </div>
 
         {/* Attendance Statistics */}
-        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-          <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+        <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+          <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Attendance Statistics
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Days Present</label>
               <p className="text-lg font-semibold text-green-600">
@@ -147,15 +143,15 @@ export const AttendanceViewDialog = ({ open, onOpenChange, attendance, employee 
         </div>
 
         {/* Attendance Percentage */}
-        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-          <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+        <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+          <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
             <CheckCircle className="h-4 w-4" />
             Attendance Performance
           </h3>
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Attendance Percentage</label>
-              <div className="flex items-center gap-3 mt-2">
+              <div className="flex items-center gap-3 mt-1">
                 <div className="flex-1 bg-gray-200 rounded-full h-3">
                   <div 
                     className="bg-blue-600 h-3 rounded-full transition-all duration-300"
@@ -171,12 +167,12 @@ export const AttendanceViewDialog = ({ open, onOpenChange, attendance, employee 
         </div>
 
         {/* Additional Information */}
-        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-          <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+        <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+          <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
             <AlertCircle className="h-4 w-4" />
             Additional Information
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Late Arrivals</label>
               <p className="text-lg font-semibold text-yellow-600">
@@ -194,12 +190,12 @@ export const AttendanceViewDialog = ({ open, onOpenChange, attendance, employee 
 
         {/* Record Information */}
         {(attendance.created_at || attendance.updated_at) && (
-          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-            <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+            <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
               <Clock className="h-4 w-4" />
               Record Information
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               {attendance.created_at && (
                 <div>
                   <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Created At</label>

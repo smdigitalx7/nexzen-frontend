@@ -96,7 +96,7 @@ export default function AttendanceView() {
     <>
       <CardContent>
         {/* Filters & Actions Bar */}
-        <div className="flex flex-wrap items-center justify-start gap-2 mb-4">
+        <div className="flex flex-wrap items-center justify-start gap-2 mb-2">
           <SchoolClassDropdown
             value={selectedClassId}
             onChange={(value) => {
@@ -130,18 +130,18 @@ export default function AttendanceView() {
         </div>
 
         {!selectedClassId ? (
-          <Alert className="mb-4">
+          <Alert className="mb-2">
             <Info className="h-4 w-4" />
             <AlertDescription>
               Please select a class first to view attendance records.
             </AlertDescription>
           </Alert>
         ) : hasError ? (
-          <div className="py-6 text-center text-red-600">{errorMessage || 'Failed to load data'}</div>
+          <div className="py-4 text-center text-red-600">{errorMessage || 'Failed to load data'}</div>
         ) : isLoading ? (
-          <div className="py-6 text-center text-slate-500">Loading...</div>
+          <div className="py-4 text-center text-slate-500">Loading...</div>
         ) : allStudents.length === 0 ? (
-          <div className="py-6 text-center text-slate-500">No Students Attendance to display</div>
+          <div className="py-4 text-center text-slate-500">No Students Attendance to display</div>
         ) : (
           <EnhancedDataTable 
             data={allStudents} 
@@ -164,13 +164,13 @@ export default function AttendanceView() {
         <DialogHeader>
           <DialogTitle>Attendance Details</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3">
+        <div className="space-y-2">
           {viewQuery.isLoading ? (
             <div className="text-sm text-slate-500">Loading...</div>
           ) : viewQuery.isError ? (
             <div className="text-sm text-red-600">Failed to load attendance</div>
           ) : viewQuery.data ? (
-            <div className="space-y-2 text-sm">
+            <div className="space-y-1 text-sm">
               <div className="flex justify-between"><span className="text-slate-600">Admission No</span><span className="font-medium">{viewQuery.data.admission_no}</span></div>
               <div className="flex justify-between"><span className="text-slate-600">Student</span><span className="font-medium">{viewQuery.data.student_name}</span></div>
               <div className="flex justify-between"><span className="text-slate-600">Roll</span><span className="font-medium">{viewQuery.data.roll_number}</span></div>
@@ -195,7 +195,7 @@ export default function AttendanceView() {
         <DialogHeader>
           <DialogTitle>Edit Attendance</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3">
+        <div className="space-y-2">
           <div>
             <Label>Absent Days</Label>
             <Input type="number" value={editAbsent} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditAbsent(e.target.value)} />
@@ -204,7 +204,7 @@ export default function AttendanceView() {
             <Label>Remarks</Label>
             <Input value={editRemarks} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditRemarks(e.target.value)} />
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 pt-1">
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
             <Button onClick={async () => {
               if (!editingRow?.attendance_id) { toast({ title: 'Not found', description: 'No attendance record to update', variant: 'destructive' }); return; }

@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useEffect, useMemo } from "react";
 import { Users, IdCard, MapPin, Building2, LayoutGrid } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
@@ -12,7 +13,36 @@ import SectionMappingTab from "./SectionMappingTab";
 const StudentManagement = () => {
   const { currentBranch } = useAuthStore();
   const { activeTab: activePageTab, setActiveTab: setActivePageTab } =
-    useTabNavigation("students");
+    useTabNavigation("section-mapping");
+
+  const tabs = useMemo(() => [
+    {
+      value: "section-mapping",
+      label: "Section Mapping",
+      icon: LayoutGrid,
+      content: <SectionMappingTab />,
+    },
+    {
+      value: "enrollments",
+      label: "Enrollments",
+      icon: IdCard,
+      content: <EnrollmentsTab />,
+    },
+    {
+      value: "transport",
+      label: "Transport",
+      icon: MapPin,
+      content: <TransportTab />,
+    },
+  ], []);
+
+  // Auto-select first tab if current tab doesn't exist
+  useEffect(() => {
+    const tabExists = tabs.some(tab => tab.value === activePageTab);
+    if (!tabExists && tabs.length > 0) {
+      setActivePageTab(tabs[0].value);
+    }
+  }, [activePageTab, setActivePageTab, tabs]);
 
   return (
     <motion.div
@@ -44,32 +74,7 @@ const StudentManagement = () => {
 
       {/* Tabs */}
       <TabSwitcher
-        tabs={[
-          // {
-          //   value: "students",
-          //   label: "Students",
-          //   icon: Users,
-          //   content: <StudentsTab />,
-          // },
-          {
-            value: "section-mapping",
-            label: "Section Mapping",
-            icon: LayoutGrid,
-            content: <SectionMappingTab />,
-          },
-          {
-            value: "enrollments",
-            label: "Enrollments",
-            icon: IdCard,
-            content: <EnrollmentsTab />,
-          },
-          {
-            value: "transport",
-            label: "Transport",
-            icon: MapPin,
-            content: <TransportTab />,
-          },
-        ]}
+        tabs={tabs}
         activeTab={activePageTab}
         onTabChange={setActivePageTab}
       />
