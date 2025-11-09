@@ -73,7 +73,8 @@ export interface CollegeReservationRead {
   previous_school_details?: string | null;
   present_address?: string | null;
   permanent_address?: string | null;
-  reservation_fee?: number | null;
+  application_fee?: number | null;
+  application_fee_paid?: boolean | null;
   preferred_class_id?: number | null;
   preferred_group_id?: number | null;
   group_name?: string | null;

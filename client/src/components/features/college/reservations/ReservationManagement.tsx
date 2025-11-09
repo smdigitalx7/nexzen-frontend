@@ -240,7 +240,7 @@ export default function ReservationNew() {
       tuition_fee: r.total_tuition_fee || 0,
       transport_fee: r.transport_fee || 0,
       book_fee: r.book_fee || 0,
-      application_fee: r.reservation_fee || 0,
+      application_fee: r.application_fee || 0,
       tuition_concession: r.tuition_concession || 0,
       transport_concession: r.transport_concession || 0,
     }));

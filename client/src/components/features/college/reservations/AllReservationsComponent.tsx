@@ -221,20 +221,20 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
         return;
       }
 
-      // Fetch full reservation details to get reservation_fee (college uses reservation_fee instead of application_fee)
+      // Fetch full reservation details to get application_fee
       const fullReservationData = await CollegeReservationsService.getById(
         reservation.reservation_id
       );
 
-      // Get reservation fee from full reservation data
+      // Get application fee from full reservation data
       // Handle null, undefined, or 0 values - allow payment to proceed and let backend validate
-      const reservationFee = fullReservationData.reservation_fee;
+      const applicationFee = fullReservationData.application_fee;
       
-      // Check if reservation_fee is explicitly null or undefined (not just 0)
-      if (reservationFee === null || reservationFee === undefined) {
+      // Check if application_fee is explicitly null or undefined (not just 0)
+      if (applicationFee === null || applicationFee === undefined) {
         toast({
           title: "Error",
-          description: `Reservation fee is not set for reservation ${reservationNo}. Please set the reservation fee first before processing payment.`,
+          description: `Application fee is not set for reservation ${reservationNo}. Please set the application fee first before processing payment.`,
           variant: "destructive",
         });
         setIsLoadingPaymentData(false);
@@ -242,7 +242,7 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
       }
 
       // Convert to number and use 0 as fallback if conversion fails
-      const feeAmount = Number(reservationFee) || 0;
+      const feeAmount = Number(applicationFee) || 0;
       
       // If fee is 0, warn but allow payment to proceed (backend will handle validation)
       if (feeAmount === 0) {
