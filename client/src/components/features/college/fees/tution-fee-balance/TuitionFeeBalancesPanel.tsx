@@ -5,7 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
-import { useCollegeClasses, useCollegeGroups, useCollegeTuitionBalancesList, useCollegeTuitionBalanceByAdmission, useBulkCreateCollegeTuitionBalances } from "@/lib/hooks/college";
+import { useCollegeTuitionBalancesList, useCollegeTuitionBalanceByAdmission, useBulkCreateCollegeTuitionBalances } from "@/lib/hooks/college";
+import { useCollegeClasses, useCollegeGroups } from "@/lib/hooks/college/use-college-dropdowns";
 import type { CollegeTuitionFeeBalanceRead, CollegeTuitionFeeBalanceFullRead } from "@/lib/types/college";
 import { StudentFeeBalancesTable } from "./StudentFeeBalancesTable";
 
@@ -198,10 +199,13 @@ BulkCreateDialog.displayName = "BulkCreateDialog";
 
 const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: TuitionFeeBalancesPanelProps) => {
   // State management
-  const { data: classes = [] } = useCollegeClasses();
-  const { data: groups = [] } = useCollegeGroups();
-  const [balanceClass, setBalanceClass] = useState<string>(classes[0]?.class_id?.toString() || "");
-  const [balanceGroup, setBalanceGroup] = useState<string>(groups[0]?.group_id?.toString() || "");
+  const { data: classesData } = useCollegeClasses();
+  const classes = classesData?.items || [];
+  const [balanceClass, setBalanceClass] = useState<string>("");
+  const [balanceGroup, setBalanceGroup] = useState<string>("");
+  const classIdNum = balanceClass ? parseInt(balanceClass) : undefined;
+  const { data: groupsData } = useCollegeGroups(classIdNum);
+  const groups = groupsData?.items || [];
   const { toast } = useToast();
   const bulkCreateMutation = useBulkCreateCollegeTuitionBalances();
 
@@ -211,26 +215,23 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
   const [bulkCreateOpen, setBulkCreateOpen] = useState(false);
   const { data: selectedBalance } = useCollegeTuitionBalanceByAdmission(selectedAdmissionNo);
 
+  // Reset group when class changes
   useEffect(() => {
-    if (!balanceClass && classes.length > 0) {
-      setBalanceClass(classes[0].class_id.toString());
+    if (balanceClass) {
+      setBalanceGroup("");
     }
-  }, [classes, balanceClass]);
+  }, [balanceClass]);
 
-  useEffect(() => {
-    if (!balanceGroup && groups.length > 0) {
-      setBalanceGroup(groups[0].group_id.toString());
-    }
-  }, [groups, balanceGroup]);
-
-  const classIdNum = balanceClass ? parseInt(balanceClass) : undefined;
   const groupIdNum = balanceGroup ? parseInt(balanceGroup) : undefined;
-  const { data: tuitionResp, refetch } = useCollegeTuitionBalancesList({ 
-    class_id: classIdNum, 
-    group_id: groupIdNum,
-    page: 1, 
-    pageSize: 50 
-  });
+  // Only fetch data when both class and group are selected
+  const { data: tuitionResp, refetch } = useCollegeTuitionBalancesList(
+    classIdNum && groupIdNum ? { 
+      class_id: classIdNum, 
+      group_id: groupIdNum,
+      page: 1, 
+      pageSize: 50 
+    } : undefined
+  );
 
   // Memoized selected class and group names
   const selectedClassName = useMemo(() => 
@@ -319,14 +320,64 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
       transition={{ delay: 0.1 }}
       className="space-y-4"
     >
+      {/* Class and Group Filters */}
+      <div className="flex gap-4 items-end">
+        <div className="flex-1">
+          <label className="text-sm font-medium mb-2 block">Class</label>
+          <Select 
+            value={balanceClass} 
+            onValueChange={(value) => {
+              setBalanceClass(value);
+              setBalanceGroup(""); // Reset group when class changes
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select class" />
+            </SelectTrigger>
+            <SelectContent>
+              {classes.map((cls: any) => (
+                <SelectItem key={cls.class_id} value={cls.class_id.toString()}>
+                  {cls.class_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex-1">
+          <label className="text-sm font-medium mb-2 block">Group</label>
+          <Select 
+            value={balanceGroup} 
+            onValueChange={setBalanceGroup}
+            disabled={!balanceClass}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={balanceClass ? "Select group" : "Select class first"} />
+            </SelectTrigger>
+            <SelectContent>
+              {groups.map((grp: any) => (
+                <SelectItem key={grp.group_id} value={grp.group_id.toString()}>
+                  {grp.group_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-      <StudentFeeBalancesTable
-        studentBalances={rows}
-        onViewStudent={handleViewStudent}
-        onExportCSV={onExportCSV}
-        onBulkCreate={handleOpenBulkCreate}
-        showHeader={false}
-      />
+      {!balanceClass || !balanceGroup ? (
+        <div className="text-center py-12 border rounded-lg bg-muted/30">
+          <p className="text-muted-foreground">Please select a class and group to view tuition fee balances.</p>
+        </div>
+      ) : (
+        <StudentFeeBalancesTable
+          studentBalances={rows}
+          onViewStudent={handleViewStudent}
+          onExportCSV={onExportCSV}
+          onBulkCreate={handleOpenBulkCreate}
+          showHeader={false}
+          loading={!tuitionResp}
+        />
+      )}
 
       {/* Details Dialog */}
       <DetailsDialog

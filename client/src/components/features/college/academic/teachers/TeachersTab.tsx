@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useLocation } from "wouter";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { FormDialog } from "@/components/shared";
@@ -12,7 +11,8 @@ import { useTeachersByBranch, useEmployeesByBranch } from "@/lib/hooks/general";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { TeacherCourseSubjectAssignmentsTab } from "./TeacherCourseSubjectAssignmentsTab";
-import { useTeacherCourseSubjectsList, useCreateTeacherCourseSubject, useDeleteTeacherCourseSubjectRelation, useCollegeGroups, useCollegeCourses, useCollegeSubjects } from "@/lib/hooks/college";
+import { useTeacherCourseSubjectsList, useCreateTeacherCourseSubject, useDeleteTeacherCourseSubjectRelation, useCollegeGroups } from "@/lib/hooks/college";
+import { useCollegeCourses, useCollegeSubjects } from "@/lib/hooks/college/use-college-dropdowns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -21,8 +21,6 @@ export const TeachersTab = () => {
   const { data: allEmployees = [], isLoading, error } = useEmployeesByBranch();
   const { data: assignments = [], isLoading: assignmentsLoading } = useTeacherCourseSubjectsList();
   const { data: groups = [] } = useCollegeGroups();
-  const { data: courses = [] } = useCollegeCourses();
-  const { data: subjects = [] } = useCollegeSubjects();
   
   // Filter to only teaching staff and map to include all fields
   const teachers = useMemo(() => {
@@ -39,7 +37,6 @@ export const TeachersTab = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<any>(null);
-  const [searchTerm, setSearchTerm] = useState("");
   const [activeSubTab, setActiveSubTab] = useState("assignments");
   
   // Form state
@@ -54,12 +51,12 @@ export const TeachersTab = () => {
   const { toast } = useToast();
 
   // Get courses for selected group - fetch courses with group filter
-  const { data: groupCourses = [] } = useCollegeCourses();
-  const filteredCourses = useMemo(() => {
-    if (!selectedGroupId) return [];
-    // Filter courses that belong to the selected group
-    return groupCourses.filter((course: any) => course.group_id === parseInt(selectedGroupId));
-  }, [selectedGroupId, groupCourses]);
+  const { data: coursesData } = useCollegeCourses(selectedGroupId ? parseInt(selectedGroupId) : 0);
+  const courses = coursesData?.items || [];
+  
+  // Get subjects for selected group
+  const { data: subjectsData } = useCollegeSubjects(selectedGroupId ? parseInt(selectedGroupId) : 0);
+  const subjects = subjectsData?.items || [];
 
   const resetForm = () => {
     setSelectedTeacherId("");
@@ -109,15 +106,6 @@ export const TeachersTab = () => {
     }
   };
 
-  // Filter teachers based on search term
-  const filteredTeachers = useMemo(() => {
-    if (!searchTerm) return teachers;
-    return teachers.filter((teacher: any) =>
-      teacher.employee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.designation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [teachers, searchTerm]);
 
   const columns: ColumnDef<any>[] = useMemo(() => [
     {
@@ -189,38 +177,18 @@ export const TeachersTab = () => {
             label: "Teachers",
             icon: User,
             content: (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Label htmlFor="search">Search Teachers</Label>
-          <Input
-            id="search"
-            placeholder="Search by name, designation, or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-80"
-          />
-        </div>
-        <div className="text-sm text-gray-500">
-          {filteredTeachers.length} teacher{filteredTeachers.length !== 1 ? 's' : ''} found
-        </div>
-      </div>
-
-      <EnhancedDataTable
-        data={filteredTeachers}
-        columns={columns}
-        title="Teachers"
-        searchKey="employee_name"
-        exportable={true}
-        onAdd={() => setIsAddOpen(true)}
-        addButtonText="Add Teacher"
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
-        loading={isLoading}
-                />
-              </div>
+              <EnhancedDataTable
+                data={teachers}
+                columns={columns}
+                title="Teachers"
+                searchKey="employee_name"
+                exportable={true}
+                showActions={true}
+                actionButtonGroups={actionButtonGroups}
+                actionColumnHeader="Actions"
+                showActionLabels={true}
+                loading={isLoading}
+              />
             ),
           },
           {
@@ -313,7 +281,7 @@ export const TeachersTab = () => {
                 <SelectValue placeholder={selectedGroupId ? "Select course" : "Select group first"} />
               </SelectTrigger>
               <SelectContent>
-                {filteredCourses.map((course: any) => (
+                {courses.map((course: any) => (
                   <SelectItem key={course.course_id} value={course.course_id.toString()}>
                     {course.course_name}
                   </SelectItem>
@@ -325,9 +293,13 @@ export const TeachersTab = () => {
           {/* Subject Selection */}
           <div className="space-y-2">
             <Label htmlFor="subject">Subject *</Label>
-            <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
+            <Select 
+              value={selectedSubjectId} 
+              onValueChange={setSelectedSubjectId}
+              disabled={!selectedGroupId}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="Select subject" />
+                <SelectValue placeholder={selectedGroupId ? "Select subject" : "Select group first"} />
               </SelectTrigger>
               <SelectContent>
                 {subjects.map((subject: any) => (

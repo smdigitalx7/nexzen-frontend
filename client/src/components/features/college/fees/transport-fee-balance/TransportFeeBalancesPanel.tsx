@@ -1,10 +1,11 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { User } from "lucide-react";
 import { useCollegeStudentTransportPaymentSummary, useCollegeStudentTransportPaymentSummaryByEnrollmentId } from "@/lib/hooks/college";
+import { useCollegeClasses, useCollegeGroups } from "@/lib/hooks/college/use-college-dropdowns";
 import type { 
   CollegeStudentTransportPaymentSummaryItem,
   CollegeStudentTransportMonthlyPayment,
@@ -70,11 +71,60 @@ interface TransportFeeBalancesPanelProps {
 }
 
 export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: TransportFeeBalancesPanelProps) {
+  // State management
+  const { data: classesData } = useCollegeClasses();
+  const classes = classesData?.items || [];
+  const [balanceClass, setBalanceClass] = useState<string>("");
+  const [balanceGroup, setBalanceGroup] = useState<string>("");
+  const classIdNum = balanceClass ? parseInt(balanceClass) : undefined;
+  const { data: groupsData } = useCollegeGroups(classIdNum);
+  const groups = groupsData?.items || [];
+  const groupIdNum = balanceGroup ? parseInt(balanceGroup) : undefined;
+  
   const [paymentStatus, setPaymentStatus] = useState<"all" | PaymentStatus>("all");
 
-  const { data: transportSummaryData, isLoading } = useCollegeStudentTransportPaymentSummary(
-    paymentStatus !== "all" ? { payment_status: paymentStatus } : undefined
-  );
+  // Reset group when class changes
+  useEffect(() => {
+    if (balanceClass) {
+      setBalanceGroup("");
+    }
+  }, [balanceClass]);
+
+  // Get selected class and group names for client-side filtering
+  const selectedClassName = useMemo(() => {
+    if (!balanceClass) return null;
+    const selectedClass = classes.find((cls: any) => cls.class_id.toString() === balanceClass);
+    return selectedClass?.class_name || null;
+  }, [balanceClass, classes]);
+
+  const selectedGroupName = useMemo(() => {
+    if (!balanceGroup) return null;
+    const selectedGroup = groups.find((grp: any) => grp.group_id.toString() === balanceGroup);
+    return selectedGroup?.group_name || null;
+  }, [balanceGroup, groups]);
+
+  // Build params object - only payment_status is supported by backend API
+  const summaryParams = useMemo(() => {
+    // Fetch data if at least one filter is selected (even if only class/group)
+    // We need to fetch all data to filter by class/group on client side
+    if (!balanceClass && !balanceGroup && paymentStatus === "all") {
+      return undefined;
+    }
+    
+    const params: any = {};
+    
+    // Only payment_status is supported by the backend endpoint
+    if (paymentStatus !== "all") {
+      params.payment_status = paymentStatus;
+    }
+    
+    // Note: class_id and group_id are not supported by the backend endpoint
+    // We'll filter on the client side instead
+    
+    return params;
+  }, [paymentStatus, balanceClass, balanceGroup]);
+
+  const { data: transportSummaryData, isLoading } = useCollegeStudentTransportPaymentSummary(summaryParams);
 
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<number | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -85,7 +135,8 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
       return [];
     }
     
-    return transportSummaryData.items.map((item: CollegeStudentTransportPaymentSummaryItem): TransportFeeBalanceRow => {
+    // Map and filter the data
+    let mappedRows = transportSummaryData.items.map((item: CollegeStudentTransportPaymentSummaryItem): TransportFeeBalanceRow => {
       // Safely convert numeric values, handling string, null, undefined cases
       const totalFee = typeof item.total_fee === 'string' 
         ? parseFloat(item.total_fee) || 0 
@@ -116,7 +167,18 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
         summaryItem: item,
       };
     });
-  }, [transportSummaryData]);
+
+    // Apply client-side filtering for class and group
+    if (selectedClassName) {
+      mappedRows = mappedRows.filter(row => row.class_name === selectedClassName);
+    }
+    
+    if (selectedGroupName) {
+      mappedRows = mappedRows.filter(row => row.group_name === selectedGroupName);
+    }
+    
+    return mappedRows;
+  }, [transportSummaryData, selectedClassName, selectedGroupName]);
 
   // Define columns for EnhancedDataTable
   const columns: ColumnDef<TransportFeeBalanceRow>[] = useMemo(() => [
@@ -203,17 +265,6 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
     }
   ], [handleViewDetails]);
 
-  // Calculate summary statistics
-  const totalCollected = rows.reduce((sum, s) => {
-    const amount = typeof s.paid_amount === 'number' && !isNaN(s.paid_amount) ? s.paid_amount : 0;
-    return sum + amount;
-  }, 0);
-  const totalOutstanding = rows.reduce((sum, s) => {
-    const amount = typeof s.outstanding_amount === 'number' && !isNaN(s.outstanding_amount) ? s.outstanding_amount : 0;
-    return sum + amount;
-  }, 0);
-  const totalStudents = rows.length;
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -223,6 +274,46 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
     >
       {/* Filters */}
       <div className="flex gap-4 items-end">
+        <div className="flex-1">
+          <label className="text-sm font-medium mb-2 block">Class</label>
+          <Select 
+            value={balanceClass} 
+            onValueChange={(value) => {
+              setBalanceClass(value);
+              setBalanceGroup(""); // Reset group when class changes
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select class" />
+            </SelectTrigger>
+            <SelectContent>
+              {classes.map((cls: any) => (
+                <SelectItem key={cls.class_id} value={cls.class_id.toString()}>
+                  {cls.class_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex-1">
+          <label className="text-sm font-medium mb-2 block">Group</label>
+          <Select 
+            value={balanceGroup} 
+            onValueChange={setBalanceGroup}
+            disabled={!balanceClass}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={balanceClass ? "Select group" : "Select class first"} />
+            </SelectTrigger>
+            <SelectContent>
+              {groups.map((grp: any) => (
+                <SelectItem key={grp.group_id} value={grp.group_id.toString()}>
+                  {grp.group_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="flex-1">
           <label className="text-sm font-medium mb-2 block">Payment Status</label>
           <Select 
@@ -245,55 +336,25 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
       </div>
 
       {/* Enhanced Data Table */}
-      <EnhancedDataTable
-        data={rows}
-        columns={columns}
-        title="Transport Fee Balances"
-        searchKey="student_name"
-        searchPlaceholder="Search students..."
-        exportable={true}
-        onExport={onExportCSV}
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
-        loading={isLoading}
-        filters={[
-          {
-            key: 'status',
-            label: 'Status',
-            options: [
-              { value: 'PENDING', label: 'Pending' },
-              { value: 'PARTIALLY_PAID', label: 'Partially Paid' },
-              { value: 'FULLY_PAID', label: 'Fully Paid' }
-            ],
-            value: 'all',
-            onChange: () => {}, // Handled by EnhancedDataTable's built-in filtering
-          }
-        ]}
-      />
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-green-600">
-            {formatCurrency(totalCollected)}
-          </div>
-          <div className="text-sm text-muted-foreground">Total Collected</div>
+      {!balanceClass && !balanceGroup && paymentStatus === "all" ? (
+        <div className="text-center py-12 border rounded-lg bg-muted/30">
+          <p className="text-muted-foreground">Please select at least one filter (Class, Group, or Payment Status) to view transport fee balances.</p>
         </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-red-600">
-            {formatCurrency(totalOutstanding)}
-          </div>
-          <div className="text-sm text-muted-foreground">Total Outstanding</div>
-        </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-blue-600">
-            {totalStudents}
-          </div>
-          <div className="text-sm text-muted-foreground">Students</div>
-        </div>
-      </div>
+      ) : (
+        <EnhancedDataTable
+          data={rows}
+          columns={columns}
+          title="Transport Fee Balances"
+          searchKey="student_name"
+          searchPlaceholder="Search students..."
+          exportable={true}
+          showActions={true}
+          actionButtonGroups={actionButtonGroups}
+          actionColumnHeader="Actions"
+          showActionLabels={true}
+          loading={isLoading}
+        />
+      )}
 
       {/* Details Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>

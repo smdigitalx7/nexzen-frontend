@@ -20,6 +20,7 @@ import {
 } from "@/components/shared/Dropdowns";
 import { useMemo, useState } from "react";
 import { Save } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type ReservationFormState = {
   student_name: string;
@@ -1037,10 +1038,13 @@ export default function ReservationForm({
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="application_fee">Application Fee</Label>
+                <Label htmlFor="application_fee">
+                  Application Fee <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="application_fee"
                   type="number"
+                  min="1"
                   value={form.application_fee}
                   onChange={(e) =>
                     setForm({
@@ -1048,8 +1052,20 @@ export default function ReservationForm({
                       application_fee: Number(e.target.value),
                     })
                   }
-                  className="w-full mb-5"
+                  className={cn(
+                    "w-full mb-5",
+                    (!form.application_fee ||
+                      Number(form.application_fee || 0) <= 0) &&
+                      "border-red-500 focus:ring-red-500"
+                  )}
+                  required
                 />
+                {(!form.application_fee ||
+                  Number(form.application_fee || 0) <= 0) && (
+                  <p className="text-sm text-red-500 mt-1">
+                    Application fee is required and must be greater than 0
+                  </p>
+                )}
               </div>
 
               {/* <div>

@@ -92,16 +92,13 @@ export const EnrollmentCreateDialog = ({
             required
           />
         </div>
-        <div>
-          <Label htmlFor="roll_number">Roll Number *</Label>
-          <Input
-            id="roll_number"
-            value={formData.roll_number || ''}
-            onChange={(e) => onFormDataChange({ ...formData, roll_number: e.target.value })}
-            placeholder="Enter roll number"
-            required
-          />
-        </div>
+        <Input
+          label="Roll Number"
+          value={formData.roll_number || ''}
+          onChange={(e) => onFormDataChange({ ...formData, roll_number: e.target.value })}
+          placeholder="Enter roll number"
+          required
+        />
         <div>
           <Label htmlFor="enrollment_date">Enrollment Date</Label>
           <DatePicker

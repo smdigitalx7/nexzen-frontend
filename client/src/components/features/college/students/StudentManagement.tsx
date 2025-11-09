@@ -37,6 +37,32 @@ const StudentManagement = () => {
     }
   }, [activePageTab, setActivePageTab, tabs]);
 
+  // Dynamic header content based on active tab
+  const getHeaderContent = () => {
+    switch (activePageTab) {
+      case "enrollments":
+        return {
+          title: "Student Enrollments Management",
+          description:
+            "Manage student enrollments, and edit student details",
+        };
+      case "transport":
+        return {
+          title: "Transport Management",
+          description:
+            "Manage student transport assignments, routes and pickup points",
+        };
+      default:
+        return {
+          title: "Student Management",
+          description:
+            "Manage student records, attendance, and academic progress",
+        };
+    }
+  };
+
+  const headerContent = getHeaderContent();
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -47,10 +73,10 @@ const StudentManagement = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Student Management
+            {headerContent.title}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage student records, attendance, and academic progress
+            {headerContent.description}
           </p>
         </div>
         <div className="flex items-center gap-2">

@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, Trash2, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Trash2, Plus, Download } from "lucide-react";
+import { exportTeacherAssignmentsToExcel } from "@/lib/utils/export/teacher-assignments-export";
 import {
   Table,
   TableBody,
@@ -84,6 +85,7 @@ export const TeacherCourseSubjectAssignmentsTab = ({
         course.teachers.get(teacherId)!.subjects.push({
           subject_id: teacher.subject_id,
           subject_name: teacher.subject_name,
+          is_active: teacher.is_active !== undefined ? teacher.is_active : true,
         });
       });
     });
@@ -98,7 +100,7 @@ export const TeacherCourseSubjectAssignmentsTab = ({
         teachers: Array<{
           teacher_id: number;
           teacher_name: string;
-          subjects: Array<{ subject_id: number; subject_name: string }>;
+          subjects: Array<{ subject_id: number; subject_name: string; is_active?: boolean }>;
         }>;
       }>;
     }
@@ -124,6 +126,24 @@ export const TeacherCourseSubjectAssignmentsTab = ({
     }, 0);
   }, [hierarchicalAssignments]);
 
+  // Export to Excel
+  const handleExportToExcel = async () => {
+    try {
+      await exportTeacherAssignmentsToExcel(
+        hierarchicalAssignments,
+        'college_teacher_assignments',
+        true // isCollege = true
+      );
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast({
+        title: 'Export Failed',
+        description: 'Failed to export assignments to Excel. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -134,6 +154,14 @@ export const TeacherCourseSubjectAssignmentsTab = ({
           <Badge variant="outline" className="text-sm">
             {totalAssignments} {totalAssignments === 1 ? 'Assignment' : 'Assignments'}
           </Badge>
+          <Button
+            onClick={handleExportToExcel}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export Excel
+          </Button>
           <Button
             onClick={onAddClick}
             className="flex items-center gap-2"

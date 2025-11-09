@@ -179,6 +179,10 @@ export interface CollegeStudentTransportPaymentSummaryListResponse {
 
 export interface CollegeStudentTransportPaymentSummaryParams {
   payment_status?: "PENDING" | "PARTIALLY_PAID" | "FULLY_PAID" | null;
+  class_id?: number;
+  group_id?: number;
+  course_id?: number;
+  bus_route_id?: number;
 }
 
 // Expected Transport Payments Types

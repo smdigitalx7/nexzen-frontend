@@ -5,16 +5,19 @@ import {
   EnrollmentSearchForm,
   EnrollmentCreateDialog,
   EnrollmentViewDialog,
+  EnrollmentEditDialog,
 } from './enrollments';
 import { 
   useCollegeEnrollmentsList,
   useCollegeEnrollment,
+  useCollegeEnrollmentByAdmission,
   useCreateCollegeEnrollment,
   useCollegeStudentsList,
 } from '@/lib/hooks/college';
 import { useCollegeClasses, useCollegeGroups, useCollegeCourses } from '@/lib/hooks/college/use-college-dropdowns';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { CollegeEnrollmentCreate, CollegeEnrollmentRead } from '@/lib/types/college';
+import { formatDate } from '@/lib/utils/formatting/date';
 
 const EnrollmentsTabComponent = () => {
   // State management
@@ -36,33 +39,47 @@ const EnrollmentsTabComponent = () => {
   const courses = coursesData?.items || [];
   const students = studentsData?.data || [];
 
+  // Fetch enrollment by admission number when admission_no is provided
+  const admissionNoResult = useCollegeEnrollmentByAdmission(query.admission_no?.trim());
+  const enrollmentClassId = admissionNoResult.data?.class_id;
+  const enrollmentGroupId = admissionNoResult.data?.group_id;
+  const { data: enrollmentGroupsData } = useCollegeGroups(enrollmentClassId || 0);
+  const { data: enrollmentCoursesData } = useCollegeCourses(enrollmentGroupId || 0);
+  
+  // Use enrollment groups/courses if available, otherwise use regular ones
+  const allGroups = enrollmentClassId ? (enrollmentGroupsData?.items || groups) : groups;
+  const allCourses = enrollmentGroupId ? (enrollmentCoursesData?.items || courses) : courses;
+
   // Memoized API parameters - both class_id and group_id are required
   const apiParams = useMemo(() => {
-    // Both class_id and group_id are required
-    if (!query.class_id || !query.group_id) {
-      return undefined;
+    const params: any = {};
+    if (query.class_id) {
+      params.class_id = Number(query.class_id);
+      if (query.group_id) {
+        params.group_id = Number(query.group_id);
+        if (query.course_id) {
+          params.course_id = Number(query.course_id);
+        }
+      }
     }
-    
-    const params: any = {
-      class_id: Number(query.class_id),
-      group_id: Number(query.group_id),
-    };
-    
-    if (query.course_id) {
-      params.course_id = Number(query.course_id);
-    }
-    
     return params;
   }, [query.class_id, query.group_id, query.course_id]);
 
-  // API hooks
+  // API hooks - use by-admission endpoint when admission_no is provided, otherwise use list
   const result = useCollegeEnrollmentsList(apiParams);
+  
+  // Determine which data source to use
+  const shouldUseAdmissionNo = Boolean(query.admission_no?.trim());
+  const isLoading = shouldUseAdmissionNo ? admissionNoResult.isLoading : result.isLoading;
+  const isError = shouldUseAdmissionNo ? admissionNoResult.isError : result.isError;
   const createMutation = useCreateCollegeEnrollment();
 
   // Dialog state
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [viewEnrollmentId, setViewEnrollmentId] = useState<number | null>(null);
+  const [editStudentId, setEditStudentId] = useState<number | null>(null);
 
   // Fetch selected enrollment for viewing
   const { data: viewEnrollment, isLoading: isLoadingView } = useCollegeEnrollment(viewEnrollmentId);
@@ -110,6 +127,22 @@ const EnrollmentsTabComponent = () => {
     setIsViewDialogOpen(true);
   }, []);
 
+  // Handle edit from table action
+  const handleEdit = useCallback((enrollment: any) => {
+    if (enrollment?.student_id) {
+      setEditStudentId(enrollment.student_id);
+      setIsEditDialogOpen(true);
+    }
+  }, []);
+
+  // Handle edit success - refresh data and reopen view
+  const handleEditSuccess = useCallback(() => {
+    if (viewEnrollmentId) {
+      // Refetch enrollment data
+      // The query will automatically refetch due to cache invalidation
+    }
+  }, [viewEnrollmentId]);
+
   // Memoized handlers
   const handleGroupChange = useCallback((value: string) => {
     setQuery(prev => ({ 
@@ -149,8 +182,35 @@ const EnrollmentsTabComponent = () => {
 
   // Flatten enrollments for table display
   const flattenedEnrollments = useMemo(() => {
-    if (!result.data?.enrollments) return [];
+    // If admission_no is provided, use the by-admission endpoint result
+    if (shouldUseAdmissionNo && admissionNoResult.data) {
+      // Transform single enrollment to match table format
+      const enrollment = admissionNoResult.data;
+      // Find class name from classes dropdown
+      const classInfo = classes.find(c => c.class_id === enrollment.class_id);
+      // Find group name from groups dropdown
+      const groupInfo = allGroups.find(g => g.group_id === enrollment.group_id);
+      // Find course name from courses dropdown
+      const courseInfo = allCourses.find(c => c.course_id === enrollment.course_id);
+      return [{
+        enrollment_id: enrollment.enrollment_id,
+        admission_no: enrollment.admission_no,
+        student_name: enrollment.student_name,
+        roll_number: enrollment.roll_number,
+        class_id: enrollment.class_id,
+        group_id: enrollment.group_id,
+        course_id: enrollment.course_id || null,
+        group_name: groupInfo?.group_name || '',
+        course_name: courseInfo?.course_name || enrollment.course_name || undefined,
+        class_name: classInfo?.class_name || '',
+        enrollment_date: enrollment.enrollment_date || null,
+        student_id: enrollment.student_id,
+        is_active: enrollment.is_active,
+      } as CollegeEnrollmentRead & { class_name?: string; group_name?: string; course_name?: string }];
+    }
     
+    // Otherwise, use the list endpoint result
+    if (!result.data?.enrollments) return [];
     const flattened: (CollegeEnrollmentRead & { class_name?: string; group_name?: string; course_name?: string })[] = [];
     
     result.data.enrollments.forEach((classGroup) => {
@@ -167,7 +227,7 @@ const EnrollmentsTabComponent = () => {
     });
     
     return flattened;
-  }, [result.data]);
+  }, [shouldUseAdmissionNo, admissionNoResult.data, result.data?.enrollments, classes, allGroups, allCourses]);
 
   // Define columns
   const columns: ColumnDef<CollegeEnrollmentRead & { class_name?: string; group_name?: string; course_name?: string }>[] = useMemo(() => [
@@ -199,7 +259,12 @@ const EnrollmentsTabComponent = () => {
     {
       accessorKey: 'enrollment_date',
       header: 'Date',
-      cell: ({ row }) => row.original.enrollment_date || '-',
+      cell: ({ row }) => {
+        const dateValue = row.original.enrollment_date;
+        if (!dateValue) return '-';
+        // Format date to show only date part (no time)
+        return formatDate(dateValue, { year: 'numeric', month: 'short', day: 'numeric' });
+      },
     },
     {
       accessorKey: 'is_active',
@@ -217,8 +282,12 @@ const EnrollmentsTabComponent = () => {
     {
       type: 'view' as const,
       onClick: (row: any) => handleView(row)
+    },
+    {
+      type: 'edit' as const,
+      onClick: (row: any) => handleEdit(row)
     }
-  ], [handleView]);
+  ], [handleView, handleEdit]);
 
   return (
     <div className="space-y-4">
@@ -236,11 +305,28 @@ const EnrollmentsTabComponent = () => {
       />
 
       {/* Enhanced Data Table */}
-      {!query.class_id || !query.group_id ? (
+      {shouldUseAdmissionNo ? (
+        // Show table when searching by admission number
+        <EnhancedDataTable
+          data={flattenedEnrollments}
+          columns={columns}
+          title="Enrollments"
+          searchKey="student_name"
+          searchPlaceholder="Search by student name..."
+          loading={isLoading}
+          onAdd={() => setIsCreateDialogOpen(true)}
+          addButtonText="Add Enrollment"
+          addButtonVariant="default"
+          showActions={true}
+          actionButtonGroups={actionButtonGroups}
+          actionColumnHeader="Actions"
+          showActionLabels={true}
+        />
+      ) : !query.class_id || !query.group_id ? (
         <div className="text-sm text-slate-600 p-4 text-center">
           {!query.class_id 
-            ? 'Please select a class and group to view enrollments.'
-            : 'Please select a group to view enrollments.'}
+            ? 'Please select a class and group to view enrollments, or search by admission number.'
+            : 'Please select a group to view enrollments, or search by admission number.'}
         </div>
       ) : (
         <EnhancedDataTable
@@ -249,7 +335,7 @@ const EnrollmentsTabComponent = () => {
           title="Enrollments"
           searchKey="student_name"
           searchPlaceholder="Search by student name..."
-          loading={result.isLoading}
+          loading={isLoading}
           onAdd={() => setIsCreateDialogOpen(true)}
           addButtonText="Add Enrollment"
           addButtonVariant="default"
@@ -294,6 +380,22 @@ const EnrollmentsTabComponent = () => {
         classes={classes}
         groups={groups}
         courses={courses}
+      />
+
+      <EnrollmentEditDialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setEditStudentId(null);
+            // Reopen view dialog after edit closes
+            if (viewEnrollmentId) {
+              setIsViewDialogOpen(true);
+            }
+          }
+        }}
+        studentId={editStudentId}
+        onSuccess={handleEditSuccess}
       />
     </div>
   );

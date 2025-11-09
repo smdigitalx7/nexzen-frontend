@@ -490,6 +490,16 @@ export default function ReservationNew() {
       return;
     }
 
+    // Validate application fee is required and greater than 0
+    if (!form.reservationFee || Number(form.reservationFee || 0) <= 0) {
+      toast({
+        title: "Validation Error",
+        description: "Application fee is required and must be greater than 0",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const payload = {
       student_name: form.studentName,
       aadhar_no: form.studentAadhar || null,

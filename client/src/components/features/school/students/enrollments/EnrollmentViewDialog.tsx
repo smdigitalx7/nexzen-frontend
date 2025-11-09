@@ -1,7 +1,8 @@
 import { ViewDialog } from '@/components/shared';
-import type { ViewDialogSection, ViewDialogField } from '@/components/shared/ViewDialog';
+import type { ViewDialogSection, ViewDialogField, ViewDialogAction } from '@/components/shared/ViewDialog';
 import { User, Calendar, GraduationCap } from 'lucide-react';
 import type { SchoolEnrollmentWithStudentDetails } from '@/lib/types/school';
+import { useSchoolStudent } from '@/lib/hooks/school';
 
 interface EnrollmentViewDialogProps {
   open: boolean;
@@ -20,6 +21,11 @@ export const EnrollmentViewDialog = ({
   classes,
   sections,
 }: EnrollmentViewDialogProps) => {
+  // Fetch full student details using student_id from enrollment
+  const { data: studentData, isLoading: isLoadingStudent } = useSchoolStudent(
+    enrollment?.student_id || null
+  );
+
   // Get class and section names
   const className = enrollment 
     ? classes.find((cls: any) => cls.class_id === enrollment.class_id)?.class_name || '-'
@@ -27,6 +33,26 @@ export const EnrollmentViewDialog = ({
   const sectionName = enrollment 
     ? sections.find((sec: any) => sec.section_id === enrollment.section_id)?.section_name || '-'
     : '-';
+
+  // Use student data from GET /students/{student_id} endpoint for student information
+  // Note: API returns father_or_guardian_name and mother_or_guardian_name, but TypeScript types use father_name/mother_name
+  const studentName = studentData?.student_name || enrollment?.student_name || '-';
+  const admissionNo = studentData?.admission_no || enrollment?.admission_no || '-';
+  const aadharNo = studentData?.aadhar_no || '-';
+  const gender = studentData?.gender || '-';
+  const dob = studentData?.dob || '-';
+  const fatherName = (studentData as any)?.father_or_guardian_name || studentData?.father_name || '-';
+  const motherName = (studentData as any)?.mother_or_guardian_name || studentData?.mother_name || '-';
+  const fatherMobile = studentData?.father_or_guardian_mobile || '-';
+  const motherMobile = studentData?.mother_or_guardian_mobile || '-';
+  const presentAddress = studentData?.present_address || '-';
+  const permanentAddress = studentData?.permanent_address || '-';
+  const admissionDate = studentData?.admission_date || '-';
+  const status = studentData?.status || '-';
+
+  // Actions for the dialog
+  const actions: ViewDialogAction[] = [];
+
   return (
     <ViewDialog
       open={open}
@@ -37,26 +63,49 @@ export const EnrollmentViewDialog = ({
       iconColor="blue"
       maxWidth="2xl"
       showCloseButton={false}
+      actions={actions}
+      className="compact"
       sections={enrollment ? [
         {
           title: "Student Information",
           icon: <User className="h-4 w-4" />,
           iconColor: "blue",
+          className: "p-4 compact",
           fields: [
-            { label: "Student Name", value: enrollment.student_name, type: "text" },
-            { label: "Admission No", value: enrollment.admission_no, type: "text" },
+            { label: "Student Name", value: studentName, type: "text" },
+            { label: "Admission No", value: admissionNo, type: "text" },
+            { label: "Aadhar No", value: aadharNo, type: "text" },
+            { label: "Gender", value: gender, type: "text" },
+            { label: "Date of Birth", value: dob, type: "date" },
+            { label: "Father/Guardian Name", value: fatherName, type: "text" },
+            { label: "Mother/Guardian Name", value: motherName, type: "text" },
+            { label: "Father Mobile", value: fatherMobile, type: "text" },
+            { label: "Mother Mobile", value: motherMobile, type: "text" },
+            { label: "Present Address", value: presentAddress, type: "text" },
+            { label: "Permanent Address", value: permanentAddress, type: "text" },
+            { label: "Admission Date", value: admissionDate, type: "date" },
+            { label: "Status", value: status, type: "text" },
+          ] as ViewDialogField[],
+        },
+        {
+          title: "Enrollment Details",
+          icon: <GraduationCap className="h-4 w-4" />,
+          iconColor: "purple",
+          className: "p-4 compact",
+          fields: [
             { label: "Roll Number", value: enrollment.roll_number, type: "text" },
           ] as ViewDialogField[],
         },
         {
-          title: "Enrollment Information",
+          title: "Academic Information",
           icon: <GraduationCap className="h-4 w-4" />,
           iconColor: "purple",
+          className: "p-4 compact",
           fields: [
             { label: "Class", value: className, type: "text" },
             { label: "Section", value: sectionName, type: "text" },
             { 
-              label: "Status", 
+              label: "Enrollment Status", 
               value: enrollment.is_active ? "Active" : "Inactive", 
               type: "badge",
               badgeVariant: enrollment.is_active ? "default" : "secondary"
@@ -73,6 +122,7 @@ export const EnrollmentViewDialog = ({
           title: "Dates",
           icon: <Calendar className="h-4 w-4" />,
           iconColor: "green",
+          className: "p-4 compact",
           fields: [
             { label: "Enrollment Date", value: enrollment.enrollment_date, type: "date" },
           ] as ViewDialogField[],
@@ -81,6 +131,7 @@ export const EnrollmentViewDialog = ({
           title: "Timestamps",
           icon: <Calendar className="h-4 w-4" />,
           iconColor: "gray",
+          className: "p-4 compact",
           fields: [
             { label: "Created", value: enrollment.created_at, type: "date" },
             { label: "Last Updated", value: enrollment.updated_at || null, type: "date" },
@@ -88,11 +139,11 @@ export const EnrollmentViewDialog = ({
         },
       ] as ViewDialogSection[] : []}
     >
-      {isLoading && (
+      {(isLoading || isLoadingStudent) && (
         <div className="flex items-center justify-center py-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-sm text-slate-600">Loading enrollment details...</p>
+            <p className="mt-2 text-sm text-slate-600">Loading enrollment and student details...</p>
           </div>
         </div>
       )}

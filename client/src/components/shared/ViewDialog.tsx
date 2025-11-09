@@ -257,7 +257,7 @@ const ViewDialog: React.FC<ViewDialogProps> = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="space-y-6"
+              className={cn("space-y-6", className?.includes("compact") && "space-y-3")}
             >
             {/* Custom Header Content */}
             {headerContent && (
@@ -276,7 +276,7 @@ const ViewDialog: React.FC<ViewDialogProps> = ({
                 section.className
               )}
             >
-              <div className="flex items-center gap-3 mb-4">
+              <div className={cn("flex items-center gap-3 mb-4", section.className?.includes("compact") && "mb-2")}>
                 {section.icon && (
                   <div className={cn(
                     "p-2 rounded-lg",
@@ -289,13 +289,14 @@ const ViewDialog: React.FC<ViewDialogProps> = ({
                   {section.title}
                 </h4>
               </div>
-              <div className="space-y-4">
+              <div className={cn("space-y-4", section.className?.includes("compact") && "space-y-2")}>
                 {section.fields && section.fields.length > 0 ? (
                   section.fields.map((field, fieldIndex) => (
                     <div
                       key={fieldIndex}
                       className={cn(
                         "flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0",
+                        section.className?.includes("compact") && "py-1",
                         field.className
                       )}
                     >

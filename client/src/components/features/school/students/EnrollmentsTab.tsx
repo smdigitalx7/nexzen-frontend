@@ -4,6 +4,7 @@ import {
   EnrollmentSearchForm,
   EnrollmentCreateDialog,
   EnrollmentViewDialog,
+  EnrollmentEditDialog,
 } from './enrollments';
 import { 
   useSchoolEnrollmentsList,
@@ -16,6 +17,7 @@ import {
 import { useSchoolClasses, useSchoolSections } from '@/lib/hooks/school/use-school-dropdowns';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SchoolEnrollmentCreate, SchoolEnrollmentRead } from '@/lib/types/school';
+import { formatDate } from '@/lib/utils/formatting/date';
 
 const EnrollmentsTabComponent = () => {
   // State management
@@ -67,7 +69,9 @@ const EnrollmentsTabComponent = () => {
   // Dialog state
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [viewEnrollmentId, setViewEnrollmentId] = useState<number | null>(null);
+  const [editStudentId, setEditStudentId] = useState<number | null>(null);
 
   // Fetch selected enrollment for viewing
   const { data: viewEnrollment, isLoading: isLoadingView } = useSchoolEnrollment(viewEnrollmentId);
@@ -112,6 +116,22 @@ const EnrollmentsTabComponent = () => {
     setViewEnrollmentId(enrollment.enrollment_id);
     setIsViewDialogOpen(true);
   }, []);
+
+  // Handle edit from table action
+  const handleEdit = useCallback((enrollment: any) => {
+    if (enrollment?.student_id) {
+      setEditStudentId(enrollment.student_id);
+      setIsEditDialogOpen(true);
+    }
+  }, []);
+
+  // Handle edit success - refresh data and reopen view
+  const handleEditSuccess = useCallback(() => {
+    if (viewEnrollmentId) {
+      // Refetch enrollment data
+      // The query will automatically refetch due to cache invalidation
+    }
+  }, [viewEnrollmentId]);
 
   // Memoized handlers
   const handleSectionChange = useCallback((value: string) => {
@@ -185,8 +205,12 @@ const EnrollmentsTabComponent = () => {
     {
       type: 'view' as const,
       onClick: (row: any) => handleView(row)
+    },
+    {
+      type: 'edit' as const,
+      onClick: (row: any) => handleEdit(row)
     }
-  ], [handleView]);
+  ], [handleView, handleEdit]);
 
   // Define columns
   const columns: ColumnDef<SchoolEnrollmentRead>[] = useMemo(() => [
@@ -213,7 +237,12 @@ const EnrollmentsTabComponent = () => {
     {
       accessorKey: 'enrollment_date',
       header: 'Date',
-      cell: ({ row }) => row.original.enrollment_date || '-',
+      cell: ({ row }) => {
+        const dateValue = row.original.enrollment_date;
+        if (!dateValue) return '-';
+        // Format date to show only date part (no time)
+        return formatDate(dateValue, { year: 'numeric', month: 'short', day: 'numeric' });
+      },
     },
   ], []);
 
@@ -280,6 +309,23 @@ const EnrollmentsTabComponent = () => {
         isLoading={isLoadingView}
         classes={classes}
         sections={sections}
+      />
+
+      {/* Edit Student Dialog */}
+      <EnrollmentEditDialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setEditStudentId(null);
+            // Reopen view dialog after edit closes
+            if (viewEnrollmentId) {
+              setIsViewDialogOpen(true);
+            }
+          }
+        }}
+        studentId={editStudentId}
+        onSuccess={handleEditSuccess}
       />
     </div>
   );

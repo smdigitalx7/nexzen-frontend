@@ -127,11 +127,6 @@ export const StudentFeeBalancesTable = ({
     }
   ], [onViewStudent]);
 
-  // Calculate summary statistics
-  const totalCollected = studentBalances.reduce((sum, s) => sum + s.paid_amount, 0);
-  const totalOutstanding = studentBalances.reduce((sum, s) => sum + s.outstanding_amount, 0);
-  const totalStudents = studentBalances.length;
-
   // Prepare filter options for EnhancedDataTable
   const filterOptions = [
     {
@@ -173,7 +168,6 @@ export const StudentFeeBalancesTable = ({
         searchKey="student_name"
         searchPlaceholder="Search students..."
         exportable={true}
-        onExport={onExportCSV}
         onAdd={onBulkCreate}
         addButtonText="Bulk Create"
         showActions={true}
@@ -183,28 +177,6 @@ export const StudentFeeBalancesTable = ({
         loading={loading}
         filters={filterOptions}
       />
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-green-600">
-            {formatCurrency(totalCollected)}
-          </div>
-          <div className="text-sm text-muted-foreground">Total Collected</div>
-        </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-red-600">
-            {formatCurrency(totalOutstanding)}
-          </div>
-          <div className="text-sm text-muted-foreground">Total Outstanding</div>
-        </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-blue-600">
-            {totalStudents}
-          </div>
-          <div className="text-sm text-muted-foreground">Students</div>
-        </div>
-      </div>
     </motion.div>
   );
 };

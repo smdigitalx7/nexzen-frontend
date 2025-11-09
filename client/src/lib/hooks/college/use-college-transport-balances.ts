@@ -6,9 +6,13 @@ import type {
 import { collegeKeys } from "./query-keys";
 
 export function useCollegeStudentTransportPaymentSummary(params?: CollegeStudentTransportPaymentSummaryParams) {
+  // Enable query if params are provided (even if empty object - means filters are selected but only client-side filtering needed)
+  const hasParams = params !== undefined && params !== null;
+  
   return useQuery({
     queryKey: [...collegeKeys.transport.root(), "payment-summary", params ?? {}],
     queryFn: () => CollegeTransportBalancesService.getStudentTransportPaymentSummary(params),
+    enabled: hasParams,
   });
 }
 
