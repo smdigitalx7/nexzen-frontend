@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, memo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,7 +14,10 @@ import {
   FileSpreadsheet,
   FileText,
   GraduationCap,
+  CreditCard,
 } from "lucide-react";
+import { ReceiptPreviewModal } from "@/components/shared";
+import { handleCollegePayByAdmissionWithIncomeId } from "@/lib/api-college";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import {
   useCollegeAdmissions,
@@ -45,10 +49,15 @@ const StatusBadge = memo(({ status }: { status: string }) => {
 StatusBadge.displayName = "StatusBadge";
 
 const AdmissionsList = () => {
+  const queryClient = useQueryClient();
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(
     null
   );
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const { data: admissions = [], isLoading } = useCollegeAdmissions();
   const { data: selectedAdmission } = useCollegeAdmissionById(selectedStudentId);
@@ -112,6 +121,89 @@ const AdmissionsList = () => {
       });
     }
   }, []);
+
+  const handlePayAdmissionFee = useCallback(() => {
+    if (selectedAdmission) {
+      setShowPaymentDialog(true);
+    }
+  }, [selectedAdmission]);
+
+  const handleProcessPayment = useCallback(async () => {
+    if (!selectedAdmission) return;
+
+    const admissionFee = parseFloat(selectedAdmission.admission_fee?.toString() || "0");
+    if (admissionFee <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Admission fee amount is invalid",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessingPayment(true);
+
+    try {
+      const paymentResponse = await handleCollegePayByAdmissionWithIncomeId(
+        selectedAdmission.admission_no || "",
+        {
+          details: [
+            {
+              purpose: "ADMISSION_FEE",
+              paid_amount: admissionFee,
+              payment_method: "CASH",
+            },
+          ],
+          remarks: "Admission fee payment",
+        }
+      );
+
+      const { blobUrl } = paymentResponse;
+
+      if (blobUrl) {
+        setReceiptBlobUrl(blobUrl);
+        setShowPaymentDialog(false);
+        setShowReceiptModal(true);
+      }
+
+      toast({
+        title: "Payment Successful",
+        description: "Admission fee payment processed successfully",
+        variant: "success",
+      });
+
+      // Invalidate admissions cache to refresh the list
+      void queryClient.invalidateQueries({ queryKey: ["college", "admissions"] });
+      // Refetch the current admission to update the status
+      if (selectedStudentId) {
+        void queryClient.invalidateQueries({ 
+          queryKey: ["college", "admissions", selectedStudentId] 
+        });
+      }
+    } catch (error: any) {
+      console.error("Payment failed:", error);
+      toast({
+        title: "Payment Failed",
+        description:
+          error?.message ||
+          "Failed to process admission fee payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  }, [selectedAdmission, queryClient, selectedStudentId]);
+
+  const handleCloseReceiptModal = useCallback(() => {
+    setShowReceiptModal(false);
+    setReceiptBlobUrl(null);
+    // Refetch admission details to show updated status
+    if (selectedStudentId) {
+      void queryClient.invalidateQueries({ 
+        queryKey: ["college", "admissions", selectedStudentId] 
+      });
+    }
+  }, [selectedStudentId, queryClient]);
 
   // Memoized action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => [
@@ -461,6 +553,11 @@ const AdmissionsList = () => {
                         <th className="text-center py-3 px-4 font-semibold text-sm">
                           Status
                         </th>
+                        {selectedAdmission.admission_fee_paid === "PENDING" && (
+                          <th className="text-center py-3 px-4 font-semibold text-sm">
+                            Action
+                          </th>
+                        )}
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -478,6 +575,18 @@ const AdmissionsList = () => {
                         <td className="text-center py-3 px-4">
                           <StatusBadge status={selectedAdmission.admission_fee_paid} />
                         </td>
+                        {selectedAdmission.admission_fee_paid === "PENDING" && (
+                          <td className="text-center py-3 px-4">
+                            <Button
+                              size="sm"
+                              onClick={handlePayAdmissionFee}
+                              className="flex items-center gap-2"
+                            >
+                              <CreditCard className="h-4 w-4" />
+                              Pay Admission Fee
+                            </Button>
+                          </td>
+                        )}
                       </tr>
                       <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                         <td className="py-3 px-4 font-medium">Tuition Fee</td>
@@ -615,6 +724,62 @@ const AdmissionsList = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pay Admission Fee</DialogTitle>
+            <DialogDescription>
+              Process admission fee payment for {selectedAdmission?.admission_no}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {selectedAdmission && (
+              <>
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-medium">Admission Fee:</span>
+                    <span className="text-2xl font-bold text-blue-600">
+                      ₹{parseFloat(selectedAdmission.admission_fee?.toString() || "0").toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Student: {selectedAdmission.student_name}
+                  </p>
+                </div>
+
+                <Button
+                  onClick={handleProcessPayment}
+                  className="w-full"
+                  size="lg"
+                  disabled={isProcessingPayment}
+                >
+                  {isProcessingPayment ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Processing Payment...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-5 w-5 mr-2" />
+                      Process Payment & Print Receipt
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Receipt Modal */}
+      <ReceiptPreviewModal
+        isOpen={showReceiptModal}
+        onClose={handleCloseReceiptModal}
+        blobUrl={receiptBlobUrl}
+      />
     </div>
   );
 };

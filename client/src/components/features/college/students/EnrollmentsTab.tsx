@@ -3,7 +3,6 @@ import { Badge } from '@/components/ui/badge';
 import { EnhancedDataTable } from '@/components/shared';
 import {
   EnrollmentSearchForm,
-  EnrollmentCreateDialog,
   EnrollmentViewDialog,
   EnrollmentEditDialog,
 } from './enrollments';
@@ -11,12 +10,10 @@ import {
   useCollegeEnrollmentsList,
   useCollegeEnrollment,
   useCollegeEnrollmentByAdmission,
-  useCreateCollegeEnrollment,
-  useCollegeStudentsList,
 } from '@/lib/hooks/college';
 import { useCollegeClasses, useCollegeGroups, useCollegeCourses } from '@/lib/hooks/college/use-college-dropdowns';
 import type { ColumnDef } from '@tanstack/react-table';
-import type { CollegeEnrollmentCreate, CollegeEnrollmentRead } from '@/lib/types/college';
+import type { CollegeEnrollmentRead } from '@/lib/types/college';
 import { formatDate } from '@/lib/utils/formatting/date';
 
 const EnrollmentsTabComponent = () => {
@@ -32,12 +29,10 @@ const EnrollmentsTabComponent = () => {
   const { data: classesData } = useCollegeClasses();
   const { data: groupsData } = useCollegeGroups(Number(query.class_id) || 0);
   const { data: coursesData } = useCollegeCourses(Number(query.group_id) || 0);
-  const { data: studentsData } = useCollegeStudentsList({ page: 1, pageSize: 1000 });
   
   const classes = classesData?.items || [];
   const groups = groupsData?.items || [];
   const courses = coursesData?.items || [];
-  const students = studentsData?.data || [];
 
   // Fetch enrollment by admission number when admission_no is provided
   const admissionNoResult = useCollegeEnrollmentByAdmission(query.admission_no?.trim());
@@ -72,10 +67,8 @@ const EnrollmentsTabComponent = () => {
   const shouldUseAdmissionNo = Boolean(query.admission_no?.trim());
   const isLoading = shouldUseAdmissionNo ? admissionNoResult.isLoading : result.isLoading;
   const isError = shouldUseAdmissionNo ? admissionNoResult.isError : result.isError;
-  const createMutation = useCreateCollegeEnrollment();
 
   // Dialog state
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [viewEnrollmentId, setViewEnrollmentId] = useState<number | null>(null);
@@ -83,43 +76,6 @@ const EnrollmentsTabComponent = () => {
 
   // Fetch selected enrollment for viewing
   const { data: viewEnrollment, isLoading: isLoadingView } = useCollegeEnrollment(viewEnrollmentId);
-
-  const [createFormData, setCreateFormData] = useState<CollegeEnrollmentCreate>({
-    student_id: 0,
-    class_id: 0,
-    group_id: 0,
-    course_id: null,
-    roll_number: '',
-    enrollment_date: null,
-    is_active: true,
-  });
-
-  // Reset form
-  const resetForm = useCallback(() => {
-    setCreateFormData({
-      student_id: 0,
-      class_id: 0,
-      group_id: 0,
-      course_id: null,
-      roll_number: '',
-      enrollment_date: null,
-      is_active: true,
-    });
-  }, []);
-
-  // Handle create
-  const handleCreate = useCallback(async () => {
-    if (!createFormData.student_id || !createFormData.class_id || !createFormData.group_id || !createFormData.roll_number) {
-      return;
-    }
-    try {
-      await createMutation.mutateAsync(createFormData);
-      setIsCreateDialogOpen(false);
-      resetForm();
-    } catch (error) {
-      // Error handled by mutation hook
-    }
-  }, [createFormData, createMutation, resetForm]);
 
   // Handle view
   const handleView = useCallback((enrollment: any) => {
@@ -314,9 +270,6 @@ const EnrollmentsTabComponent = () => {
           searchKey="student_name"
           searchPlaceholder="Search by student name..."
           loading={isLoading}
-          onAdd={() => setIsCreateDialogOpen(true)}
-          addButtonText="Add Enrollment"
-          addButtonVariant="default"
           showActions={true}
           actionButtonGroups={actionButtonGroups}
           actionColumnHeader="Actions"
@@ -336,36 +289,12 @@ const EnrollmentsTabComponent = () => {
           searchKey="student_name"
           searchPlaceholder="Search by student name..."
           loading={isLoading}
-          onAdd={() => setIsCreateDialogOpen(true)}
-          addButtonText="Add Enrollment"
-          addButtonVariant="default"
           showActions={true}
           actionButtonGroups={actionButtonGroups}
           actionColumnHeader="Actions"
           showActionLabels={true}
         />
       )}
-
-      {/* Dialogs */}
-      <EnrollmentCreateDialog
-        open={isCreateDialogOpen}
-        onOpenChange={(open) => {
-          setIsCreateDialogOpen(open);
-          if (!open) resetForm();
-        }}
-        isLoading={createMutation.isPending}
-        formData={createFormData}
-        onFormDataChange={setCreateFormData}
-        onSave={handleCreate}
-        onCancel={() => {
-          setIsCreateDialogOpen(false);
-          resetForm();
-        }}
-        students={students}
-        classes={classes}
-        groups={groups}
-        courses={courses}
-      />
 
       <EnrollmentViewDialog
         open={isViewDialogOpen}

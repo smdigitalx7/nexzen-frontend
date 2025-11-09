@@ -1,5 +1,5 @@
 import { Api } from "@/lib/api";
-import { CollegeCreateExamMarkBulk, CollegeExamMarkBulkCreateResult, CollegeExamMarkCreate, CollegeExamMarkFullReadResponse, CollegeExamGroupAndClassResponse, CollegeExamMarkUpdate, CollegeExamMarksListParams } from "@/lib/types/college";
+import { CollegeCreateExamMarkBulk, CollegeExamMarkBulkCreateResult, CollegeExamMarkCreate, CollegeExamMarkFullReadResponse, CollegeExamGroupAndClassResponse, CollegeExamMarkUpdate, CollegeExamMarksListParams, CollegeCreateExamMarksMultipleSubjects, CollegeExamMarksMultipleSubjectsResult } from "@/lib/types/college";
 
 export const CollegeExamMarksService = {
   // GET /api/v1/college/exam-marks
@@ -31,6 +31,9 @@ export const CollegeExamMarksService = {
   bulkCreate(payload: CollegeCreateExamMarkBulk) {
     return Api.post<CollegeExamMarkBulkCreateResult>(`/college/exam-marks/bulk-create`, payload);
   },
+
+  // POST /api/v1/college/exam-marks/multiple-subjects
+  createMultipleSubjects(payload: CollegeCreateExamMarksMultipleSubjects) {
+    return Api.post<CollegeExamMarksMultipleSubjectsResult>(`/college/exam-marks/multiple-subjects`, payload);
+  },
 };
-
-

@@ -30,6 +30,20 @@ const MarksManagementComponent = () => {
   const [examMarksData, setExamMarksData] = useState<MarksData[]>([]);
   const [testMarksData, setTestMarksData] = useState<MarksData[]>([]);
 
+  // Separate filter states for Exam Marks - maintains independent state
+  const [examSelectedClass, setExamSelectedClass] = useState<number | null>(null);
+  const [examSelectedSection, setExamSelectedSection] = useState<number | null>(null);
+  const [examSelectedSubject, setExamSelectedSubject] = useState<number | null>(null);
+  const [examSelectedGrade, setExamSelectedGrade] = useState("all");
+  const [examSelectedExam, setExamSelectedExam] = useState<number | null>(null);
+
+  // Separate filter states for Test Marks - maintains independent state
+  const [testSelectedClass, setTestSelectedClass] = useState<number | null>(null);
+  const [testSelectedSection, setTestSelectedSection] = useState<number | null>(null);
+  const [testSelectedSubject, setTestSelectedSubject] = useState<number | null>(null);
+  const [testSelectedGrade, setTestSelectedGrade] = useState("all");
+  const [testSelectedTest, setTestSelectedTest] = useState<number | null>(null);
+
   // Memoized current marks data
   const currentMarksData = useMemo(
     () => (activeTab === "exam-marks" ? examMarksData : testMarksData),
@@ -99,7 +113,8 @@ const MarksManagementComponent = () => {
     [activeTab, statistics]
   );
 
-  // Memoized tabs configuration
+  // Memoized tabs configuration - components receive props but instances stay stable
+  // forceMount in TabSwitcher keeps components mounted, preventing remounts
   const tabsConfig = useMemo(
     () => [
       {
@@ -107,7 +122,20 @@ const MarksManagementComponent = () => {
         label: "Marks",
         icon: GraduationCap,
         content: (
-          <ExamMarksManagement onDataChange={handleExamMarksDataChange} />
+          <ExamMarksManagement 
+            key="exam-marks"
+            onDataChange={handleExamMarksDataChange}
+            selectedClass={examSelectedClass}
+            setSelectedClass={setExamSelectedClass}
+            selectedSection={examSelectedSection}
+            setSelectedSection={setExamSelectedSection}
+            selectedSubject={examSelectedSubject}
+            setSelectedSubject={setExamSelectedSubject}
+            selectedGrade={examSelectedGrade}
+            setSelectedGrade={setExamSelectedGrade}
+            selectedExam={examSelectedExam}
+            setSelectedExam={setExamSelectedExam}
+          />
         ),
       },
       {
@@ -115,11 +143,37 @@ const MarksManagementComponent = () => {
         label: "Tests",
         icon: ClipboardList,
         content: (
-          <TestMarksManagement onDataChange={handleTestMarksDataChange} />
+          <TestMarksManagement 
+            key="test-marks"
+            onDataChange={handleTestMarksDataChange}
+            selectedClass={testSelectedClass}
+            setSelectedClass={setTestSelectedClass}
+            selectedSection={testSelectedSection}
+            setSelectedSection={setTestSelectedSection}
+            selectedSubject={testSelectedSubject}
+            setSelectedSubject={setTestSelectedSubject}
+            selectedGrade={testSelectedGrade}
+            setSelectedGrade={setTestSelectedGrade}
+            selectedTest={testSelectedTest}
+            setSelectedTest={setTestSelectedTest}
+          />
         ),
       },
     ],
-    [handleExamMarksDataChange, handleTestMarksDataChange]
+    [
+      handleExamMarksDataChange,
+      handleTestMarksDataChange,
+      examSelectedClass,
+      examSelectedSection,
+      examSelectedSubject,
+      examSelectedGrade,
+      examSelectedExam,
+      testSelectedClass,
+      testSelectedSection,
+      testSelectedSubject,
+      testSelectedGrade,
+      testSelectedTest,
+    ]
   );
 
   return (

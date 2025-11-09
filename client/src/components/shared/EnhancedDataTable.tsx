@@ -65,13 +65,14 @@ interface FilterOption {
  */
 interface ActionButton<TData = unknown> {
   id: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  label: string | ((row: TData) => string);
+  icon: React.ComponentType<{ className?: string }> | ((row: TData) => React.ComponentType<{ className?: string }>);
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";
-  className?: string;
+  className?: string | ((row: TData) => string);
   onClick: (row: TData) => void;
   show?: (row: TData) => boolean;
+  disabled?: (row: TData) => boolean;
 }
 
 /**
@@ -333,27 +334,46 @@ function EnhancedDataTableComponent<TData>({
         return (
           <div className="flex items-center">
             {allButtons.map((button, index) => {
-              const Icon = button.icon;
+              // Handle dynamic icon - can be a component or a function that returns a component
+              const Icon: React.ComponentType<{ className?: string }> = 
+                typeof button.icon === 'function' && button.icon.length > 0 
+                  ? (button.icon as (row: TData) => React.ComponentType<{ className?: string }>)(row.original)
+                  : (button.icon as React.ComponentType<{ className?: string }>);
+              
+              // Handle dynamic label - can be a string or a function that returns a string
+              const label = typeof button.label === 'function' 
+                ? (button.label as (row: TData) => string)(row.original)
+                : (button.label as string);
+              
+              // Handle dynamic className - can be a string or a function that returns a string
+              const className = typeof button.className === 'function' 
+                ? (button.className as (row: TData) => string)(row.original)
+                : (button.className as string | undefined);
+              
+              const isDisabled = button.disabled ? button.disabled(row.original) : false;
+              const iconClassName = isDisabled ? "h-2 w-2 animate-spin" : "h-2 w-2";
+              
               return (
                 <Button
                   key={`${button.id}-${index}`}
                   variant="outline"
                   size="sm"
-                  onClick={() => button.onClick(row.original)}
+                  onClick={() => !isDisabled && button.onClick(row.original)}
+                  disabled={isDisabled}
                   className={cn(
                     showActionLabels
                       ? "h-5 px-2.5 py-0.5 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-sm"
                       : "h-5 w-5 p-4 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-sm",
                     index > 0 && "ml-2",
-                    button.className
+                    className
                   )}
-                  title={button.label}
-                  aria-label={button.label}
+                  title={label}
+                  aria-label={label}
                 >
-                  <Icon className="h-2 w-2" />
+                  <Icon className={iconClassName} />
                   {showActionLabels && (
                     <span className="ml-0.2 text-xs font-medium ">
-                      {button.label}
+                      {label}
                     </span>
                   )}
                 </Button>

@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { Award, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DatePicker } from "@/components/ui/date-picker";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { useToast } from '@/hooks/use-toast';
@@ -50,7 +49,6 @@ export const ExamsTab = ({
   } = useFormState({
     initialData: { 
       exam_name: "", 
-      exam_date: "", 
       pass_marks: "",
       max_marks: ""
     }
@@ -65,7 +63,6 @@ export const ExamsTab = ({
   } = useFormState({
     initialData: { 
       exam_name: "", 
-      exam_date: "", 
       pass_marks: "",
       max_marks: ""
     }
@@ -98,7 +95,7 @@ export const ExamsTab = ({
     try {
       const payload: CollegeExamCreate = {
         exam_name: newExam.exam_name.trim(),
-        exam_date: newExam.exam_date || "",
+        exam_date: new Date().toISOString().split('T')[0],
         pass_marks: passMarks,
         max_marks: maxMarks,
       };
@@ -137,7 +134,6 @@ export const ExamsTab = ({
     try {
       const updatePayload: CollegeExamUpdate = {
         exam_name: editExam.exam_name?.trim() || undefined,
-        exam_date: editExam.exam_date || undefined,
         pass_marks: passMarks,
         max_marks: maxMarks,
       };
@@ -170,7 +166,6 @@ export const ExamsTab = ({
     setSelectedExam(exam);
     setEditExam({ 
       exam_name: exam.exam_name,
-      exam_date: exam.exam_date,
       pass_marks: exam.pass_marks?.toString() || "35",
       max_marks: exam.max_marks?.toString() || "100"
     });
@@ -273,15 +268,6 @@ export const ExamsTab = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="exam_date">Exam Date</Label>
-            <DatePicker
-              id="exam_date"
-              value={newExam.exam_date}
-              onChange={(value) => updateNewExamField('exam_date', value)}
-              placeholder="Select exam date"
-            />
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="max_marks">Max Marks</Label>
             <Input
               id="max_marks"
@@ -327,15 +313,6 @@ export const ExamsTab = ({
               value={editExam.exam_name}
               onChange={(e) => updateEditExamField('exam_name', e.target.value)}
               placeholder="Enter exam name"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit_exam_date">Exam Date</Label>
-            <DatePicker
-              id="edit_exam_date"
-              value={editExam.exam_date}
-              onChange={(value) => updateEditExamField('exam_date', value)}
-              placeholder="Select exam date"
             />
           </div>
           <div className="space-y-2">

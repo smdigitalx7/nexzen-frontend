@@ -1,14 +1,18 @@
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Input } from '@/components/ui/input';
-import { DatePicker } from '@/components/ui/date-picker';
+import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FormDialog } from '@/components/shared/FormDialog';
 import { SchoolExamDropdown, SchoolSubjectDropdown } from '@/components/shared/Dropdowns';
-import { useSchoolStudentsList } from '@/lib/hooks/school';
+import { useSchoolEnrollmentsList } from '@/lib/hooks/school/use-school-enrollments';
+import { useSchoolSubjects } from '@/lib/hooks/school/use-school-dropdowns';
+import { useCreateSchoolExamMarksMultipleSubjects } from '@/lib/hooks/school/use-school-exam-marks';
+import { Plus, Trash2 } from 'lucide-react';
 import type { ExamMarkWithDetails } from '@/lib/types/school/exam-marks';
 
 // Utility functions for grade calculation
@@ -32,10 +36,17 @@ const examMarkFormSchema = z.object({
   exam_id: z.string().min(1, "Exam is required"),
   subject_id: z.string().min(1, "Subject is required"),
   marks_obtained: z.string().min(1, "Marks obtained is required"),
-  percentage: z.string().min(1, "Percentage is required"),
-  grade: z.string().min(1, "Grade is required"),
-  conducted_at: z.string().min(1, "Exam date is required"),
   remarks: z.string().optional(),
+});
+
+const multipleSubjectsFormSchema = z.object({
+  enrollment_id: z.string().min(1, "Student is required"),
+  exam_id: z.string().min(1, "Exam is required"),
+  subjects: z.array(z.object({
+    subject_id: z.string().min(1, "Subject is required"),
+    marks_obtained: z.string().min(1, "Marks obtained is required"),
+    remarks: z.string().optional(),
+  })).min(1, "At least one subject is required"),
 });
 
 interface AddExamMarkFormProps {
@@ -43,7 +54,8 @@ interface AddExamMarkFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   editingExamMark?: ExamMarkWithDetails | null;
-  selectedClass?: string;
+  selectedClass?: number | null;
+  selectedSection?: number | null;
 }
 
 const AddExamMarkForm = ({ 
@@ -51,16 +63,49 @@ const AddExamMarkForm = ({
   onClose, 
   onSubmit, 
   editingExamMark = null,
-  selectedClass = ''
+  selectedClass = null,
+  selectedSection = null
 }: AddExamMarkFormProps) => {
-  // API hooks
-  const { data: studentsData } = useSchoolStudentsList();
-  const students = studentsData?.data || [];
+  const [activeTab, setActiveTab] = useState('single');
+  
+  // Get enrollments filtered by class and section
+  const enrollmentsParams = useMemo(() => {
+    if (!selectedClass) return undefined;
+    return {
+      class_id: selectedClass,
+      section_id: selectedSection || undefined,
+      page: 1,
+      page_size: 1000,
+    };
+  }, [selectedClass, selectedSection]);
+
+  const { data: enrollmentsData } = useSchoolEnrollmentsList(enrollmentsParams);
+  
+  // Extract students from enrollments - flatten the grouped response and add class_name
+  const enrollments = useMemo(() => {
+    if (!enrollmentsData?.enrollments) return [];
+    const allEnrollments: any[] = [];
+    enrollmentsData.enrollments.forEach((group: any) => {
+      if (group.students && Array.isArray(group.students)) {
+        group.students.forEach((student: any) => {
+          allEnrollments.push({
+            ...student,
+            class_name: group.class_name || student.class_name || '',
+          });
+        });
+      }
+    });
+    return allEnrollments;
+  }, [enrollmentsData]);
   
   // Get classId for subject dropdown
-  const classId = selectedClass ? parseInt(selectedClass) : 0;
+  const classId = selectedClass || 0;
+  const { data: subjectsData } = useSchoolSubjects(classId);
+  const subjects = subjectsData?.items || [];
+  
+  const createMultipleSubjectsMutation = useCreateSchoolExamMarksMultipleSubjects();
 
-  // Form
+  // Single subject form
   const examMarkForm = useForm({
     resolver: zodResolver(examMarkFormSchema),
     defaultValues: {
@@ -68,52 +113,62 @@ const AddExamMarkForm = ({
       exam_id: '',
       subject_id: '',
       marks_obtained: '',
-      percentage: '',
-      grade: '',
-      conducted_at: '',
       remarks: '',
     },
+  });
+
+  // Multiple subjects form
+  const multipleSubjectsForm = useForm({
+    resolver: zodResolver(multipleSubjectsFormSchema),
+    defaultValues: {
+      enrollment_id: '',
+      exam_id: '',
+      subjects: [{ subject_id: '', marks_obtained: '', remarks: '' }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: multipleSubjectsForm.control,
+    name: 'subjects',
   });
 
   // Reset form when dialog opens/closes or editing changes
   useEffect(() => {
     if (isOpen) {
       if (editingExamMark) {
+        setActiveTab('single');
         examMarkForm.reset({
           enrollment_id: editingExamMark.enrollment_id.toString(),
           exam_id: editingExamMark.exam_id?.toString() || '',
           subject_id: editingExamMark.subject_id?.toString() || '',
           marks_obtained: editingExamMark.marks_obtained?.toString() || '0',
-          percentage: editingExamMark.percentage?.toString() || '0',
-          grade: editingExamMark.grade || '',
-          conducted_at: editingExamMark.conducted_at || '',
           remarks: editingExamMark.remarks || '',
         });
       } else {
+        setActiveTab('single');
         examMarkForm.reset({
           enrollment_id: '',
           exam_id: '',
           subject_id: '',
           marks_obtained: '',
-          percentage: '',
-          grade: '',
-          conducted_at: '',
           remarks: '',
+        });
+        multipleSubjectsForm.reset({
+          enrollment_id: '',
+          exam_id: '',
+          subjects: [{ subject_id: '', marks_obtained: '', remarks: '' }],
         });
       }
     }
-  }, [isOpen, editingExamMark, examMarkForm]);
+  }, [isOpen, editingExamMark, examMarkForm, multipleSubjectsForm]);
 
-  // Form submission handler
+  // Single subject form submission handler
   const handleSubmit = (values: any) => {
     const markData = {
       enrollment_id: parseInt(values.enrollment_id),
       exam_id: parseInt(values.exam_id),
       subject_id: parseInt(values.subject_id),
       marks_obtained: parseFloat(values.marks_obtained),
-      percentage: parseFloat(values.percentage),
-      grade: values.grade,
-      conducted_at: values.conducted_at,
       remarks: values.remarks || '',
     };
 
@@ -122,10 +177,41 @@ const AddExamMarkForm = ({
     onClose();
   };
 
+  // Multiple subjects form submission handler
+  const handleMultipleSubjectsSubmit = useCallback(async (values: any) => {
+    const selectedEnrollment = enrollments.find((e: any) => e.enrollment_id?.toString() === values.enrollment_id);
+    
+    const payload = {
+      enrollment_id: parseInt(values.enrollment_id),
+      exam_id: parseInt(values.exam_id),
+      subjects: values.subjects.map((subj: any) => ({
+        subject_id: parseInt(subj.subject_id),
+        marks_obtained: parseFloat(subj.marks_obtained),
+        remarks: subj.remarks || null,
+        subject_name: subjects.find((s: any) => s.subject_id === parseInt(subj.subject_id))?.subject_name || null,
+      })),
+      student_name: selectedEnrollment?.student_name || null,
+      exam_name: null, // Can be fetched if needed
+    };
+
+    try {
+      await createMultipleSubjectsMutation.mutateAsync(payload);
+      multipleSubjectsForm.reset();
+      onClose();
+    } catch (error) {
+      // Error is handled by mutation hook
+    }
+  }, [enrollments, subjects, createMultipleSubjectsMutation, multipleSubjectsForm, onClose]);
+
   // Handle cancel
   const handleCancel = () => {
     examMarkForm.reset();
+    multipleSubjectsForm.reset();
     onClose();
+  };
+
+  const addSubjectRow = () => {
+    append({ subject_id: '', marks_obtained: '', remarks: '' });
   };
 
   // Get form errors for FormDialog - convert FieldErrors to Record<string, string>
@@ -139,21 +225,44 @@ const AddExamMarkForm = ({
     : {};
   const hasErrors = Object.keys(formErrors).length > 0;
 
+  const getSaveHandler = () => {
+    if (editingExamMark) {
+      return examMarkForm.handleSubmit(handleSubmit);
+    }
+    return activeTab === 'single' 
+      ? examMarkForm.handleSubmit(handleSubmit)
+      : multipleSubjectsForm.handleSubmit(handleMultipleSubjectsSubmit);
+  };
+
+  const getSaveText = () => {
+    if (editingExamMark) return 'Update Exam Mark';
+    return activeTab === 'single' ? 'Add Exam Mark' : 'Add Exam Marks';
+  };
+
   return (
     <FormDialog
       open={isOpen}
       onOpenChange={onClose}
       title={editingExamMark ? 'Edit Exam Mark' : 'Add New Exam Mark'}
-      onSave={examMarkForm.handleSubmit(handleSubmit)}
+      onSave={getSaveHandler()}
       onCancel={handleCancel}
-      saveText={editingExamMark ? 'Update Exam Mark' : 'Add Exam Mark'}
+      saveText={getSaveText()}
       cancelText="Cancel"
       size="LARGE"
       errors={hasErrors ? formErrors : undefined}
       showErrors={hasErrors}
+      disabled={createMultipleSubjectsMutation.isPending}
     >
-      <Form {...examMarkForm}>
-        <form className="space-y-4">
+      {!editingExamMark ? (
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="single">Single Subject</TabsTrigger>
+            <TabsTrigger value="multiple">Multiple Subjects</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="single" className="mt-4">
+            <Form {...examMarkForm}>
+              <form className="space-y-4">
             <FormField
               control={examMarkForm.control}
               name="enrollment_id"
@@ -166,11 +275,20 @@ const AddExamMarkForm = ({
                         <SelectValue placeholder="Select student" />
                       </SelectTrigger>
                       <SelectContent>
-                        {students.map((student: any) => (
-                          <SelectItem key={student.student_id} value={student.student_id?.toString() || ''}>
-                            {student.student_name} ({student.admission_no})
-                          </SelectItem>
-                        ))}
+                        {enrollments.map((enrollment: any) => {
+                          const displayParts = [
+                            enrollment.student_name,
+                            enrollment.class_name || '',
+                            enrollment.section_name || '',
+                          ].filter(Boolean);
+                          const displayText = displayParts.join(' - ');
+                          const rollNumber = enrollment.roll_number ? ` (Roll: ${enrollment.roll_number})` : '';
+                          return (
+                            <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
+                              {displayText}{rollNumber}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </FormControl>
@@ -271,82 +389,6 @@ const AddExamMarkForm = ({
                       type="number" 
                       placeholder="85" 
                       {...field}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        field.onChange(value);
-                        
-                        // Auto-calculate percentage and grade
-                        if (value && !isNaN(Number(value))) {
-                          const marks = Number(value);
-                          const percentage = calculatePercentage(marks);
-                          const grade = calculateGrade(percentage);
-                          
-                          examMarkForm.setValue('percentage', percentage.toString());
-                          examMarkForm.setValue('grade', grade);
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={examMarkForm.control}
-                name="percentage"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Percentage</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="85.5" step="0.1" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={examMarkForm.control}
-                name="grade"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Grade</FormLabel>
-                    <FormControl>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select grade" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="A+">A+</SelectItem>
-                          <SelectItem value="A">A</SelectItem>
-                          <SelectItem value="B+">B+</SelectItem>
-                          <SelectItem value="B">B</SelectItem>
-                          <SelectItem value="C+">C+</SelectItem>
-                          <SelectItem value="C">C</SelectItem>
-                          <SelectItem value="D">D</SelectItem>
-                          <SelectItem value="F">F</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <FormField
-              control={examMarkForm.control}
-              name="conducted_at"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Exam Date</FormLabel>
-                  <FormControl>
-                    <DatePicker
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                      placeholder="Select exam date"
                     />
                   </FormControl>
                   <FormMessage />
@@ -370,6 +412,328 @@ const AddExamMarkForm = ({
             
         </form>
       </Form>
+          </TabsContent>
+
+          <TabsContent value="multiple" className="mt-4">
+            <Form {...multipleSubjectsForm}>
+              <form className="space-y-4">
+                <FormField
+                  control={multipleSubjectsForm.control}
+                  name="enrollment_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Student</FormLabel>
+                      <FormControl>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select student" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {enrollments.map((enrollment: any) => (
+                              <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
+                                {enrollment.student_name} ({enrollment.admission_no})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={multipleSubjectsForm.control}
+                  name="exam_id"
+                  render={({ field }) => {
+                    let numValue: number | null = null;
+                    if (field.value && field.value !== '') {
+                      const parsed = typeof field.value === 'string' 
+                        ? parseInt(field.value, 10) 
+                        : Number(field.value);
+                      if (!isNaN(parsed) && parsed > 0) {
+                        numValue = parsed;
+                      }
+                    }
+                    
+                    return (
+                      <FormItem>
+                        <FormLabel>Exam</FormLabel>
+                        <FormControl>
+                          <SchoolExamDropdown
+                            value={numValue}
+                            onChange={(value) => {
+                              if (value !== null && value !== undefined) {
+                                field.onChange(value.toString());
+                              } else {
+                                field.onChange('');
+                              }
+                            }}
+                            placeholder="Select exam"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <FormLabel>Subjects</FormLabel>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addSubjectRow}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Subject
+                    </Button>
+                  </div>
+
+                  {fields.map((field, index) => (
+                    <div key={field.id} className="p-4 border rounded-lg space-y-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium">Subject {index + 1}</span>
+                        {fields.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => remove(index)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                        <FormField
+                          control={multipleSubjectsForm.control}
+                          name={`subjects.${index}.subject_id`}
+                          render={({ field }) => {
+                            let numValue: number | null = null;
+                            if (field.value && field.value !== '') {
+                              const parsed = typeof field.value === 'string' 
+                                ? parseInt(field.value, 10) 
+                                : Number(field.value);
+                              if (!isNaN(parsed) && parsed > 0) {
+                                numValue = parsed;
+                              }
+                            }
+                            
+                            return (
+                              <FormItem>
+                                <FormLabel>Subject</FormLabel>
+                                <FormControl>
+                                  <SchoolSubjectDropdown
+                                    classId={classId}
+                                    value={numValue}
+                                    onChange={(value) => {
+                                      if (value !== null && value !== undefined) {
+                                        field.onChange(value.toString());
+                                      } else {
+                                        field.onChange('');
+                                      }
+                                    }}
+                                    disabled={classId <= 0}
+                                    placeholder={classId <= 0 ? "Select class first" : "Select subject"}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
+                        />
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={multipleSubjectsForm.control}
+                            name={`subjects.${index}.marks_obtained`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Marks Obtained</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    placeholder="85" 
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={multipleSubjectsForm.control}
+                            name={`subjects.${index}.remarks`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Remarks (Optional)</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Additional comments..." {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                    </div>
+                  ))}
+                </div>
+              </form>
+            </Form>
+          </TabsContent>
+        </Tabs>
+      ) : (
+        <Form {...examMarkForm}>
+          <form className="space-y-4">
+            <FormField
+              control={examMarkForm.control}
+              name="enrollment_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Student</FormLabel>
+                  <FormControl>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={!!editingExamMark}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select student" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {enrollments.map((enrollment: any) => {
+                          const displayParts = [
+                            enrollment.student_name,
+                            enrollment.class_name || '',
+                            enrollment.section_name || '',
+                          ].filter(Boolean);
+                          const displayText = displayParts.join(' - ');
+                          const rollNumber = enrollment.roll_number ? ` (Roll: ${enrollment.roll_number})` : '';
+                          return (
+                            <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
+                              {displayText}{rollNumber}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={examMarkForm.control}
+                name="exam_id"
+                render={({ field }) => {
+                  let numValue: number | null = null;
+                  if (field.value && field.value !== '') {
+                    const parsed = typeof field.value === 'string' 
+                      ? parseInt(field.value, 10) 
+                      : Number(field.value);
+                    if (!isNaN(parsed) && parsed > 0) {
+                      numValue = parsed;
+                    }
+                  }
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>Exam</FormLabel>
+                      <FormControl>
+                        <SchoolExamDropdown
+                          value={numValue}
+                          onChange={(value) => {
+                            if (value !== null && value !== undefined) {
+                              field.onChange(value.toString());
+                            } else {
+                              field.onChange('');
+                            }
+                          }}
+                          disabled={!!editingExamMark}
+                          placeholder="Select exam"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+              
+              <FormField
+                control={examMarkForm.control}
+                name="subject_id"
+                render={({ field }) => {
+                  let numValue: number | null = null;
+                  if (field.value && field.value !== '') {
+                    const parsed = typeof field.value === 'string' 
+                      ? parseInt(field.value, 10) 
+                      : Number(field.value);
+                    if (!isNaN(parsed) && parsed > 0) {
+                      numValue = parsed;
+                    }
+                  }
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>Subject</FormLabel>
+                      <FormControl>
+                        <SchoolSubjectDropdown
+                          classId={classId}
+                          value={numValue}
+                          onChange={(value) => {
+                            if (value !== null && value !== undefined) {
+                              field.onChange(value.toString());
+                            } else {
+                              field.onChange('');
+                            }
+                          }}
+                          disabled={!!editingExamMark || classId <= 0}
+                          placeholder={classId <= 0 ? "Select class first" : "Select subject"}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+            </div>
+            
+            <FormField
+              control={examMarkForm.control}
+              name="marks_obtained"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Marks Obtained</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      placeholder="85" 
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={examMarkForm.control}
+              name="remarks"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Remarks (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Additional comments..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </form>
+        </Form>
+      )}
     </FormDialog>
   );
 };

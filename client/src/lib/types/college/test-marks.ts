@@ -86,3 +86,34 @@ export interface CollegeTestMarksListParams {
   page?: number;
   pageSize?: number;
 }
+
+// Multiple subjects operations
+export interface CollegeTestSubjectMarkItem {
+  subject_id: number;
+  marks_obtained?: number | null;
+  remarks?: string | null;
+  subject_name?: string | null;
+}
+
+export interface CollegeCreateTestMarksMultipleSubjects {
+  enrollment_id: number;
+  test_id: number;
+  subjects: CollegeTestSubjectMarkItem[];
+  student_name?: string | null;
+  test_name?: string | null;
+}
+
+export interface CollegeTestMarksMultipleSubjectsResult {
+  success: boolean;
+  message: string;
+  enrollment_id: number;
+  test_id: number;
+  created_count: number;
+  skipped_count: number;
+  total_requested: number;
+  errors?: Array<{
+    subject_id: number;
+    subject_name?: string;
+    error: string;
+  }>;
+}

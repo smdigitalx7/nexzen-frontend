@@ -32,6 +32,16 @@ import { collegeKeys } from "@/lib/hooks/college/query-keys";
 // Use the actual API types instead of custom interface
 import type { CollegeReservationMinimalRead, CollegeReservationRead } from "@/lib/types/college";
 
+// Helper function to format date from ISO format to YYYY-MM-DD
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return "-";
+  // If date is in ISO format (2025-06-09T00:00:00), extract just the date part
+  if (dateString.includes("T")) {
+    return dateString.split("T")[0];
+  }
+  return dateString;
+};
+
 type Reservation = CollegeReservationMinimalRead & {
   // Add any additional properties needed for the component
   reservation_no?: string;
@@ -118,20 +128,57 @@ const ConfirmedReservationsTab = () => {
 
   const handleEnrollStudent = async (reservationId: number) => {
     try {
-      // Fetch full reservation details
-      const reservationDetails = await CollegeReservationsService.getById(reservationId);
-      
-      if (!reservationDetails) {
+      // Verify reservation exists in current list before attempting enrollment
+      const reservationInList = allReservations.find(r => r.reservation_id === reservationId);
+      if (!reservationInList) {
         toast({
           title: "Error",
-          description: "Reservation not found",
+          description: `Reservation with ID ${reservationId} not found in the current list. Please refresh the page and try again.`,
           variant: "destructive",
         });
         return;
       }
 
-      // Create student record
+      // Always fetch full reservation details from API for enrollment
+      // This ensures we have all required fields with correct field names
+      let reservationDetails: CollegeReservationRead;
+      try {
+        reservationDetails = await CollegeReservationsService.getById(reservationId);
+      } catch (fetchError: any) {
+        console.error("Failed to fetch reservation details:", {
+          reservationId,
+          error: fetchError,
+          response: fetchError?.response,
+          status: fetchError?.response?.status,
+          data: fetchError?.response?.data,
+        });
+        
+        const errorMessage = fetchError?.response?.data?.detail 
+          || fetchError?.response?.data?.message 
+          || fetchError?.message 
+          || `Failed to load reservation details for ID ${reservationId}. Please check if the reservation exists and try again.`;
+        
+        toast({
+          title: "Error Loading Reservation",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!reservationDetails) {
+        toast({
+          title: "Error",
+          description: `Reservation with ID ${reservationId} not found. Please refresh the page and try again.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create student record from reservation
+      // Note: The API requires reservation_id as a required field
       const studentData = {
+        reservation_id: reservationId, // Required field for creating student from reservation
         student_name: reservationDetails.student_name,
         aadhar_no: reservationDetails.aadhar_no,
         gender: reservationDetails.gender,
@@ -460,7 +507,9 @@ const ConfirmedReservationsTab = () => {
     {
       accessorKey: "reservation_date",
       header: "Date",
-      cell: ({ row }) => <span>{row.getValue("reservation_date")}</span>,
+      cell: ({ row }) => (
+        <span>{formatDate(row.getValue("reservation_date"))}</span>
+      ),
     },
     {
       accessorKey: "status",

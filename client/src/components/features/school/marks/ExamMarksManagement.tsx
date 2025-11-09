@@ -62,6 +62,16 @@ import AddExamMarkForm from "./AddExamMarkForm";
 
 interface ExamMarksManagementProps {
   onDataChange?: (data: ExamMarkWithDetails[]) => void;
+  selectedClass?: number | null;
+  setSelectedClass?: (value: number | null) => void;
+  selectedSection?: number | null;
+  setSelectedSection?: (value: number | null) => void;
+  selectedSubject?: number | null;
+  setSelectedSubject?: (value: number | null) => void;
+  selectedGrade?: string;
+  setSelectedGrade?: (value: string) => void;
+  selectedExam?: number | null;
+  setSelectedExam?: (value: number | null) => void;
 }
 
 // Grade colors mapping - moved outside component for better performance
@@ -78,13 +88,34 @@ const GRADE_COLORS = {
 
 const ExamMarksManagementComponent = ({
   onDataChange,
+  selectedClass: propSelectedClass,
+  setSelectedClass: propSetSelectedClass,
+  selectedSection: propSelectedSection,
+  setSelectedSection: propSetSelectedSection,
+  selectedSubject: propSelectedSubject,
+  setSelectedSubject: propSetSelectedSubject,
+  selectedGrade: propSelectedGrade,
+  setSelectedGrade: propSetSelectedGrade,
+  selectedExam: propSelectedExam,
+  setSelectedExam: propSetSelectedExam,
 }: ExamMarksManagementProps) => {
-  // State management - using IDs for dropdowns, converting to names for filtering
-  const [selectedClass, setSelectedClass] = useState<number | null>(null);
-  const [selectedSection, setSelectedSection] = useState<number | null>(null);
-  const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
-  const [selectedGrade, setSelectedGrade] = useState("all");
-  const [selectedExam, setSelectedExam] = useState<number | null>(null);
+  // Use props if provided, otherwise use local state (for backward compatibility)
+  const [localSelectedClass, setLocalSelectedClass] = useState<number | null>(null);
+  const [localSelectedSection, setLocalSelectedSection] = useState<number | null>(null);
+  const [localSelectedSubject, setLocalSelectedSubject] = useState<number | null>(null);
+  const [localSelectedGrade, setLocalSelectedGrade] = useState("all");
+  const [localSelectedExam, setLocalSelectedExam] = useState<number | null>(null);
+
+  const selectedClass = propSelectedClass ?? localSelectedClass;
+  const setSelectedClass = propSetSelectedClass ?? setLocalSelectedClass;
+  const selectedSection = propSelectedSection ?? localSelectedSection;
+  const setSelectedSection = propSetSelectedSection ?? setLocalSelectedSection;
+  const selectedSubject = propSelectedSubject ?? localSelectedSubject;
+  const setSelectedSubject = propSetSelectedSubject ?? setLocalSelectedSubject;
+  const selectedGrade = propSelectedGrade ?? localSelectedGrade;
+  const setSelectedGrade = propSetSelectedGrade ?? setLocalSelectedGrade;
+  const selectedExam = propSelectedExam ?? localSelectedExam;
+  const setSelectedExam = propSetSelectedExam ?? setLocalSelectedExam;
 
   // Dialog states
   const [showExamMarkDialog, setShowExamMarkDialog] = useState(false);
@@ -674,7 +705,8 @@ const ExamMarksManagementComponent = ({
               onClose={closeExamMarkDialog}
               onSubmit={handleExamMarkSubmit}
               editingExamMark={editingExamMark}
-              selectedClass={selectedClass?.toString() || ""}
+              selectedClass={selectedClass}
+              selectedSection={selectedSection}
             />
           </motion.div>
         </div>

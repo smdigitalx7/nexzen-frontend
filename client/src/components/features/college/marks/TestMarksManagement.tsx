@@ -1,16 +1,17 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import {  ClipboardList} from 'lucide-react';
+import {  ClipboardList, Plus, Trash2 } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Card    } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader as AlertHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { EnhancedDataTable } from '@/components/shared';
@@ -27,8 +28,9 @@ import {
   useCreateCollegeTestMark,
   useUpdateCollegeTestMark,
   useDeleteCollegeTestMark,
-  useCollegeStudentsList,
 } from '@/lib/hooks/college';
+import { useCollegeEnrollmentsList } from '@/lib/hooks/college/use-college-enrollments';
+import { useCreateCollegeTestMarksMultipleSubjects } from '@/lib/hooks/college/use-college-test-marks';
 import {
   useCollegeGroups,
   useCollegeSubjects,
@@ -64,22 +66,56 @@ const testMarkFormSchema = z.object({
   test_id: z.string().min(1, "Test is required"),
   subject_id: z.string().min(1, "Subject is required"),
   marks_obtained: z.string().min(1, "Marks obtained is required"),
-  percentage: z.string().min(1, "Percentage is required"),
-  grade: z.string().min(1, "Grade is required"),
-  conducted_at: z.string().min(1, "Test date is required"),
   remarks: z.string().optional(),
+});
+
+const multipleTestSubjectsFormSchema = z.object({
+  enrollment_id: z.string().min(1, "Student is required"),
+  test_id: z.string().min(1, "Test is required"),
+  subjects: z.array(z.object({
+    subject_id: z.string().min(1, "Subject is required"),
+    marks_obtained: z.string().min(1, "Marks obtained is required"),
+    remarks: z.string().optional(),
+  })).min(1, "At least one subject is required"),
 });
 
 interface TestMarksManagementProps {
   onDataChange?: (data: (CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; test_id?: number; subject_id?: number })[]) => void;
+  selectedClass?: number | null;
+  setSelectedClass?: (value: number | null) => void;
+  selectedGroup?: number | null;
+  setSelectedGroup?: (value: number | null) => void;
+  selectedSubject?: number | null;
+  setSelectedSubject?: (value: number | null) => void;
+  selectedTest?: number | null;
+  setSelectedTest?: (value: number | null) => void;
 }
 
-const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange }) => {
-  // State - using IDs for dropdowns
-  const [selectedClass, setSelectedClass] = useState<number | null>(null);
-  const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
-  const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
-  const [selectedTest, setSelectedTest] = useState<number | null>(null);
+const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ 
+  onDataChange,
+  selectedClass: propSelectedClass,
+  setSelectedClass: propSetSelectedClass,
+  selectedGroup: propSelectedGroup,
+  setSelectedGroup: propSetSelectedGroup,
+  selectedSubject: propSelectedSubject,
+  setSelectedSubject: propSetSelectedSubject,
+  selectedTest: propSelectedTest,
+  setSelectedTest: propSetSelectedTest,
+}) => {
+  // Use props if provided, otherwise use local state (for backward compatibility)
+  const [localSelectedClass, setLocalSelectedClass] = useState<number | null>(null);
+  const [localSelectedSubject, setLocalSelectedSubject] = useState<number | null>(null);
+  const [localSelectedGroup, setLocalSelectedGroup] = useState<number | null>(null);
+  const [localSelectedTest, setLocalSelectedTest] = useState<number | null>(null);
+
+  const selectedClass = propSelectedClass ?? localSelectedClass;
+  const setSelectedClass = propSetSelectedClass ?? setLocalSelectedClass;
+  const selectedSubject = propSelectedSubject ?? localSelectedSubject;
+  const setSelectedSubject = propSetSelectedSubject ?? setLocalSelectedSubject;
+  const selectedGroup = propSelectedGroup ?? localSelectedGroup;
+  const setSelectedGroup = propSetSelectedGroup ?? setLocalSelectedGroup;
+  const selectedTest = propSelectedTest ?? localSelectedTest;
+  const setSelectedTest = propSetSelectedTest ?? setLocalSelectedTest;
   
   // Dialog states
   const [showTestMarkDialog, setShowTestMarkDialog] = useState(false);
@@ -87,13 +123,43 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
   const [showViewTestMarkDialog, setShowViewTestMarkDialog] = useState(false);
   const [viewingTestMarkId, setViewingTestMarkId] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState('single');
 
   // API hooks
-  const { data: studentsData } = useCollegeStudentsList();
-  const students = studentsData?.data || [];
   const { data: groupsData } = useCollegeGroups(selectedClass || undefined);
   const { data: subjectsData } = useCollegeSubjects(selectedGroup || 0);
   const { data: testsData } = useCollegeTests();
+
+  // Get enrollments filtered by class and group
+  const enrollmentsParams = useMemo(() => {
+    if (!selectedClass || !selectedGroup) return undefined;
+    return {
+      class_id: selectedClass,
+      group_id: selectedGroup,
+      page: 1,
+      pageSize: 1000,
+    };
+  }, [selectedClass, selectedGroup]);
+
+  const { data: enrollmentsData } = useCollegeEnrollmentsList(enrollmentsParams);
+  
+  // Extract enrollments - flatten the grouped response and add class_name, group_name
+  const enrollments = useMemo(() => {
+    if (!enrollmentsData?.enrollments) return [];
+    const allEnrollments: any[] = [];
+    enrollmentsData.enrollments.forEach((group: any) => {
+      if (group.students && Array.isArray(group.students)) {
+        group.students.forEach((student: any) => {
+          allEnrollments.push({
+            ...student,
+            class_name: group.class_name || '',
+            group_name: group.group_name || '',
+          });
+        });
+      }
+    });
+    return allEnrollments;
+  }, [enrollmentsData]);
 
   // Get groups for lookup maps (for filtering)
   const groups = groupsData?.items || [];
@@ -139,8 +205,9 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
   const createTestMarkMutation = useCreateCollegeTestMark();
   const updateTestMarkMutation = useUpdateCollegeTestMark(editingTestMark?.mark_id || 0);
   const deleteTestMarkMutation = useDeleteCollegeTestMark();
+  const createMultipleSubjectsMutation = useCreateCollegeTestMarksMultipleSubjects();
 
-  // Form
+  // Single subject form
   const testMarkForm = useForm({
     resolver: zodResolver(testMarkFormSchema),
     defaultValues: {
@@ -148,36 +215,42 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
       test_id: '',
       subject_id: '',
       marks_obtained: '',
-      percentage: '',
-      grade: '',
-      conducted_at: '',
       remarks: '',
     },
   });
 
-  // Form handling functions
+  // Multiple subjects form
+  const multipleTestSubjectsForm = useForm({
+    resolver: zodResolver(multipleTestSubjectsFormSchema),
+    defaultValues: {
+      enrollment_id: '',
+      test_id: '',
+      subjects: [{ subject_id: '', marks_obtained: '', remarks: '' }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: multipleTestSubjectsForm.control,
+    name: 'subjects',
+  });
+
+  // Single subject form submission handler
   const handleTestMarkSubmit = useCallback((values: z.infer<typeof testMarkFormSchema>) => {
     const markData = {
       enrollment_id: parseInt(values.enrollment_id),
       test_id: parseInt(values.test_id),
       subject_id: parseInt(values.subject_id),
       marks_obtained: parseFloat(values.marks_obtained),
-      percentage: parseFloat(values.percentage),
-      grade: values.grade,
-      conducted_at: values.conducted_at,
       remarks: values.remarks || '',
     };
 
     if (editingTestMark) {
       updateTestMarkMutation.mutate({
         marks_obtained: markData.marks_obtained,
-        percentage: markData.percentage,
-        grade: markData.grade,
         remarks: markData.remarks,
-        conducted_at: markData.conducted_at,
-      });
+      } as any);
     } else {
-      createTestMarkMutation.mutate(markData);
+      createTestMarkMutation.mutate(markData as any);
     }
 
     testMarkForm.reset();
@@ -185,20 +258,48 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
     setShowTestMarkDialog(false);
   }, [editingTestMark, updateTestMarkMutation, createTestMarkMutation, testMarkForm]);
 
+  // Multiple subjects form submission handler
+  const handleMultipleTestSubjectsSubmit = useCallback(async (values: any) => {
+    const selectedEnrollment = enrollments.find((e: any) => e.enrollment_id?.toString() === values.enrollment_id);
+    
+    const payload = {
+      enrollment_id: parseInt(values.enrollment_id),
+      test_id: parseInt(values.test_id),
+      subjects: values.subjects.map((subj: any) => ({
+        subject_id: parseInt(subj.subject_id),
+        marks_obtained: parseFloat(subj.marks_obtained),
+        remarks: subj.remarks || null,
+        subject_name: subjects.find((s: any) => s.subject_id === parseInt(subj.subject_id))?.subject_name || null,
+      })),
+      student_name: selectedEnrollment?.student_name || null,
+      test_name: null, // Can be fetched if needed
+    };
+
+    try {
+      await createMultipleSubjectsMutation.mutateAsync(payload);
+      multipleTestSubjectsForm.reset();
+      setShowTestMarkDialog(false);
+    } catch (error) {
+      // Error is handled by mutation hook
+    }
+  }, [enrollments, subjects, createMultipleSubjectsMutation, multipleTestSubjectsForm]);
+
   const handleEditTestMark = useCallback((mark: CollegeTestMarkMinimalRead & { test_id?: number; subject_id?: number; percentage?: number | null; grade?: string | null; conducted_at?: string | null; remarks?: string | null; }) => {
+    setActiveTab('single');
     setEditingTestMark(mark);
     testMarkForm.reset({
       enrollment_id: mark.enrollment_id.toString(),
       test_id: mark.test_id ? String(mark.test_id) : '',
       subject_id: mark.subject_id ? String(mark.subject_id) : '',
       marks_obtained: (mark.marks_obtained ?? 0).toString(),
-      percentage: (mark.percentage ?? 0).toString(),
-      grade: mark.grade || '',
-      conducted_at: mark.conducted_at || '',
       remarks: mark.remarks || '',
     });
     setShowTestMarkDialog(true);
   }, [testMarkForm]);
+
+  const addSubjectRow = useCallback(() => {
+    append({ subject_id: '', marks_obtained: '', remarks: '' });
+  }, [append]);
 
   const handleDeleteTestMark = useCallback((markId: number) => {
     setConfirmDeleteId(markId);
@@ -433,14 +534,34 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
             className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
           >
             <div className="flex gap-3">
-              <Dialog open={showTestMarkDialog} onOpenChange={setShowTestMarkDialog}>
-                <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0">
+              <Dialog open={showTestMarkDialog} onOpenChange={(open) => {
+                if (!open) {
+                  setActiveTab('single');
+                  testMarkForm.reset();
+                  multipleTestSubjectsForm.reset({
+                    enrollment_id: '',
+                    test_id: '',
+                    subjects: [{ subject_id: '', marks_obtained: '', remarks: '' }],
+                  });
+                  setEditingTestMark(null);
+                }
+                setShowTestMarkDialog(open);
+              }}>
+                <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0">
                   <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
                     <DialogTitle>{editingTestMark ? 'Edit Test Mark' : 'Add New Test Mark'}</DialogTitle>
                   </DialogHeader>
                   <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
-                    <Form {...testMarkForm}>
-                      <form onSubmit={(e) => { void testMarkForm.handleSubmit(handleTestMarkSubmit)(e); }} className="space-y-4">
+                  {!editingTestMark ? (
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="single">Single Subject</TabsTrigger>
+                        <TabsTrigger value="multiple">Multiple Subjects</TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="single" className="mt-4">
+                        <Form {...testMarkForm}>
+                          <form onSubmit={(e) => { void testMarkForm.handleSubmit(handleTestMarkSubmit)(e); }} className="space-y-4">
                     <FormField
                       control={testMarkForm.control}
                       name="enrollment_id"
@@ -453,9 +574,9 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                                     <SelectValue placeholder="Select student" />
                                   </SelectTrigger>
                                   <SelectContent>
-                              {students.map((student: { student_id?: number; student_name: string; admission_no: string }) => (
-                                  <SelectItem key={student.student_id} value={student.student_id?.toString() || ''}>
-                                  {student.student_name} ({student.admission_no})
+                              {enrollments.map((enrollment: any) => (
+                                  <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
+                                  {enrollment.student_name} ({enrollment.admission_no})
                                     </SelectItem>
                                   ))}
                                   </SelectContent>
@@ -555,80 +676,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                               type="number" 
                               placeholder="18" 
                               {...field}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                field.onChange(value);
-                                
-                                // Auto-calculate percentage and grade
-                                if (value && !isNaN(Number(value))) {
-                                  const marks = Number(value);
-                                  const percentage = calculatePercentage(marks);
-                                  const grade = calculateGrade(percentage);
-                                  
-                                  testMarkForm.setValue('percentage', percentage.toString());
-                                  testMarkForm.setValue('grade', grade);
-                                }
-                              }}
                             />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={testMarkForm.control}
-                          name="percentage"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Percentage</FormLabel>
-                              <FormControl>
-                                <Input type="number" placeholder="90.0" step="0.1" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={testMarkForm.control}
-                          name="grade"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Grade</FormLabel>
-                              <FormControl>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select grade" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                  <SelectItem value="A+">A+</SelectItem>
-                                  <SelectItem value="A">A</SelectItem>
-                                  <SelectItem value="B+">B+</SelectItem>
-                                  <SelectItem value="B">B</SelectItem>
-                                  <SelectItem value="C+">C+</SelectItem>
-                                  <SelectItem value="C">C</SelectItem>
-                                  <SelectItem value="D">D</SelectItem>
-                                  <SelectItem value="F">F</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <FormField
-                        control={testMarkForm.control}
-                        name="conducted_at"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Test Date</FormLabel>
-                            <FormControl>
-                              <DatePicker
-                                value={field.value || ""}
-                                onChange={field.onChange}
-                                placeholder="Select test date"
-                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -647,24 +695,391 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({ onDataChange 
                           </FormItem>
                         )}
                       />
-                      <div className="flex justify-end space-x-2">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          onClick={() => {
-                          testMarkForm.reset();
-                          setEditingTestMark(null);
-                          setShowTestMarkDialog(false);
-                        }}
-                        >
-                          Cancel
-                        </Button>
-                      <Button type="submit" >
-                        {editingTestMark ? 'Update' : 'Add'} Test Mark
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
+                            <div className="flex justify-end space-x-2">
+                              <Button 
+                                type="button" 
+                                variant="outline" 
+                                onClick={() => {
+                                  setActiveTab('single');
+                                  testMarkForm.reset();
+                                  multipleTestSubjectsForm.reset({
+                                    enrollment_id: '',
+                                    test_id: '',
+                                    subjects: [{ subject_id: '', marks_obtained: '', remarks: '' }],
+                                  });
+                                  setEditingTestMark(null);
+                                  setShowTestMarkDialog(false);
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                              <Button type="submit">
+                                Add Test Mark
+                              </Button>
+                            </div>
+                          </form>
+                        </Form>
+                      </TabsContent>
+
+                      <TabsContent value="multiple" className="mt-4">
+                        <Form {...multipleTestSubjectsForm}>
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              void multipleTestSubjectsForm.handleSubmit(handleMultipleTestSubjectsSubmit)(e);
+                            }}
+                            className="space-y-4"
+                          >
+                            <FormField
+                              control={multipleTestSubjectsForm.control}
+                              name="enrollment_id"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Student</FormLabel>
+                                  <FormControl>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select student" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {enrollments.map((enrollment: any) => (
+                                          <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
+                                            {enrollment.student_name} ({enrollment.admission_no})
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={multipleTestSubjectsForm.control}
+                              name="test_id"
+                              render={({ field }) => {
+                                let numValue: number | null = null;
+                                if (field.value && field.value !== '') {
+                                  const parsed = typeof field.value === 'string'
+                                    ? parseInt(field.value, 10)
+                                    : Number(field.value);
+                                  if (!isNaN(parsed) && parsed > 0) {
+                                    numValue = parsed;
+                                  }
+                                }
+
+                                return (
+                                  <FormItem>
+                                    <FormLabel>Test</FormLabel>
+                                    <FormControl>
+                                      <CollegeTestDropdown
+                                        value={numValue}
+                                        onChange={(value) => {
+                                          if (value !== null && value !== undefined) {
+                                            field.onChange(value.toString());
+                                          } else {
+                                            field.onChange('');
+                                          }
+                                        }}
+                                        placeholder="Select test"
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                );
+                              }}
+                            />
+                            <div className="space-y-4">
+                              <div className="flex justify-between items-center">
+                                <FormLabel>Subjects</FormLabel>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={addSubjectRow}
+                                >
+                                  <Plus className="h-4 w-4 mr-2" />
+                                  Add Subject
+                                </Button>
+                              </div>
+                              {fields.map((field, index) => (
+                                <div key={field.id} className="border p-4 rounded-lg space-y-4">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="text-sm font-medium">Subject {index + 1}</span>
+                                    {fields.length > 1 && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => remove(index)}
+                                        className="text-red-600 hover:text-red-700"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <FormField
+                                    control={multipleTestSubjectsForm.control}
+                                    name={`subjects.${index}.subject_id`}
+                                    render={({ field }) => {
+                                      let numValue: number | null = null;
+                                      if (field.value && field.value !== '') {
+                                        const parsed = typeof field.value === 'string'
+                                          ? parseInt(field.value, 10)
+                                          : Number(field.value);
+                                        if (!isNaN(parsed) && parsed > 0) {
+                                          numValue = parsed;
+                                        }
+                                      }
+
+                                      return (
+                                        <FormItem>
+                                          <FormLabel>Subject</FormLabel>
+                                          <FormControl>
+                                            <CollegeSubjectDropdown
+                                              groupId={selectedGroup || 0}
+                                              value={numValue}
+                                              onChange={(value) => {
+                                                if (value !== null && value !== undefined) {
+                                                  field.onChange(value.toString());
+                                                } else {
+                                                  field.onChange('');
+                                                }
+                                              }}
+                                              disabled={!selectedGroup || selectedGroup <= 0}
+                                              placeholder={!selectedGroup || selectedGroup <= 0 ? "Select group first" : "Select subject"}
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      );
+                                    }}
+                                  />
+                                  <FormField
+                                    control={multipleTestSubjectsForm.control}
+                                    name={`subjects.${index}.marks_obtained`}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Marks Obtained</FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            type="number"
+                                            placeholder="18"
+                                            {...field}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={multipleTestSubjectsForm.control}
+                                    name={`subjects.${index}.remarks`}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Remarks (Optional)</FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            placeholder="Additional comments..."
+                                            {...field}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex justify-end space-x-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                  setActiveTab('single');
+                                  testMarkForm.reset();
+                                  multipleTestSubjectsForm.reset({
+                                    enrollment_id: '',
+                                    test_id: '',
+                                    subjects: [{ subject_id: '', marks_obtained: '', remarks: '' }],
+                                  });
+                                  setEditingTestMark(null);
+                                  setShowTestMarkDialog(false);
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                              <Button 
+                                type="submit"
+                                disabled={createMultipleSubjectsMutation.isPending}
+                              >
+                                {createMultipleSubjectsMutation.isPending ? "Adding..." : "Add Test Marks"}
+                              </Button>
+                            </div>
+                          </form>
+                        </Form>
+                      </TabsContent>
+                    </Tabs>
+                  ) : (
+                    <Form {...testMarkForm}>
+                      <form onSubmit={(e) => { void testMarkForm.handleSubmit(handleTestMarkSubmit)(e); }} className="space-y-4">
+                        <FormField
+                          control={testMarkForm.control}
+                          name="enrollment_id"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Student</FormLabel>
+                              <FormControl>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={true}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select student" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {enrollments.map((enrollment: any) => {
+                                      const displayParts = [
+                                        enrollment.student_name,
+                                        enrollment.class_name || '',
+                                        enrollment.group_name || '',
+                                      ].filter(Boolean);
+                                      const displayText = displayParts.join(' - ');
+                                      const rollNumber = enrollment.roll_number ? ` (Roll: ${enrollment.roll_number})` : '';
+                                      return (
+                                        <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
+                                          {displayText}{rollNumber}
+                                        </SelectItem>
+                                      );
+                                    })}
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={testMarkForm.control}
+                            name="test_id"
+                            render={({ field }) => {
+                              let numValue: number | null = null;
+                              if (field.value && field.value !== '') {
+                                const parsed = typeof field.value === 'string'
+                                  ? parseInt(field.value, 10)
+                                  : Number(field.value);
+                                if (!isNaN(parsed) && parsed > 0) {
+                                  numValue = parsed;
+                                }
+                              }
+
+                              return (
+                                <FormItem>
+                                  <FormLabel>Test</FormLabel>
+                                  <FormControl>
+                                    <CollegeTestDropdown
+                                      value={numValue}
+                                      onChange={(value) => {
+                                        if (value !== null && value !== undefined) {
+                                          field.onChange(value.toString());
+                                        } else {
+                                          field.onChange('');
+                                        }
+                                      }}
+                                      disabled={true}
+                                      placeholder="Select test"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              );
+                            }}
+                          />
+                          <FormField
+                            control={testMarkForm.control}
+                            name="subject_id"
+                            render={({ field }) => {
+                              let numValue: number | null = null;
+                              if (field.value && field.value !== '') {
+                                const parsed = typeof field.value === 'string'
+                                  ? parseInt(field.value, 10)
+                                  : Number(field.value);
+                                if (!isNaN(parsed) && parsed > 0) {
+                                  numValue = parsed;
+                                }
+                              }
+
+                              return (
+                                <FormItem>
+                                  <FormLabel>Subject</FormLabel>
+                                  <FormControl>
+                                    <CollegeSubjectDropdown
+                                      groupId={selectedGroup || 0}
+                                      value={numValue}
+                                      onChange={(value) => {
+                                        if (value !== null && value !== undefined) {
+                                          field.onChange(value.toString());
+                                        } else {
+                                          field.onChange('');
+                                        }
+                                      }}
+                                      disabled={true}
+                                      placeholder="Select subject"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              );
+                            }}
+                          />
+                        </div>
+                        <FormField
+                          control={testMarkForm.control}
+                          name="marks_obtained"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Marks Obtained</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  placeholder="18" 
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={testMarkForm.control}
+                          name="remarks"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Remarks (Optional)</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Additional comments..." {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => {
+                              testMarkForm.reset();
+                              setEditingTestMark(null);
+                              setShowTestMarkDialog(false);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button type="submit">
+                            Update Test Mark
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  )}
                   </div>
                 </DialogContent>
               </Dialog>

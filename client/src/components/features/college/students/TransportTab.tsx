@@ -45,22 +45,22 @@ const TransportTabComponent = () => {
   const busRoutes = Array.isArray(routesData) ? routesData : [];
   const slabs = distanceSlabs || [];
   
-  // Flatten enrollments for dropdown
+  // Flatten enrollments for dropdown - add class_name and group_name
   const enrollments = useMemo(() => {
     if (!enrollmentsData?.enrollments) return [];
-    const flattened: any[] = [];
-    enrollmentsData.enrollments.forEach((classGroup: any) => {
-      if (classGroup.students && Array.isArray(classGroup.students)) {
-        classGroup.students.forEach((student: any) => {
-          flattened.push({
-            enrollment_id: student.enrollment_id,
-            admission_no: student.admission_no,
-            student_name: student.student_name,
+    const allEnrollments: any[] = [];
+    enrollmentsData.enrollments.forEach((group: any) => {
+      if (group.students && Array.isArray(group.students)) {
+        group.students.forEach((student: any) => {
+          allEnrollments.push({
+            ...student,
+            class_name: group.class_name || '',
+            group_name: group.group_name || '',
           });
         });
       }
     });
-    return flattened;
+    return allEnrollments;
   }, [enrollmentsData]);
 
   // Memoized API parameters - both class_id and group_id are required
@@ -355,7 +355,7 @@ const TransportTabComponent = () => {
           searchKey="student_name"
           searchPlaceholder="Search by student name..."
           loading={result.isLoading}
-          onAdd={() => setIsCreateDialogOpen(true)}
+          onAdd={query.class_id && query.group_id ? () => setIsCreateDialogOpen(true) : undefined}
           addButtonText="Add Transport Assignment"
           addButtonVariant="default"
           showActions={true}

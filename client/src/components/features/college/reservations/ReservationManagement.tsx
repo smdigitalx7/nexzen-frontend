@@ -430,14 +430,57 @@ export default function ReservationNew() {
         remarks: remarks || null,
       });
 
+      // Comprehensive refresh to ensure All Reservations table updates
+      // Step 1: Clear API cache first to ensure fresh network request
+      try {
+        CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
+      } catch (error) {
+        console.warn('Failed to clear API cache:', error);
+      }
+
+      // Step 2: Remove query data to force fresh fetch
+      queryClient.removeQueries({ 
+        queryKey: collegeKeys.reservations.root(),
+        exact: false 
+      });
+
+      // Step 3: Invalidate all reservation-related queries
+      await queryClient.invalidateQueries({ 
+        queryKey: collegeKeys.reservations.root(),
+        exact: false 
+      });
+
+      // Step 4: Force refetch active queries (bypasses cache)
+      await queryClient.refetchQueries({
+        queryKey: collegeKeys.reservations.root(),
+        type: 'active',
+        exact: false
+      });
+
+      // Step 5: Call refetchReservations to ensure immediate API call
+      await refetchReservations();
+
+      // Step 6: Wait for React Query to update the cache
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Fetch fresh reservation data immediately after update
+      // This ensures if user reopens the dialog, it has the latest data with updated concession_lock status
+      try {
+        const updatedReservation =
+          await CollegeReservationsService.getById(reservationId);
+        // Update the state with fresh data so if dialog reopens, it shows updated values
+        setSelectedReservationForConcession(updatedReservation);
+      } catch (fetchError) {
+        console.error("Failed to fetch updated reservation:", fetchError);
+        // If fetch fails, just clear the state - next open will fetch fresh
+        setSelectedReservationForConcession(null);
+      }
+
       toast({
         title: "Concession Updated",
         description: "Concession amounts have been updated successfully.",
         variant: "success",
       });
-
-      // Refresh the reservations list
-      refetchReservations();
     } catch (error: any) {
       console.error("Failed to update concession:", error);
       toast({

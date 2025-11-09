@@ -125,10 +125,12 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
           <TabsContent
             key={tab.value}
             value={tab.value}
+            forceMount
             className={cn(
               "mt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
               contentClassName
             )}
+            style={{ display: activeTab === tab.value ? 'block' : 'none' }}
           >
             {tab.content}
           </TabsContent>

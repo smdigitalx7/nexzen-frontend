@@ -7,6 +7,8 @@ import type {
   TestGroupAndSubjectResponse,
   TestMarkCreate,
   TestMarkUpdate,
+  CreateTestMarksMultipleSubjects,
+  TestMarksMultipleSubjectsResult,
 } from "@/lib/types/school";
 
 export const SchoolTestMarksService = {
@@ -33,6 +35,8 @@ export const SchoolTestMarksService = {
   bulkCreate(payload: CreateTestMarkBulk) {
     return Api.post<TestMarkBulkCreateResult>(`/school/test-marks/bulk-create`, payload);
   },
+
+  createMultipleSubjects(payload: CreateTestMarksMultipleSubjects) {
+    return Api.post<TestMarksMultipleSubjectsResult>(`/school/test-marks/multiple-subjects`, payload);
+  },
 };
-
-

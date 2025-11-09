@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolTestMarksService } from "@/lib/services/school/test-marks.service";
-import type { CreateTestMarkBulk, TestMarkBulkCreateResult, TestMarkFullReadResponse, TestMarksQuery, TestGroupAndSubjectResponse, TestMarkCreate, TestMarkUpdate } from "@/lib/types/school";
+import type { CreateTestMarkBulk, TestMarkBulkCreateResult, TestMarkFullReadResponse, TestMarksQuery, TestGroupAndSubjectResponse, TestMarkCreate, TestMarkUpdate, CreateTestMarksMultipleSubjects, TestMarksMultipleSubjectsResult } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
@@ -65,4 +65,13 @@ export function useBulkCreateSchoolTestMarks() {
   }, "Test marks created successfully");
 }
 
-
+export function useCreateSchoolTestMarksMultipleSubjects() {
+  const qc = useQueryClient();
+  return useMutationWithSuccessToast({
+    mutationFn: (payload: CreateTestMarksMultipleSubjects) => SchoolTestMarksService.createMultipleSubjects(payload),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: schoolKeys.testMarks.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.testMarks.root(), type: 'active' });
+    },
+  }, "Test marks created successfully");
+}

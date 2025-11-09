@@ -58,11 +58,26 @@ export const TransportCreateDialog = ({
               <SelectValue placeholder="Select enrollment" />
             </SelectTrigger>
             <SelectContent>
-              {enrollments.map((enrollment: any) => (
-                <SelectItem key={enrollment.enrollment_id} value={String(enrollment.enrollment_id)}>
-                  {enrollment.admission_no} - {enrollment.student_name}
-                </SelectItem>
-              ))}
+              {enrollments.length === 0 ? (
+                <div className="px-2 py-2 text-center text-xs text-muted-foreground">
+                  No students
+                </div>
+              ) : (
+                enrollments.map((enrollment: any) => {
+                  const displayParts = [
+                    enrollment.student_name,
+                    enrollment.class_name || '',
+                    enrollment.group_name || '',
+                  ].filter(Boolean);
+                  const displayText = displayParts.join(' - ');
+                  const rollNumber = enrollment.roll_number ? ` (Roll: ${enrollment.roll_number})` : '';
+                  return (
+                    <SelectItem key={enrollment.enrollment_id} value={String(enrollment.enrollment_id)}>
+                      {displayText}{rollNumber}
+                    </SelectItem>
+                  );
+                })
+              )}
             </SelectContent>
           </Select>
         </div>

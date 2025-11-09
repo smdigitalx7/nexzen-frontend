@@ -87,3 +87,34 @@ export interface CollegeExamMarksListParams {
   page?: number;
   pageSize?: number;
 }
+
+// Multiple subjects operations
+export interface CollegeSubjectMarkItem {
+  subject_id: number;
+  marks_obtained?: number | null;
+  remarks?: string | null;
+  subject_name?: string | null;
+}
+
+export interface CollegeCreateExamMarksMultipleSubjects {
+  enrollment_id: number;
+  exam_id: number;
+  subjects: CollegeSubjectMarkItem[];
+  student_name?: string | null;
+  exam_name?: string | null;
+}
+
+export interface CollegeExamMarksMultipleSubjectsResult {
+  success: boolean;
+  message: string;
+  enrollment_id: number;
+  exam_id: number;
+  created_count: number;
+  skipped_count: number;
+  total_requested: number;
+  errors?: Array<{
+    subject_id: number;
+    subject_name?: string;
+    error: string;
+  }>;
+}

@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Printer } from "lucide-react";
+import { Printer, Loader2 } from "lucide-react";
 import { SchoolIncomeService } from "@/lib/services/school";
 import type { SchoolIncomeSummary, SchoolIncomeSummaryParams } from "@/lib/types/school/income";
 import { ViewIncomeDialog } from "./ViewIncomeDialog";
@@ -31,6 +31,7 @@ export const IncomeSummaryTable = ({
   // Receipt modal state
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
+  const [loadingReceiptId, setLoadingReceiptId] = useState<number | null>(null);
   
   // Build query parameters
   const queryParams: SchoolIncomeSummaryParams = {};
@@ -75,6 +76,7 @@ export const IncomeSummaryTable = ({
       return;
     }
 
+    setLoadingReceiptId(income.income_id);
     try {
       const blobUrl = await handleRegenerateReceipt(income.income_id, 'school');
       setReceiptBlobUrl(blobUrl);
@@ -92,6 +94,8 @@ export const IncomeSummaryTable = ({
         description: error instanceof Error ? error.message : "An unexpected error occurred.",
         variant: "destructive",
       });
+    } finally {
+      setLoadingReceiptId(null);
     }
   }, []);
 
@@ -162,12 +166,14 @@ export const IncomeSummaryTable = ({
   const actionButtons = useMemo(() => [
     {
       id: 'print-receipt',
-      label: 'Print Receipt',
-      icon: Printer,
+      label: (income: SchoolIncomeSummary) => loadingReceiptId === income.income_id ? 'Generating...' : 'Print Receipt',
+      icon: (income: SchoolIncomeSummary) => loadingReceiptId === income.income_id ? Loader2 : Printer,
       variant: 'outline' as const,
       onClick: (income: SchoolIncomeSummary) => handlePrintReceipt(income),
+      show: (income: SchoolIncomeSummary) => true,
+      disabled: (income: SchoolIncomeSummary) => loadingReceiptId === income.income_id,
     }
-  ], [handlePrintReceipt]);
+  ], [handlePrintReceipt, loadingReceiptId]);
 
 
   return (

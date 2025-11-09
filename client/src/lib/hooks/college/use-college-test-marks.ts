@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeTestMarksService } from "@/lib/services/college/test-marks.service";
-import type { CollegeCreateTestMarkBulk, CollegeTestMarkBulkCreateResult, CollegeTestMarkFullReadResponse, CollegeTestMarkMinimalRead, CollegeTestMarkUpdate, CollegeTestMarksListParams } from "@/lib/types/college/index.ts";
+import type { CollegeCreateTestMarkBulk, CollegeTestMarkBulkCreateResult, CollegeTestMarkFullReadResponse, CollegeTestMarkMinimalRead, CollegeTestMarkUpdate, CollegeTestMarksListParams, CollegeCreateTestMarksMultipleSubjects, CollegeTestMarksMultipleSubjectsResult } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
@@ -83,6 +83,17 @@ export function useBulkCreateCollegeTestMarks() {
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeCreateTestMarkBulk) =>
       CollegeTestMarksService.bulkCreate(payload),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: collegeKeys.testMarks.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.testMarks.root(), type: 'active' });
+    },
+  }, "Test marks created successfully");
+}
+
+export function useCreateCollegeTestMarksMultipleSubjects() {
+  const qc = useQueryClient();
+  return useMutationWithSuccessToast({
+    mutationFn: (payload: CollegeCreateTestMarksMultipleSubjects) => CollegeTestMarksService.createMultipleSubjects(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: collegeKeys.testMarks.root() });
       void qc.refetchQueries({ queryKey: collegeKeys.testMarks.root(), type: 'active' });

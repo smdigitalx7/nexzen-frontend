@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   GraduationCap,
@@ -27,10 +27,77 @@ const MarksManagement = () => {
   const [examMarksData, setExamMarksData] = useState<CollegeMarksData[]>([]);
   const [testMarksData, setTestMarksData] = useState<CollegeMarksData[]>([]);
 
+  // Separate filter states for Exam Marks - maintains independent state
+  const [examSelectedClass, setExamSelectedClass] = useState<number | null>(null);
+  const [examSelectedGroup, setExamSelectedGroup] = useState<number | null>(null);
+  const [examSelectedSubject, setExamSelectedSubject] = useState<number | null>(null);
+  const [examSelectedExam, setExamSelectedExam] = useState<number | null>(null);
+
+  // Separate filter states for Test Marks - maintains independent state
+  const [testSelectedClass, setTestSelectedClass] = useState<number | null>(null);
+  const [testSelectedGroup, setTestSelectedGroup] = useState<number | null>(null);
+  const [testSelectedSubject, setTestSelectedSubject] = useState<number | null>(null);
+  const [testSelectedTest, setTestSelectedTest] = useState<number | null>(null);
+
   // Calculate statistics for current active tab
   const currentMarksData =
     activeTab === "exam-marks" ? examMarksData : testMarksData;
   const statistics = useCollegeMarksStatistics(currentMarksData);
+
+  // Memoized tabs configuration - components receive props but instances stay stable
+  // forceMount in TabSwitcher keeps components mounted, preventing remounts
+  const tabsConfig = useMemo(
+    () => [
+      {
+        value: "exam-marks",
+        label: "Marks",
+        icon: GraduationCap,
+        content: (
+          <ExamMarksManagement 
+            key="exam-marks"
+            onDataChange={setExamMarksData}
+            selectedClass={examSelectedClass}
+            setSelectedClass={setExamSelectedClass}
+            selectedGroup={examSelectedGroup}
+            setSelectedGroup={setExamSelectedGroup}
+            selectedSubject={examSelectedSubject}
+            setSelectedSubject={setExamSelectedSubject}
+            selectedExam={examSelectedExam}
+            setSelectedExam={setExamSelectedExam}
+          />
+        ),
+      },
+      {
+        value: "test-marks",
+        label: "Tests",
+        icon: ClipboardList,
+        content: (
+          <TestMarksManagement 
+            key="test-marks"
+            onDataChange={setTestMarksData}
+            selectedClass={testSelectedClass}
+            setSelectedClass={setTestSelectedClass}
+            selectedGroup={testSelectedGroup}
+            setSelectedGroup={setTestSelectedGroup}
+            selectedSubject={testSelectedSubject}
+            setSelectedSubject={setTestSelectedSubject}
+            selectedTest={testSelectedTest}
+            setSelectedTest={setTestSelectedTest}
+          />
+        ),
+      },
+    ],
+    [
+      examSelectedClass,
+      examSelectedGroup,
+      examSelectedSubject,
+      examSelectedExam,
+      testSelectedClass,
+      testSelectedGroup,
+      testSelectedSubject,
+      testSelectedTest,
+    ]
+  );
 
   return (
     <div className="flex flex-col h-full bg-slate-50/30">
@@ -108,24 +175,7 @@ const MarksManagement = () => {
 
           {/* Main Content */}
           <TabSwitcher
-            tabs={[
-              {
-                value: "exam-marks",
-                label: "Marks",
-                icon: GraduationCap,
-                content: (
-                  <ExamMarksManagement onDataChange={setExamMarksData} />
-                ),
-              },
-              {
-                value: "test-marks",
-                label: "Tests",
-                icon: ClipboardList,
-                content: (
-                  <TestMarksManagement onDataChange={setTestMarksData} />
-                ),
-              },
-            ]}
+            tabs={tabsConfig}
             activeTab={activeTab}
             onTabChange={setActiveTab}
           />

@@ -128,14 +128,26 @@ ReservationHeader.displayName = "ReservationHeader";
 
 // Memoized view dialog content component
 const ViewDialogContent = memo(
-  ({ viewReservation }: { viewReservation: any }) => (
+  ({ viewReservation, routeNames = [], distanceSlabs = [], classes = [] }: { viewReservation: any; routeNames?: any[]; distanceSlabs?: any[]; classes?: any[] }) => {
+    // Find route name by ID
+    const routeName = viewReservation.preferred_transport_id
+      ? routeNames.find((r: any) => r.bus_route_id === Number(viewReservation.preferred_transport_id))?.route_name || `ID: ${viewReservation.preferred_transport_id}`
+      : "-";
+    
+    // Find slab name by ID
+    const slabName = viewReservation.preferred_distance_slab_id
+      ? distanceSlabs.find((s: any) => s.slab_id === Number(viewReservation.preferred_distance_slab_id))?.slab_name || `ID: ${viewReservation.preferred_distance_slab_id}`
+      : "-";
+    
+    // Find class name by ID (use class_name from viewReservation if available, otherwise lookup)
+    const className = viewReservation.class_name || (viewReservation.preferred_class_id
+      ? classes.find((c: any) => c.class_id === Number(viewReservation.preferred_class_id))?.class_name || `ID: ${viewReservation.preferred_class_id}`
+      : "-");
+    
+    return (
     <div className="space-y-6 text-sm flex-1 overflow-y-auto scrollbar-hide pr-1">
       {/* Reservation Information */}
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <strong>Reservation ID:</strong>{" "}
-          {viewReservation.reservation_id || "-"}
-        </div>
         <div>
           <strong>Reservation No:</strong>{" "}
           {viewReservation.reservation_no || "-"}
@@ -290,11 +302,7 @@ const ViewDialogContent = memo(
         <div className="font-medium mb-2">Academic Details</div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <strong>Preferred Class ID:</strong>{" "}
-            {viewReservation.preferred_class_id || "-"}
-          </div>
-          <div>
-            <strong>Class Name:</strong> {viewReservation.class_name || "-"}
+            <strong>Preferred Class:</strong> {className}
           </div>
           <div>
             <strong>Previous Class:</strong>{" "}
@@ -348,10 +356,6 @@ const ViewDialogContent = memo(
             </span>
           </div>
           <div className="flex justify-between">
-            <span>Application Income ID:</span>
-            <span>{viewReservation.application_income_id || "-"}</span>
-          </div>
-          <div className="flex justify-between">
             <span>Tuition Fee:</span>
             <span>
               ₹{Number(viewReservation.tuition_fee || 0).toLocaleString()}
@@ -403,12 +407,12 @@ const ViewDialogContent = memo(
               </Badge>
             </div>
             <div>
-              <strong>Preferred Transport ID:</strong>{" "}
-              {viewReservation.preferred_transport_id || "-"}
+              <strong>Preferred Transport Route:</strong>{" "}
+              {routeName}
             </div>
             <div>
-              <strong>Preferred Distance Slab ID:</strong>{" "}
-              {viewReservation.preferred_distance_slab_id || "-"}
+              <strong>Preferred Distance Slab:</strong>{" "}
+              {slabName}
             </div>
             <div>
               <strong>Pickup Point:</strong>{" "}
@@ -457,7 +461,8 @@ const ViewDialogContent = memo(
         </div>
       </div>
     </div>
-  )
+    );
+  }
 );
 
 ViewDialogContent.displayName = "ViewDialogContent";
@@ -805,15 +810,38 @@ const ReservationManagementComponent = () => {
           remarks: remarks || null,
         });
 
-        // After concession update API call, recall get all reservations API immediately
-        // Explicitly refetch the reservations list query to ensure fresh data from server
-        await queryClient.refetchQueries({
-          queryKey: schoolKeys.reservations.list(undefined),
-          type: "active",
+        // Comprehensive refresh to ensure All Reservations table updates
+        // Step 1: Clear API cache first to ensure fresh network request
+        try {
+          CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+        } catch (error) {
+          console.warn('Failed to clear API cache:', error);
+        }
+
+        // Step 2: Remove query data to force fresh fetch
+        queryClient.removeQueries({ 
+          queryKey: schoolKeys.reservations.root(),
+          exact: false 
         });
 
-        // Also call refetchReservations to ensure immediate API call
+        // Step 3: Invalidate all reservation-related queries
+        await queryClient.invalidateQueries({ 
+          queryKey: schoolKeys.reservations.root(),
+          exact: false 
+        });
+
+        // Step 4: Force refetch active queries (bypasses cache)
+        await queryClient.refetchQueries({
+          queryKey: schoolKeys.reservations.root(),
+          type: 'active',
+          exact: false
+        });
+
+        // Step 5: Call refetchReservations to ensure immediate API call
         await refetchReservations();
+
+        // Step 6: Wait for React Query to update the cache
+        await new Promise(resolve => setTimeout(resolve, 200));
 
         // Fetch fresh reservation data immediately after update
         // This ensures if user reopens the dialog, it has the latest data with updated concession_lock status
@@ -846,7 +874,7 @@ const ReservationManagementComponent = () => {
         throw error; // Re-throw to let the dialog handle it
       }
     },
-    [queryClient]
+    [queryClient, refetchReservations]
   );
 
   // Memoized route mapping
@@ -1041,6 +1069,13 @@ const ReservationManagementComponent = () => {
 
   const handleView = useCallback(async (r: any) => {
     try {
+      // Enable distanceSlabs and routes queries for view dialog
+      setDropdownsOpened((prev) => ({
+        ...prev,
+        distanceSlabs: true,
+        routes: true,
+      }));
+      
       const data = await SchoolReservationsService.getById(r.reservation_id);
       setViewReservation(data);
       setShowViewDialog(true);
@@ -1437,7 +1472,12 @@ const ReservationManagementComponent = () => {
             {!viewReservation ? (
               <div className="p-4 text-sm">Loading...</div>
             ) : (
-              <ViewDialogContent viewReservation={viewReservation} />
+              <ViewDialogContent 
+                viewReservation={viewReservation} 
+                routeNames={routeNames}
+                distanceSlabs={distanceSlabs}
+                classes={classes}
+              />
             )}
           </div>
         </DialogContent>

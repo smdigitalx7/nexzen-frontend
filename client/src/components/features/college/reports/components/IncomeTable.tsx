@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Printer } from "lucide-react";
+import { Printer, Loader2 } from "lucide-react";
 import type { CollegeIncomeSummary, CollegeIncomeSummaryParams } from "@/lib/types/college";
 import { useCollegeIncomeSummary } from "@/lib/hooks/college";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -23,6 +23,7 @@ export const IncomeTable = ({
   // Receipt modal state
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
+  const [loadingReceiptId, setLoadingReceiptId] = useState<number | null>(null);
 
   // Fetch income summary data using the hook
   const { 
@@ -108,6 +109,7 @@ export const IncomeTable = ({
       return;
     }
 
+    setLoadingReceiptId(income.income_id);
     try {
       const blobUrl = await handleRegenerateReceipt(income.income_id, 'college');
       setReceiptBlobUrl(blobUrl);
@@ -125,6 +127,8 @@ export const IncomeTable = ({
         description: error instanceof Error ? error.message : "An unexpected error occurred.",
         variant: "destructive",
       });
+    } finally {
+      setLoadingReceiptId(null);
     }
   }, []);
 
@@ -140,12 +144,14 @@ export const IncomeTable = ({
   const actionButtons = useMemo(() => [
     {
       id: 'print-receipt',
-      label: 'Print Receipt',
-      icon: Printer,
+      label: (income: CollegeIncomeSummary) => loadingReceiptId === income.income_id ? 'Generating...' : 'Print Receipt',
+      icon: (income: CollegeIncomeSummary) => loadingReceiptId === income.income_id ? Loader2 : Printer,
       variant: 'outline' as const,
       onClick: (income: CollegeIncomeSummary) => handlePrintReceipt(income),
+      show: (income: CollegeIncomeSummary) => true,
+      disabled: (income: CollegeIncomeSummary) => loadingReceiptId === income.income_id,
     }
-  ], [handlePrintReceipt]);
+  ], [handlePrintReceipt, loadingReceiptId]);
 
   // Handle loading and error states
   if (isLoading) {

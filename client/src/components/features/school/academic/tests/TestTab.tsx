@@ -2,7 +2,6 @@ import { useState, useMemo, memo, useCallback } from "react";
 import { FileText, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DatePicker } from "@/components/ui/date-picker";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { useToast } from '@/hooks/use-toast';
@@ -29,7 +28,6 @@ export interface TestTabProps {
 // Initial form data
 const initialTestFormData = { 
   test_name: "", 
-  test_date: "", 
   pass_marks: "",
   max_marks: ""
 };
@@ -119,7 +117,7 @@ const TestTabComponent = ({
     try {
       const payload: SchoolTestCreate = {
         test_name: newTest.test_name!.trim(),
-        test_date: newTest.test_date || "",
+        test_date: new Date().toISOString().split('T')[0],
         pass_marks: parseInt(newTest.pass_marks || "50") || 50,
         max_marks: parseInt(newTest.max_marks || "50") || 50,
       };
@@ -139,7 +137,6 @@ const TestTabComponent = ({
     try {
       const updatePayload: SchoolTestUpdate = {
         test_name: editTest.test_name?.trim() || undefined,
-        test_date: editTest.test_date || undefined,
         pass_marks: editTest.pass_marks !== "" && editTest.pass_marks !== undefined ? Number(editTest.pass_marks) : undefined,
         max_marks: editTest.max_marks !== "" && editTest.max_marks !== undefined ? Number(editTest.max_marks) : undefined,
       };
@@ -173,7 +170,6 @@ const TestTabComponent = ({
     setSelectedTest(test);
     setEditTest({ 
       test_name: test.test_name,
-      test_date: test.test_date,
       pass_marks: test.pass_marks?.toString() || "50",
       max_marks: test.max_marks?.toString() || "50"
     });
@@ -314,15 +310,6 @@ const TestTabComponent = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="test_date">Test Date</Label>
-            <DatePicker
-              id="test_date"
-              value={newTest.test_date}
-              onChange={(value) => updateNewTestField('test_date', value)}
-              placeholder="Select test date"
-            />
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="max_marks">Max Marks</Label>
             <Input
               id="max_marks"
@@ -364,15 +351,6 @@ const TestTabComponent = ({
               value={editTest.test_name}
               onChange={(e) => updateEditTestField('test_name', e.target.value)}
               placeholder="Enter test name"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit_test_date">Test Date</Label>
-            <DatePicker
-              id="edit_test_date"
-              value={editTest.test_date}
-              onChange={(value) => updateEditTestField('test_date', value)}
-              placeholder="Select test date"
             />
           </div>
           <div className="space-y-2">

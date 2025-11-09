@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback } from 'react';
 import { EnhancedDataTable } from '@/components/shared';
 import {
   EnrollmentSearchForm,
-  EnrollmentCreateDialog,
   EnrollmentViewDialog,
   EnrollmentEditDialog,
 } from './enrollments';
@@ -10,13 +9,11 @@ import {
   useSchoolEnrollmentsList,
   useSchoolEnrollment,
   useSchoolEnrollmentByAdmission,
-  useCreateSchoolEnrollment,
-  useSchoolStudentsList,
 } from '@/lib/hooks/school';
 // Note: useSchoolClasses, useSchoolSections from dropdowns (naming conflict)
 import { useSchoolClasses, useSchoolSections } from '@/lib/hooks/school/use-school-dropdowns';
 import type { ColumnDef } from '@tanstack/react-table';
-import type { SchoolEnrollmentCreate, SchoolEnrollmentRead } from '@/lib/types/school';
+import type { SchoolEnrollmentRead } from '@/lib/types/school';
 import { formatDate } from '@/lib/utils/formatting/date';
 
 const EnrollmentsTabComponent = () => {
@@ -36,13 +33,10 @@ const EnrollmentsTabComponent = () => {
   const enrollmentClassId = admissionNoResult.data?.class_id;
   const { data: enrollmentSectionsData } = useSchoolSections(enrollmentClassId || 0);
   
-  const { data: studentsData } = useSchoolStudentsList({ page: 1, page_size: 1000 });
-  
   const classes = classesData?.items || [];
   const sections = sectionsData?.items || [];
   // Use enrollment sections if available, otherwise use regular sections
   const allSections = enrollmentClassId ? (enrollmentSectionsData?.items || sections) : sections;
-  const students = studentsData?.data || [];
 
   // Memoized API parameters - class_id is required
   const apiParams = useMemo(() => {
@@ -63,11 +57,8 @@ const EnrollmentsTabComponent = () => {
   const shouldUseAdmissionNo = Boolean(query.admission_no?.trim());
   const isLoading = shouldUseAdmissionNo ? admissionNoResult.isLoading : result.isLoading;
   const isError = shouldUseAdmissionNo ? admissionNoResult.isError : result.isError;
-  
-  const createMutation = useCreateSchoolEnrollment();
 
   // Dialog state
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [viewEnrollmentId, setViewEnrollmentId] = useState<number | null>(null);
@@ -75,41 +66,6 @@ const EnrollmentsTabComponent = () => {
 
   // Fetch selected enrollment for viewing
   const { data: viewEnrollment, isLoading: isLoadingView } = useSchoolEnrollment(viewEnrollmentId);
-
-  const [formData, setFormData] = useState<SchoolEnrollmentCreate>({
-    student_id: 0,
-    class_id: 0,
-    section_id: 0,
-    roll_number: '',
-    enrollment_date: new Date().toISOString().split('T')[0],
-    is_active: true,
-  });
-
-  // Reset form
-  const resetForm = useCallback(() => {
-    setFormData({
-      student_id: 0,
-      class_id: 0,
-      section_id: 0,
-      roll_number: '',
-      enrollment_date: new Date().toISOString().split('T')[0],
-      is_active: true,
-    });
-  }, []);
-
-  // Handle create
-  const handleCreate = useCallback(async () => {
-    if (!formData.student_id || !formData.class_id || !formData.section_id || !formData.roll_number) {
-      return;
-    }
-    try {
-      await createMutation.mutateAsync(formData);
-      setIsCreateDialogOpen(false);
-      resetForm();
-    } catch (error) {
-      // Error handled by mutation hook
-    }
-  }, [formData, createMutation, resetForm]);
 
   // Handle view
   const handleView = useCallback((enrollment: any) => {
@@ -267,33 +223,10 @@ const EnrollmentsTabComponent = () => {
         searchKey="student_name"
         searchPlaceholder="Search by student name..."
         loading={isLoading}
-        onAdd={() => setIsCreateDialogOpen(true)}
-        addButtonText="Add Enrollment"
-        addButtonVariant="default"
         showActions={true}
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
         showActionLabels={true}
-      />
-
-      {/* Create Enrollment Dialog */}
-      <EnrollmentCreateDialog
-        open={isCreateDialogOpen}
-        onOpenChange={(open) => {
-          setIsCreateDialogOpen(open);
-          if (!open) resetForm();
-        }}
-        isLoading={createMutation.isPending}
-        formData={formData}
-        onFormDataChange={setFormData}
-        onSave={handleCreate}
-        onCancel={() => {
-          setIsCreateDialogOpen(false);
-          resetForm();
-        }}
-        students={students}
-        classes={classes}
-        sections={sections}
       />
 
       {/* View Enrollment Dialog */}

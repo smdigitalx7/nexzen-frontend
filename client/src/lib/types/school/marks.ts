@@ -209,6 +209,68 @@ export interface TestMarkBulkCreateResult {
   total_requested: number;
 }
 
+// Multiple subjects operations
+export interface SubjectMarkItem {
+  subject_id: number;
+  marks_obtained?: number | null;
+  remarks?: string | null;
+  subject_name?: string | null;
+}
+
+export interface CreateExamMarksMultipleSubjects {
+  enrollment_id: number;
+  exam_id: number;
+  subjects: SubjectMarkItem[];
+  student_name?: string | null;
+  exam_name?: string | null;
+}
+
+export interface ExamMarksMultipleSubjectsResult {
+  success: boolean;
+  message: string;
+  enrollment_id: number;
+  exam_id: number;
+  created_count: number;
+  skipped_count: number;
+  total_requested: number;
+  errors?: Array<{
+    subject_id: number;
+    subject_name?: string;
+    error: string;
+  }>;
+}
+
+// Test marks multiple subjects operations
+export interface TestSubjectMarkItem {
+  subject_id: number;
+  marks_obtained?: number | null;
+  remarks?: string | null;
+  subject_name?: string | null;
+}
+
+export interface CreateTestMarksMultipleSubjects {
+  enrollment_id: number;
+  test_id: number;
+  subjects: TestSubjectMarkItem[];
+  student_name?: string | null;
+  test_name?: string | null;
+}
+
+export interface TestMarksMultipleSubjectsResult {
+  success: boolean;
+  message: string;
+  enrollment_id: number;
+  test_id: number;
+  created_count: number;
+  skipped_count: number;
+  total_requested: number;
+  errors?: Array<{
+    subject_id: number;
+    subject_name?: string;
+    error: string;
+  }>;
+}
+
 // Query parameters - matching backend requirements
 export interface ExamMarksQuery {
   class_id: number; // Required

@@ -36,13 +36,41 @@ const TransportTabComponent = () => {
   const { data: sectionsData } = useSchoolSections(Number(query.class_id) || 0);
   const { data: routesData } = useBusRoutes();
   const { distanceSlabs } = useDistanceSlabs();
-  const { data: enrollmentsData } = useSchoolEnrollmentsList({ page: 1, page_size: 1000 });
+  
+  // Get enrollments filtered by class and section
+  const enrollmentsParams = useMemo(() => {
+    if (!query.class_id) return undefined;
+    return {
+      class_id: Number(query.class_id),
+      section_id: query.section_id ? Number(query.section_id) : undefined,
+      page: 1,
+      page_size: 1000,
+    };
+  }, [query.class_id, query.section_id]);
+  
+  const { data: enrollmentsData } = useSchoolEnrollmentsList(enrollmentsParams);
   
   const classes = classesData?.items || [];
   const sections = sectionsData?.items || [];
   const busRoutes = Array.isArray(routesData) ? routesData : [];
-  const enrollments = enrollmentsData?.enrollments || [];
   const slabs = distanceSlabs || [];
+  
+  // Extract enrollments - flatten the grouped response and add class_name
+  const enrollments = useMemo(() => {
+    if (!enrollmentsData?.enrollments) return [];
+    const allEnrollments: any[] = [];
+    enrollmentsData.enrollments.forEach((group: any) => {
+      if (group.students && Array.isArray(group.students)) {
+        group.students.forEach((student: any) => {
+          allEnrollments.push({
+            ...student,
+            class_name: group.class_name || student.class_name || '',
+          });
+        });
+      }
+    });
+    return allEnrollments;
+  }, [enrollmentsData]);
 
   // Memoized API parameters
   const apiParams = useMemo(() => {
@@ -333,7 +361,7 @@ const TransportTabComponent = () => {
         searchKey="student_name"
         searchPlaceholder="Search by student name..."
         loading={result.isLoading}
-        onAdd={() => setIsCreateDialogOpen(true)}
+        onAdd={query.class_id ? () => setIsCreateDialogOpen(true) : undefined}
         addButtonText="Add Transport Assignment"
         addButtonVariant="default"
         showActions={true}

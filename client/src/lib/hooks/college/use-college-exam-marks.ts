@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeExamMarksService } from "@/lib/services/college/exam-marks.service";
-import type { CollegeCreateExamMarkBulk, CollegeExamMarkBulkCreateResult, CollegeExamMarkCreate, CollegeExamMarkFullReadResponse, CollegeExamMarkMinimalRead, CollegeExamMarkUpdate, CollegeExamMarksListParams } from "@/lib/types/college/index.ts";
+import type { CollegeCreateExamMarkBulk, CollegeExamMarkBulkCreateResult, CollegeExamMarkCreate, CollegeExamMarkFullReadResponse, CollegeExamMarkMinimalRead, CollegeExamMarkUpdate, CollegeExamMarksListParams, CollegeCreateExamMarksMultipleSubjects, CollegeExamMarksMultipleSubjectsResult } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
@@ -66,4 +66,13 @@ export function useBulkCreateCollegeExamMarks() {
   }, "Exam marks created successfully");
 }
 
-
+export function useCreateCollegeExamMarksMultipleSubjects() {
+  const qc = useQueryClient();
+  return useMutationWithSuccessToast({
+    mutationFn: (payload: CollegeCreateExamMarksMultipleSubjects) => CollegeExamMarksService.createMultipleSubjects(payload),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: collegeKeys.examMarks.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.examMarks.root(), type: 'active' });
+    },
+  }, "Exam marks created successfully");
+}
