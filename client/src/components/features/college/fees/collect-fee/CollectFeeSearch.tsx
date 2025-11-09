@@ -159,13 +159,59 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
                Math.max(0, (tuition.term3_amount || 0) - (tuition.term3_paid || 0));
     }
     
-    // Transport outstanding - get from transport summary if available
+    // Transport outstanding - calculate from multiple sources
+    let transportOutstanding = 0;
+    
+    // First, try to get from transport summary
     if (studentDetails.transportSummary && studentDetails.transportSummary.total_amount_pending !== undefined && studentDetails.transportSummary.total_amount_pending !== null) {
-      const transportOutstanding = typeof studentDetails.transportSummary.total_amount_pending === 'string'
+      transportOutstanding = typeof studentDetails.transportSummary.total_amount_pending === 'string'
         ? parseFloat(studentDetails.transportSummary.total_amount_pending) || 0
         : (studentDetails.transportSummary.total_amount_pending || 0);
-      total += transportOutstanding;
     }
+    
+    // If total_amount_pending is 0 or missing, check for unpaid expected payments
+    // Also check months_pending_count as an indicator that there are pending payments
+    const hasPendingMonths = studentDetails.transportSummary?.months_pending_count 
+      ? studentDetails.transportSummary.months_pending_count > 0 
+      : false;
+    
+    // Get expected payments from transportSummary (primary) or transportExpectedPayments (fallback)
+    const expectedPayments = studentDetails.transportSummary?.expected_payments 
+      ?? studentDetails.transportExpectedPayments?.expected_payments 
+      ?? [];
+    
+    const hasExpectedPayments = expectedPayments.length > 0;
+    
+    if (transportOutstanding === 0 && (hasPendingMonths || hasExpectedPayments)) {
+      const unpaidPayments = expectedPayments.filter(
+        p => p.payment_status === 'UNPAID' || p.payment_status === 'PENDING'
+      );
+      
+      if (unpaidPayments.length > 0) {
+        const calculatedOutstanding = unpaidPayments.reduce((sum, payment) => {
+          // payment_amount might be on the payment object (from transportSummary) or might not exist
+          const paymentAmount = 'payment_amount' in payment ? payment.payment_amount : undefined;
+          const amount = paymentAmount !== undefined
+            ? (typeof paymentAmount === 'string'
+                ? parseFloat(paymentAmount) || 0
+                : (paymentAmount || 0))
+            : 0;
+          return sum + amount;
+        }, 0);
+        
+        // If calculated amount is 0 but there are unpaid payments, set a flag to show there's outstanding
+        // (This handles the case where payment_amount is 0 in the response but payments are still due)
+        if (calculatedOutstanding > 0) {
+          transportOutstanding = calculatedOutstanding;
+        } else if (unpaidPayments.length > 0) {
+          // If there are unpaid payments but amount is 0, we still consider it as having outstanding
+          // (The actual amount might need to be fetched from monthly_fee_config)
+          transportOutstanding = 0; // Keep as 0 but we'll show unpaid months count
+        }
+      }
+    }
+    
+    total += transportOutstanding;
     
     return total;
   }, []);
@@ -251,7 +297,22 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
           <div className="grid gap-4">
             {searchResults.map((studentDetails, index) => {
               const totalOutstanding = getTotalOutstanding(studentDetails);
-              const hasOutstanding = totalOutstanding > 0;
+              
+              // Check for unpaid transport payments even if amount is 0
+              // Get expected payments from transportSummary (primary) or transportExpectedPayments (fallback)
+              const expectedPayments = studentDetails.transportSummary?.expected_payments 
+                ?? studentDetails.transportExpectedPayments?.expected_payments 
+                ?? [];
+              
+              const unpaidTransportPayments = expectedPayments.filter(
+                p => p.payment_status === 'UNPAID' || p.payment_status === 'PENDING'
+              );
+              const hasPendingTransportMonths = studentDetails.transportSummary?.months_pending_count 
+                ? studentDetails.transportSummary.months_pending_count > 0 
+                : false;
+              
+              // Has outstanding if total > 0 OR if there are unpaid transport payments
+              const hasOutstanding = totalOutstanding > 0 || unpaidTransportPayments.length > 0 || hasPendingTransportMonths;
               const tuitionOutstanding = getTuitionOutstanding(studentDetails);
 
               return (
@@ -404,44 +465,97 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
                             </CardHeader>
                             <CardContent className="space-y-3">
                               {(() => {
-                                const transportOutstanding = studentDetails.transportSummary && studentDetails.transportSummary.total_amount_pending !== undefined && studentDetails.transportSummary.total_amount_pending !== null
-                                  ? (typeof studentDetails.transportSummary.total_amount_pending === 'string'
-                                      ? parseFloat(studentDetails.transportSummary.total_amount_pending) || 0
-                                      : (studentDetails.transportSummary.total_amount_pending || 0))
-                                  : 0;
+                                // Calculate transport outstanding from multiple sources
+                                let transportOutstanding = 0;
                                 
-                                return transportOutstanding > 0 ? (
+                                // First, try to get from transport summary
+                                if (studentDetails.transportSummary && studentDetails.transportSummary.total_amount_pending !== undefined && studentDetails.transportSummary.total_amount_pending !== null) {
+                                  transportOutstanding = typeof studentDetails.transportSummary.total_amount_pending === 'string'
+                                    ? parseFloat(studentDetails.transportSummary.total_amount_pending) || 0
+                                    : (studentDetails.transportSummary.total_amount_pending || 0);
+                                }
+                                
+                                // Get expected payments from transportSummary (primary) or transportExpectedPayments (fallback)
+                                const expectedPayments = studentDetails.transportSummary?.expected_payments 
+                                  ?? studentDetails.transportExpectedPayments?.expected_payments 
+                                  ?? [];
+                                
+                                // Get unpaid expected payments
+                                const unpaidPayments = expectedPayments.filter(
+                                  p => p.payment_status === 'UNPAID' || p.payment_status === 'PENDING'
+                                );
+                                
+                                // Check if there are pending months from summary
+                                const hasPendingMonths = studentDetails.transportSummary?.months_pending_count 
+                                  ? studentDetails.transportSummary.months_pending_count > 0 
+                                  : false;
+                                
+                                // If total_amount_pending is 0 but there are unpaid expected payments or pending months, calculate from expected_payments
+                                if (transportOutstanding === 0 && (hasPendingMonths || unpaidPayments.length > 0)) {
+                                  if (unpaidPayments.length > 0) {
+                                    const calculatedOutstanding = unpaidPayments.reduce((sum, payment) => {
+                                      // payment_amount might be on the payment object (from transportSummary) or might not exist
+                                      const paymentAmount = 'payment_amount' in payment ? payment.payment_amount : undefined;
+                                      const amount = paymentAmount !== undefined
+                                        ? (typeof paymentAmount === 'string'
+                                            ? parseFloat(paymentAmount) || 0
+                                            : (paymentAmount || 0))
+                                        : 0;
+                                      return sum + amount;
+                                    }, 0);
+                                    
+                                    if (calculatedOutstanding > 0) {
+                                      transportOutstanding = calculatedOutstanding;
+                                    }
+                                  }
+                                }
+                                
+                                // Show outstanding if amount > 0 OR if there are unpaid payments (even if amount is 0, there might be fees due)
+                                const hasOutstanding = transportOutstanding > 0 || unpaidPayments.length > 0 || hasPendingMonths;
+                                
+                                return hasOutstanding ? (
                                   <>
                                     <div className="flex justify-between items-center">
                                       <span className="text-sm text-muted-foreground">
                                         Total Outstanding
                                       </span>
                                       <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                                        {formatCurrency(transportOutstanding)}
+                                        {transportOutstanding > 0 
+                                          ? formatCurrency(transportOutstanding)
+                                          : unpaidPayments.length > 0 || hasPendingMonths
+                                            ? `₹0.00 (${unpaidPayments.length > 0 ? unpaidPayments.length : 'Pending'} unpaid month${(unpaidPayments.length > 0 ? unpaidPayments.length : 1) !== 1 ? 's' : ''})`
+                                            : formatCurrency(0)}
                                       </span>
                                     </div>
-                                    {studentDetails.transportExpectedPayments?.expected_payments?.length ? (
-                                      <div className="space-y-2 pt-2 border-t">
-                                        <div className="flex justify-between text-sm">
-                                          <span className="text-muted-foreground">
-                                            Unpaid Months:
-                                          </span>
-                                          <span className="font-medium">
-                                            {studentDetails.transportExpectedPayments.expected_payments.length}
-                                          </span>
-                                        </div>
-                                        <div className="text-xs text-muted-foreground mt-2">
-                                          {studentDetails.transportExpectedPayments.expected_payments
-                                            .slice(0, 3)
-                                            .map((payment) => {
-                                              const date = new Date(payment.expected_payment_month);
-                                              return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                                            })
-                                            .join(', ')}
-                                          {studentDetails.transportExpectedPayments.expected_payments.length > 3 && '...'}
-                                        </div>
+                                    {transportOutstanding === 0 && (unpaidPayments.length > 0 || hasPendingMonths) && (
+                                      <div className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
+                                        ⚠️ Payment amounts not calculated yet. Please contact admin to configure monthly fee amounts.
                                       </div>
-                                    ) : null}
+                                    )}
+                                    {(() => {
+                                      return unpaidPayments.length > 0 || hasPendingMonths ? (
+                                        <div className="space-y-2 pt-2 border-t">
+                                          <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">
+                                              Unpaid Months:
+                                            </span>
+                                            <span className="font-medium">
+                                              {unpaidPayments.length}
+                                            </span>
+                                          </div>
+                                          <div className="text-xs text-muted-foreground mt-2">
+                                            {unpaidPayments
+                                              .slice(0, 3)
+                                              .map((payment) => {
+                                                const date = new Date(payment.expected_payment_month);
+                                                return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                                              })
+                                              .join(', ')}
+                                            {unpaidPayments.length > 3 && '...'}
+                                          </div>
+                                        </div>
+                                      ) : null;
+                                    })()}
                                   </>
                                 ) : (
                                   <p className="text-sm text-green-600 dark:text-green-400 font-medium">

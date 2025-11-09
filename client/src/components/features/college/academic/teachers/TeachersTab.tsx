@@ -32,6 +32,15 @@ export const TeachersTab = () => {
         is_active: employee.status === "ACTIVE",
       }));
   }, [allEmployees]);
+
+  // Create a map of full employee details by employee_id for quick lookup
+  const teacherDetailsMap = useMemo(() => {
+    const map = new Map();
+    allEmployees.forEach((employee: any) => {
+      map.set(employee.employee_id, employee);
+    });
+    return map;
+  }, [allEmployees]);
   
   const [, navigate] = useLocation();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -199,6 +208,7 @@ export const TeachersTab = () => {
               <TeacherCourseSubjectAssignmentsTab
                 assignments={assignments}
                 assignmentsLoading={assignmentsLoading}
+                teacherDetailsMap={teacherDetailsMap}
                 onDelete={handleDelete}
                 onAddClick={handleAddClick}
               />

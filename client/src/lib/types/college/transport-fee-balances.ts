@@ -116,6 +116,7 @@ export interface CollegeStudentTransportMonthlyPayment {
 export interface CollegeStudentTransportExpectedPayment {
   expected_payment_month: string;
   payment_status: string;
+  payment_amount?: number | string; // Payment amount for this month (from monthly_fee_config per branch) - can be string or number
 }
 
 export interface CollegeStudentTransportPaymentSummary {
@@ -188,8 +189,9 @@ export interface CollegeStudentTransportPaymentSummaryParams {
 // Expected Transport Payments Types
 export interface ExpectedTransportPaymentItem {
   expected_payment_month: string; // ISO date string (YYYY-MM-DD)
-  payment_sequence_number: number; // Sequential number starting from 1
+  payment_status: string; // Payment status (e.g., "UNPAID", "PAID")
   payment_amount: number | string; // Payment amount for this month (from monthly_fee_config per branch) - can be string or number
+  payment_sequence_number?: number; // Optional: Sequential number starting from 1 (for backward compatibility)
 }
 
 export interface ExpectedTransportPaymentsResponse {

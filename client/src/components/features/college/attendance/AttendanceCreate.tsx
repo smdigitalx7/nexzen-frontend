@@ -203,26 +203,26 @@ export default function AttendanceCreate() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Attendance Creation</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2 pt-2">
-              <p>Are you sure you want to create attendance records with the following details?</p>
-              <div className="bg-muted rounded-lg p-3 space-y-1.5 text-sm mt-3">
-                <div className="flex justify-between">
-                  <span className="font-medium">Month:</span>
-                  <span>{monthNames[bulkMonth - 1]}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Year:</span>
-                  <span>{bulkYear}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Total Working Days:</span>
-                  <span>{bulkWorkingDays}</span>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-3">
-                This will initialize attendance records for all students in the selected class and group.
-              </p>
+            <AlertDialogDescription className="pt-2">
+              Are you sure you want to create attendance records with the following details?
             </AlertDialogDescription>
+            <div className="bg-muted rounded-lg p-3 space-y-1.5 text-sm mt-3">
+              <div className="flex justify-between">
+                <span className="font-medium">Month:</span>
+                <span>{monthNames[bulkMonth - 1]}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Year:</span>
+                <span>{bulkYear}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Total Working Days:</span>
+                <span>{bulkWorkingDays}</span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              This will initialize attendance records for all students in the selected class and group.
+            </p>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>

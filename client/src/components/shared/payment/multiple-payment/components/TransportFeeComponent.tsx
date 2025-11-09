@@ -131,21 +131,32 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
     }
   }, [availableTerms, isCollege, collegeOutstanding, expectedPayments, monthlyAmount]);
 
+  // Helper function to get sequence number (from property or array index)
+  const getSequenceNumber = (payment: typeof expectedPayments[0], index: number): number => {
+    return payment.payment_sequence_number ?? (index + 1);
+  };
+
   // Handle expected payment month selection (in sequence order)
   const handleExpectedMonthSelection = (month: string, checked: boolean) => {
     if (checked) {
-      const payment = expectedPayments.find(p => p.expected_payment_month === month);
-      if (!payment) return;
+      const paymentIndex = expectedPayments.findIndex(p => p.expected_payment_month === month);
+      const payment = expectedPayments[paymentIndex];
+      if (!payment || paymentIndex === -1) return;
+      
+      const currentSequence = getSequenceNumber(payment, paymentIndex);
       
       // Check if previous months in sequence are selected
       const previousMonths = expectedPayments
-        .filter(p => p.payment_sequence_number < payment.payment_sequence_number)
+        .filter((p, idx) => getSequenceNumber(p, idx) < currentSequence)
         .map(p => p.expected_payment_month);
       
       const allPreviousSelected = previousMonths.every(m => selectedExpectedMonths.includes(m));
       
       if (!allPreviousSelected && previousMonths.length > 0) {
-        setErrors([`Please select previous months in sequence first (starting from sequence #${expectedPayments[0]?.payment_sequence_number || 1})`]);
+        const firstSequence = expectedPayments.length > 0 
+          ? getSequenceNumber(expectedPayments[0], 0)
+          : 1;
+        setErrors([`Please select previous months in sequence first (starting from sequence #${firstSequence})`]);
         return;
       }
       
@@ -170,11 +181,14 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
       }
     } else {
       // Remove month and any months after it in sequence
-      const payment = expectedPayments.find(p => p.expected_payment_month === month);
-      if (!payment) return;
+      const paymentIndex = expectedPayments.findIndex(p => p.expected_payment_month === month);
+      const payment = expectedPayments[paymentIndex];
+      if (!payment || paymentIndex === -1) return;
+      
+      const currentSequence = getSequenceNumber(payment, paymentIndex);
       
       const monthsToRemove = expectedPayments
-        .filter(p => p.payment_sequence_number >= payment.payment_sequence_number)
+        .filter((p, idx) => getSequenceNumber(p, idx) >= currentSequence)
         .map(p => p.expected_payment_month);
       
       setSelectedExpectedMonths(prev => prev.filter(m => !monthsToRemove.includes(m)));
@@ -439,9 +453,13 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
         
         // Create payment items for each selected expected month (in sequence order)
         const sortedSelectedMonths = selectedExpectedMonths.sort((a, b) => {
-          const paymentA = expectedPayments.find(p => p.expected_payment_month === a);
-          const paymentB = expectedPayments.find(p => p.expected_payment_month === b);
-          return (paymentA?.payment_sequence_number || 0) - (paymentB?.payment_sequence_number || 0);
+          const indexA = expectedPayments.findIndex(p => p.expected_payment_month === a);
+          const indexB = expectedPayments.findIndex(p => p.expected_payment_month === b);
+          const paymentA = indexA !== -1 ? expectedPayments[indexA] : null;
+          const paymentB = indexB !== -1 ? expectedPayments[indexB] : null;
+          const seqA = paymentA ? getSequenceNumber(paymentA, indexA) : 0;
+          const seqB = paymentB ? getSequenceNumber(paymentB, indexB) : 0;
+          return seqA - seqB;
         });
         
         // Add all payment items first
@@ -696,10 +714,11 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {expectedPayments.map((payment) => {
+                        {expectedPayments.map((payment, paymentIdx) => {
                           const isSelected = selectedExpectedMonths.includes(payment.expected_payment_month);
+                          const currentSequence = getSequenceNumber(payment, paymentIdx);
                           const previousPayments = expectedPayments
-                            .filter(p => p.payment_sequence_number < payment.payment_sequence_number)
+                            .filter((p, idx) => getSequenceNumber(p, idx) < currentSequence)
                             .map(p => p.expected_payment_month);
                           const canSelect = previousPayments.length === 0 || 
                             previousPayments.every(m => selectedExpectedMonths.includes(m));
@@ -724,7 +743,7 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
                                   />
                                   <Label htmlFor={`expected-month-${payment.expected_payment_month}`} className="flex items-center gap-2">
                                     <Badge variant="outline" className="text-xs font-mono">
-                                      #{payment.payment_sequence_number}
+                                      #{getSequenceNumber(payment, paymentIdx)}
                                     </Badge>
                                     <span className="font-medium">{formatPaymentMonth(payment.expected_payment_month)}</span>
                                     {isSelected && (
@@ -1106,7 +1125,7 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
             <AlertDescription>
               {isCollege && expectedPayments.length > 0 ? (
                 <>
-                  <strong>Important:</strong> Payment months must be selected in sequence order (starting from #{expectedPayments[0]?.payment_sequence_number || 1}). 
+                  <strong>Important:</strong> Payment months must be selected in sequence order (starting from #{getSequenceNumber(expectedPayments[0], 0)}). 
                   Previous months in the sequence must be selected before selecting later months.
                   {selectedExpectedMonths.length > 0 && (
                     <span className="block mt-1">
