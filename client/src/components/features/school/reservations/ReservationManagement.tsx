@@ -42,6 +42,7 @@ import {
   TransportService,
   SchoolReservationsService,
 } from "@/lib/services/school";
+import { CacheUtils } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Plus, List, BarChart3, School, Building2 } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
@@ -948,11 +949,18 @@ const ReservationManagementComponent = () => {
         setForm(initialFormState);
         setSelectedClassId(null);
 
-        // Invalidate and refetch reservations to show updated data
-        await queryClient.invalidateQueries({
-          queryKey: schoolKeys.reservations.root(),
-        });
+        // Additional API cache clearing (mutation hook already invalidates, but we clear cache for consistency)
+        try {
+          CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+        } catch (error) {
+          console.warn('Failed to clear API cache:', error);
+        }
+
+        // Mutation hook already handles invalidation and refetch, but we ensure refetch callback is called
         await refetchReservations();
+        
+        // Wait for React Query to update the cache
+        await new Promise(resolve => setTimeout(resolve, 200));
 
         if (withPayment) {
           // Prepare payment data for the payment processor
@@ -1161,7 +1169,7 @@ const ReservationManagementComponent = () => {
             isError={reservationsError}
             error={reservationsErrObj}
             totalCount={reservationsData?.total_count}
-            onRefetch={refetchReservations}
+            onRefetch={() => { refetchReservations().catch(console.error); }}
           />
         ),
       },
@@ -1258,15 +1266,32 @@ const ReservationManagementComponent = () => {
         formData
       );
 
-      // Invalidate and refetch all reservation-related queries
+      // Comprehensive cache invalidation after update (matching payment pattern)
+      // Step 1: Clear API cache first to ensure fresh network request
+      try {
+        CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+      } catch (error) {
+        console.warn('Failed to clear API cache:', error);
+      }
+
+      // Step 2: Invalidate all reservation-related queries
       await queryClient.invalidateQueries({
         queryKey: schoolKeys.reservations.root(),
+        exact: false,
       });
+
+      // Step 3: Force refetch active queries (bypasses cache)
       await queryClient.refetchQueries({
         queryKey: schoolKeys.reservations.root(),
         type: "active",
+        exact: false,
       });
+
+      // Step 4: Call refetch callback and wait for it to complete
       await refetchReservations();
+
+      // Step 5: Wait for React Query to update the cache
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       toast({
         title: "Reservation Updated",
@@ -1302,13 +1327,41 @@ const ReservationManagementComponent = () => {
     }
   }, [reservationsError, reservationsErrObj]);
 
-  // Refetch reservations when Status tab becomes active to ensure fresh data
+  // Refetch reservations when Status or All Reservations tab becomes active to ensure fresh data
   useEffect(() => {
-    if (activeTab === "status") {
-      queryClient.invalidateQueries({
-        queryKey: schoolKeys.reservations.root(),
-      });
-      refetchReservations();
+    if (activeTab === "status" || activeTab === "all") {
+      const refreshData = async () => {
+        // Step 1: Clear API cache
+        try {
+          CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+        } catch (error) {
+          console.warn('Failed to clear API cache:', error);
+        }
+        
+        // Step 2: Remove queries from cache to force fresh fetch (bypasses staleTime)
+        queryClient.removeQueries({ 
+          queryKey: schoolKeys.reservations.root(),
+          exact: false 
+        });
+        
+        // Step 3: Invalidate queries
+        await queryClient.invalidateQueries({
+          queryKey: schoolKeys.reservations.root(),
+          exact: false
+        });
+        
+        // Step 4: Refetch active queries
+        await queryClient.refetchQueries({
+          queryKey: schoolKeys.reservations.root(),
+          type: 'active',
+          exact: false
+        });
+        
+        // Step 5: Call refetchReservations
+        await refetchReservations();
+      };
+      
+      refreshData().catch(console.error);
     }
   }, [activeTab, refetchReservations, queryClient]);
 
@@ -1340,15 +1393,35 @@ const ReservationManagementComponent = () => {
             setReceiptBlobUrl(null);
           }
 
-          // After closing receipt, recall get all reservations API immediately
-          // Explicitly refetch the reservations list query to ensure fresh data from server
-          await queryClient.refetchQueries({
-            queryKey: schoolKeys.reservations.list(undefined),
-            type: "active",
+          // After closing receipt, ensure data is fresh (matching AllReservationsTable pattern)
+          // Step 1: Clear API cache first to ensure fresh network request
+          try {
+            CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+          } catch (error) {
+            console.warn('Failed to clear API cache:', error);
+          }
+
+          // Step 2: Remove query data to force fresh fetch
+          queryClient.removeQueries({ queryKey: schoolKeys.reservations.list(undefined) });
+
+          // Step 3: Invalidate all reservation-related queries
+          queryClient.invalidateQueries({ 
+            queryKey: schoolKeys.reservations.root(),
+            exact: false 
           });
 
-          // Also call refetchReservations to ensure immediate API call
+          // Step 4: Force refetch active queries (bypasses cache)
+          await queryClient.refetchQueries({
+            queryKey: schoolKeys.reservations.root(),
+            type: 'active',
+            exact: false
+          });
+
+          // Step 5: Call refetch callback and wait for it to complete
           await refetchReservations();
+
+          // Step 6: Wait for React Query to update the cache
+          await new Promise(resolve => setTimeout(resolve, 200));
         }}
         blobUrl={receiptBlobUrl}
       />
@@ -1459,14 +1532,18 @@ const ReservationManagementComponent = () => {
                     reservationToDelete.reservation_id
                   );
 
-                  // Invalidate and refetch all reservation-related queries
-                  await queryClient.invalidateQueries({
-                    queryKey: schoolKeys.reservations.root(),
-                  });
-                  await queryClient.refetchQueries({
-                    queryKey: schoolKeys.reservations.root(),
-                  });
+                  // Additional API cache clearing (mutation hook already invalidates, but we clear cache for consistency)
+                  try {
+                    CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+                  } catch (error) {
+                    console.warn('Failed to clear API cache:', error);
+                  }
+
+                  // Mutation hook already handles invalidation and refetch, but we ensure refetch callback is called
                   await refetchReservations();
+                  
+                  // Wait for React Query to update the cache
+                  await new Promise(resolve => setTimeout(resolve, 200));
 
                   // Toast handled by mutation hook
                   setShowDeleteDialog(false);
@@ -1508,15 +1585,43 @@ const ReservationManagementComponent = () => {
                   setReceiptBlobUrl(blobUrl);
                   setShowPaymentProcessor(false);
 
-                  // After application fee payment completed, recall get all reservations API immediately
-                  // Explicitly refetch the reservations list query to ensure fresh data from server
-                  await queryClient.refetchQueries({
-                    queryKey: schoolKeys.reservations.list(undefined),
-                    type: "active",
+                  // Delay to ensure backend transaction is committed
+                  await new Promise(resolve => setTimeout(resolve, 300));
+
+                  // Cache invalidation after payment
+                  // Step 1: Clear API cache
+                  try {
+                    CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+                  } catch (error) {
+                    console.warn('Failed to clear API cache:', error);
+                  }
+                  
+                  // Step 2: Remove queries from cache to force fresh fetch (bypasses staleTime)
+                  queryClient.removeQueries({ 
+                    queryKey: schoolKeys.reservations.root(),
+                    exact: false 
+                  });
+                  
+                  // Step 3: Invalidate queries (AWAIT to ensure it completes)
+                  await queryClient.invalidateQueries({ 
+                    queryKey: schoolKeys.reservations.root(),
+                    exact: false 
+                  });
+                  
+                  // Step 4: Refetch active queries (AWAIT to ensure it completes)
+                  await queryClient.refetchQueries({ 
+                    queryKey: schoolKeys.reservations.root(), 
+                    type: 'active',
+                    exact: false 
                   });
 
-                  // Also call refetchReservations to ensure immediate API call
-                  await refetchReservations();
+                  // Step 5: Call refetchReservations to ensure immediate API call
+                  if (refetchReservations) {
+                    await refetchReservations();
+                  }
+
+                  // Step 6: Additional delay to ensure React processes state updates
+                  await new Promise(resolve => setTimeout(resolve, 200));
 
                   // Show receipt modal after closing payment processor
                   setTimeout(() => {

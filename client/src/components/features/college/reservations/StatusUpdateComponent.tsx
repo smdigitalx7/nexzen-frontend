@@ -24,6 +24,7 @@ export type Reservation = {
   reservation_id: number;
   studentName: string;
   status: string;
+  remarks?: string;
 };
 
 export type StatusUpdateTableProps = {
@@ -113,17 +114,33 @@ const RemarksTextarea = memo(
     reservation: Reservation;
     statusRemarks: Record<string, string>;
     onRemarksChange: (reservationId: string, remarks: string) => void;
-  }) => (
-    <div className="w-48">
-      <Textarea
-        placeholder="Enter remarks..."
-        value={statusRemarks[reservation.id] || ""}
-        onChange={(e) => onRemarksChange(reservation.id, e.target.value)}
-        rows={1}
-        className="text-sm resize-none"
-      />
-    </div>
-  )
+  }) => {
+    const currentStatus = (reservation.status || "").toUpperCase();
+    const isConfirmed = currentStatus === "CONFIRMED";
+    
+    // When confirmed, show the reservation's actual remarks (read-only)
+    // Otherwise, show the editable statusRemarks value
+    const displayValue = isConfirmed 
+      ? (reservation.remarks || "") 
+      : (statusRemarks[reservation.id] || "");
+
+    return (
+      <div className="w-48">
+        <Textarea
+          placeholder={isConfirmed ? "No remarks" : "Enter remarks..."}
+          value={displayValue}
+          onChange={(e) => {
+            if (isConfirmed) return; // Prevent changes if confirmed
+            onRemarksChange(reservation.id, e.target.value);
+          }}
+          disabled={isConfirmed}
+          readOnly={isConfirmed}
+          rows={1}
+          className={`text-sm resize-none ${isConfirmed ? 'bg-muted cursor-not-allowed' : ''}`}
+        />
+      </div>
+    );
+  }
 );
 
 RemarksTextarea.displayName = "RemarksTextarea";

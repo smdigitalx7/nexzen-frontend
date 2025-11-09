@@ -114,7 +114,7 @@ const RemarksTextarea = ({
   statusRemarks,
   onRemarksChange,
 }: {
-  reservation: Reservation;
+  reservation: Reservation & { remarks?: string };
   statusRemarks: Record<string, string>;
   onRemarksChange: (reservationId: string, remarks: string) => void;
 }) => {
@@ -122,6 +122,12 @@ const RemarksTextarea = ({
   const [localValue, setLocalValue] = useState(externalValue);
   const currentStatus = (reservation.status || "").toUpperCase();
   const isConfirmed = currentStatus === "CONFIRMED";
+
+  // When confirmed, show the reservation's actual remarks (read-only)
+  // Otherwise, show the editable local value
+  const displayValue = isConfirmed 
+    ? (reservation.remarks || "") 
+    : localValue;
 
   // Sync localValue only when external value is cleared (after successful update)
   useEffect(() => {
@@ -146,12 +152,13 @@ const RemarksTextarea = ({
   return (
     <div className="w-48">
       <Textarea
-        placeholder="Enter remarks..."
-        value={localValue}
+        placeholder={isConfirmed ? "No remarks" : "Enter remarks..."}
+        value={displayValue}
         onChange={handleChange}
         disabled={isConfirmed}
+        readOnly={isConfirmed}
         rows={1}
-        className="text-sm resize-none"
+        className={`text-sm resize-none ${isConfirmed ? 'bg-muted cursor-not-allowed' : ''}`}
       />
     </div>
   );

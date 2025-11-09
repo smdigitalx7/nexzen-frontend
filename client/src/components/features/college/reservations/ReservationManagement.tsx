@@ -254,6 +254,7 @@ export default function ReservationNew() {
       reservation_id: r.reservation_id,
       studentName: r.student_name,
       status: r.status || "PENDING",
+      remarks: r.remarks || "", // Add remarks
     }));
   }, [allReservations]);
 

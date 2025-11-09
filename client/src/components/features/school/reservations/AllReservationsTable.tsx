@@ -260,20 +260,17 @@ const AllReservationsTableComponent = ({
   );
 
   // Helper function to check if application fee is paid
+  // Uses application_income_id only (backend doesn't return application_fee_paid in list)
   const isApplicationFeePaid = useCallback((row: Reservation): boolean => {
     const applicationIncomeId = row.application_income_id;
     
     // Fee is paid if application_income_id exists and is a valid positive number
-    const hasIncomeId = 
+    return (
       applicationIncomeId !== null && 
       applicationIncomeId !== undefined && 
       applicationIncomeId !== 0 &&
-      (typeof applicationIncomeId === 'number' && applicationIncomeId > 0);
-    
-    // Fee is paid if application_fee_paid flag is true
-    const isPaidByFlag = row.application_fee_paid === true;
-    
-    return hasIncomeId || isPaidByFlag;
+      (typeof applicationIncomeId === 'number' && applicationIncomeId > 0)
+    );
   }, []);
 
   // Memoized action buttons for EnhancedDataTable
@@ -493,33 +490,43 @@ const AllReservationsTableComponent = ({
                   setReceiptBlobUrl(blobUrl);
                   setShowPaymentProcessor(false);
                   
-                  // Small delay to ensure backend has processed the payment
-                  await new Promise(resolve => setTimeout(resolve, 100));
+                  // Delay to ensure backend transaction is committed
+                  await new Promise(resolve => setTimeout(resolve, 300));
                   
-                  // Aggressive cache invalidation after payment
-                  // Step 1: Clear API cache first to ensure fresh network request
-                  CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+                  // Cache invalidation after payment
+                  // Step 1: Clear API cache
+                  try {
+                    CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+                  } catch (error) {
+                    console.warn('Failed to clear API cache:', error);
+                  }
                   
-                  // Step 2: Remove query data to force fresh fetch
-                  queryClient.removeQueries({ queryKey: schoolKeys.reservations.list(undefined) });
-                  
-                  // Step 3: Invalidate all reservation-related queries
-                  queryClient.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
-                  
-                  // Step 4: Force refetch active queries (bypasses cache)
-                  await queryClient.refetchQueries({
-                    queryKey: schoolKeys.reservations.list(undefined),
-                    type: 'active',
-                    exact: false
+                  // Step 2: Remove queries from cache to force fresh fetch (bypasses staleTime)
+                  queryClient.removeQueries({ 
+                    queryKey: schoolKeys.reservations.root(),
+                    exact: false 
                   });
                   
+                  // Step 3: Invalidate queries (AWAIT to ensure it completes)
+                  await queryClient.invalidateQueries({ 
+                    queryKey: schoolKeys.reservations.root(),
+                    exact: false 
+                  });
+                  
+                  // Step 4: Refetch active queries (AWAIT to ensure it completes)
+                  await queryClient.refetchQueries({ 
+                    queryKey: schoolKeys.reservations.root(), 
+                    type: 'active',
+                    exact: false 
+                  });
+
                   // Step 5: Call refetch callback and wait for it to complete
                   if (onRefetch) {
                     await onRefetch();
                   }
                   
-                  // Step 6: Wait for React Query to update the cache and React to process state updates
-                  await new Promise(resolve => setTimeout(resolve, 300));
+                  // Step 6: Additional delay to ensure React processes state updates
+                  await new Promise(resolve => setTimeout(resolve, 200));
                   
                   // Step 7: Force table refresh by updating refresh key
                   setRefreshKey((prev) => prev + 1);
