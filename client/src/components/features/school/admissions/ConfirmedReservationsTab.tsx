@@ -40,6 +40,7 @@ import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import type { SchoolReservationListItem } from "@/lib/types/school/reservations";
 import { useQueryClient } from "@tanstack/react-query";
 import { schoolKeys } from "@/lib/hooks/school/query-keys";
+import { CacheUtils } from "@/lib/api";
 
 // Helper function to format date from ISO format to YYYY-MM-DD
 const formatDate = (dateString: string | null | undefined): string => {
@@ -785,12 +786,14 @@ const ConfirmedReservationsTabComponent = () => {
   }, [reservationsData]);
 
   // Watch for reservations data changes and force table re-render
+  // This hash tracks changes in enrollment status to ensure action buttons update
   const reservationsHash = useMemo(() => {
-    return allReservations.map(r => `${r.reservation_id}-${r.is_enrolled}`).join('|');
+    return allReservations.map(r => `${r.reservation_id}-${r.is_enrolled}-${r.application_income_id}-${r.admission_income_id}`).join('|');
   }, [allReservations]);
   
   useEffect(() => {
-    // When reservations data actually changes, force table re-render
+    // When reservations data actually changes (especially is_enrolled status), force table re-render
+    // This ensures action buttons update when enrollment status changes
     setRefreshKey((prev) => prev + 1);
   }, [reservationsHash]);
 
@@ -919,31 +922,22 @@ const ConfirmedReservationsTabComponent = () => {
       formData.append("reservation_date", editForm.reservation_date);
 
       // Use mutation hook which handles cache invalidation automatically
+      // Following CACHE_REVIEW_ACADEMIC.md: mutation hook already invalidates and refetches
       await updateReservationMutation.mutateAsync(formData);
 
-      // Aggressive cache invalidation for immediate UI updates
-      // Step 1: Remove query data to force fresh fetch
-      queryClient.removeQueries({ queryKey: schoolKeys.reservations.list(undefined) });
-      
-      // Step 2: Invalidate all reservation-related queries
-      queryClient.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
-      
-      // Step 3: Force refetch active queries
-      await queryClient.refetchQueries({
-        queryKey: schoolKeys.reservations.list(undefined),
-        type: 'active'
-      });
-      
-      // Step 4: Also refetch all reservation queries
-      await queryClient.refetchQueries({
-        queryKey: schoolKeys.reservations.root(),
-        type: 'active'
-      });
-      
-      // Step 5: Call refetch callback
-      if (refetch) {
-        await refetch();
+      // Additional API cache clearing (mutation hook clears all, but we clear specific pattern for safety)
+      // Note: useMutationWithSuccessToast already clears all API cache, but we keep this for reservations
+      try {
+        CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+      } catch (error) {
+        console.warn('Failed to clear API cache:', error);
       }
+
+      // Wait for React Query to update the cache and React to process state updates
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Force table refresh by updating refresh key (workaround for table library)
+      setRefreshKey((prev) => prev + 1);
 
       // Refresh reservation details
       const updatedReservation = await SchoolReservationsService.getById(
@@ -1008,26 +1002,47 @@ const ConfirmedReservationsTabComponent = () => {
       setShowDetailsDialog(false);
       setShowPaymentDialog(true);
 
-      // Aggressive cache invalidation after enrollment
-      // Step 1: Remove query data to force fresh fetch
-      queryClient.removeQueries({ queryKey: schoolKeys.reservations.list(undefined) });
-      
-      // Step 2: Invalidate all reservation-related queries
-      queryClient.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
-      
-      // Step 3: Also invalidate students queries since enrollment creates a student
-      queryClient.invalidateQueries({ queryKey: schoolKeys.students.root() });
-      
-      // Step 4: Force refetch active queries
-      await queryClient.refetchQueries({
-        queryKey: schoolKeys.reservations.list(undefined),
-        type: 'active'
-      });
-      
-      // Step 5: Call refetch callback
-      if (refetch) {
-        await refetch();
+      // Small delay to ensure backend has processed the enrollment and updated is_enrolled field
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Cache invalidation after enrollment (following CACHE_REVIEW_ACADEMIC.md pattern)
+      // Step 1: Clear API cache (matches useMutationWithSuccessToast pattern)
+      try {
+        CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+      } catch (error) {
+        console.warn('Failed to clear API cache:', error);
       }
+      
+      // Step 2: Invalidate queries (following mutation hook pattern)
+      // Invalidate reservation queries
+      queryClient.invalidateQueries({ 
+        queryKey: schoolKeys.reservations.root(),
+        exact: false 
+      }).catch(console.error);
+      
+      // Also invalidate students queries since enrollment creates a student
+      queryClient.invalidateQueries({ 
+        queryKey: schoolKeys.students.root() 
+      }).catch(console.error);
+      
+      // Step 3: Refetch active queries (matches mutation hook pattern)
+      queryClient.refetchQueries({ 
+        queryKey: schoolKeys.reservations.root(), 
+        type: 'active',
+        exact: false 
+      }).catch(console.error);
+      
+      queryClient.refetchQueries({ 
+        queryKey: schoolKeys.students.root(), 
+        type: 'active' 
+      }).catch(console.error);
+
+      // Step 4: Wait for React Query to update the cache and React to process state updates
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Step 5: Force table refresh by updating refresh key
+      // This ensures the action button shows "Enrolled" badge immediately
+      setRefreshKey((prev) => prev + 1);
 
       toast({
         title: "Student Enrolled Successfully",
@@ -1079,35 +1094,43 @@ const ConfirmedReservationsTabComponent = () => {
         variant: "success",
       });
 
-      // Aggressive cache invalidation for immediate UI updates
-      // Step 1: Remove query data to force fresh fetch
-      queryClient.removeQueries({ queryKey: schoolKeys.reservations.list(undefined) });
-      
-      // Step 2: Invalidate all reservation-related queries
-      queryClient.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
-      
-      // Step 3: Also invalidate students queries since enrollment creates a student
-      queryClient.invalidateQueries({ queryKey: schoolKeys.students.root() });
-      
-      // Step 4: Force refetch active queries
-      await queryClient.refetchQueries({
-        queryKey: schoolKeys.reservations.list(undefined),
-        type: 'active'
-      });
-      
-      // Step 5: Also refetch all reservation queries
-      await queryClient.refetchQueries({
-        queryKey: schoolKeys.reservations.root(),
-        type: 'active'
-      });
-      
-      // Step 6: Call refetch callback
-      if (refetch) {
-        await refetch();
+      // Cache invalidation after payment (following CACHE_REVIEW_ACADEMIC.md pattern)
+      // Step 1: Clear API cache (matches useMutationWithSuccessToast pattern)
+      try {
+        CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+      } catch (error) {
+        console.warn('Failed to clear API cache:', error);
       }
       
-      // Step 7: Wait for React to process state updates
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Step 2: Invalidate queries (following mutation hook pattern)
+      queryClient.invalidateQueries({ 
+        queryKey: schoolKeys.reservations.root(),
+        exact: false 
+      }).catch(console.error);
+      
+      // Also invalidate students queries since payment affects student records
+      queryClient.invalidateQueries({ 
+        queryKey: schoolKeys.students.root() 
+      }).catch(console.error);
+      
+      // Step 3: Refetch active queries (matches mutation hook pattern)
+      queryClient.refetchQueries({ 
+        queryKey: schoolKeys.reservations.root(), 
+        type: 'active',
+        exact: false 
+      }).catch(console.error);
+      
+      queryClient.refetchQueries({ 
+        queryKey: schoolKeys.students.root(), 
+        type: 'active' 
+      }).catch(console.error);
+
+      // Step 4: Wait for React Query to update the cache and React to process state updates
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Step 5: Force table refresh by updating refresh key
+      // This ensures the action button shows "Enrolled" badge after payment
+      setRefreshKey((prev) => prev + 1);
     } catch (error: any) {
       console.error("Payment failed:", error);
       toast({
@@ -1190,7 +1213,8 @@ const ConfirmedReservationsTabComponent = () => {
         header: "Actions",
         cell: ({ row }) => {
           const reservation = row.original;
-          const isEnrolled = reservation.is_enrolled ?? false;
+          // Explicitly check for true (not just truthy) to handle null/undefined properly
+          const isEnrolled = reservation.is_enrolled === true;
           return isEnrolled ? (
             <EnrolledBadge />
           ) : (

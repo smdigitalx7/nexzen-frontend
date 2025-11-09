@@ -23,6 +23,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { schoolKeys } from "@/lib/hooks/school/query-keys";
 import { toast } from "@/hooks/use-toast";
 import { SchoolReservationsService } from "@/lib/services/school";
+import { CacheUtils } from "@/lib/api";
 
 // Helper function to format date from ISO format to YYYY-MM-DD
 const formatDate = (dateString: string | null | undefined): string => {
@@ -164,6 +165,7 @@ const AllReservationsTableComponent = ({
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
   const [isLoadingPaymentData, setIsLoadingPaymentData] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Cleanup blob URL on unmount
   useEffect(() => {
@@ -444,6 +446,7 @@ const AllReservationsTableComponent = ({
   return (
     <>
       <EnhancedDataTable
+        key={`all-reservations-${refreshKey}`}
         data={reservations}
         columns={reservationColumns}
         title="All Reservations"
@@ -490,17 +493,36 @@ const AllReservationsTableComponent = ({
                   setReceiptBlobUrl(blobUrl);
                   setShowPaymentProcessor(false);
                   
-                  // After application fee payment completed, recall get all reservations API immediately
-                  // Explicitly refetch the reservations list query to ensure fresh data from server
+                  // Small delay to ensure backend has processed the payment
+                  await new Promise(resolve => setTimeout(resolve, 100));
+                  
+                  // Aggressive cache invalidation after payment
+                  // Step 1: Clear API cache first to ensure fresh network request
+                  CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+                  
+                  // Step 2: Remove query data to force fresh fetch
+                  queryClient.removeQueries({ queryKey: schoolKeys.reservations.list(undefined) });
+                  
+                  // Step 3: Invalidate all reservation-related queries
+                  queryClient.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+                  
+                  // Step 4: Force refetch active queries (bypasses cache)
                   await queryClient.refetchQueries({
                     queryKey: schoolKeys.reservations.list(undefined),
                     type: 'active',
+                    exact: false
                   });
                   
-                  // Also call onRefetch if provided - this ensures immediate API call
+                  // Step 5: Call refetch callback and wait for it to complete
                   if (onRefetch) {
                     await onRefetch();
                   }
+                  
+                  // Step 6: Wait for React Query to update the cache and React to process state updates
+                  await new Promise(resolve => setTimeout(resolve, 300));
+                  
+                  // Step 7: Force table refresh by updating refresh key
+                  setRefreshKey((prev) => prev + 1);
                   
                   setShowReceipt(true);
                   
@@ -539,17 +561,33 @@ const AllReservationsTableComponent = ({
             setReceiptBlobUrl(null);
           }
           
-          // After closing receipt, recall get all reservations API immediately
-          // Explicitly refetch the reservations list query to ensure fresh data from server
+          // After closing receipt, ensure data is fresh
+          // Step 1: Clear API cache first to ensure fresh network request
+          CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+          
+          // Step 2: Remove query data to force fresh fetch
+          queryClient.removeQueries({ queryKey: schoolKeys.reservations.list(undefined) });
+          
+          // Step 3: Invalidate all reservation-related queries
+          queryClient.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
+          
+          // Step 4: Force refetch active queries (bypasses cache)
           await queryClient.refetchQueries({
             queryKey: schoolKeys.reservations.list(undefined),
             type: 'active',
+            exact: false
           });
           
-          // Also call onRefetch if provided - this ensures immediate API call
+          // Step 5: Call refetch callback and wait for it to complete
           if (onRefetch) {
             await onRefetch();
           }
+          
+          // Step 6: Wait for React Query to update the cache
+          await new Promise(resolve => setTimeout(resolve, 200));
+          
+          // Step 7: Force table refresh by updating refresh key
+          setRefreshKey((prev) => prev + 1);
           
           setPaymentData(null);
         }}

@@ -16,6 +16,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { schoolKeys } from "@/lib/hooks/school/query-keys";
+import { CacheUtils } from "@/lib/api";
 
 export type Reservation = {
   id: string;
@@ -221,6 +222,7 @@ const StatusUpdateTableComponent = ({
   const [statusRemarks, setStatusRemarks] = useState<Record<string, string>>(
     {}
   );
+  const [refreshKey, setRefreshKey] = useState(0);
   const queryClient = useQueryClient();
 
   const handleStatusChange = useCallback(
@@ -250,26 +252,32 @@ const StatusUpdateTableComponent = ({
       remarks: string
     ) => {
       try {
-        // Update status via service
+        // Step 1: Update status via service
         await SchoolReservationsService.updateStatus(
           reservation.reservation_id,
           newStatus,
           remarks.trim() ? remarks : undefined
         );
 
-        // After successful response, perform get all reservations API request immediately
-        // Explicitly refetch the reservations list query to ensure fresh data from server
+        // Step 2: Clear API cache (required due to custom cache layer)
+        CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+        
+        // Step 3: Invalidate all reservation-related queries (industry standard)
+        // This marks queries as stale and triggers automatic refetch for active queries
+        queryClient.invalidateQueries({ 
+          queryKey: schoolKeys.reservations.root(),
+          exact: false 
+        });
+        
+        // Step 4: Immediately refetch active queries for instant UI update
+        // This is optional but provides immediate feedback
         await queryClient.refetchQueries({
-          queryKey: schoolKeys.reservations.list(undefined),
+          queryKey: schoolKeys.reservations.root(),
           type: 'active',
+          exact: false
         });
 
-        // Also call onRefetch if provided - this ensures immediate API call
-        if (onRefetch) {
-          await onRefetch();
-        }
-
-        // Clear local state after successful update
+        // Step 5: Clear local state (pending changes) before table re-renders
         setStatusChanges((prev) => {
           const updated = { ...prev };
           delete updated[reservation.id];
@@ -280,8 +288,13 @@ const StatusUpdateTableComponent = ({
           updated[reservation.id] = "";
           return updated;
         });
+
+        // Step 6: Force table refresh (workaround for table library not detecting prop changes)
+        // Note: Ideally, React Query data changes should trigger re-render automatically
+        // This is needed due to how EnhancedDataTable handles prop updates
+        setRefreshKey((prev) => prev + 1);
         
-        // Show success toast
+        // Step 7: Show success toast
         toast({
           title: "Status Updated",
           description: `Reservation ${reservation.no} status updated to ${newStatus} successfully.`,
@@ -383,6 +396,7 @@ const StatusUpdateTableComponent = ({
   return (
     <div className="space-y-4">
       <EnhancedDataTable
+        key={`status-update-table-${refreshKey}`}
         data={reservations}
         columns={statusColumns}
         title="Status Updates"
