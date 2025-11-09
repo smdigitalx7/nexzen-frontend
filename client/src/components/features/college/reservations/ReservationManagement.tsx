@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useDeleteCollegeReservation,
@@ -47,7 +48,13 @@ import { TabSwitcher } from "@/components/shared";
 import StatusUpdateTable from "./StatusUpdateComponent";
 import AllReservationsComponent from "./AllReservationsComponent";
 import { CollegeReservationStatsCards } from "./CollegeReservationStatsCards";
-import { ConcessionUpdateDialog } from "@/components/shared";
+import {
+  ConcessionUpdateDialog,
+  ReceiptPreviewModal,
+} from "@/components/shared";
+import { ReservationPaymentData } from "@/components/shared/payment";
+import CollegeReservationPaymentProcessor from "@/components/shared/payment/CollegeReservationPaymentProcessor";
+import type { CollegeIncomeRead } from "@/lib/types/college/income";
 import { Building2, University } from "lucide-react";
 
 export default function ReservationNew() {
@@ -177,6 +184,15 @@ export default function ReservationNew() {
     selectedReservationForConcession,
     setSelectedReservationForConcession,
   ] = useState<any>(null);
+
+  // Payment related state
+  const [showPaymentProcessor, setShowPaymentProcessor] = useState(false);
+  const [paymentData, setPaymentData] = useState<ReservationPaymentData | null>(
+    null
+  );
+  const [paymentIncomeRecord, setPaymentIncomeRecord] =
+    useState<CollegeIncomeRead | null>(null);
+  const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
 
   // Use React Query hook for reservations - Fetch when All Reservations or Status tab is active
   const {
@@ -472,16 +488,6 @@ export default function ReservationNew() {
       return;
     }
 
-    // Parse siblings JSON if provided
-    let siblings = null;
-    if ((form.siblingsJson || "").trim()) {
-      try {
-        siblings = JSON.parse(form.siblingsJson);
-      } catch (e) {
-        console.warn("Invalid siblings JSON:", e);
-      }
-    }
-
     const payload = {
       student_name: form.studentName,
       aadhar_no: form.studentAadhar || null,
@@ -498,7 +504,15 @@ export default function ReservationNew() {
       mother_or_guardian_aadhar_no: form.motherAadhar || null,
       mother_or_guardian_mobile: form.motherMobile || null,
       mother_or_guardian_occupation: form.motherOccupation || null,
-      siblings: siblings,
+      siblings: (form.siblings || []).map((s: any) => ({
+        name: s.name,
+        class_name: s.class_name,
+        where: s.where,
+        gender: (s.gender || "OTHER").toUpperCase() as
+          | "MALE"
+          | "FEMALE"
+          | "OTHER",
+      })),
       previous_class: form.lastClass || null,
       previous_school_details: form.previousSchool || null,
       present_address: form.presentAddress || null,
@@ -511,7 +525,7 @@ export default function ReservationNew() {
       course_name: form.courseName || "N/A", // Required field - provide default
       group_fee: Number(groupFee || 0),
       course_fee: Number(courseFee || 0),
-      book_fee: Number(bookFee || 0),
+      book_fee: form.bookFeeRequired ? Number(form.bookFee || 0) : 0,
       total_tuition_fee: Number(groupFee + courseFee || 0),
       transport_required: form.transport === "Yes",
       preferred_transport_id:
@@ -530,14 +544,34 @@ export default function ReservationNew() {
       // Use mutation hook which handles cache invalidation automatically
       const res: any = await createReservationMutation.mutateAsync(payload);
 
-      // Invalidate cache to refresh the list
-      void queryClient.invalidateQueries({
-        queryKey: ["college", "reservations"],
+      // Invalidate and refetch reservations to show updated data
+      await queryClient.invalidateQueries({
+        queryKey: collegeKeys.reservations.root(),
       });
+      await refetchReservations();
 
       // Use backend reservation_id to display receipt number
       setReservationNo(String(res?.reservation_id || ""));
-      if (withPayment) setShowReceipt(true);
+
+      if (withPayment) {
+        // Prepare payment data for the payment processor
+        const paymentData: ReservationPaymentData = {
+          reservationId: res.reservation_id,
+          reservationNo: res.reservation_no || String(res.reservation_id),
+          studentName: form.studentName,
+          className: `${form.group}${form.courseName ? ` - ${form.courseName}` : ""}`,
+          reservationFee: Number(form.reservationFee || 0),
+          totalAmount: Number(form.reservationFee || 0),
+          paymentMethod: "CASH", // Default payment method
+          purpose: "Reservation Fee Payment",
+          note: `Payment for reservation ${res.reservation_id}`,
+        };
+
+        setPaymentData(paymentData);
+        setShowPaymentProcessor(true);
+      } else {
+        setShowReceipt(true);
+      }
     } catch (e: any) {
       console.error("Failed to create reservation:", e);
       // Error toast is handled by mutation hook
@@ -545,16 +579,6 @@ export default function ReservationNew() {
   };
 
   const buildPayloadFromForm = (f: any) => {
-    // Parse siblings JSON if provided
-    let siblings = null;
-    if ((f.siblingsJson || "").trim()) {
-      try {
-        siblings = JSON.parse(f.siblingsJson);
-      } catch (e) {
-        console.warn("Invalid siblings JSON:", e);
-      }
-    }
-
     return {
       student_name: f.studentName,
       aadhar_no: f.studentAadhar || null,
@@ -571,7 +595,15 @@ export default function ReservationNew() {
       mother_or_guardian_aadhar_no: f.motherAadhar || null,
       mother_or_guardian_mobile: f.motherMobile || null,
       mother_or_guardian_occupation: f.motherOccupation || null,
-      siblings: siblings,
+      siblings: (f.siblings || []).map((s: any) => ({
+        name: s.name,
+        class_name: s.class_name,
+        where: s.where,
+        gender: (s.gender || "OTHER").toUpperCase() as
+          | "MALE"
+          | "FEMALE"
+          | "OTHER",
+      })),
       previous_class: f.lastClass || null,
       previous_school_details: f.previousSchool || null,
       present_address: f.presentAddress || null,
@@ -584,7 +616,7 @@ export default function ReservationNew() {
       course_name: f.courseName || "N/A", // Required field - provide default
       group_fee: Number(groupFee || 0),
       course_fee: Number(courseFee || 0),
-      book_fee: Number(bookFee || 0),
+      book_fee: f.bookFeeRequired ? Number(f.bookFee || 0) : 0,
       total_tuition_fee: Number(groupFee + courseFee || 0),
       transport_required: f.transport === "Yes",
       preferred_transport_id:
@@ -965,7 +997,9 @@ export default function ReservationNew() {
                     course_name: form.courseName,
                     group_fee: groupFee,
                     course_fee: courseFee,
-                    book_fee: bookFee,
+                    book_fee: form.bookFeeRequired
+                      ? Number(form.bookFee || 0)
+                      : 0,
                     total_tuition_fee: groupFee + courseFee,
                     transport_required: form.transport === "Yes",
                     preferred_transport_id:
@@ -1114,78 +1148,85 @@ export default function ReservationNew() {
         onTabChange={setActiveTab}
       />
 
-      {/* Receipt Dialog */}
-      <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Reservation Receipt</DialogTitle>
-            <DialogDescription>
-              Reservation has been created successfully
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <strong>Reservation No:</strong> {reservationNo}
-              </div>
-              <div>
-                <strong>Date:</strong> {new Date().toLocaleDateString()}
-              </div>
-              <div>
-                <strong>Student Name:</strong> {form.studentName}
-              </div>
-              <div>
-                <strong>Class:</strong> {form.classAdmission}
-              </div>
-              <div>
-                <strong>Father Name:</strong> {form.fatherName}
-              </div>
-              <div>
-                <strong>Mobile:</strong> {form.fatherMobile}
-              </div>
-            </div>
-            <div className="border-t pt-4">
-              <div className="flex justify-between">
-                <span>Group Fee:</span>
-                <span>₹{groupFee.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Course Fee:</span>
-                <span>₹{courseFee.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Book Fee:</span>
-                <span>₹{bookFee.toLocaleString()}</span>
-              </div>
-              {form.transport === "Yes" && (
-                <div className="flex justify-between">
-                  <span>Transport Fee:</span>
-                  <span>₹{transportFee.toLocaleString()}</span>
+      {/* Receipt Dialog - Only shown when payment is not made (just reservation confirmation) */}
+      {!receiptBlobUrl && (
+        <Dialog
+          open={showReceipt && !receiptBlobUrl}
+          onOpenChange={setShowReceipt}
+        >
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Reservation Receipt</DialogTitle>
+              <DialogDescription>
+                Reservation has been created successfully
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <strong>Reservation No:</strong> {reservationNo}
                 </div>
-              )}
-              <div className="flex justify-between font-bold text-lg border-t pt-2">
-                <span>Total:</span>
-                <span>
-                  ₹
-                  {(
-                    groupFee +
-                    courseFee +
-                    bookFee +
-                    transportFee
-                  ).toLocaleString()}
-                </span>
+                <div>
+                  <strong>Date:</strong> {new Date().toLocaleDateString()}
+                </div>
+                <div>
+                  <strong>Student Name:</strong> {form.studentName}
+                </div>
+                <div>
+                  <strong>Class:</strong> {form.classAdmission}
+                </div>
+                <div>
+                  <strong>Father Name:</strong> {form.fatherName}
+                </div>
+                <div>
+                  <strong>Mobile:</strong> {form.fatherMobile}
+                </div>
+              </div>
+              <div className="border-t pt-4">
+                <div className="flex justify-between">
+                  <span>Group Fee:</span>
+                  <span>₹{groupFee.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Course Fee:</span>
+                  <span>₹{courseFee.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Book Fee:</span>
+                  <span>₹{bookFee.toLocaleString()}</span>
+                </div>
+                {form.transport === "Yes" && (
+                  <div className="flex justify-between">
+                    <span>Transport Fee:</span>
+                    <span>₹{transportFee.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-lg border-t pt-2">
+                  <span>Total:</span>
+                  <span>
+                    ₹
+                    {(
+                      groupFee +
+                      courseFee +
+                      bookFee +
+                      transportFee
+                    ).toLocaleString()}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handlePrint}>
-              <Printer className="h-4 w-4 mr-2" />
-              Print
-            </Button>
-            <Button onClick={() => setShowReceipt(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={handlePrint}>
+                <Printer className="h-4 w-4 mr-2" />
+                Print
+              </Button>
+              <Button onClick={() => setShowReceipt(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Receipt Preview Modal - Shows PDF receipt after payment */}
 
       {/* View Reservation Dialog */}
       <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
@@ -1473,7 +1514,9 @@ export default function ReservationNew() {
                   course_name: editForm.courseName,
                   group_fee: groupFee,
                   course_fee: courseFee,
-                  book_fee: bookFee,
+                  book_fee: editForm.bookFeeRequired
+                    ? Number(editForm.bookFee || 0)
+                    : 0,
                   total_tuition_fee: groupFee + courseFee,
                   transport_required: editForm.transport === "Yes",
                   preferred_transport_id:
@@ -1678,6 +1721,85 @@ export default function ReservationNew() {
         reservation={selectedReservationForConcession}
         onUpdateConcession={handleConcessionUpdate}
       />
+
+      {/* Receipt Preview Modal - Shows PDF receipt after payment */}
+      <ReceiptPreviewModal
+        isOpen={showReceipt && !!receiptBlobUrl}
+        onClose={() => {
+          setShowReceipt(false);
+          if (receiptBlobUrl) {
+            URL.revokeObjectURL(receiptBlobUrl);
+            setReceiptBlobUrl(null);
+          }
+          setPaymentIncomeRecord(null);
+          // After closing receipt, recall get all reservations API immediately
+          // Explicitly refetch the reservations list query to ensure fresh data from server
+          queryClient.refetchQueries({
+            queryKey: collegeKeys.reservations.list({}),
+            type: "active",
+          });
+          refetchReservations();
+        }}
+        blobUrl={receiptBlobUrl}
+      />
+
+      {/* Payment Processor Dialog */}
+      {paymentData && (
+        <Dialog
+          open={showPaymentProcessor}
+          onOpenChange={setShowPaymentProcessor}
+        >
+          <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0">
+            <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
+              <DialogTitle>Complete Payment</DialogTitle>
+              <DialogDescription>
+                Process payment for reservation {paymentData.reservationNo}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+              <CollegeReservationPaymentProcessor
+                reservationData={paymentData}
+                onPaymentComplete={async (
+                  incomeRecord: CollegeIncomeRead,
+                  blobUrl: string
+                ) => {
+                  setPaymentIncomeRecord(incomeRecord);
+                  setReceiptBlobUrl(blobUrl);
+                  setShowPaymentProcessor(false);
+
+                  // After application fee payment completed, recall get all reservations API immediately
+                  // Explicitly refetch the reservations list query to ensure fresh data from server
+                  await queryClient.refetchQueries({
+                    queryKey: collegeKeys.reservations.list({}),
+                    type: "active",
+                  });
+
+                  // Also call refetchReservations to ensure immediate API call
+                  await refetchReservations();
+
+                  // Show receipt modal after closing payment processor
+                  setTimeout(() => {
+                    setShowReceipt(true);
+                  }, 100);
+                }}
+                onPaymentFailed={(error: string) => {
+                  toast({
+                    title: "Payment Failed",
+                    description:
+                      error || "Could not process payment. Please try again.",
+                    variant: "destructive",
+                  });
+                  setShowPaymentProcessor(false);
+                }}
+                onPaymentCancel={() => {
+                  setShowPaymentProcessor(false);
+                  setPaymentData(null);
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
