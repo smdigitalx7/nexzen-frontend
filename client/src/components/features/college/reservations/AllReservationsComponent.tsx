@@ -1,12 +1,28 @@
-import React, { useMemo, memo } from "react";
+import React, { useMemo, memo, useState, useEffect, useCallback } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Percent } from "lucide-react";
+import { Percent, CreditCard } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared";
 import { useAuthStore } from "@/store/authStore";
 import { ROLES } from "@/lib/constants";
 import type { ReservationStatusEnum } from "@/lib/types/college/reservations";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import CollegeReservationPaymentProcessor from "@/components/shared/payment/CollegeReservationPaymentProcessor";
+import { ReservationPaymentData } from "@/components/shared/payment";
+import { ReceiptPreviewModal } from "@/components/shared";
+import type { CollegeIncomeRead } from "@/lib/types/college/income";
+import { useQueryClient } from "@tanstack/react-query";
+import { collegeKeys } from "@/lib/hooks/college/query-keys";
+import { toast } from "@/hooks/use-toast";
+import { CollegeReservationsService } from "@/lib/services/college";
+import { CacheUtils } from "@/lib/api";
 
 // Helper function to format date from ISO format to YYYY-MM-DD
 const formatDate = (dateString: string | null | undefined): string => {
@@ -143,12 +159,127 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
   onStatusFilterChange,
 }) => {
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+
+  // Payment related state
+  const [showPaymentProcessor, setShowPaymentProcessor] = useState(false);
+  const [paymentData, setPaymentData] = useState<ReservationPaymentData | null>(null);
+  const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [isLoadingPaymentData, setIsLoadingPaymentData] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Cleanup blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (receiptBlobUrl) {
+        URL.revokeObjectURL(receiptBlobUrl);
+      }
+    };
+  }, [receiptBlobUrl]);
 
   // Check if user has permission to view concession button
   const canViewConcession = useMemo(() => {
     if (!user?.role) return false;
     return user.role === ROLES.ADMIN || user.role === ROLES.INSTITUTE_ADMIN;
   }, [user?.role]);
+
+  // Helper function to check if application fee is paid
+  const isApplicationFeePaid = useCallback((row: ReservationForAllReservations): boolean => {
+    const applicationIncomeId = row.application_income_id;
+    
+    // Fee is paid if application_income_id exists and is a valid positive number
+    const hasIncomeId = 
+      applicationIncomeId !== null && 
+      applicationIncomeId !== undefined && 
+      applicationIncomeId !== 0 &&
+      (typeof applicationIncomeId === 'number' && applicationIncomeId > 0);
+    
+    // Fee is paid if application_fee_paid flag is true (if available)
+    const isPaidByFlag = (row as any).application_fee_paid === true;
+    
+    return hasIncomeId || isPaidByFlag;
+  }, []);
+
+  // Handle pay fee button click
+  const handlePayFee = useCallback(async (reservation: ReservationForAllReservations) => {
+    try {
+      setIsLoadingPaymentData(true);
+
+      // Get reservation number - use reservation_no if available, otherwise fallback to reservation_id
+      const reservationNo = reservation.reservation_no && reservation.reservation_no.trim() !== "" 
+        ? reservation.reservation_no 
+        : String(reservation.reservation_id);
+      
+      if (!reservationNo) {
+        toast({
+          title: "Error",
+          description: `Reservation number is missing for reservation ID: ${reservation.reservation_id}`,
+          variant: "destructive",
+        });
+        setIsLoadingPaymentData(false);
+        return;
+      }
+
+      // Fetch full reservation details to get reservation_fee (college uses reservation_fee instead of application_fee)
+      const fullReservationData = await CollegeReservationsService.getById(
+        reservation.reservation_id
+      );
+
+      // Get reservation fee from full reservation data
+      // Handle null, undefined, or 0 values - allow payment to proceed and let backend validate
+      const reservationFee = fullReservationData.reservation_fee;
+      
+      // Check if reservation_fee is explicitly null or undefined (not just 0)
+      if (reservationFee === null || reservationFee === undefined) {
+        toast({
+          title: "Error",
+          description: `Reservation fee is not set for reservation ${reservationNo}. Please set the reservation fee first before processing payment.`,
+          variant: "destructive",
+        });
+        setIsLoadingPaymentData(false);
+        return;
+      }
+
+      // Convert to number and use 0 as fallback if conversion fails
+      const feeAmount = Number(reservationFee) || 0;
+      
+      // If fee is 0, warn but allow payment to proceed (backend will handle validation)
+      if (feeAmount === 0) {
+        toast({
+          title: "Warning",
+          description: `Reservation fee is set to 0 for reservation ${reservationNo}. Payment will proceed with 0 amount.`,
+          variant: "default",
+        });
+      }
+
+      const paymentData: ReservationPaymentData = {
+        reservationId: reservation.reservation_id,
+        reservationNo: reservationNo,
+        studentName: reservation.student_name,
+        className: reservation.group_name 
+          ? `${reservation.group_name}${reservation.course_name ? ` - ${reservation.course_name}` : ""}` 
+          : "N/A",
+        reservationFee: feeAmount,
+        totalAmount: feeAmount,
+        paymentMethod: "CASH",
+        purpose: "APPLICATION_FEE",
+        note: `Payment for reservation ${reservationNo}`,
+      };
+
+      setPaymentData(paymentData);
+      setShowPaymentProcessor(true);
+    } catch (error: any) {
+      console.error("Failed to load reservation for payment:", error);
+      toast({
+        title: "Failed to Load Reservation",
+        description: error?.message || "Could not load reservation details. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingPaymentData(false);
+    }
+  }, []);
 
   // Filter reservations based on status
   const filteredReservations = useMemo(() => {
@@ -247,22 +378,43 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
       {
         type: "view" as const,
         onClick: (row: ReservationForAllReservations) => onView(row),
+        show: (row: ReservationForAllReservations) => isApplicationFeePaid(row),
       },
       {
         type: "edit" as const,
         onClick: (row: ReservationForAllReservations) => onEdit(row),
+        show: (row: ReservationForAllReservations) => isApplicationFeePaid(row),
       },
       {
         type: "delete" as const,
         onClick: (row: ReservationForAllReservations) => onDelete(row),
+        show: (row: ReservationForAllReservations) => {
+          // Show delete button if:
+          // 1. Application fee is paid, OR
+          // 2. Status is PENDING (allow deletion of pending reservations)
+          const isPending = row.status === "PENDING";
+          return isApplicationFeePaid(row) || isPending;
+        },
       },
     ],
-    [onView, onEdit, onDelete]
+    [onView, onEdit, onDelete, isApplicationFeePaid]
   );
 
-  // Custom action buttons for concession (college-specific)
+  // Custom action buttons for payment and concession
   const actionButtons = useMemo(
     () => [
+      {
+        id: "pay-fee",
+        label: "Pay Application Fee",
+        icon: CreditCard,
+        variant: "default" as const,
+        onClick: handlePayFee,
+        show: (row: ReservationForAllReservations) => {
+          // Show "Pay Application Fee" button ONLY when application fee is NOT paid
+          // Hide the button after fee is paid
+          return !isApplicationFeePaid(row);
+        },
+      },
       {
         id: "concession",
         label: "Concession",
@@ -270,11 +422,22 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
         variant: "outline" as const,
         onClick: (row: ReservationForAllReservations) =>
           onUpdateConcession?.(row),
-        show: (row: ReservationForAllReservations) =>
-          canViewConcession && !row.concession_lock,
+        show: (row: ReservationForAllReservations) => {
+          // Show concession button if:
+          // 1. User has permission
+          // 2. Concession is not locked
+          // 3. Status is PENDING (show for pending reservations)
+          const isPending = row.status === "PENDING";
+          
+          return Boolean(
+            canViewConcession && 
+            !row.concession_lock &&
+            isPending
+          );
+        },
       },
     ],
-    [onUpdateConcession, canViewConcession]
+    [onUpdateConcession, canViewConcession, handlePayFee, isApplicationFeePaid]
   );
 
   // Memoized status filter options
@@ -298,6 +461,7 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
   return (
     <>
       <EnhancedDataTable
+        key={`all-reservations-${refreshKey}`}
         data={filteredReservations}
         columns={columns}
         title="All Reservations"
@@ -319,6 +483,138 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
           },
         ]}
         className="w-full max-w-full mt-6"
+      />
+
+      {/* Payment Processor Dialog */}
+      {paymentData && (
+        <Dialog
+          open={showPaymentProcessor}
+          onOpenChange={setShowPaymentProcessor}
+        >
+          <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0">
+            <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
+              <DialogTitle>Pay Application Fee (Reservation Fee)</DialogTitle>
+              <DialogDescription>
+                Process application fee payment for reservation {paymentData.reservationNo}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+              <CollegeReservationPaymentProcessor
+                reservationData={paymentData}
+                onPaymentComplete={async (
+                  incomeRecord: CollegeIncomeRead,
+                  blobUrl: string
+                ) => {
+                  setReceiptBlobUrl(blobUrl);
+                  setShowPaymentProcessor(false);
+                  
+                  // Small delay to ensure backend has processed the payment
+                  await new Promise(resolve => setTimeout(resolve, 100));
+                  
+                  // Cache invalidation after payment (following CACHE_REVIEW_ACADEMIC.md pattern)
+                  // Step 1: Clear API cache (matches useMutationWithSuccessToast pattern)
+                  try {
+                    CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
+                  } catch (error) {
+                    console.warn('Failed to clear API cache:', error);
+                  }
+                  
+                  // Step 2: Invalidate queries (following mutation hook pattern)
+                  queryClient.invalidateQueries({ 
+                    queryKey: collegeKeys.reservations.root(),
+                    exact: false 
+                  }).catch(console.error);
+                  
+                  // Step 3: Refetch active queries (matches mutation hook pattern)
+                  queryClient.refetchQueries({ 
+                    queryKey: collegeKeys.reservations.root(), 
+                    type: 'active',
+                    exact: false 
+                  }).catch(console.error);
+
+                  // Step 4: Call refetch callback and wait for it to complete
+                  if (onRefetch) {
+                    await onRefetch();
+                  }
+                  
+                  // Step 5: Wait for React Query to update the cache and React to process state updates
+                  await new Promise(resolve => setTimeout(resolve, 300));
+                  
+                  // Step 6: Force table refresh by updating refresh key
+                  setRefreshKey((prev) => prev + 1);
+                  
+                  setShowReceipt(true);
+                  
+                  toast({
+                    title: "Payment Successful",
+                    description: "Application fee has been paid successfully",
+                    variant: "success",
+                  });
+                }}
+                onPaymentFailed={(error: string) => {
+                  toast({
+                    title: "Payment Failed",
+                    description:
+                      error || "Could not process payment. Please try again.",
+                    variant: "destructive",
+                  });
+                  setShowPaymentProcessor(false);
+                }}
+                onPaymentCancel={() => {
+                  setShowPaymentProcessor(false);
+                  setPaymentData(null);
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Receipt Preview Modal */}
+      <ReceiptPreviewModal
+        isOpen={showReceipt}
+        onClose={async () => {
+          setShowReceipt(false);
+          if (receiptBlobUrl) {
+            URL.revokeObjectURL(receiptBlobUrl);
+            setReceiptBlobUrl(null);
+          }
+          
+          // After closing receipt, ensure data is fresh (following CACHE_REVIEW_ACADEMIC.md pattern)
+          // Step 1: Clear API cache first to ensure fresh network request
+          try {
+            CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
+          } catch (error) {
+            console.warn('Failed to clear API cache:', error);
+          }
+          
+          // Step 2: Invalidate all reservation-related queries
+          queryClient.invalidateQueries({ 
+            queryKey: collegeKeys.reservations.root(),
+            exact: false 
+          }).catch(console.error);
+          
+          // Step 3: Force refetch active queries (bypasses cache)
+          await queryClient.refetchQueries({
+            queryKey: collegeKeys.reservations.root(),
+            type: 'active',
+            exact: false
+          });
+          
+          // Step 4: Call refetch callback and wait for it to complete
+          if (onRefetch) {
+            await onRefetch();
+          }
+          
+          // Step 5: Wait for React Query to update the cache
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Step 6: Force table refresh by updating refresh key
+          setRefreshKey((prev) => prev + 1);
+          
+          setPaymentData(null);
+        }}
+        blobUrl={receiptBlobUrl}
       />
     </>
   );

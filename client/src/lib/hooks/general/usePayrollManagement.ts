@@ -25,7 +25,7 @@ interface PayrollWithEmployee extends Omit<PayrollRead, "payroll_month"> {
 }
 
 // Query keys for payroll operations
-const payrollKeys = {
+export const payrollKeys = {
   all: ["payrolls"] as const,
   lists: () => [...payrollKeys.all, "list"] as const,
   list: (filters: Record<string, unknown>) =>

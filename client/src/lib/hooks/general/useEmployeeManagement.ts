@@ -133,12 +133,12 @@ export const useEmployeeManagement = (
   const { data: employees = [], isLoading, error } = useEmployeesByBranch();
   const { data: attendanceData, isLoading: attendanceLoading } =
     useAttendanceByBranch();
-  const { data: leavesData, isLoading: leavesLoading } = useEmployeeLeaves();
+  const { data: leavesData, isLoading: leavesLoading } = useEmployeeLeavesByBranch();
 
   // Extract data from response objects
   const attendance = attendanceData?.data || [];
   const leaves = leavesData?.data || [];
-  const { data: advancesData, isLoading: advancesLoading } = useAdvancesAll();
+  const { data: advancesData, isLoading: advancesLoading } = useAdvancesByBranch();
   const advances = advancesData?.data || [];
 
   // Mutation hooks

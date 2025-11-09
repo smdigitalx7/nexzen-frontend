@@ -2,12 +2,16 @@ import { create } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { AuthService } from "@/lib/services/general";
-import { AuthTokenTimers, DedupeUtils } from "@/lib/api";
+import { AuthTokenTimers, DedupeUtils, CacheUtils } from "@/lib/api";
 import { ROLES, type UserRole, normalizeRole } from "@/lib/constants";
 import { extractPrimaryRole } from "@/lib/utils/roles";
 import { useCacheStore } from "@/store/cacheStore";
 import { queryClient } from "@/lib/query";
 import { getTokenExpiration, decodeJWT, getRoleFromToken } from "@/lib/utils/auth/jwt";
+import { payrollKeys } from "@/lib/hooks/general/usePayrollManagement";
+import { employeeKeys } from "@/lib/hooks/general/useEmployees";
+import { advanceKeys } from "@/lib/hooks/general/useAdvances";
+import { employeeLeaveKeys } from "@/lib/hooks/general/useEmployeeLeave";
 
 export interface AuthUser {
   user_id: string;
@@ -480,6 +484,34 @@ export const useAuthStore = create<AuthState>()(
               console.log(
                 "Branch switched successfully with new token and clients updated"
               );
+
+              // Hard refresh general modules after branch switch - completely clear all cache
+              try {
+                // Step 1: Clear API cache for all general module endpoints
+                CacheUtils.clearByPattern(/GET:.*\/payrolls/i);
+                CacheUtils.clearByPattern(/GET:.*\/employees/i);
+                CacheUtils.clearByPattern(/GET:.*\/advances/i);
+                CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
+                CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
+                
+                // Step 2: Remove ALL queries completely (not just invalidate - this clears cache)
+                queryClient.removeQueries({ queryKey: payrollKeys.all, exact: false });
+                queryClient.removeQueries({ queryKey: employeeKeys.all, exact: false });
+                queryClient.removeQueries({ queryKey: advanceKeys.all, exact: false });
+                queryClient.removeQueries({ queryKey: employeeLeaveKeys.all, exact: false });
+                queryClient.removeQueries({ queryKey: ['employee-attendances'], exact: false });
+                
+                // Step 3: Reset queries to ensure fresh state (no cached data)
+                queryClient.resetQueries({ queryKey: payrollKeys.all, exact: false });
+                queryClient.resetQueries({ queryKey: employeeKeys.all, exact: false });
+                queryClient.resetQueries({ queryKey: advanceKeys.all, exact: false });
+                queryClient.resetQueries({ queryKey: employeeLeaveKeys.all, exact: false });
+                queryClient.resetQueries({ queryKey: ['employee-attendances'], exact: false });
+                
+                console.log("General modules cache completely cleared after branch switch");
+              } catch (error) {
+                console.error("Error clearing general modules cache after branch switch:", error);
+              }
             } else {
               // Fallback to just updating the branch if no token response
               // Extract role from branch.roles if available
@@ -522,6 +554,34 @@ export const useAuthStore = create<AuthState>()(
                 });
               }
               console.log("Branch switched locally (no token response)");
+
+              // Hard refresh general modules after branch switch - completely clear all cache
+              try {
+                // Step 1: Clear API cache for all general module endpoints
+                CacheUtils.clearByPattern(/GET:.*\/payrolls/i);
+                CacheUtils.clearByPattern(/GET:.*\/employees/i);
+                CacheUtils.clearByPattern(/GET:.*\/advances/i);
+                CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
+                CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
+                
+                // Step 2: Remove ALL queries completely (not just invalidate - this clears cache)
+                queryClient.removeQueries({ queryKey: payrollKeys.all, exact: false });
+                queryClient.removeQueries({ queryKey: employeeKeys.all, exact: false });
+                queryClient.removeQueries({ queryKey: advanceKeys.all, exact: false });
+                queryClient.removeQueries({ queryKey: employeeLeaveKeys.all, exact: false });
+                queryClient.removeQueries({ queryKey: ['employee-attendances'], exact: false });
+                
+                // Step 3: Reset queries to ensure fresh state (no cached data)
+                queryClient.resetQueries({ queryKey: payrollKeys.all, exact: false });
+                queryClient.resetQueries({ queryKey: employeeKeys.all, exact: false });
+                queryClient.resetQueries({ queryKey: advanceKeys.all, exact: false });
+                queryClient.resetQueries({ queryKey: employeeLeaveKeys.all, exact: false });
+                queryClient.resetQueries({ queryKey: ['employee-attendances'], exact: false });
+                
+                console.log("General modules cache completely cleared after branch switch");
+              } catch (error) {
+                console.error("Error clearing general modules cache after branch switch:", error);
+              }
             }
           } catch (error) {
             console.error("Failed to switch branch:", error);
@@ -566,6 +626,34 @@ export const useAuthStore = create<AuthState>()(
               });
             }
             console.log("Branch switched locally (API call failed)");
+
+            // Hard refresh general modules after branch switch (even on error) - completely clear all cache
+            try {
+              // Step 1: Clear API cache for all general module endpoints
+              CacheUtils.clearByPattern(/GET:.*\/payrolls/i);
+              CacheUtils.clearByPattern(/GET:.*\/employees/i);
+              CacheUtils.clearByPattern(/GET:.*\/advances/i);
+              CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
+              CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
+              
+              // Step 2: Remove ALL queries completely (not just invalidate - this clears cache)
+              queryClient.removeQueries({ queryKey: payrollKeys.all, exact: false });
+              queryClient.removeQueries({ queryKey: employeeKeys.all, exact: false });
+              queryClient.removeQueries({ queryKey: advanceKeys.all, exact: false });
+              queryClient.removeQueries({ queryKey: employeeLeaveKeys.all, exact: false });
+              queryClient.removeQueries({ queryKey: ['employee-attendances'], exact: false });
+              
+              // Step 3: Reset queries to ensure fresh state (no cached data)
+              queryClient.resetQueries({ queryKey: payrollKeys.all, exact: false });
+              queryClient.resetQueries({ queryKey: employeeKeys.all, exact: false });
+              queryClient.resetQueries({ queryKey: advanceKeys.all, exact: false });
+              queryClient.resetQueries({ queryKey: employeeLeaveKeys.all, exact: false });
+              queryClient.resetQueries({ queryKey: ['employee-attendances'], exact: false });
+              
+              console.log("General modules cache completely cleared after branch switch");
+            } catch (error) {
+              console.error("Error clearing general modules cache after branch switch:", error);
+            }
           }
         },
         switchAcademicYear: (year) => {

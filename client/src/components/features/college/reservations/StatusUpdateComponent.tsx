@@ -16,6 +16,7 @@ import { collegeKeys } from "@/lib/hooks/college/query-keys";
 import { CollegeReservationsService } from "@/lib/services/college";
 import { EnhancedDataTable } from "@/components/shared";
 import { ColumnDef } from "@tanstack/react-table";
+import { CacheUtils } from "@/lib/api";
 
 export type Reservation = {
   id: string;
@@ -265,43 +266,51 @@ const StatusUpdateTableComponent = ({
           remarks: remarks.trim() ? remarks : null,
         };
 
-        // Step 1: Update the status via API
+        // Step 1: Update status via service
         await CollegeReservationsService.updateStatus(
           reservation.reservation_id,
           payload
         );
 
-        // Step 2: Remove the query data to force fresh fetch
-        queryClient.removeQueries({ queryKey: collegeKeys.reservations.list({}) });
+        // Small delay to ensure backend has processed the status update
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Step 2: Clear API cache (required due to custom cache layer)
+        CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
         
-        // Step 3: Invalidate all reservation queries
-        queryClient.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
+        // Step 3: Invalidate all reservation-related queries (following CACHE_REVIEW_ACADEMIC.md pattern)
+        // Invalidate specific reservation detail
+        queryClient.invalidateQueries({
+          queryKey: collegeKeys.reservations.detail(reservation.reservation_id),
+        }).catch(console.error);
         
-        // Step 4: FORCE REFETCH - This will make a network request to /college/reservations
-        // The refetch will fetch fresh data from server since we removed the cache
+        // Invalidate all reservation queries (list, detail, dashboard, recent)
+        queryClient.invalidateQueries({ 
+          queryKey: collegeKeys.reservations.root(),
+          exact: false 
+        }).catch(console.error);
+        
+        // Step 4: Refetch active queries (matches mutation hook pattern)
+        queryClient.refetchQueries({ 
+          queryKey: collegeKeys.reservations.root(), 
+          exact: false 
+        }).catch(console.error);
+        
+        queryClient.refetchQueries({ 
+          queryKey: collegeKeys.reservations.root(), 
+          type: 'active' 
+        }).catch(console.error);
+
+        // Step 5: Call onRefetch first (direct refetch from query hook)
         if (onRefetch) {
           await onRefetch();
         }
-        
-        // Step 5: Also explicitly refetch to ensure network request
-        await queryClient.refetchQueries({
-          queryKey: collegeKeys.reservations.list({}),
-          type: 'active'
-        });
-        
-        // Step 6: Wait for React to process the state update
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        // Step 7: Force table refresh by updating refresh key
-        setRefreshKey((prev) => prev + 1);
 
-        toast({
-          title: "Status Updated",
-          description: `Reservation ${reservation.no} status updated to ${newStatus}.`,
-          variant: "success",
-        });
+        // Step 6: Wait for React Query to update the cache and React to process state updates
+        await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Clear the status change and remarks after successful update
+        // Step 7: Clear local state (pending changes) BEFORE table re-renders
+        // This ensures table doesn't briefly show stale local state
         setStatusChanges((prev) => {
           const updated = { ...prev };
           delete updated[reservation.id];
@@ -311,6 +320,16 @@ const StatusUpdateTableComponent = ({
           ...prev,
           [reservation.id]: "",
         }));
+
+        // Step 8: Force table refresh by updating refresh key (after local state is cleared)
+        setRefreshKey((prev) => prev + 1);
+        
+        // Step 9: Show success toast after everything is complete
+        toast({
+          title: "Status Updated",
+          description: `Reservation ${reservation.no} status updated to ${newStatus} successfully.`,
+          variant: "success",
+        });
       } catch (e: any) {
         console.error("Failed to update status:", e);
         toast({

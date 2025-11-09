@@ -26,6 +26,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ReceiptPreviewModal } from "@/components/shared";
 import { handleCollegePayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/lib/api-college";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
+import { CacheUtils } from "@/lib/api";
+import { collegeKeys } from "@/lib/hooks/college/query-keys";
 
 // Use the actual API types instead of custom interface
 import type { CollegeReservationMinimalRead, CollegeReservationRead } from "@/lib/types/college";
@@ -180,9 +182,40 @@ const ConfirmedReservationsTab = () => {
           remarks: "Student enrolled successfully",
         });
 
-        // Invalidate cache to refresh both students and reservations
-        void queryClient.invalidateQueries({ queryKey: ["college", "students"] });
-        void queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
+        // Small delay to ensure backend has processed the enrollment
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Cache invalidation after enrollment (following CACHE_REVIEW_ACADEMIC.md pattern)
+        // Step 1: Clear API cache (matches useMutationWithSuccessToast pattern)
+        try {
+          CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
+        } catch (error) {
+          console.warn('Failed to clear API cache:', error);
+        }
+        
+        // Step 2: Invalidate queries (following mutation hook pattern)
+        // Invalidate reservation queries
+        queryClient.invalidateQueries({ 
+          queryKey: collegeKeys.reservations.root(),
+          exact: false 
+        }).catch(console.error);
+        
+        // Also invalidate students queries since enrollment creates a student
+        queryClient.invalidateQueries({ 
+          queryKey: collegeKeys.students.root() 
+        }).catch(console.error);
+        
+        // Step 3: Refetch active queries (matches mutation hook pattern)
+        queryClient.refetchQueries({ 
+          queryKey: collegeKeys.reservations.root(), 
+          type: 'active',
+          exact: false 
+        }).catch(console.error);
+        
+        queryClient.refetchQueries({ 
+          queryKey: collegeKeys.students.root(), 
+          type: 'active' 
+        }).catch(console.error);
 
         // Set admission details for payment dialog
         setCreatedAdmissionNo(response.admission_no || "");
@@ -265,10 +298,19 @@ const ConfirmedReservationsTab = () => {
         reservation_date: editForm.reservation_date,
       };
       // Use mutation hook which handles cache invalidation automatically
+      // Following CACHE_REVIEW_ACADEMIC.md: mutation hook already invalidates and refetches
       await updateReservationMutation.mutateAsync(updatePayload);
 
-      // Additional invalidation
-      void queryClient.invalidateQueries({ queryKey: ["college", "reservations"] });
+      // Additional API cache clearing (mutation hook clears all, but we clear specific pattern for safety)
+      // Note: useMutationWithSuccessToast already clears all API cache, but we keep this for reservations
+      try {
+        CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
+      } catch (error) {
+        console.warn('Failed to clear API cache:', error);
+      }
+
+      // Wait for React Query to update the cache and React to process state updates
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       toast({
         title: "Reservation Updated",
@@ -311,6 +353,40 @@ const ConfirmedReservationsTab = () => {
         setReceiptBlobUrl(result.blobUrl);
         setShowReceiptModal(true);
         setShowPaymentDialog(false);
+
+        // Small delay to ensure backend has processed the payment
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Cache invalidation after payment (following CACHE_REVIEW_ACADEMIC.md pattern)
+        // Step 1: Clear API cache (matches useMutationWithSuccessToast pattern)
+        try {
+          CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
+        } catch (error) {
+          console.warn('Failed to clear API cache:', error);
+        }
+        
+        // Step 2: Invalidate queries (following mutation hook pattern)
+        queryClient.invalidateQueries({ 
+          queryKey: collegeKeys.reservations.root(),
+          exact: false 
+        }).catch(console.error);
+        
+        // Also invalidate students queries since payment affects student records
+        queryClient.invalidateQueries({ 
+          queryKey: collegeKeys.students.root() 
+        }).catch(console.error);
+        
+        // Step 3: Refetch active queries (matches mutation hook pattern)
+        queryClient.refetchQueries({ 
+          queryKey: collegeKeys.reservations.root(), 
+          type: 'active',
+          exact: false 
+        }).catch(console.error);
+        
+        queryClient.refetchQueries({ 
+          queryKey: collegeKeys.students.root(), 
+          type: 'active' 
+        }).catch(console.error);
       }
     } catch (error: any) {
       console.error("Payment error:", error);

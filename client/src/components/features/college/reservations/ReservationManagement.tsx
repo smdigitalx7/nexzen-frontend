@@ -7,6 +7,7 @@ import {
   useCreateCollegeReservation,
 } from "@/lib/hooks/college";
 import { collegeKeys } from "@/lib/hooks/college";
+import { CacheUtils } from "@/lib/api";
 
 import { motion } from "framer-motion";
 import { Label } from "@/components/ui/label";
@@ -1725,20 +1726,42 @@ export default function ReservationNew() {
       {/* Receipt Preview Modal - Shows PDF receipt after payment */}
       <ReceiptPreviewModal
         isOpen={showReceipt && !!receiptBlobUrl}
-        onClose={() => {
+        onClose={async () => {
           setShowReceipt(false);
           if (receiptBlobUrl) {
             URL.revokeObjectURL(receiptBlobUrl);
             setReceiptBlobUrl(null);
           }
           setPaymentIncomeRecord(null);
-          // After closing receipt, recall get all reservations API immediately
-          // Explicitly refetch the reservations list query to ensure fresh data from server
-          queryClient.refetchQueries({
-            queryKey: collegeKeys.reservations.list({}),
-            type: "active",
+          
+          // After closing receipt, ensure data is fresh (following CACHE_REVIEW_ACADEMIC.md pattern)
+          // Step 1: Clear API cache first to ensure fresh network request
+          try {
+            CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
+          } catch (error) {
+            console.warn('Failed to clear API cache:', error);
+          }
+          
+          // Step 2: Invalidate all reservation-related queries
+          queryClient.invalidateQueries({ 
+            queryKey: collegeKeys.reservations.root(),
+            exact: false 
+          }).catch(console.error);
+          
+          // Step 3: Force refetch active queries (bypasses cache)
+          await queryClient.refetchQueries({
+            queryKey: collegeKeys.reservations.root(),
+            type: 'active',
+            exact: false
           });
-          refetchReservations();
+          
+          // Step 4: Call refetch callback and wait for it to complete
+          if (refetchReservations) {
+            await refetchReservations();
+          }
+          
+          // Step 5: Wait for React Query to update the cache
+          await new Promise(resolve => setTimeout(resolve, 300));
         }}
         blobUrl={receiptBlobUrl}
       />
@@ -1767,15 +1790,34 @@ export default function ReservationNew() {
                   setReceiptBlobUrl(blobUrl);
                   setShowPaymentProcessor(false);
 
-                  // After application fee payment completed, recall get all reservations API immediately
-                  // Explicitly refetch the reservations list query to ensure fresh data from server
-                  await queryClient.refetchQueries({
-                    queryKey: collegeKeys.reservations.list({}),
-                    type: "active",
-                  });
+                  // Small delay to ensure backend has processed the payment
+                  await new Promise(resolve => setTimeout(resolve, 100));
+
+                  // Cache invalidation after payment (following CACHE_REVIEW_ACADEMIC.md pattern)
+                  // Step 1: Clear API cache (matches useMutationWithSuccessToast pattern)
+                  try {
+                    CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
+                  } catch (error) {
+                    console.warn('Failed to clear API cache:', error);
+                  }
+                  
+                  // Step 2: Invalidate queries (following mutation hook pattern)
+                  queryClient.invalidateQueries({ 
+                    queryKey: collegeKeys.reservations.root(),
+                    exact: false 
+                  }).catch(console.error);
+                  
+                  // Step 3: Refetch active queries (matches mutation hook pattern)
+                  queryClient.refetchQueries({ 
+                    queryKey: collegeKeys.reservations.root(), 
+                    type: 'active',
+                    exact: false 
+                  }).catch(console.error);
 
                   // Also call refetchReservations to ensure immediate API call
-                  await refetchReservations();
+                  if (refetchReservations) {
+                    await refetchReservations();
+                  }
 
                   // Show receipt modal after closing payment processor
                   setTimeout(() => {

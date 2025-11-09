@@ -28,6 +28,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useFormState } from "@/lib/hooks/common";
 import { PayrollsService } from "@/lib/services/general/payrolls.service";
 import { toast } from "@/hooks/use-toast";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 
 interface SalaryCalculationFormProps {
   isOpen: boolean;
@@ -44,6 +45,8 @@ export const SalaryCalculationForm = ({
 }: SalaryCalculationFormProps) => {
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [previewData, setPreviewData] = useState<PayrollPreview | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingPayrollData, setPendingPayrollData] = useState<PayrollCreate | null>(null);
 
   // Using shared form state management
   const {
@@ -173,7 +176,22 @@ export const SalaryCalculationForm = ({
       payment_notes: formData.payment_notes,
     };
 
-    onSubmit(payrollData);
+    // Store payroll data and show confirmation dialog
+    setPendingPayrollData(payrollData);
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmCreate = () => {
+    if (pendingPayrollData) {
+      onSubmit(pendingPayrollData);
+      setShowConfirmDialog(false);
+      setPendingPayrollData(null);
+    }
+  };
+
+  const handleCancelConfirm = () => {
+    setShowConfirmDialog(false);
+    setPendingPayrollData(null);
   };
 
   const handleInputChange = (field: string, value: any) => {
@@ -539,6 +557,52 @@ export const SalaryCalculationForm = ({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Confirm Payroll Creation"
+        description={
+          pendingPayrollData ? (
+            <div className="space-y-2 mt-2">
+              <p className="font-medium">Are you sure you want to create this payroll?</p>
+              <div className="bg-muted/50 p-3 rounded-md space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Employee:</span>
+                  <span className="font-medium">
+                    {employees.find(emp => emp.employee_id === pendingPayrollData.employee_id)?.employee_name || `ID: ${pendingPayrollData.employee_id}`}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Period:</span>
+                  <span className="font-medium">
+                    {new Date(0, pendingPayrollData.payroll_month - 1).toLocaleString('default', { month: 'long' })} {pendingPayrollData.payroll_year}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Paid Amount:</span>
+                  <span className="font-medium text-primary">
+                    {formatCurrency(pendingPayrollData.paid_amount)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Payment Method:</span>
+                  <span className="font-medium capitalize">
+                    {pendingPayrollData.payment_method.toLowerCase()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            "Are you sure you want to create this payroll?"
+          )
+        }
+        confirmText="Create Payroll"
+        cancelText="Cancel"
+        onConfirm={handleConfirmCreate}
+        onCancel={handleCancelConfirm}
+      />
     </Dialog>
   );
 };

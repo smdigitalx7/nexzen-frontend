@@ -622,7 +622,14 @@ export async function api<T = unknown>({
           message =
             "Access forbidden. You don't have permission to perform this action.";
         } else if (res.status === 404) {
-          message = "Resource not found.";
+          // Use the detail message from API if available (already extracted above), 
+          // otherwise use generic message
+          // The message variable already contains the API detail/message from line 614
+          // Only use generic message if we don't have a specific API message
+          if (message === res.statusText || message === "Request failed") {
+            message = "Resource not found.";
+          }
+          // If message already contains API detail/message, keep it as is
         } else if (res.status === 422) {
           // Handle validation errors - detail can be an array of error objects
           if (isJson && (data as any)?.detail) {
