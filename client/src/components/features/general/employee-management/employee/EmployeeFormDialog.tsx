@@ -71,15 +71,6 @@ const EmployeeFormDialog = ({ open, onOpenChange, isEditing, formData, onChange,
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="employee_code">Employee Code *</Label>
-              <Input
-                id="employee_code"
-                value={formData.employee_code || ''}
-                onChange={(e) => onChange("employee_code", e.target.value)}
-                required
-              />
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

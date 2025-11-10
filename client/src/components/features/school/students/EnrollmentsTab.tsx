@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { EnhancedDataTable } from '@/components/shared';
 import {
   EnrollmentSearchForm,
@@ -12,11 +13,15 @@ import {
 } from '@/lib/hooks/school';
 // Note: useSchoolClasses, useSchoolSections from dropdowns (naming conflict)
 import { useSchoolClasses, useSchoolSections } from '@/lib/hooks/school/use-school-dropdowns';
+import { schoolKeys } from '@/lib/hooks/school/query-keys';
+import { CacheUtils } from '@/lib/api';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SchoolEnrollmentRead } from '@/lib/types/school';
 import { formatDate } from '@/lib/utils/formatting/date';
 
 const EnrollmentsTabComponent = () => {
+  const queryClient = useQueryClient();
+  
   // State management
   const [query, setQuery] = useState<{ class_id: number | ''; section_id?: number | ''; admission_no?: string }>({ 
     class_id: '', 
@@ -82,12 +87,43 @@ const EnrollmentsTabComponent = () => {
   }, []);
 
   // Handle edit success - refresh data and reopen view
-  const handleEditSuccess = useCallback(() => {
-    if (viewEnrollmentId) {
-      // Refetch enrollment data
-      // The query will automatically refetch due to cache invalidation
+  const handleEditSuccess = useCallback(async () => {
+    // Comprehensive cache invalidation after edit (matching reservation pattern)
+    // Step 1: Clear API cache first to ensure fresh network request
+    try {
+      CacheUtils.clearByPattern(/GET:.*\/school\/enrollments/i);
+    } catch (error) {
+      console.warn('Failed to clear API cache:', error);
     }
-  }, [viewEnrollmentId]);
+
+    // Step 2: Remove queries from cache to force fresh fetch (bypasses staleTime)
+    queryClient.removeQueries({ 
+      queryKey: schoolKeys.enrollments.root(),
+      exact: false 
+    });
+
+    // Step 3: Invalidate all enrollment-related queries
+    await queryClient.invalidateQueries({
+      queryKey: schoolKeys.enrollments.root(),
+      exact: false,
+    });
+
+    // Step 4: Force refetch active queries (bypasses cache)
+    await queryClient.refetchQueries({
+      queryKey: schoolKeys.enrollments.root(),
+      type: "active",
+      exact: false,
+    });
+
+    // Step 5: Also invalidate student queries since student data was updated
+    await queryClient.invalidateQueries({
+      queryKey: schoolKeys.students.root(),
+      exact: false,
+    });
+
+    // Step 6: Wait for React Query to update the cache
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }, [queryClient]);
 
   // Memoized handlers
   const handleSectionChange = useCallback((value: string) => {
@@ -219,10 +255,11 @@ const EnrollmentsTabComponent = () => {
       <EnhancedDataTable
         data={flatData}
         columns={columns}
-        title="Enrollments"
+        title="Student Enrollments"
         searchKey="student_name"
         searchPlaceholder="Search by student name..."
         loading={isLoading}
+        exportable={true}
         showActions={true}
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"

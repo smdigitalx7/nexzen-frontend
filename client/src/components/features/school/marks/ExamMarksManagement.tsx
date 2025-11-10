@@ -417,6 +417,18 @@ const ExamMarksManagementComponent = ({
             {/* Unified Filter Controls */}
             <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Exam:</label>
+                <SchoolExamDropdown
+                  value={selectedExam}
+                  onChange={handleExamChange}
+                  placeholder="Select exam"
+                  emptyValue
+                  emptyValueLabel="Select exam"
+                  className="w-40"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
                 <label className="text-sm font-medium">Class:</label>
                 <SchoolClassDropdown
                   value={selectedClass}
@@ -475,18 +487,6 @@ const ExamMarksManagementComponent = ({
                     <SelectItem value="F">F</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Exam:</label>
-                <SchoolExamDropdown
-                  value={selectedExam}
-                  onChange={handleExamChange}
-                  placeholder="Select exam"
-                  emptyValue
-                  emptyValueLabel="Select exam"
-                  className="w-40"
-                />
               </div>
             </div>
 

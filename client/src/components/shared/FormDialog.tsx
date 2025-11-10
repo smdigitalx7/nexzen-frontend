@@ -73,8 +73,7 @@ export const FormDialog: React.FC<FormDialogProps> = ({
   onStatusChange,
   statusOptions = [
     { value: 'ACTIVE', label: 'ACTIVE', color: 'bg-green-100 text-green-800 border-green-200' },
-    { value: 'INACTIVE', label: 'INACTIVE', color: 'bg-red-100 text-red-800 border-red-200' },
-    { value: 'ON_LEAVE', label: 'ON_LEAVE', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+    { value: 'TERMINATED', label: 'TERMINATED', color: 'bg-red-100 text-red-800 border-red-200' },
   ],
   getStatusColor = (status: string) => {
     const option = statusOptions.find(opt => opt.value === status);

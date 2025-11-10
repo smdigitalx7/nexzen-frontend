@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
 import { useTabNavigation } from "../use-tab-navigation";
 import { toast } from "@/hooks/use-toast";
+import { CacheUtils } from "@/lib/api";
 import {
   useEmployeesByBranch,
   useEmployee,
@@ -17,6 +18,7 @@ import {
   useAttendance,
   useCreateAttendance,
   useUpdateAttendance,
+  useUpdateIndividualAttendance,
   useDeleteAttendance,
   useAttendanceByBranch,
 } from "@/lib/hooks/general/useEmployeeAttendance";
@@ -65,7 +67,7 @@ export interface EmployeeRead {
   department: string;
   date_of_joining: string;
   salary: number;
-  status: "ACTIVE" | "INACTIVE" | "TERMINATED";
+  status: "ACTIVE" | "TERMINATED";
   branch_id: number;
   created_at: string;
   updated_at: string;
@@ -149,6 +151,7 @@ export const useEmployeeManagement = (
 
   const createAttendanceMutation = useCreateAttendance();
   const updateAttendanceMutation = useUpdateAttendance();
+  const updateIndividualAttendanceMutation = useUpdateIndividualAttendance();
   const deleteAttendanceMutation = useDeleteAttendance();
 
   const createLeaveMutation = useCreateEmployeeLeave();
@@ -380,11 +383,16 @@ export const useEmployeeManagement = (
       await EmployeeAttendanceService.create(data);
       setShowAttendanceForm(false);
       
+      // Clear API cache for employee-attendances endpoints
+      CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
+      
       // Aggressive cache invalidation for immediate UI updates
-      queryClient.removeQueries({ queryKey: ['employee-attendances'] });
-      queryClient.invalidateQueries({ queryKey: ['employee-attendances'] });
+      // Invalidate all attendance-related queries using the proper key structure
+      queryClient.removeQueries({ queryKey: ['employee-attendances'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['employee-attendances'], exact: false });
       await queryClient.refetchQueries({
         queryKey: ['employee-attendances'],
+        exact: false,
         type: 'active'
       });
       
@@ -410,21 +418,20 @@ export const useEmployeeManagement = (
       await EmployeeAttendanceService.createBulk(data);
       setShowAttendanceBulkCreateDialog(false);
       
-      // Aggressive cache invalidation for immediate UI updates
-      // Remove query data to force fresh fetch
-      queryClient.removeQueries({ queryKey: ['employee-attendances'] });
+      // Clear API cache for employee-attendances endpoints
+      CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
       
-      // Invalidate all attendance-related queries
-      queryClient.invalidateQueries({ queryKey: ['employee-attendances'] });
+      // Aggressive cache invalidation for immediate UI updates
+      // Invalidate all attendance-related queries using the proper key structure
+      queryClient.removeQueries({ queryKey: ['employee-attendances'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['employee-attendances'], exact: false });
       
       // Force refetch active queries
       await queryClient.refetchQueries({
         queryKey: ['employee-attendances'],
+        exact: false,
         type: 'active'
       });
-      
-      // Wait for React to process state updates
-      await new Promise(resolve => setTimeout(resolve, 200));
       
       toast({
         title: "Bulk Attendance Created",
@@ -445,19 +452,31 @@ export const useEmployeeManagement = (
   };
 
   const handleUpdateAttendance = async (
-    id: number,
-    data: EmployeeAttendanceUpdate
+    employeeId: number,
+    month: number,
+    year: number
   ) => {
     try {
-      await updateAttendanceMutation.mutateAsync({ id, payload: data });
+      await updateIndividualAttendanceMutation.mutateAsync({
+        employee_id: employeeId,
+        month,
+        year,
+      });
       setShowAttendanceForm(false);
       setIsEditingAttendance(false);
       
+      // Clear API cache for employee-attendances endpoints
+      CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
+      
       // Aggressive cache invalidation for immediate UI updates
-      queryClient.removeQueries({ queryKey: ['employee-attendances'] });
-      queryClient.invalidateQueries({ queryKey: ['employee-attendances'] });
+      // Invalidate all attendance-related queries using the proper key structure
+      queryClient.removeQueries({ queryKey: ['employee-attendances'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['employee-attendances'], exact: false });
+      
+      // Force refetch all active attendance queries
       await queryClient.refetchQueries({
         queryKey: ['employee-attendances'],
+        exact: false,
         type: 'active'
       });
     } catch (error) {
@@ -471,11 +490,16 @@ export const useEmployeeManagement = (
       setShowAttendanceForm(false);
       setIsEditingAttendance(false);
       
+      // Clear API cache for employee-attendances endpoints
+      CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
+      
       // Aggressive cache invalidation for immediate UI updates
-      queryClient.removeQueries({ queryKey: ['employee-attendances'] });
-      queryClient.invalidateQueries({ queryKey: ['employee-attendances'] });
+      // Invalidate all attendance-related queries using the proper key structure
+      queryClient.removeQueries({ queryKey: ['employee-attendances'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['employee-attendances'], exact: false });
       await queryClient.refetchQueries({
         queryKey: ['employee-attendances'],
+        exact: false,
         type: 'active'
       });
       
@@ -500,11 +524,16 @@ export const useEmployeeManagement = (
       await deleteAttendanceMutation.mutateAsync(id);
       setShowAttendanceDeleteDialog(false);
       
+      // Clear API cache for employee-attendances endpoints
+      CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
+      
       // Aggressive cache invalidation for immediate UI updates
-      queryClient.removeQueries({ queryKey: ['employee-attendances'] });
-      queryClient.invalidateQueries({ queryKey: ['employee-attendances'] });
+      // Invalidate all attendance-related queries using the proper key structure
+      queryClient.removeQueries({ queryKey: ['employee-attendances'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['employee-attendances'], exact: false });
       await queryClient.refetchQueries({
         queryKey: ['employee-attendances'],
+        exact: false,
         type: 'active'
       });
     } catch (error) {

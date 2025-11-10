@@ -85,9 +85,10 @@ export const EmployeesService = {
 
   /**
    * Update employee status only
+   * Uses PATCH /employees/{id}/status endpoint
    */
   updateStatus(id: number, status: string): Promise<EmployeeRead> {
-    return Api.put<EmployeeRead>(`/employees/${id}`, { status });
+    return Api.patch<EmployeeRead>(`/employees/${id}/status`, { status });
   },
 };
 

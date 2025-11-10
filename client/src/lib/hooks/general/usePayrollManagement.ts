@@ -113,11 +113,6 @@ export const usePayrollManagement = () => {
     queryFn: () => PayrollsService.getDashboard(),
   });
 
-  const { data: pendingCount } = useQuery({
-    queryKey: ["payrolls", "pending-count"],
-    queryFn: () => PayrollsService.getPendingCount(),
-  });
-
   // Detailed payroll query for view functionality
   const { data: detailedPayroll, isLoading: detailedPayrollLoading } = useQuery({
     queryKey: payrollKeys.detail(selectedPayrollId || 0),
@@ -433,7 +428,6 @@ export const usePayrollManagement = () => {
     totalAmount,
     paidAmount,
     pendingAmount,
-    pendingCount: pendingCount || 0,
     dashboardStats,
 
     // UI State

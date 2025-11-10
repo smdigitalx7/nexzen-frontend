@@ -43,11 +43,20 @@ import {
   PaginationItem,
 } from "@/components/ui/pagination";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import {
   Download,
   RefreshCw,
   Loader2,
   Eye,
   ChevronLeft,
+  AlertCircle,
   ChevronRight,
 } from "lucide-react";
 import {
@@ -718,6 +727,16 @@ function LogsTab() {
               </Button>
             </div>
           </div>
+          {(!startDate || !endDate) && (
+            <div className="mt-4">
+              <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800">
+                <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+                  Please select both <strong>Start Date</strong> and <strong>End Date</strong> to preview the logs and delete logs.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -735,24 +754,37 @@ function LogsTab() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={handlePreviewDelete}
-                disabled={
-                  !startDate ||
-                  !endDate ||
-                  previewDeleteMutation.isPending ||
-                  isLoading
-                }
-              >
-                {previewDeleteMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-                Preview Delete
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button
+                        variant="outline"
+                        className="gap-2"
+                        onClick={handlePreviewDelete}
+                        disabled={
+                          !startDate ||
+                          !endDate ||
+                          previewDeleteMutation.isPending ||
+                          isLoading
+                        }
+                      >
+                        {previewDeleteMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                        Preview & Delete
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {(!startDate || !endDate) && (
+                    <TooltipContent>
+                      <p>Please select both Start Date and End Date to preview logs</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </CardHeader>
@@ -897,48 +929,40 @@ function LogsTab() {
           )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+            <Button
               onClick={() => {
                 setShowPreviewDialog(false);
-                setShowDeleteDialog(true);
+                setTimeout(() => {
+                  setShowDeleteDialog(true);
+                }, 200);
               }}
               className="bg-red-600 hover:bg-red-700"
             >
               Confirm Delete
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {previewData?.count || 0} audit
-              log(s)? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={deleteLogsMutation.isPending}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {deleteLogsMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                "Delete"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Confirm Deletion"
+        description={
+          <>
+            Are you sure you want to delete <strong>{previewData?.count || 0}</strong> audit
+            log(s)? This action cannot be undone.
+          </>
+        }
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+        isLoading={deleteLogsMutation.isPending}
+        loadingText="Deleting..."
+        onConfirm={handleDelete}
+        onCancel={() => setShowDeleteDialog(false)}
+      />
     </div>
   );
 }

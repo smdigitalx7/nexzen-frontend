@@ -8,7 +8,11 @@ export function useSchoolTestMarksList(params?: TestMarksQuery) {
   return useQuery({
     queryKey: schoolKeys.testMarks.list(params as Record<string, unknown> | undefined),
     queryFn: () => SchoolTestMarksService.list(params),
-    enabled: typeof params?.class_id === "number" && (params?.class_id) > 0,
+    enabled: 
+      typeof params?.class_id === "number" && 
+      params.class_id > 0 &&
+      typeof params?.test_id === "number" && 
+      params.test_id > 0,
   });
 }
 

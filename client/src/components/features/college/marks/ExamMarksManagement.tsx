@@ -1112,6 +1112,14 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
           >
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
+              <CollegeExamDropdown
+                value={selectedExam}
+                onChange={setSelectedExam}
+                placeholder="All Exams"
+                className="w-full sm:w-[150px]"
+                emptyValue
+                emptyValueLabel="All Exams"
+              />
               <CollegeClassDropdown
                 value={selectedClass}
                 onChange={setSelectedClass}
@@ -1135,14 +1143,6 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
                 className="w-full sm:w-[150px]"
                 emptyValue
                 emptyValueLabel="All Subjects"
-              />
-              <CollegeExamDropdown
-                value={selectedExam}
-                onChange={setSelectedExam}
-                placeholder="All Exams"
-                className="w-full sm:w-[150px]"
-                emptyValue
-                emptyValueLabel="All Exams"
               />
             </div>
 

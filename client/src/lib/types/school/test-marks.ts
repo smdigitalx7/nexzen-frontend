@@ -111,5 +111,5 @@ export interface TestMarksQuery {
   class_id: number; // Required
   subject_id?: number;
   section_id?: number;
-  test_id?: number;
+  test_id: number; // Required
 }

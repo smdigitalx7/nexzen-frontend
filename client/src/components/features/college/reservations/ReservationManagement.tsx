@@ -845,25 +845,59 @@ export default function ReservationNew() {
         payload
       );
 
-      // Invalidate and refetch all reservation-related queries
+      // Comprehensive cache invalidation after update (matching school pattern)
+      // Step 1: Clear API cache first to ensure fresh network request
+      try {
+        CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
+      } catch (error) {
+        console.warn('Failed to clear API cache:', error);
+      }
+
+      // Step 2: Remove queries from cache to force fresh fetch (bypasses staleTime)
+      queryClient.removeQueries({ 
+        queryKey: collegeKeys.reservations.root(),
+        exact: false 
+      });
+
+      // Step 3: Invalidate all reservation-related queries
       await queryClient.invalidateQueries({
         queryKey: collegeKeys.reservations.root(),
+        exact: false,
       });
+
+      // Step 4: Force refetch active queries (bypasses cache)
       await queryClient.refetchQueries({
         queryKey: collegeKeys.reservations.root(),
         type: "active",
+        exact: false,
       });
+
+      // Step 5: Call refetch callback and wait for it to complete
       await refetchReservations();
+
+      // Step 6: Wait for React Query to update the cache
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       toast({
         title: "Reservation Updated",
         description: "Reservation details have been updated successfully.",
         variant: "success",
       });
+      
+      // Reset state before closing dialog
+      setEditForm(null);
+      setSelectedReservation(null);
       setShowEditDialog(false);
     } catch (e: any) {
       console.error("Failed to update reservation:", e);
-      // Error toast is handled by mutation hook
+      toast({
+        title: "Update Failed",
+        description:
+          e?.response?.data?.detail ||
+          e?.message ||
+          "Failed to update reservation. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -1522,7 +1556,17 @@ export default function ReservationNew() {
       </Dialog>
 
       {/* Edit Reservation Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+      <Dialog
+        open={showEditDialog}
+        onOpenChange={(open) => {
+          setShowEditDialog(open);
+          if (!open) {
+            // Reset state when dialog closes
+            setEditForm(null);
+            setSelectedReservation(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Edit Reservation</DialogTitle>

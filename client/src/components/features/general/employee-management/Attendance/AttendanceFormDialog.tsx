@@ -30,7 +30,7 @@ const AttendanceFormDialog = ({ open, onOpenChange, isEditing, employees, formDa
     return (
       (!isEditing ? (formData.employee_id && formData.employee_id > 0) : true) &&
       formData.attendance_month && typeof formData.attendance_month === 'string' && formData.attendance_month.trim() !== "" &&
-      formData.total_working_days > 0
+      (!isEditing ? formData.total_working_days > 0 : true)
     );
   };
 
@@ -67,11 +67,11 @@ const AttendanceFormDialog = ({ open, onOpenChange, isEditing, employees, formDa
           )}
           
           {isEditing && (
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                This will update attendance records for all employees in your branch for the selected month and year. 
-                Paid and unpaid leaves will be recalculated from approved leave records.
+            <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <AlertDescription className="text-blue-800 dark:text-blue-200">
+                This will update the attendance record for the selected employee. 
+                Paid and unpaid leaves will be automatically recalculated from approved leave records based on the existing total working days.
               </AlertDescription>
             </Alert>
           )}
@@ -110,21 +110,39 @@ const AttendanceFormDialog = ({ open, onOpenChange, isEditing, employees, formDa
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="total_working_days">Total Working Days *</Label>
-            <Input
-              id="total_working_days"
-              type="number"
-              value={formData.total_working_days}
-              onChange={(e) => onChange("total_working_days", parseInt(e.target.value) || 0)}
-              min="1"
-              required
-              placeholder="Enter total working days in the month"
-            />
-            <p className="text-sm text-muted-foreground mt-1">
-              Total number of working days in the selected month
-            </p>
-          </div>
+          {!isEditing && (
+            <div>
+              <Label htmlFor="total_working_days">Total Working Days *</Label>
+              <Input
+                id="total_working_days"
+                type="number"
+                value={formData.total_working_days}
+                onChange={(e) => onChange("total_working_days", parseInt(e.target.value) || 0)}
+                min="1"
+                required
+                placeholder="Enter total working days in the month"
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                Total number of working days in the selected month
+              </p>
+            </div>
+          )}
+          
+          {isEditing && formData.total_working_days > 0 && (
+            <div>
+              <Label htmlFor="total_working_days">Total Working Days (Read-only)</Label>
+              <Input
+                id="total_working_days"
+                type="number"
+                value={formData.total_working_days}
+                disabled
+                className="bg-muted"
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                Total working days cannot be changed when updating individual attendance. Only paid and unpaid leaves will be recalculated.
+              </p>
+            </div>
+          )}
 
         </form>
     </FormDialog>

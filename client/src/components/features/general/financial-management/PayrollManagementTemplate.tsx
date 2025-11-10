@@ -442,9 +442,6 @@ export const PayrollManagementTemplateComponent = () => {
   const pendingAmount = typeof managementData.pendingAmount === 'number' 
     ? managementData.pendingAmount 
     : 0;
-  const pendingCount = typeof managementData.pendingCount === 'number' 
-    ? managementData.pendingCount 
-    : 0;
   
   const {
     // UI State
@@ -570,7 +567,6 @@ export const PayrollManagementTemplateComponent = () => {
         totalAmount={totalAmount}
         paidAmount={paidAmount}
         pendingAmount={pendingAmount}
-        pendingCount={pendingCount}
         currentBranch={currentBranch}
       />
     );
@@ -581,7 +577,6 @@ export const PayrollManagementTemplateComponent = () => {
     totalAmount,
     paidAmount,
     pendingAmount,
-    pendingCount,
     currentBranch,
   ]);
 

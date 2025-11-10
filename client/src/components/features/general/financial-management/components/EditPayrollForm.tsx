@@ -1,16 +1,23 @@
-import React from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import { FormDialog } from "@/components/shared";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import type { PayrollUpdate } from "@/lib/types/general/payrolls";
+import type { PayrollUpdate, PayrollRead } from "@/lib/types/general/payrolls";
 import { useFormState } from "@/lib/hooks/common";
 import { toast } from "@/hooks/use-toast";
+
+interface PayrollWithEmployee extends Omit<PayrollRead, "payroll_month"> {
+  employee_name: string;
+  employee_type?: string;
+  payroll_month: number; // Changed from string to number to match API
+  payroll_year: number;
+}
 
 interface EditPayrollFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: PayrollUpdate) => void;
-  selectedPayroll: any;
+  selectedPayroll: PayrollWithEmployee | null;
 }
 
 export const EditPayrollForm = ({
@@ -19,17 +26,55 @@ export const EditPayrollForm = ({
   onSubmit,
   selectedPayroll,
 }: EditPayrollFormProps) => {
+  // Memoize initial data to prevent recreation on every render
+  const initialData = useMemo(() => ({
+    other_deductions: selectedPayroll?.other_deductions || 0,
+    advance_amount: selectedPayroll?.advance_deduction || 0,
+    paid_amount: selectedPayroll?.paid_amount || 0,
+    payment_notes: selectedPayroll?.payment_notes || "",
+  }), [selectedPayroll?.payroll_id, selectedPayroll?.other_deductions, selectedPayroll?.advance_deduction, selectedPayroll?.paid_amount, selectedPayroll?.payment_notes]);
+
   const {
     formData,
     updateField,
+    setFormData,
+    resetForm,
   } = useFormState({
-    initialData: {
-      other_deductions: selectedPayroll?.other_deductions || 0,
-      advance_amount: selectedPayroll?.advance_deduction || 0,
-      paid_amount: selectedPayroll?.paid_amount || 0,
-      payment_notes: selectedPayroll?.payment_notes || "",
-    }
+    initialData
   });
+
+  // Track previous payroll ID to avoid unnecessary updates
+  const prevPayrollIdRef = useRef<number | null>(null);
+
+  // Reset form data when selectedPayroll changes (only when payroll_id changes)
+  useEffect(() => {
+    if (selectedPayroll && isOpen) {
+      const currentPayrollId = selectedPayroll.payroll_id;
+      
+      // Only update if payroll_id actually changed
+      if (prevPayrollIdRef.current !== currentPayrollId) {
+        setFormData({
+          other_deductions: selectedPayroll.other_deductions || 0,
+          advance_amount: selectedPayroll.advance_deduction || 0,
+          paid_amount: selectedPayroll.paid_amount || 0,
+          payment_notes: selectedPayroll.payment_notes || "",
+        });
+        prevPayrollIdRef.current = currentPayrollId;
+      }
+    } else if (!selectedPayroll) {
+      prevPayrollIdRef.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPayroll?.payroll_id, isOpen]);
+
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      prevPayrollIdRef.current = null;
+      resetForm();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +89,19 @@ export const EditPayrollForm = ({
     }
 
     // Validate payment information for update
-    if (formData.paid_amount === undefined || formData.paid_amount === null || Number(formData.paid_amount) < 0) {
+    // Handle undefined, null, or invalid numbers
+    // Note: formData.paid_amount can be number | undefined, but input may temporarily be empty string
+    const paidAmountValue = formData.paid_amount as number | string | undefined;
+    const paidAmount = 
+      paidAmountValue === "" || 
+      paidAmountValue === undefined || 
+      paidAmountValue === null
+        ? null
+        : typeof paidAmountValue === "number"
+        ? paidAmountValue
+        : Number(paidAmountValue);
+    
+    if (paidAmount === null || isNaN(paidAmount) || paidAmount < 0) {
       toast({
         title: "Validation Error",
         description: "Paid amount is required and must be greater than or equal to 0",
@@ -65,7 +122,7 @@ export const EditPayrollForm = ({
     const payrollData: PayrollUpdate = {
       other_deductions: Number(formData.other_deductions) || 0,
       advance_amount: Number(formData.advance_amount) || 0,
-      paid_amount: Number(formData.paid_amount),
+      paid_amount: paidAmount,
       payment_notes: formData.payment_notes,
     };
 
@@ -104,19 +161,17 @@ export const EditPayrollForm = ({
           <Label htmlFor="other_deductions" className="text-sm font-medium">
             Other Deductions
           </Label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm font-bold text-muted-foreground">₹</span>
-            <Input
-              type="number"
-              id="other_deductions"
-              value={formData.other_deductions}
-              onChange={(e) => handleInputChange("other_deductions", Number(e.target.value))}
-              placeholder="0"
-              className="pl-10 h-11"
-              min="0"
-              step="0.01"
-            />
-          </div>
+          <Input
+            type="number"
+            id="other_deductions"
+            value={formData.other_deductions}
+            onChange={(e) => handleInputChange("other_deductions", Number(e.target.value))}
+            placeholder="0"
+            leftIcon={<span className="text-sm font-bold">₹</span>}
+            className="h-11"
+            min="0"
+            step="0.01"
+          />
         </div>
 
         {/* Advance Amount */}
@@ -124,19 +179,17 @@ export const EditPayrollForm = ({
           <Label htmlFor="advance_amount" className="text-sm font-medium">
             Advance Amount
           </Label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm font-bold text-muted-foreground">₹</span>
-            <Input
-              type="number"
-              id="advance_amount"
-              value={formData.advance_amount}
-              onChange={(e) => handleInputChange("advance_amount", Number(e.target.value))}
-              placeholder="0"
-              className="pl-10 h-11"
-              min="0"
-              step="0.01"
-            />
-          </div>
+          <Input
+            type="number"
+            id="advance_amount"
+            value={formData.advance_amount}
+            onChange={(e) => handleInputChange("advance_amount", Number(e.target.value))}
+            placeholder="0"
+            leftIcon={<span className="text-sm font-bold">₹</span>}
+            className="h-11"
+            min="0"
+            step="0.01"
+          />
         </div>
 
         {/* Paid Amount */}
@@ -144,19 +197,17 @@ export const EditPayrollForm = ({
           <Label htmlFor="paid_amount" className="text-sm font-medium">
             Paid Amount <span className="text-red-500">*</span>
           </Label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm font-bold text-muted-foreground">₹</span>
-            <Input
-              type="number"
-              id="paid_amount"
-              value={formData.paid_amount || ""}
-              onChange={(e) => handleInputChange("paid_amount", e.target.value === "" ? "" : Number(e.target.value))}
-              placeholder="Enter paid amount"
-              className="pl-10 h-11"
-              min="0"
-              required
-            />
-          </div>
+          <Input
+            type="number"
+            id="paid_amount"
+            value={formData.paid_amount || ""}
+            onChange={(e) => handleInputChange("paid_amount", e.target.value === "" ? "" : Number(e.target.value))}
+            placeholder="Enter paid amount"
+            leftIcon={<span className="text-sm font-bold">₹</span>}
+            className="h-11"
+            min="0"
+            required
+          />
         </div>
 
         {/* Payment Notes */}

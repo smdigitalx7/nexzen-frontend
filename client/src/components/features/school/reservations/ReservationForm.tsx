@@ -582,7 +582,10 @@ const ReservationFormComponent = ({
   ]);
 
   const handleClearForm = useCallback(() => {
-    setForm(initialFormState);
+    setForm({
+      ...initialFormState,
+      reservation_date: new Date().toISOString().split("T")[0],
+    });
   }, [setForm]);
 
   const addSibling = useCallback(() => {
@@ -953,11 +956,13 @@ const ReservationFormComponent = ({
                 <Label htmlFor="remarks">Remarks</Label>
                 <Textarea
                   id="remarks"
+                  name="remarks"
                   value={form.remarks}
                   onChange={(e) =>
                     setForm({ ...form, remarks: e.target.value })
                   }
                   rows={2}
+                  autoComplete="off"
                 />
               </div>
             </div>

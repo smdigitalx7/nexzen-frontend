@@ -4,6 +4,8 @@ import type {
   EmployeeAttendanceRead, 
   EmployeeAttendanceCreate, 
   EmployeeAttendanceUpdate,
+  IndividualAttendanceCreateRequest,
+  IndividualAttendanceUpdateRequest,
   AttendanceListResponse,
   AttendanceDashboardStats
 } from '@/lib/types/general/employee-attendance';
@@ -56,7 +58,7 @@ export const useCreateAttendance = () => {
   const { invalidateEntity } = useGlobalRefetch();
   
   return useMutationWithSuccessToast({
-    mutationFn: (data: EmployeeAttendanceCreate) => EmployeeAttendanceService.create(data),
+    mutationFn: (data: IndividualAttendanceCreateRequest) => EmployeeAttendanceService.create(data),
     onSuccess: () => {
       invalidateEntity("employeeAttendances");
     },
@@ -69,6 +71,18 @@ export const useUpdateAttendance = () => {
   return useMutationWithSuccessToast({
     mutationFn: ({ id, payload }: { id: number; payload: EmployeeAttendanceUpdate }) => 
       EmployeeAttendanceService.update(id, payload),
+    onSuccess: () => {
+      invalidateEntity("employeeAttendances");
+    },
+  }, "Attendance record updated successfully");
+};
+
+export const useUpdateIndividualAttendance = () => {
+  const { invalidateEntity } = useGlobalRefetch();
+  
+  return useMutationWithSuccessToast({
+    mutationFn: (payload: IndividualAttendanceUpdateRequest) => 
+      EmployeeAttendanceService.updateIndividual(payload),
     onSuccess: () => {
       invalidateEntity("employeeAttendances");
     },

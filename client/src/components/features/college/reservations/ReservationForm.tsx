@@ -294,7 +294,7 @@ export default function ReservationForm({
       status: "PENDING",
       referred_by: 0,
       remarks: "",
-      reservation_date: "",
+      reservation_date: new Date().toISOString().split("T")[0],
     });
   };
 
@@ -1021,11 +1021,13 @@ export default function ReservationForm({
                 <Label htmlFor="remarks">Remarks</Label>
                 <Textarea
                   id="remarks"
+                  name="remarks"
                   value={form.remarks}
                   onChange={(e) =>
                     setForm({ ...form, remarks: e.target.value })
                   }
                   rows={2}
+                  autoComplete="off"
                 />
               </div>
             </div>

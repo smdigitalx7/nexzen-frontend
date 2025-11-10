@@ -99,9 +99,21 @@ export const EmployeeAttendanceService = {
    * @param id - Attendance ID
    * @param payload - Attendance update data
    * @returns Promise<EmployeeAttendanceRead> - Updated attendance details
+   * @deprecated Use updateIndividual instead
    */
   update(id: number, payload: EmployeeAttendanceUpdate): Promise<EmployeeAttendanceRead> {
     return Api.put<EmployeeAttendanceRead>(`/employee-attendances/${id}`, payload);
+  },
+
+  /**
+   * Update individual attendance record for a single employee
+   * Recalculates paid and unpaid leaves based on approved leave records.
+   * Only updates if there are actual changes. Prevents updating if payroll already exists.
+   * @param payload - Individual attendance update data (employee_id, month, year)
+   * @returns Promise<EmployeeAttendanceRead> - Updated attendance details
+   */
+  updateIndividual(payload: IndividualAttendanceUpdateRequest): Promise<EmployeeAttendanceRead> {
+    return Api.put<EmployeeAttendanceRead>("/employee-attendances/individual", payload);
   },
 
   /**

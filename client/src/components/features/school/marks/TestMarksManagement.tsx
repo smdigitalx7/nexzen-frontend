@@ -257,19 +257,20 @@ const TestMarksManagementComponent = ({
   const viewTestLoading = viewingTestMarkId ? viewQuery.isLoading : false;
   const viewTestError = viewingTestMarkId ? viewQuery.error : null;
 
-  // Test marks query - only filter by class (server-side)
+  // Test marks query - require both class and test (server-side)
   const testMarksQuery = useMemo(() => {
-    if (!selectedClass) {
+    if (!selectedClass || !selectedTest) {
       return undefined;
     }
 
-    // Only fetch by class, let client-side handle other filters
+    // Require both class_id and test_id for API call
     const query: TestMarksQuery = {
       class_id: selectedClass,
+      test_id: selectedTest,
     };
 
     return query;
-  }, [selectedClass]);
+  }, [selectedClass, selectedTest]);
 
   // Test marks hooks - only fetch when class is selected
   const {
@@ -1155,6 +1156,19 @@ const TestMarksManagementComponent = ({
             {/* Unified Filter Controls */}
             <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Test:</label>
+                <SchoolTestDropdown
+                  value={selectedTest}
+                  onChange={handleTestChange}
+                  placeholder={selectedClass ? "Select test" : "Select class first"}
+                  emptyValue
+                  emptyValueLabel={selectedClass ? "Select test" : "Select class first"}
+                  className="w-40"
+                  disabled={!selectedClass}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
                 <label className="text-sm font-medium">Class:</label>
                 <SchoolClassDropdown
                   value={selectedClass}
@@ -1211,18 +1225,6 @@ const TestMarksManagementComponent = ({
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Test:</label>
-                <SchoolTestDropdown
-                  value={selectedTest}
-                  onChange={handleTestChange}
-                  placeholder="Select test"
-                  emptyValue
-                  emptyValueLabel="Select test"
-                  className="w-40"
-                />
-              </div>
             </div>
 
             {/* Data Table */}
@@ -1234,11 +1236,26 @@ const TestMarksManagementComponent = ({
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900">
-                      Select a Class
+                      Select a Class and Test
                     </h3>
                     <p className="text-slate-600 mt-1">
-                      Please select a class from the dropdown above to view test
-                      marks.
+                      Please select a class and test from the dropdowns above to view test marks.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ) : !selectedTest ? (
+              <Card className="p-8 text-center">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                    <ClipboardList className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Select a Test
+                    </h3>
+                    <p className="text-slate-600 mt-1">
+                      Please select a test from the dropdown above to view test marks for the selected class.
                     </p>
                   </div>
                 </div>

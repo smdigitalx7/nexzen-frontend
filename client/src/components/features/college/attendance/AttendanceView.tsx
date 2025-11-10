@@ -6,12 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 import { CollegeClassDropdown, CollegeGroupDropdown } from '@/components/shared/Dropdowns';
-import { useCollegeAttendance, useDeleteCollegeAttendance, useCollegeClassGroups } from '@/lib/hooks/college';
+import { useCollegeAttendance, useCollegeClassGroups } from '@/lib/hooks/college';
 import { useToast } from '@/hooks/use-toast';
 import { CollegeAttendanceService } from '@/lib/services/college';
 import { collegeKeys } from '@/lib/hooks/college/query-keys';
@@ -22,7 +21,6 @@ const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct",
 
 export default function AttendanceView() {
   const queryClient = useQueryClient();
-  const deleteAttendanceMutation = useDeleteCollegeAttendance();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const { data: classGroups } = useCollegeClassGroups(selectedClassId || 0);
@@ -39,7 +37,6 @@ export default function AttendanceView() {
   const allStudents = (groupedData?.[0]?.attendance?.[0]?.students as any[]) || [];
   const { toast } = useToast();
   const [editOpen, setEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<any | null>(null);
   const [editAbsent, setEditAbsent] = useState<string>("0");
   const [editRemarks, setEditRemarks] = useState<string>("");
@@ -88,25 +85,6 @@ export default function AttendanceView() {
     setEditAbsent(String(row.absent_days ?? 0));
     setEditRemarks(row.remarks ?? '');
     setEditOpen(true);
-  };
-
-  const handleDelete = (row: any) => {
-    setEditingRow(row);
-    setDeleteOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!editingRow?.attendance_id) {
-      toast({ title: 'Not found', description: 'No attendance record to delete', variant: 'destructive' });
-      return;
-    }
-    try {
-      await deleteAttendanceMutation.mutateAsync(editingRow.attendance_id);
-      setDeleteOpen(false);
-      setEditingRow(null);
-    } catch {
-      // Error toast is handled by mutation hook
-    }
   };
 
   const columns: ColumnDef<any>[] = [
@@ -180,7 +158,6 @@ export default function AttendanceView() {
             actionButtonGroups={[
               { type: 'view', onClick: handleView },
               { type: 'edit', onClick: handleEdit },
-              { type: 'delete', onClick: handleDelete },
             ]}
           />
         )}
@@ -269,20 +246,6 @@ export default function AttendanceView() {
         </div>
       </DialogContent>
     </Dialog>
-    <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete attendance record?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will remove the attendance record for {editingRow?.student_name || 'this student'}. This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
     </>
   );
 }

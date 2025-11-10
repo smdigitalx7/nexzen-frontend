@@ -40,8 +40,10 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onCancel,
   disabled = false,
 }) => {
-  const handleConfirm = () => {
-    if (onConfirm) {
+  const handleConfirm = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    if (onConfirm && !isLoading) {
       onConfirm();
     }
   };
@@ -67,8 +69,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
-            disabled={isLoading}
+            disabled={isLoading || disabled}
             className={variant === 'destructive' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+            asChild={false}
           >
             {isLoading && <span className="mr-2"><ButtonLoading size="sm" /></span>}
             {confirmText}

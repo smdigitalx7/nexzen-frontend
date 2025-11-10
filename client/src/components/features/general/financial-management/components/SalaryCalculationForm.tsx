@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { EmployeeCombobox } from "@/components/ui/employee-combobox";
 import {
   Dialog,
   DialogContent,
@@ -233,29 +234,15 @@ export const SalaryCalculationForm = ({
                     <User className="h-4 w-4" />
                     Select Employee
                   </Label>
-                  <Select
+                  <EmployeeCombobox
                     value={formData.employee_id?.toString() || ""}
                     onValueChange={(value) => {
                       handleInputChange("employee_id", value);
                       setPreviewData(null); // Clear preview when employee changes
                     }}
-                  >
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="Choose an employee" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {employees.map((employee) => (
-                        <SelectItem key={employee.employee_id} value={employee.employee_id.toString()}>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{employee.employee_name}</span>
-                            <Badge variant="outline" className="text-xs">
-                              ID: {employee.employee_id}
-                            </Badge>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Search and select employee..."
+                    className="h-11"
+                  />
                 </div>
               </Card>
 

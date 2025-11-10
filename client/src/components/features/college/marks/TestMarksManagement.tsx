@@ -1096,6 +1096,14 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
           >
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
+              <CollegeTestDropdown
+                value={selectedTest}
+                onChange={setSelectedTest}
+                placeholder="All Tests"
+                className="w-full sm:w-[150px]"
+                emptyValue
+                emptyValueLabel="All Tests"
+              />
               <CollegeClassDropdown
                 value={selectedClass}
                 onChange={setSelectedClass}
@@ -1119,14 +1127,6 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
                 className="w-full sm:w-[150px]"
                 emptyValue
                 emptyValueLabel="All Subjects"
-              />
-              <CollegeTestDropdown
-                value={selectedTest}
-                onChange={setSelectedTest}
-                placeholder="All Tests"
-                className="w-full sm:w-[150px]"
-                emptyValue
-                emptyValueLabel="All Tests"
               />
             </div>
 

@@ -7,10 +7,7 @@ import {
   useCreateSchoolReservation,
 } from "@/lib/hooks/school/use-school-reservations";
 import { schoolKeys } from "@/lib/hooks/school/query-keys";
-import { useUpdateSchoolReservation, useSchoolClass } from "@/lib/hooks/school";
-// Note: useSchoolClasses from dropdowns (naming conflict)
-import { useSchoolClasses } from "@/lib/hooks/school/use-school-dropdowns";
-import { useDistanceSlabs } from "@/lib/hooks/general";
+import { useSchoolClass } from "@/lib/hooks/school";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -606,8 +603,11 @@ const ReservationManagementComponent = () => {
     }));
   }, [reservationsData]);
 
-  // Form state using initial state
-  const [form, setForm] = useState(initialFormState);
+  // Form state using initial state - set reservation_date to today when component mounts
+  const [form, setForm] = useState(() => ({
+    ...initialFormState,
+    reservation_date: new Date().toISOString().split("T")[0],
+  }));
 
   // Memoized handlers
   const handleClassChange = useCallback(
@@ -1309,30 +1309,41 @@ const ReservationManagementComponent = () => {
         console.warn('Failed to clear API cache:', error);
       }
 
-      // Step 2: Invalidate all reservation-related queries
+      // Step 2: Remove queries from cache to force fresh fetch (bypasses staleTime)
+      queryClient.removeQueries({ 
+        queryKey: schoolKeys.reservations.root(),
+        exact: false 
+      });
+
+      // Step 3: Invalidate all reservation-related queries
       await queryClient.invalidateQueries({
         queryKey: schoolKeys.reservations.root(),
         exact: false,
       });
 
-      // Step 3: Force refetch active queries (bypasses cache)
+      // Step 4: Force refetch active queries (bypasses cache)
       await queryClient.refetchQueries({
         queryKey: schoolKeys.reservations.root(),
         type: "active",
         exact: false,
       });
 
-      // Step 4: Call refetch callback and wait for it to complete
+      // Step 5: Call refetch callback and wait for it to complete
       await refetchReservations();
 
-      // Step 5: Wait for React Query to update the cache
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Step 6: Wait for React Query to update the cache
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       toast({
         title: "Reservation Updated",
         description: "Reservation details have been updated successfully.",
         variant: "success",
       });
+      
+      // Reset state before closing dialog
+      setEditForm(null);
+      setSelectedReservation(null);
+      setEditSelectedClassId(null);
       setShowEditDialog(false);
     } catch (e: any) {
       console.error("Failed to update reservation:", e);
@@ -1484,7 +1495,18 @@ const ReservationManagementComponent = () => {
       </Dialog>
 
       {/* Edit Reservation Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+      <Dialog
+        open={showEditDialog}
+        onOpenChange={(open) => {
+          setShowEditDialog(open);
+          if (!open) {
+            // Reset state when dialog closes
+            setEditForm(null);
+            setSelectedReservation(null);
+            setEditSelectedClassId(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
           <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
             <DialogTitle>Edit Reservation</DialogTitle>

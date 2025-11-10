@@ -12,10 +12,11 @@ interface EmployeeDetailDialogProps {
   onUpdateStatus: () => void;
   isUpdating: boolean;
   getStatusColor: (status: string) => string;
+  statusOptions?: Array<{ value: string; label: string; color?: string }>;
   formatCurrency: (n: number) => string;
 }
 
-const EmployeeDetailDialog = ({ open, onOpenChange, employee, newStatus, onStatusChange, onUpdateStatus, isUpdating, getStatusColor, formatCurrency }: EmployeeDetailDialogProps) => {
+const EmployeeDetailDialog = ({ open, onOpenChange, employee, newStatus, onStatusChange, onUpdateStatus, isUpdating, getStatusColor, statusOptions, formatCurrency }: EmployeeDetailDialogProps) => {
   const handleSave = () => {
     onUpdateStatus();
   };
@@ -37,6 +38,7 @@ const EmployeeDetailDialog = ({ open, onOpenChange, employee, newStatus, onStatu
       newStatus={newStatus}
       onStatusChange={onStatusChange}
       getStatusColor={getStatusColor}
+      statusOptions={statusOptions}
       statusUpdateText="Update Status"
     >
       {employee && (
