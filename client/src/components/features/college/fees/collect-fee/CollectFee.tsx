@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useLocation, useSearch } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import { CollectFeeSearch } from "./CollectFeeSearch";
 import { CollegeMultiplePaymentForm } from "../multiple-payment/CollegeMultiplePaymentForm";
 import type { StudentInfo, FeeBalance, MultiplePaymentData } from "@/components/shared/payment/types/PaymentTypes";
 import { handleCollegePayByAdmissionWithIncomeId } from "@/lib/api-college";
 import { useToast } from "@/hooks/use-toast";
+import { CacheUtils } from "@/lib/api";
+import { collegeKeys } from "@/lib/hooks/college/query-keys";
 import type { CollegeTuitionFeeBalanceRead, CollegeTuitionFeeBalanceFullRead } from "@/lib/types/college/tuition-fee-balances";
 import { CollegeTransportBalancesService } from "@/lib/services/college/transport-fee-balances.service";
 import { CollegeEnrollmentsService, CollegeTuitionBalancesService } from "@/lib/services/college";
@@ -28,6 +31,7 @@ interface CollectFeeProps {
 
 export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSearchQuery }: CollectFeeProps) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const search = useSearch();
   const [selectedStudent, setSelectedStudent] = useState<StudentFeeDetails | null>(null);
@@ -207,6 +211,81 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
 
       // Store admission number for re-search after form closes
       paymentSuccessRef.current = paymentData.admissionNo;
+
+      // Invalidate all relevant caches after payment to refresh data across the app
+      // This ensures search cards, header search, fee structures, and history are updated
+      try {
+        // Step 1: Clear API cache for college-related endpoints
+        CacheUtils.clearByPattern(/GET:.*\/college\/student-enrollments/i);
+        CacheUtils.clearByPattern(/GET:.*\/college\/students/i);
+        CacheUtils.clearByPattern(/GET:.*\/college\/tuition-fee-balances/i);
+        CacheUtils.clearByPattern(/GET:.*\/college\/student-transport-payment/i);
+        CacheUtils.clearByPattern(/GET:.*\/college\/income/i);
+      } catch (error) {
+        console.warn('Failed to clear API cache:', error);
+      }
+
+      // Step 2: Invalidate React Query cache for all relevant queries
+      // Invalidate students queries (affects header search and search cards)
+      queryClient.invalidateQueries({ 
+        queryKey: collegeKeys.students.root(),
+        exact: false 
+      }).catch(console.error);
+
+      // Invalidate enrollments queries (affects search cards)
+      queryClient.invalidateQueries({ 
+        queryKey: collegeKeys.enrollments.root(),
+        exact: false 
+      }).catch(console.error);
+
+      // Invalidate tuition fee balances (affects search cards and fee structures)
+      queryClient.invalidateQueries({ 
+        queryKey: collegeKeys.tuition.root(),
+        exact: false 
+      }).catch(console.error);
+
+      // Invalidate transport balances (affects search cards)
+      queryClient.invalidateQueries({ 
+        queryKey: collegeKeys.transport.root(),
+        exact: false 
+      }).catch(console.error);
+
+      // Invalidate income queries (affects history)
+      queryClient.invalidateQueries({ 
+        queryKey: collegeKeys.income.root(),
+        exact: false 
+      }).catch(console.error);
+
+      // Step 3: Refetch active queries to immediately update UI
+      queryClient.refetchQueries({ 
+        queryKey: collegeKeys.students.root(),
+        type: 'active',
+        exact: false 
+      }).catch(console.error);
+
+      queryClient.refetchQueries({ 
+        queryKey: collegeKeys.enrollments.root(),
+        type: 'active',
+        exact: false 
+      }).catch(console.error);
+
+      queryClient.refetchQueries({ 
+        queryKey: collegeKeys.tuition.root(),
+        type: 'active',
+        exact: false 
+      }).catch(console.error);
+
+      queryClient.refetchQueries({ 
+        queryKey: collegeKeys.transport.root(),
+        type: 'active',
+        exact: false 
+      }).catch(console.error);
+
+      queryClient.refetchQueries({ 
+        queryKey: collegeKeys.income.root(),
+        type: 'active',
+        exact: false 
+      }).catch(console.error);
 
       // Don't close the form immediately - let MultiplePaymentForm handle it after receipt modal closes
       // setSelectedStudent(null);

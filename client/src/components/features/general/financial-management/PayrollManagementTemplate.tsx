@@ -2,15 +2,8 @@ import { motion } from "framer-motion";
 import { CreditCard, Plus, Download, Users, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { TabSwitcher } from "@/components/shared";
+import { TabSwitcher, MonthYearFilter } from "@/components/shared";
 import { usePayrollManagement, usePayrollDashboard } from "@/lib/hooks/general/usePayrollManagement";
 import { formatCurrency } from "@/lib/utils";
 import { PayrollStatsCards as OldPayrollStatsCards } from "./components/PayrollStatsCards";
@@ -59,175 +52,6 @@ const PayrollHeader = memo(({
 
 PayrollHeader.displayName = "PayrollHeader";
 
-// Memoized filter controls component
-const FilterControls = memo(({ 
-  selectedMonth, 
-  setSelectedMonth, 
-  selectedYear, 
-  setSelectedYear, 
-  selectedStatus, 
-  setSelectedStatus 
-}: { 
-  selectedMonth: number | undefined;
-  setSelectedMonth: (month: number | undefined) => void;
-  selectedYear: number | undefined;
-  setSelectedYear: (year: number | undefined) => void;
-  selectedStatus: string | undefined;
-  setSelectedStatus: (status: string | undefined) => void;
-}) => {
-  const handleMonthChange = useCallback((value: string) => {
-    const month = value && value !== "all" ? parseInt(value) : undefined;
-    setSelectedMonth(month);
-    if (!month) {
-      setSelectedYear(undefined);
-    } else if (!selectedYear) {
-      setSelectedYear(new Date().getFullYear());
-    }
-  }, [selectedYear, setSelectedMonth, setSelectedYear]);
-
-  const handleYearChange = useCallback((value: string) => {
-    const year = value && value !== "all" ? parseInt(value) : undefined;
-    setSelectedYear(year);
-    if (!year) {
-      setSelectedMonth(undefined);
-    } else if (!selectedMonth) {
-      setSelectedMonth(new Date().getMonth() + 1);
-    }
-  }, [selectedMonth, setSelectedYear, setSelectedMonth]);
-
-  const handleStatusChange = useCallback((value: string) => {
-    setSelectedStatus(value && value !== "all" ? value : undefined);
-  }, [setSelectedStatus]);
-
-  const clearFilters = useCallback(() => {
-    setSelectedMonth(undefined);
-    setSelectedYear(undefined);
-    setSelectedStatus(undefined);
-  }, [setSelectedMonth, setSelectedYear, setSelectedStatus]);
-
-  const monthOptions = useMemo(() => 
-    Array.from({ length: 12 }, (_, i) => ({
-      value: i + 1,
-      label: new Date(0, i).toLocaleString('default', { month: 'long' })
-    })), []);
-
-  const yearOptions = useMemo(() => 
-    Array.from({ length: 10 }, (_, i) => {
-      const year = new Date().getFullYear() - 5 + i;
-      return { value: year, label: year.toString() };
-    }), []);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700"
-    >
-      {/* Filter Controls Row */}
-      <div className="flex flex-wrap gap-4 items-center">
-        {/* Month Filter */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium">Month:</label>
-          <Select
-            value={selectedMonth?.toString() || "all"}
-            onValueChange={handleMonthChange}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="All Months" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Months</SelectItem>
-            {monthOptions.map(({ value, label }) => (
-                <SelectItem key={value} value={value.toString()}>
-                {label}
-                </SelectItem>
-            ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Year Filter */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium">Year:</label>
-          <Select
-            value={selectedYear?.toString() || "all"}
-            onValueChange={handleYearChange}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="All Years" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Years</SelectItem>
-            {yearOptions.map(({ value, label }) => (
-                <SelectItem key={value} value={value.toString()}>
-                {label}
-                </SelectItem>
-            ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Status Filter */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium">Status:</label>
-          <Select
-            value={selectedStatus || "all"}
-            onValueChange={handleStatusChange}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="PENDING">Pending</SelectItem>
-              <SelectItem value="PAID">Paid</SelectItem>
-              <SelectItem value="HOLD">On Hold</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Clear Filters Button */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={clearFilters}
-          className="h-9"
-        >
-          Clear Filters
-        </Button>
-      </div>
-
-      {/* Help Text */}
-      <div className="mt-3 text-xs text-gray-500">
-        💡 <strong>Tip:</strong> Month and year filters work together. Selecting a month will automatically set the current year, and selecting a year will set the current month.
-      </div>
-
-      {/* Filter Summary */}
-      {(selectedMonth || selectedYear || selectedStatus) && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className="text-sm text-gray-600">Active filters:</span>
-          {selectedMonth && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              Month: {new Date(0, selectedMonth - 1).toLocaleString('default', { month: 'long' })}
-            </span>
-          )}
-          {selectedYear && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              Year: {selectedYear}
-            </span>
-          )}
-          {selectedStatus && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-              Status: {selectedStatus}
-            </span>
-          )}
-        </div>
-      )}
-    </motion.div>
-  );
-});
-
-FilterControls.displayName = "FilterControls";
 
 // Memoized employee info section component
 const EmployeeInfoSection = memo(({ detailedPayroll }: { detailedPayroll: DetailedPayrollRead }) => (
@@ -515,14 +339,23 @@ export const PayrollManagementTemplateComponent = () => {
       icon: Users,
       content: (
         <div className="space-y-4">
-          <FilterControls
-            selectedMonth={selectedMonth}
-            setSelectedMonth={setSelectedMonth}
-            selectedYear={selectedYear}
-            setSelectedYear={setSelectedYear}
-            selectedStatus={selectedStatus}
-            setSelectedStatus={setSelectedStatus}
-          />
+          {/* Month/Year Filter */}
+          <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-muted-foreground whitespace-nowrap">Filter by month and year:</p>
+              <MonthYearFilter
+                month={selectedMonth}
+                year={selectedYear}
+                onMonthChange={setSelectedMonth}
+                onYearChange={setSelectedYear}
+                monthId="payroll-month"
+                yearId="payroll-year"
+                showLabels={false}
+                className="flex-1 items-center"
+              />
+            </div>
+          </div>
+          
           <EmployeePayrollTable
             payrolls={payrolls}
             isLoading={isLoading}
@@ -536,12 +369,6 @@ export const PayrollManagementTemplateComponent = () => {
       ),
     },
   ], [
-    selectedMonth,
-    setSelectedMonth,
-    selectedYear,
-    setSelectedYear,
-    selectedStatus,
-    setSelectedStatus,
     payrolls,
     isLoading,
     handleEditPayroll,
@@ -549,6 +376,11 @@ export const PayrollManagementTemplateComponent = () => {
     handleUpdateStatus,
     getStatusColor,
     getStatusText,
+    handleCreatePayrollClick,
+    selectedMonth,
+    selectedYear,
+    setSelectedMonth,
+    setSelectedYear,
   ]);
 
   // Memoized stats cards

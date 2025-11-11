@@ -7,8 +7,14 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useSchoolExamMarksList(params?: ExamMarksQuery) {
   return useQuery({
     queryKey: schoolKeys.examMarks.list(params as Record<string, unknown> | undefined),
-    queryFn: () => SchoolExamMarksService.list(params),
-    enabled: !!params?.class_id,
+    queryFn: () => SchoolExamMarksService.list(params!),
+    enabled: 
+      typeof params?.class_id === "number" && 
+      params.class_id > 0 &&
+      typeof params?.subject_id === "number" && 
+      params.subject_id > 0 &&
+      typeof params?.exam_id === "number" && 
+      params.exam_id > 0,
   });
 }
 

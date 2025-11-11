@@ -257,20 +257,21 @@ const TestMarksManagementComponent = ({
   const viewTestLoading = viewingTestMarkId ? viewQuery.isLoading : false;
   const viewTestError = viewingTestMarkId ? viewQuery.error : null;
 
-  // Test marks query - require both class and test (server-side)
+  // Test marks query - require class_id, subject_id, and test_id (server-side)
   const testMarksQuery = useMemo(() => {
-    if (!selectedClass || !selectedTest) {
+    if (!selectedClass || !selectedSubject || !selectedTest) {
       return undefined;
     }
 
-    // Require both class_id and test_id for API call
+    // Require class_id, subject_id, and test_id for API call
     const query: TestMarksQuery = {
       class_id: selectedClass,
+      subject_id: selectedSubject,
       test_id: selectedTest,
     };
 
     return query;
-  }, [selectedClass, selectedTest]);
+  }, [selectedClass, selectedSubject, selectedTest]);
 
   // Test marks hooks - only fetch when class is selected
   const {
@@ -1155,19 +1156,7 @@ const TestMarksManagementComponent = ({
           >
             {/* Unified Filter Controls */}
             <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Test:</label>
-                <SchoolTestDropdown
-                  value={selectedTest}
-                  onChange={handleTestChange}
-                  placeholder={selectedClass ? "Select test" : "Select class first"}
-                  emptyValue
-                  emptyValueLabel={selectedClass ? "Select test" : "Select class first"}
-                  className="w-40"
-                  disabled={!selectedClass}
-                />
-              </div>
-
+              {/* Required Filters */}
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium">Class:</label>
                 <SchoolClassDropdown
@@ -1181,33 +1170,49 @@ const TestMarksManagementComponent = ({
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Section:</label>
-                <SchoolSectionDropdown
-                  classId={classId}
-                  value={selectedSection}
-                  onChange={handleSectionChange}
-                  placeholder="Select section"
-                  emptyValue
-                  emptyValueLabel="Select section"
-                  className="w-40"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
                 <label className="text-sm font-medium">Subject:</label>
                 <SchoolSubjectDropdown
                   classId={classId}
                   value={selectedSubject}
                   onChange={handleSubjectChange}
-                  placeholder="Select subject"
+                  placeholder={selectedClass ? "Select subject" : "Select class first"}
                   emptyValue
-                  emptyValueLabel="Select subject"
+                  emptyValueLabel={selectedClass ? "Select subject" : "Select class first"}
                   className="w-40"
+                  disabled={!selectedClass}
                 />
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Grade:</label>
+                <label className="text-sm font-medium">Test:</label>
+                <SchoolTestDropdown
+                  value={selectedTest}
+                  onChange={handleTestChange}
+                  placeholder={selectedClass ? "Select test" : "Select class first"}
+                  emptyValue
+                  emptyValueLabel={selectedClass ? "Select test" : "Select class first"}
+                  className="w-40"
+                  disabled={!selectedClass}
+                />
+              </div>
+
+              {/* Optional Filters */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-muted-foreground">Section:</label>
+                <SchoolSectionDropdown
+                  classId={classId}
+                  value={selectedSection}
+                  onChange={handleSectionChange}
+                  placeholder="All sections"
+                  emptyValue
+                  emptyValueLabel="All sections"
+                  className="w-40"
+                  disabled={!selectedClass}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-muted-foreground">Grade:</label>
                 <Select value={selectedGrade} onValueChange={handleGradeChange}>
                   <SelectTrigger className="w-32">
                     <SelectValue placeholder="All Grades" />
@@ -1236,10 +1241,26 @@ const TestMarksManagementComponent = ({
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900">
-                      Select a Class and Test
+                      Select Class, Subject, and Test
                     </h3>
                     <p className="text-slate-600 mt-1">
-                      Please select a class and test from the dropdowns above to view test marks.
+                      Please select a class, subject, and test from the dropdowns above to view test marks.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ) : !selectedSubject ? (
+              <Card className="p-8 text-center">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                    <ClipboardList className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Select a Subject
+                    </h3>
+                    <p className="text-slate-600 mt-1">
+                      Please select a subject from the dropdown above to view test marks.
                     </p>
                   </div>
                 </div>
@@ -1255,7 +1276,7 @@ const TestMarksManagementComponent = ({
                       Select a Test
                     </h3>
                     <p className="text-slate-600 mt-1">
-                      Please select a test from the dropdown above to view test marks for the selected class.
+                      Please select a test from the dropdown above to view test marks for the selected class and subject.
                     </p>
                   </div>
                 </div>
@@ -1451,3 +1472,4 @@ const TestMarksManagementComponent = ({
 };
 
 export default TestMarksManagementComponent;
+

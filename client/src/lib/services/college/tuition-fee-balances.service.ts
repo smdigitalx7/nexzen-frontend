@@ -2,11 +2,11 @@ import { Api } from "@/lib/api";
 import { CollegeBookFeePaymentUpdate, CollegeTermPaymentUpdate, CollegeTuitionBalanceBulkCreate, CollegeTuitionBalanceBulkCreateResult, CollegeTuitionFeeBalanceCreate, CollegeTuitionFeeBalanceFullRead, CollegeTuitionFeeBalanceRead, CollegeTuitionPaginatedResponse, CollegeTuitionUnpaidTermsResponse, CollegeTuitionFeeBalanceDashboardStats } from "@/lib/types/college";
 
 export interface CollegeTuitionBalancesListParams {
+  class_id: number; // Required
+  group_id: number; // Required
   page?: number;
   pageSize?: number;
   admission_no?: string;
-  class_id?: number;
-  group_id?: number;
   course_id?: number;
 }
 
@@ -16,7 +16,7 @@ export const CollegeTuitionBalancesService = {
     return Api.get<CollegeTuitionFeeBalanceDashboardStats>(`/college/tuition-fee-balances/dashboard`);
   },
   // GET /api/v1/college/tuition-fee-balances
-  list(params?: CollegeTuitionBalancesListParams) {
+  list(params: CollegeTuitionBalancesListParams) {
     return Api.get<CollegeTuitionPaginatedResponse>(`/college/tuition-fee-balances`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
 

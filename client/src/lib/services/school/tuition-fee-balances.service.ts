@@ -11,7 +11,7 @@ import type {
 } from "@/lib/types/school";
 
 export const SchoolTuitionFeeBalancesService = {
-  list(params?: { page?: number; page_size?: number; class_id?: number; section_id?: number }) {
+  list(params: { class_id: number; page?: number; page_size?: number; section_id?: number }) {
     return Api.get<SchoolTuitionPaginatedResponse>(`/school/tuition-fee-balances`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
   getById(enrollment_id: number) {

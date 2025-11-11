@@ -65,10 +65,10 @@ export interface CollegeEnrollmentWithStudentDetails {
 }
 
 export interface CollegeEnrollmentFilterParams {
+  class_id: number; // Required
+  group_id: number; // Required
   page?: number;
   page_size?: number;
-  class_id?: number;
-  group_id?: number;
   course_id?: number;
 }
 

@@ -16,7 +16,7 @@ import { useCollegeClasses, useCollegeGroups, useCollegeCourses } from '@/lib/ho
 import { collegeKeys } from '@/lib/hooks/college/query-keys';
 import { CacheUtils } from '@/lib/api';
 import type { ColumnDef } from '@tanstack/react-table';
-import type { CollegeEnrollmentRead } from '@/lib/types/college';
+import type { CollegeEnrollmentRead, CollegeEnrollmentFilterParams } from '@/lib/types/college';
 import { formatDate } from '@/lib/utils/formatting/date';
 
 const EnrollmentsTabComponent = () => {
@@ -52,16 +52,20 @@ const EnrollmentsTabComponent = () => {
 
   // Memoized API parameters - both class_id and group_id are required
   const apiParams = useMemo(() => {
-    const params: any = {};
-    if (query.class_id) {
-      params.class_id = Number(query.class_id);
-      if (query.group_id) {
-        params.group_id = Number(query.group_id);
-        if (query.course_id) {
-          params.course_id = Number(query.course_id);
-        }
-      }
+    // Both class_id and group_id are required
+    if (!query.class_id || !query.group_id) {
+      return undefined;
     }
+    
+    const params: CollegeEnrollmentFilterParams = {
+      class_id: Number(query.class_id),
+      group_id: Number(query.group_id),
+    };
+    
+    if (query.course_id) {
+      params.course_id = Number(query.course_id);
+    }
+    
     return params;
   }, [query.class_id, query.group_id, query.course_id]);
 

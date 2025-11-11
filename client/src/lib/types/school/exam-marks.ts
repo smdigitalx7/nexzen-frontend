@@ -110,7 +110,7 @@ export interface ExamMarkBulkCreateResult {
 // Query parameters - matching backend requirements
 export interface ExamMarksQuery {
   class_id: number; // Required
-  subject_id?: number;
+  subject_id: number; // Required
+  exam_id: number; // Required
   section_id?: number;
-  exam_id?: number;
 }

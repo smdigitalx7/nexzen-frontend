@@ -1,4 +1,4 @@
-import { TabSwitcher } from "@/components/shared";
+import { TabSwitcher, MonthYearFilter } from "@/components/shared";
 import { EmployeeTable } from "./EmployeeTable";
 import { AttendanceTable } from "./AttendanceTable";
 import { LeavesTable } from "./LeavesTable";
@@ -61,6 +61,18 @@ interface EmployeeManagementTabsProps {
   onViewAdvance: (advance: any) => void;
   onUpdateAmount: (advance: any) => void;
   onRejectAdvance: (advance: any) => void;
+  
+  // Leave filters
+  leaveMonth: number;
+  setLeaveMonth: (month: number) => void;
+  leaveYear: number;
+  setLeaveYear: (year: number) => void;
+  
+  // Attendance filters
+  attendanceMonth: number;
+  setAttendanceMonth: (month: number) => void;
+  attendanceYear: number;
+  setAttendanceYear: (year: number) => void;
 }
 
 export const EmployeeManagementTabs = ({
@@ -103,6 +115,14 @@ export const EmployeeManagementTabs = ({
   onViewAdvance,
   onUpdateAmount,
   onRejectAdvance,
+  leaveMonth,
+  setLeaveMonth,
+  leaveYear,
+  setLeaveYear,
+  attendanceMonth,
+  setAttendanceMonth,
+  attendanceYear,
+  setAttendanceYear,
 }: EmployeeManagementTabsProps) => {
   const tabs: TabItem[] = [
     {
@@ -127,17 +147,36 @@ export const EmployeeManagementTabs = ({
       label: "Leaves",
       icon: FileText,
       content: (
-        <LeavesTable
-          leaves={leaves}
-          isLoading={leavesLoading}
-          onAddLeave={onAddLeave}
-          onEditLeave={onEditLeave}
-          onDeleteLeave={(id) => onDeleteLeave({ leave_id: id })}
-          onViewLeave={onViewLeave}
-          onApproveLeave={onApproveLeave}
-          onRejectLeave={onRejectLeave}
-          showSearch={true}
-        />
+        <div className="space-y-4">
+          {/* Month/Year Filter */}
+          <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-muted-foreground whitespace-nowrap">Filter by month and year:</p>
+              <MonthYearFilter
+                month={leaveMonth}
+                year={leaveYear}
+                onMonthChange={setLeaveMonth}
+                onYearChange={setLeaveYear}
+                monthId="leave-month"
+                yearId="leave-year"
+                showLabels={false}
+                className="flex-1 items-center"
+              />
+            </div>
+          </div>
+          
+          <LeavesTable
+            leaves={leaves}
+            isLoading={leavesLoading}
+            onAddLeave={onAddLeave}
+            onEditLeave={onEditLeave}
+            onDeleteLeave={(id) => onDeleteLeave({ leave_id: id })}
+            onViewLeave={onViewLeave}
+            onApproveLeave={onApproveLeave}
+            onRejectLeave={onRejectLeave}
+            showSearch={true}
+          />
+        </div>
       ),
     },
     {
@@ -145,16 +184,35 @@ export const EmployeeManagementTabs = ({
       label: "Attendance",
       icon: Calendar,
       content: (
-        <AttendanceTable
-          attendance={attendance}
-          isLoading={attendanceLoading}
-          onAddAttendance={onAddAttendance}
-          onBulkCreateAttendance={onBulkCreateAttendance}
-          onEditAttendance={onEditAttendance}
-          onDeleteAttendance={onDeleteAttendance}
-          onViewAttendance={onViewAttendance}
-          showSearch={true}
-        />
+        <div className="space-y-4">
+          {/* Month/Year Filter */}
+          <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-muted-foreground whitespace-nowrap">Filter by month and year:</p>
+              <MonthYearFilter
+                month={attendanceMonth}
+                year={attendanceYear}
+                onMonthChange={setAttendanceMonth}
+                onYearChange={setAttendanceYear}
+                monthId="attendance-month"
+                yearId="attendance-year"
+                showLabels={false}
+                className="flex-1 items-center"
+              />
+            </div>
+          </div>
+          
+          <AttendanceTable
+            attendance={attendance}
+            isLoading={attendanceLoading}
+            onAddAttendance={onAddAttendance}
+            onBulkCreateAttendance={onBulkCreateAttendance}
+            onEditAttendance={onEditAttendance}
+            onDeleteAttendance={onDeleteAttendance}
+            onViewAttendance={onViewAttendance}
+            showSearch={true}
+          />
+        </div>
       ),
     },
     {

@@ -36,7 +36,7 @@ export const SchoolStudentAttendanceService = {
     return Api.delete<void>(`/school/student-attendance/${attendance_id}`);
   },
 
-  getAllStudents(params: { class_id: number; section_id?: number | null; month?: number | null; year?: number | null; }) {
+  getAllStudents(params: { class_id: number; month: number; year: number; section_id?: number | null; }) {
     return Api.get<SchoolStudentAttendanceMonthlyGroupedResponse>(`/school/student-attendance/students`, params as any);
   },
 

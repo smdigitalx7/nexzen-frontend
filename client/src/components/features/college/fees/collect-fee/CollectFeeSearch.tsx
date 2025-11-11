@@ -46,72 +46,9 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
       const trimmedQuery = searchQuery.trim();
       let enrollment: CollegeEnrollmentWithStudentDetails | null = null;
       
-      // First try to search by admission number using enrollment endpoint
-      try {
-        enrollment = await CollegeEnrollmentsService.getByAdmission(trimmedQuery);
-      } catch (error) {
-        // If enrollment search fails, try searching by name in enrollments list
-        if (import.meta.env.DEV) {
-          console.log("Enrollment search failed, trying name search...");
-        }
-        const enrollmentsList = await CollegeEnrollmentsService.list({ page: 1, pageSize: 100 });
-        // Flatten enrollments to find matching students
-        const allEnrollments: CollegeEnrollmentWithStudentDetails[] = [];
-        enrollmentsList.enrollments?.forEach(classGroup => {
-          classGroup.students?.forEach(student => {
-            if (student.student_name?.toLowerCase().includes(trimmedQuery.toLowerCase())) {
-              // Construct full enrollment object
-              allEnrollments.push({
-                enrollment_id: student.enrollment_id,
-                student_id: student.student_id,
-                admission_no: student.admission_no,
-                student_name: student.student_name,
-                class_id: classGroup.class_id,
-                class_name: classGroup.class_name,
-                group_id: classGroup.group_id,
-                group_name: classGroup.group_name,
-                course_id: classGroup.course_id,
-                course_name: classGroup.course_name,
-                roll_number: student.roll_number,
-                enrollment_date: student.enrollment_date,
-                is_active: student.is_active,
-                promoted: student.promoted,
-                created_at: "",
-                updated_at: null,
-                created_by: null,
-                created_by_name: null,
-                updated_by: null,
-                updated_by_name: null,
-              });
-            }
-          });
-        });
-        
-        if (allEnrollments.length > 0) {
-          if (allEnrollments.length === 1) {
-            enrollment = allEnrollments[0];
-          } else {
-            // If multiple matches, show all and let user select
-            const studentDetailsList = await Promise.all(
-              allEnrollments.map(async (enr) => {
-                const [tuitionBalance, transportSummary, transportExpectedPayments] = await Promise.all([
-                  CollegeTuitionBalancesService.getById(enr.enrollment_id).catch(() => null),
-                  CollegeTransportBalancesService.getStudentTransportPaymentSummaryByEnrollmentId(enr.enrollment_id).catch(() => null),
-                  CollegeTransportBalancesService.getExpectedTransportPaymentsByEnrollmentId(enr.enrollment_id).catch(() => undefined)
-                ]);
-                return {
-                  enrollment: enr,
-                  tuitionBalance,
-                  transportExpectedPayments,
-                  transportSummary
-                };
-              })
-            );
-            setSearchResults(studentDetailsList);
-            return;
-          }
-        }
-      }
+      // Search by admission number using enrollment endpoint
+      // Note: Name-based search fallback removed as it requires class_id and group_id (mandatory parameters)
+      enrollment = await CollegeEnrollmentsService.getByAdmission(trimmedQuery);
       
       if (enrollment) {
         // Fetch tuition balance, transport summary, and expected transport payments using enrollment_id

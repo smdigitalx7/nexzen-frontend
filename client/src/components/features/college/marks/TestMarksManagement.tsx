@@ -179,24 +179,19 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
   const viewTestLoading = viewQuery.isLoading;
   const viewTestError = viewQuery.error;
 
-  // Test marks hooks - only fetch when both class and group are explicitly selected
+  // Test marks hooks - require class_id, group_id, test_id, and subject_id
   const testMarksQuery = useMemo((): CollegeTestMarksListParams | undefined => {
-    // Both class_id and group_id are required
-    if (!selectedClass || !selectedGroup) {
+    // All parameters are required: class_id, group_id, test_id, subject_id
+    if (!selectedClass || !selectedGroup || !selectedTest || !selectedSubject) {
       return undefined;
     }
     
     const query: CollegeTestMarksListParams = {
       class_id: selectedClass,
       group_id: selectedGroup,
+      test_id: selectedTest,
+      subject_id: selectedSubject,
     };
-    
-    if (selectedTest !== null && selectedTest !== undefined) {
-      query.test_id = selectedTest;
-    }
-    if (selectedSubject !== null && selectedSubject !== undefined) {
-      query.subject_id = selectedSubject;
-    }
     
     return query;
   }, [selectedClass, selectedGroup, selectedTest, selectedSubject]);
@@ -1094,44 +1089,65 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
             transition={{ delay: 0.2 }}
             className="space-y-6"
           >
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <CollegeTestDropdown
-                value={selectedTest}
-                onChange={setSelectedTest}
-                placeholder="All Tests"
-                className="w-full sm:w-[150px]"
-                emptyValue
-                emptyValueLabel="All Tests"
-              />
-              <CollegeClassDropdown
-                value={selectedClass}
-                onChange={setSelectedClass}
-                placeholder="Select Class"
-                className="w-full sm:w-[150px]"
-              />
-              <CollegeGroupDropdown
-                classId={selectedClass || undefined}
-                value={selectedGroup}
-                onChange={setSelectedGroup}
-                placeholder="All Groups"
-                className="w-full sm:w-[150px]"
-                emptyValue
-                emptyValueLabel="All Groups"
-              />
-              <CollegeSubjectDropdown
-                groupId={selectedGroup || 0}
-                value={selectedSubject}
-                onChange={setSelectedSubject}
-                placeholder="All Subjects"
-                className="w-full sm:w-[150px]"
-                emptyValue
-                emptyValueLabel="All Subjects"
-              />
+            {/* Unified Filter Controls */}
+            <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+              {/* Required Filters - Order: Class, Group, Test, Subject (as per mandatory parameters) */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Class:</label>
+                <CollegeClassDropdown
+                  value={selectedClass}
+                  onChange={setSelectedClass}
+                  placeholder="Select class"
+                  className="w-40"
+                  emptyValue
+                  emptyValueLabel="Select class"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Group:</label>
+                <CollegeGroupDropdown
+                  classId={selectedClass || 0}
+                  value={selectedGroup}
+                  onChange={setSelectedGroup}
+                  placeholder={selectedClass ? "Select group" : "Select class first"}
+                  className="w-40"
+                  emptyValue
+                  emptyValueLabel={selectedClass ? "Select group" : "Select class first"}
+                  disabled={!selectedClass}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Test:</label>
+                <CollegeTestDropdown
+                  value={selectedTest}
+                  onChange={setSelectedTest}
+                  placeholder={selectedClass ? "Select test" : "Select class first"}
+                  className="w-40"
+                  emptyValue
+                  emptyValueLabel={selectedClass ? "Select test" : "Select class first"}
+                  disabled={!selectedClass}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Subject:</label>
+                <CollegeSubjectDropdown
+                  groupId={selectedGroup || 0}
+                  value={selectedSubject}
+                  onChange={setSelectedSubject}
+                  placeholder={selectedGroup ? "Select subject" : "Select group first"}
+                  className="w-40"
+                  emptyValue
+                  emptyValueLabel={selectedGroup ? "Select subject" : "Select group first"}
+                  disabled={!selectedGroup}
+                />
+              </div>
             </div>
 
             {/* Data Table */}
-            {!selectedClass || !selectedGroup ? (
+            {!selectedClass ? (
               <Card className="p-8 text-center">
                 <div className="flex flex-col items-center space-y-4">
                   <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
@@ -1139,12 +1155,58 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900">
-                      {!selectedClass ? 'Select a Class' : 'Select a Group'}
+                      Select Class, Group, Test, and Subject
                     </h3>
                     <p className="text-slate-600 mt-1">
-                      {!selectedClass 
-                        ? 'Please select a class and group from the dropdowns above to view test marks.'
-                        : 'Please select a group from the dropdown above to view test marks.'}
+                      Please select a class, group, test, and subject from the dropdowns above to view test marks.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ) : !selectedGroup ? (
+              <Card className="p-8 text-center">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                    <ClipboardList className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Select a Group
+                    </h3>
+                    <p className="text-slate-600 mt-1">
+                      Please select a group from the dropdown above to view test marks.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ) : !selectedSubject ? (
+              <Card className="p-8 text-center">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                    <ClipboardList className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Select a Subject
+                    </h3>
+                    <p className="text-slate-600 mt-1">
+                      Please select a subject from the dropdown above to view test marks.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ) : !selectedTest ? (
+              <Card className="p-8 text-center">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                    <ClipboardList className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Select a Test
+                    </h3>
+                    <p className="text-slate-600 mt-1">
+                      Please select a test from the dropdown above to view test marks.
                     </p>
                   </div>
                 </div>

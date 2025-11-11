@@ -7,8 +7,17 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useCollegeTestMarksList(params?: CollegeTestMarksListParams) {
   return useQuery({
     queryKey: collegeKeys.testMarks.list(params),
-    queryFn: () => CollegeTestMarksService.list(params),
-    enabled: !!params && !!params.class_id && !!params.group_id,
+    queryFn: () => CollegeTestMarksService.list(params!),
+    enabled: 
+      !!params && 
+      typeof params.class_id === "number" && 
+      params.class_id > 0 &&
+      typeof params.group_id === "number" && 
+      params.group_id > 0 &&
+      typeof params.test_id === "number" && 
+      params.test_id > 0 &&
+      typeof params.subject_id === "number" && 
+      params.subject_id > 0,
   });
 }
 

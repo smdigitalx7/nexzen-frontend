@@ -50,20 +50,17 @@ export const EmployeeAttendanceService = {
   },
 
   /**
-   * Get all employee attendances by branch with optional filters
-   * @param month - Filter by month (1-12)
-   * @param year - Filter by year
+   * Get all employee attendances by branch with required filters
+   * @param month - Filter by month (1-12, required)
+   * @param year - Filter by year (required)
    * @returns Promise<AttendanceListResponse> - Paginated attendance list
    */
-  listByBranch(month?: number, year?: number): Promise<AttendanceListResponse> {
+  listByBranch(month: number, year: number): Promise<AttendanceListResponse> {
     const params = new URLSearchParams();
-    if (month) params.append('month', month.toString());
-    if (year) params.append('year', year.toString());
+    params.append('month', month.toString());
+    params.append('year', year.toString());
     
-    const queryString = params.toString();
-    const url = queryString ? `/employee-attendances/branch?${queryString}` : '/employee-attendances/branch';
-    
-    return Api.get<AttendanceListResponse>(url);
+    return Api.get<AttendanceListResponse>(`/employee-attendances/branch?${params.toString()}`);
   },
 
   /**

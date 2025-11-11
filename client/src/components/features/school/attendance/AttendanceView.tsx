@@ -1,16 +1,15 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { MonthYearFilter } from '@/components/shared';
 import { SchoolClassDropdown, SchoolSectionDropdown } from '@/components/shared/Dropdowns';
+import { Info } from 'lucide-react';
 import { useSchoolAttendance, useDeleteSchoolAttendance, useSchoolAttendanceAllStudents, useSchoolSectionsByClass } from '@/lib/hooks/school';
 import { useToast } from '@/hooks/use-toast';
 import { SchoolStudentAttendanceService } from '@/lib/services/school';
@@ -23,13 +22,26 @@ const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct",
 export default function AttendanceView() {
   const queryClient = useQueryClient();
   const deleteAttendanceMutation = useDeleteSchoolAttendance();
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  
+  // Initialize with current month/year (required parameters)
+  const now = new Date();
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const { data: sections = [] } = useSchoolSectionsByClass(selectedClassId || 0);
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
-  const month = selectedDate ? selectedDate.getMonth() + 1 : undefined;
-  const year = selectedDate ? selectedDate.getFullYear() : undefined;
-  const attendeeParams = selectedClassId ? { class_id: selectedClassId, section_id: selectedSectionId || undefined, month, year } : null;
+  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
+  
+  // Build query params - class_id, month, and year are required
+  const attendeeParams = useMemo(() => {
+    if (!selectedClassId) return null;
+    return {
+      class_id: selectedClassId,
+      month: selectedMonth,
+      year: selectedYear,
+      section_id: selectedSectionId || undefined,
+    };
+  }, [selectedClassId, selectedMonth, selectedYear, selectedSectionId]);
+  
   const studentsQuery = useSchoolAttendanceAllStudents(attendeeParams);
   const grouped: SchoolStudentAttendanceMonthlyGroupedResponse = studentsQuery.data || { groups: [] };
   const allStudents = ((grouped as any)?.groups?.[0]?.data as any[]) || [];
@@ -95,47 +107,70 @@ export default function AttendanceView() {
   return (
     <>
       <CardContent>
-        {/* Filters & Actions Bar */}
-        <div className="flex flex-wrap items-center justify-start gap-2 mb-2">
-          <SchoolClassDropdown
-            value={selectedClassId}
-            onChange={(value) => {
-              setSelectedClassId(value);
-              setSelectedSectionId(null); // Reset section when class changes
-            }}
-            placeholder="Select class"
-            className="w-[160px]"
-            required={true}
-            emptyValue={true}
-            emptyValueLabel="Select class"
-          />
-          {selectedClassId && (
-            <SchoolSectionDropdown
-              classId={selectedClassId}
-              value={selectedSectionId}
-              onChange={(value) => setSelectedSectionId(value)}
-              disabled={!selectedClassId}
-              placeholder="All Sections"
-              className="w-[160px]"
+        {/* Unified Filter Controls */}
+        <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 mb-4">
+          {/* Required Filters */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium">Class:</label>
+            <SchoolClassDropdown
+              value={selectedClassId}
+              onChange={(value: number | null) => {
+                setSelectedClassId(value);
+                setSelectedSectionId(null); // Reset section when class changes
+              }}
+              placeholder="Select class"
+              className="w-40"
               emptyValue
-              emptyValueLabel="All Sections"
+              emptyValueLabel="Select class"
             />
-          )}
-          <Select value={month ? String(month) : ''} onValueChange={(v) => { const m = parseInt(v); const d = selectedDate || new Date(); setSelectedDate(new Date(d.getFullYear(), m - 1, d.getDate())); }}>
-            <SelectTrigger className="w-[140px]"><SelectValue placeholder="Month" /></SelectTrigger>
-            <SelectContent>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (<SelectItem key={m} value={String(m)}>{monthNames[m-1]}</SelectItem>))}
-            </SelectContent>
-          </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-muted-foreground whitespace-nowrap">Filter by month and year:</p>
+            <MonthYearFilter
+              month={selectedMonth}
+              year={selectedYear}
+              onMonthChange={setSelectedMonth}
+              onYearChange={setSelectedYear}
+              monthId="attendance-month"
+              yearId="attendance-year"
+              showLabels={false}
+              className="flex-1 items-center"
+            />
+          </div>
+
+          {/* Optional Filters */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-muted-foreground">Section:</label>
+            <SchoolSectionDropdown
+              classId={selectedClassId || 0}
+              value={selectedSectionId}
+              onChange={(value: number | null) => setSelectedSectionId(value)}
+              disabled={!selectedClassId}
+              placeholder="All sections"
+              className="w-40"
+              emptyValue
+              emptyValueLabel="All sections"
+            />
+          </div>
         </div>
 
         {!selectedClassId ? (
-          <Alert className="mb-2">
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              Please select a class first to view attendance records.
-            </AlertDescription>
-          </Alert>
+          <Card className="p-8 text-center mb-4">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                <Info className="h-8 w-8 text-slate-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Select Class, Month, and Year
+                </h3>
+                <p className="text-slate-600 mt-1">
+                  Please select a class, month, and year from the filters above to view attendance records.
+                </p>
+              </div>
+            </div>
+          </Card>
         ) : hasError ? (
           <div className="py-4 text-center text-red-600">{errorMessage || 'Failed to load data'}</div>
         ) : isLoading ? (

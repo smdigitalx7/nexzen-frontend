@@ -2,15 +2,15 @@ import { Api } from "@/lib/api";
 import { CollegeEnrollmentCreate, CollegeEnrollmentsPaginatedResponse, CollegeEnrollmentWithStudentDetails } from "@/lib/types/college";
 
 export interface CollegeEnrollmentsListParams {
+  class_id: number; // Required
+  group_id: number; // Required
   page?: number;
   pageSize?: number;
-  class_id?: number;
-  group_id?: number;
   course_id?: number;
 }
 
 export const CollegeEnrollmentsService = {
-  list(params?: CollegeEnrollmentsListParams) {
+  list(params: CollegeEnrollmentsListParams) {
     return Api.get<CollegeEnrollmentsPaginatedResponse>(`/college/student-enrollments`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
 

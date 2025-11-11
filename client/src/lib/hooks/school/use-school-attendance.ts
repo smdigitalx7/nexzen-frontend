@@ -72,11 +72,11 @@ export function useDeleteSchoolAttendance() {
   }, "Attendance deleted successfully");
 }
 
-export function useSchoolAttendanceAllStudents(params: { class_id: number; section_id?: number | null; month?: number | null; year?: number | null; } | null) {
+export function useSchoolAttendanceAllStudents(params: { class_id: number; month: number; year: number; section_id?: number | null; } | null) {
   return useQuery({
     queryKey: params ? [...schoolKeys.attendance.root(), "all-students", params] : [...schoolKeys.attendance.root(), "all-students", "nil"],
-    queryFn: () => SchoolStudentAttendanceService.getAllStudents(params as any),
-    enabled: !!params && typeof params.class_id === 'number' && params.class_id > 0,
+    queryFn: () => SchoolStudentAttendanceService.getAllStudents(params!),
+    enabled: !!params && typeof params.class_id === 'number' && params.class_id > 0 && typeof params.month === 'number' && typeof params.year === 'number',
   });
 }
 

@@ -179,27 +179,22 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
   const viewExamLoading = viewingExamMarkId ? viewQuery.isLoading : false;
   const viewExamError = viewingExamMarkId ? viewQuery.error : null;
 
-  // Exam marks hooks - only fetch when both class and group are explicitly selected
+  // Exam marks hooks - require class_id, group_id, exam_id, and subject_id
   const examMarksQuery = useMemo((): CollegeExamMarksListParams | undefined => {
-    // Both class_id and group_id are required
-    if (!selectedClass || !selectedGroup) {
+    // All parameters are required: class_id, group_id, exam_id, subject_id
+    if (!selectedClass || !selectedGroup || !selectedExam || !selectedSubject) {
       return undefined;
     }
     
     const query: CollegeExamMarksListParams = {
       class_id: selectedClass,
       group_id: selectedGroup,
+      exam_id: selectedExam,
+      subject_id: selectedSubject,
     };
     
-    if (selectedSubject !== null && selectedSubject !== undefined) {
-      query.subject_id = selectedSubject;
-    }
-    if (selectedExam !== null && selectedExam !== undefined) {
-      query.exam_id = selectedExam;
-    }
-    
     return query;
-  }, [selectedClass, selectedSubject, selectedGroup, selectedExam]);
+  }, [selectedClass, selectedGroup, selectedExam, selectedSubject]);
 
   const { data: examMarksData, isLoading: examMarksLoading, error: examMarksError } = useCollegeExamMarksList(examMarksQuery);
   const createExamMarkMutation = useCreateCollegeExamMark();
@@ -1110,44 +1105,65 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
             transition={{ delay: 0.2 }}
             className="space-y-6"
           >
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <CollegeExamDropdown
-                value={selectedExam}
-                onChange={setSelectedExam}
-                placeholder="All Exams"
-                className="w-full sm:w-[150px]"
-                emptyValue
-                emptyValueLabel="All Exams"
-              />
-              <CollegeClassDropdown
-                value={selectedClass}
-                onChange={setSelectedClass}
-                placeholder="Select Class"
-                className="w-full sm:w-[150px]"
-              />
-              <CollegeGroupDropdown
-                classId={selectedClass || undefined}
-                value={selectedGroup}
-                onChange={setSelectedGroup}
-                placeholder="All Groups"
-                className="w-full sm:w-[150px]"
-                emptyValue
-                emptyValueLabel="All Groups"
-              />
-              <CollegeSubjectDropdown
-                groupId={selectedGroup || 0}
-                value={selectedSubject}
-                onChange={setSelectedSubject}
-                placeholder="All Subjects"
-                className="w-full sm:w-[150px]"
-                emptyValue
-                emptyValueLabel="All Subjects"
-              />
+            {/* Unified Filter Controls */}
+            <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+              {/* Required Filters - Order: Class, Group, Exam, Subject (as per mandatory parameters) */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Class:</label>
+                <CollegeClassDropdown
+                  value={selectedClass}
+                  onChange={setSelectedClass}
+                  placeholder="Select class"
+                  className="w-40"
+                  emptyValue
+                  emptyValueLabel="Select class"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Group:</label>
+                <CollegeGroupDropdown
+                  classId={selectedClass || 0}
+                  value={selectedGroup}
+                  onChange={setSelectedGroup}
+                  placeholder={selectedClass ? "Select group" : "Select class first"}
+                  className="w-40"
+                  emptyValue
+                  emptyValueLabel={selectedClass ? "Select group" : "Select class first"}
+                  disabled={!selectedClass}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Exam:</label>
+                <CollegeExamDropdown
+                  value={selectedExam}
+                  onChange={setSelectedExam}
+                  placeholder={selectedClass ? "Select exam" : "Select class first"}
+                  className="w-40"
+                  emptyValue
+                  emptyValueLabel={selectedClass ? "Select exam" : "Select class first"}
+                  disabled={!selectedClass}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Subject:</label>
+                <CollegeSubjectDropdown
+                  groupId={selectedGroup || 0}
+                  value={selectedSubject}
+                  onChange={setSelectedSubject}
+                  placeholder={selectedGroup ? "Select subject" : "Select group first"}
+                  className="w-40"
+                  emptyValue
+                  emptyValueLabel={selectedGroup ? "Select subject" : "Select group first"}
+                  disabled={!selectedGroup}
+                />
+              </div>
             </div>
 
             {/* Data Table */}
-            {!selectedClass || !selectedGroup ? (
+            {!selectedClass ? (
               <Card className="p-8 text-center">
                 <div className="flex flex-col items-center space-y-4">
                   <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
@@ -1155,12 +1171,58 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900">
-                      {!selectedClass ? 'Select a Class' : 'Select a Group'}
+                      Select Class, Group, Exam, and Subject
                     </h3>
                     <p className="text-slate-600 mt-1">
-                      {!selectedClass 
-                        ? 'Please select a class and group from the dropdowns above to view exam marks.'
-                        : 'Please select a group from the dropdown above to view exam marks.'}
+                      Please select a class, group, exam, and subject from the dropdowns above to view exam marks.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ) : !selectedGroup ? (
+              <Card className="p-8 text-center">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                    <GraduationCap className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Select a Group
+                    </h3>
+                    <p className="text-slate-600 mt-1">
+                      Please select a group from the dropdown above to view exam marks.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ) : !selectedSubject ? (
+              <Card className="p-8 text-center">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                    <GraduationCap className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Select a Subject
+                    </h3>
+                    <p className="text-slate-600 mt-1">
+                      Please select a subject from the dropdown above to view exam marks.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ) : !selectedExam ? (
+              <Card className="p-8 text-center">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                    <GraduationCap className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Select an Exam
+                    </h3>
+                    <p className="text-slate-600 mt-1">
+                      Please select an exam from the dropdown above to view exam marks.
                     </p>
                   </div>
                 </div>

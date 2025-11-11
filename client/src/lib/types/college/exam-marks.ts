@@ -80,10 +80,10 @@ export interface CollegeExamMarkBulkCreateResult {
 }
 
 export interface CollegeExamMarksListParams {
-  class_id: number;
-  group_id: number;
-  exam_id?: number;
-  subject_id?: number;
+  class_id: number; // Required
+  group_id: number; // Required
+  exam_id: number; // Required
+  subject_id: number; // Required
   page?: number;
   pageSize?: number;
 }

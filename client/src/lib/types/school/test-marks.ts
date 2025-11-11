@@ -109,7 +109,7 @@ export interface TestMarkBulkCreateResult {
 // Query parameters - matching backend requirements
 export interface TestMarksQuery {
   class_id: number; // Required
-  subject_id?: number;
-  section_id?: number;
+  subject_id: number; // Required
   test_id: number; // Required
+  section_id?: number;
 }

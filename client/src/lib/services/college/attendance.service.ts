@@ -14,7 +14,7 @@ export const CollegeAttendanceService = {
   },
 
   // GET /api/v1/college/student-attendance (grouped by class/group with nested students)
-  getAll(params: { class_id: number; group_id: number; year?: number | null; month?: number | null }) {
+  getAll(params: { class_id: number; group_id: number; month: number; year: number }) {
     return Api.get<CollegeStudentAttendanceWithClassGroup[]>(`/college/student-attendance`, params as Record<string, string | number | boolean | null | undefined>);
   },
 

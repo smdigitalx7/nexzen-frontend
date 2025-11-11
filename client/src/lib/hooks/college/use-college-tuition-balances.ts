@@ -1,14 +1,19 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CollegeTuitionBalancesService } from "@/lib/services/college/tuition-fee-balances.service";
+import { CollegeTuitionBalancesService, type CollegeTuitionBalancesListParams } from "@/lib/services/college/tuition-fee-balances.service";
 import type { CollegeBookFeePaymentUpdate, CollegeTermPaymentUpdate, CollegeTuitionBalanceBulkCreate, CollegeTuitionBalanceBulkCreateResult, CollegeTuitionFeeBalanceFullRead, CollegeTuitionFeeBalanceRead, CollegeTuitionPaginatedResponse, CollegeTuitionUnpaidTermsResponse, CollegeTuitionFeeBalanceDashboardStats } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
-export function useCollegeTuitionBalancesList(params?: { page?: number; pageSize?: number; class_id?: number; group_id?: number; course_id?: number; admission_no?: string }) {
+export function useCollegeTuitionBalancesList(params?: CollegeTuitionBalancesListParams) {
   return useQuery({
     queryKey: collegeKeys.tuition.list(params),
-    queryFn: () => CollegeTuitionBalancesService.list(params),
-    enabled: !!(params?.class_id && params?.group_id), // Only run query when required params are provided
+    queryFn: () => CollegeTuitionBalancesService.list(params!),
+    enabled: 
+      !!params && 
+      typeof params.class_id === "number" && 
+      params.class_id > 0 &&
+      typeof params.group_id === "number" && 
+      params.group_id > 0,
   });
 }
 

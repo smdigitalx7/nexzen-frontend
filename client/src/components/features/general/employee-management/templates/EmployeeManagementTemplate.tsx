@@ -156,6 +156,18 @@ export const EmployeeManagementTemplate = () => {
     user,
     createEmployeePending,
     updateEmployeePending,
+    
+    // Leave filters
+    leaveMonth,
+    setLeaveMonth,
+    leaveYear,
+    setLeaveYear,
+    
+    // Attendance filters
+    attendanceMonth,
+    setAttendanceMonth,
+    attendanceYear,
+    setAttendanceYear,
   } = useEmployeeManagement();
 
 
@@ -399,6 +411,14 @@ export const EmployeeManagementTemplate = () => {
                 setAdvanceStatus("REJECTED");
                 setShowAdvanceStatusDialog(true);
               }}
+        leaveMonth={leaveMonth}
+        setLeaveMonth={setLeaveMonth}
+        leaveYear={leaveYear}
+        setLeaveYear={setLeaveYear}
+        attendanceMonth={attendanceMonth}
+        setAttendanceMonth={setAttendanceMonth}
+        attendanceYear={attendanceYear}
+        setAttendanceYear={setAttendanceYear}
       />
 
       {/* All Dialogs */}

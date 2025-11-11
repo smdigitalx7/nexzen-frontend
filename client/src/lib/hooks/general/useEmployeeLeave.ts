@@ -32,10 +32,15 @@ export const useEmployeeLeaves = (pageSize: number = 10, page: number = 1, leave
   });
 };
 
-export const useEmployeeLeavesByBranch = (pageSize: number = 10, page: number = 1, leaveStatus?: string, month?: number, year?: number) => {
+export const useEmployeeLeavesByBranch = (month?: number, year?: number, pageSize: number = 10, page: number = 1, leaveStatus?: string) => {
+  // Default to current month/year if not provided (mandatory parameters)
+  const now = new Date();
+  const currentMonth = month ?? now.getMonth() + 1;
+  const currentYear = year ?? now.getFullYear();
+  
   return useQuery({
-    queryKey: employeeLeaveKeys.byBranch({ pageSize, page, leaveStatus, month, year }),
-    queryFn: () => EmployeeLeaveService.listByBranch(pageSize, page, leaveStatus, month, year),
+    queryKey: employeeLeaveKeys.byBranch({ pageSize, page, leaveStatus, month: currentMonth, year: currentYear }),
+    queryFn: () => EmployeeLeaveService.listByBranch(currentMonth, currentYear, pageSize, page, leaveStatus),
   });
 };
 

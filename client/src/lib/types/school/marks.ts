@@ -274,16 +274,16 @@ export interface TestMarksMultipleSubjectsResult {
 // Query parameters - matching backend requirements
 export interface ExamMarksQuery {
   class_id: number; // Required
-  subject_id?: number;
+  subject_id: number; // Required
+  exam_id: number; // Required
   section_id?: number;
-  exam_id?: number;
 }
 
 export interface TestMarksQuery {
   class_id: number; // Required
-  subject_id?: number;
-  section_id?: number;
+  subject_id: number; // Required
   test_id: number; // Required
+  section_id?: number;
 }
 
 // Legacy query interface for backward compatibility

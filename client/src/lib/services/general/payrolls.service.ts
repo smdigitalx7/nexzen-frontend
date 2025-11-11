@@ -38,15 +38,15 @@ export const PayrollsService = {
 
   /**
    * Get all payrolls by branch with optional filters
-   * @param month - Filter by month (1-12, requires year)
-   * @param year - Filter by year (2000-2100, requires month)
+   * @param month - Filter by month (1-12, required)
+   * @param year - Filter by year (2000-2100, required)
    * @param status - Filter by payroll status (PENDING|PAID|HOLD)
    * @returns Promise<PayrollListResponse> - Payroll list grouped by month (filtered by current branch)
    */
-  listByBranch(month?: number, year?: number, status?: string): Promise<PayrollListResponse> {
+  listByBranch(month: number, year: number, status?: string): Promise<PayrollListResponse> {
     const params = new URLSearchParams();
-    if (month) params.append('month', month.toString());
-    if (year) params.append('year', year.toString());
+    params.append('month', month.toString());
+    params.append('year', year.toString());
     if (status) params.append('payroll_status', status);
     
     return Api.get<PayrollListResponse>(`/payrolls/branch?${params.toString()}`);

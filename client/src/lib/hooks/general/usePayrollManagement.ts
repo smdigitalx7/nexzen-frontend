@@ -48,12 +48,17 @@ export const usePayrolls = (query?: PayrollQuery) => {
 };
 
 export const usePayrollsByBranch = (query?: PayrollQuery) => {
+  // Default to current month/year if not provided (mandatory parameters)
+  const now = new Date();
+  const month = query?.month ?? now.getMonth() + 1;
+  const year = query?.year ?? now.getFullYear();
+  
   return useQuery({
-    queryKey: [...payrollKeys.byBranch(), query || {}],
+    queryKey: [...payrollKeys.byBranch(), { month, year, status: query?.status }],
     queryFn: () =>
       PayrollsService.listByBranch(
-        query?.month,
-        query?.year,
+        month,
+        year,
         query?.status
       ),
   });
@@ -85,10 +90,11 @@ export const usePayrollManagement = () => {
   const { user, currentBranch } = useAuthStore();
   const { activeTab, setActiveTab } = useTabNavigation("payrolls");
 
-  // UI State
+  // Initialize month/year to current values (required parameters)
+  const now = new Date();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
-  const [selectedYear, setSelectedYear] = useState<number | undefined>();
+  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   const [selectedStatus, setSelectedStatus] = useState<string | undefined>();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
@@ -97,12 +103,12 @@ export const usePayrollManagement = () => {
     useState<PayrollWithEmployee | null>(null);
   const [selectedPayrollId, setSelectedPayrollId] = useState<number | null>(null);
 
-  // API Hooks - Fetch payrolls filtered by current branch
+  // API Hooks - Fetch payrolls filtered by current branch with month/year
   const {
     data: payrollsResp,
     isLoading: payrollsLoading,
     error,
-  } = usePayrollsByBranch({});
+  } = usePayrollsByBranch({ month: selectedMonth, year: selectedYear, status: selectedStatus });
 
   const { data: employees = [], isLoading: employeesLoading } =
     useEmployeesByBranch();

@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
+import { EmployeeCombobox } from "@/components/ui/employee-combobox";
 
 interface LeaveFormData {
   employee_id: number | null;
@@ -57,22 +58,11 @@ const LeaveFormDialog = ({ open, onOpenChange, isEditing, employees, formData, o
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="leave_employee_id">Employee *</Label>
-                <Select
+                <EmployeeCombobox
                   value={formData.employee_id && formData.employee_id > 0 ? formData.employee_id.toString() : ""}
-                  onValueChange={(value) => onChange("employee_id", parseInt(value))}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select employee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map((employee) => (
-                      <SelectItem key={employee.employee_id} value={employee.employee_id.toString()}>
-                        {employee.employee_name} ({employee.employee_code})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onValueChange={(value) => onChange("employee_id", value ? parseInt(value) : 0)}
+                  placeholder="Search and select employee..."
+                />
               </div>
               <div>
                 <Label htmlFor="leave_type">Leave Type *</Label>

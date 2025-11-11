@@ -131,11 +131,28 @@ export const useEmployeeManagement = (
   const { user, currentBranch } = useAuthStore();
   const { activeTab, setActiveTab } = useTabNavigation("employees");
 
+  // UI State - Initialize month/year to current values (required parameters)
+  const now = new Date();
+  const [attendancePage, setAttendancePage] = useState(1);
+  const [leavesPage, setLeavesPage] = useState(1);
+  const [advancesPage, setAdvancesPage] = useState(1);
+  const [attendanceMonth, setAttendanceMonth] = useState<number>(now.getMonth() + 1);
+  const [attendanceYear, setAttendanceYear] = useState<number>(now.getFullYear());
+  const [leaveMonth, setLeaveMonth] = useState<number>(now.getMonth() + 1);
+  const [leaveYear, setLeaveYear] = useState<number>(now.getFullYear());
+  const pageSize = 20;
+
   // Data hooks
   const { data: employees = [], isLoading, error } = useEmployeesByBranch();
   const { data: attendanceData, isLoading: attendanceLoading } =
-    useAttendanceByBranch();
-  const { data: leavesData, isLoading: leavesLoading } = useEmployeeLeavesByBranch();
+    useAttendanceByBranch(attendanceMonth, attendanceYear);
+  const { data: leavesData, isLoading: leavesLoading } = useEmployeeLeavesByBranch(
+    leaveMonth,
+    leaveYear,
+    pageSize,
+    leavesPage,
+    undefined // leaveStatus
+  );
 
   // Extract data from response objects
   const attendance = attendanceData?.data || [];
@@ -164,12 +181,6 @@ export const useEmployeeManagement = (
   const updateAdvanceMutation = useUpdateAdvance();
   const updateAdvanceStatusMutation = useUpdateAdvanceStatus();
   const updateAdvanceAmountPaidMutation = useUpdateAdvanceAmountPaid();
-
-  // UI State
-  const [attendancePage, setAttendancePage] = useState(1);
-  const [leavesPage, setLeavesPage] = useState(1);
-  const [advancesPage, setAdvancesPage] = useState(1);
-  const pageSize = 20;
 
   // Employee form state
   const [showEmployeeForm, setShowEmployeeForm] = useState(false);
@@ -625,25 +636,31 @@ export const useEmployeeManagement = (
   const handleApproveLeave = async (id: number, notes?: string) => {
     try {
       await approveLeaveMutation.mutateAsync(id);
+      
+      // Close dialog immediately to prevent UI freeze
       setShowLeaveApproveDialog(false);
       
-      // Aggressive cache invalidation for immediate UI updates
-      // Step 1: Remove query data to force fresh fetch
+      // Clear API cache first (non-blocking)
+      try {
+        CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
+      } catch (error) {
+        console.warn('Failed to clear API cache:', error);
+      }
+      
+      // Invalidate and refetch queries asynchronously (non-blocking)
+      // This allows the UI to remain responsive
       queryClient.removeQueries({ queryKey: employeeLeaveKeys.all });
+      queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all }).catch(console.error);
       
-      // Step 2: Invalidate all leave-related queries
-      queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
-      
-      // Step 3: Force refetch active queries
-      await queryClient.refetchQueries({
+      // Refetch in background without blocking
+      queryClient.refetchQueries({
         queryKey: employeeLeaveKeys.all,
         type: 'active'
-      });
-      
-      // Step 4: Wait for React to process state updates
-      await new Promise(resolve => setTimeout(resolve, 200));
+      }).catch(console.error);
     } catch (error) {
       console.error("Error approving leave:", error);
+      // Ensure dialog is closed even on error
+      setShowLeaveApproveDialog(false);
     }
   };
 
@@ -653,25 +670,31 @@ export const useEmployeeManagement = (
         id,
         data: { rejection_reason: reason },
       });
+      
+      // Close dialog immediately to prevent UI freeze
       setShowLeaveRejectDialog(false);
       
-      // Aggressive cache invalidation for immediate UI updates
-      // Step 1: Remove query data to force fresh fetch
+      // Clear API cache first (non-blocking)
+      try {
+        CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
+      } catch (error) {
+        console.warn('Failed to clear API cache:', error);
+      }
+      
+      // Invalidate and refetch queries asynchronously (non-blocking)
+      // This allows the UI to remain responsive
       queryClient.removeQueries({ queryKey: employeeLeaveKeys.all });
+      queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all }).catch(console.error);
       
-      // Step 2: Invalidate all leave-related queries
-      queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
-      
-      // Step 3: Force refetch active queries
-      await queryClient.refetchQueries({
+      // Refetch in background without blocking
+      queryClient.refetchQueries({
         queryKey: employeeLeaveKeys.all,
         type: 'active'
-      });
-      
-      // Step 4: Wait for React to process state updates
-      await new Promise(resolve => setTimeout(resolve, 200));
+      }).catch(console.error);
     } catch (error) {
       console.error("Error rejecting leave:", error);
+      // Ensure dialog is closed even on error
+      setShowLeaveRejectDialog(false);
     }
   };
 
@@ -791,6 +814,14 @@ export const useEmployeeManagement = (
     setLeavesPage,
     advancesPage,
     setAdvancesPage,
+    attendanceMonth,
+    setAttendanceMonth,
+    attendanceYear,
+    setAttendanceYear,
+    leaveMonth,
+    setLeaveMonth,
+    leaveYear,
+    setLeaveYear,
     pageSize,
 
     // Employee state

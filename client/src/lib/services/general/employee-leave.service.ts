@@ -65,21 +65,21 @@ export const EmployeeLeaveService = {
   },
 
   /**
-   * Get all employee leaves by branch with optional filters
+   * Get all employee leaves by branch with required filters
+   * @param month - Filter by month (1-12, required)
+   * @param year - Filter by year (required)
    * @param pageSize - Number of records per page (default: 10)
    * @param page - Page number (default: 1)
    * @param leaveStatus - Filter by leave status
-   * @param month - Filter by month (1-12)
-   * @param year - Filter by year
    * @returns Promise<EmployeeLeaveListResponse> - Paginated leave list
    */
-  listByBranch(pageSize: number = 10, page: number = 1, leaveStatus?: string, month?: number, year?: number): Promise<EmployeeLeaveListResponse> {
+  listByBranch(month: number, year: number, pageSize: number = 10, page: number = 1, leaveStatus?: string): Promise<EmployeeLeaveListResponse> {
     const params = new URLSearchParams();
+    params.append('month', month.toString());
+    params.append('year', year.toString());
     params.append('pageSize', pageSize.toString());
     params.append('page', page.toString());
     if (leaveStatus) params.append('leave_status', leaveStatus);
-    if (month) params.append('month', month.toString());
-    if (year) params.append('year', year.toString());
     
     return Api.get<EmployeeLeaveListResponse>(`/employee-leave/branch?${params.toString()}`);
   },

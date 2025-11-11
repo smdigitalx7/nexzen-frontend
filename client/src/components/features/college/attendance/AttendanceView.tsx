@@ -1,37 +1,49 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { CardContent } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
+import { CardContent, Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EnhancedDataTable } from '@/components/shared/EnhancedDataTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { MonthYearFilter } from '@/components/shared';
 import { CollegeClassDropdown, CollegeGroupDropdown } from '@/components/shared/Dropdowns';
 import { useCollegeAttendance, useCollegeClassGroups } from '@/lib/hooks/college';
 import { useToast } from '@/hooks/use-toast';
 import { CollegeAttendanceService } from '@/lib/services/college';
 import { collegeKeys } from '@/lib/hooks/college/query-keys';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { CollegeClassResponse, CollegeGroupResponse } from '@/lib/types/college';
+import { Info } from 'lucide-react';
 
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 export default function AttendanceView() {
   const queryClient = useQueryClient();
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  
+  // Initialize with current month/year (required parameters)
+  const now = new Date();
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const { data: classGroups } = useCollegeClassGroups(selectedClassId || 0);
   const groups = (classGroups as any)?.groups || [];
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
-  const month = selectedDate ? selectedDate.getMonth() + 1 : undefined;
-  const year = selectedDate ? selectedDate.getFullYear() : undefined;
+  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
+  
+  // Build query params - class_id, group_id, month, and year are required
+  const attendanceParams = useMemo(() => {
+    if (!selectedClassId || !selectedGroupId) return null;
+    return {
+      class_id: selectedClassId,
+      group_id: selectedGroupId,
+      month: selectedMonth,
+      year: selectedYear,
+    };
+  }, [selectedClassId, selectedGroupId, selectedMonth, selectedYear]);
+  
   const studentsQuery = useQuery({
-    queryKey: ['college-attendance-all', selectedClassId, selectedGroupId, month, year],
-    queryFn: () => CollegeAttendanceService.getAll({ class_id: selectedClassId as number, group_id: selectedGroupId as number, year: year ?? null, month: month ?? null }),
-    enabled: !!selectedClassId && !!selectedGroupId,
+    queryKey: ['college-attendance-all', attendanceParams],
+    queryFn: () => CollegeAttendanceService.getAll(attendanceParams!),
+    enabled: !!attendanceParams,
   });
   const groupedData = (studentsQuery.data as any[]) || [];
   const allStudents = (groupedData?.[0]?.attendance?.[0]?.students as any[]) || [];
@@ -99,47 +111,85 @@ export default function AttendanceView() {
   return (
     <>
       <CardContent>
-        {/* Filters & Actions Bar */}
-        <div className="flex flex-wrap items-center justify-start gap-2 mb-2">
-          <CollegeClassDropdown
-            value={selectedClassId}
-            onChange={(value) => {
-              setSelectedClassId(value);
-              setSelectedGroupId(null); // Reset group when class changes
-            }}
-            placeholder="Select class"
-            className="w-[160px]"
-            required={true}
-            emptyValue={true}
-            emptyValueLabel="Select class"
-          />
-          {selectedClassId && (
-            <CollegeGroupDropdown
-              classId={selectedClassId}
-              value={selectedGroupId}
-              onChange={(value) => setSelectedGroupId(value)}
-              disabled={!selectedClassId}
-              placeholder="All Groups"
-              className="w-[160px]"
+        {/* Unified Filter Controls */}
+        <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 mb-4">
+          {/* Required Filters */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium">Class:</label>
+            <CollegeClassDropdown
+              value={selectedClassId}
+              onChange={(value: number | null) => {
+                setSelectedClassId(value);
+                setSelectedGroupId(null); // Reset group when class changes
+              }}
+              placeholder="Select class"
+              className="w-40"
               emptyValue
-              emptyValueLabel="All Groups"
+              emptyValueLabel="Select class"
             />
-          )}
-          <Select value={month ? String(month) : ''} onValueChange={(v) => { const m = parseInt(v); const d = selectedDate || new Date(); setSelectedDate(new Date(d.getFullYear(), m - 1, d.getDate())); }}>
-            <SelectTrigger className="w-[140px]"><SelectValue placeholder="Month" /></SelectTrigger>
-            <SelectContent>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (<SelectItem key={m} value={String(m)}>{monthNames[m-1]}</SelectItem>))}
-            </SelectContent>
-          </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium">Group:</label>
+            <CollegeGroupDropdown
+              classId={selectedClassId || 0}
+              value={selectedGroupId}
+              onChange={(value: number | null) => setSelectedGroupId(value)}
+              disabled={!selectedClassId}
+              placeholder={selectedClassId ? "Select group" : "Select class first"}
+              className="w-40"
+              emptyValue
+              emptyValueLabel={selectedClassId ? "Select group" : "Select class first"}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-muted-foreground whitespace-nowrap">Filter by month and year:</p>
+            <MonthYearFilter
+              month={selectedMonth}
+              year={selectedYear}
+              onMonthChange={setSelectedMonth}
+              onYearChange={setSelectedYear}
+              monthId="college-attendance-month"
+              yearId="college-attendance-year"
+              showLabels={false}
+              className="flex-1 items-center"
+            />
+          </div>
         </div>
 
-        {!selectedClassId || !selectedGroupId ? (
-          <Alert className="mb-2">
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              Please select a class and group first to view attendance records.
-            </AlertDescription>
-          </Alert>
+        {!selectedClassId ? (
+          <Card className="p-8 text-center mb-4">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                <Info className="h-8 w-8 text-slate-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Select Class, Group, Month, and Year
+                </h3>
+                <p className="text-slate-600 mt-1">
+                  Please select a class, group, month, and year from the filters above to view attendance records.
+                </p>
+              </div>
+            </div>
+          </Card>
+        ) : !selectedGroupId ? (
+          <Card className="p-8 text-center mb-4">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                <Info className="h-8 w-8 text-slate-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Select a Group
+                </h3>
+                <p className="text-slate-600 mt-1">
+                  Please select a group from the dropdown above to view attendance records.
+                </p>
+              </div>
+            </div>
+          </Card>
         ) : hasError ? (
           <div className="py-4 text-center text-red-600">{errorMessage || 'Failed to load data'}</div>
         ) : isLoading ? (

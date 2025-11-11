@@ -176,19 +176,21 @@ const ExamMarksManagementComponent = ({
   const viewExamLoading = viewingExamMarkId ? viewQuery.isLoading : false;
   const viewExamError = viewingExamMarkId ? viewQuery.error : null;
 
-  // Exam marks hooks - only fetch when class is selected
+  // Exam marks hooks - require class_id, subject_id, and exam_id
   const examMarksQuery = useMemo(() => {
-    if (!selectedClass) {
+    if (!selectedClass || !selectedSubject || !selectedExam) {
       return undefined;
     }
 
-    // Only fetch by class, let EnhancedDataTable handle other filters
+    // Require class_id, subject_id, and exam_id for API call
     const query: ExamMarksQuery = {
       class_id: selectedClass,
+      subject_id: selectedSubject,
+      exam_id: selectedExam,
     };
 
     return query;
-  }, [selectedClass]);
+  }, [selectedClass, selectedSubject, selectedExam]);
 
   const {
     data: examMarksData,
@@ -416,18 +418,7 @@ const ExamMarksManagementComponent = ({
           >
             {/* Unified Filter Controls */}
             <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Exam:</label>
-                <SchoolExamDropdown
-                  value={selectedExam}
-                  onChange={handleExamChange}
-                  placeholder="Select exam"
-                  emptyValue
-                  emptyValueLabel="Select exam"
-                  className="w-40"
-                />
-              </div>
-
+              {/* Required Filters */}
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium">Class:</label>
                 <SchoolClassDropdown
@@ -441,33 +432,49 @@ const ExamMarksManagementComponent = ({
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Section:</label>
-                <SchoolSectionDropdown
-                  classId={classId}
-                  value={selectedSection}
-                  onChange={handleSectionChange}
-                  placeholder="Select section"
-                  emptyValue
-                  emptyValueLabel="Select section"
-                  className="w-40"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
                 <label className="text-sm font-medium">Subject:</label>
                 <SchoolSubjectDropdown
                   classId={classId}
                   value={selectedSubject}
                   onChange={handleSubjectChange}
-                  placeholder="Select subject"
+                  placeholder={selectedClass ? "Select subject" : "Select class first"}
                   emptyValue
-                  emptyValueLabel="Select subject"
+                  emptyValueLabel={selectedClass ? "Select subject" : "Select class first"}
                   className="w-40"
+                  disabled={!selectedClass}
                 />
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Grade:</label>
+                <label className="text-sm font-medium">Exam:</label>
+                <SchoolExamDropdown
+                  value={selectedExam}
+                  onChange={handleExamChange}
+                  placeholder={selectedClass ? "Select exam" : "Select class first"}
+                  emptyValue
+                  emptyValueLabel={selectedClass ? "Select exam" : "Select class first"}
+                  className="w-40"
+                  disabled={!selectedClass}
+                />
+              </div>
+
+              {/* Optional Filters */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-muted-foreground">Section:</label>
+                <SchoolSectionDropdown
+                  classId={classId}
+                  value={selectedSection}
+                  onChange={handleSectionChange}
+                  placeholder="All sections"
+                  emptyValue
+                  emptyValueLabel="All sections"
+                  className="w-40"
+                  disabled={!selectedClass}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-muted-foreground">Grade:</label>
                 <Select
                   value={selectedGrade}
                   onValueChange={handleGradeChange}
@@ -499,11 +506,42 @@ const ExamMarksManagementComponent = ({
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900">
-                      Select a Class
+                      Select Class, Subject, and Exam
                     </h3>
                     <p className="text-slate-600 mt-1">
-                      Please select a class from the dropdown above to view exam
-                      marks.
+                      Please select a class, subject, and exam from the dropdowns above to view exam marks.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ) : !selectedSubject ? (
+              <Card className="p-8 text-center">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                    <GraduationCap className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Select a Subject
+                    </h3>
+                    <p className="text-slate-600 mt-1">
+                      Please select a subject from the dropdown above to view exam marks.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ) : !selectedExam ? (
+              <Card className="p-8 text-center">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                    <GraduationCap className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Select an Exam
+                    </h3>
+                    <p className="text-slate-600 mt-1">
+                      Please select an exam from the dropdown above to view exam marks for the selected class and subject.
                     </p>
                   </div>
                 </div>
