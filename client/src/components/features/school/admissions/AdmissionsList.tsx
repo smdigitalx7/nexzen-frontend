@@ -202,7 +202,7 @@ const FeeStructure = memo(({
   onPayAdmissionFee 
 }: { 
   admission: SchoolAdmissionDetails;
-  onPayAdmissionFee?: () => void;
+  onPayAdmissionFee?: (e?: React.MouseEvent) => void;
 }) => {
   const isPending = admission.admission_fee_paid === "PENDING";
 
@@ -236,7 +236,10 @@ const FeeStructure = memo(({
                 <td className="text-center py-3 px-4">
                   <Button
                     size="sm"
-                    onClick={onPayAdmissionFee}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPayAdmissionFee(e);
+                    }}
                     className="flex items-center gap-2"
                   >
                     <CreditCard className="h-4 w-4" />
@@ -474,7 +477,12 @@ const AdmissionsListComponent = () => {
     }
   }, []);
 
-  const handlePayAdmissionFee = useCallback(() => {
+  const handlePayAdmissionFee = useCallback((e?: React.MouseEvent) => {
+    // Prevent event propagation to avoid closing parent dialog
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     if (selectedAdmission) {
       setShowPaymentDialog(true);
     }
@@ -514,8 +522,15 @@ const AdmissionsListComponent = () => {
 
       if (blobUrl) {
         setReceiptBlobUrl(blobUrl);
+        // Close payment dialog immediately
         setShowPaymentDialog(false);
-        setShowReceiptModal(true);
+        // Open receipt modal after a brief delay to ensure payment dialog closes first
+        setTimeout(() => {
+          setShowReceiptModal(true);
+        }, 150);
+      } else {
+        // If no blob URL, still close the payment dialog
+        setShowPaymentDialog(false);
       }
 
       toast({
@@ -534,6 +549,8 @@ const AdmissionsListComponent = () => {
       }
     } catch (error: any) {
       console.error("Payment failed:", error);
+      // Close payment dialog even on error
+      setShowPaymentDialog(false);
       toast({
         title: "Payment Failed",
         description:
@@ -637,8 +654,17 @@ const AdmissionsListComponent = () => {
       />
 
       {/* Admission Details Dialog */}
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto scrollbar-hide">
+      <Dialog 
+        open={showDetailsDialog} 
+        onOpenChange={(open) => {
+          // Prevent closing if payment dialog or receipt modal is open
+          if (!open && !showPaymentDialog && !showReceiptModal) {
+            setShowDetailsDialog(false);
+          }
+        }}
+        modal={true}
+      >
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto scrollbar-hide" style={{ zIndex: 9999 }}>
           {isLoadingAdmission ? (
             <div className="flex items-center justify-center py-12">
               <CircleSpinner size="lg" message="Loading admission details..." />
@@ -668,8 +694,16 @@ const AdmissionsListComponent = () => {
       </Dialog>
 
       {/* Payment Dialog */}
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent>
+      <Dialog 
+        open={showPaymentDialog && !showReceiptModal} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowPaymentDialog(false);
+          }
+        }}
+        modal={true}
+      >
+        <DialogContent style={{ zIndex: 10000 }}>
           <UIDialogHeader>
             <DialogTitle>Pay Admission Fee</DialogTitle>
             <DialogDescription>

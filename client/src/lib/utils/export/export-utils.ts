@@ -77,7 +77,7 @@ const generateDaySheetExcel = (
   headerCell.fill = {
     type: 'pattern',
     pattern: 'solid',
-    fgColor: { argb: 'FF2C3E50' } // Dark gray
+    fgColor: { argb: 'FF374151' } // Professional Dark Gray - Consistent with other exports
   };
   headerCell.font = { size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
   worksheet.getRow(currentRow).height = 25;
@@ -94,7 +94,7 @@ const generateDaySheetExcel = (
   titleCell.fill = {
     type: 'pattern',
     pattern: 'solid',
-    fgColor: { argb: 'FF2C3E50' }
+    fgColor: { argb: 'FF374151' } // Professional Dark Gray - Consistent with other exports
   };
   titleCell.font = { size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
   worksheet.getRow(currentRow).height = 20;

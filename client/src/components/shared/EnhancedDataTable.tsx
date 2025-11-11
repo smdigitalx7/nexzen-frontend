@@ -521,22 +521,23 @@ function EnhancedDataTableComponent<TData>({
       worksheet.properties.defaultRowHeight = 20;
       worksheet.properties.defaultColWidth = 18;
 
-      // Professional color scheme
+      // Professional neutral color scheme - Corporate-grade design
       const colors = {
-        primary: { argb: "FF2563EB" }, // Blue-600
-        primaryDark: { argb: "FF1E40AF" }, // Blue-700
-        secondary: { argb: "FFF8F9FA" }, // Gray-50
-        text: { argb: "FF1F2937" }, // Gray-800
-        textSecondary: { argb: "FF6B7280" }, // Gray-500
-        border: { argb: "FFE5E7EB" }, // Gray-200
-        borderDark: { argb: "FFD1D5DB" }, // Gray-300
+        primary: { argb: "FF374151" }, // Gray-700 - Professional Dark Gray
+        primaryDark: { argb: "FF1F2937" }, // Gray-800 - Very Dark Gray
+        secondary: { argb: "FFF8F9FA" }, // Gray-50 - Very Light Gray
+        text: { argb: "FF111827" }, // Gray-900 - Very Dark Text (High Contrast)
+        textSecondary: { argb: "FF4B5563" }, // Gray-600 - Secondary Text
+        border: { argb: "FFD1D5DB" }, // Gray-300 - Standard Border
+        borderDark: { argb: "FF6B7280" }, // Gray-500 - Dark Border
         success: { argb: "FF059669" }, // Green-600
         warning: { argb: "FFD97706" }, // Amber-600
         error: { argb: "FFDC2626" }, // Red-600
         white: { argb: "FFFFFFFF" },
-        headerBg: { argb: "FF1E3A8A" }, // Blue-800
-        headerText: { argb: "FFFFFFFF" },
-        alternateRow: { argb: "FFF9FAFB" }, // Gray-50
+        headerBg: { argb: "FF374151" }, // Gray-700 - Professional Dark Gray Header
+        headerText: { argb: "FFFFFFFF" }, // White - High Contrast
+        headerBorder: { argb: "FF1F2937" }, // Gray-800 - Dark Border
+        alternateRow: { argb: "FFF9FAFB" }, // Gray-50 - Very Light Gray
       };
 
       // Filter out action columns
@@ -555,65 +556,61 @@ function EnhancedDataTableComponent<TData>({
         return hasAccessorKey && !isActionColumn;
       });
 
-      // Add professional title section
+      // Add modern clean title section
       if (title) {
         const titleRow = worksheet.addRow([title]);
-        titleRow.height = 32;
+        titleRow.height = 30;
         titleRow.font = {
           bold: true,
-          size: 20,
-          color: colors.headerText,
+          size: 16,
+          color: colors.text,
           name: "Segoe UI",
         };
         titleRow.alignment = {
-          horizontal: "center",
+          horizontal: "left",
           vertical: "middle",
         };
         titleRow.fill = {
           type: "pattern",
           pattern: "solid",
-          fgColor: colors.headerBg,
+          fgColor: colors.white,
         };
 
         // Merge title cells
         worksheet.mergeCells(1, 1, 1, exportableColumns.length);
 
-        // Add border to title
+        // Clean border - only bottom
         const titleCell = worksheet.getCell(1, 1);
         titleCell.border = {
-          top: { style: "medium", color: colors.headerBg },
           bottom: { style: "medium", color: colors.headerBg },
-          left: { style: "medium", color: colors.headerBg },
-          right: { style: "medium", color: colors.headerBg },
         };
 
         worksheet.addRow([]); // Empty row for spacing
       }
 
-      // Add export metadata with professional styling
-      const exportDate = new Date().toLocaleString("en-US", {
-        weekday: "long",
+      // Add export metadata with clean styling
+      const now = new Date();
+      const exportDate = `${now.toLocaleDateString("en-US", {
         year: "numeric",
-        month: "long",
+        month: "short",
         day: "numeric",
+      })} at ${now.toLocaleTimeString("en-US", {
         hour: "2-digit",
         minute: "2-digit",
-      });
+        hour12: true,
+      })}`;
+      
       const metadataRow = worksheet.addRow([
-        `Generated on: ${exportDate}`,
-        "",
-        "",
-        `Total Records: ${memoizedFilteredData.length}`,
+        `Generated: ${exportDate} | Total Records: ${memoizedFilteredData.length}`,
       ]);
-      metadataRow.height = 22;
+      metadataRow.height = 20;
       metadataRow.font = {
-        size: 10,
+        size: 9,
         color: colors.textSecondary,
-        italic: true,
         name: "Segoe UI",
       };
       metadataRow.alignment = {
-        horizontal: "left",
+        horizontal: "right",
         vertical: "middle",
       };
 
@@ -626,14 +623,10 @@ function EnhancedDataTableComponent<TData>({
       );
 
       const metadataCell = worksheet.getCell(title ? 3 : 1, 1);
-      metadataCell.alignment = {
-        horizontal: "right",
-        vertical: "middle",
-      };
       metadataCell.fill = {
         type: "pattern",
         pattern: "solid",
-        fgColor: colors.secondary,
+        fgColor: colors.white,
       };
       metadataCell.border = {
         bottom: { style: "thin", color: colors.border },
@@ -651,7 +644,7 @@ function EnhancedDataTableComponent<TData>({
 
       const headerRowIndex = title ? 5 : 3;
       const headerRow = worksheet.addRow(headers);
-      headerRow.height = 28;
+      headerRow.height = 24; // More compact header height
       headerRow.font = {
         bold: true,
         size: 11,
@@ -672,10 +665,10 @@ function EnhancedDataTableComponent<TData>({
       // Apply professional header styling to each cell
       headerRow.eachCell((cell) => {
         cell.border = {
-          top: { style: "medium", color: colors.headerBg },
-          bottom: { style: "medium", color: colors.headerBg },
-          left: { style: "thin", color: colors.borderDark },
-          right: { style: "thin", color: colors.borderDark },
+          top: { style: "medium", color: colors.headerBorder },
+          bottom: { style: "medium", color: colors.headerBorder },
+          left: { style: "thin", color: colors.border },
+          right: { style: "thin", color: colors.border },
         };
         cell.fill = {
           type: "pattern",
@@ -695,7 +688,7 @@ function EnhancedDataTableComponent<TData>({
             if (value === null || value === undefined) return "-";
             if (typeof value === "boolean") return value ? "Yes" : "No";
             if (typeof value === "object") {
-              // Handle dates
+              // Handle dates - more compact format
               if (value instanceof Date) {
                 return value.toLocaleDateString("en-US", {
                   year: "numeric",
@@ -705,7 +698,7 @@ function EnhancedDataTableComponent<TData>({
               }
               // Handle objects and arrays
               try {
-                return JSON.stringify(value).replace(/[{}"]/g, "").slice(0, 50);
+                return JSON.stringify(value).replace(/[{}"]/g, "").slice(0, 40); // Reduced from 50
               } catch {
                 return String(value);
               }
@@ -726,7 +719,7 @@ function EnhancedDataTableComponent<TData>({
         });
 
         const dataRow = worksheet.addRow(rowData);
-        dataRow.height = 22;
+        dataRow.height = 20; // More compact row height
         dataRow.alignment = { vertical: "middle" };
 
         // Professional alternating row colors
@@ -734,7 +727,11 @@ function EnhancedDataTableComponent<TData>({
         const rowFillColor = isEvenRow ? colors.white : colors.alternateRow;
 
         // Apply professional cell styling
-        dataRow.eachCell((cell) => {
+        dataRow.eachCell((cell, colNumber) => {
+          const col = exportableColumns[colNumber - 1];
+          const typedCol = col as ColumnDef<TData> & { accessorKey?: string };
+          const colKey = typedCol.accessorKey?.toLowerCase() || '';
+          
           cell.font = {
             size: 10,
             color: colors.text,
@@ -743,7 +740,7 @@ function EnhancedDataTableComponent<TData>({
           cell.alignment = {
             vertical: "middle",
             horizontal: "left",
-            wrapText: true,
+            wrapText: false, // Disable wrap for compact design
           };
           cell.fill = {
             type: "pattern",
@@ -772,25 +769,76 @@ function EnhancedDataTableComponent<TData>({
                 ? "#,##0.00"
                 : "#,##0";
           }
+          
+          // Conditional formatting for status/payment columns
+          const cellValue = String(cell.value || '').toUpperCase();
+          if (colKey.includes('status') || colKey.includes('payment')) {
+            if (cellValue.includes('CONFIRMED') || cellValue.includes('PAID') || cellValue === 'YES') {
+              cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FFECFDF5" }, // Light green background
+              };
+              cell.font = {
+                ...cell.font,
+                color: { argb: "FF059669" }, // Green text
+                bold: true,
+              };
+            } else if (cellValue.includes('PENDING') || cellValue.includes('UNPAID') || cellValue === 'NO') {
+              cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FFFFFBEB" }, // Light yellow background
+              };
+              cell.font = {
+                ...cell.font,
+                color: { argb: "FFD97706" }, // Amber text
+                bold: true,
+              };
+            }
+          }
         });
       });
 
-      // Auto-fit columns with maximum width limit
+      // Optimized column width calculation - More compact design
       worksheet.columns.forEach((column, index) => {
         if (column && column.eachCell) {
+          const col = exportableColumns[index];
+          const colKey = typeof col.accessorKey === 'string' ? col.accessorKey.toLowerCase() : '';
+          const colHeader = typeof col.header === 'string' ? col.header : String(col.header || '');
+          
           let maxLength = 10;
           column.eachCell({ includeEmpty: false }, (cell) => {
             if (cell && cell.value) {
               const cellValue = String(cell.value);
               const cellLength = cellValue.length;
               if (cellLength > maxLength) {
-                maxLength = Math.min(cellLength, 60); // Cap at 60 characters
+                // Reduced max length for compact design
+                maxLength = Math.min(cellLength, 40); // Reduced from 60 to 40
               }
             }
           });
 
-          // Set column width with reasonable limits
-          column.width = Math.max(Math.min(maxLength + 3, 50), 12);
+          // Smart width calculation based on column type
+          let optimalWidth = Math.max(maxLength + 2, 10);
+          
+          // Adjust for specific column types
+          if (colKey.includes('status')) {
+            optimalWidth = Math.min(Math.max(optimalWidth, 12), 18); // Status: 12-18
+          } else if (colKey.includes('date')) {
+            optimalWidth = Math.min(Math.max(optimalWidth, 12), 18); // Date: 12-18
+          } else if (colKey.includes('no') || colKey.includes('id')) {
+            optimalWidth = Math.min(Math.max(optimalWidth, 15), 25); // ID: 15-25
+          } else if (colKey.includes('name')) {
+            optimalWidth = Math.min(Math.max(optimalWidth, 20), 35); // Name: 20-35
+          } else if (colKey.includes('amount') || colKey.includes('fee') || colKey.includes('payment')) {
+            optimalWidth = Math.min(Math.max(optimalWidth, 15), 20); // Amount: 15-20
+          } else {
+            optimalWidth = Math.min(Math.max(optimalWidth, 10), 35); // Default: 10-35
+          }
+
+          // Set column width with optimized limits
+          column.width = optimalWidth;
 
           // Set alignment for header
           if (headerRow.getCell(index + 1)) {
@@ -811,7 +859,7 @@ function EnhancedDataTableComponent<TData>({
       summaryRow.font = {
         bold: true,
         size: 11,
-        color: colors.headerText,
+        color: colors.text, // Dark gray text for readability
         name: "Segoe UI",
       };
       summaryRow.alignment = {
@@ -821,7 +869,7 @@ function EnhancedDataTableComponent<TData>({
       summaryRow.fill = {
         type: "pattern",
         pattern: "solid",
-        fgColor: colors.headerBg,
+        fgColor: { argb: "FFF3F4F6" }, // Gray-100 - Light neutral background
       };
 
       // Merge summary cells
@@ -834,10 +882,16 @@ function EnhancedDataTableComponent<TData>({
 
       const summaryCell = worksheet.getCell(summaryRowIndex, 1);
       summaryCell.border = {
-        top: { style: "medium", color: colors.headerBg },
-        bottom: { style: "medium", color: colors.headerBg },
-        left: { style: "medium", color: colors.headerBg },
-        right: { style: "medium", color: colors.headerBg },
+        top: { style: "medium", color: colors.borderDark },
+        bottom: { style: "thin", color: colors.border },
+        left: { style: "thin", color: colors.border },
+        right: { style: "thin", color: colors.border },
+      };
+      // Update summary background to neutral gray
+      summaryCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFF3F4F6" }, // Gray-100 - Light neutral background
       };
 
       // Add freeze panes for better navigation

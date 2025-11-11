@@ -34,13 +34,13 @@ export async function exportAdmissionsToExcel(
     },
   ];
 
-  // Style header row
+  // Style header row - Professional neutral design
   const headerRow = worksheet.getRow(1);
   headerRow.font = { bold: true, size: 12, color: { argb: "FFFFFFFF" } };
   headerRow.fill = {
     type: "pattern",
     pattern: "solid",
-    fgColor: { argb: "FF2563EB" }, // Blue background
+    fgColor: { argb: "FF374151" }, // Professional Dark Gray - Corporate-grade neutral
   };
   headerRow.alignment = { vertical: "middle", horizontal: "center" };
   headerRow.height = 25;
@@ -140,22 +140,22 @@ export async function exportSingleAdmissionToExcel(
   // Set column widths
   worksheet.columns = [{ width: 30 }, { width: 40 }];
 
-  // Title
+  // Title - Professional neutral design
   const titleRow = worksheet.addRow(["STUDENT ADMISSION DETAILS", ""]);
-  titleRow.font = { bold: true, size: 16, color: { argb: "FF2563EB" } };
+  titleRow.font = { bold: true, size: 16, color: { argb: "FF374151" } }; // Professional Dark Gray
   titleRow.alignment = { horizontal: "center" };
   worksheet.mergeCells(`A1:B1`);
   titleRow.height = 30;
 
   worksheet.addRow([]); // Empty row
 
-  // Basic Information Section
+  // Basic Information Section - Professional neutral design
   const basicInfoHeader = worksheet.addRow(["BASIC INFORMATION", ""]);
   basicInfoHeader.font = { bold: true, size: 12, color: { argb: "FFFFFFFF" } };
   basicInfoHeader.fill = {
     type: "pattern",
     pattern: "solid",
-    fgColor: { argb: "FF4B5563" },
+    fgColor: { argb: "FF374151" }, // Professional Dark Gray - Consistent with headers
   };
   worksheet.mergeCells(`A${basicInfoHeader.number}:B${basicInfoHeader.number}`);
 
@@ -170,7 +170,7 @@ export async function exportSingleAdmissionToExcel(
 
   worksheet.addRow([]); // Empty row
 
-  // Parent/Guardian Information
+  // Parent/Guardian Information - Professional neutral design
   const parentInfoHeader = worksheet.addRow([
     "PARENT/GUARDIAN INFORMATION",
     "",
@@ -179,7 +179,7 @@ export async function exportSingleAdmissionToExcel(
   parentInfoHeader.fill = {
     type: "pattern",
     pattern: "solid",
-    fgColor: { argb: "FF4B5563" },
+    fgColor: { argb: "FF374151" }, // Professional Dark Gray - Consistent with headers
   };
   worksheet.mergeCells(
     `A${parentInfoHeader.number}:B${parentInfoHeader.number}`
@@ -220,13 +220,13 @@ export async function exportSingleAdmissionToExcel(
 
   worksheet.addRow([]); // Empty row
 
-  // Address Information
+  // Address Information - Professional neutral design
   const addressHeader = worksheet.addRow(["ADDRESS INFORMATION", ""]);
   addressHeader.font = { bold: true, size: 12, color: { argb: "FFFFFFFF" } };
   addressHeader.fill = {
     type: "pattern",
     pattern: "solid",
-    fgColor: { argb: "FF4B5563" },
+    fgColor: { argb: "FF374151" }, // Professional Dark Gray - Consistent with headers
   };
   worksheet.mergeCells(`A${addressHeader.number}:B${addressHeader.number}`);
 
@@ -235,13 +235,13 @@ export async function exportSingleAdmissionToExcel(
 
   worksheet.addRow([]); // Empty row
 
-  // Fee Information
+  // Fee Information - Professional neutral design
   const feeHeader = worksheet.addRow(["FEE INFORMATION", ""]);
   feeHeader.font = { bold: true, size: 12, color: { argb: "FFFFFFFF" } };
   feeHeader.fill = {
     type: "pattern",
     pattern: "solid",
-    fgColor: { argb: "FF4B5563" },
+    fgColor: { argb: "FF374151" }, // Professional Dark Gray - Consistent with headers
   };
   worksheet.mergeCells(`A${feeHeader.number}:B${feeHeader.number}`);
 
@@ -260,13 +260,13 @@ export async function exportSingleAdmissionToExcel(
 
   worksheet.addRow([]); // Empty row
 
-  // Transport Information
+  // Transport Information - Professional neutral design
   const transportHeader = worksheet.addRow(["TRANSPORT INFORMATION", ""]);
   transportHeader.font = { bold: true, size: 12, color: { argb: "FFFFFFFF" } };
   transportHeader.fill = {
     type: "pattern",
     pattern: "solid",
-    fgColor: { argb: "FF4B5563" },
+    fgColor: { argb: "FF374151" }, // Professional Dark Gray - Consistent with headers
   };
   worksheet.mergeCells(`A${transportHeader.number}:B${transportHeader.number}`);
 
