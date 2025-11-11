@@ -438,6 +438,7 @@ function LogsTab() {
   const [offset, setOffset] = useState<number>(0);
   const [selectedAuditIds, setSelectedAuditIds] = useState<number[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [refreshKey, setRefreshKey] = useState<number>(0);
 
   const { toast } = useToast();
 
@@ -514,7 +515,16 @@ function LogsTab() {
         });
         setShowDeleteDialog(false);
         setSelectedAuditIds([]);
-        refetch();
+        // Reset offset if current page might be empty after deletion
+        if (offset > 0 && readableLogs.length <= selectedAuditIds.length) {
+          setOffset(0);
+        }
+        // Force refresh by updating refresh key to trigger re-render
+        setRefreshKey(prev => prev + 1);
+        // Additional refetch as backup (mutation hook handles the main refresh)
+        setTimeout(async () => {
+          await refetch();
+        }, 100);
       } catch (error) {
         // Error handled by mutation hook
       }
@@ -556,7 +566,14 @@ function LogsTab() {
       });
       setShowDeleteDialog(false);
       setSelectedAuditIds([]);
-      refetch();
+      // Reset offset after date range deletion
+      setOffset(0);
+      // Force refresh by updating refresh key to trigger re-render
+      setRefreshKey(prev => prev + 1);
+      // Additional refetch as backup (mutation hook handles the main refresh)
+      setTimeout(async () => {
+        await refetch();
+      }, 100);
     } catch (error) {
       // Error handled by mutation hook
     }

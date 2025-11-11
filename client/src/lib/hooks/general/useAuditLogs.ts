@@ -7,6 +7,7 @@ import type {
   AuditLogDeleteByIdsParams,
 } from "@/lib/types/general/audit-logs";
 import { useToast } from "@/hooks/use-toast";
+import { CacheUtils } from "@/lib/api";
 
 /**
  * Hook for getting activity summary from audit logs
@@ -17,7 +18,7 @@ export const useActivitySummary = (params?: ActivitySummaryParams) => {
   return useQuery({
     queryKey: ["audit-logs", "activity-summary", params],
     queryFn: () => AuditLogsService.getActivitySummary(params),
-    staleTime: 30000, // 30 seconds - activity summaries update frequently
+    staleTime: 0, // Always refetch when invalidated
   });
 };
 
@@ -30,7 +31,7 @@ export const useReadableLogs = (params?: AuditLogReadableParams) => {
   return useQuery({
     queryKey: ["audit-logs", "readable", params],
     queryFn: () => AuditLogsService.getReadableLogs(params),
-    staleTime: 30000, // 30 seconds
+    staleTime: 0, // Always refetch when invalidated
   });
 };
 
@@ -45,15 +46,28 @@ export const useDeleteLogs = () => {
   return useMutation({
     mutationFn: (params: AuditLogDeleteParams) =>
       AuditLogsService.deleteLogs(params),
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       toast({
         title: "Logs Deleted",
         description: response.message || "Audit logs have been deleted successfully.",
         variant: "success",
       });
-      // Invalidate related queries
-      queryClient.invalidateQueries({
+      
+      // CRITICAL: Clear API-level cache first (this was the root cause!)
+      // The API layer caches GET requests, so we need to clear it before refetching
+      CacheUtils.clearByPattern(/GET:.*\/audit-logs/i);
+      
+      // Remove all audit-logs queries from React Query cache
+      queryClient.removeQueries({
         queryKey: ["audit-logs"],
+        exact: false,
+      });
+      
+      // Force refetch all active queries (they will now fetch fresh data from API)
+      await queryClient.refetchQueries({
+        queryKey: ["audit-logs"],
+        exact: false,
+        type: "active",
       });
     },
     onError: (error: any) => {
@@ -80,15 +94,28 @@ export const useDeleteLogsByIds = () => {
   return useMutation({
     mutationFn: (params: AuditLogDeleteByIdsParams) =>
       AuditLogsService.deleteLogsByIds(params),
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       toast({
         title: "Logs Deleted",
         description: response.message || "Audit logs have been deleted successfully.",
         variant: "success",
       });
-      // Invalidate related queries
-      queryClient.invalidateQueries({
+      
+      // CRITICAL: Clear API-level cache first (this was the root cause!)
+      // The API layer caches GET requests, so we need to clear it before refetching
+      CacheUtils.clearByPattern(/GET:.*\/audit-logs/i);
+      
+      // Remove all audit-logs queries from React Query cache
+      queryClient.removeQueries({
         queryKey: ["audit-logs"],
+        exact: false,
+      });
+      
+      // Force refetch all active queries (they will now fetch fresh data from API)
+      await queryClient.refetchQueries({
+        queryKey: ["audit-logs"],
+        exact: false,
+        type: "active",
       });
     },
     onError: (error: any) => {

@@ -8,6 +8,7 @@ import {
   Target,
   Building2,
   TrophyIcon,
+  BarChart3,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
@@ -20,6 +21,12 @@ import {
 import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 import ExamMarksManagement from "./ExamMarksManagement";
 import TestMarksManagement from "./TestMarksManagement";
+import { 
+  ExamMarksReport, 
+  TestMarksReport,
+  StudentMarksSearchView,
+  StudentPerformanceSearchView,
+} from "./components";
 import { useAuthStore } from "@/store/authStore";
 
 const MarksManagementComponent = () => {
@@ -73,13 +80,33 @@ const MarksManagementComponent = () => {
 
   // Memoized header content
   const headerContent = useMemo(() => {
-    const isExamMarks = activeTab === "exam-marks";
-    return {
-      title: isExamMarks ? "Marks Management" : "Tests Management",
-      description: isExamMarks
-        ? "Track exam results and manage academic performance"
-        : "Track test results and manage academic performance",
-    };
+    switch (activeTab) {
+      case "exam-marks":
+        return {
+          title: "Marks Management",
+          description: "Track exam results and manage academic performance",
+        };
+      case "test-marks":
+        return {
+          title: "Tests Management",
+          description: "Track test results and manage academic performance",
+        };
+      case "reports":
+        return {
+          title: "Marks Reports",
+          description: "Generate and view comprehensive marks reports",
+        };
+      case "student-views":
+        return {
+          title: "Student Views",
+          description: "View individual student marks and performance",
+        };
+      default:
+        return {
+          title: "Marks Management",
+          description: "Track exam results and manage academic performance",
+        };
+    }
   }, [activeTab]);
 
   // Memoized statistics cards
@@ -112,6 +139,12 @@ const MarksManagementComponent = () => {
     ],
     [activeTab, statistics]
   );
+
+  // Reports tab state
+  const [reportsActiveTab, setReportsActiveTab] = useState<"exam" | "test">("exam");
+  
+  // Student Views tab state
+  const [studentViewsActiveTab, setStudentViewsActiveTab] = useState<"marks" | "performance">("marks");
 
   // Memoized tabs configuration - components receive props but instances stay stable
   // forceMount in TabSwitcher keeps components mounted, preventing remounts
@@ -159,6 +192,60 @@ const MarksManagementComponent = () => {
           />
         ),
       },
+      {
+        value: "reports",
+        label: "Reports",
+        icon: BarChart3,
+        content: (
+          <div className="space-y-6">
+            <TabSwitcher
+              tabs={[
+                {
+                  value: "exam",
+                  label: "Exam Reports",
+                  icon: GraduationCap,
+                  content: <ExamMarksReport />,
+                },
+                {
+                  value: "test",
+                  label: "Test Reports",
+                  icon: ClipboardList,
+                  content: <TestMarksReport />,
+                },
+              ]}
+              activeTab={reportsActiveTab}
+              onTabChange={(value) => setReportsActiveTab(value as "exam" | "test")}
+            />
+          </div>
+        ),
+      },
+      {
+        value: "student-views",
+        label: "Student Views",
+        icon: FileText,
+        content: (
+          <div className="space-y-6">
+            <TabSwitcher
+              tabs={[
+                {
+                  value: "marks",
+                  label: "Marks View",
+                  icon: FileText,
+                  content: <StudentMarksSearchView />,
+                },
+                {
+                  value: "performance",
+                  label: "Performance View",
+                  icon: BarChart3,
+                  content: <StudentPerformanceSearchView />,
+                },
+              ]}
+              activeTab={studentViewsActiveTab}
+              onTabChange={(value) => setStudentViewsActiveTab(value as "marks" | "performance")}
+            />
+          </div>
+        ),
+      },
     ],
     [
       handleExamMarksDataChange,
@@ -173,6 +260,8 @@ const MarksManagementComponent = () => {
       testSelectedSubject,
       testSelectedGrade,
       testSelectedTest,
+      reportsActiveTab,
+      studentViewsActiveTab,
     ]
   );
 
@@ -204,26 +293,28 @@ const MarksManagementComponent = () => {
             </div>
           </motion.div>
 
-          {/* Statistics Cards */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <DashboardGrid columns={4} gap="md">
-              {statisticsCards.map((card, index) => (
-                <StatsCard
-                  key={`${card.title}-${index}`}
-                  title={card.title}
-                  value={card.value}
-                  icon={card.icon}
-                  color={card.color}
-                  variant="elevated"
-                  size="md"
-                />
-              ))}
-            </DashboardGrid>
-          </motion.div>
+          {/* Statistics Cards - Only show for Marks and Tests tabs */}
+          {(activeTab === "exam-marks" || activeTab === "test-marks") && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <DashboardGrid columns={4} gap="md">
+                {statisticsCards.map((card, index) => (
+                  <StatsCard
+                    key={`${card.title}-${index}`}
+                    title={card.title}
+                    value={card.value}
+                    icon={card.icon}
+                    color={card.color}
+                    variant="elevated"
+                    size="md"
+                  />
+                ))}
+              </DashboardGrid>
+            </motion.div>
+          )}
 
           {/* Main Content */}
           <TabSwitcher

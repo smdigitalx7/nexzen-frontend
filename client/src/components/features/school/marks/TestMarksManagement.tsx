@@ -1166,7 +1166,9 @@ const TestMarksManagementComponent = ({
             <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
               {/* Required Filters */}
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Class:</label>
+                <label className="text-sm font-medium">
+                  Class: <span className="text-red-500">*</span>
+                </label>
                 <SchoolClassDropdown
                   value={selectedClass}
                   onChange={handleClassChange}
@@ -1178,7 +1180,9 @@ const TestMarksManagementComponent = ({
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Subject:</label>
+                <label className="text-sm font-medium">
+                  Subject: <span className="text-red-500">*</span>
+                </label>
                 <SchoolSubjectDropdown
                   classId={classId}
                   value={selectedSubject}
@@ -1192,7 +1196,9 @@ const TestMarksManagementComponent = ({
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Test:</label>
+                <label className="text-sm font-medium">
+                  Test: <span className="text-red-500">*</span>
+                </label>
                 <SchoolTestDropdown
                   value={selectedTest}
                   onChange={handleTestChange}
