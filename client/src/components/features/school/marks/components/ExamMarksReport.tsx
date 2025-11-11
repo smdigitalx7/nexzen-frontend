@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Loading } from "@/components/ui/loading";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { ColumnDef } from "@tanstack/react-table";
@@ -362,7 +361,7 @@ export const ExamMarksReport = () => {
               title="Student Marks"
               searchKey="name"
               searchPlaceholder="Search by student name..."
-              exportable={false}
+              exportable={true}
               loading={isLoading}
             />
           </motion.div>

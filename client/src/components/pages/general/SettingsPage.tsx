@@ -6,6 +6,10 @@ import {
   Settings as SettingsIcon,
   Mail,
   Phone,
+  FileText,
+  Headphones,
+  Bug,
+  Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -146,7 +150,7 @@ const SettingsPage = () => {
         label: "About",
         icon: Globe,
         content: (
-          <Card className="border-none shadow-lg">
+          <Card className="border-none shadow-lg relative">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Globe className="h-5 w-5" />
@@ -156,47 +160,110 @@ const SettingsPage = () => {
                 Application information and support
               </CardDescription>
             </CardHeader>
+            {/* Version in top right corner of About card */}
+            <div className="absolute top-6 right-6 flex items-center gap-2 bg-muted/50 backdrop-blur-sm px-3 py-1.5 rounded-md border z-10">
+              <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">v1.0.0</span>
+            </div>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+
+              <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Version</p>
-                  <p className="font-medium">1.0.0</p>
+                  <h3 className="text-lg font-semibold tracking-tight">Support & Help</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Get assistance and access resources
+                  </p>
                 </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <h3 className="font-medium">Support & Help</h3>
-                <div className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start">
-                    Documentation
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start"
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card 
+                    className="group transition-all duration-200 hover:shadow-md hover:border-primary/50"
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex flex-col space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
+                            <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="font-semibold text-base leading-none">Documentation</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Browse guides and API references
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card 
+                    className="group cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/50"
                     onClick={() => setIsContactDialogOpen(true)}
                   >
-                    Contact Support
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start"
+                    <CardContent className="p-6">
+                      <div className="flex flex-col space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
+                            <Headphones className="h-5 w-5 text-green-600 dark:text-green-400" />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="font-semibold text-base leading-none">Contact Support</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Reach out to our support team
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card 
+                    className="group cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/50"
                     onClick={() => {
                       window.open('https://www.jotform.com/form/253145100074039', '_blank', 'noopener,noreferrer');
                     }}
                   >
-                    Report an Issue
-                  </Button>
+                    <CardContent className="p-6">
+                      <div className="flex flex-col space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="h-10 w-10 rounded-lg bg-red-500/10 flex items-center justify-center group-hover:bg-red-500/20 transition-colors">
+                            <Bug className="h-5 w-5 text-red-600 dark:text-red-400" />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="font-semibold text-base leading-none">Report an Issue</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Report bugs or request features
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
 
               <Separator />
 
-              <div className="p-4 bg-slate-50 rounded-lg">
-                <p className="text-sm text-muted-foreground">
-                  © 2024 Nexzen ERP. All rights reserved.
-                </p>
+              <div className="pt-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <span>© 2025</span>
+                    <span className="font-semibold text-foreground">VELONEX ERP</span>
+                    <span>All rights reserved.</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span>Made with</span>
+                    <span className="text-red-500">❤️</span>
+                    <span>by</span>
+                    <a 
+                      href="https://www.smdigitalx.com" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="font-medium text-foreground hover:underline transition-colors"
+                    >
+                      SMDigitalX
+                    </a>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

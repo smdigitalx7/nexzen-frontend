@@ -1,4 +1,4 @@
-import { useState, useMemo, memo, useCallback } from "react";
+import { useMemo, memo } from "react";
 import { motion } from "framer-motion";
 import { Eye, Download, User, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -109,16 +109,6 @@ const StudentFeeBalancesTableComponent = ({
   loading = false,
   classes = [],
 }: StudentFeeBalancesTableProps) => {
-  // Filter state
-  const [classFilter, setClassFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-
-  // Memoized unique classes for filter options from API
-  const uniqueClasses = useMemo(() => 
-    (classes || []).map(c => c.class_name).filter(Boolean),
-    [classes]
-  );
-
   // Memoized columns definition
   const columns: ColumnDef<StudentFeeBalance>[] = useMemo(() => [
     {
@@ -171,31 +161,6 @@ const StudentFeeBalancesTableComponent = ({
     };
   }, [studentBalances]);
 
-  // Memoized filter options
-  const filterOptions = useMemo(() => [
-    {
-      key: 'class_name',
-      label: 'Class',
-      options: uniqueClasses.map(className => ({ value: className, label: className })),
-      value: classFilter,
-      onChange: (value: string) => {
-        setClassFilter(value);
-      }
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      options: [
-        { value: 'PAID', label: 'Paid' },
-        { value: 'PARTIAL', label: 'Partial' },
-        { value: 'OUTSTANDING', label: 'Outstanding' }
-      ],
-      value: statusFilter,
-      onChange: (value: string) => {
-        setStatusFilter(value);
-      }
-    }
-  ], [uniqueClasses, classFilter, statusFilter]);
 
   return (
     <motion.div
@@ -220,7 +185,6 @@ const StudentFeeBalancesTableComponent = ({
         actionColumnHeader="Actions"
         showActionLabels={true}
         loading={loading}
-        filters={filterOptions}
       />
 
       {/* Summary Cards */}

@@ -1,8 +1,7 @@
 import { useState, useMemo } from "react";
-import { Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ColumnDef } from "@tanstack/react-table";
-import { EnhancedDataTable } from "@/components/shared";
+import { EnhancedDataTable, ConfirmDialog } from "@/components/shared";
 import GradeFormDialog from "./GradeFormDialog";
 import type { GradeRead, GradeCreate, GradeUpdate } from "@/lib/types/general/grades";
 import type { UseMutationResult } from "@tanstack/react-query";
@@ -33,10 +32,26 @@ const GradesTab = ({
   const [isAddGradeOpen, setIsAddGradeOpen] = useState(false);
   const [isEditGradeOpen, setIsEditGradeOpen] = useState(false);
   const [editGradeCode, setEditGradeCode] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedGradeCode, setSelectedGradeCode] = useState<string | null>(null);
 
-  const handleDeleteGrade = (gradeCode: string) => {
-    if (window.confirm(`Are you sure you want to delete grade "${gradeCode}"?`)) {
-      deleteGradeMutation.mutate(gradeCode);
+  const handleDeleteClick = (gradeCode: string) => {
+    setSelectedGradeCode(gradeCode);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteGrade = () => {
+    if (selectedGradeCode) {
+      deleteGradeMutation.mutate(selectedGradeCode, {
+        onSuccess: () => {
+          setIsDeleteDialogOpen(false);
+          setSelectedGradeCode(null);
+        },
+        onError: () => {
+          // Keep dialog open on error so user can see the error message
+          // Dialog will be closed when user clicks cancel or outside
+        }
+      });
     }
   };
 
@@ -84,13 +99,16 @@ const GradesTab = ({
     },
     {
       type: 'delete' as const,
-      onClick: (row: GradeRead) => handleDeleteGrade(row.grade)
+      onClick: (row: GradeRead) => handleDeleteClick(row.grade)
     }
   ], []);
 
-  const handleAddGrade = (data: GradeCreate) => {
-    createGradeMutation.mutate(data);
-    setIsAddGradeOpen(false);
+  const handleAddGrade = (data: GradeCreate | { gradeCode: string; data: GradeUpdate }) => {
+    // When adding (not editing), the dialog will only pass GradeCreate
+    if ('grade' in data) {
+      createGradeMutation.mutate(data);
+      setIsAddGradeOpen(false);
+    }
   };
 
   const handleUpdateGrade = (data: { gradeCode: string; data: GradeUpdate } | GradeCreate) => {
@@ -98,11 +116,11 @@ const GradesTab = ({
     if ('gradeCode' in data) {
       const { gradeCode, data: updateData } = data;
       
-      // Filter out undefined, null, NaN, and empty string values
+      // Filter out undefined, null, and NaN values
       const payload: GradeUpdate = {};
       Object.keys(updateData).forEach((key) => {
         const value = updateData[key as keyof GradeUpdate];
-        if (value !== undefined && value !== null && value !== '' && !Number.isNaN(value)) {
+        if (value !== undefined && value !== null && !Number.isNaN(value)) {
           (payload as Record<string, unknown>)[key] = value;
         }
       });
@@ -166,6 +184,24 @@ const GradesTab = ({
             max_percentage: grade.max_percentage
           } : undefined;
         })() : undefined}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Delete Grade"
+        description={`Are you sure you want to delete grade "${selectedGradeCode}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+        isLoading={deleteGradeMutation.isPending}
+        loadingText="Deleting..."
+        onConfirm={handleDeleteGrade}
+        onCancel={() => {
+          setIsDeleteDialogOpen(false);
+          setSelectedGradeCode(null);
+        }}
       />
     </div>
   );

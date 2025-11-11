@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { motion } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +7,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Loading } from "@/components/ui/loading";
 import {
   Accordion,
@@ -28,7 +26,6 @@ import {
   Award,
   CheckCircle2,
   XCircle,
-  Percent,
 } from "lucide-react";
 import { useStudentMarks } from "@/lib/hooks/school";
 import type { SubjectMarksDetail } from "@/lib/types/school";
@@ -132,7 +129,7 @@ export const StudentMarksView = ({
           <DialogHeader>
             <DialogTitle>Error Loading Marks</DialogTitle>
           </DialogHeader>
-          <div className="p-4 text-red-600">
+          <div className="p-4 text-sm text-destructive">
             Failed to load student marks. Please try again.
           </div>
         </DialogContent>
@@ -144,21 +141,21 @@ export const StudentMarksView = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[95vh] flex flex-col p-0 gap-0">
         {/* Header */}
-        <DialogHeader className="px-5 pt-5 pb-4 flex-shrink-0 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-white shadow-sm border border-blue-100">
-                <FileText className="h-5 w-5 text-blue-600" />
+              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                <FileText className="h-5 w-5 text-muted-foreground" />
               </div>
               <div>
-                <DialogTitle className="text-lg font-bold text-gray-900">
+                <DialogTitle className="text-xl font-semibold tracking-tight">
                   Student Marks Report
                 </DialogTitle>
                 {data && (
-                  <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-600">
-                    <User className="h-3 w-3" />
+                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                    <User className="h-3.5 w-3.5" />
                     <span>{data.student_details.student_name}</span>
-                    <span className="text-gray-300">•</span>
+                    <span>•</span>
                     <span>
                       {data.student_details.class_name}
                       {data.student_details.section_name && ` - ${data.student_details.section_name}`}
@@ -167,9 +164,9 @@ export const StudentMarksView = ({
                 )}
               </div>
             </div>
-            <div className="flex gap-2 pr-8">
-              <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5 h-8">
-                <Download className="h-3.5 w-3.5" />
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleExport} className="gap-2">
+                <Download className="h-4 w-4" />
                 Export
               </Button>
             </div>
@@ -182,146 +179,140 @@ export const StudentMarksView = ({
               <Loading />
             </div>
           ) : !data ? (
-            <div className="text-center py-20 text-gray-500">
-              <FileText className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-              <p className="text-lg font-medium">No marks data available</p>
+            <div className="text-center py-20">
+              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                <FileText className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground">No marks data available</p>
             </div>
           ) : (
-            <div className="p-4 space-y-2">
-              {/* Student Info Card and Overall Performance Card - Side by Side */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Student Info Card - Enhanced */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm flex-1 min-w-0"
-                >
-                  <div className="flex items-center flex-wrap gap-6">
+            <div className="p-6 space-y-4">
+              {/* Combined Student Info and Overall Performance Card */}
+              <div className="bg-card border rounded-lg p-5">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                  {/* Student Information Section */}
+                  <div className="flex items-center flex-wrap gap-6 flex-1">
                     <div className="flex items-center gap-3">
-                      <div className="p-1.5 rounded bg-blue-100">
-                        <User className="h-4 w-4 text-blue-600" />
+                      <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center">
+                        <User className="h-4 w-4 text-muted-foreground" />
                       </div>
                       <div>
-                        <div className="text-xs text-gray-500 mb-0.5">Admission No</div>
-                        <div className="text-sm font-semibold text-gray-900">
+                        <div className="text-xs text-muted-foreground mb-0.5">Admission No</div>
+                        <div className="text-sm font-medium">
                           {data.student_details.admission_no}
                         </div>
                       </div>
                     </div>
                     {data.student_details.roll_number && (
                       <div className="flex items-center gap-3">
-                        <div className="p-1.5 rounded bg-green-100">
-                          <Hash className="h-4 w-4 text-green-600" />
+                        <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center">
+                          <Hash className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div>
-                          <div className="text-xs text-gray-500 mb-0.5">Roll Number</div>
-                          <div className="text-sm font-semibold text-gray-900">
+                          <div className="text-xs text-muted-foreground mb-0.5">Roll Number</div>
+                          <div className="text-sm font-medium">
                             {data.student_details.roll_number}
                           </div>
                         </div>
                       </div>
                     )}
                     <div className="flex items-center gap-3">
-                      <div className="p-1.5 rounded bg-orange-100">
-                        <Calendar className="h-4 w-4 text-orange-600" />
+                      <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
                       </div>
                       <div>
-                        <div className="text-xs text-gray-500 mb-0.5">Academic Year</div>
-                        <div className="text-sm font-semibold text-gray-900">
+                        <div className="text-xs text-muted-foreground mb-0.5">Academic Year</div>
+                        <div className="text-sm font-medium">
                           {data.student_details.academic_year}
                         </div>
                       </div>
                     </div>
                   </div>
-                </motion.div>
 
-                {/* Overall Statistics Card */}
-                {overallStats && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="bg-gradient-to-r from-indigo-500 to-blue-600 rounded-lg p-3 text-white shadow-lg flex-shrink-0"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
-                        <Award className="h-4 w-4" />
+                  {/* Overall Performance Section */}
+                  {overallStats && (
+                    <div className="flex items-center gap-4 pl-6 border-l lg:border-l lg:border-t-0 border-t pt-4 lg:pt-0">
+                      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                        <Award className="h-5 w-5 text-muted-foreground" />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-indigo-100">Overall Performance</span>
-                        <span className="text-lg font-bold">
-                          {overallStats.averagePercentage.toFixed(1)}%
-                        </span>
-                        <span className="text-xs text-indigo-100">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium text-muted-foreground mb-1">
+                          Overall Performance
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className={cn("text-2xl font-bold", getPercentageColor(overallStats.averagePercentage))}>
+                            {overallStats.averagePercentage.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
                           {overallStats.totalObtained} / {overallStats.totalMax} marks • {overallStats.totalSubjects} subjects
-                        </span>
+                        </div>
                       </div>
                     </div>
-                  </motion.div>
-                )}
+                  )}
+                </div>
               </div>
 
               {/* Subjects List - Grid Layout with Accordions */}
               {subjects.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                  <BookOpen className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                  <p className="text-sm font-medium">No marks data available</p>
+                <div className="text-center py-12">
+                  <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                    <BookOpen className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm font-medium text-muted-foreground">No marks data available</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {subjects.map((subject, index) => {
                     const overall = calculateSubjectOverall(subject);
                     const isPass = overall.percentage >= 60;
                     
                     return (
-                      <motion.div
+                      <div
                         key={subject.subject_name}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+                        className="bg-card border rounded-lg overflow-hidden"
                       >
                         <Accordion type="single" collapsible className="w-full">
                           <AccordionItem value={subject.subject_name} className="border-0">
                             {/* Subject Header - Always Visible */}
                             <AccordionTrigger className="px-5 py-4 hover:no-underline">
                               <div className="flex items-center justify-between w-full pr-2">
-                                <div className="flex items-center gap-2">
-                                  <div className="p-1 rounded bg-blue-100">
-                                    <BookOpen className="h-3.5 w-3.5 text-blue-600" />
+                                <div className="flex items-center gap-3">
+                                  <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center">
+                                    <BookOpen className="h-4 w-4 text-muted-foreground" />
                                   </div>
                                   <div className="text-left">
-                                    <h3 className="text-base font-bold text-gray-900">
+                                    <h3 className="text-sm font-semibold">
                                       {subject.subject_name}
                                     </h3>
                                     <div className="flex items-center gap-1.5 mt-0.5">
-                                      <span className="text-xs text-gray-500">
+                                      <span className="text-xs text-muted-foreground">
                                         {subject.exam_marks.length} Exam{subject.exam_marks.length !== 1 ? 's' : ''}
                                       </span>
-                                      <span className="text-xs text-gray-300">•</span>
-                                      <span className="text-xs text-gray-500">
+                                      <span>•</span>
+                                      <span className="text-xs text-muted-foreground">
                                         {subject.test_marks.length} Test{subject.test_marks.length !== 1 ? 's' : ''}
                                       </span>
                                     </div>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-3">
                                   <div className="text-right">
-                                    <div className={cn("text-base font-bold", getPercentageColor(overall.percentage))}>
+                                    <div className={cn("text-base font-semibold", getPercentageColor(overall.percentage))}>
                                       {overall.percentage.toFixed(1)}%
                                     </div>
-                                    <div className="text-xs text-gray-500">
+                                    <div className="text-xs text-muted-foreground">
                                       {overall.totalObtained}/{overall.totalMax}
                                     </div>
                                   </div>
                                   <div className={cn(
-                                    "p-1 rounded",
-                                    isPass ? "bg-emerald-100" : "bg-red-100"
+                                    "h-6 w-6 rounded-full flex items-center justify-center",
+                                    isPass ? "bg-emerald-500/10" : "bg-red-500/10"
                                   )}>
                                     {isPass ? (
-                                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                                     ) : (
-                                      <XCircle className="h-3.5 w-3.5 text-red-600" />
+                                      <XCircle className="h-4 w-4 text-red-600" />
                                     )}
                                   </div>
                                 </div>
@@ -329,42 +320,42 @@ export const StudentMarksView = ({
                             </AccordionTrigger>
                             
                             {/* Overall Summary - Always Visible */}
-                            <div className="px-5 py-3 border-b border-gray-200 bg-blue-50/50">
+                            <div className="px-5 py-3 border-t bg-muted/30">
                               <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-1">
-                                  <TrendingUp className="h-3 w-3 text-blue-600" />
-                                  <span className="text-xs font-semibold text-gray-900">Overall</span>
+                                <div className="flex items-center gap-2">
+                                  <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span className="text-xs font-medium">Overall</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <div className="text-right">
-                                    <div className="text-xs font-bold text-gray-900">
+                                    <div className="text-xs font-semibold">
                                       {overall.totalObtained}
-                                      <span className="text-[10px] font-normal text-gray-500">/{overall.totalMax}</span>
+                                      <span className="text-[10px] font-normal text-muted-foreground">/{overall.totalMax}</span>
                                     </div>
                                   </div>
-                                  <div className={cn(
-                                    "text-xs font-bold px-1.5 py-0.5 rounded",
-                                    overall.percentage >= 60 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
-                                  )}>
+                                  <Badge 
+                                    variant={overall.percentage >= 60 ? "default" : "destructive"}
+                                    className="text-xs px-2 py-0 h-5"
+                                  >
                                     {overall.percentage.toFixed(1)}%
-                                  </div>
+                                  </Badge>
                                 </div>
                               </div>
                             </div>
                             
                             <AccordionContent className="px-5 pb-4">
-                              <div className="space-y-3 pt-2">
+                              <div className="space-y-4 pt-3">
                                 {/* Exams Section */}
                                 {subject.exam_marks.length > 0 && (
                                   <div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <div className="p-1 rounded bg-purple-100">
-                                        <GraduationCap className="h-4 w-4 text-purple-600" />
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <div className="h-6 w-6 rounded-md bg-muted flex items-center justify-center">
+                                        <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" />
                                       </div>
-                                      <h4 className="text-sm font-semibold text-gray-900">
+                                      <h4 className="text-sm font-medium">
                                         Exams
                                       </h4>
-                                      <Badge variant="outline" className="ml-auto text-xs px-2 py-0.5 h-5">
+                                      <Badge variant="secondary" className="ml-auto text-xs px-2 py-0 h-5">
                                         {subject.exam_marks.length}
                                       </Badge>
                                     </div>
@@ -375,7 +366,7 @@ export const StudentMarksView = ({
                                   return (
                                         <div
                                           key={examIndex}
-                                          className="bg-gray-50 rounded p-3.5 border border-gray-200"
+                                          className="bg-muted/50 rounded-md p-3 border"
                                         >
                                           <div className="flex items-center justify-between gap-3">
                                             <div className="flex-1 min-w-0">
@@ -384,16 +375,16 @@ export const StudentMarksView = ({
                                                   "w-1.5 h-1.5 rounded-full",
                                                   isPass ? "bg-emerald-500" : "bg-red-500"
                                                 )} />
-                                                <div className="text-sm font-semibold text-gray-900 truncate">
+                                                <div className="text-sm font-medium truncate">
                                                   {exam.exam_name}
                                                 </div>
                                               </div>
                                             </div>
                                             <div className="flex items-center gap-2 flex-shrink-0">
                                               <div className="text-right">
-                                                <div className="text-sm font-bold text-gray-900">
+                                                <div className="text-sm font-semibold">
                                                   {exam.marks_obtained}
-                                                  <span className="text-xs font-normal text-gray-500">/{exam.max_marks}</span>
+                                                  <span className="text-xs font-normal text-muted-foreground">/{exam.max_marks}</span>
                                                 </div>
                                                 <div className={cn(
                                                   "text-xs font-medium",
@@ -406,7 +397,7 @@ export const StudentMarksView = ({
                                                 <Badge
                                                   variant="outline"
                                                   className={cn(
-                                                    "text-xs font-semibold px-2 py-0.5 h-5",
+                                                    "text-xs font-medium px-2 py-0 h-5",
                                                     getGradeColor(exam.grade)
                                                   )}
                                                 >
@@ -425,14 +416,14 @@ export const StudentMarksView = ({
                                 {/* Tests Section */}
                                 {subject.test_marks.length > 0 && (
                                   <div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <div className="p-1 rounded bg-green-100">
-                                        <FileText className="h-4 w-4 text-green-600" />
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <div className="h-6 w-6 rounded-md bg-muted flex items-center justify-center">
+                                        <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                                       </div>
-                                      <h4 className="text-sm font-semibold text-gray-900">
+                                      <h4 className="text-sm font-medium">
                                         Tests
                                       </h4>
-                                      <Badge variant="outline" className="ml-auto text-xs px-2 py-0.5 h-5">
+                                      <Badge variant="secondary" className="ml-auto text-xs px-2 py-0 h-5">
                                         {subject.test_marks.length}
                                       </Badge>
                                     </div>
@@ -443,7 +434,7 @@ export const StudentMarksView = ({
                                   return (
                                         <div
                                           key={testIndex}
-                                          className="bg-gray-50 rounded p-3.5 border border-gray-200"
+                                          className="bg-muted/50 rounded-md p-3 border"
                                         >
                                           <div className="flex items-center justify-between gap-3">
                                             <div className="flex-1 min-w-0">
@@ -452,16 +443,16 @@ export const StudentMarksView = ({
                                                   "w-1.5 h-1.5 rounded-full",
                                                   isPass ? "bg-emerald-500" : "bg-red-500"
                                                 )} />
-                                                <div className="text-sm font-semibold text-gray-900 truncate">
+                                                <div className="text-sm font-medium truncate">
                                                   {test.test_name}
                                                 </div>
                                               </div>
                                             </div>
                                             <div className="flex items-center gap-2 flex-shrink-0">
                                               <div className="text-right">
-                                                <div className="text-sm font-bold text-gray-900">
+                                                <div className="text-sm font-semibold">
                                                   {test.marks_obtained}
-                                                  <span className="text-xs font-normal text-gray-500">/{test.max_marks}</span>
+                                                  <span className="text-xs font-normal text-muted-foreground">/{test.max_marks}</span>
                                                 </div>
                                                 <div className={cn(
                                                   "text-xs font-medium",
@@ -474,7 +465,7 @@ export const StudentMarksView = ({
                                                 <Badge
                                                   variant="outline"
                                                   className={cn(
-                                                    "text-xs font-semibold px-2 py-0.5 h-5",
+                                                    "text-xs font-medium px-2 py-0 h-5",
                                                     getGradeColor(test.grade)
                                                   )}
                                                 >
@@ -494,7 +485,7 @@ export const StudentMarksView = ({
                             </AccordionContent>
                           </AccordionItem>
                         </Accordion>
-                      </motion.div>
+                      </div>
                     );
                   })}
                 </div>

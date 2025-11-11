@@ -362,7 +362,7 @@ export const TestMarksReport = () => {
               title="Student Marks"
               searchKey="name"
               searchPlaceholder="Search by student name..."
-              exportable={false}
+              exportable={true}
               loading={isLoading}
             />
           </motion.div>
