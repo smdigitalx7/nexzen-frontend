@@ -53,7 +53,9 @@ export function useExamMarksReport(params?: ExamMarksReportQuery) {
       typeof params?.class_id === "number" &&
       params.class_id > 0 &&
       typeof params?.exam_id === "number" &&
-      params.exam_id > 0,
+      params.exam_id > 0 &&
+      typeof params?.course_id === "number" &&
+      params.course_id > 0,
   });
 }
 
@@ -71,7 +73,8 @@ export function useTestMarksReport(params?: TestMarksReportQuery) {
       typeof params?.class_id === "number" &&
       params.class_id > 0 &&
       typeof params?.test_id === "number" &&
-      params.test_id > 0,
+      params.test_id > 0 &&
+      typeof params?.course_id === "number" &&
+      params.course_id > 0,
   });
 }
-

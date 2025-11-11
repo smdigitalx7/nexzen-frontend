@@ -13,15 +13,18 @@ import {
   User,
   GraduationCap,
   FileText,
-  Download,
   BookOpen,
   TrendingUp,
   Calendar,
   Hash,
   BarChart3,
+  FileSpreadsheet,
+  FileDown,
 } from "lucide-react";
 import { useStudentPerformance } from "@/lib/hooks/college";
 import { cn } from "@/lib/utils";
+import { exportStudentPerformanceToExcel, exportStudentPerformanceToPDF } from "@/lib/utils/export/student-performance-export";
+import { useToast } from "@/hooks/use-toast";
 
 interface StudentPerformanceViewProps {
   open: boolean;
@@ -53,10 +56,62 @@ export const StudentPerformanceView = ({
   admissionNo,
 }: StudentPerformanceViewProps) => {
   const { data, isLoading, error } = useStudentPerformance(admissionNo);
+  const { toast } = useToast();
 
-  const handleExport = () => {
-    // TODO: Implement PDF export
-    console.log("Export to PDF");
+  const handleExportExcel = async () => {
+    if (!data) {
+      toast({
+        title: "No data available",
+        description: "Please wait for the performance data to load.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const studentName = data.student_details.student_name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      await exportStudentPerformanceToExcel(data, `student-performance-${studentName}`);
+      toast({
+        title: "Export successful",
+        variant: "success",
+        description: "Student performance has been exported to Excel.",
+      });
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      toast({
+        title: "Export failed",
+        description: "Failed to export performance to Excel. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExportPDF = () => {
+    if (!data) {
+      toast({
+        title: "No data available",
+        description: "Please wait for the performance data to load.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const studentName = data.student_details.student_name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      exportStudentPerformanceToPDF(data, `student-performance-${studentName}`);
+      toast({
+        title: "Export successful",
+        variant: "success",
+        description: "Student performance has been exported to PDF.",
+      });
+    } catch (error) {
+      console.error("Error exporting to PDF:", error);
+      toast({
+        title: "Export failed",
+        description: "Failed to export performance to PDF. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Calculate overall statistics
@@ -93,7 +148,12 @@ export const StudentPerformanceView = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+      <DialogContent 
+        className="max-w-4xl max-h-[90vh] flex flex-col p-0"
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+        }}
+      >
         <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-3 text-xl">
@@ -110,9 +170,25 @@ export const StudentPerformanceView = ({
               </div>
             </DialogTitle>
             <div className="flex gap-2 pr-8">
-              <Button variant="outline" size="sm" onClick={handleExport}>
-                <Download className="h-4 w-4 mr-2" />
-                Export PDF
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-1.5 h-8" 
+                disabled={!data || isLoading}
+                onClick={handleExportExcel}
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+                Excel
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-1.5 h-8" 
+                disabled={!data || isLoading}
+                onClick={handleExportPDF}
+              >
+                <FileDown className="h-3.5 w-3.5" />
+                PDF
               </Button>
             </div>
           </div>

@@ -1,16 +1,9 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Loading } from "@/components/ui/loading";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { ColumnDef } from "@tanstack/react-table";
-import {
-  FileText,
-  Download,
-  BarChart3,
-} from "lucide-react";
 import { useTestMarksReport } from "@/lib/hooks/college";
 import type { CollegeStudentReport } from "@/lib/types/college";
 import {
@@ -18,8 +11,10 @@ import {
   CollegeTestDropdown,
   CollegeSubjectDropdown,
   CollegeGroupDropdown,
+  CollegeCourseDropdown,
 } from "@/components/shared/Dropdowns/College";
 import { cn } from "@/lib/utils";
+import { BarChart3 } from "lucide-react";
 
 // Helper function to get grade color
 const getGradeColor = (grade: string | null): string => {
@@ -45,22 +40,20 @@ export const TestMarksReport = () => {
   const [testId, setTestId] = useState<number | null>(null);
   const [subjectId, setSubjectId] = useState<number | null>(null);
   const [groupId, setGroupId] = useState<number | null>(null);
+  const [courseId, setCourseId] = useState<number | null>(null);
 
   const { data, isLoading, error } = useTestMarksReport(
-    classId && testId && groupId
+    classId && testId && groupId && courseId
       ? {
           class_id: classId,
           test_id: testId,
           group_id: groupId,
+          course_id: courseId,
           subject_id: subjectId || undefined,
         }
       : undefined
   );
 
-  const handleExport = () => {
-    // TODO: Implement PDF export
-    console.log("Export to PDF");
-  };
 
   // Prepare table data
   const tableData = useMemo(() => {
@@ -172,9 +165,6 @@ export const TestMarksReport = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-green-100">
-            <FileText className="h-5 w-5 text-green-600" />
-          </div>
           <div>
             <h2 className="text-xl font-bold text-gray-900">Test Marks Report</h2>
             <p className="text-xs text-gray-500 mt-0.5">
@@ -182,25 +172,17 @@ export const TestMarksReport = () => {
             </p>
           </div>
         </div>
-        {data && (
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              Export PDF
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Filters */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm"
+        className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-gray-700 whitespace-nowrap">
               Class <span className="text-red-500">*</span>
             </label>
             <div className="flex-1">
@@ -212,13 +194,14 @@ export const TestMarksReport = () => {
                     setTestId(null);
                     setSubjectId(null);
                     setGroupId(null);
+                    setCourseId(null);
                   }
                 }}
               />
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-gray-700 whitespace-nowrap">
               Group <span className="text-red-500">*</span>
             </label>
             <div className="flex-1">
@@ -229,31 +212,50 @@ export const TestMarksReport = () => {
                     setGroupId(value);
                     if (!value) {
                       setSubjectId(null);
+                      setCourseId(null);
                     }
                   }}
                   classId={classId}
                 />
               ) : (
-                <div className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-400 text-sm">
+                <div className="px-2 py-1.5 border border-gray-300 rounded-md bg-gray-50 text-gray-400 text-xs">
                   Select class first
                 </div>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-gray-700 whitespace-nowrap">
+              Course <span className="text-red-500">*</span>
+            </label>
+            <div className="flex-1">
+              {groupId ? (
+                <CollegeCourseDropdown
+                  value={courseId}
+                  onChange={setCourseId}
+                  groupId={groupId}
+                />
+              ) : (
+                <div className="px-2 py-1.5 border border-gray-300 rounded-md bg-gray-50 text-gray-400 text-xs">
+                  Select group first
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-gray-700 whitespace-nowrap">
               Test <span className="text-red-500">*</span>
             </label>
             <div className="flex-1">
               <CollegeTestDropdown
                 value={testId}
                 onChange={setTestId}
-                disabled={!classId || !groupId}
+                disabled={!classId || !groupId || !courseId}
               />
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-gray-700 whitespace-nowrap">
               Subject <span className="text-xs text-gray-500">(Optional)</span>
             </label>
             <div className="flex-1">
@@ -264,7 +266,7 @@ export const TestMarksReport = () => {
                   groupId={groupId}
                 />
               ) : (
-                <div className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-400 text-sm">
+                <div className="px-2 py-1.5 border border-gray-300 rounded-md bg-gray-50 text-gray-400 text-xs">
                   Select group first
                 </div>
               )}
@@ -308,8 +310,7 @@ export const TestMarksReport = () => {
             {/* Subject-wise Statistics */}
             {data.subject_wise_overall_marks.length > 0 && (
               <div className="mt-4 pt-4 border-t border-gray-200">
-                <h4 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-blue-600" />
+                <h4 className="text-base font-semibold text-gray-900 mb-3">
                   Subject-wise Statistics
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -378,15 +379,14 @@ export const TestMarksReport = () => {
             />
           </motion.div>
         </>
-      ) : classId && testId && groupId ? (
+      ) : classId && testId && groupId && courseId ? (
         <div className="text-center py-12 text-gray-500">
-          <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
           <p>No test marks data available for the selected filters</p>
         </div>
       ) : (
         <div className="text-center py-12 text-gray-500">
           <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-          <p>Please select Class, Group, and Test to generate the report</p>
+          <p>Please select Class, Group, Course, and Test to generate the report</p>
         </div>
       )}
     </div>

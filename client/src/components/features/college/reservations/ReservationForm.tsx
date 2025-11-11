@@ -986,52 +986,54 @@ export default function ReservationForm({
             </div>
           </div> */}
 
-          {/* Additional Information Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">
-              Additional Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="referred_by">Referred By</Label>
-                <EmployeeCombobox
-                  value={form.referred_by.toString()}
-                  onValueChange={(value) => {
-                    if (import.meta.env.DEV) {
-                      console.log("EmployeeCombobox value changed:", value);
+          {/* Additional Information Section - Only show when creating, not editing */}
+          {!isEdit && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">
+                Additional Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="referred_by">Referred By</Label>
+                  <EmployeeCombobox
+                    value={form.referred_by.toString()}
+                    onValueChange={(value) => {
+                      if (import.meta.env.DEV) {
+                        console.log("EmployeeCombobox value changed:", value);
+                      }
+                      setForm({ ...form, referred_by: Number(value) });
+                    }}
+                    placeholder="Select referring employee..."
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="reservation_date">Reservation Date</Label>
+                  <DatePicker
+                    id="reservation_date"
+                    value={form.reservation_date}
+                    onChange={(value) =>
+                      setForm({ ...form, reservation_date: value })
                     }
-                    setForm({ ...form, referred_by: Number(value) });
-                  }}
-                  placeholder="Select referring employee..."
-                />
-              </div>
-              <div>
-                <Label htmlFor="reservation_date">Reservation Date</Label>
-                <DatePicker
-                  id="reservation_date"
-                  value={form.reservation_date}
-                  onChange={(value) =>
-                    setForm({ ...form, reservation_date: value })
-                  }
-                  placeholder="Select reservation date"
-                />
-              </div>
-              <div></div>
-              <div className="md:col-span-3">
-                <Label htmlFor="remarks">Remarks</Label>
-                <Textarea
-                  id="remarks"
-                  name="remarks"
-                  value={form.remarks}
-                  onChange={(e) =>
-                    setForm({ ...form, remarks: e.target.value })
-                  }
-                  rows={2}
-                  autoComplete="off"
-                />
+                    placeholder="Select reservation date"
+                  />
+                </div>
+                <div></div>
+                <div className="md:col-span-3">
+                  <Label htmlFor="remarks">Remarks</Label>
+                  <Textarea
+                    id="remarks"
+                    name="remarks"
+                    value={form.remarks}
+                    onChange={(e) =>
+                      setForm({ ...form, remarks: e.target.value })
+                    }
+                    rows={2}
+                    autoComplete="off"
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Fee Information Section */}
           <div className="space-y-4 ">

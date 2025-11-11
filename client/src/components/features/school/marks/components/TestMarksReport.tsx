@@ -1,16 +1,9 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Loading } from "@/components/ui/loading";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { ColumnDef } from "@tanstack/react-table";
-import {
-  FileText,
-  Download,
-  BarChart3,
-} from "lucide-react";
 import { useTestMarksReport } from "@/lib/hooks/school";
 import type { SchoolStudentReport } from "@/lib/types/school";
 import {
@@ -57,10 +50,6 @@ export const TestMarksReport = () => {
       : undefined
   );
 
-  const handleExport = () => {
-    // TODO: Implement PDF export
-    console.log("Export to PDF");
-  };
 
   // Prepare table data
   // Note: Backend handles section filtering via section_id parameter
@@ -169,9 +158,6 @@ export const TestMarksReport = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-green-100">
-            <FileText className="h-5 w-5 text-green-600" />
-          </div>
           <div>
             <h2 className="text-xl font-bold text-gray-900">Test Marks Report</h2>
             <p className="text-xs text-gray-500 mt-0.5">
@@ -179,14 +165,6 @@ export const TestMarksReport = () => {
             </p>
           </div>
         </div>
-        {data && (
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              Export PDF
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Filters */}
@@ -300,8 +278,7 @@ export const TestMarksReport = () => {
             {/* Subject-wise Statistics */}
             {data.subject_wise_overall_marks.length > 0 && (
               <div className="mt-4 pt-4 border-t border-gray-200">
-                <h4 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-blue-600" />
+                <h4 className="text-base font-semibold text-gray-900 mb-3">
                   Subject-wise Statistics
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -369,12 +346,10 @@ export const TestMarksReport = () => {
         </>
       ) : classId && testId ? (
         <div className="text-center py-12 text-gray-500">
-          <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
           <p>No test marks data available for the selected filters</p>
         </div>
       ) : (
         <div className="text-center py-12 text-gray-500">
-          <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
           <p>Please select Class and Test to generate the report</p>
         </div>
       )}

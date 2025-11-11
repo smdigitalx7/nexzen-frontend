@@ -56,10 +56,51 @@ import type {
   SchoolIncomeRead,
   SchoolReservationRead,
   SchoolReservationCreate,
+  SchoolReservationStatusEnum,
 } from "@/lib/types/school";
 
+// Form state type
+type ReservationFormState = {
+  student_name: string;
+  aadhar_no: string;
+  gender: string;
+  dob: string;
+  father_or_guardian_name: string;
+  father_or_guardian_aadhar_no: string;
+  father_or_guardian_mobile: string;
+  father_or_guardian_occupation: string;
+  mother_or_guardian_name: string;
+  mother_or_guardian_aadhar_no: string;
+  mother_or_guardian_mobile: string;
+  mother_or_guardian_occupation: string;
+  siblings: Array<{
+    name: string;
+    class_name: string;
+    where: string;
+    gender: string;
+  }>;
+  previous_class: string;
+  previous_school_details: string;
+  present_address: string;
+  permanent_address: string;
+  application_fee: string;
+  application_fee_paid: boolean;
+  class_name: string;
+  tuition_fee: string;
+  book_fee: string;
+  transport_required: boolean;
+  preferred_transport_id: string;
+  preferred_distance_slab_id: string;
+  pickup_point: string;
+  transport_fee: string;
+  status: string;
+  referred_by: string;
+  remarks: string;
+  reservation_date: string;
+};
+
 // Initial form state - moved outside component for better performance
-const initialFormState = {
+const initialFormState: ReservationFormState = {
   // Personal Details
   student_name: "",
   aadhar_no: "",
@@ -73,12 +114,7 @@ const initialFormState = {
   mother_or_guardian_aadhar_no: "",
   mother_or_guardian_mobile: "",
   mother_or_guardian_occupation: "",
-  siblings: [] as Array<{
-    name: string;
-    class_name: string;
-    where: string;
-    gender: string;
-  }>,
+  siblings: [],
   previous_class: "",
   previous_school_details: "",
   present_address: "",
@@ -481,7 +517,7 @@ const ReservationManagementComponent = () => {
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [viewReservation, setViewReservation] = useState<SchoolReservationRead | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editForm, setEditForm] = useState<SchoolReservationRead | null>(null);
+  const [editForm, setEditForm] = useState<ReservationFormState | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [reservationToDelete, setReservationToDelete] = useState<SchoolReservationRead | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
@@ -679,7 +715,7 @@ const ReservationManagementComponent = () => {
 
   // Get preferred_class_id from form (for API submission)
   const getPreferredClassId = useCallback(
-    (formState = form) => {
+    (formState: ReservationFormState = form) => {
       const selectedClass = classes.find(
         (c) => c.class_name === formState.class_name
       );
@@ -690,7 +726,7 @@ const ReservationManagementComponent = () => {
 
   // Get preferred_distance_slab_id from form (for API submission)
   const getPreferredDistanceSlabId = useCallback(
-    (formState = form) => {
+    (formState: ReservationFormState = form) => {
       const selectedSlab = distanceSlabs?.find(
         (s) => s.slab_id.toString() === formState.preferred_distance_slab_id
       );
@@ -1026,7 +1062,7 @@ const ReservationManagementComponent = () => {
     ]
   );
 
-  const mapApiToForm = (r: any) => ({
+  const mapApiToForm = (r: any): ReservationFormState => ({
     student_name: r.student_name || "",
     aadhar_no: r.aadhar_no || "",
     gender: (r.gender || "").toString(),
@@ -1051,7 +1087,9 @@ const ReservationManagementComponent = () => {
     tuition_fee: r.tuition_fee != null ? String(r.tuition_fee) : "0",
     book_fee: r.book_fee != null ? String(r.book_fee) : "0",
     transport_required:
-      r.transport_required || (r.preferred_transport_id ? true : false),
+      r.transport_required !== undefined 
+        ? Boolean(r.transport_required)
+        : (r.preferred_transport_id ? true : false),
     preferred_transport_id: r.preferred_transport_id
       ? String(r.preferred_transport_id)
       : "0",
@@ -1115,7 +1153,7 @@ const ReservationManagementComponent = () => {
           routes: true,
         }));
 
-        setSelectedReservation({ id: r.reservation_id });
+        setSelectedReservation(data);
         setShowEditDialog(true);
       } catch (e: any) {
         console.error("Failed to load reservation for edit:", e);
@@ -1184,7 +1222,16 @@ const ReservationManagementComponent = () => {
             onView={handleView}
             onEdit={handleEdit}
             onDelete={(reservation) => {
-              setReservationToDelete(reservation);
+              // Convert Reservation to SchoolReservationRead for delete
+              const reservationToDelete: SchoolReservationRead = {
+                reservation_id: reservation.reservation_id,
+                student_name: reservation.studentName,
+                created_at: new Date().toISOString(),
+                tuition_fee: reservation.tuition_fee || 0,
+                book_fee: reservation.book_fee || 0,
+                status: reservation.status as SchoolReservationStatusEnum,
+              };
+              setReservationToDelete(reservationToDelete);
               setShowDeleteDialog(true);
             }}
             onUpdateConcession={handleUpdateConcession}
@@ -1233,9 +1280,9 @@ const ReservationManagementComponent = () => {
   );
 
   const submitEdit = useCallback(async () => {
-    if (!selectedReservation?.id || !editForm) return;
+    if (!selectedReservation?.reservation_id || !editForm) return;
     try {
-      // Convert editForm to JSON payload
+      // Convert editForm to JSON payload (backend expects JSON, not FormData)
       const payload = {
         student_name: editForm.student_name,
         aadhar_no: editForm.aadhar_no || "",
@@ -1253,7 +1300,7 @@ const ReservationManagementComponent = () => {
         mother_or_guardian_mobile: editForm.mother_or_guardian_mobile || "",
         mother_or_guardian_occupation:
           editForm.mother_or_guardian_occupation || "",
-        siblings: editForm.siblings.length > 0 ? editForm.siblings : [],
+        siblings: (editForm.siblings && editForm.siblings.length > 0) ? editForm.siblings : [],
         previous_class: editForm.previous_class || "",
         previous_school_details: editForm.previous_school_details || "",
         present_address: editForm.present_address || "",
@@ -1282,23 +1329,11 @@ const ReservationManagementComponent = () => {
         reservation_date: editForm.reservation_date || "",
       };
 
-      // Convert payload to FormData
-      const formData = new FormData();
-      Object.keys(payload).forEach((key) => {
-        const value = payload[key as keyof typeof payload];
-        if (value !== undefined && value !== null) {
-          if (Array.isArray(value)) {
-            formData.append(key, JSON.stringify(value));
-          } else {
-            formData.append(key, String(value));
-          }
-        }
-      });
-
       // Use service directly with proper cache invalidation and refetch
+      // Send JSON payload (backend expects JSON for PUT requests)
       await SchoolReservationsService.update(
-        Number(selectedReservation.id),
-        formData
+        Number(selectedReservation.reservation_id),
+        payload
       );
 
       // Comprehensive cache invalidation after update (matching payment pattern)

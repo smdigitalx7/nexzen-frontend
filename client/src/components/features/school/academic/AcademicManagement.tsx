@@ -10,6 +10,7 @@ import {
   FileText,
   Settings,
   UserCheck,
+  Award,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
@@ -25,6 +26,8 @@ import { ExamsTab } from "@/components/features/school/academic/exams/ExamsTab";
 import { TestTab } from "@/components/features/school/academic/tests/TestTab";
 import { AcademicOverviewCards } from "@/components/features/school/academic/AcademicOverviewCards";
 import { useAuthStore } from "@/store/authStore";
+import { useGrades } from "@/lib/hooks/general/useGrades";
+import GradesTab from "@/components/features/general/grades/GradesTab";
 import {
   useTabNavigation,
   useTabEnabled,
@@ -170,6 +173,28 @@ const AcademicManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBranchType, setSelectedBranchType] = useState("all");
   const [selectedClass, setSelectedClass] = useState<string>("all");
+  const [gradesSearchTerm, setGradesSearchTerm] = useState("");
+
+  // Grades hooks (for both school and college)
+  const {
+    grades: gradesData = [],
+    isLoadingGrades,
+    createGrade: createGradeMutation,
+    updateGrade: updateGradeMutation,
+    deleteGrade: deleteGradeMutation,
+  } = useGrades();
+
+  const handleCreateGrade = (data: any) => {
+    createGradeMutation.mutate(data);
+  };
+
+  const handleUpdateGrade = (data: { gradeCode: string; data: any }) => {
+    updateGradeMutation.mutate(data);
+  };
+
+  const handleDeleteGrade = (gradeCode: string) => {
+    deleteGradeMutation.mutate(gradeCode);
+  };
 
   // Memoized header content
   const headerContent = useMemo(() => {
@@ -201,6 +226,10 @@ const AcademicManagement = () => {
       "academic-years": {
         title: "Academic Years Management",
         description: "Manage academic years, terms, and academic calendar",
+      },
+      grades: {
+        title: "Grades Management",
+        description: "Define grade codes and their percentage ranges",
       },
     };
 
@@ -293,6 +322,24 @@ const AcademicManagement = () => {
         icon: Settings,
         content: <AcademicYearManagement />,
       },
+      {
+        value: "grades",
+        label: "Grades",
+        icon: Award,
+        content: (
+          <GradesTab
+            gradesData={gradesData}
+            searchTerm={gradesSearchTerm}
+            onSearchChange={setGradesSearchTerm}
+            onCreateGrade={handleCreateGrade}
+            onUpdateGrade={handleUpdateGrade}
+            onDeleteGrade={handleDeleteGrade}
+            createGradeMutation={createGradeMutation}
+            updateGradeMutation={updateGradeMutation}
+            deleteGradeMutation={deleteGradeMutation}
+          />
+        ),
+      },
     ],
     [
       backendClasses,
@@ -306,6 +353,11 @@ const AcademicManagement = () => {
       testsLoading,
       testsError,
       testsErrObj,
+      gradesData,
+      gradesSearchTerm,
+      createGradeMutation,
+      updateGradeMutation,
+      deleteGradeMutation,
     ]
   );
 

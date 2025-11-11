@@ -46,6 +46,7 @@ import {
   useSchoolSubjects,
   useSchoolExams,
 } from "@/lib/hooks/school/use-school-dropdowns";
+import { useGrades } from "@/lib/hooks/general/useGrades";
 import type {
   ExamMarkWithDetails,
   ExamMarksQuery,
@@ -137,6 +138,9 @@ const ExamMarksManagementComponent = ({
   const { data: sectionsData } = useSchoolSections(classId);
   const { data: subjectsData } = useSchoolSubjects(classId);
   const { data: examsData } = useSchoolExams();
+  
+  // Get grades from API endpoint
+  const { grades } = useGrades();
 
   // Create lookup maps: ID -> Name (for filtering)
   const sectionIdToName = useMemo(() => {
@@ -225,17 +229,18 @@ const ExamMarksManagementComponent = ({
     setSelectedExam(value);
   }, []);
 
-  // Utility functions for grade and percentage calculation
-  const calculateGrade = (percentage: number): string => {
-    if (percentage >= 90) return 'A+';
-    if (percentage >= 80) return 'A';
-    if (percentage >= 70) return 'B+';
-    if (percentage >= 60) return 'B';
-    if (percentage >= 50) return 'C+';
-    if (percentage >= 40) return 'C';
-    if (percentage >= 35) return 'D';
+  // Utility function to calculate grade from percentage using grades from API
+  const calculateGrade = useCallback((percentage: number): string => {
+    // Find the grade where percentage falls within min_percentage and max_percentage
+    // Grades are ordered by max_percentage descending, so we check from highest to lowest
+    for (const grade of grades) {
+      if (percentage >= grade.min_percentage && percentage <= grade.max_percentage) {
+        return grade.grade;
+      }
+    }
+    // Default to "F" if no match found (shouldn't happen if grades are configured correctly)
     return 'F';
-  };
+  }, [grades]);
 
   const calculatePercentage = (marksObtained: number, maxMarks: number = 100): number => {
     return Math.round((marksObtained / maxMarks) * 100 * 10) / 10; // Round to 1 decimal place
@@ -522,14 +527,11 @@ const ExamMarksManagementComponent = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Grades</SelectItem>
-                    <SelectItem value="A+">A+</SelectItem>
-                    <SelectItem value="A">A</SelectItem>
-                    <SelectItem value="B+">B+</SelectItem>
-                    <SelectItem value="B">B</SelectItem>
-                    <SelectItem value="C+">C+</SelectItem>
-                    <SelectItem value="C">C</SelectItem>
-                    <SelectItem value="D">D</SelectItem>
-                    <SelectItem value="F">F</SelectItem>
+                    {grades.map((grade) => (
+                      <SelectItem key={grade.grade} value={grade.grade}>
+                        {grade.grade}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

@@ -12,6 +12,7 @@ import { SchoolExamDropdown, SchoolSubjectDropdown } from '@/components/shared/D
 import { useSchoolEnrollmentsList } from '@/lib/hooks/school/use-school-enrollments';
 import { useSchoolSubjects } from '@/lib/hooks/school/use-school-dropdowns';
 import { useCreateSchoolExamMarksMultipleSubjects } from '@/lib/hooks/school/use-school-exam-marks';
+import { useGrades } from '@/lib/hooks/general/useGrades';
 import { Plus, Trash2 } from 'lucide-react';
 import type { ExamMarkWithDetails } from '@/lib/types/school/exam-marks';
 import type { 
@@ -19,16 +20,18 @@ import type {
   SchoolEnrollmentRead,
 } from '@/lib/types/school/enrollments';
 import type { SchoolSubjectList } from '@/lib/types/school/subjects';
+import type { GradeRead } from '@/lib/types/general/grades';
 
-// Utility functions for grade calculation
-const calculateGrade = (percentage: number): string => {
-  if (percentage >= 90) return 'A+';
-  if (percentage >= 80) return 'A';
-  if (percentage >= 70) return 'B+';
-  if (percentage >= 60) return 'B';
-  if (percentage >= 50) return 'C+';
-  if (percentage >= 40) return 'C';
-  if (percentage >= 35) return 'D';
+// Utility function to calculate grade from percentage using grades from API
+const calculateGradeFromPercentage = (percentage: number, grades: GradeRead[]): string => {
+  // Find the grade where percentage falls within min_percentage and max_percentage
+  // Grades are ordered by max_percentage descending, so we check from highest to lowest
+  for (const grade of grades) {
+    if (percentage >= grade.min_percentage && percentage <= grade.max_percentage) {
+      return grade.grade;
+    }
+  }
+  // Default to "F" if no match found (shouldn't happen if grades are configured correctly)
   return 'F';
 };
 
@@ -107,6 +110,9 @@ const AddExamMarkForm = ({
   const classId = selectedClass || 0;
   const { data: subjectsData } = useSchoolSubjects(classId);
   const subjects = subjectsData?.items || [];
+  
+  // Get grades from API endpoint
+  const { grades } = useGrades();
   
   const createMultipleSubjectsMutation = useCreateSchoolExamMarksMultipleSubjects();
 

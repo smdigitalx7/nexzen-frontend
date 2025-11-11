@@ -36,6 +36,7 @@ import {
   useCollegeSubjects,
   useCollegeTests,
 } from '@/lib/hooks/college/use-college-dropdowns';
+import { useGrades } from '@/lib/hooks/general/useGrades';
 import type { CollegeTestMarkMinimalRead, CollegeTestMarksListParams } from '@/lib/types/college/test-marks';
 import type { 
   CollegeEnrollmentWithClassGroupCourseDetails, 
@@ -50,16 +51,20 @@ import {
   createTestDateColumn
 } from "@/lib/utils/factory/columnFactories";
 
-// Utility functions for grade calculation
-const calculateGrade = (percentage: number): string => {
-  if (percentage >= 90) return 'A+';
-  if (percentage >= 80) return 'A';
-  if (percentage >= 70) return 'B+';
-  if (percentage >= 60) return 'B';
-  if (percentage >= 50) return 'C+';
-  if (percentage >= 40) return 'C';
-  if (percentage >= 35) return 'D';
-  return 'F';
+// Utility function to calculate grade from percentage using grades from API
+// This will be used inside the component where grades are available
+const createCalculateGradeFunction = (grades: Array<{ grade: string; min_percentage: number; max_percentage: number }>) => {
+  return (percentage: number): string => {
+    // Find the grade where percentage falls within min_percentage and max_percentage
+    // Grades are ordered by max_percentage descending, so we check from highest to lowest
+    for (const grade of grades) {
+      if (percentage >= grade.min_percentage && percentage <= grade.max_percentage) {
+        return grade.grade;
+      }
+    }
+    // Default to "F" if no match found (shouldn't happen if grades are configured correctly)
+    return 'F';
+  };
 };
 
 const calculatePercentage = (marksObtained: number, maxMarks: number = 100): number => {
@@ -134,6 +139,12 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
   const { data: groupsData } = useCollegeGroups(selectedClass || undefined);
   const { data: subjectsData } = useCollegeSubjects(selectedGroup || 0);
   const { data: testsData } = useCollegeTests();
+  
+  // Get grades from API endpoint
+  const { grades } = useGrades();
+  
+  // Create calculateGrade function using grades from API
+  const calculateGrade = useMemo(() => createCalculateGradeFunction(grades), [grades]);
 
   // Get enrollments filtered by class and group
   const enrollmentsParams = useMemo(() => {

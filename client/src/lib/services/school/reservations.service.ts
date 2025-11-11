@@ -8,6 +8,7 @@ import type {
   SchoolReservationDashboardStats,
   SchoolRecentReservation,
   SchoolReservationConcessionUpdate,
+  SchoolReservationUpdate,
 } from "@/lib/types/school";
 
 export const SchoolReservationsService = {
@@ -35,7 +36,7 @@ export const SchoolReservationsService = {
     return Api.post<SchoolReservationRead>(`/school/reservations`, data);
   },
 
-  update(reservation_id: number, data: any) {
+  update(reservation_id: number, data: SchoolReservationUpdate) {
     return Api.put<SchoolReservationRead>(
       `/school/reservations/${reservation_id}`,
       data

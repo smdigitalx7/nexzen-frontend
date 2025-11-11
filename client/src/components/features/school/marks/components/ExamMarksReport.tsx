@@ -1,13 +1,11 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loading } from "@/components/ui/loading";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   GraduationCap,
-  Download,
   BarChart3,
 } from "lucide-react";
 import { useExamMarksReport } from "@/lib/hooks/school";
@@ -56,10 +54,6 @@ export const ExamMarksReport = () => {
       : undefined
   );
 
-  const handleExport = () => {
-    // TODO: Implement PDF export
-    console.log("Export to PDF");
-  };
 
   // Prepare table data
   // Note: Backend handles section filtering via section_id parameter
@@ -168,9 +162,6 @@ export const ExamMarksReport = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-blue-100">
-            <GraduationCap className="h-5 w-5 text-blue-600" />
-          </div>
           <div>
             <h2 className="text-xl font-bold text-gray-900">Exam Marks Report</h2>
             <p className="text-xs text-gray-500 mt-0.5">
@@ -178,14 +169,6 @@ export const ExamMarksReport = () => {
             </p>
           </div>
         </div>
-        {data && (
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              Export PDF
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Filters */}

@@ -11,6 +11,7 @@ import {
   Calendar,
   Settings,
   UserCheck,
+  Award,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
@@ -25,6 +26,8 @@ import { GroupsTab } from "@/components/features/college/academic/groups/GroupsT
 import { CoursesTab } from "@/components/features/college/academic/courses/CoursesTab";
 import { TeachersTab } from "@/components/features/college/academic/teachers/TeachersTab";
 import { AcademicOverviewCards } from "@/components/features/college/academic/AcademicOverviewCards";
+import { useGrades } from "@/lib/hooks/general/useGrades";
+import GradesTab from "@/components/features/general/grades/GradesTab";
 import {
   useTabNavigation,
   useTabEnabled,
@@ -147,6 +150,28 @@ const AcademicManagement = () => {
   // Local state for filters
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBranchType, setSelectedBranchType] = useState("all");
+  const [gradesSearchTerm, setGradesSearchTerm] = useState("");
+
+  // Grades hooks (for both school and college)
+  const {
+    grades: gradesData = [],
+    isLoadingGrades,
+    createGrade: createGradeMutation,
+    updateGrade: updateGradeMutation,
+    deleteGrade: deleteGradeMutation,
+  } = useGrades();
+
+  const handleCreateGrade = (data: any) => {
+    createGradeMutation.mutate(data);
+  };
+
+  const handleUpdateGrade = (data: { gradeCode: string; data: any }) => {
+    updateGradeMutation.mutate(data);
+  };
+
+  const handleDeleteGrade = (gradeCode: string) => {
+    deleteGradeMutation.mutate(gradeCode);
+  };
 
   // Dynamic header content based on active tab
   const getHeaderContent = () => {
@@ -190,6 +215,11 @@ const AcademicManagement = () => {
         return {
           title: "Academic Years Management",
           description: "Manage academic years, terms, and academic calendar",
+        };
+      case "grades":
+        return {
+          title: "Grades Management",
+          description: "Define grade codes and their percentage ranges",
         };
       default:
         return {
@@ -351,6 +381,24 @@ const AcademicManagement = () => {
             label: "Academic Years",
             icon: Settings,
             content: <AcademicYearManagement />,
+          },
+          {
+            value: "grades",
+            label: "Grades",
+            icon: Award,
+            content: (
+              <GradesTab
+                gradesData={gradesData}
+                searchTerm={gradesSearchTerm}
+                onSearchChange={setGradesSearchTerm}
+                onCreateGrade={handleCreateGrade}
+                onUpdateGrade={handleUpdateGrade}
+                onDeleteGrade={handleDeleteGrade}
+                createGradeMutation={createGradeMutation}
+                updateGradeMutation={updateGradeMutation}
+                deleteGradeMutation={deleteGradeMutation}
+              />
+            ),
           },
         ]}
         activeTab={activeTab}

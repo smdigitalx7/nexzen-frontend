@@ -42,6 +42,7 @@ export const useGrades = () => {
       invalidateEntity("grades");
       toast({
         title: "Success",
+        variant: "success",
         description: "Grade created successfully",
       });
     },
@@ -62,6 +63,7 @@ export const useGrades = () => {
       invalidateEntity("grades");
       toast({
         title: "Success",
+        variant: "success",
         description: "Grade updated successfully",
       });
     },
@@ -81,6 +83,7 @@ export const useGrades = () => {
       invalidateEntity("grades");
       toast({
         title: "Success",
+        variant: "destructive",
         description: "Grade deleted successfully",
       });
     },

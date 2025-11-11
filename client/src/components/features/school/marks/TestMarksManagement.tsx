@@ -65,6 +65,7 @@ import {
   useSchoolSubjects,
   useSchoolTests,
 } from '@/lib/hooks/school/use-school-dropdowns';
+import { useGrades } from "@/lib/hooks/general/useGrades";
 import type { TestMarkWithDetails, TestMarksQuery } from '@/lib/types/school/test-marks';
 import type { 
   SchoolEnrollmentWithClassSectionDetails, 
@@ -79,16 +80,20 @@ import {
   createTestDateColumn,
 } from "@/lib/utils/factory/columnFactories";
 
-// Utility functions for grade calculation - moved outside component for better performance
-const calculateGrade = (percentage: number): string => {
-  if (percentage >= 90) return "A+";
-  if (percentage >= 80) return "A";
-  if (percentage >= 70) return "B+";
-  if (percentage >= 60) return "B";
-  if (percentage >= 50) return "C+";
-  if (percentage >= 40) return "C";
-  if (percentage >= 35) return "D";
-  return "F";
+// Utility function to calculate grade from percentage using grades from API
+// This will be used inside the component where grades are available
+const createCalculateGradeFunction = (grades: Array<{ grade: string; min_percentage: number; max_percentage: number }>) => {
+  return (percentage: number): string => {
+    // Find the grade where percentage falls within min_percentage and max_percentage
+    // Grades are ordered by max_percentage descending, so we check from highest to lowest
+    for (const grade of grades) {
+      if (percentage >= grade.min_percentage && percentage <= grade.max_percentage) {
+        return grade.grade;
+      }
+    }
+    // Default to "F" if no match found (shouldn't happen if grades are configured correctly)
+    return "F";
+  };
 };
 
 const calculatePercentage = (
@@ -194,6 +199,13 @@ const TestMarksManagementComponent = ({
   const { data: sectionsData } = useSchoolSections(classId);
   const { data: subjectsData } = useSchoolSubjects(classId);
   const { data: testsData } = useSchoolTests();
+  
+  // Get grades from API endpoint
+  const { grades } = useGrades();
+  
+  // Create calculateGrade function using grades from API
+  const calculateGrade = useMemo(() => createCalculateGradeFunction(grades), [grades]);
+  
   // Get enrollments filtered by class and section
   const enrollmentsParams = useMemo(() => {
     if (!selectedClass) return undefined;
@@ -1233,14 +1245,11 @@ const TestMarksManagementComponent = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Grades</SelectItem>
-                    <SelectItem value="A+">A+</SelectItem>
-                    <SelectItem value="A">A</SelectItem>
-                    <SelectItem value="B+">B+</SelectItem>
-                    <SelectItem value="B">B</SelectItem>
-                    <SelectItem value="C+">C+</SelectItem>
-                    <SelectItem value="C">C</SelectItem>
-                    <SelectItem value="D">D</SelectItem>
-                    <SelectItem value="F">F</SelectItem>
+                    {grades.map((grade) => (
+                      <SelectItem key={grade.grade} value={grade.grade}>
+                        {grade.grade}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

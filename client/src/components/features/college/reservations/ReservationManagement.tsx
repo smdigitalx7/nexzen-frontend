@@ -1628,12 +1628,6 @@ export default function ReservationNew() {
         }}
       >
         <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Edit Reservation</DialogTitle>
-            <DialogDescription>
-              Update reservation information
-            </DialogDescription>
-          </DialogHeader>
           {editForm ? (
             <div className="flex-1 overflow-y-auto scrollbar-hide pr-1">
               {(groupsLoading || coursesLoading || isLoadingDistanceSlabs) && (

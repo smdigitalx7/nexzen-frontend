@@ -102,6 +102,7 @@ export interface CollegeTestMarksReportData {
 export interface ExamMarksReportQuery {
   class_id: number;
   exam_id: number;
+  course_id: number;
   subject_id?: number;
   group_id?: number;
 }
@@ -109,6 +110,7 @@ export interface ExamMarksReportQuery {
 export interface TestMarksReportQuery {
   class_id: number;
   test_id: number;
+  course_id: number;
   subject_id?: number;
   group_id?: number;
 }
