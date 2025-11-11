@@ -26,16 +26,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Pagination,
@@ -54,7 +44,7 @@ import {
   Download,
   RefreshCw,
   Loader2,
-  Eye,
+  Trash2,
   ChevronLeft,
   AlertCircle,
   ChevronRight,
@@ -62,9 +52,10 @@ import {
 import {
   useActivitySummary,
   useReadableLogs,
-  usePreviewDeleteLogs,
   useDeleteLogs,
+  useDeleteLogsByIds,
 } from "@/lib/hooks/general/useAuditLogs";
+import { useUsersWithRolesAndBranches } from "@/lib/hooks/general/useUsers";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useToast } from "@/hooks/use-toast";
 
@@ -74,6 +65,14 @@ function SummaryTab() {
   const [limit, setLimit] = useState<number>(100);
   const [userId, setUserId] = useState<number | null>(null);
 
+  const { data: usersWithRoles = [], isLoading: usersLoading } = useUsersWithRolesAndBranches();
+  
+  // Filter to only show users with ADMIN, ACCOUNTANT, or ACADEMIC roles
+  const allowedRoles = ["ADMIN", "ACCOUNTANT", "ACADEMIC"];
+  const users = usersWithRoles.filter(user => 
+    user.roles && user.roles.length > 0 && 
+    user.roles.some(role => allowedRoles.includes(role.role_name))
+  );
   const {
     data: activitySummaries = [],
     isLoading,
@@ -225,6 +224,19 @@ function SummaryTab() {
     return colors[category.toUpperCase()] || "bg-muted text-muted-foreground";
   };
 
+  const getHoursBackLabel = (hours: number): string => {
+    const hourLabels: Record<number, string> = {
+      1: "1 hour",
+      6: "6 hours",
+      12: "12 hours",
+      24: "24 hours",
+      48: "48 hours",
+      168: "1 week",
+      720: "30 days",
+    };
+    return hourLabels[hours] || `${hours} hours`;
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -262,26 +274,40 @@ function SummaryTab() {
                   <SelectValue placeholder="Limit" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="15">15 records</SelectItem>
+                  <SelectItem value="25">25 records</SelectItem>
                   <SelectItem value="50">50 records</SelectItem>
+                  <SelectItem value="75">75 records</SelectItem>
                   <SelectItem value="100">100 records</SelectItem>
-                  <SelectItem value="250">250 records</SelectItem>
-                  <SelectItem value="500">500 records</SelectItem>
-                  <SelectItem value="1000">1000 records</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
               <label className="text-sm font-medium mb-2 block">
-                User ID (Optional)
+                User (Optional)
               </label>
-              <Input
-                type="number"
-                placeholder="Filter by user ID"
-                value={userId || ""}
-                onChange={(e) =>
-                  setUserId(e.target.value ? Number(e.target.value) : null)
+              <Select
+                value={userId?.toString() || "all"}
+                onValueChange={(value) =>
+                  setUserId(value === "all" ? null : Number(value))
                 }
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All users" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All users</SelectItem>
+                  {usersLoading ? (
+                    <SelectItem value="loading" disabled>Loading users...</SelectItem>
+                  ) : (
+                    users.map((user) => (
+                      <SelectItem key={user.user_id} value={user.user_id.toString()}>
+                        {user.full_name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-end gap-2">
               <Button
@@ -344,7 +370,10 @@ function SummaryTab() {
             </div>
           ) : activitySummaries.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <p>No activity summaries found</p>
+              <p>
+                No activity summaries found for {getHoursBackLabel(hoursBack)}
+                {userId ? ` for user ID ${userId}` : ""}
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -408,13 +437,7 @@ function LogsTab() {
   const [limit, setLimit] = useState<number>(100);
   const [offset, setOffset] = useState<number>(0);
   const [selectedAuditIds, setSelectedAuditIds] = useState<number[]>([]);
-  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [previewData, setPreviewData] = useState<{
-    count?: number;
-    audit_ids?: number[];
-    message?: string;
-  } | null>(null);
 
   const { toast } = useToast();
 
@@ -430,8 +453,8 @@ function LogsTab() {
     offset,
   });
 
-  const previewDeleteMutation = usePreviewDeleteLogs();
   const deleteLogsMutation = useDeleteLogs();
+  const deleteLogsByIdsMutation = useDeleteLogsByIds();
 
   // Calculate minimum date (7 days ago)
   const minDate = useMemo(() => {
@@ -440,11 +463,18 @@ function LogsTab() {
     return date.toISOString().split("T")[0];
   }, []);
 
-  const handlePreviewDelete = async () => {
+  const handleDeleteClick = () => {
+    // If audit IDs are selected, show confirmation dialog
+    if (selectedAuditIds.length > 0) {
+      setShowDeleteDialog(true);
+      return;
+    }
+
+    // Otherwise, validate date range
     if (!startDate || !endDate) {
       toast({
         title: "Validation Error",
-        description: "Please select both start and end dates.",
+        description: "Please select both start and end dates, or select audit logs to delete.",
         variant: "destructive",
       });
       return;
@@ -462,25 +492,40 @@ function LogsTab() {
       return;
     }
 
-    try {
-      const result = await previewDeleteMutation.mutateAsync({
-        start_date: startDate,
-        end_date: endDate,
-        audit_ids: selectedAuditIds.length > 0 ? selectedAuditIds : [],
-        confirm_deletion: false,
-      });
-      setPreviewData(result);
-      setShowPreviewDialog(true);
-    } catch (error) {
-      // Error handled by mutation hook
-    }
+    // Show confirmation dialog
+    setShowDeleteDialog(true);
   };
 
   const handleDelete = async () => {
+    // If audit IDs are selected, export selected logs first, then delete
+    if (selectedAuditIds.length > 0) {
+      // Export selected logs before deletion
+      const selectedLogs = readableLogs.filter((log) =>
+        selectedAuditIds.includes(log.audit_id)
+      );
+      if (selectedLogs.length > 0) {
+        await exportCSV(selectedLogs);
+      }
+
+      try {
+        await deleteLogsByIdsMutation.mutateAsync({
+          audit_ids: selectedAuditIds,
+          confirm_deletion: true,
+        });
+        setShowDeleteDialog(false);
+        setSelectedAuditIds([]);
+        refetch();
+      } catch (error) {
+        // Error handled by mutation hook
+      }
+      return;
+    }
+
+    // Otherwise, use date range deletion - export all visible logs first
     if (!startDate || !endDate) {
       toast({
         title: "Validation Error",
-        description: "Please select both start and end dates.",
+        description: "Please select both start and end dates, or select audit logs to delete.",
         variant: "destructive",
       });
       return;
@@ -496,18 +541,20 @@ function LogsTab() {
         variant: "destructive",
       });
       return;
+    }
+
+    // Export all visible logs before deletion
+    if (readableLogs.length > 0) {
+      await exportCSV(readableLogs);
     }
 
     try {
       await deleteLogsMutation.mutateAsync({
         start_date: startDate,
         end_date: endDate,
-        audit_ids: previewData?.audit_ids || selectedAuditIds,
         confirm_deletion: true,
       });
       setShowDeleteDialog(false);
-      setShowPreviewDialog(false);
-      setPreviewData(null);
       setSelectedAuditIds([]);
       refetch();
     } catch (error) {
@@ -553,7 +600,9 @@ function LogsTab() {
     }
   };
 
-  const exportCSV = async () => {
+  const exportCSV = async (logsToExport?: typeof readableLogs) => {
+    const logs = logsToExport || readableLogs;
+    
     try {
       // Try to use ExcelJS for better Excel formatting
       const ExcelJS = (await import("exceljs")).default;
@@ -582,7 +631,7 @@ function LogsTab() {
       headerRow.height = 25;
 
       // Data rows
-      readableLogs.forEach((log) => {
+      logs.forEach((log) => {
         const row = worksheet.addRow([
           log.audit_id,
           log.operation_type,
@@ -619,7 +668,8 @@ function LogsTab() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `audit_logs_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
+      a.download = `audit_logs_${timestamp}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (error) {
@@ -627,7 +677,7 @@ function LogsTab() {
       console.warn("ExcelJS not available, falling back to CSV", error);
       const rows = [
         ["Audit ID", "Operation Type", "Branch", "Description"],
-        ...readableLogs.map((log) => [
+        ...logs.map((log) => [
           log.audit_id,
           log.operation_type,
           log.branch_name,
@@ -643,7 +693,8 @@ function LogsTab() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `audit_logs_${new Date().toISOString().slice(0, 10)}.csv`;
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
+      a.download = `audit_logs_${timestamp}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -685,11 +736,11 @@ function LogsTab() {
                   <SelectValue placeholder="Limit" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="15">15 records</SelectItem>
+                  <SelectItem value="25">25 records</SelectItem>
                   <SelectItem value="50">50 records</SelectItem>
+                  <SelectItem value="75">75 records</SelectItem>
                   <SelectItem value="100">100 records</SelectItem>
-                  <SelectItem value="250">250 records</SelectItem>
-                  <SelectItem value="500">500 records</SelectItem>
-                  <SelectItem value="1000">1000 records</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -721,18 +772,28 @@ function LogsTab() {
               </Button>
             </div>
             <div className="flex items-end gap-2">
-              <Button variant="outline" className="gap-2" onClick={exportCSV}>
+              <Button variant="outline" className="gap-2" onClick={() => exportCSV()}>
                 <Download className="h-4 w-4" />
                 Export
               </Button>
             </div>
           </div>
-          {(!startDate || !endDate) && (
+          {selectedAuditIds.length === 0 && (!startDate || !endDate) && (
             <div className="mt-4">
               <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800">
                 <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                 <AlertDescription className="text-yellow-800 dark:text-yellow-200">
-                  Please select both <strong>Start Date</strong> and <strong>End Date</strong> to preview the logs and delete logs.
+                  Please select audit logs using checkboxes, or select both <strong>Start Date</strong> and <strong>End Date</strong> to delete logs.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+          {selectedAuditIds.length > 0 && (
+            <div className="mt-4">
+              <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+                <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <AlertDescription className="text-blue-800 dark:text-blue-200">
+                  <strong>{selectedAuditIds.length}</strong> audit log(s) selected. Click "Preview & Delete" to proceed.
                 </AlertDescription>
               </Alert>
             </div>
@@ -761,26 +822,26 @@ function LogsTab() {
                       <Button
                         variant="outline"
                         className="gap-2"
-                        onClick={handlePreviewDelete}
+                        onClick={handleDeleteClick}
                         disabled={
-                          !startDate ||
-                          !endDate ||
-                          previewDeleteMutation.isPending ||
+                          (selectedAuditIds.length === 0 && (!startDate || !endDate)) ||
+                          deleteLogsMutation.isPending ||
+                          deleteLogsByIdsMutation.isPending ||
                           isLoading
                         }
                       >
-                        {previewDeleteMutation.isPending ? (
+                        {(deleteLogsMutation.isPending || deleteLogsByIdsMutation.isPending) ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <Eye className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                         )}
-                        Preview & Delete
+                        Delete
                       </Button>
                     </span>
                   </TooltipTrigger>
-                  {(!startDate || !endDate) && (
+                  {selectedAuditIds.length === 0 && (!startDate || !endDate) && (
                     <TooltipContent>
-                      <p>Please select both Start Date and End Date to preview logs</p>
+                      <p>Please select audit logs or select both Start Date and End Date to delete logs</p>
                     </TooltipContent>
                   )}
                 </Tooltip>
@@ -901,49 +962,6 @@ function LogsTab() {
         )}
       </Card>
 
-      {/* Preview Delete Dialog */}
-      <AlertDialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Preview Delete Operation</AlertDialogTitle>
-            <AlertDialogDescription>
-              {previewData?.message ||
-                `This will delete ${previewData?.count || 0} audit log(s) from ${startDate} to ${endDate}.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {previewData && (
-            <div className="py-4">
-              <p className="text-sm font-medium mb-2">
-                Records to be deleted: {previewData.count || 0}
-              </p>
-              {previewData.audit_ids && previewData.audit_ids.length > 0 && (
-                <div className="text-sm text-muted-foreground">
-                  <p className="mb-1">Audit IDs:</p>
-                  <div className="max-h-40 overflow-y-auto">
-                    {previewData.audit_ids.slice(0, 20).join(", ")}
-                    {previewData.audit_ids.length > 20 && "..."}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <Button
-              onClick={() => {
-                setShowPreviewDialog(false);
-                setTimeout(() => {
-                  setShowDeleteDialog(true);
-                }, 200);
-              }}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Confirm Delete
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={showDeleteDialog}
@@ -951,14 +969,23 @@ function LogsTab() {
         title="Confirm Deletion"
         description={
           <>
-            Are you sure you want to delete <strong>{previewData?.count || 0}</strong> audit
-            log(s)? This action cannot be undone.
+            {selectedAuditIds.length > 0 ? (
+              <>
+                Are you sure you want to delete <strong>{selectedAuditIds.length}</strong> selected audit
+                log(s)? This action cannot be undone.
+              </>
+            ) : (
+              <>
+                Are you sure you want to delete audit logs from <strong>{startDate}</strong> to <strong>{endDate}</strong>?
+                This action cannot be undone.
+              </>
+            )}
           </>
         }
         confirmText="Delete"
         cancelText="Cancel"
         variant="destructive"
-        isLoading={deleteLogsMutation.isPending}
+        isLoading={deleteLogsMutation.isPending || deleteLogsByIdsMutation.isPending}
         loadingText="Deleting..."
         onConfirm={handleDelete}
         onCancel={() => setShowDeleteDialog(false)}

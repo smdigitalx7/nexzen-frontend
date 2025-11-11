@@ -5,7 +5,8 @@ import type {
   AuditLogReadable,
   AuditLogReadableParams,
   AuditLogDeleteParams,
-  AuditLogDeletePreview,
+  AuditLogDeleteByIdsParams,
+  AuditLogDeleteResponse,
 } from "@/lib/types/general/audit-logs";
 
 /**
@@ -14,8 +15,8 @@ import type {
  * Available endpoints:
  * - GET /audit-logs/activity-summary - Get activity summary
  * - GET /audit-logs/readable - Get readable audit logs
- * - POST /audit-logs/preview-delete - Preview delete audit logs
- * - POST /audit-logs/delete - Delete audit logs
+ * - POST /audit-logs/delete - Delete audit logs by date range
+ * - POST /audit-logs/delete-by-ids - Delete audit logs by IDs
  */
 export const AuditLogsService = {
   /**
@@ -70,34 +71,35 @@ export const AuditLogsService = {
   },
 
   /**
-   * Preview delete audit logs by date range
-   * Shows what would be deleted without actually deleting
-   * @param params - Delete parameters
-   * @returns Promise<AuditLogDeletePreview> - Preview of what would be deleted
-   */
-  previewDelete(
-    params: AuditLogDeleteParams
-  ): Promise<AuditLogDeletePreview> {
-    return Api.post<AuditLogDeletePreview>("/audit-logs/preview-delete", {
-      ...params,
-      confirm_deletion: false,
-    });
-  },
-
-  /**
    * Delete audit logs by date range
    * Requires confirm_deletion=true for safety
    * Cannot delete logs from the last 7 days
    * @param params - Delete parameters
-   * @returns Promise<void>
+   * @returns Promise<AuditLogDeleteResponse>
    */
   deleteLogs(
     params: AuditLogDeleteParams
-  ): Promise<void> {
-    return Api.post<void>("/audit-logs/delete", {
-      ...params,
+  ): Promise<AuditLogDeleteResponse> {
+    return Api.post<AuditLogDeleteResponse>("/audit-logs/delete", {
+      start_date: params.start_date,
+      end_date: params.end_date,
+      confirm_deletion: true,
+    });
+  },
+
+  /**
+   * Delete audit logs by audit IDs
+   * Requires confirm_deletion=true for safety
+   * Only deletes audit logs belonging to the user's branch
+   * @param params - Delete parameters with audit_ids array
+   * @returns Promise<AuditLogDeleteResponse>
+   */
+  deleteLogsByIds(
+    params: AuditLogDeleteByIdsParams
+  ): Promise<AuditLogDeleteResponse> {
+    return Api.post<AuditLogDeleteResponse>("/audit-logs/delete-by-ids", {
+      audit_ids: params.audit_ids,
       confirm_deletion: true,
     });
   },
 };
-

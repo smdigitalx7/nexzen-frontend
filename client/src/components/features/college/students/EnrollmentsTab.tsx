@@ -62,9 +62,9 @@ const EnrollmentsTabComponent = () => {
       group_id: Number(query.group_id),
     };
     
-    if (query.course_id) {
-      params.course_id = Number(query.course_id);
-    }
+        if (query.course_id) {
+          params.course_id = Number(query.course_id);
+        }
     
     return params;
   }, [query.class_id, query.group_id, query.course_id]);

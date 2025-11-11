@@ -4,6 +4,7 @@ import type {
   ActivitySummaryParams,
   AuditLogReadableParams,
   AuditLogDeleteParams,
+  AuditLogDeleteByIdsParams,
 } from "@/lib/types/general/audit-logs";
 import { useToast } from "@/hooks/use-toast";
 
@@ -34,31 +35,8 @@ export const useReadableLogs = (params?: AuditLogReadableParams) => {
 };
 
 /**
- * Hook for previewing delete audit logs
- * @returns Mutation for previewing delete
- */
-export const usePreviewDeleteLogs = () => {
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: (params: AuditLogDeleteParams) =>
-      AuditLogsService.previewDelete(params),
-    onError: (error: any) => {
-      toast({
-        title: "Preview Failed",
-        description:
-          error?.response?.data?.detail ||
-          error?.message ||
-          "Failed to preview delete operation.",
-        variant: "destructive",
-      });
-    },
-  });
-};
-
-/**
- * Hook for deleting audit logs
- * @returns Mutation for deleting logs
+ * Hook for deleting audit logs by date range
+ * @returns Mutation for deleting logs by date range
  */
 export const useDeleteLogs = () => {
   const { toast } = useToast();
@@ -67,10 +45,10 @@ export const useDeleteLogs = () => {
   return useMutation({
     mutationFn: (params: AuditLogDeleteParams) =>
       AuditLogsService.deleteLogs(params),
-    onSuccess: () => {
+    onSuccess: (response) => {
       toast({
         title: "Logs Deleted",
-        description: "Audit logs have been deleted successfully.",
+        description: response.message || "Audit logs have been deleted successfully.",
         variant: "success",
       });
       // Invalidate related queries
@@ -91,3 +69,37 @@ export const useDeleteLogs = () => {
   });
 };
 
+/**
+ * Hook for deleting audit logs by IDs
+ * @returns Mutation for deleting logs by audit IDs
+ */
+export const useDeleteLogsByIds = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: AuditLogDeleteByIdsParams) =>
+      AuditLogsService.deleteLogsByIds(params),
+    onSuccess: (response) => {
+      toast({
+        title: "Logs Deleted",
+        description: response.message || "Audit logs have been deleted successfully.",
+        variant: "success",
+      });
+      // Invalidate related queries
+      queryClient.invalidateQueries({
+        queryKey: ["audit-logs"],
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Delete Failed",
+        description:
+          error?.response?.data?.detail ||
+          error?.message ||
+          "Failed to delete audit logs.",
+        variant: "destructive",
+      });
+    },
+  });
+};
