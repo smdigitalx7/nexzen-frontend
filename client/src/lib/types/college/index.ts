@@ -13,6 +13,7 @@ export * from "./tuition-fee-balances.ts";
 export * from "./transport-fee-balances.ts";
 export * from "./exam-marks.ts";
 export * from "./test-marks.ts";
+export * from "./student-marks.ts";
 export * from "./exams.ts";
 export * from "./tests.ts";
 

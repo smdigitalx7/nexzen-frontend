@@ -20,6 +20,7 @@ export * from "./use-college-students";
 export * from "./use-college-subjects";
 export * from "./use-college-test-marks";
 export * from "./use-college-tests";
+export * from "./use-student-marks";
 export * from "./use-college-transport-balances";
 export * from "./use-college-tuition-balances";
 export * from "./use-student-transport-assignments";
