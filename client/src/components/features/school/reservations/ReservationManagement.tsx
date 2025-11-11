@@ -473,17 +473,17 @@ const ReservationManagementComponent = () => {
   // State management
   const [reservationNo, setReservationNo] = useState<string>("");
   const [showReceipt, setShowReceipt] = useState(false);
-  const [selectedReservation, setSelectedReservation] = useState<any>(null);
+  const [selectedReservation, setSelectedReservation] = useState<SchoolReservationRead | null>(null);
 
   // Initialize mutation hooks (after state is defined)
   const createReservationMutation = useCreateSchoolReservation();
   const deleteReservation = useDeleteSchoolReservation();
   const [showViewDialog, setShowViewDialog] = useState(false);
-  const [viewReservation, setViewReservation] = useState<any>(null);
+  const [viewReservation, setViewReservation] = useState<SchoolReservationRead | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editForm, setEditForm] = useState<any>(null);
+  const [editForm, setEditForm] = useState<SchoolReservationRead | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [reservationToDelete, setReservationToDelete] = useState<any>(null);
+  const [reservationToDelete, setReservationToDelete] = useState<SchoolReservationRead | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [editSelectedClassId, setEditSelectedClassId] = useState<number | null>(
     null
@@ -503,7 +503,7 @@ const ReservationManagementComponent = () => {
   const [
     selectedReservationForConcession,
     setSelectedReservationForConcession,
-  ] = useState<any>(null);
+  ] = useState<SchoolReservationRead | null>(null);
 
   // Track dropdown opens for lazy loading
   const [dropdownsOpened, setDropdownsOpened] = useState({

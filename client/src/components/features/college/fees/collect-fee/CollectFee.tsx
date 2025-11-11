@@ -80,27 +80,17 @@ export const CollectFee = ({ searchResults, setSearchResults, searchQuery, setSe
       // Update URL separately to avoid dependency issues
       setTimeout(() => updateUrlWithAdmission(admissionNo), 0);
       
-      // Import Api to bypass cache when forceRefresh is true
-      const { Api } = await import("@/lib/api");
-      
       // Use enrollment endpoint to get enrollment data
       // When forceRefresh is true, bypass cache by using cache: false option
-      const enrollment: CollegeEnrollmentWithStudentDetails = forceRefresh
-        ? await Api.get<CollegeEnrollmentWithStudentDetails>(`/college/student-enrollments/by-admission/${admissionNo}`, undefined, undefined, { cache: false })
-        : await CollegeEnrollmentsService.getByAdmission(admissionNo);
+      const cacheOptions = forceRefresh ? { cache: false } : undefined;
+      const enrollment: CollegeEnrollmentWithStudentDetails = await CollegeEnrollmentsService.getByAdmission(admissionNo, cacheOptions);
       
       // Fetch tuition balance, transport summary, and expected transport payments using enrollment_id
       // When forceRefresh is true, bypass cache
       const [tuitionBalance, transportSummary, transportExpectedPayments] = await Promise.all([
-        forceRefresh
-          ? await Api.get<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances/${enrollment.enrollment_id}`, undefined, undefined, { cache: false }).catch(() => null)
-          : CollegeTuitionBalancesService.getById(enrollment.enrollment_id).catch(() => null),
-        forceRefresh
-          ? await Api.get<CollegeStudentTransportPaymentSummary>(`/college/student-transport-payment/by-enrollment/${enrollment.enrollment_id}`, undefined, undefined, { cache: false }).catch(() => null)
-          : CollegeTransportBalancesService.getStudentTransportPaymentSummaryByEnrollmentId(enrollment.enrollment_id).catch(() => null),
-        forceRefresh
-          ? await Api.get<ExpectedTransportPaymentsResponse>(`/college/student-transport-payment/expected-payments/${enrollment.enrollment_id}`, undefined, undefined, { cache: false }).catch(() => undefined)
-          : CollegeTransportBalancesService.getExpectedTransportPaymentsByEnrollmentId(enrollment.enrollment_id).catch(() => undefined)
+        CollegeTuitionBalancesService.getById(enrollment.enrollment_id, cacheOptions).catch(() => null),
+        CollegeTransportBalancesService.getStudentTransportPaymentSummaryByEnrollmentId(enrollment.enrollment_id, cacheOptions).catch(() => null),
+        CollegeTransportBalancesService.getExpectedTransportPaymentsByEnrollmentId(enrollment.enrollment_id, cacheOptions).catch(() => undefined)
       ]);
 
       const studentDetails: StudentFeeDetails = {

@@ -25,39 +25,10 @@ import {
 } from "@/components/ui/dialog";
 // Removed individual payment hooks - now using pay-by-admission API
 import { useToast } from "@/hooks/use-toast";
-import { api } from "@/lib/api";
+import { CollegeIncomeService } from "@/lib/services/college/income.service";
+import type { CollegeStudentRead } from "@/lib/types/college/students";
 import type { CollegeTuitionFeeBalanceRead } from "@/lib/types/college/tuition-fee-balances";
-
-interface CollegeStudentData {
-  student_id?: number;
-  id?: number;
-  admission_no: string;
-  student_name: string;
-  section_name?: string;
-  class_name?: string;
-  academic_year?: string;
-  gender?: string;
-}
-
-interface CollegeTuitionBalanceData {
-  book_fee?: number;
-  book_paid?: number;
-  term1_amount?: number;
-  term1_paid?: number;
-  term2_amount?: number;
-  term2_paid?: number;
-  term3_amount?: number;
-  term3_paid?: number;
-}
-
-interface CollegeTransportBalanceData {
-  term1_amount?: number;
-  term1_paid?: number;
-  term2_amount?: number;
-  term2_paid?: number;
-  term3_amount?: number;
-  term3_paid?: number;
-}
+import type { CollegeTransportFeeBalanceListRead } from "@/lib/types/college/transport-fee-balances";
 
 interface BillItem {
   description: string;
@@ -78,9 +49,9 @@ interface GeneratedBill {
 }
 
 interface StudentFeeDetails {
-  student: CollegeStudentData;
-  tuitionBalance: CollegeTuitionFeeBalanceRead | CollegeTuitionBalanceData | null;
-  transportBalance?: CollegeTransportBalanceData | null;
+  student: CollegeStudentRead;
+  tuitionBalance: CollegeTuitionFeeBalanceRead | null;
+  transportBalance?: CollegeTransportFeeBalanceListRead | null;
 }
 
 interface CollectFeeFormProps {
@@ -163,6 +134,7 @@ export const CollectFeeForm = ({
     
     setIsProcessing(true);
     try {
+      const studentData = selectedStudent.student;
       const amount = computeSelectedAmount();
       const paymentDate = new Date().toISOString();
       
@@ -270,15 +242,14 @@ export const CollectFeeForm = ({
         remarks: null
       };
 
-      const result = await api({
-        method: 'POST',
-        path: `/college/income/pay-fee/${studentData.admission_no}`,
-        body: apiPayload,
-      });
+      const result = await CollegeIncomeService.payFee(
+        studentData.admission_no,
+        apiPayload
+      );
       
-      if ((result as { success: boolean; message?: string }).success) {
+      // If we get a result, payment was successful
+      if (result && result.income_id) {
         // Generate bill
-        const studentData = selectedStudent.student;
         const bill: GeneratedBill = {
           billNumber: `BILL-${Date.now()}`,
           studentName: studentData.student_name,
@@ -303,7 +274,7 @@ export const CollectFeeForm = ({
         
         onPaymentComplete();
       } else {
-        throw new Error((result as { success: boolean; message?: string }).message || 'Payment processing failed');
+        throw new Error('Payment processing failed');
       }
       
     } catch (error) {

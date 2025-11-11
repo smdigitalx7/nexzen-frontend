@@ -26,8 +26,13 @@ export const CollegeTuitionBalancesService = {
   },
 
   // GET /api/v1/college/tuition-fee-balances/{enrollment_id}
-  getById(enrollment_id: number) {
-    return Api.get<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances/${enrollment_id}`);
+  getById(enrollment_id: number, options?: { cache?: boolean }) {
+    return Api.get<CollegeTuitionFeeBalanceFullRead>(
+      `/college/tuition-fee-balances/${enrollment_id}`,
+      undefined,
+      undefined,
+      options
+    );
   },
 
   // POST /api/v1/college/tuition-fee-balances

@@ -21,4 +21,5 @@ export * from "./transport-fee-balances.service";
 export * from "./transport.service";
 export * from "./tuition-fee-balances.service";
 export * from "./tuition-fee-structures.service";
+export * from "./student-marks.service";
 

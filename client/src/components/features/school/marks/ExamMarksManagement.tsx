@@ -225,19 +225,51 @@ const ExamMarksManagementComponent = ({
     setSelectedExam(value);
   }, []);
 
+  // Utility functions for grade and percentage calculation
+  const calculateGrade = (percentage: number): string => {
+    if (percentage >= 90) return 'A+';
+    if (percentage >= 80) return 'A';
+    if (percentage >= 70) return 'B+';
+    if (percentage >= 60) return 'B';
+    if (percentage >= 50) return 'C+';
+    if (percentage >= 40) return 'C';
+    if (percentage >= 35) return 'D';
+    return 'F';
+  };
+
+  const calculatePercentage = (marksObtained: number, maxMarks: number = 100): number => {
+    return Math.round((marksObtained / maxMarks) * 100 * 10) / 10; // Round to 1 decimal place
+  };
+
   // Memoized form handling functions
   const handleExamMarkSubmit = useCallback(
-    (markData: any) => {
+    (data: { enrollment_id: number; exam_id: number; subject_id: number; marks_obtained: number; remarks: string }) => {
+      // Use max_marks from editingExamMark if available, otherwise default to 100
+      // Note: ExamOption from dropdown doesn't include max_marks, so we default to 100
+      // The backend will use the exam's actual max_marks when calculating percentage
+      const maxMarks = editingExamMark?.max_marks ?? 100;
+      const percentage = calculatePercentage(data.marks_obtained, maxMarks);
+      const grade = calculateGrade(percentage);
+
       if (editingExamMark) {
         updateExamMarkMutation.mutate({
-          marks_obtained: markData.marks_obtained,
-          percentage: markData.percentage,
-          grade: markData.grade,
-          remarks: markData.remarks,
-          conducted_at: markData.conducted_at,
+          marks_obtained: data.marks_obtained,
+          percentage: percentage,
+          grade: grade,
+          remarks: data.remarks,
+          conducted_at: editingExamMark.conducted_at ?? new Date().toISOString(),
         });
       } else {
-        createExamMarkMutation.mutate(markData);
+        createExamMarkMutation.mutate({
+          enrollment_id: data.enrollment_id,
+          exam_id: data.exam_id,
+          subject_id: data.subject_id,
+          marks_obtained: data.marks_obtained,
+          percentage: percentage,
+          grade: grade,
+          remarks: data.remarks,
+          conducted_at: new Date().toISOString(),
+        });
       }
 
       setEditingExamMark(null);
@@ -420,7 +452,9 @@ const ExamMarksManagementComponent = ({
             <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
               {/* Required Filters */}
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Class:</label>
+                <label className="text-sm font-medium">
+                  Class: <span className="text-red-500">*</span>
+                </label>
                 <SchoolClassDropdown
                   value={selectedClass}
                   onChange={handleClassChange}
@@ -432,7 +466,9 @@ const ExamMarksManagementComponent = ({
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Subject:</label>
+                <label className="text-sm font-medium">
+                  Subject: <span className="text-red-500">*</span>
+                </label>
                 <SchoolSubjectDropdown
                   classId={classId}
                   value={selectedSubject}
@@ -446,7 +482,9 @@ const ExamMarksManagementComponent = ({
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Exam:</label>
+                <label className="text-sm font-medium">
+                  Exam: <span className="text-red-500">*</span>
+                </label>
                 <SchoolExamDropdown
                   value={selectedExam}
                   onChange={handleExamChange}

@@ -16,11 +16,12 @@ import { Badge } from "@/components/ui/badge";
 import { Lock, Bus, BookOpen } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import type { SchoolReservationRead } from "@/lib/types/school";
+import type { CollegeReservationRead } from "@/lib/types/college/reservations";
 
 interface ConcessionUpdateDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  reservation: SchoolReservationRead | null;
+  reservation: SchoolReservationRead | CollegeReservationRead | null;
   onUpdateConcession: (
     reservationId: number,
     tuitionConcession: number,
@@ -68,7 +69,14 @@ export function ConcessionUpdateDialog({
       return;
     }
 
-    if (tuitionConcession > (reservation.tuition_fee || 0)) {
+    // Calculate tuition fee based on reservation type
+    const reservationTuitionFee = 'total_tuition_fee' in reservation || 'group_fee' in reservation
+      ? ((reservation as CollegeReservationRead).total_tuition_fee || 
+         ((reservation as CollegeReservationRead).group_fee || 0) + 
+         ((reservation as CollegeReservationRead).course_fee || 0))
+      : ((reservation as SchoolReservationRead).tuition_fee || 0);
+    
+    if (tuitionConcession > reservationTuitionFee) {
       toast({
         title: "Invalid Tuition Concession",
         description: "Tuition concession cannot exceed the tuition fee amount.",
@@ -105,8 +113,18 @@ export function ConcessionUpdateDialog({
 
   if (!reservation) return null;
 
+  // Type guard to check if it's a college reservation
+  const isCollegeReservation = 'total_tuition_fee' in reservation || 'group_fee' in reservation;
+  
   const isLocked = reservation.concession_lock;
-  const tuitionFee = reservation.tuition_fee || 0;
+  
+  // For college reservations, use total_tuition_fee; for school, use tuition_fee
+  const tuitionFee = isCollegeReservation
+    ? ((reservation as CollegeReservationRead).total_tuition_fee || 
+       ((reservation as CollegeReservationRead).group_fee || 0) + 
+       ((reservation as CollegeReservationRead).course_fee || 0))
+    : ((reservation as SchoolReservationRead).tuition_fee || 0);
+  
   const transportFee = reservation.transport_fee || 0;
   const bookFee = reservation.book_fee || 0;
   const applicationFee = reservation.application_fee || 0;

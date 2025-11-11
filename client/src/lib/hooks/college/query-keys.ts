@@ -104,6 +104,13 @@ export const collegeKeys = {
     root: () => [...collegeKeys.root, "teacher-course-subjects"] as const,
     list: (params?: { group_id?: number | null; course_id?: number | null }) => [...collegeKeys.teacherCourseSubjects.root(), "list", params ?? {}] as const,
   },
+  studentMarks: {
+    root: () => [...collegeKeys.root, "student-marks"] as const,
+    marksView: (admissionNo: string) => [...collegeKeys.studentMarks.root(), "marks-view", admissionNo] as const,
+    performanceView: (admissionNo: string) => [...collegeKeys.studentMarks.root(), "performance-view", admissionNo] as const,
+    examReport: (params?: Record<string, unknown>) => [...collegeKeys.studentMarks.root(), "exam-report", params ?? {}] as const,
+    testReport: (params?: Record<string, unknown>) => [...collegeKeys.studentMarks.root(), "test-report", params ?? {}] as const,
+  },
 };
 
 

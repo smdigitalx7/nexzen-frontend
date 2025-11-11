@@ -41,13 +41,17 @@ export interface AuditLogReadableParams {
 export interface AuditLogDeleteParams {
   start_date: string;
   end_date: string;
+  confirm_deletion: boolean;
+}
+
+export interface AuditLogDeleteByIdsParams {
   audit_ids: number[];
   confirm_deletion: boolean;
 }
 
-export interface AuditLogDeletePreview {
-  count?: number;
-  audit_ids?: number[];
-  message?: string;
+export interface AuditLogDeleteResponse {
+  deleted_count: number;
+  oldest_log_date?: string | null;
+  newest_log_date?: string | null;
+  message: string;
 }
-

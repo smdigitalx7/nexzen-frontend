@@ -62,9 +62,9 @@ const EnrollmentsTabComponent = () => {
       group_id: Number(query.group_id),
     };
     
-    if (query.course_id) {
-      params.course_id = Number(query.course_id);
-    }
+        if (query.course_id) {
+          params.course_id = Number(query.course_id);
+        }
     
     return params;
   }, [query.class_id, query.group_id, query.course_id]);
@@ -87,13 +87,13 @@ const EnrollmentsTabComponent = () => {
   const { data: viewEnrollment, isLoading: isLoadingView } = useCollegeEnrollment(viewEnrollmentId);
 
   // Handle view
-  const handleView = useCallback((enrollment: any) => {
+  const handleView = useCallback((enrollment: CollegeEnrollmentRead) => {
     setViewEnrollmentId(enrollment.enrollment_id);
     setIsViewDialogOpen(true);
   }, []);
 
   // Handle edit from table action
-  const handleEdit = useCallback((enrollment: any) => {
+  const handleEdit = useCallback((enrollment: CollegeEnrollmentRead) => {
     if (enrollment?.student_id) {
       setEditStudentId(enrollment.student_id);
       setIsEditDialogOpen(true);
@@ -277,11 +277,11 @@ const EnrollmentsTabComponent = () => {
   const actionButtonGroups = useMemo(() => [
     {
       type: 'view' as const,
-      onClick: (row: any) => handleView(row)
+      onClick: (row: CollegeEnrollmentRead) => handleView(row)
     },
     {
       type: 'edit' as const,
-      onClick: (row: any) => handleEdit(row)
+      onClick: (row: CollegeEnrollmentRead) => handleEdit(row)
     }
   ], [handleView, handleEdit]);
 

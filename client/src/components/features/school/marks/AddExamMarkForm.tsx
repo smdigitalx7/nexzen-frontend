@@ -14,6 +14,11 @@ import { useSchoolSubjects } from '@/lib/hooks/school/use-school-dropdowns';
 import { useCreateSchoolExamMarksMultipleSubjects } from '@/lib/hooks/school/use-school-exam-marks';
 import { Plus, Trash2 } from 'lucide-react';
 import type { ExamMarkWithDetails } from '@/lib/types/school/exam-marks';
+import type { 
+  SchoolEnrollmentWithClassSectionDetails, 
+  SchoolEnrollmentRead,
+} from '@/lib/types/school/enrollments';
+import type { SchoolSubjectList } from '@/lib/types/school/subjects';
 
 // Utility functions for grade calculation
 const calculateGrade = (percentage: number): string => {
@@ -52,7 +57,7 @@ const multipleSubjectsFormSchema = z.object({
 interface AddExamMarkFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: { enrollment_id: number; exam_id: number; subject_id: number; marks_obtained: number; remarks: string }) => void;
   editingExamMark?: ExamMarkWithDetails | null;
   selectedClass?: number | null;
   selectedSection?: number | null;
@@ -84,10 +89,10 @@ const AddExamMarkForm = ({
   // Extract students from enrollments - flatten the grouped response and add class_name
   const enrollments = useMemo(() => {
     if (!enrollmentsData?.enrollments) return [];
-    const allEnrollments: any[] = [];
-    enrollmentsData.enrollments.forEach((group: any) => {
+    const allEnrollments: (SchoolEnrollmentRead & { class_name: string })[] = [];
+    enrollmentsData.enrollments.forEach((group: SchoolEnrollmentWithClassSectionDetails) => {
       if (group.students && Array.isArray(group.students)) {
-        group.students.forEach((student: any) => {
+        group.students.forEach((student: SchoolEnrollmentRead) => {
           allEnrollments.push({
             ...student,
             class_name: group.class_name || student.class_name || '',
@@ -163,7 +168,7 @@ const AddExamMarkForm = ({
   }, [isOpen, editingExamMark, examMarkForm, multipleSubjectsForm]);
 
   // Single subject form submission handler
-  const handleSubmit = (values: any) => {
+  const handleSubmit = (values: z.infer<typeof examMarkFormSchema>) => {
     const markData = {
       enrollment_id: parseInt(values.enrollment_id),
       exam_id: parseInt(values.exam_id),
@@ -178,17 +183,17 @@ const AddExamMarkForm = ({
   };
 
   // Multiple subjects form submission handler
-  const handleMultipleSubjectsSubmit = useCallback(async (values: any) => {
-    const selectedEnrollment = enrollments.find((e: any) => e.enrollment_id?.toString() === values.enrollment_id);
+  const handleMultipleSubjectsSubmit = useCallback(async (values: z.infer<typeof multipleSubjectsFormSchema>) => {
+    const selectedEnrollment = enrollments.find((e) => e.enrollment_id?.toString() === values.enrollment_id);
     
     const payload = {
       enrollment_id: parseInt(values.enrollment_id),
       exam_id: parseInt(values.exam_id),
-      subjects: values.subjects.map((subj: any) => ({
+      subjects: values.subjects.map((subj) => ({
         subject_id: parseInt(subj.subject_id),
         marks_obtained: parseFloat(subj.marks_obtained),
         remarks: subj.remarks || null,
-        subject_name: subjects.find((s: any) => s.subject_id === parseInt(subj.subject_id))?.subject_name || null,
+        subject_name: subjects.find((s: SchoolSubjectList) => s.subject_id === parseInt(subj.subject_id))?.subject_name || null,
       })),
       student_name: selectedEnrollment?.student_name || null,
       exam_name: null, // Can be fetched if needed
@@ -275,7 +280,7 @@ const AddExamMarkForm = ({
                         <SelectValue placeholder="Select student" />
                       </SelectTrigger>
                       <SelectContent>
-                        {enrollments.map((enrollment: any) => {
+                        {enrollments.map((enrollment) => {
                           const displayParts = [
                             enrollment.student_name,
                             enrollment.class_name || '',
@@ -429,7 +434,7 @@ const AddExamMarkForm = ({
                             <SelectValue placeholder="Select student" />
                           </SelectTrigger>
                           <SelectContent>
-                            {enrollments.map((enrollment: any) => (
+                            {enrollments.map((enrollment) => (
                               <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
                                 {enrollment.student_name} ({enrollment.admission_no})
                               </SelectItem>
@@ -601,7 +606,7 @@ const AddExamMarkForm = ({
                         <SelectValue placeholder="Select student" />
                       </SelectTrigger>
                       <SelectContent>
-                        {enrollments.map((enrollment: any) => {
+                        {enrollments.map((enrollment) => {
                           const displayParts = [
                             enrollment.student_name,
                             enrollment.class_name || '',

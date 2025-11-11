@@ -14,7 +14,7 @@ import { useSchoolAttendance, useDeleteSchoolAttendance, useSchoolAttendanceAllS
 import { useToast } from '@/hooks/use-toast';
 import { SchoolStudentAttendanceService } from '@/lib/services/school';
 import { schoolKeys } from '@/lib/hooks/school/query-keys';
-import type { SchoolStudentAttendanceMonthlyGroupedResponse, SchoolClassRead, SchoolSectionRead } from '@/lib/types/school';
+import type { SchoolStudentAttendanceMonthlyGroupedResponse, SchoolClassRead, SchoolSectionRead, SchoolStudentAttendanceRead } from '@/lib/types/school';
 import { useQueryClient } from '@tanstack/react-query';
 
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -47,13 +47,13 @@ export default function AttendanceView() {
   const allStudents = ((grouped as any)?.groups?.[0]?.data as any[]) || [];
   const { toast } = useToast();
   const [editOpen, setEditOpen] = useState(false);
-  const [editingRow, setEditingRow] = useState<any | null>(null);
+  const [editingRow, setEditingRow] = useState<SchoolStudentAttendanceRead | null>(null);
   const [editAbsent, setEditAbsent] = useState<string>("0");
   const [editRemarks, setEditRemarks] = useState<string>("");
   const [viewOpen, setViewOpen] = useState(false);
-  const [viewingRow, setViewingRow] = useState<any | null>(null);
+  const [viewingRow, setViewingRow] = useState<SchoolStudentAttendanceRead | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [rowToDelete, setRowToDelete] = useState<any | null>(null);
+  const [rowToDelete, setRowToDelete] = useState<SchoolStudentAttendanceRead | null>(null);
   const viewQuery = useSchoolAttendance(viewingRow?.attendance_id ?? null);
 
   const isLoading = studentsQuery.isLoading;
@@ -61,19 +61,19 @@ export default function AttendanceView() {
   const errorMessage = ((studentsQuery.error as any)?.message) || undefined;
 
 
-  const handleView = (row: any) => {
+  const handleView = (row: SchoolStudentAttendanceRead) => {
     setViewingRow(row);
     setViewOpen(true);
   };
 
-  const handleEdit = (row: any) => {
+  const handleEdit = (row: SchoolStudentAttendanceRead) => {
     setEditingRow(row);
     setEditAbsent(String(row.absent_days));
     setEditRemarks(row.remarks ?? '');
     setEditOpen(true);
   };
 
-  const handleDelete = (row: any) => {
+  const handleDelete = (row: SchoolStudentAttendanceRead) => {
     setRowToDelete(row);
     setDeleteOpen(true);
   };

@@ -11,15 +11,23 @@ export interface CollegeEnrollmentsListParams {
 
 export const CollegeEnrollmentsService = {
   list(params: CollegeEnrollmentsListParams) {
-    return Api.get<CollegeEnrollmentsPaginatedResponse>(`/college/student-enrollments`, params as Record<string, string | number | boolean | null | undefined> | undefined);
+    return Api.get<CollegeEnrollmentsPaginatedResponse>(
+      `/college/student-enrollments`,
+      params as unknown as Record<string, string | number | boolean | null | undefined> | undefined
+    );
   },
 
   getById(enrollment_id: number) {
     return Api.get<CollegeEnrollmentWithStudentDetails>(`/college/student-enrollments/${enrollment_id}`);
   },
 
-  getByAdmission(admission_no: string) {
-    return Api.get<CollegeEnrollmentWithStudentDetails>(`/college/student-enrollments/by-admission/${admission_no}`);
+  getByAdmission(admission_no: string, options?: { cache?: boolean }) {
+    return Api.get<CollegeEnrollmentWithStudentDetails>(
+      `/college/student-enrollments/by-admission/${admission_no}`,
+      undefined,
+      undefined,
+      options
+    );
   },
 
   create(payload: CollegeEnrollmentCreate) {

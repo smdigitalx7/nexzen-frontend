@@ -42,16 +42,16 @@ const EmployeeDetailDialog = ({ open, onOpenChange, employee, newStatus, onStatu
       statusUpdateText="Update Status"
     >
       {employee && (
-        <div className="space-y-6">
+        <div className="space-y-3">
           {/* Employee Header */}
-          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
+          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-semibold flex items-center gap-2">
-                  <User className="h-5 w-5" />
+                <h3 className="text-lg font-semibold flex items-center gap-1.5">
+                  <User className="h-4 w-4" />
                   {employee.employee_name}
                 </h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {employee.employee_code || "EMP"} • {employee.designation || "-"}
                 </p>
               </div>
@@ -62,56 +62,56 @@ const EmployeeDetailDialog = ({ open, onOpenChange, employee, newStatus, onStatu
           </div>
 
           {/* Basic Information */}
-          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-            <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-              <Briefcase className="h-4 w-4" />
+          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+            <h3 className="font-semibold text-base mb-2 flex items-center gap-1.5">
+              <Briefcase className="h-3.5 w-3.5" />
               Basic Information
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Employee Code</label>
-                <p className="text-lg font-semibold">{employee.employee_code || "N/A"}</p>
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Employee Code</label>
+                <p className="text-base font-semibold mt-0.5">{employee.employee_code || "N/A"}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Employee Type</label>
-                <p className="text-lg font-semibold">{employee.employee_type || "N/A"}</p>
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Employee Type</label>
+                <p className="text-base font-semibold mt-0.5">{employee.employee_type || "N/A"}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Experience</label>
-                <p className="text-lg font-semibold">{employee.experience_years ?? "0"} years</p>
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Experience</label>
+                <p className="text-base font-semibold mt-0.5">{employee.experience_years ?? "0"} years</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Qualification</label>
-                <p className="text-lg font-semibold">{employee.qualification || "N/A"}</p>
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Qualification</label>
+                <p className="text-base font-semibold mt-0.5">{employee.qualification || "N/A"}</p>
               </div>
             </div>
           </div>
 
           {/* Contact Information */}
-          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-            <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-              <Phone className="h-4 w-4" />
+          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+            <h3 className="font-semibold text-base mb-2 flex items-center gap-1.5">
+              <Phone className="h-3.5 w-3.5" />
               Contact Information
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Mobile Number</label>
-                <p className="text-lg font-semibold flex items-center gap-1">
-                  <Phone className="h-4 w-4" />
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Mobile Number</label>
+                <p className="text-base font-semibold flex items-center gap-1 mt-0.5">
+                  <Phone className="h-3.5 w-3.5" />
                   {employee.mobile_no || "N/A"}
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Email Address</label>
-                <p className="text-lg font-semibold flex items-center gap-1">
-                  <Mail className="h-4 w-4" />
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Email Address</label>
+                <p className="text-base font-semibold flex items-center gap-1 mt-0.5">
+                  <Mail className="h-3.5 w-3.5" />
                   {employee.email || "N/A"}
                 </p>
               </div>
               <div className="col-span-2">
-                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Address</label>
-                <p className="text-lg font-semibold flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Address</label>
+                <p className="text-base font-semibold flex items-center gap-1 mt-0.5">
+                  <MapPin className="h-3.5 w-3.5" />
                   {employee.address || "N/A"}
                 </p>
               </div>
@@ -119,23 +119,23 @@ const EmployeeDetailDialog = ({ open, onOpenChange, employee, newStatus, onStatu
           </div>
 
           {/* Employment Information */}
-          <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-            <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
+          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+            <h3 className="font-semibold text-base mb-2 flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5" />
               Employment Information
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Date of Joining</label>
-                <p className="text-lg font-semibold flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Date of Joining</label>
+                <p className="text-base font-semibold flex items-center gap-1 mt-0.5">
+                  <Calendar className="h-3.5 w-3.5" />
                   {new Date(employee.date_of_joining).toLocaleDateString()}
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Salary</label>
-                <p className="text-lg font-semibold flex items-center gap-1 text-green-600">
-                  <span className="text-sm font-bold">₹</span>
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Salary</label>
+                <p className="text-base font-semibold flex items-center gap-1 text-green-600 mt-0.5">
+                  <span className="text-xs font-bold">₹</span>
                   {formatCurrency(employee.salary)}
                 </p>
               </div>

@@ -90,6 +90,13 @@ export const schoolKeys = {
     hierarchical: () => [...schoolKeys.teacherClassSubjects.root(), "hierarchical"] as const,
     classTeachers: () => [...schoolKeys.teacherClassSubjects.root(), "class-teachers"] as const,
   },
+  studentMarks: {
+    root: () => [...schoolKeys.root, "student-marks"] as const,
+    marksView: (enrollmentId: number) => [...schoolKeys.studentMarks.root(), "marks-view", enrollmentId] as const,
+    performanceView: (enrollmentId: number) => [...schoolKeys.studentMarks.root(), "performance-view", enrollmentId] as const,
+    examReport: (params?: Record<string, unknown>) => [...schoolKeys.studentMarks.root(), "exam-report", params ?? {}] as const,
+    testReport: (params?: Record<string, unknown>) => [...schoolKeys.studentMarks.root(), "test-report", params ?? {}] as const,
+  },
 };
 
 

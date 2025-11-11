@@ -14,6 +14,7 @@ import { CollegeAttendanceService } from '@/lib/services/college';
 import { collegeKeys } from '@/lib/hooks/college/query-keys';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Info } from 'lucide-react';
+import type { CollegeStudentAttendanceRead } from '@/lib/types/college/attendance';
 
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -49,11 +50,11 @@ export default function AttendanceView() {
   const allStudents = (groupedData?.[0]?.attendance?.[0]?.students as any[]) || [];
   const { toast } = useToast();
   const [editOpen, setEditOpen] = useState(false);
-  const [editingRow, setEditingRow] = useState<any | null>(null);
+  const [editingRow, setEditingRow] = useState<CollegeStudentAttendanceRead | null>(null);
   const [editAbsent, setEditAbsent] = useState<string>("0");
   const [editRemarks, setEditRemarks] = useState<string>("");
   const [viewOpen, setViewOpen] = useState(false);
-  const [viewingRow, setViewingRow] = useState<any | null>(null);
+  const [viewingRow, setViewingRow] = useState<CollegeStudentAttendanceRead | null>(null);
   const viewQuery = useCollegeAttendance(viewingRow?.attendance_id ?? null);
 
   const isLoading = studentsQuery.isLoading;
@@ -87,12 +88,12 @@ export default function AttendanceView() {
     }
   };
 
-  const handleView = (row: any) => {
+  const handleView = (row: CollegeStudentAttendanceRead) => {
     setViewingRow(row);
     setViewOpen(true);
   };
 
-  const handleEdit = (row: any) => {
+  const handleEdit = (row: CollegeStudentAttendanceRead) => {
     setEditingRow(row);
     setEditAbsent(String(row.absent_days ?? 0));
     setEditRemarks(row.remarks ?? '');

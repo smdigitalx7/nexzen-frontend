@@ -1,5 +1,5 @@
 import { Api } from "@/lib/api";
-import { CollegeCreateTestMarkBulk, CollegeTestMarkBulkCreateResult, CollegeTestMarkFullReadResponse, CollegeTestMarkMinimalRead, CollegeTestMarkUpdate, CollegeTestMarksListParams, CollegeCreateTestMarksMultipleSubjects, CollegeTestMarksMultipleSubjectsResult } from "@/lib/types/college";
+import { CollegeCreateTestMarkBulk, CollegeTestMarkBulkCreateResult, CollegeTestMarkCreate, CollegeTestMarkFullReadResponse, CollegeTestMarkMinimalRead, CollegeTestMarkUpdate, CollegeTestMarksListParams, CollegeCreateTestMarksMultipleSubjects, CollegeTestMarksMultipleSubjectsResult } from "@/lib/types/college";
 
 export const CollegeTestMarksService = {
   // GET /api/v1/college/test-marks
@@ -13,7 +13,7 @@ export const CollegeTestMarksService = {
   },
 
   // POST /api/v1/college/test-marks
-  create(payload: CollegeTestMarkUpdate) {
+  create(payload: CollegeTestMarkCreate) {
     return Api.post<CollegeTestMarkFullReadResponse>(`/college/test-marks`, payload);
   },
 

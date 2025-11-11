@@ -1,4 +1,33 @@
 import { useEmployeeManagement, useEmployeeDashboard, useAttendanceDashboard, useLeaveDashboard, useAdvanceDashboard } from "@/lib/hooks/general";
+import type { EmployeeRead as HookEmployeeRead, EmployeeAttendanceRead, EmployeeLeaveRead as HookEmployeeLeaveRead } from "@/lib/hooks/general/useEmployeeManagement";
+import type { AdvanceRead } from "@/lib/types/general/advances";
+import type { EmployeeLeaveRead } from "@/lib/types/general/employee-leave";
+import type { EmployeeRead as LibEmployeeRead } from "@/lib/types/general/employees";
+
+// Local types for component compatibility (matches EmployeeManagementTabs expectations)
+type EmployeeRead = {
+  employee_id: number;
+  employee_name: string;
+  employee_code: string;
+  email?: string | null;
+  mobile_no?: string | null;
+  designation: string;
+  department?: string;
+  date_of_joining: string;
+  salary: number;
+  status: string;
+  branch_id?: number;
+  created_at: string;
+  updated_at?: string | null;
+  // Additional fields needed for detail view
+  employee_type?: string;
+  qualification?: string | null;
+  experience_years?: number | null;
+};
+
+type EmployeeAdvanceRead = Omit<AdvanceRead, 'status'> & {
+  status: string; // Required, not optional
+};
 import { EmployeeManagementHeader } from "../components/EmployeeManagementHeader";
 import { EmployeeManagementTabs } from "../components/EmployeeManagementTabs";
 import { EmployeeManagementDialogs } from "../components/EmployeeManagementDialogs";
@@ -170,44 +199,93 @@ export const EmployeeManagementTemplate = () => {
     setAttendanceYear,
   } = useEmployeeManagement();
 
+  // employees from hook is now LibEmployeeRead[] (the actual API type)
+  // We need to transform it to match component expectations (EmployeeRead with phone, department, branch_id)
+  // Note: HookEmployeeRead is now an alias to LibEmployeeRead, so we need to create a compatible type
+  const employeesData = employees.map((emp: LibEmployeeRead): EmployeeRead => ({
+    employee_id: emp.employee_id,
+    employee_name: emp.employee_name,
+    employee_code: emp.employee_code,
+    email: emp.email || null,
+    mobile_no: emp.mobile_no || null,
+    designation: emp.designation,
+    department: undefined, // Not in API type
+    date_of_joining: emp.date_of_joining,
+    salary: emp.salary,
+    status: emp.status,
+    branch_id: undefined, // Not in API type
+    created_at: emp.created_at,
+    updated_at: emp.updated_at || null,
+    // Include missing fields that are needed for the detail view
+    employee_type: emp.employee_type,
+    qualification: emp.qualification || null,
+    experience_years: emp.experience_years || null,
+  }));
 
   const handleAddEmployee = () => {
-    // Initialize with default form values
+    // Initialize with default form values using LibEmployeeRead (API type)
     setSelectedEmployee({
+      employee_id: 0,
+      institute_id: 0,
       employee_name: '',
+      employee_type: 'TEACHING',
       employee_code: '',
-      employee_type: '',
+      email: null,
+      mobile_no: null,
       designation: '',
       date_of_joining: new Date().toISOString().split('T')[0],
-      status: 'ACTIVE',
       salary: 0,
-      aadhar_no: '',
-      mobile_no: '',
-      email: '',
-      address: '',
-      qualification: '',
-      experience_years: 0,
-    } as any);
+      status: 'ACTIVE',
+      created_at: new Date().toISOString(),
+      updated_at: null,
+    } as LibEmployeeRead);
     setIsEditingEmployee(false);
     setShowEmployeeForm(true);
   };
 
-  const handleEditEmployee = (employee: any) => {
-    setSelectedEmployee(employee);
+  const handleEditEmployee = (employee: EmployeeRead) => {
+    // Transform component's EmployeeRead to LibEmployeeRead (API type)
+    const hookEmployee: LibEmployeeRead = {
+      ...employee,
+      // Map component's mobile_no to API's mobile_no
+      mobile_no: employee.mobile_no || null,
+      // API type doesn't have department or branch_id, so we omit them
+    } as LibEmployeeRead;
+    setSelectedEmployee(hookEmployee);
     setIsEditingEmployee(true);
     setShowEmployeeForm(true);
   };
 
   const handleDeleteEmployeeClick = async (id: number) => {
+    // employees is LibEmployeeRead[] from the hook
     const employee = employees.find(emp => emp.employee_id === id);
     if (employee) {
-      setEmployeeToDelete(employee as any);
+      // setEmployeeToDelete expects LibEmployeeRead (HookEmployeeRead is now an alias)
+      setEmployeeToDelete(employee);
       setShowDeleteEmployeeDialog(true);
     }
   };
 
-  const handleViewEmployee = (employee: any) => {
-    setSelectedEmployee(employee);
+  const handleViewEmployee = (employee: EmployeeRead) => {
+    // Find the full employee data from the original employees array to get all fields
+    const fullEmployee = employees.find(emp => emp.employee_id === employee.employee_id);
+    if (fullEmployee) {
+      // Use the full employee data from API which includes all fields
+      setSelectedEmployee(fullEmployee);
+    } else {
+      // Fallback: Transform component's EmployeeRead to LibEmployeeRead (API type)
+      const hookEmployee: LibEmployeeRead = {
+        ...employee,
+        // Map component's mobile_no to API's mobile_no
+        mobile_no: employee.mobile_no || null,
+        // Include missing fields with defaults
+        employee_type: (employee as any).employee_type || 'TEACHING',
+        qualification: (employee as any).qualification || null,
+        experience_years: (employee as any).experience_years || null,
+        // API type doesn't have department or branch_id, so we omit them
+      } as LibEmployeeRead;
+      setSelectedEmployee(hookEmployee);
+    }
     setShowEmployeeDetail(true);
   };
 
@@ -231,13 +309,13 @@ export const EmployeeManagementTemplate = () => {
             total_employees: totalEmployees,
             active_employees: activeEmployees,
             terminated_employees: totalEmployees - activeEmployees,
-            teaching_staff: employees.filter(emp => emp.employee_type === 'teaching').length,
-            non_teaching_staff: employees.filter(emp => emp.employee_type === 'non_teaching').length,
-            office_staff: employees.filter(emp => emp.employee_type === 'office').length,
-            drivers: employees.filter(emp => emp.employee_type === 'driver').length,
+            teaching_staff: employees.filter((emp: LibEmployeeRead) => emp.employee_type === 'teaching').length,
+            non_teaching_staff: employees.filter((emp: LibEmployeeRead) => emp.employee_type === 'non_teaching').length,
+            office_staff: employees.filter((emp: LibEmployeeRead) => emp.employee_type === 'office').length,
+            drivers: employees.filter((emp: LibEmployeeRead) => emp.employee_type === 'driver').length,
             employees_joined_this_month: 0,
             employees_joined_this_year: 0,
-            total_salary_expense: employees.reduce((sum, emp) => sum + emp.salary, 0),
+            total_salary_expense: employees.reduce((sum: number, emp: LibEmployeeRead) => sum + emp.salary, 0),
           }}
           loading={dashboardLoading}
         />
@@ -281,10 +359,61 @@ export const EmployeeManagementTemplate = () => {
 
       {/* Main Content Tabs */}
       <EmployeeManagementTabs
-            employees={employees}
-        attendance={attendance}
-        leaves={leaves}
-        advances={advances}
+            employees={employeesData}
+        attendance={attendance.map(att => {
+          // Transform attendance data to component's expected format (number month, number year)
+          // Backend API returns attendance_month as number (1-12), but handle both number and string formats
+          let month: number | null = null;
+          let year: number | null = null;
+          
+          // Handle attendance_month - can be number (1-12) or string (YYYY-MM-DD)
+          if (typeof att.attendance_month === 'number' && att.attendance_month >= 1 && att.attendance_month <= 12) {
+            month = att.attendance_month;
+          } else if (typeof att.attendance_month === 'string') {
+            // Try to parse string format (YYYY-MM-DD)
+            const dateMatch = att.attendance_month.match(/^(\d{4})-(\d{2})/);
+            if (dateMatch) {
+              month = parseInt(dateMatch[2], 10);
+              year = parseInt(dateMatch[1], 10);
+            }
+          }
+          
+          // Handle attendance_year - can be number or string
+          if (year === null) {
+            if (typeof att.attendance_year === 'number' && att.attendance_year > 0) {
+              year = att.attendance_year;
+            } else if (typeof att.attendance_year === 'string') {
+              const parsedYear = parseInt(att.attendance_year, 10);
+              if (!isNaN(parsedYear) && parsedYear > 0) {
+                year = parsedYear;
+              }
+            }
+          }
+          
+          // Fallback: use current month/year if parsing fails or values are invalid
+          const now = new Date();
+          return {
+            attendance_id: att.attendance_id,
+            employee_id: att.employee_id,
+            employee_name: att.employee_name,
+            attendance_month: (month && month >= 1 && month <= 12) ? month : now.getMonth() + 1,
+            attendance_year: (year && year > 0) ? year : now.getFullYear(),
+            total_working_days: att.total_working_days,
+            days_present: att.days_present,
+            paid_leaves: att.paid_leaves,
+            unpaid_leaves: att.unpaid_leaves,
+          };
+        })}
+        leaves={leaves.map(leave => ({
+          ...leave,
+          updated_at: leave.updated_at || leave.created_at || new Date().toISOString(),
+        }))}
+        advances={advances.map(adv => ({
+          ...adv,
+          status: adv.status || 'PENDING',
+          // created_at is required in AdvanceRead but optional in EmployeeAdvanceRead
+          // We keep it for compatibility but it won't be used by AdvancesTable
+        } as EmployeeAdvanceRead & { created_at: string }))}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         attendancePage={attendancePage}
@@ -309,7 +438,7 @@ export const EmployeeManagementTemplate = () => {
               onBulkCreateAttendance={() => {
                 setShowAttendanceBulkCreateDialog(true);
               }}
-              onEditAttendance={(record: any) => {
+              onEditAttendance={(record: { attendance_id: number; employee_id: number; employee_name?: string; attendance_month: number; attendance_year: number; total_working_days: number; days_present: number; paid_leaves: number; unpaid_leaves: number }) => {
                 setIsEditingAttendance(true);
                 setShowAttendanceForm(true);
                 // Format month as YYYY-MM-DD for the month input
@@ -321,13 +450,31 @@ export const EmployeeManagementTemplate = () => {
                 });
               }}
               onDeleteAttendance={(id: number) => {
-                const rec = attendance.find((a: any) => a.attendance_id === id);
+                const rec = attendance.find((a) => a.attendance_id === id);
                 if (rec) {
-                  setAttendanceToDelete(rec as any);
+                  setAttendanceToDelete(rec);
                   setShowAttendanceDeleteDialog(true);
                 }
               }}
-              onViewAttendance={handleViewAttendance}
+              onViewAttendance={(record) => {
+                // Pass the record directly with number format (month and year as numbers)
+                // The view dialog can handle both number and string formats
+                const hookAttendance: EmployeeAttendanceRead = {
+                  attendance_id: record.attendance_id,
+                  employee_id: record.employee_id,
+                  employee_name: record.employee_name,
+                  attendance_month: record.attendance_month, // Keep as number (1-12)
+                  attendance_year: record.attendance_year, // Keep as number
+                  total_working_days: record.total_working_days,
+                  days_present: record.days_present,
+                  days_absent: 0, // Not available in component format
+                  paid_leaves: record.paid_leaves,
+                  unpaid_leaves: record.unpaid_leaves,
+                  late_arrivals: 0, // Not available in component format
+                  early_departures: 0, // Not available in component format
+                };
+                handleViewAttendance(hookAttendance);
+              }}
         onAddLeave={() => {
                 setIsEditingLeave(false);
                 setShowLeaveForm(true);
@@ -341,15 +488,25 @@ export const EmployeeManagementTemplate = () => {
                   applied_date: new Date().toISOString().split('T')[0]
                 });
               }}
-        onApproveLeave={(leave: any) => {
-                setLeaveToApprove(leave);
+        onApproveLeave={(leave: EmployeeLeaveRead) => {
+                // Transform lib's EmployeeLeaveRead to hook's HookEmployeeLeaveRead
+                const hookLeave: HookEmployeeLeaveRead = {
+                  ...leave,
+                  updated_at: leave.updated_at || leave.created_at || new Date().toISOString(),
+                };
+                setLeaveToApprove(hookLeave);
                 setShowLeaveApproveDialog(true);
               }}
-        onRejectLeave={(leave: any) => {
-                setLeaveToReject(leave);
+        onRejectLeave={(leave: EmployeeLeaveRead) => {
+                // Transform lib's EmployeeLeaveRead to hook's HookEmployeeLeaveRead
+                const hookLeave: HookEmployeeLeaveRead = {
+                  ...leave,
+                  updated_at: leave.updated_at || leave.created_at || new Date().toISOString(),
+                };
+                setLeaveToReject(hookLeave);
                 setShowLeaveRejectDialog(true);
               }}
-        onEditLeave={(leave: any) => {
+        onEditLeave={(leave: EmployeeLeaveRead) => {
                 setLeaveFormData({
                   employee_id: leave.employee_id,
                   leave_type: leave.leave_type,
@@ -359,15 +516,35 @@ export const EmployeeManagementTemplate = () => {
                   total_days: leave.total_days,
                   applied_date: leave.applied_date
                 });
-                setLeaveToApprove(leave);
+                // Transform lib's EmployeeLeaveRead to hook's HookEmployeeLeaveRead
+                const hookLeave: HookEmployeeLeaveRead = {
+                  ...leave,
+                  updated_at: leave.updated_at || leave.created_at || new Date().toISOString(),
+                };
+                setLeaveToApprove(hookLeave);
                 setIsEditingLeave(true);
                 setShowLeaveForm(true);
               }}
-        onDeleteLeave={(leave: any) => {
-                setLeaveToDelete(leave);
-                setShowLeaveDeleteDialog(true);
-              }}
-        onViewLeave={handleViewLeave}
+        onDeleteLeave={(id: number) => {
+          const leave = leaves.find((l) => l.leave_id === id);
+          if (leave) {
+            // Transform lib's EmployeeLeaveRead to hook's HookEmployeeLeaveRead
+            const hookLeave: HookEmployeeLeaveRead = {
+              ...leave,
+              updated_at: leave.updated_at || leave.created_at || new Date().toISOString(),
+            };
+            setLeaveToDelete(hookLeave);
+            setShowLeaveDeleteDialog(true);
+          }
+        }}
+        onViewLeave={(leave: EmployeeLeaveRead) => {
+          // Transform lib's EmployeeLeaveRead to hook's HookEmployeeLeaveRead
+          const hookLeave: HookEmployeeLeaveRead = {
+            ...leave,
+            updated_at: leave.updated_at || leave.created_at || new Date().toISOString(),
+          };
+          handleViewLeave(hookLeave);
+        }}
         onAddAdvance={() => {
                 setIsEditingAdvance(false);
                 setShowAdvanceForm(true);
@@ -378,36 +555,64 @@ export const EmployeeManagementTemplate = () => {
                   request_reason: ''
                 });
               }}
-        onApproveAdvance={(advance: any) => {
-                setAdvanceToUpdate(advance);
+        onApproveAdvance={(advance) => {
+                // Transform EmployeeAdvanceRead (without created_at) back to AdvanceRead for hook
+                const fullAdvance: AdvanceRead = {
+                  ...advance,
+                  created_at: advance.created_at || new Date().toISOString(),
+                };
+                setAdvanceToUpdate(fullAdvance);
                 setAdvanceStatus(advance.status || "");
                 setShowAdvanceStatusDialog(true);
               }}
-        onEditAdvance={(advance: any) => {
+        onEditAdvance={(advance) => {
                 setAdvanceFormData({
                   employee_id: advance.employee_id,
                   advance_date: advance.advance_date,
                   advance_amount: advance.advance_amount,
                   request_reason: advance.request_reason || ''
                 });
-                setAdvanceToUpdate(advance);
+                // Transform EmployeeAdvanceRead (without created_at) back to AdvanceRead for hook
+                const fullAdvance: AdvanceRead = {
+                  ...advance,
+                  created_at: advance.created_at || new Date().toISOString(),
+                };
+                setAdvanceToUpdate(fullAdvance);
                 setIsEditingAdvance(true);
                 setShowAdvanceForm(true);
               }}
-        onDeleteAdvance={(advance: any) => {
-                setAdvanceToDelete(advance);
-                setShowAdvanceDeleteDialog(true);
+        onDeleteAdvance={(id: number) => {
+                const advance = advances.find((a) => a.advance_id === id);
+                if (advance) {
+                  setAdvanceToDelete(advance);
+                  setShowAdvanceDeleteDialog(true);
+                }
               }}
-        onViewAdvance={(advance: any) => {
-                setAdvanceToView(advance);
+        onViewAdvance={(advance) => {
+                // Transform EmployeeAdvanceRead (without created_at) back to AdvanceRead for hook
+                const fullAdvance: AdvanceRead = {
+                  ...advance,
+                  created_at: advance.created_at || new Date().toISOString(),
+                };
+                setAdvanceToView(fullAdvance);
                 setShowAdvanceViewDialog(true);
               }}
-              onUpdateAmount={(advance: any) => {
-                setAdvanceToUpdate(advance);
+              onUpdateAmount={(advance) => {
+                // Transform EmployeeAdvanceRead (without created_at) back to AdvanceRead for hook
+                const fullAdvance: AdvanceRead = {
+                  ...advance,
+                  created_at: advance.created_at || new Date().toISOString(),
+                };
+                setAdvanceToUpdate(fullAdvance);
                 setShowAdvanceAmountDialog(true);
               }}
-        onRejectAdvance={(advance: any) => {
-                setAdvanceToUpdate(advance);
+        onRejectAdvance={(advance) => {
+                // Transform EmployeeAdvanceRead (without created_at) back to AdvanceRead for hook
+                const fullAdvance: AdvanceRead = {
+                  ...advance,
+                  created_at: advance.created_at || new Date().toISOString(),
+                };
+                setAdvanceToUpdate(fullAdvance);
                 setAdvanceStatus("REJECTED");
                 setShowAdvanceStatusDialog(true);
               }}
@@ -507,7 +712,7 @@ export const EmployeeManagementTemplate = () => {
     setAdvanceFormData={setAdvanceFormData}
         
         // Data
-        employees={employees}
+        employees={employeesData}
         
         // Handlers
         handleCreateEmployee={handleCreateEmployee}

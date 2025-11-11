@@ -32,12 +32,15 @@ import {
 } from "@/components/ui/dialog";
 // Removed individual payment hooks - now using pay-by-admission API
 import { useToast } from "@/hooks/use-toast";
-import { api } from "@/lib/api";
+import { SchoolIncomeService } from "@/lib/services/school/income.service";
+import type { SchoolStudentRead } from "@/lib/types/school/students";
+import type { SchoolTuitionFeeBalanceRead } from "@/lib/types/school/tuition-fee-balances";
+import type { SchoolTransportFeeBalanceListRead } from "@/lib/types/school/transport-fee-balances";
 
 interface StudentFeeDetails {
-  student: any;
-  tuitionBalance: any;
-  transportBalance: any;
+  student: SchoolStudentRead;
+  tuitionBalance: SchoolTuitionFeeBalanceRead | null;
+  transportBalance: SchoolTransportFeeBalanceListRead | null;
 }
 
 interface CollectFeeFormProps {
@@ -64,7 +67,25 @@ export const CollectFeeForm = ({
   const [customAmount, setCustomAmount] = useState("");
   const [paymentMode, setPaymentMode] = useState("CASH");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [generatedBill, setGeneratedBill] = useState<any>(null);
+  interface BillItem {
+    description: string;
+    amount: number;
+  }
+
+  interface GeneratedBill {
+    billNumber: string;
+    studentName: string;
+    admissionNo: string;
+    paymentDate: string;
+    amount: number;
+    paymentMode: string;
+    items: BillItem[];
+    instituteName: string;
+    address: string;
+    phone: string;
+  }
+
+  const [generatedBill, setGeneratedBill] = useState<GeneratedBill | null>(null);
   const [showBill, setShowBill] = useState(false);
 
   const billRef = useRef<HTMLDivElement>(null);
@@ -194,16 +215,16 @@ export const CollectFeeForm = ({
       // Use the pay-by-admission API endpoint
       const apiPayload = {
         details: paymentDetails,
-        remarks: null,
+        remarks: null as string | null,
       };
 
-      const result = await api({
-        method: "POST",
-        path: `/school/income/pay-fee/${selectedStudent.student.admission_no}`,
-        body: apiPayload,
-      });
+      const result = await SchoolIncomeService.payFeeByAdmission(
+        selectedStudent.student.admission_no,
+        apiPayload as Parameters<typeof SchoolIncomeService.payFeeByAdmission>[1]
+      );
 
-      if ((result as { success: boolean; message?: string }).success) {
+      // If we get a result, payment was successful
+      if (result && result.income_id) {
         // Generate bill
         const bill = {
           billNumber: `BILL-${Date.now()}`,
@@ -229,10 +250,7 @@ export const CollectFeeForm = ({
 
         onPaymentComplete();
       } else {
-        throw new Error(
-          (result as { success: boolean; message?: string }).message ||
-            "Payment processing failed"
-        );
+        throw new Error("Payment processing failed");
       }
     } catch (error) {
       console.error("Payment error:", error);
@@ -402,7 +420,7 @@ export const CollectFeeForm = ({
                   <div>
                     <Label className="text-sm font-medium">Class</Label>
                     <p className="text-sm text-muted-foreground">
-                      {selectedStudent.student.section_name || "N/A"}
+                      {selectedStudent.tuitionBalance?.section_name || selectedStudent.tuitionBalance?.class_name || "N/A"}
                     </p>
                   </div>
                   <div>
@@ -672,7 +690,7 @@ export const CollectFeeForm = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {generatedBill.items.map((item: any, index: number) => (
+                    {generatedBill.items.map((item, index: number) => (
                       <tr key={index} className="border-t">
                         <td className="p-2">{item.description}</td>
                         <td className="p-2 text-right">

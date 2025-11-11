@@ -49,6 +49,24 @@ export const CollegeIncomeService = {
     return Api.post<CollegeIncomeRead>(`/college/income/pay-by-admission/${admission_no}`, payload);
   },
 
+  // POST /api/v1/college/income/pay-fee/{admission_no}
+  payFee(
+    admission_no: string,
+    payload: {
+      details: Array<{
+        purpose: string;
+        paid_amount: number;
+        payment_method: string;
+        term_number?: number | null;
+        payment_month?: string;
+        custom_purpose_name?: string | null;
+      }>;
+      remarks?: string | null;
+    }
+  ) {
+    return Api.post<CollegeIncomeRead>(`/college/income/pay-fee/${admission_no}`, payload);
+  },
+
   // POST /api/v1/college/income/pay-by-reservation/{reservation_id}
   payByReservation(reservation_id: number, payload: CollegeIncomeCreateReservation) {
     return Api.post<CollegeIncomeRead>(`/college/income/pay-by-reservation/${reservation_id}`, payload);

@@ -62,12 +62,58 @@ export const AttendanceViewDialog = ({ open, onOpenChange, attendance, employee 
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Month</label>
               <p className="text-lg font-semibold flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                {attendance.attendance_month ? new Date(2000, attendance.attendance_month - 1).toLocaleString('default', { month: 'long' }) : 'N/A'}
+                {(() => {
+                  let month: number | null = null;
+                  
+                  if (typeof attendance.attendance_month === 'number') {
+                    month = attendance.attendance_month;
+                  } else if (typeof attendance.attendance_month === 'string') {
+                    // Try to parse string format (YYYY-MM-DD or just month number as string)
+                    const dateMatch = attendance.attendance_month.match(/^(\d{4})-(\d{2})/);
+                    if (dateMatch) {
+                      month = parseInt(dateMatch[2], 10);
+                    } else {
+                      // Try parsing as a simple number string
+                      const parsed = parseInt(attendance.attendance_month, 10);
+                      if (!isNaN(parsed)) {
+                        month = parsed;
+                      }
+                    }
+                  }
+                  
+                  if (month && month >= 1 && month <= 12) {
+                    const monthNames = ["January", "February", "March", "April", "May", "June", 
+                                      "July", "August", "September", "October", "November", "December"];
+                    return monthNames[month - 1];
+                  }
+                  return 'N/A';
+                })()}
               </p>
             </div>
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Year</label>
-              <p className="text-lg font-semibold">{attendance.attendance_year || 'N/A'}</p>
+              <p className="text-lg font-semibold">
+                {(() => {
+                  let year: number | null = null;
+                  
+                  if (typeof attendance.attendance_year === 'number') {
+                    year = attendance.attendance_year;
+                  } else if (typeof attendance.attendance_year === 'string') {
+                    const parsed = parseInt(attendance.attendance_year, 10);
+                    if (!isNaN(parsed) && parsed > 0) {
+                      year = parsed;
+                    }
+                  } else if (typeof attendance.attendance_month === 'string') {
+                    // If attendance_year is missing but attendance_month is a date string, extract year from it
+                    const dateMatch = attendance.attendance_month.match(/^(\d{4})-(\d{2})/);
+                    if (dateMatch) {
+                      year = parseInt(dateMatch[1], 10);
+                    }
+                  }
+                  
+                  return (year && year > 0) ? year : 'N/A';
+                })()}
+              </p>
             </div>
             <div>
               <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Working Days</label>

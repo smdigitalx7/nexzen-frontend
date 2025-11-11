@@ -331,6 +331,24 @@ export const EmployeeManagementDialogs = ({
         }}
       />
       
+      {/* Leave Delete Confirm Dialog */}
+      <ConfirmDialog
+        open={showLeaveDeleteDialog}
+        onOpenChange={setShowLeaveDeleteDialog}
+        title="Delete Leave Request"
+        description="Are you sure you want to delete this leave request? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+        onConfirm={async () => {
+          if (leaveToDelete) {
+            await handleDeleteLeave(leaveToDelete.leave_id);
+            setShowLeaveDeleteDialog(false);
+            setLeaveToDelete(null);
+          }
+        }}
+      />
+      
       {/* Advance Form Dialog */}
       <AdvanceFormDialog
         open={showAdvanceForm}

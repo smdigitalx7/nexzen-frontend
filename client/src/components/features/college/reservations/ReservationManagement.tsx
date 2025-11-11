@@ -43,8 +43,61 @@ import {
   CollegeReservationsService,
   CollegeDropdownsService,
 } from "@/lib/services/college";
-import type { CollegeReservationView } from "@/lib/types/college/reservations";
+import type { 
+  CollegeReservationView, 
+  CollegeReservationRead, 
+  CollegeReservationMinimalRead,
+  CollegeReservationSibling,
+  CollegeReservationCreate
+} from "@/lib/types/college/reservations";
 import { Plus, List, BarChart3, Save } from "lucide-react";
+
+// Form state type matching the form structure
+type CollegeReservationFormState = {
+  studentName: string;
+  studentAadhar: string;
+  fatherName: string;
+  fatherAadhar: string;
+  motherName: string;
+  motherAadhar: string;
+  fatherOccupation: string;
+  motherOccupation: string;
+  gender: string;
+  dob: string;
+  previousSchool: string;
+  village: string;
+  lastClass: string;
+  presentAddress: string;
+  permanentAddress: string;
+  fatherMobile: string;
+  motherMobile: string;
+  classAdmission: string;
+  group: string;
+  course: string;
+  courseName: string;
+  transport: string;
+  busRoute: string;
+  pickupPoint: string;
+  applicationFee: string;
+  reservationFee: string;
+  preferredClassId: string;
+  preferredGroupId: string;
+  bookFee: string;
+  tuitionConcession: string;
+  transportConcession: string;
+  bookFeeRequired: boolean;
+  courseRequired: boolean;
+  referredBy: string;
+  reservationDate: string;
+  siblingsJson: string;
+  siblings: Array<{
+    name: string;
+    class_name: string;
+    where: string;
+    gender: string;
+  }>;
+  remarks: string;
+};
 import { TabSwitcher } from "@/components/shared";
 import StatusUpdateTable from "./StatusUpdateComponent";
 import AllReservationsComponent from "./AllReservationsComponent";
@@ -167,14 +220,14 @@ export default function ReservationNew() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelRemarks, setCancelRemarks] = useState("");
-  const [selectedReservation, setSelectedReservation] = useState<any>(null);
+  const [selectedReservation, setSelectedReservation] = useState<CollegeReservationRead | CollegeReservationMinimalRead | null>(null);
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [viewReservation, setViewReservation] =
     useState<CollegeReservationView | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editForm, setEditForm] = useState<any>(null);
+  const [editForm, setEditForm] = useState<CollegeReservationFormState | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [reservationToDelete, setReservationToDelete] = useState<any>(null);
+  const [reservationToDelete, setReservationToDelete] = useState<CollegeReservationRead | CollegeReservationMinimalRead | null>(null);
   const [loadingReservation, setLoadingReservation] = useState<number | null>(
     null
   );
@@ -184,7 +237,7 @@ export default function ReservationNew() {
   const [
     selectedReservationForConcession,
     setSelectedReservationForConcession,
-  ] = useState<any>(null);
+  ] = useState<CollegeReservationRead | null>(null);
 
   // Payment related state
   const [showPaymentProcessor, setShowPaymentProcessor] = useState(false);
@@ -217,38 +270,28 @@ export default function ReservationNew() {
 
     if (!Array.isArray(reservationsData.reservations)) return [];
 
-    return reservationsData.reservations.map((r: any) => ({
+    return reservationsData.reservations.map((r: CollegeReservationMinimalRead) => ({
       reservation_id: r.reservation_id,
+      reservation_no: r.reservation_no,
       reservation_date: r.reservation_date,
       student_name: r.student_name,
-      aadhar_no: r.aadhar_no,
       gender: r.gender,
-      dob: r.dob,
       father_name: r.father_or_guardian_name,
       father_mobile: r.father_or_guardian_mobile,
-      group_id: r.group_id || r.preferred_group_id,
-      course_id: r.course_id || r.preferred_course_id,
+      group_id: 0, // Not available in MinimalRead, will be fetched when needed
+      course_id: 0, // Not available in MinimalRead, will be fetched when needed
       group_name: r.group_name,
       course_name: r.course_name,
-      reservation_no: r.reservation_no,
       status: r.status || "PENDING",
-      created_at: r.created_at,
       remarks: r.remarks,
-      // Additional fields for UI functionality
-      income_id: r.income_id || r.incomeId,
-      application_income_id: r.application_income_id || null,
-      tuition_fee: r.total_tuition_fee || 0,
-      transport_fee: r.transport_fee || 0,
-      book_fee: r.book_fee || 0,
-      application_fee: r.application_fee || 0,
-      tuition_concession: r.tuition_concession || 0,
-      transport_concession: r.transport_concession || 0,
+      created_at: new Date().toISOString(), // Not available in MinimalRead, using current date as fallback
+      application_income_id: r.application_income_id,
     }));
   }, [reservationsData]);
 
-  // Map reservations for StatusUpdateTable (matching school format)
+  // Map reservations for StatusUpdateTable
   const statusTableReservations = useMemo(() => {
-    return allReservations.map((r: any) => ({
+    return allReservations.map((r) => ({
       id: String(r.reservation_id),
       no: r.reservation_no || String(r.reservation_id),
       reservation_id: r.reservation_id,
@@ -399,7 +442,7 @@ export default function ReservationNew() {
     }
   };
 
-  const handleUpdateConcession = async (reservation: any) => {
+  const handleUpdateConcession = async (reservation: CollegeReservationRead | CollegeReservationMinimalRead) => {
     try {
       // Fetch the full reservation details for the dialog
       const fullReservationData = await CollegeReservationsService.getById(
@@ -424,9 +467,10 @@ export default function ReservationNew() {
     remarks: string
   ) => {
     try {
+      // Note: Backend only accepts tuition_concession and remarks
+      // transport_concession is not supported by the backend API endpoint
       await CollegeReservationsService.updateConcessions(reservationId, {
         tuition_concession: tuitionConcession,
-        transport_concession: transportConcession,
         remarks: remarks || null,
       });
 
@@ -559,14 +603,11 @@ export default function ReservationNew() {
       mother_or_guardian_aadhar_no: form.motherAadhar || null,
       mother_or_guardian_mobile: form.motherMobile || null,
       mother_or_guardian_occupation: form.motherOccupation || null,
-      siblings: (form.siblings || []).map((s: any) => ({
-        name: s.name,
-        class_name: s.class_name,
-        where: s.where,
-        gender: (s.gender || "OTHER").toUpperCase() as
-          | "MALE"
-          | "FEMALE"
-          | "OTHER",
+      siblings: (form.siblings || []).map((s): CollegeReservationSibling => ({
+        name: s.name || null,
+        class_name: s.class_name || null,
+        where: s.where || null,
+        gender: (s.gender || "OTHER").toUpperCase() as "MALE" | "FEMALE" | "OTHER" || null,
       })),
       previous_class: form.lastClass || null,
       previous_school_details: form.previousSchool || null,
@@ -633,7 +674,7 @@ export default function ReservationNew() {
     }
   };
 
-  const buildPayloadFromForm = (f: any) => {
+  const buildPayloadFromForm = (f: CollegeReservationFormState): CollegeReservationCreate => {
     return {
       student_name: f.studentName,
       aadhar_no: f.studentAadhar || null,
@@ -650,14 +691,11 @@ export default function ReservationNew() {
       mother_or_guardian_aadhar_no: f.motherAadhar || null,
       mother_or_guardian_mobile: f.motherMobile || null,
       mother_or_guardian_occupation: f.motherOccupation || null,
-      siblings: (f.siblings || []).map((s: any) => ({
-        name: s.name,
-        class_name: s.class_name,
-        where: s.where,
-        gender: (s.gender || "OTHER").toUpperCase() as
-          | "MALE"
-          | "FEMALE"
-          | "OTHER",
+      siblings: (f.siblings || []).map((s): CollegeReservationSibling => ({
+        name: s.name || null,
+        class_name: s.class_name || null,
+        where: s.where || null,
+        gender: (s.gender || "OTHER").toUpperCase() as "MALE" | "FEMALE" | "OTHER" || null,
       })),
       previous_class: f.lastClass || null,
       previous_school_details: f.previousSchool || null,
@@ -685,53 +723,75 @@ export default function ReservationNew() {
     };
   };
 
-  const mapApiToForm = (r: any) => ({
-    studentName: r.student_name || "",
-    studentAadhar: r.aadhar_no || "",
-    fatherName: r.father_or_guardian_name || "",
-    fatherAadhar: r.father_or_guardian_aadhar_no || "",
-    motherName: r.mother_or_guardian_name || "",
-    motherAadhar: r.mother_or_guardian_aadhar_no || "",
-    fatherOccupation: r.father_or_guardian_occupation || "",
-    motherOccupation: r.mother_or_guardian_occupation || "",
-    gender: (r.gender || "").toString(),
-    dob: r.dob || "",
-    previousSchool: r.previous_school_details || "",
-    village: "",
-    lastClass: r.previous_class || "",
-    presentAddress: r.present_address || "",
-    permanentAddress: r.permanent_address || "",
-    fatherMobile: r.father_or_guardian_mobile || "",
-    motherMobile: r.mother_or_guardian_mobile || "",
-    classAdmission: r.group_name
-      ? `${r.group_name}${r.course_name ? ` - ${r.course_name}` : ""}`
-      : "",
-    group: r.group_name || "",
-    course: r.preferred_course_id ? String(r.preferred_course_id) : "N/A",
-    courseName: r.course_name || "N/A",
-    transport: r.preferred_transport_id ? "Yes" : "No",
-    busRoute: r.preferred_transport_id ? String(r.preferred_transport_id) : "",
-    pickupPoint: r.pickup_point || "",
-    applicationFee: "",
-    reservationFee: r.application_fee != null ? String(r.application_fee) : "",
-    remarks: r.remarks || "",
-    preferredClassId:
-      r.preferred_class_id != null ? String(r.preferred_class_id) : "0",
-    preferredGroupId:
-      r.preferred_group_id != null ? String(r.preferred_group_id) : "0",
-    bookFee: r.book_fee != null ? String(r.book_fee) : "0",
-    tuitionConcession:
-      r.tuition_concession != null ? String(r.tuition_concession) : "0",
-    transportConcession:
-      r.transport_concession != null ? String(r.transport_concession) : "0",
-    bookFeeRequired: r.book_fee_required || false,
-    courseRequired: r.course_required || false,
-    referredBy: r.referred_by != null ? String(r.referred_by) : "",
-    reservationDate: r.reservation_date || "",
-    siblingsJson: JSON.stringify(r.siblings || []),
-  });
+  const mapApiToForm = (r: CollegeReservationRead | CollegeReservationView): CollegeReservationFormState => {
+    // Handle different property names between Read and View types
+    const isView = 'father_or_guardian_name' in r && typeof (r as CollegeReservationView).father_or_guardian_name === 'string';
+    const siblings = isView ? (r as CollegeReservationView).siblings : (r as CollegeReservationRead).siblings || [];
+    
+    return {
+      studentName: r.student_name || "",
+      studentAadhar: isView ? "" : (r as CollegeReservationRead).aadhar_no || "",
+      fatherName: isView ? (r as CollegeReservationView).father_or_guardian_name || "" : (r as CollegeReservationRead).father_or_guardian_name || "",
+      fatherAadhar: isView ? (r as CollegeReservationView).father_or_guardian_aadhar_no || "" : (r as CollegeReservationRead).father_or_guardian_aadhar_no || "",
+      motherName: isView ? (r as CollegeReservationView).mother_or_guardian_name || "" : (r as CollegeReservationRead).mother_or_guardian_name || "",
+      motherAadhar: isView ? (r as CollegeReservationView).mother_or_guardian_aadhar_no || "" : (r as CollegeReservationRead).mother_or_guardian_aadhar_no || "",
+      fatherOccupation: isView ? (r as CollegeReservationView).father_or_guardian_occupation || "" : (r as CollegeReservationRead).father_or_guardian_occupation || "",
+      motherOccupation: isView ? (r as CollegeReservationView).mother_or_guardian_occupation || "" : (r as CollegeReservationRead).mother_or_guardian_occupation || "",
+      gender: (r.gender || "").toString(),
+      dob: isView 
+        ? ((r as CollegeReservationView).dob || "") 
+        : (() => {
+            const dobValue = (r as CollegeReservationRead).dob;
+            if (!dobValue) return "";
+            if (typeof dobValue === 'string') return dobValue;
+            return new Date(dobValue as string | number | Date).toISOString().split('T')[0];
+          })(),
+      previousSchool: isView ? "" : (r as CollegeReservationRead).previous_school_details || "",
+      village: "",
+      lastClass: isView ? "" : (r as CollegeReservationRead).previous_class || "",
+      presentAddress: isView ? (r as CollegeReservationView).present_address || "" : (r as CollegeReservationRead).present_address || "",
+      permanentAddress: isView ? (r as CollegeReservationView).permanent_address || "" : (r as CollegeReservationRead).permanent_address || "",
+      fatherMobile: isView ? (r as CollegeReservationView).father_or_guardian_mobile || "" : (r as CollegeReservationRead).father_or_guardian_mobile || "",
+      motherMobile: isView ? (r as CollegeReservationView).mother_or_guardian_mobile || "" : (r as CollegeReservationRead).mother_or_guardian_mobile || "",
+      classAdmission: r.group_name
+        ? `${r.group_name}${r.course_name ? ` - ${r.course_name}` : ""}`
+        : "",
+      group: r.group_name || "",
+      course: isView ? "N/A" : (r as CollegeReservationRead).preferred_course_id ? String((r as CollegeReservationRead).preferred_course_id) : "N/A",
+      courseName: r.course_name || "N/A",
+      transport: isView ? "" : (r as CollegeReservationRead).preferred_transport_id ? "Yes" : "No",
+      busRoute: isView ? "" : (r as CollegeReservationRead).preferred_transport_id ? String((r as CollegeReservationRead).preferred_transport_id) : "",
+      pickupPoint: isView ? "" : (r as CollegeReservationRead).pickup_point || "",
+      applicationFee: "",
+      reservationFee: isView ? (r as CollegeReservationView).application_fee || "" : (r as CollegeReservationRead).application_fee != null ? String((r as CollegeReservationRead).application_fee) : "",
+      remarks: isView ? "" : (r as CollegeReservationRead).remarks || "",
+      preferredClassId: isView ? "0" : (r as CollegeReservationRead).preferred_class_id != null ? String((r as CollegeReservationRead).preferred_class_id) : "0",
+      preferredGroupId: isView ? "0" : (r as CollegeReservationRead).preferred_group_id != null ? String((r as CollegeReservationRead).preferred_group_id) : "0",
+      bookFee: isView ? (r as CollegeReservationView).book_fee || "0" : (r as CollegeReservationRead).book_fee != null ? String((r as CollegeReservationRead).book_fee) : "0",
+      tuitionConcession: isView ? (r as CollegeReservationView).tuition_concession || "0" : (r as CollegeReservationRead).tuition_concession != null ? String((r as CollegeReservationRead).tuition_concession) : "0",
+      transportConcession: isView ? (r as CollegeReservationView).transport_concession || "0" : (r as CollegeReservationRead).transport_concession != null ? String((r as CollegeReservationRead).transport_concession) : "0",
+      bookFeeRequired: isView ? false : (r as CollegeReservationRead).book_fee_required || false,
+      courseRequired: isView ? false : (r as CollegeReservationRead).course_required || false,
+      referredBy: isView ? "" : (r as CollegeReservationRead).referred_by != null ? String((r as CollegeReservationRead).referred_by) : "",
+      reservationDate: isView 
+        ? ((r as CollegeReservationView).reservation_date || "") 
+        : (() => {
+            const dateValue = (r as CollegeReservationRead).reservation_date;
+            if (!dateValue) return "";
+            if (typeof dateValue === 'string') return dateValue;
+            return new Date(dateValue as string | number | Date).toISOString().split('T')[0];
+          })(),
+      siblingsJson: JSON.stringify(siblings),
+      siblings: siblings.map(s => ({
+        name: s.name || "",
+        class_name: s.class_name || "",
+        where: s.where || "",
+        gender: (s.gender || "OTHER").toString(),
+      })),
+    };
+  };
 
-  const handleView = async (r: any) => {
+  const handleView = async (r: CollegeReservationRead | CollegeReservationMinimalRead) => {
     if (!r?.reservation_id || isNaN(Number(r.reservation_id))) {
       toast({
         title: "Invalid Reservation",
@@ -782,7 +842,7 @@ export default function ReservationNew() {
     }
   };
 
-  const handleEdit = async (r: any) => {
+  const handleEdit = async (r: CollegeReservationRead | CollegeReservationMinimalRead) => {
     if (!r?.reservation_id || isNaN(Number(r.reservation_id))) {
       toast({
         title: "Invalid Reservation",
@@ -798,11 +858,11 @@ export default function ReservationNew() {
 
     setLoadingReservation(Number(r.reservation_id));
     try {
-      const data: any = await CollegeReservationsService.getById(
+      const data: CollegeReservationRead = await CollegeReservationsService.getById(
         Number(r.reservation_id)
       );
       setEditForm(mapApiToForm(data));
-      setSelectedReservation({ reservation_id: r.reservation_id });
+      setSelectedReservation(data);
       setShowEditDialog(true);
     } catch (e: any) {
       console.error("Error loading reservation for edit:", e);
@@ -905,7 +965,7 @@ export default function ReservationNew() {
     window.print();
   };
 
-  const handleCancelReservation = (reservation: any) => {
+  const handleCancelReservation = (reservation: CollegeReservationRead | CollegeReservationMinimalRead) => {
     setSelectedReservation(reservation);
     setShowCancelDialog(true);
   };
@@ -947,7 +1007,7 @@ export default function ReservationNew() {
     }
   };
 
-  const handleConvertToAdmission = (reservation: any) => {
+  const handleConvertToAdmission = (reservation: CollegeReservationRead | CollegeReservationMinimalRead) => {
     // Navigate to admissions page with reservation data
     window.location.href = `/admissions/new?reservation=${reservation.reservation_id}`;
   };
@@ -1203,7 +1263,7 @@ export default function ReservationNew() {
                 reservations={allReservations}
                 onView={handleView}
                 onEdit={handleEdit}
-                onDelete={(r: any) => {
+                onDelete={(r: CollegeReservationRead | CollegeReservationMinimalRead) => {
                   setReservationToDelete(r);
                   setShowDeleteDialog(true);
                 }}

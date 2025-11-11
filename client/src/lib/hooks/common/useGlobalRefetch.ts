@@ -100,6 +100,7 @@ export const ENTITY_QUERY_MAP = {
   ] as QueryKey[],
   announcements: [["announcements"]] as QueryKey[],
   distanceSlabs: [["distance-slabs"]] as QueryKey[],
+  grades: [["grades"]] as QueryKey[],
   roles: [["roles"]] as QueryKey[],
   advances: [["advances"]] as QueryKey[],
   leaves: [["employee-leaves"]] as QueryKey[],
