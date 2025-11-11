@@ -1084,8 +1084,15 @@ const ConfirmedReservationsTabComponent = () => {
 
       if (blobUrl) {
         setReceiptBlobUrl(blobUrl);
+        // Close payment dialog immediately
         setShowPaymentDialog(false);
-        setShowReceiptModal(true);
+        // Open receipt modal after a brief delay to ensure payment dialog closes first
+        setTimeout(() => {
+          setShowReceiptModal(true);
+        }, 150);
+      } else {
+        // If no blob URL, still close the payment dialog
+        setShowPaymentDialog(false);
       }
 
       toast({
@@ -1133,6 +1140,8 @@ const ConfirmedReservationsTabComponent = () => {
       setRefreshKey((prev) => prev + 1);
     } catch (error: any) {
       console.error("Payment failed:", error);
+      // Close payment dialog even on error
+      setShowPaymentDialog(false);
       toast({
         title: "Payment Failed",
         description:
@@ -1339,7 +1348,7 @@ const ConfirmedReservationsTabComponent = () => {
 
       {/* Payment Dialog */}
       <PaymentDialog
-        isOpen={showPaymentDialog}
+        isOpen={showPaymentDialog && !showReceiptModal}
         onClose={() => setShowPaymentDialog(false)}
         admissionNo={createdAdmissionNo}
         admissionFee={admissionFee}
