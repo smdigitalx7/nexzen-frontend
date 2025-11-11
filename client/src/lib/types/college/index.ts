@@ -26,3 +26,4 @@ export * from "./teacher-group-subjects.ts";
 export * from "./tuition-fee-structures.ts";
 export * from "./transport-assignments.ts";
 export * from "./full-student-view.ts";
+export * from "./monthly-fee-config.ts";

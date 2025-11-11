@@ -6,6 +6,7 @@ export * from "./advances";
 // export * from "./attendance";
 export * from "./branches";
 export * from "./distance-slabs";
+export * from "./grades";
 export * from "./dropdowns";
 export * from "./employee-attendance";
 export * from "./employee-leave";
