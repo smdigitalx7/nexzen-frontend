@@ -45,7 +45,7 @@ const EnrollmentsTabComponent = () => {
 
   // Memoized API parameters - class_id is required
   const apiParams = useMemo(() => {
-    const params: any = {};
+    const params: Record<string, number | string> = {};
     if (query.class_id) {
       params.class_id = Number(query.class_id);
       if (query.section_id) {
@@ -73,13 +73,13 @@ const EnrollmentsTabComponent = () => {
   const { data: viewEnrollment, isLoading: isLoadingView } = useSchoolEnrollment(viewEnrollmentId);
 
   // Handle view
-  const handleView = useCallback((enrollment: any) => {
+  const handleView = useCallback((enrollment: SchoolEnrollmentRead) => {
     setViewEnrollmentId(enrollment.enrollment_id);
     setIsViewDialogOpen(true);
   }, []);
 
   // Handle edit from table action
-  const handleEdit = useCallback((enrollment: any) => {
+  const handleEdit = useCallback((enrollment: SchoolEnrollmentRead) => {
     if (enrollment?.student_id) {
       setEditStudentId(enrollment.student_id);
       setIsEditDialogOpen(true);
@@ -196,11 +196,11 @@ const EnrollmentsTabComponent = () => {
   const actionButtonGroups = useMemo(() => [
     {
       type: 'view' as const,
-      onClick: (row: any) => handleView(row)
+      onClick: (row: SchoolEnrollmentRead) => handleView(row)
     },
     {
       type: 'edit' as const,
-      onClick: (row: any) => handleEdit(row)
+      onClick: (row: SchoolEnrollmentRead) => handleEdit(row)
     }
   ], [handleView, handleEdit]);
 

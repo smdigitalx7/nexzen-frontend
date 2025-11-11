@@ -7,13 +7,68 @@ import { Users, Calendar, FileText } from "lucide-react";
 import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import type { TabItem } from "@/components/shared/TabSwitcher";
 import type { LucideIcon } from "lucide-react";
+import type { EmployeeLeaveRead } from "@/lib/types/general/employee-leave";
+
+// Using local types from child components for compatibility
+// These types are more minimal but match what the child components expect
+type EmployeeRead = {
+  employee_id: number;
+  employee_name: string;
+  employee_code: string;
+  email?: string | null;
+  mobile_no?: string | null;
+  designation: string;
+  department?: string;
+  date_of_joining: string;
+  salary: number;
+  status: string;
+  branch_id?: number;
+  created_at: string;
+  updated_at?: string | null;
+};
+
+type EmployeeAttendanceRead = {
+  attendance_id: number;
+  employee_id: number;
+  employee_name?: string;
+  attendance_month: number;
+  attendance_year: number;
+  total_working_days: number;
+  days_present: number;
+  paid_leaves: number;
+  unpaid_leaves: number;
+};
+
+// Use the lib type which matches what the API returns and what AdvancesTable expects
+import type { AdvanceRead } from "@/lib/types/general/advances";
+
+// Transform to match AdvancesTable expectations (status is required string, not optional)
+// AdvancesTable interface doesn't include created_at, so we make it optional for compatibility
+type EmployeeAdvanceRead = {
+  advance_id: number;
+  employee_id: number;
+  employee_name?: string;
+  advance_amount: number;
+  advance_date: string;
+  request_reason?: string;
+  status: string; // Required, not optional
+  total_repayment_amount?: number;
+  remaining_balance?: number;
+  created_at?: string; // Optional for component compatibility
+  updated_at?: string;
+  created_by?: number | null;
+  approved_by?: number | null;
+  approved_at?: string | null;
+  reason?: string | null;
+  updated_by?: number | null;
+};
 
 interface EmployeeManagementTabsProps {
   // Data
-  employees: any[];
-  attendance: any[];
-  leaves: any[];
-  advances: any[];
+  employees: EmployeeRead[];
+  attendance: EmployeeAttendanceRead[];
+  leaves: EmployeeLeaveRead[];
+  advances: EmployeeAdvanceRead[];
   
   // UI State
   activeTab: string;
@@ -33,34 +88,34 @@ interface EmployeeManagementTabsProps {
   
   // Employee handlers
   onAddEmployee: () => void;
-  onEditEmployee: (employee: any) => void;
+  onEditEmployee: (employee: EmployeeRead) => void;
   onDeleteEmployee: (id: number) => void;
-  onViewEmployee: (employee: any) => void;
+  onViewEmployee: (employee: EmployeeRead) => void;
   onUpdateStatus: (id: number, status: string) => void;
   
   // Attendance handlers
   onAddAttendance: () => void;
   onBulkCreateAttendance?: () => void;
-  onEditAttendance: (record: any) => void;
+  onEditAttendance: (record: EmployeeAttendanceRead) => void;
   onDeleteAttendance: (id: number) => void;
-  onViewAttendance: (record: any) => void;
+  onViewAttendance: (record: EmployeeAttendanceRead) => void;
   
   // Leave handlers
   onAddLeave: () => void;
-  onApproveLeave: (leave: any) => void;
-  onRejectLeave: (leave: any) => void;
-  onEditLeave: (leave: any) => void;
-  onDeleteLeave: (leave: any) => void;
-  onViewLeave: (leave: any) => void;
+  onApproveLeave: (leave: EmployeeLeaveRead) => void;
+  onRejectLeave: (leave: EmployeeLeaveRead) => void;
+  onEditLeave: (leave: EmployeeLeaveRead) => void;
+  onDeleteLeave: (id: number) => void;
+  onViewLeave: (leave: EmployeeLeaveRead) => void;
   
   // Advance handlers
   onAddAdvance: () => void;
-  onApproveAdvance: (advance: any) => void;
-  onEditAdvance: (advance: any) => void;
-  onDeleteAdvance: (advance: any) => void;
-  onViewAdvance: (advance: any) => void;
-  onUpdateAmount: (advance: any) => void;
-  onRejectAdvance: (advance: any) => void;
+  onApproveAdvance: (advance: EmployeeAdvanceRead) => void;
+  onEditAdvance: (advance: EmployeeAdvanceRead) => void;
+  onDeleteAdvance: (id: number) => void;
+  onViewAdvance: (advance: EmployeeAdvanceRead) => void;
+  onUpdateAmount: (advance: EmployeeAdvanceRead) => void;
+  onRejectAdvance: (advance: EmployeeAdvanceRead) => void;
   
   // Leave filters
   leaveMonth: number;
@@ -170,7 +225,7 @@ export const EmployeeManagementTabs = ({
             isLoading={leavesLoading}
             onAddLeave={onAddLeave}
             onEditLeave={onEditLeave}
-            onDeleteLeave={(id) => onDeleteLeave({ leave_id: id })}
+            onDeleteLeave={onDeleteLeave}
             onViewLeave={onViewLeave}
             onApproveLeave={onApproveLeave}
             onRejectLeave={onRejectLeave}

@@ -37,6 +37,12 @@ import {
 } from '@/lib/hooks/college/use-college-dropdowns';
 import type { CollegeExamMarkMinimalRead, CollegeExamMarksListParams } from '@/lib/types/college/exam-marks';
 import type { CollegeMarksData } from '@/lib/hooks/college/use-college-marks-statistics';
+import type { 
+  CollegeEnrollmentWithClassGroupCourseDetails, 
+  CollegeEnrollmentRead,
+  CollegeEnrollmentWithStudentDetails 
+} from '@/lib/types/college/enrollments';
+import type { CollegeSubjectList } from '@/lib/types/college/subjects';
 import {
   createStudentColumn,
   createSubjectColumn,
@@ -146,10 +152,10 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
   // Extract enrollments - flatten the grouped response and add class_name, group_name
   const enrollments = useMemo(() => {
     if (!enrollmentsData?.enrollments) return [];
-    const allEnrollments: any[] = [];
-    enrollmentsData.enrollments.forEach((group: any) => {
+    const allEnrollments: (CollegeEnrollmentRead & { class_name: string; group_name: string })[] = [];
+    enrollmentsData.enrollments.forEach((group: CollegeEnrollmentWithClassGroupCourseDetails) => {
       if (group.students && Array.isArray(group.students)) {
-        group.students.forEach((student: any) => {
+        group.students.forEach((student: CollegeEnrollmentRead) => {
           allEnrollments.push({
             ...student,
             class_name: group.class_name || '',
@@ -242,8 +248,11 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
     if (editingExamMark) {
       updateExamMarkMutation.mutate({
         marks_obtained: markData.marks_obtained,
+        percentage: 0, // Will be calculated by backend
+        grade: '', // Will be calculated by backend
         remarks: markData.remarks,
-      } as any);
+        conducted_at: new Date().toISOString(),
+      });
     } else {
       createExamMarkMutation.mutate(markData);
     }
@@ -254,17 +263,17 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
   }, [editingExamMark, updateExamMarkMutation, createExamMarkMutation, examMarkForm]);
 
   // Multiple subjects form submission handler
-  const handleMultipleSubjectsSubmit = useCallback(async (values: any) => {
-    const selectedEnrollment = enrollments.find((e: any) => e.enrollment_id?.toString() === values.enrollment_id);
+  const handleMultipleSubjectsSubmit = useCallback(async (values: z.infer<typeof multipleSubjectsFormSchema>) => {
+    const selectedEnrollment = enrollments.find((e) => e.enrollment_id?.toString() === values.enrollment_id);
     
     const payload = {
       enrollment_id: parseInt(values.enrollment_id),
       exam_id: parseInt(values.exam_id),
-      subjects: values.subjects.map((subj: any) => ({
+      subjects: values.subjects.map((subj) => ({
         subject_id: parseInt(subj.subject_id),
         marks_obtained: parseFloat(subj.marks_obtained),
         remarks: subj.remarks || null,
-        subject_name: subjects.find((s: any) => s.subject_id === parseInt(subj.subject_id))?.subject_name || null,
+        subject_name: subjects.find((s: CollegeSubjectList) => s.subject_id === parseInt(subj.subject_id))?.subject_name || null,
       })),
       student_name: selectedEnrollment?.student_name || null,
       exam_name: null, // Can be fetched if needed
@@ -582,7 +591,7 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
                                   <SelectValue placeholder="Select student" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {enrollments.map((enrollment: any) => {
+                                  {enrollments.map((enrollment) => {
                                     const displayParts = [
                                       enrollment.student_name,
                                       enrollment.class_name || '',
@@ -759,7 +768,7 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
                                         <SelectValue placeholder="Select student" />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        {enrollments.map((enrollment: any) => (
+                                        {enrollments.map((enrollment) => (
                                           <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
                                             {enrollment.student_name} ({enrollment.admission_no})
                                           </SelectItem>
@@ -955,7 +964,7 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
                                     <SelectValue placeholder="Select student" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {enrollments.map((enrollment: any) => (
+                                    {enrollments.map((enrollment) => (
                                       <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
                                         {enrollment.student_name} ({enrollment.admission_no})
                                       </SelectItem>

@@ -227,17 +227,26 @@ const ExamMarksManagementComponent = ({
 
   // Memoized form handling functions
   const handleExamMarkSubmit = useCallback(
-    (markData: any) => {
+    (markData: ExamMarkWithDetails) => {
       if (editingExamMark) {
         updateExamMarkMutation.mutate({
+          marks_obtained: markData.marks_obtained ?? 0,
+          percentage: markData.percentage ?? 0,
+          grade: markData.grade ?? '',
+          remarks: markData.remarks ?? '',
+          conducted_at: markData.conducted_at ?? new Date().toISOString(),
+        });
+      } else {
+        createExamMarkMutation.mutate({
+          enrollment_id: markData.enrollment_id,
+          exam_id: markData.exam_id ?? 0,
+          subject_id: markData.subject_id ?? 0,
           marks_obtained: markData.marks_obtained,
           percentage: markData.percentage,
           grade: markData.grade,
           remarks: markData.remarks,
           conducted_at: markData.conducted_at,
         });
-      } else {
-        createExamMarkMutation.mutate(markData);
       }
 
       setEditingExamMark(null);

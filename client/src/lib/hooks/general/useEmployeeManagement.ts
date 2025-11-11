@@ -44,7 +44,7 @@ import {
   useUpdateAdvanceAmountPaid,
   advanceKeys,
 } from "@/lib/hooks/general/useAdvances";
-import { EmployeeCreate, EmployeeUpdate } from "@/lib/types/general/employees";
+import { EmployeeRead as LibEmployeeRead, EmployeeCreate, EmployeeUpdate } from "@/lib/types/general/employees";
 import {
   EmployeeAttendanceCreate,
   EmployeeAttendanceUpdate,
@@ -54,36 +54,25 @@ import {
   EmployeeLeaveUpdate,
   EmployeeLeaveReject,
 } from "@/lib/types/general/employee-leave";
-import { AdvanceCreate, AdvanceUpdate, AdvanceStatusUpdate, AdvanceAmountPaidUpdate } from "@/lib/types/general/advances";
+import { AdvanceCreate, AdvanceUpdate, AdvanceStatusUpdate, AdvanceAmountPaidUpdate, AdvanceRead as LibAdvanceRead } from "@/lib/types/general/advances";
 
 // Types
-export interface EmployeeRead {
-  employee_id: number;
-  employee_name: string;
-  employee_code: string;
-  email: string;
-  phone: string;
-  designation: string;
-  department: string;
-  date_of_joining: string;
-  salary: number;
-  status: "ACTIVE" | "TERMINATED";
-  branch_id: number;
-  created_at: string;
-  updated_at: string;
-}
+// Use the canonical EmployeeRead from lib/types which matches the API response
+export type EmployeeRead = LibEmployeeRead;
 
 export interface EmployeeAttendanceRead {
   attendance_id: number;
   employee_id: number;
-  attendance_month: string; // YYYY-MM-DD
+  // Backend returns attendance_month as number (1-12), but handle both formats for compatibility
+  attendance_month: number | string; // Can be number (1-12) or string (YYYY-MM-DD)
+  attendance_year?: number | string; // Can be number or string
   total_working_days: number;
   days_present: number;
   days_absent: number;
   paid_leaves: number;
   unpaid_leaves: number;
-  late_arrivals: number;
-  early_departures: number;
+  late_arrivals?: number;
+  early_departures?: number;
   created_at?: string;
   updated_at?: string;
   employee_name?: string;
@@ -109,20 +98,8 @@ export interface EmployeeLeaveRead {
   updated_at: string;
 }
 
-export interface AdvanceRead {
-  advance_id: number;
-  employee_id: number;
-  amount: number;
-  reason: string;
-  status: "PENDING" | "APPROVED" | "REJECTED" | "PAID";
-  requested_date: string;
-  approved_date?: string;
-  paid_date?: string;
-  amount_paid?: number;
-  notes?: string;
-  created_at: string;
-  updated_at: string;
-}
+// Use the lib type which matches what the API actually returns
+export type AdvanceRead = LibAdvanceRead;
 
 export const useEmployeeManagement = (
   viewMode: "branch" | "institute" = "branch"

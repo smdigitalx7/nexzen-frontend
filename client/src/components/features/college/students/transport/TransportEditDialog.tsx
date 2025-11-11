@@ -5,6 +5,8 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { FormDialog } from '@/components/shared';
 import { BusRouteDropdown, DistanceSlabDropdown } from '@/components/shared/Dropdowns';
 import type { CollegeTransportAssignmentUpdate } from '@/lib/types/college';
+import type { DistanceSlabRead } from '@/lib/types/general/distance-slabs';
+import type { BusRouteRead } from '@/lib/types/general/transport';
 
 interface TransportEditDialogProps {
   open: boolean;
@@ -28,8 +30,8 @@ interface TransportEditDialogProps {
   }) => void;
   onSave: () => void;
   onCancel: () => void;
-  busRoutes: any[];
-  slabs: any[];
+  busRoutes: BusRouteRead[];
+  slabs: DistanceSlabRead[];
 }
 
 export const TransportEditDialog = ({

@@ -51,7 +51,19 @@ export const SchoolIncomeService = {
 
   
 
-  payFeeByAdmission(admission_no: string, payload: SchoolIncomeCreate) {
+  payFeeByAdmission(
+    admission_no: string,
+    payload: {
+      details: Array<{
+        purpose: string;
+        paid_amount: number;
+        payment_method: string;
+        term_number?: number | null;
+        custom_purpose_name?: string | null;
+      }>;
+      remarks?: string | null;
+    }
+  ) {
     return Api.post<SchoolIncomeRead>(`/school/income/pay-fee/${admission_no}`, payload);
   },
 

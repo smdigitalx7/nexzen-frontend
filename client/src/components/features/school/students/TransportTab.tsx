@@ -15,13 +15,23 @@ import {
   useDeleteSchoolStudentTransport,
   useSchoolStudentTransportById 
 } from '@/lib/hooks/school';
-// Note: useSchoolClasses, useSchoolSections from dropdowns (naming conflict)
 import { useSchoolClasses, useSchoolSections } from '@/lib/hooks/school/use-school-dropdowns';
 import { useBusRoutes } from '@/lib/hooks/general';
 import { useDistanceSlabs } from '@/lib/hooks/general';
 import { useSchoolEnrollmentsList } from '@/lib/hooks/school';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SchoolStudentTransportAssignmentCreate, SchoolStudentTransportAssignmentUpdate } from '@/lib/types/school';
+import type { 
+  SchoolEnrollmentWithClassSectionDetails,
+  SchoolEnrollmentRead,
+  SchoolEnrollmentsPaginatedResponse
+} from '@/lib/types/school/enrollments';
+import type {
+  SchoolStudentTransportAssignmentRead,
+  SchoolStudentTransportAssignmentMinimal,
+  SchoolStudentTransportRouteWiseResponse,
+  SchoolStudentTransportClassWiseResponse
+} from '@/lib/types/school/student-transport-assignments';
 
 const TransportTabComponent = () => {
   // State management
@@ -58,10 +68,10 @@ const TransportTabComponent = () => {
   // Extract enrollments - flatten the grouped response and add class_name
   const enrollments = useMemo(() => {
     if (!enrollmentsData?.enrollments) return [];
-    const allEnrollments: any[] = [];
-    enrollmentsData.enrollments.forEach((group: any) => {
+    const allEnrollments: (SchoolEnrollmentRead & { class_name: string })[] = [];
+    enrollmentsData.enrollments.forEach((group: SchoolEnrollmentWithClassSectionDetails) => {
       if (group.students && Array.isArray(group.students)) {
-        group.students.forEach((student: any) => {
+        group.students.forEach((student: SchoolEnrollmentRead) => {
           allEnrollments.push({
             ...student,
             class_name: group.class_name || student.class_name || '',
@@ -74,7 +84,7 @@ const TransportTabComponent = () => {
 
   // Memoized API parameters
   const apiParams = useMemo(() => {
-    const params: any = {};
+    const params: { class_id?: number; section_id?: number; bus_route_id?: number } = {};
     if (query.class_id) {
       params.class_id = Number(query.class_id);
     }
@@ -84,11 +94,15 @@ const TransportTabComponent = () => {
     if (query.bus_route_id) {
       params.bus_route_id = Number(query.bus_route_id);
     }
-    return params;
+    return Object.keys(params).length > 0 ? params : undefined;
   }, [query.class_id, query.section_id, query.bus_route_id]);
 
-  // API hook with memoized parameters
-  const result = useSchoolStudentTransport(apiParams);
+  // API hook with memoized parameters - class_id is required
+  const result = useSchoolStudentTransport(
+    apiParams && typeof apiParams.class_id === 'number' && apiParams.class_id > 0
+      ? { class_id: apiParams.class_id, section_id: apiParams.section_id, bus_route_id: apiParams.bus_route_id }
+      : { class_id: 1 } // Provide valid default, hook's enabled check will prevent actual API call
+  );
   const createMutation = useCreateSchoolStudentTransport();
   const updateMutation = useUpdateSchoolStudentTransport();
   const deleteMutation = useDeleteSchoolStudentTransport();
@@ -163,19 +177,19 @@ const TransportTabComponent = () => {
   }, [formData, createMutation, resetForm]);
 
   // Handle view
-  const handleView = useCallback((assignment: any) => {
+  const handleView = useCallback((assignment: SchoolStudentTransportAssignmentRead | SchoolStudentTransportAssignmentMinimal) => {
     setViewAssignmentId(assignment.transport_assignment_id);
     setIsViewDialogOpen(true);
   }, []);
 
   // Handle edit
-  const handleEdit = useCallback((assignment: any) => {
+  const handleEdit = useCallback((assignment: SchoolStudentTransportAssignmentRead | SchoolStudentTransportAssignmentMinimal) => {
     setSelectedAssignmentId(assignment.transport_assignment_id);
     setIsEditDialogOpen(true);
   }, []);
 
   // Handle delete
-  const handleDelete = useCallback((assignment: any) => {
+  const handleDelete = useCallback((assignment: SchoolStudentTransportAssignmentRead | SchoolStudentTransportAssignmentMinimal) => {
     setSelectedAssignmentId(assignment.transport_assignment_id);
     setIsDeleteDialogOpen(true);
   }, []);
@@ -260,12 +274,12 @@ const TransportTabComponent = () => {
   // Flatten transport data for table
   const flatData = useMemo(() => {
     if (!result.data || !Array.isArray(result.data)) return [];
-    const flattened: any[] = [];
-    result.data.forEach((route: any) => {
+    const flattened: (SchoolStudentTransportAssignmentMinimal & { route_name: string; class_name: string })[] = [];
+    (result.data as SchoolStudentTransportRouteWiseResponse[]).forEach((route) => {
       if (route.classes && Array.isArray(route.classes)) {
-        route.classes.forEach((classItem: any) => {
+        route.classes.forEach((classItem: SchoolStudentTransportClassWiseResponse) => {
           if (classItem.students && Array.isArray(classItem.students)) {
-            classItem.students.forEach((student: any) => {
+            classItem.students.forEach((student: SchoolStudentTransportAssignmentMinimal) => {
               flattened.push({
                 ...student,
                 route_name: route.route_name,
@@ -280,18 +294,19 @@ const TransportTabComponent = () => {
   }, [result.data]);
 
   // Action button groups for EnhancedDataTable
+  type FlatTransportData = SchoolStudentTransportAssignmentMinimal & { route_name: string; class_name: string };
   const actionButtonGroups = useMemo(() => [
     {
       type: 'view' as const,
-      onClick: (row: any) => handleView(row)
+      onClick: (row: FlatTransportData) => handleView(row)
     },
     {
       type: 'edit' as const,
-      onClick: (row: any) => handleEdit(row)
+      onClick: (row: FlatTransportData) => handleEdit(row)
     },
     {
       type: 'delete' as const,
-      onClick: (row: any) => handleDelete(row)
+      onClick: (row: FlatTransportData) => handleDelete(row)
     }
   ], [handleView, handleEdit, handleDelete]);
 

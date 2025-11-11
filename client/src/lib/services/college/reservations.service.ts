@@ -88,11 +88,11 @@ export const CollegeReservationsService = {
   },
 
   // PUT /api/v1/college/reservations/{reservation_id}/concessions
+  // Note: Backend only accepts tuition_concession and remarks (not transport_concession)
   updateConcessions(
     reservation_id: number,
     payload: {
       tuition_concession?: number | null;
-      transport_concession?: number | null;
       remarks?: string | null;
     }
   ) {

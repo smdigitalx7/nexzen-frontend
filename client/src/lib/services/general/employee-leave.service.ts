@@ -134,9 +134,13 @@ export const EmployeeLeaveService = {
   /**
    * Delete a leave request
    * @param id - Leave ID
-   * @returns Promise<boolean> - Success status
+   * @returns Promise<boolean> - Success status (returns true on 204 No Content)
    */
   remove(id: number): Promise<boolean> {
-    return Api.delete<boolean>(`/employee-leave/${id}`);
+    return Api.delete<boolean>(`/employee-leave/${id}`).then((result) => {
+      // Backend returns 204 No Content, which becomes undefined
+      // Return true to indicate success
+      return result !== undefined ? result : true;
+    });
   },
 };

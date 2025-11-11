@@ -13,12 +13,22 @@ export const CollegeTransportBalancesService = {
   },
 
   // GET /api/v1/college/student-transport-payment/by-enrollment/{enrollment_id}
-  getStudentTransportPaymentSummaryByEnrollmentId(enrollment_id: number) {
-    return Api.get<CollegeStudentTransportPaymentSummary>(`/college/student-transport-payment/by-enrollment/${enrollment_id}`);
+  getStudentTransportPaymentSummaryByEnrollmentId(enrollment_id: number, options?: { cache?: boolean }) {
+    return Api.get<CollegeStudentTransportPaymentSummary>(
+      `/college/student-transport-payment/by-enrollment/${enrollment_id}`,
+      undefined,
+      undefined,
+      options
+    );
   },
 
   // GET /api/v1/college/student-transport-payment/expected-payments/{enrollment_id}
-  getExpectedTransportPaymentsByEnrollmentId(enrollment_id: number) {
-    return Api.get<ExpectedTransportPaymentsResponse>(`/college/student-transport-payment/expected-payments/${enrollment_id}`);
+  getExpectedTransportPaymentsByEnrollmentId(enrollment_id: number, options?: { cache?: boolean }) {
+    return Api.get<ExpectedTransportPaymentsResponse>(
+      `/college/student-transport-payment/expected-payments/${enrollment_id}`,
+      undefined,
+      undefined,
+      options
+    );
   },
 };

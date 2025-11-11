@@ -13,14 +13,14 @@ export interface CollegeReservationCreate {
   aadhar_no?: string | null;
   gender: GenderEnum;
   dob?: string | null;
-  father_name?: string | null;
-  father_aadhar_no?: string | null;
-  father_mobile?: string | null;
-  father_occupation?: string | null;
-  mother_name?: string | null;
-  mother_aadhar_no?: string | null;
-  mother_mobile?: string | null;
-  mother_occupation?: string | null;
+  father_or_guardian_name?: string | null;
+  father_or_guardian_aadhar_no?: string | null;
+  father_or_guardian_mobile?: string | null;
+  father_or_guardian_occupation?: string | null;
+  mother_or_guardian_name?: string | null;
+  mother_or_guardian_aadhar_no?: string | null;
+  mother_or_guardian_mobile?: string | null;
+  mother_or_guardian_occupation?: string | null;
   siblings?: CollegeReservationSibling[] | null;
   previous_class?: string | null;
   previous_school_details?: string | null;
@@ -56,18 +56,19 @@ export interface CollegeReservationUpdate extends Partial<CollegeReservationCrea
 
 export interface CollegeReservationRead {
   reservation_id: number;
+  reservation_no?: string | null;
   student_name: string;
   aadhar_no?: string | null;
   gender?: GenderEnum | null;
   dob?: string | null;
-  father_name?: string | null;
-  father_aadhar_no?: string | null;
-  father_mobile?: string | null;
-  father_occupation?: string | null;
-  mother_name?: string | null;
-  mother_aadhar_no?: string | null;
-  mother_mobile?: string | null;
-  mother_occupation?: string | null;
+  father_or_guardian_name?: string | null;
+  father_or_guardian_aadhar_no?: string | null;
+  father_or_guardian_mobile?: string | null;
+  father_or_guardian_occupation?: string | null;
+  mother_or_guardian_name?: string | null;
+  mother_or_guardian_aadhar_no?: string | null;
+  mother_or_guardian_mobile?: string | null;
+  mother_or_guardian_occupation?: string | null;
   siblings?: CollegeReservationSibling[] | null;
   previous_class?: string | null;
   previous_school_details?: string | null;
@@ -90,6 +91,9 @@ export interface CollegeReservationRead {
   pickup_point?: string | null;
   transport_fee?: number | null;
   transport_concession?: number | null;
+  concession_lock?: boolean | null;
+  book_fee_required?: boolean | null;
+  course_required?: boolean | null;
   status: ReservationStatusEnum;
   referred_by?: number | null;
   referred_by_name?: string | null;
@@ -99,24 +103,27 @@ export interface CollegeReservationRead {
   updated_at?: string | null;
   created_by?: number | null;
   updated_by?: number | null;
+  application_income_id?: number | null;
+  admission_income_id?: number | null;
+  is_enrolled?: boolean | null;
 }
 
 export interface CollegeReservationMinimalRead {
   reservation_id: number;
+  reservation_no?: string | null;
   reservation_date?: string | null;
   student_name: string;
-  aadhar_no?: string | null;
   gender?: GenderEnum | null;
-  dob?: string | null;
-  father_name?: string | null;
-  father_mobile?: string | null;
-  group_id: number;
-  course_id: number;
+  father_or_guardian_name?: string | null;
+  father_or_guardian_mobile?: string | null;
   group_name?: string | null;
   course_name?: string | null;
   status: ReservationStatusEnum;
-  created_at: string;
+  application_fee_paid?: boolean | null;
   remarks?: string | null;
+  application_income_id?: number | null;
+  admission_income_id?: number | null;
+  is_enrolled?: boolean | null;
 }
 
 export interface CollegePaginatedReservationRead {

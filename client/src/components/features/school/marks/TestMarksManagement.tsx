@@ -66,6 +66,11 @@ import {
   useSchoolTests,
 } from '@/lib/hooks/school/use-school-dropdowns';
 import type { TestMarkWithDetails, TestMarksQuery } from '@/lib/types/school/test-marks';
+import type { 
+  SchoolEnrollmentWithClassSectionDetails, 
+  SchoolEnrollmentRead,
+} from '@/lib/types/school/enrollments';
+import type { SchoolSubjectList } from '@/lib/types/school/subjects';
 import {
   createStudentColumn,
   createSubjectColumn,
@@ -205,10 +210,10 @@ const TestMarksManagementComponent = ({
   // Extract enrollments - flatten the grouped response and add class_name
   const enrollments = useMemo(() => {
     if (!enrollmentsData?.enrollments) return [];
-    const allEnrollments: any[] = [];
-    enrollmentsData.enrollments.forEach((group: any) => {
+    const allEnrollments: (SchoolEnrollmentRead & { class_name: string })[] = [];
+    enrollmentsData.enrollments.forEach((group: SchoolEnrollmentWithClassSectionDetails) => {
       if (group.students && Array.isArray(group.students)) {
-        group.students.forEach((student: any) => {
+        group.students.forEach((student: SchoolEnrollmentRead) => {
           allEnrollments.push({
             ...student,
             class_name: group.class_name || student.class_name || '',
@@ -336,7 +341,7 @@ const TestMarksManagementComponent = ({
 
   // Single subject form submission handler
   const handleTestMarkSubmit = useCallback(
-    (values: any) => {
+    (values: z.infer<typeof testMarkFormSchema>) => {
       const markData = {
         enrollment_id: parseInt(values.enrollment_id),
         test_id: parseInt(values.test_id),
@@ -348,8 +353,11 @@ const TestMarksManagementComponent = ({
       if (editingTestMark) {
         updateTestMarkMutation.mutate({
           marks_obtained: markData.marks_obtained,
+          percentage: 0, // Will be calculated by backend
+          grade: '', // Will be calculated by backend
           remarks: markData.remarks,
-        } as any);
+          conducted_at: new Date().toISOString(),
+        });
       } else {
         createTestMarkMutation.mutate(markData);
       }
@@ -367,18 +375,18 @@ const TestMarksManagementComponent = ({
   );
 
   // Multiple subjects form submission handler
-  const handleMultipleTestSubjectsSubmit = useCallback(async (values: any) => {
-    const selectedEnrollment = enrollments.find((e: any) => e.enrollment_id?.toString() === values.enrollment_id);
+  const handleMultipleTestSubjectsSubmit = useCallback(async (values: z.infer<typeof multipleTestSubjectsFormSchema>) => {
+    const selectedEnrollment = enrollments.find((e) => e.enrollment_id?.toString() === values.enrollment_id);
     const subjects = subjectsData?.items || [];
     
     const payload = {
       enrollment_id: parseInt(values.enrollment_id),
       test_id: parseInt(values.test_id),
-      subjects: values.subjects.map((subj: any) => ({
+      subjects: values.subjects.map((subj) => ({
         subject_id: parseInt(subj.subject_id),
         marks_obtained: parseFloat(subj.marks_obtained),
         remarks: subj.remarks || null,
-        subject_name: subjects.find((s: any) => s.subject_id === parseInt(subj.subject_id))?.subject_name || null,
+        subject_name: subjects.find((s: SchoolSubjectList) => s.subject_id === parseInt(subj.subject_id))?.subject_name || null,
       })),
       student_name: selectedEnrollment?.student_name || null,
       test_name: null, // Can be fetched if needed
@@ -628,7 +636,7 @@ const TestMarksManagementComponent = ({
                                         <SelectValue placeholder="Select student" />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        {enrollments.map((enrollment: any) => {
+                                        {enrollments.map((enrollment) => {
                                           const displayParts = [
                                             enrollment.student_name,
                                             enrollment.class_name || '',
@@ -798,7 +806,7 @@ const TestMarksManagementComponent = ({
                                         <SelectValue placeholder="Select student" />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        {enrollments.map((enrollment: any) => {
+                                        {enrollments.map((enrollment) => {
                                           const displayParts = [
                                             enrollment.student_name,
                                             enrollment.class_name || '',
@@ -1002,7 +1010,7 @@ const TestMarksManagementComponent = ({
                                     <SelectValue placeholder="Select student" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {enrollments.map((enrollment: any) => (
+                                        {enrollments.map((enrollment) => (
                                       <SelectItem
                                         key={enrollment.enrollment_id}
                                         value={

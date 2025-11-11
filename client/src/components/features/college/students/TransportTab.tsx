@@ -17,7 +17,18 @@ import {
 } from '@/lib/hooks/college';
 import { useBusRoutes, useDistanceSlabs } from '@/lib/hooks/general';
 import type { ColumnDef } from '@tanstack/react-table';
-import type { CollegeTransportAssignmentCreate, CollegeTransportAssignmentUpdate, CollegeTransportRoute, CollegeTransportStudent } from '@/lib/types/college';
+import type { 
+  CollegeTransportAssignmentCreate, 
+  CollegeTransportAssignmentUpdate, 
+  CollegeTransportRoute, 
+  CollegeTransportStudent,
+  CollegeTransportAssignmentRead
+} from '@/lib/types/college';
+import type { 
+  CollegeEnrollmentWithClassGroupCourseDetails,
+  CollegeEnrollmentRead,
+  CollegeEnrollmentsPaginatedResponse
+} from '@/lib/types/college/enrollments';
 
 const TransportTabComponent = () => {
   // State management
@@ -48,10 +59,10 @@ const TransportTabComponent = () => {
   // Flatten enrollments for dropdown - add class_name and group_name
   const enrollments = useMemo(() => {
     if (!enrollmentsData?.enrollments) return [];
-    const allEnrollments: any[] = [];
-    enrollmentsData.enrollments.forEach((group: any) => {
+    const allEnrollments: (CollegeEnrollmentRead & { class_name: string; group_name: string })[] = [];
+    enrollmentsData.enrollments.forEach((group: CollegeEnrollmentWithClassGroupCourseDetails) => {
       if (group.students && Array.isArray(group.students)) {
-        group.students.forEach((student: any) => {
+        group.students.forEach((student: CollegeEnrollmentRead) => {
           allEnrollments.push({
             ...student,
             class_name: group.class_name || '',
@@ -70,7 +81,7 @@ const TransportTabComponent = () => {
       return undefined;
     }
     
-    const params: any = {
+    const params: { class_id: number; group_id: number; bus_route_id?: number } = {
       class_id: Number(query.class_id),
       group_id: Number(query.group_id),
     };
@@ -255,12 +266,12 @@ const TransportTabComponent = () => {
   // Flatten transport data for table
   const flatData = useMemo(() => {
     if (!result.data || !Array.isArray(result.data)) return [];
-    const flattened: any[] = [];
-    (result.data).forEach((route) => {
+    const flattened: (CollegeTransportStudent & { route_name: string; route_no: number; class_name: string; group_name: string })[] = [];
+    (result.data as CollegeTransportRoute[]).forEach((route) => {
       if (route.groups && Array.isArray(route.groups)) {
         route.groups.forEach((group) => {
           if (group.students && Array.isArray(group.students)) {
-            group.students.forEach((student) => {
+            group.students.forEach((student: CollegeTransportStudent) => {
               flattened.push({
                 ...student,
                 route_name: route.route_name,
@@ -314,18 +325,19 @@ const TransportTabComponent = () => {
   ], []);
 
   // Action button groups for EnhancedDataTable
+  type FlatTransportData = CollegeTransportStudent & { route_name: string; route_no: number; class_name: string; group_name: string };
   const actionButtonGroups = useMemo(() => [
     {
       type: 'view' as const,
-      onClick: (row: any) => handleView(row)
+      onClick: (row: FlatTransportData) => handleView(row)
     },
     {
       type: 'edit' as const,
-      onClick: (row: any) => handleEdit(row)
+      onClick: (row: FlatTransportData) => handleEdit(row)
     },
     {
       type: 'delete' as const,
-      onClick: (row: any) => handleDelete(row)
+      onClick: (row: FlatTransportData) => handleDelete(row)
     }
   ], [handleView, handleEdit, handleDelete]);
 
