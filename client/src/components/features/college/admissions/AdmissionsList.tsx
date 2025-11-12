@@ -589,9 +589,9 @@ const AdmissionsList = () => {
                         )}
                       </tr>
                       <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                        <td className="py-3 px-4 font-medium">Tuition Fee</td>
+                        <td className="py-3 px-4 font-medium">Group Fee</td>
                         <td className="text-right py-3 px-4">
-                          ₹{selectedAdmission.total_tuition_fee || 0}
+                          ₹{selectedAdmission.group_fee || selectedAdmission.total_tuition_fee || 0}
                         </td>
                         <td className="text-right py-3 px-4">
                           {selectedAdmission.tuition_concession ? (
@@ -609,22 +609,33 @@ const AdmissionsList = () => {
                           <Badge variant="outline">Pending</Badge>
                         </td>
                       </tr>
+                      {selectedAdmission.course_fee && selectedAdmission.course_fee > 0 && (
+                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                          <td className="py-3 px-4 font-medium">Course Fee</td>
+                          <td className="text-right py-3 px-4">
+                            ₹{selectedAdmission.course_fee}
+                          </td>
+                          <td className="text-right py-3 px-4 text-muted-foreground">
+                            -
+                          </td>
+                          <td className="text-right py-3 px-4 font-semibold text-blue-600">
+                            ₹{selectedAdmission.course_fee}
+                          </td>
+                          <td className="text-center py-3 px-4">
+                            <Badge variant="outline">Pending</Badge>
+                          </td>
+                        </tr>
+                      )}
                       <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                        <td className="py-3 px-4 font-medium">Course Fee</td>
+                        <td className="py-3 px-4 font-medium">Book Fee</td>
                         <td className="text-right py-3 px-4">
-                          ₹{selectedAdmission.total_tuition_fee || 0}
+                          ₹{selectedAdmission.book_fee || 0}
                         </td>
-                        <td className="text-right py-3 px-4">
-                          {selectedAdmission.tuition_concession ? (
-                            <span className="text-orange-600 font-semibold">
-                              -₹{selectedAdmission.tuition_concession}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
+                        <td className="text-right py-3 px-4 text-muted-foreground">
+                          -
                         </td>
-                        <td className="text-right py-3 px-4 font-semibold text-blue-600">
-                          ₹{selectedAdmission.payable_tuition_fee || "0"}
+                        <td className="text-right py-3 px-4 font-semibold text-purple-600">
+                          ₹{selectedAdmission.book_fee || 0}
                         </td>
                         <td className="text-center py-3 px-4">
                           <Badge variant="outline">Pending</Badge>
@@ -636,12 +647,11 @@ const AdmissionsList = () => {
                             Transport Fee
                           </td>
                           <td className="text-right py-3 px-4">
-                            ₹{selectedAdmission.transport_fee}
+                            ₹{parseFloat(selectedAdmission.transport_fee || "0") || 0}
                           </td>
                           <td className="text-right py-3 px-4">
                             {selectedAdmission.transport_concession &&
-                            selectedAdmission.transport_concession !==
-                              "0.00" ? (
+                            selectedAdmission.transport_concession !== "0.00" ? (
                               <span className="text-orange-600 font-semibold">
                                 -₹{selectedAdmission.transport_concession}
                               </span>
@@ -650,7 +660,7 @@ const AdmissionsList = () => {
                             )}
                           </td>
                           <td className="text-right py-3 px-4 font-semibold text-orange-600">
-                            ₹{selectedAdmission.payable_transport_fee}
+                            ₹{selectedAdmission.payable_transport_fee || "0"}
                           </td>
                           <td className="text-center py-3 px-4">
                             <Badge variant="outline">Pending</Badge>
