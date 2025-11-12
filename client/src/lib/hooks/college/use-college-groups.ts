@@ -7,7 +7,34 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useCollegeGroups() {
   return useQuery({
     queryKey: collegeKeys.groups.list(),
-    queryFn: () => CollegeGroupsService.list() as Promise<CollegeGroupResponse[]>,
+    queryFn: async () => {
+      try {
+        return await CollegeGroupsService.list();
+      } catch (error: unknown) {
+        // Handle 404 errors by returning empty array
+        if (import.meta.env.DEV) {
+          console.log("Groups API error:", error);
+        }
+        // Api class attaches status property to Error objects
+        if (error instanceof Error) {
+          const apiError = error as Error & { status?: number; data?: { detail?: string } };
+          if (apiError.status === 404) {
+            return [];
+          }
+        }
+        // Fallback check for other error formats
+        const errorObj = error as { message?: string; status?: number };
+        if (
+          errorObj?.status === 404 ||
+          errorObj?.message?.includes("404") ||
+          errorObj?.message?.includes("Groups not found") ||
+          errorObj?.message?.includes("Not Found")
+        ) {
+          return [];
+        }
+        throw error;
+      }
+    },
   });
 }
 

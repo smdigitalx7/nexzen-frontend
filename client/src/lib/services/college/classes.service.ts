@@ -3,7 +3,7 @@ import { CollegeClassList, CollegeClassResponse, CollegeClassWithGroups, College
 
 export const CollegeClassesService = {
   list() {
-    return Api.get<CollegeClassList[]>(`/college/classes`);
+    return Api.get<CollegeClassResponse[]>(`/college/classes`);
   },
 
   listSlim() {
