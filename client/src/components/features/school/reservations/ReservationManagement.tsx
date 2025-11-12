@@ -13,7 +13,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
-import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
+import { useTabNavigation, useTabEnabled } from "@/lib/hooks/use-tab-navigation";
 import {
   Dialog,
   DialogContent,
@@ -531,6 +531,10 @@ const ReservationManagementComponent = () => {
   const { currentBranch } = useAuthStore();
 
   const { activeTab, setActiveTab } = useTabNavigation("new");
+  
+  // Get enabled states for conditional data fetching (avoids hook order issues)
+  // Reservations list needed for "all" and "status" tabs
+  const reservationsEnabled = useTabEnabled(["all", "status"], "new");
 
   // State management
   const [reservationNo, setReservationNo] = useState<string>("");
@@ -631,6 +635,7 @@ const ReservationManagementComponent = () => {
 
   // Use React Query hook for reservations - WITH PAGINATION
   // CRITICAL: Only fetch when tab is active to prevent unnecessary requests and UI freezes
+  // API calls are made per tab, not based on sidebar navigation
   const {
     data: reservationsData,
     isLoading: isLoadingReservations,
@@ -640,7 +645,7 @@ const ReservationManagementComponent = () => {
   } = useQuery({
     queryKey: schoolKeys.reservations.list({ page: currentPage, page_size: pageSize }),
     queryFn: () => SchoolReservationsService.list({ page: currentPage, page_size: pageSize }),
-    enabled: activeTab === "all" || activeTab === "status", // Only fetch when tab is active
+    enabled: reservationsEnabled, // Only fetch when "all" or "status" tab is active
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -683,6 +688,7 @@ const ReservationManagementComponent = () => {
   }));
 
   // Memoized handlers
+  // Update form with fees when class data is available (handled via selectedClassData)
   const handleClassChange = useCallback(
     (classId: string) => {
       const selectedClass = classes.find(
@@ -696,6 +702,8 @@ const ReservationManagementComponent = () => {
           // Auto-set preferred_class_id based on selected class
           preferred_class_id: selectedClass.class_id.toString(),
         }));
+        // Fees will be updated when selectedClassData is fetched (via useSchoolClass hook)
+        // This happens automatically when selectedClassId changes
       }
     },
     [classes]
@@ -772,7 +780,20 @@ const ReservationManagementComponent = () => {
     [distanceSlabs, form]
   );
 
+  // Memoized fee calculations
+  const classFee = useMemo(() => {
+    // Use the fetched class data or fallback to default
+    return selectedClassData?.tuition_fee || 15000;
+  }, [selectedClassData]);
+
+  const editClassFee = useMemo(() => {
+    // Use the fetched edit class data or fallback to default
+    return editSelectedClassData?.tuition_fee || 15000;
+  }, [editSelectedClassData]);
+
   // Update form with fees when class data is fetched
+  // NOTE: This is NOT an API call - it's just updating form state when class data arrives
+  // The API call happens in useSchoolClass hook, which is controlled by selectedClassId
   useEffect(() => {
     if (selectedClassData) {
       setForm((prev) => ({
@@ -784,6 +805,7 @@ const ReservationManagementComponent = () => {
   }, [selectedClassData]);
 
   // Update edit form with fees when edit class data is fetched
+  // NOTE: This is NOT an API call - it's just updating form state when class data arrives
   useEffect(() => {
     if (editSelectedClassData && editForm) {
       setEditForm((prev: any) => ({
@@ -793,17 +815,6 @@ const ReservationManagementComponent = () => {
       }));
     }
   }, [editSelectedClassData, editForm]);
-
-  // Memoized fee calculations
-  const classFee = useMemo(() => {
-    // Use the fetched class data or fallback to default
-    return selectedClassData?.tuition_fee || 15000;
-  }, [selectedClassData]);
-
-  const editClassFee = useMemo(() => {
-    // Use the fetched edit class data or fallback to default
-    return editSelectedClassData?.tuition_fee || 15000;
-  }, [editSelectedClassData]);
 
   const transportFee = useMemo(() => {
     if (form.transport_required && form.preferred_distance_slab_id) {
@@ -1445,9 +1456,9 @@ const ReservationManagementComponent = () => {
           invalidateAndRefetch(schoolKeys.reservations.root());
 
           // Call refetch callback if provided
-          if (refetchReservations) {
+              if (refetchReservations) {
             void refetchReservations();
-          }
+            }
         }}
         blobUrl={receiptBlobUrl}
       />
@@ -1632,9 +1643,9 @@ const ReservationManagementComponent = () => {
                   invalidateAndRefetch(schoolKeys.reservations.root());
 
                   // Call refetch callback if provided
-                  if (refetchReservations) {
+                      if (refetchReservations) {
                     void refetchReservations();
-                  }
+                    }
                 }}
                 onPaymentFailed={(error: string) => {
                   toast({

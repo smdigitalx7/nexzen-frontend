@@ -36,10 +36,13 @@ export const useEmployeesByInstitute = () => {
   });
 };
 
-export const useEmployeesByBranch = () => {
+export const useEmployeesByBranch = (enabled: boolean = true) => {
   return useQuery({
     queryKey: employeeKeys.byBranch(),
     queryFn: () => EmployeesService.listByBranch(),
+    enabled, // Allow conditional query execution to prevent unnecessary fetches
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 

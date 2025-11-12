@@ -15,6 +15,7 @@ export interface SchoolSectionDropdownProps {
   className?: string;
   emptyValue?: boolean;
   emptyValueLabel?: string;
+  id?: string;
 }
 
 /**
@@ -35,6 +36,7 @@ export function SchoolSectionDropdown({
   className,
   emptyValue = false,
   emptyValueLabel = "No section",
+  id,
 }: SchoolSectionDropdownProps) {
   const { data, isLoading, error, refetch } = useSchoolSections(classId);
 
@@ -82,6 +84,7 @@ export function SchoolSectionDropdown({
       required={required}
       placeholder={displayPlaceholder}
       className={className}
+      id={id}
       getValue={(option) => option.section_id}
       getLabel={(option) => option.section_name}
       noOptionsText={hasNoClass ? displayPlaceholder : "No sections available"}

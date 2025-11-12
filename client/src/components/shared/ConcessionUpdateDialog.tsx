@@ -36,6 +36,7 @@ export function ConcessionUpdateDialog({
   reservation,
   onUpdateConcession,
 }: ConcessionUpdateDialogProps) {
+  // Always call hooks (React rules) - use safe defaults
   const [tuitionConcession, setTuitionConcession] = useState<number>(0);
   const [transportConcession, setTransportConcession] = useState<number>(0);
   const [remarks, setRemarks] = useState<string>("");
@@ -111,7 +112,16 @@ export function ConcessionUpdateDialog({
     }
   };
 
-  if (!reservation) return null;
+  // Don't render content if reservation is not provided, but keep dialog structure for React reconciliation
+  if (!reservation) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="hidden">
+          {/* Empty content to maintain React structure */}
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   // Type guard to check if it's a college reservation
   const isCollegeReservation = 'total_tuition_fee' in reservation || 'group_fee' in reservation;

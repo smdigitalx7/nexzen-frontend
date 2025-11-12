@@ -110,8 +110,9 @@ export const usePayrollManagement = () => {
     error,
   } = usePayrollsByBranch({ month: selectedMonth, year: selectedYear, status: selectedStatus });
 
+  // Employees are needed for payroll management, but with caching to prevent excessive refetches
   const { data: employees = [], isLoading: employeesLoading } =
-    useEmployeesByBranch();
+    useEmployeesByBranch(true);
 
   // Additional API hooks for enhanced features
   const { data: dashboardStats } = useQuery({

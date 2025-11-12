@@ -20,6 +20,7 @@ export interface BusRouteDropdownProps {
   className?: string;
   emptyValue?: boolean;
   emptyValueLabel?: string;
+  id?: string;
 }
 
 /**
@@ -39,6 +40,7 @@ export function BusRouteDropdown({
   className,
   emptyValue = false,
   emptyValueLabel = "No route",
+  id,
 }: BusRouteDropdownProps) {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["bus-routes", "names"],
@@ -83,6 +85,7 @@ export function BusRouteDropdown({
       required={required}
       placeholder={placeholder}
       className={className}
+      id={id}
       getValue={(option) => option.bus_route_id}
       getLabel={getLabel}
       renderOption={renderOption}

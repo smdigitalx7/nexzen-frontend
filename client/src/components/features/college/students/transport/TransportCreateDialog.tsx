@@ -52,7 +52,7 @@ export const TransportCreateDialog = ({
             value={formData.enrollment_id ? String(formData.enrollment_id) : ''}
             onValueChange={(value) => onFormDataChange({ ...formData, enrollment_id: Number(value) })}
           >
-            <SelectTrigger>
+            <SelectTrigger id="enrollment_id">
               <SelectValue placeholder="Select enrollment" />
             </SelectTrigger>
             <SelectContent>
@@ -82,6 +82,7 @@ export const TransportCreateDialog = ({
         <div>
           <Label htmlFor="bus_route_id">Bus Route *</Label>
           <BusRouteDropdown
+            id="bus_route_id"
             value={formData.bus_route_id || null}
             onChange={(value) => onFormDataChange({ ...formData, bus_route_id: value || 0 })}
             placeholder="Select bus route"

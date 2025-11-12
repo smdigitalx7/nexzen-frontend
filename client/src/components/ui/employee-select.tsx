@@ -11,6 +11,7 @@ interface EmployeeSelectProps {
   onValueChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  id?: string;
 }
 
 export function EmployeeSelect({
@@ -18,6 +19,7 @@ export function EmployeeSelect({
   onValueChange,
   placeholder = "Select employee...",
   className,
+  id,
 }: EmployeeSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [employees, setEmployees] = React.useState<EmployeeRead[]>([]);
@@ -124,6 +126,7 @@ export function EmployeeSelect({
       <Button
         type="button"
         variant="outline"
+        id={id}
         onClick={() => setOpen(!open)}
         className={cn("w-full justify-between", className)}
       >

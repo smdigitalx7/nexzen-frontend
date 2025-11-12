@@ -23,15 +23,27 @@ interface LeaveViewDialogProps {
 }
 
 export const LeaveViewDialog = ({ open, onOpenChange, leave, employee, onApprove, onReject }: LeaveViewDialogProps) => {
-  if (!leave) return null;
+  // Always call hooks (React rules) - use safe defaults
+  const approvedById = (leave?.approved_by && leave.approved_by > 0) ? leave.approved_by : 0;
 
   // Check permissions for approve/reject buttons
   const canApproveLeave = useCanViewUIComponent("employee_leaves", "button", "leave-approve");
   const canRejectLeave = useCanViewUIComponent("employee_leaves", "button", "leave-reject");
 
-  // Fetch user details if approved_by is present
-  const { data: approverUser } = useUser(leave.approved_by || 0);
-  const approverName = approverUser?.full_name || (leave.approved_by ? `User ID: ${leave.approved_by}` : undefined);
+  // Fetch user details if approved_by is present (only when approved_by exists and is > 0)
+  const { data: approverUser } = useUser(approvedById);
+  const approverName = approverUser?.full_name || (leave?.approved_by ? `User ID: ${leave.approved_by}` : undefined);
+
+  // Don't render content if leave is not provided, but keep dialog structure for React reconciliation
+  if (!leave) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="hidden">
+          {/* Empty content to maintain React structure */}
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {

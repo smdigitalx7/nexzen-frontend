@@ -100,8 +100,11 @@ export const useApproveEmployeeLeave = () => {
   return useMutationWithSuccessToast({
     mutationFn: (id: number) => EmployeeLeaveService.approve(id),
     onSuccess: () => {
-      // Use debounced invalidateAndRefetch to prevent UI freeze
-      invalidateAndRefetch(employeeLeaveKeys.all);
+      // Defer invalidateAndRefetch to prevent UI freeze
+      // Use setTimeout to ensure it runs after the mutation completes and UI updates
+      setTimeout(() => {
+        invalidateAndRefetch(employeeLeaveKeys.all);
+      }, 0);
     },
   }, "Leave request approved successfully");
 };
@@ -111,8 +114,11 @@ export const useRejectEmployeeLeave = () => {
     mutationFn: ({ id, data }: { id: number; data: EmployeeLeaveReject }) => 
       EmployeeLeaveService.reject(id, data),
     onSuccess: () => {
-      // Use debounced invalidateAndRefetch to prevent UI freeze
-      invalidateAndRefetch(employeeLeaveKeys.all);
+      // Defer invalidateAndRefetch to prevent UI freeze
+      // Use setTimeout to ensure it runs after the mutation completes and UI updates
+      setTimeout(() => {
+        invalidateAndRefetch(employeeLeaveKeys.all);
+      }, 0);
     },
   }, "Leave request rejected");
 };
