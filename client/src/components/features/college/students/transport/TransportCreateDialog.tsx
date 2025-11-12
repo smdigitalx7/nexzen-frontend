@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { FormDialog } from '@/components/shared';
-import { BusRouteDropdown, DistanceSlabDropdown } from '@/components/shared/Dropdowns';
+import { BusRouteDropdown } from '@/components/shared/Dropdowns';
 import type { CollegeTransportAssignmentCreate } from '@/lib/types/college';
 
 interface TransportCreateDialogProps {
@@ -16,7 +16,6 @@ interface TransportCreateDialogProps {
   onCancel: () => void;
   enrollments: any[];
   busRoutes: any[];
-  slabs: any[];
 }
 
 export const TransportCreateDialog = ({
@@ -29,9 +28,8 @@ export const TransportCreateDialog = ({
   onCancel,
   enrollments,
   busRoutes,
-  slabs,
 }: TransportCreateDialogProps) => {
-  const isDisabled = !formData.enrollment_id || !formData.bus_route_id || !formData.slab_id || !formData.start_date;
+  const isDisabled = !formData.enrollment_id || !formData.bus_route_id || !formData.start_date || !formData.pickup_point?.trim();
 
   return (
     <FormDialog
@@ -91,21 +89,13 @@ export const TransportCreateDialog = ({
           />
         </div>
         <div>
-          <Label htmlFor="slab_id">Distance Slab *</Label>
-          <DistanceSlabDropdown
-            value={formData.slab_id || null}
-            onChange={(value) => onFormDataChange({ ...formData, slab_id: value || 0 })}
-            placeholder="Select distance slab"
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="pickup_point">Pickup Point</Label>
+          <Label htmlFor="pickup_point">Pickup Point *</Label>
           <Input
             id="pickup_point"
             value={formData.pickup_point || ''}
             onChange={(e) => onFormDataChange({ ...formData, pickup_point: e.target.value })}
             placeholder="Enter pickup point"
+            required
           />
         </div>
         <div>
@@ -117,25 +107,6 @@ export const TransportCreateDialog = ({
             placeholder="Select start date"
             required
           />
-        </div>
-        <div>
-          <Label htmlFor="end_date">End Date (Optional)</Label>
-          <DatePicker
-            id="end_date"
-            value={formData.end_date || ''}
-            onChange={(value) => onFormDataChange({ ...formData, end_date: value || null })}
-            placeholder="Select end date"
-          />
-        </div>
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="is_active"
-            checked={formData.is_active ?? true}
-            onChange={(e) => onFormDataChange({ ...formData, is_active: e.target.checked })}
-            className="h-4 w-4"
-          />
-          <Label htmlFor="is_active" className="cursor-pointer">Active</Label>
         </div>
       </div>
     </FormDialog>
