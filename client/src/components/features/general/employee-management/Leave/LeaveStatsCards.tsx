@@ -1,12 +1,9 @@
 import React from 'react';
 import { 
-  Calendar, 
   Clock, 
   CheckCircle, 
   XCircle, 
   AlertTriangle, 
-  UserCheck, 
-  UserX,
   TrendingUp,
   FileText
 } from 'lucide-react';
@@ -72,33 +69,6 @@ export const LeaveStatsCards: React.FC<LeaveStatsCardsProps> = ({
       color: "red" as const,
       description: "Not approved",
       variant: "default" as const,
-      size: "sm" as const,
-    },
-    {
-      title: "Paid Leaves",
-      value: stats.paid_leaves_count,
-      icon: UserCheck,
-      color: "purple" as const,
-      description: "With salary",
-      variant: "default" as const,
-      size: "sm" as const,
-    },
-    {
-      title: "Unpaid Leaves",
-      value: stats.unpaid_leaves_count,
-      icon: UserX,
-      color: "orange" as const,
-      description: "Without salary",
-      variant: "default" as const,
-      size: "sm" as const,
-    },
-    {
-      title: "Total Leave Days",
-      value: stats.total_leave_days,
-      icon: Calendar,
-      color: "indigo" as const,
-      description: "All leave days",
-      variant: "bordered" as const,
       size: "sm" as const,
     },
     {

@@ -2,14 +2,11 @@ import { useEffect, useMemo, useState, memo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { useSchoolClasses, useSchoolTuitionBalancesList, useSchoolTuitionBalance, useBulkCreateSchoolTuitionBalances } from "@/lib/hooks/school";
+import { useSchoolClasses, useSchoolTuitionBalancesList, useSchoolTuitionBalance } from "@/lib/hooks/school";
 import { SchoolClassDropdown } from "@/components/shared/Dropdowns";
 import type { SchoolTuitionFeeBalanceRead, SchoolTuitionFeeBalanceFullRead } from "@/lib/types/school";
 import { StudentFeeBalancesTable } from "./StudentFeeBalancesTable";
-import { Plus } from "lucide-react";
 
 type StudentRow = React.ComponentProps<typeof StudentFeeBalancesTable>["studentBalances"][number];
 
@@ -131,79 +128,14 @@ const DetailsDialog = memo(({
 
 DetailsDialog.displayName = "DetailsDialog";
 
-// Memoized bulk create dialog component
-const BulkCreateDialog = memo(({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
-  className, 
-  isPending 
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  className: string;
-  isPending: boolean;
-}) => (
-  <Dialog open={isOpen} onOpenChange={onClose}>
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>Bulk Create Tuition Fee Balances</DialogTitle>
-      </DialogHeader>
-      <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          This will create tuition fee balances for all students in the selected class: <strong>{className}</strong>
-        </p>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-start">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">Warning</h3>
-              <div className="mt-2 text-sm text-yellow-700">
-                <p>This action will create tuition fee balance records for all students in the selected class. This cannot be undone.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="flex justify-end space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={onClose}
-            disabled={isPending}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={onConfirm}
-            disabled={isPending}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            {isPending ? 'Creating...' : 'Create Balances'}
-          </Button>
-        </div>
-      </div>
-    </DialogContent>
-  </Dialog>
-));
-
-BulkCreateDialog.displayName = "BulkCreateDialog";
-
 const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: TuitionFeeBalancesPanelProps) => {
   // State management
   const [balanceClass, setBalanceClass] = useState<string>("");
   const [selectedBalanceId, setSelectedBalanceId] = useState<number | undefined>();
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [bulkCreateOpen, setBulkCreateOpen] = useState(false);
 
   // Hooks
   const { data: classes = [] } = useSchoolClasses();
-  const { toast } = useToast();
-  const bulkCreateMutation = useBulkCreateSchoolTuitionBalances();
 
   // Memoized class ID for API calls
   const classIdNum = useMemo(() => 
@@ -219,11 +151,6 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
   });
   const { data: selectedBalance } = useSchoolTuitionBalance(selectedBalanceId);
 
-  // Memoized selected class name
-  const selectedClassName = useMemo(() => 
-    classes.find(c => c.class_id?.toString() === balanceClass)?.class_name || "",
-    [classes, balanceClass]
-  );
 
   // Auto-select first class when available
   useEffect(() => {
@@ -236,25 +163,6 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
   }, [classes, balanceClass]);
 
   // Memoized handlers
-  const handleBulkCreate = useCallback(async () => {
-    if (!classIdNum) {
-      toast({
-        title: "Error",
-        description: "Please select a class first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await bulkCreateMutation.mutateAsync({ class_id: classIdNum });
-      // Cache invalidation handled by mutation hook
-      setBulkCreateOpen(false);
-    } catch (error) {
-      // Error toast handled by mutation hook
-    }
-  }, [classIdNum, bulkCreateMutation, toast]);
-
   const handleViewStudent = useCallback((student: StudentRow) => {
     setSelectedBalanceId(student.id);
     setDetailsOpen(true);
@@ -264,14 +172,6 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
   const handleCloseDetails = useCallback(() => {
     setDetailsOpen(false);
     setSelectedBalanceId(undefined);
-  }, []);
-
-  const handleCloseBulkCreate = useCallback(() => {
-    setBulkCreateOpen(false);
-  }, []);
-
-  const handleOpenBulkCreate = useCallback(() => {
-    setBulkCreateOpen(true);
   }, []);
 
   // Memoized data transformation
@@ -340,7 +240,6 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
         studentBalances={rows}
         onViewStudent={handleViewStudent}
         onExportCSV={onExportCSV}
-        onBulkCreate={handleOpenBulkCreate}
         showHeader={false}
         classes={classes}
         />
@@ -352,15 +251,6 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
         onClose={handleCloseDetails}
         selectedBalanceId={selectedBalanceId}
         selectedBalance={selectedBalance}
-      />
-
-      {/* Bulk Create Dialog */}
-      <BulkCreateDialog
-        isOpen={bulkCreateOpen}
-        onClose={handleCloseBulkCreate}
-        onConfirm={handleBulkCreate}
-        className={selectedClassName}
-        isPending={bulkCreateMutation.isPending}
       />
     </motion.div>
   );

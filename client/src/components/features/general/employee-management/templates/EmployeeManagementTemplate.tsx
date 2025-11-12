@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from "react";
 import { useEmployeeManagement, useEmployeeDashboard, useAttendanceDashboard, useLeaveDashboard, useAdvanceDashboard } from "@/lib/hooks/general";
 import type { EmployeeRead as HookEmployeeRead, EmployeeAttendanceRead, EmployeeLeaveRead as HookEmployeeLeaveRead } from "@/lib/hooks/general/useEmployeeManagement";
 import type { AdvanceRead } from "@/lib/types/general/advances";
@@ -202,7 +203,8 @@ export const EmployeeManagementTemplate = () => {
   // employees from hook is now LibEmployeeRead[] (the actual API type)
   // We need to transform it to match component expectations (EmployeeRead with phone, department, branch_id)
   // Note: HookEmployeeRead is now an alias to LibEmployeeRead, so we need to create a compatible type
-  const employeesData = employees.map((emp: LibEmployeeRead): EmployeeRead => ({
+  // Memoize to prevent unnecessary recalculations
+  const employeesData = useMemo(() => employees.map((emp: LibEmployeeRead): EmployeeRead => ({
     employee_id: emp.employee_id,
     employee_name: emp.employee_name,
     employee_code: emp.employee_code,
@@ -220,7 +222,7 @@ export const EmployeeManagementTemplate = () => {
     employee_type: emp.employee_type,
     qualification: emp.qualification || null,
     experience_years: emp.experience_years || null,
-  }));
+  })), [employees]);
 
   const handleAddEmployee = () => {
     // Initialize with default form values using LibEmployeeRead (API type)
@@ -545,7 +547,7 @@ export const EmployeeManagementTemplate = () => {
           };
           handleViewLeave(hookLeave);
         }}
-        onAddAdvance={() => {
+        onAddAdvance={useCallback(() => {
                 setIsEditingAdvance(false);
                 setShowAdvanceForm(true);
                 setAdvanceFormData({
@@ -554,8 +556,8 @@ export const EmployeeManagementTemplate = () => {
                   advance_amount: 0,
                   request_reason: ''
                 });
-              }}
-        onApproveAdvance={(advance) => {
+              }, [setIsEditingAdvance, setShowAdvanceForm, setAdvanceFormData])}
+        onApproveAdvance={useCallback((advance) => {
                 // Transform EmployeeAdvanceRead (without created_at) back to AdvanceRead for hook
                 const fullAdvance: AdvanceRead = {
                   ...advance,
@@ -564,8 +566,8 @@ export const EmployeeManagementTemplate = () => {
                 setAdvanceToUpdate(fullAdvance);
                 setAdvanceStatus(advance.status || "");
                 setShowAdvanceStatusDialog(true);
-              }}
-        onEditAdvance={(advance) => {
+              }, [setAdvanceToUpdate, setAdvanceStatus, setShowAdvanceStatusDialog])}
+        onEditAdvance={useCallback((advance) => {
                 setAdvanceFormData({
                   employee_id: advance.employee_id,
                   advance_date: advance.advance_date,
@@ -580,15 +582,15 @@ export const EmployeeManagementTemplate = () => {
                 setAdvanceToUpdate(fullAdvance);
                 setIsEditingAdvance(true);
                 setShowAdvanceForm(true);
-              }}
-        onDeleteAdvance={(id: number) => {
+              }, [setAdvanceFormData, setAdvanceToUpdate, setIsEditingAdvance, setShowAdvanceForm])}
+        onDeleteAdvance={useCallback((id: number) => {
                 const advance = advances.find((a) => a.advance_id === id);
                 if (advance) {
                   setAdvanceToDelete(advance);
                   setShowAdvanceDeleteDialog(true);
                 }
-              }}
-        onViewAdvance={(advance) => {
+              }, [advances, setAdvanceToDelete, setShowAdvanceDeleteDialog])}
+        onViewAdvance={useCallback((advance) => {
                 // Transform EmployeeAdvanceRead (without created_at) back to AdvanceRead for hook
                 const fullAdvance: AdvanceRead = {
                   ...advance,
@@ -596,8 +598,8 @@ export const EmployeeManagementTemplate = () => {
                 };
                 setAdvanceToView(fullAdvance);
                 setShowAdvanceViewDialog(true);
-              }}
-              onUpdateAmount={(advance) => {
+              }, [setAdvanceToView, setShowAdvanceViewDialog])}
+              onUpdateAmount={useCallback((advance) => {
                 // Transform EmployeeAdvanceRead (without created_at) back to AdvanceRead for hook
                 const fullAdvance: AdvanceRead = {
                   ...advance,
@@ -605,8 +607,8 @@ export const EmployeeManagementTemplate = () => {
                 };
                 setAdvanceToUpdate(fullAdvance);
                 setShowAdvanceAmountDialog(true);
-              }}
-        onRejectAdvance={(advance) => {
+              }, [setAdvanceToUpdate, setShowAdvanceAmountDialog])}
+        onRejectAdvance={useCallback((advance) => {
                 // Transform EmployeeAdvanceRead (without created_at) back to AdvanceRead for hook
                 const fullAdvance: AdvanceRead = {
                   ...advance,
@@ -615,7 +617,7 @@ export const EmployeeManagementTemplate = () => {
                 setAdvanceToUpdate(fullAdvance);
                 setAdvanceStatus("REJECTED");
                 setShowAdvanceStatusDialog(true);
-              }}
+              }, [setAdvanceToUpdate, setAdvanceStatus, setShowAdvanceStatusDialog])}
         leaveMonth={leaveMonth}
         setLeaveMonth={setLeaveMonth}
         leaveYear={leaveYear}

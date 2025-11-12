@@ -304,6 +304,7 @@ export const EmployeeManagementDialogs = ({
           const diffTime = Math.abs(to.getTime() - from.getTime());
           return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
         }}
+        leaveStatus={leaveToApprove?.leave_status}
       />
       
       {/* Leave Approve Dialog */}
@@ -371,6 +372,7 @@ export const EmployeeManagementDialogs = ({
         }}
         isCreatePending={false}
         isUpdatePending={false}
+        advanceStatus={advanceToUpdate?.status}
       />
       
       {/* Advance View Dialog */}

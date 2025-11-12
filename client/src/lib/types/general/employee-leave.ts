@@ -29,6 +29,7 @@ export interface EmployeeLeaveRead {
   total_days: number;
   applied_date: string;
   approved_by?: number;
+  approved_by_name?: string;
   approved_date?: string;
   rejection_reason?: string;
   created_at: string;

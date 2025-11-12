@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 import { Eye, Edit, Trash2 } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { useCanViewUIComponent, useCanCreate } from "@/lib/permissions";
@@ -33,7 +33,7 @@ interface AdvancesTableProps {
   showSearch?: boolean;
 }
 
-export const AdvancesTable = ({
+const AdvancesTableComponent = ({
   advances,
   isLoading,
   onAddAdvance,
@@ -169,3 +169,5 @@ export const AdvancesTable = ({
     />
   );
 };
+
+export const AdvancesTable = memo(AdvancesTableComponent);

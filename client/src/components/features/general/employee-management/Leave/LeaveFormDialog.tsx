@@ -29,12 +29,17 @@ interface LeaveFormDialogProps {
   isCreatePending: boolean;
   isUpdatePending: boolean;
   calculateLeaveDays: (fromDate: string, toDate: string) => number;
+  leaveStatus?: string;
 }
 
-const LeaveFormDialog = ({ open, onOpenChange, isEditing, employees, formData, onChange, onSubmit, isCreatePending, isUpdatePending, calculateLeaveDays }: LeaveFormDialogProps) => {
+const LeaveFormDialog = ({ open, onOpenChange, isEditing, employees, formData, onChange, onSubmit, isCreatePending, isUpdatePending, calculateLeaveDays, leaveStatus }: LeaveFormDialogProps) => {
   const isLoading = isCreatePending || isUpdatePending;
   
+  // Disable save button if editing and leave status is APPROVED or REJECTED
+  const isSaveDisabled = isEditing && (leaveStatus === "APPROVED" || leaveStatus === "REJECTED");
+  
   const handleSave = () => {
+    if (isSaveDisabled) return;
     const form = document.getElementById('leave-form') as HTMLFormElement;
     if (form) {
       form.requestSubmit();
@@ -52,6 +57,7 @@ const LeaveFormDialog = ({ open, onOpenChange, isEditing, employees, formData, o
       onSave={handleSave}
       saveText={isEditing ? "Update" : "Create"}
       cancelText="Cancel"
+      disabled={isSaveDisabled}
     >
       <form id="leave-form" onSubmit={onSubmit} className="space-y-4">
           {!isEditing && (

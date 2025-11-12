@@ -11,6 +11,7 @@ import { useCanViewUIComponent } from "@/lib/permissions";
 import { Calendar, User, FileText, Clock, CalendarDays, Check, X } from "lucide-react";
 import { DIALOG_SIZES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { useUser } from "@/lib/hooks/general/useUsers";
 
 interface LeaveViewDialogProps {
   open: boolean;
@@ -27,6 +28,10 @@ export const LeaveViewDialog = ({ open, onOpenChange, leave, employee, onApprove
   // Check permissions for approve/reject buttons
   const canApproveLeave = useCanViewUIComponent("employee_leaves", "button", "leave-approve");
   const canRejectLeave = useCanViewUIComponent("employee_leaves", "button", "leave-reject");
+
+  // Fetch user details if approved_by is present
+  const { data: approverUser } = useUser(leave.approved_by || 0);
+  const approverName = approverUser?.full_name || (leave.approved_by ? `User ID: ${leave.approved_by}` : undefined);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -213,7 +218,7 @@ export const LeaveViewDialog = ({ open, onOpenChange, leave, employee, onApprove
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Approved By</label>
-                <p className="text-lg font-semibold">{leave.approved_by}</p>
+                <p className="text-lg font-semibold">{approverName || (leave.approved_by ? `User ID: ${leave.approved_by}` : '-')}</p>
               </div>
               {leave.approved_date && (
                 <div>

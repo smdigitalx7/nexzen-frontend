@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -1256,93 +1257,31 @@ const TestMarksManagementComponent = ({
             </div>
 
             {/* Data Table */}
-            {!selectedClass ? (
-              <Card className="p-8 text-center">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
-                    <ClipboardList className="h-8 w-8 text-slate-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      Select Class, Subject, and Test
-                    </h3>
-                    <p className="text-slate-600 mt-1">
-                      Please select a class, subject, and test from the dropdowns above to view test marks.
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ) : !selectedSubject ? (
-              <Card className="p-8 text-center">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
-                    <ClipboardList className="h-8 w-8 text-slate-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      Select a Subject
-                    </h3>
-                    <p className="text-slate-600 mt-1">
-                      Please select a subject from the dropdown above to view test marks.
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ) : !selectedTest ? (
-              <Card className="p-8 text-center">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
-                    <ClipboardList className="h-8 w-8 text-slate-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      Select a Test
-                    </h3>
-                    <p className="text-slate-600 mt-1">
-                      Please select a test from the dropdown above to view test marks for the selected class and subject.
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ) : testMarksLoading ? (
-              <Card className="p-8 text-center">
-                <LoadingStates.Data message="Loading test marks..." />
-              </Card>
-            ) : testMarksError ? (
-              <Card className="p-8 text-center">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-                    <ClipboardList className="h-8 w-8 text-red-500" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      Error Loading Data
-                    </h3>
-                    <p className="text-slate-600 mt-1">
-                      {testMarksError?.message ||
-                        "Failed to load test marks. Please try again."}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ) : testMarks.length === 0 ? (
-              <Card className="p-8 text-center">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
-                    <ClipboardList className="h-8 w-8 text-slate-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      No Test Marks Found
-                    </h3>
-                    <p className="text-slate-600 mt-1">
-                      Try changing filters or ensure marks are recorded for this
-                      class.
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ) : (
+            <div className="space-y-4">
+              {/* Filter Selection Alerts */}
+              {!selectedClass && (
+                <Alert>
+                  <AlertDescription>
+                    Please select a class, subject, and test from the dropdowns above to view test marks.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {selectedClass && !selectedSubject && (
+                <Alert>
+                  <AlertDescription>
+                    Please select a subject from the dropdown above to view test marks.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {selectedClass && selectedSubject && !selectedTest && (
+                <Alert>
+                  <AlertDescription>
+                    Please select a test from the dropdown above to view test marks for the selected class and subject.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Enhanced Data Table - Always shown */}
               <EnhancedDataTable
                 data={testMarks}
                 title="Test Marks"
@@ -1365,8 +1304,9 @@ const TestMarksManagementComponent = ({
                 actionButtonGroups={actionButtonGroups}
                 actionColumnHeader="Actions"
                 showActionLabels={true}
+                loading={testMarksLoading}
               />
-            )}
+            </div>
 
             {/* View Test Mark Dialog */}
             <Dialog
