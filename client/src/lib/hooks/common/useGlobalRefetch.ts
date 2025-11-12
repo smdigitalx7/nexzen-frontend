@@ -13,30 +13,37 @@ function clearApiCacheForQueryKey(queryKey: QueryKey) {
     // ["users"] -> "/users"
     // ["school", "classes"] -> "/school/classes"
     // ["college", "subjects", "detail", 123] -> "/college/subjects"
-    const pathParts = queryKey.filter((k): k is string => typeof k === 'string' && k !== 'list' && k !== 'detail' && k !== 'root' && !/^\d+$/.test(String(k)));
-    
+    const pathParts = queryKey.filter(
+      (k): k is string =>
+        typeof k === "string" &&
+        k !== "list" &&
+        k !== "detail" &&
+        k !== "root" &&
+        !/^\d+$/.test(String(k))
+    );
+
     if (pathParts.length === 0) return;
-    
-    const pathPattern = `/${pathParts.join('/')}`;
-    
+
+    const pathPattern = `/${pathParts.join("/")}`;
+
     // Clear all cache entries matching this path
     // Pattern matches: "GET:/api/v1/users", "GET:/api/v1/users/roles-and-branches", etc.
     // Use multiple patterns to catch variations
     const patterns = [
-      new RegExp(`GET:.*${pathPattern.replace(/\//g, '\\/')}`, 'i'), // Exact match
-      new RegExp(`GET:.*${pathPattern.replace(/\//g, '\\/')}.*`, 'i'), // With query params
+      new RegExp(`GET:.*${pathPattern.replace(/\//g, "\\/")}`, "i"), // Exact match
+      new RegExp(`GET:.*${pathPattern.replace(/\//g, "\\/")}.*`, "i"), // With query params
     ];
-    
-    patterns.forEach(pattern => {
+
+    patterns.forEach((pattern) => {
       CacheUtils.clearByPattern(pattern);
     });
   } catch (error) {
-    console.warn('Failed to clear API cache for query key:', queryKey, error);
+    console.warn("Failed to clear API cache for query key:", queryKey, error);
     // Fallback: clear all cache if pattern matching fails
     try {
       CacheUtils.clearAll();
     } catch (e) {
-      console.error('Failed to clear all API cache:', e);
+      console.error("Failed to clear all API cache:", e);
     }
   }
 }
@@ -125,18 +132,18 @@ const REFETCH_DEBOUNCE_MS = 300;
 export function invalidateAndRefetch(queryKey: QueryKey) {
   // Clear API cache first
   clearApiCacheForQueryKey(queryKey);
-  
+
   // Invalidate React Query cache immediately (lightweight operation)
   void queryClient.invalidateQueries({ queryKey });
-  
+
   // Debounce refetch to prevent multiple simultaneous refetches
   if (refetchTimeout) {
     clearTimeout(refetchTimeout);
   }
-  
+
   refetchTimeout = setTimeout(() => {
     // Refetch active queries after debounce delay
-    void queryClient.refetchQueries({ queryKey, type: 'active' }).catch(() => {
+    void queryClient.refetchQueries({ queryKey, type: "active" }).catch(() => {
       // Silently handle errors to prevent UI blocking
     });
     refetchTimeout = null;
@@ -162,13 +169,15 @@ export function useGlobalRefetch() {
     if (refetchTimeout) {
       clearTimeout(refetchTimeout);
     }
-    
+
     refetchTimeout = setTimeout(() => {
       // Refetch all active queries for the entity
       queryKeys.forEach((key) => {
-        void queryClient.refetchQueries({ queryKey: key, type: 'active' }).catch(() => {
-          // Silently handle errors
-        });
+        void queryClient
+          .refetchQueries({ queryKey: key, type: "active" })
+          .catch(() => {
+            // Silently handle errors
+          });
       });
       refetchTimeout = null;
     }, REFETCH_DEBOUNCE_MS);
