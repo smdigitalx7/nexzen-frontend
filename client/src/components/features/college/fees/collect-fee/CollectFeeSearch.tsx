@@ -92,7 +92,8 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
           transportSummary // Add transport summary for outstanding calculation
         };
 
-      setSearchResults([studentDetails]);
+        setSearchResults([studentDetails]);
+      }
     } catch (error) {
       console.error("Search error:", error);
       toast({
