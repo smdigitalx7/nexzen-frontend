@@ -115,11 +115,8 @@ const TransportTabComponent = () => {
   const [formData, setFormData] = useState<CollegeTransportAssignmentCreate>({
     enrollment_id: 0,
     bus_route_id: 0,
-    slab_id: 0,
     pickup_point: '',
     start_date: new Date().toISOString().split('T')[0],
-    end_date: null,
-    is_active: true,
   });
 
   const [editFormData, setEditFormData] = useState({
@@ -136,11 +133,8 @@ const TransportTabComponent = () => {
     setFormData({
       enrollment_id: 0,
       bus_route_id: 0,
-      slab_id: 0,
       pickup_point: '',
       start_date: new Date().toISOString().split('T')[0],
-      end_date: null,
-      is_active: true,
     });
   }, []);
 
@@ -157,7 +151,7 @@ const TransportTabComponent = () => {
 
   // Handle create
   const handleCreate = useCallback(async () => {
-    if (!formData.enrollment_id || !formData.bus_route_id || !formData.slab_id || !formData.start_date) {
+    if (!formData.enrollment_id || !formData.bus_route_id || !formData.start_date || !formData.pickup_point?.trim()) {
       return;
     }
     try {
@@ -405,7 +399,6 @@ const TransportTabComponent = () => {
         }}
         enrollments={enrollments}
         busRoutes={busRoutes}
-        slabs={slabs}
       />
 
       {/* Edit Transport Assignment Dialog */}
