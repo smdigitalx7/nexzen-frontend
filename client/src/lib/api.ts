@@ -619,8 +619,12 @@ export async function api<T = unknown>({
         if (res.status === 401) {
           message = "Authentication required. Please log in again.";
         } else if (res.status === 403) {
-          message =
-            "Access forbidden. You don't have permission to perform this action.";
+          // Use the API detail message if available, otherwise use generic message
+          if (message === res.statusText || message === "Request failed") {
+            message =
+              "Access forbidden. You don't have permission to perform this action.";
+          }
+          // If message already contains API detail/message, keep it as is
         } else if (res.status === 404) {
           // Use the detail message from API if available (already extracted above), 
           // otherwise use generic message

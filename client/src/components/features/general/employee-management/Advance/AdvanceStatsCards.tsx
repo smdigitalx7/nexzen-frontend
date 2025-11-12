@@ -3,11 +3,7 @@ import {
   Clock, 
   CheckCircle, 
   XCircle, 
-  CreditCard, 
-  TrendingUp, 
-  Calendar,
-  AlertTriangle,
-  Wallet
+  TrendingUp
 } from 'lucide-react';
 import { StatsCard } from '@/components/shared/dashboard/StatsCard';
 import { DashboardGrid } from '@/components/shared/dashboard/DashboardGrid';
@@ -76,24 +72,6 @@ export const AdvanceStatsCards: React.FC<AdvanceStatsCardsProps> = ({
       size: "sm" as const,
     },
     {
-      title: "Active Advances",
-      value: stats.active_advances,
-      icon: CreditCard,
-      color: "purple" as const,
-      description: "Currently active",
-      variant: "default" as const,
-      size: "sm" as const,
-    },
-    {
-      title: "Repaid Advances",
-      value: stats.repaid_advances,
-      icon: Wallet,
-      color: "emerald" as const,
-      description: "Fully repaid",
-      variant: "default" as const,
-      size: "sm" as const,
-    },
-    {
       title: "Total Amount",
       value: formatCurrency(stats.total_advance_amount),
       icon: IndianRupeeIcon,
@@ -116,30 +94,6 @@ export const AdvanceStatsCards: React.FC<AdvanceStatsCardsProps> = ({
       //   label: "repayment rate",
       //   isPositive: true,
       // },
-    },
-    {
-      title: "This Month",
-      value: stats.advances_this_month,
-      icon: Calendar,
-      color: "orange" as const,
-      description: "Advances this month",
-      variant: "elevated" as const,
-      size: "sm" as const,
-      // trend: {
-      //   value: stats.advances_this_year > 0 ? 
-      //     Math.round((stats.advances_this_month / stats.advances_this_year) * 100) : 0,
-      //   label: "of yearly total",
-      //   isPositive: true,
-      // },
-    },
-    {
-      title: "This Year",
-      value: stats.advances_this_year,
-      icon: AlertTriangle,
-      color: "rose" as const,
-      description: "Total advances this year",
-      variant: "elevated" as const,
-      size: "sm" as const,
     },
   ];
 

@@ -8,6 +8,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader as AlertHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -1183,104 +1184,38 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
             </div>
 
             {/* Data Table */}
-            {!selectedClass ? (
-              <Card className="p-8 text-center">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
-                    <GraduationCap className="h-8 w-8 text-slate-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      Select Class, Group, Exam, and Subject
-                    </h3>
-                    <p className="text-slate-600 mt-1">
-                      Please select a class, group, exam, and subject from the dropdowns above to view exam marks.
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ) : !selectedGroup ? (
-              <Card className="p-8 text-center">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
-                    <GraduationCap className="h-8 w-8 text-slate-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      Select a Group
-                    </h3>
-                    <p className="text-slate-600 mt-1">
-                      Please select a group from the dropdown above to view exam marks.
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ) : !selectedSubject ? (
-              <Card className="p-8 text-center">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
-                    <GraduationCap className="h-8 w-8 text-slate-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      Select a Subject
-                    </h3>
-                    <p className="text-slate-600 mt-1">
-                      Please select a subject from the dropdown above to view exam marks.
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ) : !selectedExam ? (
-              <Card className="p-8 text-center">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
-                    <GraduationCap className="h-8 w-8 text-slate-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      Select an Exam
-                    </h3>
-                    <p className="text-slate-600 mt-1">
-                      Please select an exam from the dropdown above to view exam marks.
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ) : examMarksLoading ? (
-              <Card className="p-8 text-center">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-slate-600">Loading exam marks...</p>
-                </div>
-              </Card>
-            ) : examMarksError ? (
-              <Card className="p-8 text-center">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-                    <GraduationCap className="h-8 w-8 text-red-500" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900">Error Loading Data</h3>
-                    <p className="text-slate-600 mt-1">
-                      {examMarksError?.message || 'Failed to load exam marks. Please try again.'}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ) : (examMarks.length === 0 ? (
-              <Card className="p-8 text-center">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
-                    <GraduationCap className="h-8 w-8 text-slate-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900">No Exam Marks Found</h3>
-                    <p className="text-slate-600 mt-1">Try changing filters or ensure marks are recorded for this class.</p>
-                  </div>
-                </div>
-              </Card>
-            ) : (
+            <div className="space-y-4">
+              {/* Filter Selection Alerts */}
+              {!selectedClass && (
+                <Alert>
+                  <AlertDescription>
+                    Please select a class, group, exam, and subject from the dropdowns above to view exam marks.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {selectedClass && !selectedGroup && (
+                <Alert>
+                  <AlertDescription>
+                    Please select a group from the dropdown above to view exam marks.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {selectedClass && selectedGroup && !selectedSubject && (
+                <Alert>
+                  <AlertDescription>
+                    Please select a subject from the dropdown above to view exam marks.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {selectedClass && selectedGroup && selectedSubject && !selectedExam && (
+                <Alert>
+                  <AlertDescription>
+                    Please select an exam from the dropdown above to view exam marks.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Enhanced Data Table - Always shown */}
               <EnhancedDataTable
                 data={examMarks}
                 title="Exam Marks"
@@ -1294,8 +1229,9 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
                 actionButtonGroups={actionButtonGroups}
                 actionColumnHeader="Actions"
                 showActionLabels={false}
+                loading={examMarksLoading}
               />
-            ))}
+            </div>
 
             {/* View Exam Mark Dialog */}
             <Dialog open={showViewExamMarkDialog} onOpenChange={setShowViewExamMarkDialog}>

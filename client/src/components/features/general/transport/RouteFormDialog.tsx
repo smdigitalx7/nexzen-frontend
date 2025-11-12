@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { FormDialog } from "@/components/shared";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 interface RouteFormDialogProps {
   isOpen: boolean;
@@ -247,6 +248,14 @@ const RouteFormDialog = ({ isOpen, onClose, onSubmit, isEditing, editingRoute }:
                 onChange={(e) => setRouteForm({ ...routeForm, registration_number: e.target.value })} 
                 placeholder="REG123" 
               />
+            </div>
+            <div className="flex items-center space-x-2 pt-6">
+              <Switch
+                id="is_active"
+                checked={routeForm.is_active}
+                onCheckedChange={(checked) => setRouteForm({ ...routeForm, is_active: checked === true })}
+              />
+              <Label htmlFor="is_active" className="cursor-pointer">Active</Label>
             </div>
           </div>
         </div>

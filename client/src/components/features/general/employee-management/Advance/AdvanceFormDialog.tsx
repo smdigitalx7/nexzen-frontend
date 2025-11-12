@@ -24,12 +24,17 @@ interface AdvanceFormDialogProps {
   onSubmit: (e: React.FormEvent) => void;
   isCreatePending: boolean;
   isUpdatePending: boolean;
+  advanceStatus?: string;
 }
 
-const AdvanceFormDialog = ({ open, onOpenChange, isEditing, employees, formData, onChange, onSubmit, isCreatePending, isUpdatePending }: AdvanceFormDialogProps) => {
+const AdvanceFormDialog = ({ open, onOpenChange, isEditing, employees, formData, onChange, onSubmit, isCreatePending, isUpdatePending, advanceStatus }: AdvanceFormDialogProps) => {
   const isLoading = isCreatePending || isUpdatePending;
   
+  // Disable save button if editing and advance status is APPROVED
+  const isSaveDisabled = isEditing && advanceStatus === "APPROVED";
+  
   const handleSave = () => {
+    if (isSaveDisabled) return; // Guard to prevent submission
     const form = document.getElementById('advance-form') as HTMLFormElement;
     if (form) {
       form.requestSubmit();
@@ -47,6 +52,7 @@ const AdvanceFormDialog = ({ open, onOpenChange, isEditing, employees, formData,
       onSave={handleSave}
       saveText={isEditing ? "Update" : "Create"}
       cancelText="Cancel"
+      disabled={isSaveDisabled}
     >
       <form id="advance-form" onSubmit={onSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
