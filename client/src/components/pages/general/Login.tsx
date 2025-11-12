@@ -339,7 +339,7 @@ const Login = () => {
             Empowering Education Through Technology
           </p> */}
           <p className="text-xs text-white/70">
-            © 2025 Velonex - Powered by{" "}
+            © 2025 Velonex - Made with 🤍 by{" "}
             <a
               href="https://www.smdigitalx.com"
               target="_blank"
