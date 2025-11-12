@@ -21,7 +21,6 @@ interface PayrollWithEmployee extends Omit<PayrollRead, 'payroll_month'> {
 interface EmployeePayrollTableProps {
   payrolls: PayrollWithEmployee[];
   isLoading: boolean;
-  onAddPayroll?: () => void;
   onEditPayroll: (payroll: PayrollWithEmployee) => void;
   onViewPayslip: (payroll: PayrollWithEmployee) => void;
   getStatusColor: (status: string) => string;
@@ -31,7 +30,6 @@ interface EmployeePayrollTableProps {
 export const EmployeePayrollTable = ({
   payrolls,
   isLoading,
-  onAddPayroll,
   onEditPayroll,
   onViewPayslip,
   getStatusColor,
@@ -124,9 +122,6 @@ export const EmployeePayrollTable = ({
       title="Employee Payrolls"
       searchKey="employee_name"
       exportable={true}
-      onAdd={onAddPayroll}
-      addButtonText="Preview Payroll"
-      addButtonVariant="default"
       showActions={true}
       actionButtonGroups={actionButtonGroups}
       actionColumnHeader="Actions"

@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { EmployeeCombobox } from "@/components/ui/employee-combobox";
+import { EmployeeSelect } from "@/components/ui/employee-select";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
@@ -995,11 +995,11 @@ export default function ReservationForm({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="referred_by">Referred By</Label>
-                  <EmployeeCombobox
+                  <EmployeeSelect
                     value={form.referred_by.toString()}
                     onValueChange={(value) => {
                       if (import.meta.env.DEV) {
-                        console.log("EmployeeCombobox value changed:", value);
+                        console.log("EmployeeSelect value changed:", value);
                       }
                       setForm({ ...form, referred_by: Number(value) });
                     }}

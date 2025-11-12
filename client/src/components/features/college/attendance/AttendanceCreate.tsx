@@ -52,7 +52,20 @@ export default function AttendanceCreate() {
       setBulkWorkingDays(1);
       setConfirmOpen(false);
     } catch (err: any) {
-      // Error toast handled by mutation hook
+      // Check for "No records created" error
+      const errorDetail = err?.response?.data?.detail;
+      if (errorDetail?.message && errorDetail.message.includes("No records created")) {
+        const skippedCount = errorDetail.skipped_enrollment_ids?.length || 0;
+        const totalRequested = errorDetail.total_requested || 0;
+        
+        // Show informational message (not an error)
+        toast({
+          title: 'No Records Created',
+          description: `${errorDetail.message} ${skippedCount > 0 ? `(${skippedCount} out of ${totalRequested} enrollment${totalRequested !== 1 ? 's' : ''} already have attendance records for this month.)` : ''}`,
+          variant: 'default',
+        });
+      }
+      // Note: Other errors are handled by mutation hook's onError
       setConfirmOpen(false);
     }
   };

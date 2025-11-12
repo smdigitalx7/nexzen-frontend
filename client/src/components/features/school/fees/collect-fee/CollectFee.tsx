@@ -1,9 +1,14 @@
-import { useState, useRef, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, useSearch } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, User, GraduationCap, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { CollectFeeSearch } from "./CollectFeeSearch";
-import { SchoolMultiplePaymentForm } from "../multiple-payment/SchoolMultiplePaymentForm";
+import { MultiplePaymentForm } from "@/components/shared/payment/multiple-payment/MultiplePaymentForm";
+import { schoolPaymentConfig } from "@/components/shared/payment/config/PaymentConfig";
 import type {
   StudentInfo,
   FeeBalance,
@@ -41,13 +46,8 @@ export const CollectFee = ({
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const search = useSearch();
-  const [selectedStudent, setSelectedStudent] =
-    useState<StudentFeeDetails | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [paymentMode, setPaymentMode] = useState<"single" | "multiple">(
-    "multiple"
-  );
-  const paymentSuccessRef = useRef<string | null>(null); // Store admission number for re-search
+  const [selectedStudent, setSelectedStudent] = useState<StudentFeeDetails | null>(null);
+  const paymentSuccessRef = useRef<string | null>(null);
   const hasInitializedRef = useRef(false);
 
   // Parse URL search parameters
@@ -55,51 +55,49 @@ export const CollectFee = ({
   const admissionNoFromUrl = searchParams.get("admission_no");
 
   // Update URL with admission number
-  const updateUrlWithAdmission = (admissionNo: string) => {
+  const updateUrlWithAdmission = useCallback((admissionNo: string) => {
     const newSearchParams = new URLSearchParams(search);
     newSearchParams.set("admission_no", admissionNo);
     const newSearch = newSearchParams.toString();
     navigate(`${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`, {
       replace: true,
     });
-  };
+  }, [search, navigate]);
 
   // Remove admission number from URL
-  const removeAdmissionFromUrl = () => {
+  const removeAdmissionFromUrl = useCallback(() => {
     const newSearchParams = new URLSearchParams(search);
     newSearchParams.delete("admission_no");
     const newSearch = newSearchParams.toString();
     navigate(`${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`, {
       replace: true,
     });
-  };
+  }, [search, navigate]);
 
-  const handleStartPayment = (studentDetails: StudentFeeDetails) => {
-    // Ensure we're in multiple payment mode
-    setPaymentMode("multiple");
+  const handleStartPayment = useCallback((studentDetails: StudentFeeDetails) => {
     setSelectedStudent(studentDetails);
-    setIsFormOpen(true);
-    paymentSuccessRef.current = null; // Reset payment success flag
-  };
+    paymentSuccessRef.current = null;
+    if (studentDetails?.enrollment?.admission_no) {
+      setTimeout(
+        () => updateUrlWithAdmission(studentDetails.enrollment.admission_no),
+        0
+      );
+    }
+  }, [updateUrlWithAdmission]);
 
-  const handlePaymentComplete = () => {
-    // Refresh data or show success message
+  const handleBackToSearch = useCallback(() => {
     setSelectedStudent(null);
-    setIsFormOpen(false);
-  };
+    removeAdmissionFromUrl();
+  }, [removeAdmissionFromUrl]);
 
-  // Search student function (reusable for both initial search and re-search)
-  const searchStudent = async (admissionNo: string, showToast = true) => {
+  // Search student function
+  const searchStudent = useCallback(async (admissionNo: string, showToast = true) => {
     try {
-      // Update search query and URL
       setSearchQuery(admissionNo);
-      // Update URL separately to avoid dependency issues
       setTimeout(() => updateUrlWithAdmission(admissionNo), 0);
 
-      // Use enrollment endpoint to get enrollment data
       const enrollment = await EnrollmentsService.getByAdmission(admissionNo);
       
-      // Fetch tuition and transport balances using enrollment_id
       const [tuitionBalance, transportBalance] = await Promise.all([
         SchoolTuitionFeeBalancesService.getById(enrollment.enrollment_id).catch(() => null),
         SchoolTransportFeeBalancesService.getById(enrollment.enrollment_id).catch(() => null)
@@ -131,12 +129,12 @@ export const CollectFee = ({
         });
       }
     }
-  };
+  }, [setSearchQuery, updateUrlWithAdmission, setSearchResults, toast]);
 
   // Re-search the student after successful payment
-  const reSearchStudent = async (admissionNo: string) => {
+  const reSearchStudent = useCallback(async (admissionNo: string) => {
     await searchStudent(admissionNo, true);
-  };
+  }, [searchStudent]);
 
   // Auto-search on mount if admission number is in URL
   useEffect(() => {
@@ -145,26 +143,23 @@ export const CollectFee = ({
       setSearchQuery(admissionNoFromUrl);
       void searchStudent(admissionNoFromUrl, false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [admissionNoFromUrl]);
+  }, [admissionNoFromUrl, searchQuery, setSearchQuery, searchStudent]);
 
-  const handleFormClose = () => {
+  const handleFormClose = useCallback(() => {
     const admissionNoToReSearch = paymentSuccessRef.current;
     setSelectedStudent(null);
-    setIsFormOpen(false);
+    removeAdmissionFromUrl();
 
-    // If payment was successful, re-search the same admission number
     if (admissionNoToReSearch) {
-      paymentSuccessRef.current = null; // Reset flag
+      paymentSuccessRef.current = null;
       void reSearchStudent(admissionNoToReSearch);
     }
-  };
+  }, [removeAdmissionFromUrl, reSearchStudent]);
 
-  const handleMultiplePaymentComplete = async (
+  const handleMultiplePaymentComplete = useCallback(async (
     paymentData: MultiplePaymentData
   ) => {
     try {
-      // Transform data for the specialized API
       const apiPayload = {
         details: paymentData.details.map((detail) => ({
           purpose: detail.purpose as
@@ -184,21 +179,15 @@ export const CollectFee = ({
         remarks: paymentData.remarks || undefined,
       };
 
-      // Use the specialized API function that handles income_id extraction and receipt generation
       const result = await handlePayByAdmissionWithIncomeId(
         paymentData.admissionNo,
         apiPayload
       );
 
-      // Handle successful payment
-
-      // Store admission number for re-search after form closes
       paymentSuccessRef.current = paymentData.admissionNo;
 
-      // Invalidate all relevant caches after payment to refresh data across the app
-      // This ensures search cards, header search, fee structures, and history are updated
+      // Invalidate caches
       try {
-        // Step 1: Clear API cache for school-related endpoints
         CacheUtils.clearByPattern(/GET:.*\/school\/student-enrollments/i);
         CacheUtils.clearByPattern(/GET:.*\/school\/students/i);
         CacheUtils.clearByPattern(/GET:.*\/school\/tuition-fee-balances/i);
@@ -208,95 +197,71 @@ export const CollectFee = ({
         console.warn('Failed to clear API cache:', error);
       }
 
-      // Step 2: Invalidate React Query cache for all relevant queries
-      // Invalidate students queries (affects header search and search cards)
+      // Invalidate React Query cache
       queryClient.invalidateQueries({ 
         queryKey: schoolKeys.students.root(),
         exact: false 
       }).catch(console.error);
-
-      // Invalidate enrollments queries (affects search cards)
       queryClient.invalidateQueries({ 
         queryKey: schoolKeys.enrollments.root(),
         exact: false 
       }).catch(console.error);
-
-      // Invalidate tuition fee balances (affects search cards and fee structures)
       queryClient.invalidateQueries({ 
         queryKey: schoolKeys.tuition.root(),
         exact: false 
       }).catch(console.error);
-
-      // Invalidate transport balances (affects search cards)
       queryClient.invalidateQueries({ 
         queryKey: schoolKeys.transport.root(),
         exact: false 
       }).catch(console.error);
-
-      // Invalidate income queries (affects history)
       queryClient.invalidateQueries({ 
         queryKey: schoolKeys.income.root(),
         exact: false 
       }).catch(console.error);
 
-      // Step 3: Refetch active queries to immediately update UI
+      // Refetch active queries
       queryClient.refetchQueries({ 
         queryKey: schoolKeys.students.root(),
         type: 'active',
         exact: false 
       }).catch(console.error);
-
       queryClient.refetchQueries({ 
         queryKey: schoolKeys.enrollments.root(),
         type: 'active',
         exact: false 
       }).catch(console.error);
-
       queryClient.refetchQueries({ 
         queryKey: schoolKeys.tuition.root(),
         type: 'active',
         exact: false 
       }).catch(console.error);
-
       queryClient.refetchQueries({ 
         queryKey: schoolKeys.transport.root(),
         type: 'active',
         exact: false 
       }).catch(console.error);
-
       queryClient.refetchQueries({ 
         queryKey: schoolKeys.income.root(),
         type: 'active',
         exact: false 
       }).catch(console.error);
 
-      // Don't close the form immediately - let MultiplePaymentForm handle it after receipt modal closes
-      // setSelectedStudent(null);
-      // setIsFormOpen(false);
-
-      // Return the result so MultiplePaymentForm can extract income_id
       return result;
     } catch (error) {
       console.error("Multiple payment error:", error);
-
-      // Reset payment success flag on error
       paymentSuccessRef.current = null;
-
-      // Show error toast
       toast({
         title: "Payment Failed",
         description:
           error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
-
-      // Re-throw the error so MultiplePaymentForm can handle it
       throw error;
     }
-  };
+  }, [queryClient, toast]);
 
   // Transform existing student data to new format
-  const transformStudentData = (
+  const transformStudentData = useCallback((
     studentDetails: StudentFeeDetails
   ): { student: StudentInfo; feeBalances: FeeBalance } => {
     const student: StudentInfo = {
@@ -304,7 +269,7 @@ export const CollectFee = ({
       admissionNo: studentDetails.enrollment.admission_no,
       name: studentDetails.enrollment.student_name,
       className: studentDetails.tuitionBalance?.class_name || "N/A",
-      academicYear: "2025-2026", // Enrollment doesn't have academic year, use default
+      academicYear: "2025-2026",
     };
 
     const feeBalances: FeeBalance = {
@@ -371,39 +336,16 @@ export const CollectFee = ({
     };
 
     return { student, feeBalances };
-  };
+  }, []);
 
   return (
     <div className="space-y-6">
-      {/* <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
-      >
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Collect Fee</h1>
-          <p className="text-muted-foreground">
-            Search for students and collect fee payments with receipt generation
-          </p>
-        </div>
-      </motion.div> */}
-
-      {/* Show search only when form is NOT open */}
-      {!isFormOpen && (
+      {/* Search Section - Only show when no student selected */}
+      {!selectedStudent && (
         <CollectFeeSearch
           onStudentSelected={() => {}}
-          paymentMode={paymentMode}
-          onStartPayment={(studentDetails) => {
-            handleStartPayment(studentDetails);
-            // Update URL when starting payment
-            if (studentDetails?.enrollment?.admission_no) {
-              setTimeout(
-                () =>
-                  updateUrlWithAdmission(studentDetails.enrollment.admission_no),
-                0
-              );
-            }
-          }}
+          paymentMode="multiple"
+          onStartPayment={handleStartPayment}
           searchResults={searchResults}
           setSearchResults={setSearchResults}
           searchQuery={searchQuery}
@@ -411,21 +353,63 @@ export const CollectFee = ({
         />
       )}
 
-      {/* Multiple Payment Form - Renders when student is selected */}
-      {selectedStudent && isFormOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="space-y-6"
-        >
-          <SchoolMultiplePaymentForm
-            {...transformStudentData(selectedStudent)}
-            onPaymentComplete={handleMultiplePaymentComplete}
-            onCancel={handleFormClose}
-          />
-        </motion.div>
-      )}
+      {/* Payment Form - Show directly on page when student is selected */}
+      <AnimatePresence mode="wait">
+        {selectedStudent && (
+          <motion.div
+            key="payment-form"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            {/* Back Button & Student Info Header */}
+            <div className="flex items-center justify-between">
+              <Button
+                variant="ghost"
+                onClick={handleBackToSearch}
+                className="gap-2 text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Search
+              </Button>
+            </div>
+
+            {/* Student Information Card - Professional */}
+            <Card className="border border-gray-200 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <CardTitle className="text-lg font-semibold text-gray-900">
+                        {selectedStudent.enrollment.student_name}
+                      </CardTitle>
+                      <p className="text-sm text-gray-600 mt-0.5">
+                        Admission: {selectedStudent.enrollment.admission_no}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-base font-medium text-gray-900">
+                      {selectedStudent.tuitionBalance?.class_name || "N/A"}
+                    </p>
+                    <p className="text-sm text-gray-500">2025-2026</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Payment Form - Inline on page */}
+            <MultiplePaymentForm
+              {...transformStudentData(selectedStudent)}
+              config={schoolPaymentConfig}
+              onPaymentComplete={handleMultiplePaymentComplete}
+              onCancel={handleFormClose}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

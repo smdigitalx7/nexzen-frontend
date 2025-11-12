@@ -18,14 +18,43 @@ export function useMutationWithToast<TData = unknown, TError = unknown, TVariabl
       mutationOptions.onSuccess?.(data, variables, onMutateResult, context);
     },
     onError: (error: TError, variables: TVariables, onMutateResult: TContext | undefined, context: any) => {
-      // Show error toast
-      const errorMessage = 
-        (error as any)?.response?.data?.detail || 
-        (error as any)?.message || 
-        'An error occurred';
+      // Extract error message from various possible structures
+      // Check both error.data (from our API layer) and error.response.data (from axios/fetch wrappers)
+      const errorData = (error as any)?.data || (error as any)?.response?.data;
+      const errorDetail = errorData?.detail;
+      const errorMsg = (error as any)?.message;
+      let errorMessage: string;
+      
+      // Handle case where detail is an object with a message property
+      if (errorDetail && typeof errorDetail === 'object') {
+        if ('message' in errorDetail && typeof errorDetail.message === 'string') {
+          errorMessage = errorDetail.message;
+          // Add additional context if available for "No records created" messages
+          if (errorMessage.includes('No records created') || errorMessage.includes('already exist')) {
+            // Add additional context if available
+            const skippedCount = errorDetail.skipped_enrollment_ids?.length || 0;
+            const totalRequested = errorDetail.total_requested || 0;
+            if (skippedCount > 0 && totalRequested > 0) {
+              errorMessage = `${errorMessage} (${skippedCount} out of ${totalRequested} enrollment${totalRequested !== 1 ? 's' : ''} already have attendance records for this month.)`;
+            }
+          }
+        } else {
+          // If detail is an object but no message, try to stringify it safely
+          errorMessage = JSON.stringify(errorDetail);
+        }
+      } else if (typeof errorDetail === 'string') {
+        errorMessage = errorDetail;
+      } else if (errorData?.message && typeof errorData.message === 'string') {
+        errorMessage = errorData.message;
+      } else if (errorMsg && typeof errorMsg === 'string' && errorMsg !== '[object Object]') {
+        // Use error.message only if it's a valid string and not the object string representation
+        errorMessage = errorMsg;
+      } else {
+        errorMessage = 'An error occurred';
+      }
       
       toast({
-        title: 'Error',
+        title: errorMessage.includes('No records created') ? 'No Records Created' : 'Error',
         description: errorMessage,
         variant: 'destructive',
       });
@@ -68,14 +97,43 @@ export function useMutationWithSuccessToast<TData = unknown, TError = unknown, T
       mutationOptions.onSuccess?.(data, variables, onMutateResult, context);
     },
     onError: (error: TError, variables: TVariables, onMutateResult: TContext | undefined, context: any) => {
-      // Show error toast
-      const errorMessage = 
-        (error as any)?.response?.data?.detail || 
-        (error as any)?.message || 
-        'An error occurred';
+      // Extract error message from various possible structures
+      // Check both error.data (from our API layer) and error.response.data (from axios/fetch wrappers)
+      const errorData = (error as any)?.data || (error as any)?.response?.data;
+      const errorDetail = errorData?.detail;
+      const errorMsg = (error as any)?.message;
+      let errorMessage: string;
+      
+      // Handle case where detail is an object with a message property
+      if (errorDetail && typeof errorDetail === 'object') {
+        if ('message' in errorDetail && typeof errorDetail.message === 'string') {
+          errorMessage = errorDetail.message;
+          // Add additional context if available for "No records created" messages
+          if (errorMessage.includes('No records created') || errorMessage.includes('already exist')) {
+            // Add additional context if available
+            const skippedCount = errorDetail.skipped_enrollment_ids?.length || 0;
+            const totalRequested = errorDetail.total_requested || 0;
+            if (skippedCount > 0 && totalRequested > 0) {
+              errorMessage = `${errorMessage} (${skippedCount} out of ${totalRequested} enrollment${totalRequested !== 1 ? 's' : ''} already have attendance records for this month.)`;
+            }
+          }
+        } else {
+          // If detail is an object but no message, try to stringify it safely
+          errorMessage = JSON.stringify(errorDetail);
+        }
+      } else if (typeof errorDetail === 'string') {
+        errorMessage = errorDetail;
+      } else if (errorData?.message && typeof errorData.message === 'string') {
+        errorMessage = errorData.message;
+      } else if (errorMsg && typeof errorMsg === 'string' && errorMsg !== '[object Object]') {
+        // Use error.message only if it's a valid string and not the object string representation
+        errorMessage = errorMsg;
+      } else {
+        errorMessage = 'An error occurred';
+      }
       
       toast({
-        title: 'Error',
+        title: errorMessage.includes('No records created') ? 'No Records Created' : 'Error',
         description: errorMessage,
         variant: 'destructive',
       });

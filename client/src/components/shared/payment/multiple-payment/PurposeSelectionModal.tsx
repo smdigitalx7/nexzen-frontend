@@ -3,20 +3,22 @@
  * Allows users to select payment purpose for multiple payment form
  */
 
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, GraduationCap, Truck, Plus, AlertCircle, Star } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import React from "react";
+import { BookOpen, GraduationCap, Truck, Plus } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import type { PurposeSelectionProps, PaymentPurpose } from '../types/PaymentTypes';
-import { getAllFeePurposeAvailability } from '../validation/PaymentValidation';
+} from "@/components/ui/dialog";
+import type {
+  PurposeSelectionProps,
+  PaymentPurpose,
+} from "../types/PaymentTypes";
+import { getAllFeePurposeAvailability } from "../validation/PaymentValidation";
 
 const purposeConfig = {
   BOOK_FEE: {
@@ -38,9 +40,10 @@ const purposeConfig = {
   TRANSPORT_FEE: {
     label: "Transport Fee",
     icon: Truck,
-    description: 'Transport payments', // Description will be set dynamically based on institutionType
-    color: 'bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100',
-    disabledColor: 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed'
+    description: "Transport payments", // Description will be set dynamically based on institutionType
+    color: "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100",
+    disabledColor:
+      "bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed",
   },
   OTHER: {
     label: "Other",
@@ -79,8 +82,9 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
     // Check if purpose is available based on balances
     const availability = feeAvailability[purpose];
     // Check if there's outstanding amount - if there is, allow it even if book fee is pending
-    const hasOutstandingAmount = availability?.outstandingAmount && availability.outstandingAmount > 0;
-    
+    const hasOutstandingAmount =
+      availability?.outstandingAmount && availability.outstandingAmount > 0;
+
     // Only block if availability is false AND there's no outstanding amount
     if (availability && !availability.available && !hasOutstandingAmount) {
       return; // Don't allow selection if not available due to balance constraints and no outstanding
@@ -94,10 +98,10 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
       if (hasExistingItems) {
         return; // Don't allow selection if items already exist for this purpose
       }
-      
+
       // For colleges, skip term check (use total outstanding amount instead)
       // For schools, check if terms are available OR if there's outstanding amount
-      if (institutionType !== 'college') {
+      if (institutionType !== "college") {
         const availableTerms = getAvailableTerms(purpose);
         // Allow if there are terms available OR if there's outstanding amount
         if (availableTerms.length === 0 && !hasOutstandingAmount) {
@@ -181,39 +185,44 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
     const availability = feeAvailability[purpose];
     // Check if there's outstanding amount - if there is, allow it even if book fee is pending
     // (book fee requirement is just a warning, not a hard block)
-    const hasOutstandingAmount = availability?.outstandingAmount !== undefined && availability.outstandingAmount > 0;
-    const balanceAvailable = !availability || availability.available || hasOutstandingAmount;
+    const hasOutstandingAmount =
+      availability?.outstandingAmount !== undefined &&
+      availability.outstandingAmount > 0;
+    const balanceAvailable =
+      !availability || availability.available || hasOutstandingAmount;
 
     // For tuition/transport fees, check if any terms are available AND no items exist for this purpose
-    if (purpose === 'TUITION_FEE' || purpose === 'TRANSPORT_FEE') {
-      const hasExistingItems = paymentItems.some(item => item.purpose === purpose);
-      
+    if (purpose === "TUITION_FEE" || purpose === "TRANSPORT_FEE") {
+      const hasExistingItems = paymentItems.some(
+        (item) => item.purpose === purpose
+      );
+
       // If there are existing items for this purpose, don't allow adding more
       if (hasExistingItems) {
         return false;
       }
-      
+
       // For colleges: Book fee must be paid first before tuition/transport can be selected
       // For schools: Allow if there are outstanding amounts (book fee is just a warning)
-      if (institutionType === 'college') {
+      if (institutionType === "college") {
         // College: Check if book fee is pending and not added
         if (bookFeeRequired) {
           return false; // Disable if book fee is required
         }
         // College: Allow only if book fee is paid and there are outstanding amounts
-        if (purpose === 'TUITION_FEE') {
+        if (purpose === "TUITION_FEE") {
           const availableTerms = getAvailableTerms(purpose);
           return availableTerms.length > 0 || hasOutstandingAmount;
-        } else if (purpose === 'TRANSPORT_FEE') {
+        } else if (purpose === "TRANSPORT_FEE") {
           // For colleges, getAvailableTerms returns empty array (no terms), so rely on outstanding amount
           return hasOutstandingAmount;
         }
       } else {
         // School: Allow if there are outstanding amounts (book fee is just a warning)
-        if (purpose === 'TUITION_FEE') {
+        if (purpose === "TUITION_FEE") {
           const availableTerms = getAvailableTerms(purpose);
           return availableTerms.length > 0 || hasOutstandingAmount;
-        } else if (purpose === 'TRANSPORT_FEE') {
+        } else if (purpose === "TRANSPORT_FEE") {
           const availableTerms = getAvailableTerms(purpose);
           return availableTerms.length > 0 || hasOutstandingAmount;
         }
@@ -230,220 +239,196 @@ export const PurposeSelectionModal: React.FC<PurposeSelectionProps> = ({
     if (availability && !availability.available) {
       return availability.reason;
     }
-    
-      // For tuition/transport fees, check if no terms are available or if items already exist
-      if (purpose === 'TUITION_FEE' || purpose === 'TRANSPORT_FEE') {
-        const hasExistingItems = paymentItems.some(item => item.purpose === purpose);
-        if (hasExistingItems) {
-          return 'Already added';
-        }
-        
-        // For colleges, availability is checked via feeAvailability (total outstanding)
-        // For schools, check if terms are available
-        if (institutionType !== 'college') {
-          const availableTerms = getAvailableTerms(purpose);
-          if (availableTerms.length === 0) {
-            return 'No outstanding amounts';
-          }
+
+    // For tuition/transport fees, check if no terms are available or if items already exist
+    if (purpose === "TUITION_FEE" || purpose === "TRANSPORT_FEE") {
+      const hasExistingItems = paymentItems.some(
+        (item) => item.purpose === purpose
+      );
+      if (hasExistingItems) {
+        return "Already added";
+      }
+
+      // For colleges, availability is checked via feeAvailability (total outstanding)
+      // For schools, check if terms are available
+      if (institutionType !== "college") {
+        const availableTerms = getAvailableTerms(purpose);
+        if (availableTerms.length === 0) {
+          return "No outstanding amounts";
         }
       }
-    
+    }
+
     return null;
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0 sm:rounded-2xl">
+        <DialogHeader className="px-5 pt-5 pb-3 flex-shrink-0 border-b border-gray-200">
           <DialogTitle className="text-lg font-semibold text-gray-900">
             Add Payment Item
           </DialogTitle>
-          <DialogDescription className="text-sm text-gray-600 mt-2">
+          <DialogDescription className="text-sm text-gray-600 mt-1">
             Select the type of payment you want to add to this transaction.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
+        <div className="flex-1 overflow-y-auto scrollbar-hide px-5 py-4">
           <div className="space-y-4">
-          {/* Book Fee Required Warning - Simplified */}
-          {bookFeeRequired && (
-            <div className="border border-gray-300 bg-gray-50 rounded-lg p-3">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-gray-600" />
-                <div className="text-sm">
-                  <p className="font-medium text-gray-900">
-                    Book Fee Required First
-                  </p>
-                  <p className="text-gray-700 text-xs mt-0.5">
-                    You must complete the book fee payment before adding other
-                    payment types.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+            {/* Purpose Selection Grid - Simplified */}
+            <div className="grid grid-cols-2 gap-3">
+              {Object.entries(purposeConfig).map(([purpose, config]) => {
+                const purposeKey = purpose as PaymentPurpose;
+                const PurposeIcon = config.icon;
+                const isAdded = isPurposeAdded(purposeKey);
+                const isAvailable = isPurposeAvailable(purposeKey);
+                const isDisabled = !isAvailable;
+                const disabledReason = getPurposeDisabledReason(purposeKey);
+                const availability = feeAvailability[purposeKey];
 
-          {/* Purpose Selection Grid - Simplified */}
-          <div className="grid grid-cols-2 gap-3">
-            {Object.entries(purposeConfig).map(([purpose, config]) => {
-              const purposeKey = purpose as PaymentPurpose;
-              const PurposeIcon = config.icon;
-              const isAdded = isPurposeAdded(purposeKey);
-              const isAvailable = isPurposeAvailable(purposeKey);
-              const isDisabled = !isAvailable;
-              const disabledReason = getPurposeDisabledReason(purposeKey);
-              const availability = feeAvailability[purposeKey];
-              
-              // Get dynamic description based on institution type
-              const getDescription = () => {
-                if (purposeKey === 'TRANSPORT_FEE') {
-                  return institutionType === 'college' ? 'Monthly transport payments' : 'Term-based transport payments';
-                }
-                return config.description;
-              };
+                // Get dynamic description based on institution type
+                const getDescription = () => {
+                  if (purposeKey === "TRANSPORT_FEE") {
+                    return institutionType === "college"
+                      ? "Monthly transport payments"
+                      : "Term-based transport payments";
+                  }
+                  return config.description;
+                };
 
-              return (
-                <motion.div
-                  key={purpose}
-                  whileHover={!isDisabled ? { scale: 1.02 } : {}}
-                  whileTap={!isDisabled ? { scale: 0.98 } : {}}
-                >
+                return (
                   <Card
-                    className={`transition-all duration-200 min-h-[140px] ${
+                    key={purpose}
+                    className={`relative transition-all duration-200 min-h-[140px] border ${
                       isDisabled
-                        ? "bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed pointer-events-none"
+                        ? "bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed pointer-events-none opacity-60"
                         : purposeKey === "BOOK_FEE" && bookFeeRequired
-                          ? "bg-white border-2 border-gray-400 text-gray-900 hover:border-gray-500 hover:shadow-sm cursor-pointer"
-                          : "bg-white border border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm cursor-pointer"
+                          ? "bg-white border-2 border-amber-400 text-gray-900 hover:border-amber-500 hover:shadow-sm cursor-pointer"
+                          : "bg-white border border-gray-200 text-gray-700 hover:border-blue-300 hover:shadow-sm cursor-pointer"
                     }`}
-                    onClick={() => !isDisabled && handlePurposeClick(purposeKey)}
+                    onClick={() =>
+                      !isDisabled && handlePurposeClick(purposeKey)
+                    }
                     title={disabledReason || undefined}
                   >
+                    {/* Required First Badge - Top Right Corner */}
+                    {purposeKey === "BOOK_FEE" && bookFeeRequired && (
+                      <div className="absolute top-2 right-2">
+                        <Badge className="text-xs bg-amber-100 text-amber-800 border-amber-200 font-medium px-1.5 py-0">
+                          Required First
+                        </Badge>
+                      </div>
+                    )}
                     <CardContent className="p-4 text-center">
                       <div className="flex flex-col items-center space-y-2.5">
                         <div
-                          className={`p-2.5 rounded-lg ${isDisabled ? "bg-gray-100" : "bg-gray-100"}`}
+                          className={`p-2.5 rounded-lg transition-colors ${
+                            isDisabled
+                              ? "bg-gray-100"
+                              : purposeKey === "BOOK_FEE" && bookFeeRequired
+                                ? "bg-amber-100"
+                                : purposeKey === "BOOK_FEE"
+                                  ? "bg-blue-50"
+                                  : purposeKey === "TUITION_FEE"
+                                    ? "bg-green-50"
+                                    : purposeKey === "TRANSPORT_FEE"
+                                      ? "bg-orange-50"
+                                      : "bg-purple-50"
+                          }`}
                         >
                           <PurposeIcon
-                            className={`h-6 w-6 ${isDisabled ? "text-gray-400" : "text-gray-600"}`}
+                            className={`h-6 w-6 ${
+                              isDisabled
+                                ? "text-gray-400"
+                                : purposeKey === "BOOK_FEE" && bookFeeRequired
+                                  ? "text-amber-600"
+                                  : purposeKey === "BOOK_FEE"
+                                    ? "text-blue-600"
+                                    : purposeKey === "TUITION_FEE"
+                                      ? "text-green-600"
+                                      : purposeKey === "TRANSPORT_FEE"
+                                        ? "text-orange-600"
+                                        : "text-purple-600"
+                            }`}
                           />
                         </div>
                         <div className="space-y-1.5 w-full">
-                          <div className="flex items-center justify-center gap-1">
-                            <h3
-                              className={`font-medium text-sm ${isDisabled ? "text-gray-400" : "text-gray-900"}`}
-                            >
-                              {config.label}
-                            </h3>
-                            {purposeKey === "BOOK_FEE" && bookFeeRequired && (
-                              <Star className="h-3 w-3 text-gray-600 fill-gray-300" />
-                            )}
-                          </div>
-                          <p className={`text-xs ${isDisabled ? 'opacity-50' : 'opacity-75'}`}>
+                          <h3
+                            className={`font-semibold text-sm ${isDisabled ? "text-gray-400" : "text-gray-900"}`}
+                          >
+                            {config.label}
+                          </h3>
+                          <p
+                            className={`text-xs ${isDisabled ? "text-gray-400" : "text-gray-600"}`}
+                          >
                             {getDescription()}
                           </p>
 
-                          {/* Outstanding Amount */}
+                          {/* Outstanding Amount - Large Font */}
                           {availability &&
                             availability.outstandingAmount !== undefined &&
                             availability.outstandingAmount > 0 && (
-                              <p
-                                className={`text-xs font-medium ${isDisabled ? "text-gray-400" : "text-gray-700"}`}
-                              >
-                                Outstanding: ₹
-                                {availability.outstandingAmount.toLocaleString()}
-                              </p>
+                              <div className="mt-2">
+                                <p className="text-lg font-bold text-gray-900">
+                                  ₹
+                                  {availability.outstandingAmount.toLocaleString()}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  Outstanding
+                                </p>
+                              </div>
                             )}
-
-                          {/* Book Fee Required Indicator */}
-                          {purposeKey === "BOOK_FEE" && bookFeeRequired && (
-                            <p className="text-xs font-medium text-gray-700">
-                              Required First
-                            </p>
-                          )}
                         </div>
 
                         {/* Status Badge */}
-                        <div className="w-full flex justify-center px-2 pt-1">
-                          <AnimatePresence>
-                            {isAdded && (
-                              <motion.div
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.8 }}
-                              >
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs bg-gray-100 text-gray-700 border-gray-300 whitespace-nowrap"
-                                >
-                                  ✓ Added
-                                </Badge>
-                              </motion.div>
-                            )}
-
-                            {/* {!isAvailable && disabledReason && (
-                              <motion.div
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.8 }}
-                              >
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs bg-gray-50 text-gray-500 border-gray-300 whitespace-nowrap"
-                                >
-                                  {disabledReason}
-                                </Badge>
-                              </motion.div>
-                            )} */}
-                          </AnimatePresence>
-                        </div>
+                        {isAdded && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 font-medium mt-1"
+                          >
+                            ✓ Added
+                          </Badge>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
-                </motion.div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
 
-          {/* Added Purposes Summary - Simplified */}
-          {addedPurposes.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="border border-gray-200 bg-gray-50 rounded-lg p-3"
-            >
-              <h4 className="text-xs font-medium text-gray-700 mb-2">
-                Already Added:
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {addedPurposes.map((purpose: PaymentPurpose) => {
-                  const config = purposeConfig[purpose];
-                  return (
-                    <Badge
-                      key={purpose}
-                      variant="outline"
-                      className="text-xs border-gray-300 bg-white"
-                    >
-                      {config.label}
-                    </Badge>
-                  );
-                })}
+            {/* Added Purposes Summary - Simplified */}
+            {addedPurposes.length > 0 && (
+              <div className="border border-gray-200 bg-gray-50 rounded-lg p-3">
+                <h4 className="text-xs font-medium text-gray-700 mb-2">
+                  Already Added:
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {addedPurposes.map((purpose: PaymentPurpose) => {
+                    const config = purposeConfig[purpose];
+                    return (
+                      <Badge
+                        key={purpose}
+                        variant="outline"
+                        className="text-xs border-emerald-200 bg-emerald-50 text-emerald-700 font-medium"
+                      >
+                        {config.label}
+                      </Badge>
+                    );
+                  })}
+                </div>
               </div>
-            </motion.div>
-          )}
+            )}
 
-          {/* Available Purposes Info - Simplified */}
-          {availablePurposes.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="border border-gray-200 bg-gray-50 rounded-lg p-4 text-center"
-            >
-              <p className="text-sm text-gray-600">
-                All available payment types have been added to this transaction.
-              </p>
-            </motion.div>
-          )}
+            {/* Available Purposes Info - Simplified */}
+            {availablePurposes.length === 0 && (
+              <div className="border border-gray-200 bg-gray-50 rounded-lg p-4 text-center">
+                <p className="text-sm text-gray-600">
+                  All available payment types have been added to this
+                  transaction.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

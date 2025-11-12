@@ -353,13 +353,19 @@ export const PayrollManagementTemplateComponent = () => {
                 showLabels={false}
                 className="flex-1 items-center"
               />
+              <Button
+                onClick={handleCreatePayrollClick}
+                className="ml-auto bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Preview Payroll
+              </Button>
             </div>
           </div>
           
           <EmployeePayrollTable
             payrolls={payrolls}
             isLoading={isLoading}
-            onAddPayroll={handleCreatePayrollClick}
             onEditPayroll={handleEditPayroll}
             onViewPayslip={handleViewPayslip}
             getStatusColor={getStatusColor}

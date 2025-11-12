@@ -1,19 +1,19 @@
-import React from 'react';
-import { 
-  Clock, 
-  CheckCircle, 
-  AlertTriangle, 
-  CreditCard, 
-  TrendingUp, 
+import React from "react";
+import {
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  CreditCard,
+  TrendingUp,
   Users,
   Wallet,
-  Calculator
-} from 'lucide-react';
-import { IndianRupeeIcon } from '@/components/shared/IndianRupeeIcon';
-import { StatsCard } from '@/components/shared/dashboard/StatsCard';
-import { DashboardGrid } from '@/components/shared/dashboard/DashboardGrid';
-import { PayrollDashboardStats } from '@/lib/types/general/payrolls';
-import { formatCurrency } from '@/lib/utils';
+  Calculator,
+} from "lucide-react";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
+import { StatsCard } from "@/components/shared/dashboard/StatsCard";
+import { DashboardGrid } from "@/components/shared/dashboard/DashboardGrid";
+import { PayrollDashboardStats } from "@/lib/types/general/payrolls";
+import { formatCurrency } from "@/lib/utils";
 
 interface PayrollStatsCardsProps {
   stats: PayrollDashboardStats;
@@ -120,17 +120,9 @@ export const PayrollStatsCards: React.FC<PayrollStatsCardsProps> = ({
   ];
 
   return (
-    <DashboardGrid 
-      columns={6} 
-      gap="md" 
-      className={className}
-    >
+    <DashboardGrid columns={5} gap="md" className={className}>
       {statsCards.map((stat, index) => (
-        <StatsCard
-          key={stat.title}
-          {...stat}
-          loading={loading}
-        />
+        <StatsCard key={stat.title} {...stat} loading={loading} />
       ))}
     </DashboardGrid>
   );
