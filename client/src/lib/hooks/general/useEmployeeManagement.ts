@@ -303,13 +303,16 @@ export const useEmployeeManagement = (
       await createEmployeeMutation.mutateAsync(data);
       setShowEmployeeForm(false);
       
-      // Aggressive cache invalidation for immediate UI updates
-      queryClient.removeQueries({ queryKey: employeeKeys.all });
-      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
-      await queryClient.refetchQueries({
-        queryKey: employeeKeys.byBranch(),
-        type: 'active'
-      });
+      // Optimized cache invalidation - debounced to prevent UI freezing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+        queryClient.refetchQueries({
+          queryKey: employeeKeys.byBranch(),
+          type: 'active'
+        }).catch(() => {
+          // Silently handle errors
+        });
+      }, 100);
     } catch (error) {
       console.error("Error creating employee:", error);
     }
@@ -321,13 +324,16 @@ export const useEmployeeManagement = (
       setShowEmployeeForm(false);
       setIsEditingEmployee(false);
       
-      // Aggressive cache invalidation for immediate UI updates
-      queryClient.removeQueries({ queryKey: employeeKeys.all });
-      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
-      await queryClient.refetchQueries({
-        queryKey: employeeKeys.byBranch(),
-        type: 'active'
-      });
+      // Optimized cache invalidation - debounced to prevent UI freezing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+        queryClient.refetchQueries({
+          queryKey: employeeKeys.byBranch(),
+          type: 'active'
+        }).catch(() => {
+          // Silently handle errors
+        });
+      }, 100);
     } catch (error) {
       console.error("Error updating employee:", error);
     }
@@ -338,13 +344,16 @@ export const useEmployeeManagement = (
       await deleteEmployeeMutation.mutateAsync(id);
       setShowDeleteEmployeeDialog(false);
       
-      // Aggressive cache invalidation for immediate UI updates
-      queryClient.removeQueries({ queryKey: employeeKeys.all });
-      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
-      await queryClient.refetchQueries({
-        queryKey: employeeKeys.byBranch(),
-        type: 'active'
-      });
+      // Optimized cache invalidation - debounced to prevent UI freezing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+        queryClient.refetchQueries({
+          queryKey: employeeKeys.byBranch(),
+          type: 'active'
+        }).catch(() => {
+          // Silently handle errors
+        });
+      }, 100);
     } catch (error) {
       console.error("Error deleting employee:", error);
     }
@@ -354,13 +363,14 @@ export const useEmployeeManagement = (
     try {
       await updateStatusMutation.mutateAsync({ id, status });
       
-      // Aggressive cache invalidation for immediate UI updates
-      queryClient.removeQueries({ queryKey: employeeKeys.all });
-      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
-      await queryClient.refetchQueries({
-        queryKey: employeeKeys.byBranch(),
-        type: 'active'
-      });
+      // Optimized cache invalidation - debounced to prevent UI freezing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+        queryClient.refetchQueries({
+          queryKey: employeeKeys.byBranch(),
+          type: 'active'
+        }).catch(() => {});
+      }, 100);
     } catch (error) {
       console.error("Error updating employee status:", error);
     }
@@ -374,15 +384,15 @@ export const useEmployeeManagement = (
       // Clear API cache for employee-attendances endpoints
       CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
       
-      // Aggressive cache invalidation for immediate UI updates
-      // Invalidate all attendance-related queries using the proper key structure
-      queryClient.removeQueries({ queryKey: ['employee-attendances'], exact: false });
-      queryClient.invalidateQueries({ queryKey: ['employee-attendances'], exact: false });
-      await queryClient.refetchQueries({
-        queryKey: ['employee-attendances'],
-        exact: false,
-        type: 'active'
-      });
+      // Optimized cache invalidation - debounced to prevent UI freezing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['employee-attendances'], exact: false });
+        queryClient.refetchQueries({
+          queryKey: ['employee-attendances'],
+          exact: false,
+          type: 'active'
+        }).catch(() => {});
+      }, 100);
       
       toast({
         title: "Attendance Created",
@@ -481,15 +491,15 @@ export const useEmployeeManagement = (
       // Clear API cache for employee-attendances endpoints
       CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
       
-      // Aggressive cache invalidation for immediate UI updates
-      // Invalidate all attendance-related queries using the proper key structure
-      queryClient.removeQueries({ queryKey: ['employee-attendances'], exact: false });
-      queryClient.invalidateQueries({ queryKey: ['employee-attendances'], exact: false });
-      await queryClient.refetchQueries({
-        queryKey: ['employee-attendances'],
-        exact: false,
-        type: 'active'
-      });
+      // Optimized cache invalidation - debounced to prevent UI freezing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['employee-attendances'], exact: false });
+        queryClient.refetchQueries({
+          queryKey: ['employee-attendances'],
+          exact: false,
+          type: 'active'
+        }).catch(() => {});
+      }, 100);
       
       toast({
         title: "Attendance Updated",
@@ -515,15 +525,15 @@ export const useEmployeeManagement = (
       // Clear API cache for employee-attendances endpoints
       CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
       
-      // Aggressive cache invalidation for immediate UI updates
-      // Invalidate all attendance-related queries using the proper key structure
-      queryClient.removeQueries({ queryKey: ['employee-attendances'], exact: false });
-      queryClient.invalidateQueries({ queryKey: ['employee-attendances'], exact: false });
-      await queryClient.refetchQueries({
-        queryKey: ['employee-attendances'],
-        exact: false,
-        type: 'active'
-      });
+      // Optimized cache invalidation - debounced to prevent UI freezing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['employee-attendances'], exact: false });
+        queryClient.refetchQueries({
+          queryKey: ['employee-attendances'],
+          exact: false,
+          type: 'active'
+        }).catch(() => {});
+      }, 100);
     } catch (error) {
       console.error("Error deleting attendance:", error);
     }
@@ -539,21 +549,14 @@ export const useEmployeeManagement = (
       await createLeaveMutation.mutateAsync(data);
       setShowLeaveForm(false);
       
-      // Aggressive cache invalidation for immediate UI updates
-      // Step 1: Remove query data to force fresh fetch
-      queryClient.removeQueries({ queryKey: employeeLeaveKeys.all });
-      
-      // Step 2: Invalidate all leave-related queries
-      queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
-      
-      // Step 3: Force refetch active queries
-      await queryClient.refetchQueries({
-        queryKey: employeeLeaveKeys.all,
-        type: 'active'
-      });
-      
-      // Step 4: Wait for React to process state updates
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Optimized cache invalidation - debounced to prevent UI freezing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
+        queryClient.refetchQueries({
+          queryKey: employeeLeaveKeys.all,
+          type: 'active'
+        }).catch(() => {});
+      }, 100);
     } catch (error) {
       console.error("Error creating leave:", error);
     }
@@ -565,21 +568,14 @@ export const useEmployeeManagement = (
       setShowLeaveForm(false);
       setIsEditingLeave(false);
       
-      // Aggressive cache invalidation for immediate UI updates
-      // Step 1: Remove query data to force fresh fetch
-      queryClient.removeQueries({ queryKey: employeeLeaveKeys.all });
-      
-      // Step 2: Invalidate all leave-related queries
-      queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
-      
-      // Step 3: Force refetch active queries
-      await queryClient.refetchQueries({
-        queryKey: employeeLeaveKeys.all,
-        type: 'active'
-      });
-      
-      // Step 4: Wait for React to process state updates
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Optimized cache invalidation - debounced to prevent UI freezing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
+        queryClient.refetchQueries({
+          queryKey: employeeLeaveKeys.all,
+          type: 'active'
+        }).catch(() => {});
+      }, 100);
     } catch (error) {
       console.error("Error updating leave:", error);
     }
@@ -590,21 +586,14 @@ export const useEmployeeManagement = (
       await deleteLeaveMutation.mutateAsync(id);
       setShowLeaveDeleteDialog(false);
       
-      // Aggressive cache invalidation for immediate UI updates
-      // Step 1: Remove query data to force fresh fetch
-      queryClient.removeQueries({ queryKey: employeeLeaveKeys.all });
-      
-      // Step 2: Invalidate all leave-related queries
-      queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
-      
-      // Step 3: Force refetch active queries
-      await queryClient.refetchQueries({
-        queryKey: employeeLeaveKeys.all,
-        type: 'active'
-      });
-      
-      // Step 4: Wait for React to process state updates
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Optimized cache invalidation - debounced to prevent UI freezing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
+        queryClient.refetchQueries({
+          queryKey: employeeLeaveKeys.all,
+          type: 'active'
+        }).catch(() => {});
+      }, 100);
     } catch (error) {
       console.error("Error deleting leave:", error);
     }
@@ -624,16 +613,14 @@ export const useEmployeeManagement = (
         console.warn('Failed to clear API cache:', error);
       }
       
-      // Invalidate and refetch queries asynchronously (non-blocking)
-      // This allows the UI to remain responsive
-      queryClient.removeQueries({ queryKey: employeeLeaveKeys.all });
-      queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all }).catch(console.error);
-      
-      // Refetch in background without blocking
-      queryClient.refetchQueries({
-        queryKey: employeeLeaveKeys.all,
-        type: 'active'
-      }).catch(console.error);
+      // Optimized cache invalidation - debounced to prevent UI freezing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
+        queryClient.refetchQueries({
+          queryKey: employeeLeaveKeys.all,
+          type: 'active'
+        }).catch(() => {});
+      }, 100);
     } catch (error) {
       console.error("Error approving leave:", error);
       // Ensure dialog is closed even on error
@@ -658,16 +645,14 @@ export const useEmployeeManagement = (
         console.warn('Failed to clear API cache:', error);
       }
       
-      // Invalidate and refetch queries asynchronously (non-blocking)
-      // This allows the UI to remain responsive
-      queryClient.removeQueries({ queryKey: employeeLeaveKeys.all });
-      queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all }).catch(console.error);
-      
-      // Refetch in background without blocking
-      queryClient.refetchQueries({
-        queryKey: employeeLeaveKeys.all,
-        type: 'active'
-      }).catch(console.error);
+      // Optimized cache invalidation - debounced to prevent UI freezing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
+        queryClient.refetchQueries({
+          queryKey: employeeLeaveKeys.all,
+          type: 'active'
+        }).catch(() => {});
+      }, 100);
     } catch (error) {
       console.error("Error rejecting leave:", error);
       // Ensure dialog is closed even on error
@@ -685,13 +670,14 @@ export const useEmployeeManagement = (
       await createAdvanceMutation.mutateAsync(data);
       setShowAdvanceForm(false);
       
-      // Aggressive cache invalidation for immediate UI updates
-      queryClient.removeQueries({ queryKey: advanceKeys.all });
-      queryClient.invalidateQueries({ queryKey: advanceKeys.all });
-      await queryClient.refetchQueries({
-        queryKey: advanceKeys.all,
-        type: 'active'
-      });
+      // Optimized cache invalidation - debounced to prevent UI freezing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: advanceKeys.all });
+        queryClient.refetchQueries({
+          queryKey: advanceKeys.all,
+          type: 'active'
+        }).catch(() => {});
+      }, 100);
     } catch (error) {
       console.error("Error creating advance:", error);
     }
@@ -703,13 +689,14 @@ export const useEmployeeManagement = (
       setShowAdvanceForm(false);
       setIsEditingAdvance(false);
       
-      // Aggressive cache invalidation for immediate UI updates
-      queryClient.removeQueries({ queryKey: advanceKeys.all });
-      queryClient.invalidateQueries({ queryKey: advanceKeys.all });
-      await queryClient.refetchQueries({
-        queryKey: advanceKeys.all,
-        type: 'active'
-      });
+      // Optimized cache invalidation - debounced to prevent UI freezing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: advanceKeys.all });
+        queryClient.refetchQueries({
+          queryKey: advanceKeys.all,
+          type: 'active'
+        }).catch(() => {});
+      }, 100);
     } catch (error) {
       console.error("Error updating advance:", error);
     }
@@ -726,13 +713,14 @@ export const useEmployeeManagement = (
       setAdvanceStatus("");
       setAdvanceStatusReason("");
       
-      // Aggressive cache invalidation for immediate UI updates
-      queryClient.removeQueries({ queryKey: advanceKeys.all });
-      queryClient.invalidateQueries({ queryKey: advanceKeys.all });
-      await queryClient.refetchQueries({
-        queryKey: advanceKeys.all,
-        type: 'active'
-      });
+      // Optimized cache invalidation - debounced to prevent UI freezing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: advanceKeys.all });
+        queryClient.refetchQueries({
+          queryKey: advanceKeys.all,
+          type: 'active'
+        }).catch(() => {});
+      }, 100);
     } catch (error) {
       console.error("Error updating advance status:", error);
     }
@@ -747,13 +735,14 @@ export const useEmployeeManagement = (
       });
       setShowAdvanceAmountDialog(false);
       
-      // Aggressive cache invalidation for immediate UI updates
-      queryClient.removeQueries({ queryKey: advanceKeys.all });
-      queryClient.invalidateQueries({ queryKey: advanceKeys.all });
-      await queryClient.refetchQueries({
-        queryKey: advanceKeys.all,
-        type: 'active'
-      });
+      // Optimized cache invalidation - debounced to prevent UI freezing
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: advanceKeys.all });
+        queryClient.refetchQueries({
+          queryKey: advanceKeys.all,
+          type: 'active'
+        }).catch(() => {});
+      }, 100);
     } catch (error) {
       console.error("Error updating advance amount:", error);
     }
