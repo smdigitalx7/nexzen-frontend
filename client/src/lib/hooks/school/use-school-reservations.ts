@@ -8,6 +8,7 @@ import type {
 } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
+import { invalidateAndRefetch } from "../common/useGlobalRefetch";
 
 export function useSchoolReservationsList(params?: {
   page?: number;
@@ -45,45 +46,39 @@ export function useSchoolReservation(reservationId: number | null | undefined) {
 }
 
 export function useCreateSchoolReservation() {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolReservationCreate) => SchoolReservationsService.create(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() }).catch(console.error);
-      qc.refetchQueries({ queryKey: schoolKeys.reservations.root(), type: 'active' }).catch(console.error);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(schoolKeys.reservations.root());
     },
   }, "Reservation created successfully");
 }
 
 export function useUpdateSchoolReservation(reservationId: number) {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (form: FormData) =>
       SchoolReservationsService.update(reservationId, form),
     onSuccess: () => {
-      qc.invalidateQueries({
-        queryKey: schoolKeys.reservations.detail(reservationId),
-      }).catch(console.error);
-      qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() }).catch(console.error);
-      qc.refetchQueries({ queryKey: schoolKeys.reservations.root(), type: 'active' }).catch(console.error);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(schoolKeys.reservations.detail(reservationId));
+      invalidateAndRefetch(schoolKeys.reservations.root());
     },
   }, "Reservation updated successfully");
 }
 
 export function useDeleteSchoolReservation() {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (reservationId: number) =>
       SchoolReservationsService.delete(reservationId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() }).catch(console.error);
-      qc.refetchQueries({ queryKey: schoolKeys.reservations.root(), type: 'active' }).catch(console.error);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(schoolKeys.reservations.root());
     },
   }, "Reservation deleted successfully");
 }
 
 export function useUpdateSchoolReservationStatus(reservationId: number) {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: ({
       status,
@@ -94,22 +89,9 @@ export function useUpdateSchoolReservationStatus(reservationId: number) {
     }) =>
       SchoolReservationsService.updateStatus(reservationId, status, remarks),
     onSuccess: () => {
-      // Invalidate specific reservation detail
-      qc.invalidateQueries({
-        queryKey: schoolKeys.reservations.detail(reservationId),
-      }).catch(console.error);
-      
-      // Invalidate all reservation queries (list, detail, dashboard, recent)
-      qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() }).catch(console.error);
-      
-      // Refetch ALL reservation queries (list, detail, dashboard, recent)
-      qc.refetchQueries({ 
-        queryKey: schoolKeys.reservations.root(), 
-        exact: false 
-      }).catch(console.error);
-      
-      // Refetch all active reservation queries
-      qc.refetchQueries({ queryKey: schoolKeys.reservations.root(), type: 'active' }).catch(console.error);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(schoolKeys.reservations.detail(reservationId));
+      invalidateAndRefetch(schoolKeys.reservations.root());
     },
   }, "Reservation status updated successfully");
 }
@@ -133,27 +115,13 @@ export function useSchoolReservationsRecent(limit?: number) {
 }
 
 export function useUpdateSchoolReservationConcession(reservationId: number) {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: any) =>
       SchoolReservationsService.updateConcession(reservationId, payload),
     onSuccess: () => {
-      // Invalidate specific reservation detail
-      qc.invalidateQueries({
-        queryKey: schoolKeys.reservations.detail(reservationId),
-      }).catch(console.error);
-      
-      // Invalidate all reservation queries (list, detail, dashboard, recent)
-      qc.invalidateQueries({ queryKey: schoolKeys.reservations.root() }).catch(console.error);
-      
-      // Refetch ALL reservation queries (list, detail, dashboard, recent)
-      qc.refetchQueries({ 
-        queryKey: schoolKeys.reservations.root(), 
-        exact: false 
-      }).catch(console.error);
-      
-      // Refetch all active reservation queries
-      qc.refetchQueries({ queryKey: schoolKeys.reservations.root(), type: 'active' }).catch(console.error);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(schoolKeys.reservations.detail(reservationId));
+      invalidateAndRefetch(schoolKeys.reservations.root());
     },
   }, "Reservation concession updated successfully");
 }

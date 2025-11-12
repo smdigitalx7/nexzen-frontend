@@ -20,11 +20,10 @@ import {
 } from "@/components/shared/payment";
 import { ReceiptPreviewModal } from "@/components/shared";
 import type { SchoolIncomeRead } from "@/lib/types/school";
-import { useQueryClient } from "@tanstack/react-query";
 import { schoolKeys } from "@/lib/hooks/school/query-keys";
 import { toast } from "@/hooks/use-toast";
 import { SchoolReservationsService } from "@/lib/services/school";
-import { CacheUtils } from "@/lib/api";
+import { invalidateAndRefetch } from "@/lib/hooks/common/useGlobalRefetch";
 
 // Helper function to format date from ISO format to YYYY-MM-DD
 const formatDate = (dateString: string | null | undefined): string => {
@@ -156,7 +155,6 @@ const AllReservationsTableComponent = ({
   onStatusFilterChange,
 }: AllReservationsTableProps) => {
   const { user } = useAuthStore();
-  const queryClient = useQueryClient();
 
   // Payment related state
   const [showPaymentProcessor, setShowPaymentProcessor] = useState(false);
@@ -522,52 +520,13 @@ const AllReservationsTableComponent = ({
                     variant: "success",
                   });
 
-                  // Run cache invalidation in background - don't block UI
-                  setTimeout(() => {
-                    const refreshData = async () => {
-                      try {
-                        // Step 1: Clear API cache
-                        try {
-                          CacheUtils.clearByPattern(
-                            /GET:.*\/school\/reservations/i
-                          );
-                        } catch (error) {
-                          console.warn("Failed to clear API cache:", error);
-                        }
+                  // Invalidate and refetch using debounced utility (prevents UI freeze)
+                  invalidateAndRefetch(schoolKeys.reservations.root());
 
-                        // Step 2: Remove queries from cache
-                        queryClient.removeQueries({
-                          queryKey: schoolKeys.reservations.root(),
-                          exact: false,
-                        });
-
-                        // Step 3: Invalidate queries
-                        await queryClient.invalidateQueries({
-                          queryKey: schoolKeys.reservations.root(),
-                          exact: false,
-                        });
-
-                        // Step 4: Refetch active queries
-                        await queryClient.refetchQueries({
-                          queryKey: schoolKeys.reservations.root(),
-                          type: "active",
-                          exact: false,
-                        });
-
-                        // Step 5: Call refetch callback
+                  // Call refetch callback if provided
                         if (onRefetch) {
-                          await onRefetch();
+                    void onRefetch();
                         }
-                      } catch (error) {
-                        console.error(
-                          "Error refreshing data after payment:",
-                          error
-                        );
-                      }
-                    };
-
-                    refreshData().catch(console.error);
-                  }, 200);
                 }}
                 onPaymentFailed={(error: string) => {
                   toast({
@@ -626,37 +585,12 @@ const AllReservationsTableComponent = ({
 
           const refreshDataAfterReceiptClose = async () => {
             try {
-              // Step 1: Clear API cache first to ensure fresh network request
-              try {
-                CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
-              } catch (error) {
-                console.warn("Failed to clear API cache:", error);
-              }
+              // Invalidate and refetch using debounced utility (prevents UI freeze)
+              invalidateAndRefetch(schoolKeys.reservations.root());
 
-              // Step 2: Remove query data to force fresh fetch
-              queryClient.removeQueries({
-                queryKey: schoolKeys.reservations.list(undefined),
-              });
-
-              // Step 3: Invalidate all reservation-related queries (non-blocking)
-              queryClient
-                .invalidateQueries({
-                  queryKey: schoolKeys.reservations.root(),
-                })
-                .catch(console.error);
-
-              // Step 4: Force refetch active queries (bypasses cache) - non-blocking
-              queryClient
-                .refetchQueries({
-                  queryKey: schoolKeys.reservations.list(undefined),
-                  type: "active",
-                  exact: false,
-                })
-                .catch(console.error);
-
-              // Step 5: Call refetch callback - non-blocking
+              // Call refetch callback if provided
               if (onRefetch) {
-                onRefetch().catch(console.error);
+                void onRefetch();
               }
             } catch (error) {
               console.error(

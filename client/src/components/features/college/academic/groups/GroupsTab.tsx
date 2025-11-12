@@ -1,5 +1,5 @@
-import { useState, memo, useMemo } from "react";
-import { Users, Edit, Trash2 } from "lucide-react";
+import { useState, memo, useMemo, useCallback } from "react";
+import { Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
@@ -124,7 +124,7 @@ export const GroupsTab = memo(({
     }
   };
 
-  const handleEditClick = (groupItem: import("@/lib/types/college").CollegeGroupResponse) => {
+  const handleEditClick = useCallback((groupItem: import("@/lib/types/college").CollegeGroupResponse) => {
     setSelectedGroup(groupItem);
     setEditGroup({ 
       group_name: groupItem.group_name, 
@@ -132,12 +132,12 @@ export const GroupsTab = memo(({
       group_fee: groupItem.group_fee 
     });
     setIsEditGroupOpen(true);
-  };
+  }, []);
 
-  const handleDeleteClick = (groupItem: any) => {
+  const handleDeleteClick = useCallback((groupItem: any) => {
     setSelectedGroup(groupItem);
     setIsDeleteDialogOpen(true);
-  };
+  }, []);
 
   // Define columns for the data table
   const columns: ColumnDef<any>[] = useMemo(() => [

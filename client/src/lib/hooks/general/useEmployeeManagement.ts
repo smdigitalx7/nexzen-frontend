@@ -4,6 +4,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useTabNavigation } from "../use-tab-navigation";
 import { toast } from "@/hooks/use-toast";
 import { CacheUtils } from "@/lib/api";
+import { invalidateAndRefetch } from "../common/useGlobalRefetch";
 import {
   useEmployeesByBranch,
   useEmployee,
@@ -123,12 +124,14 @@ export const useEmployeeManagement = (
   const { data: employees = [], isLoading, error } = useEmployeesByBranch();
   const { data: attendanceData, isLoading: attendanceLoading } =
     useAttendanceByBranch(attendanceMonth, attendanceYear);
+  // Only fetch leaves when leaves tab is active to prevent unnecessary requests and UI freezes
   const { data: leavesData, isLoading: leavesLoading, refetch: refetchLeaves } = useEmployeeLeavesByBranch(
     leaveMonth,
     leaveYear,
     pageSize,
     leavesPage,
-    undefined // leaveStatus
+    undefined, // leaveStatus
+    activeTab === 'leaves' // Only fetch when leaves tab is active
   );
 
   // Extract data from response objects
@@ -549,14 +552,8 @@ export const useEmployeeManagement = (
       await createLeaveMutation.mutateAsync(data);
       setShowLeaveForm(false);
       
-      // Optimized cache invalidation - debounced to prevent UI freezing
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
-        queryClient.refetchQueries({
-          queryKey: employeeLeaveKeys.all,
-          type: 'active'
-        }).catch(() => {});
-      }, 100);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(employeeLeaveKeys.all);
     } catch (error) {
       console.error("Error creating leave:", error);
     }
@@ -568,14 +565,8 @@ export const useEmployeeManagement = (
       setShowLeaveForm(false);
       setIsEditingLeave(false);
       
-      // Optimized cache invalidation - debounced to prevent UI freezing
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
-        queryClient.refetchQueries({
-          queryKey: employeeLeaveKeys.all,
-          type: 'active'
-        }).catch(() => {});
-      }, 100);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(employeeLeaveKeys.all);
     } catch (error) {
       console.error("Error updating leave:", error);
     }
@@ -586,14 +577,8 @@ export const useEmployeeManagement = (
       await deleteLeaveMutation.mutateAsync(id);
       setShowLeaveDeleteDialog(false);
       
-      // Optimized cache invalidation - debounced to prevent UI freezing
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
-        queryClient.refetchQueries({
-          queryKey: employeeLeaveKeys.all,
-          type: 'active'
-        }).catch(() => {});
-      }, 100);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(employeeLeaveKeys.all);
     } catch (error) {
       console.error("Error deleting leave:", error);
     }
@@ -606,21 +591,9 @@ export const useEmployeeManagement = (
       // Close dialog immediately to prevent UI freeze
       setShowLeaveApproveDialog(false);
       
-      // Clear API cache first (non-blocking)
-      try {
-        CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
-      } catch (error) {
-        console.warn('Failed to clear API cache:', error);
-      }
-      
-      // Optimized cache invalidation - debounced to prevent UI freezing
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
-        queryClient.refetchQueries({
-          queryKey: employeeLeaveKeys.all,
-          type: 'active'
-        }).catch(() => {});
-      }, 100);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      // Note: invalidateAndRefetch handles API cache clearing internally
+      invalidateAndRefetch(employeeLeaveKeys.all);
     } catch (error) {
       console.error("Error approving leave:", error);
       // Ensure dialog is closed even on error
@@ -638,21 +611,9 @@ export const useEmployeeManagement = (
       // Close dialog immediately to prevent UI freeze
       setShowLeaveRejectDialog(false);
       
-      // Clear API cache first (non-blocking)
-      try {
-        CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
-      } catch (error) {
-        console.warn('Failed to clear API cache:', error);
-      }
-      
-      // Optimized cache invalidation - debounced to prevent UI freezing
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all });
-        queryClient.refetchQueries({
-          queryKey: employeeLeaveKeys.all,
-          type: 'active'
-        }).catch(() => {});
-      }, 100);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      // Note: invalidateAndRefetch handles API cache clearing internally
+      invalidateAndRefetch(employeeLeaveKeys.all);
     } catch (error) {
       console.error("Error rejecting leave:", error);
       // Ensure dialog is closed even on error

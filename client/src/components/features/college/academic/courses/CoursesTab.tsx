@@ -1,5 +1,5 @@
-import { useState, memo, useMemo } from "react";
-import { GraduationCap, Edit, Trash2 } from "lucide-react";
+import { useState, memo, useMemo, useCallback } from "react";
+import { GraduationCap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
@@ -133,7 +133,7 @@ export const CoursesTab = memo(({
     }
   };
 
-  const handleEditClick = (courseItem: import("@/lib/types/college").CollegeCourseResponse) => {
+  const handleEditClick = useCallback((courseItem: import("@/lib/types/college").CollegeCourseResponse) => {
     setSelectedCourse(courseItem);
     setEditCourse({ 
       course_name: courseItem.course_name, 
@@ -141,12 +141,12 @@ export const CoursesTab = memo(({
       group_id: 0 // Note: group_id is not in the response, would need to be fetched separately
     });
     setIsEditCourseOpen(true);
-  };
+  }, []);
 
-  const handleDeleteClick = (courseItem: any) => {
+  const handleDeleteClick = useCallback((courseItem: any) => {
     setSelectedCourse(courseItem);
     setIsDeleteDialogOpen(true);
-  };
+  }, []);
 
   // Define columns for the data table
   const columns: ColumnDef<any>[] = useMemo(() => [

@@ -1,28 +1,15 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import {
-  Search,
-  CreditCard,
-  User,
-  GraduationCap,
-  Users,
-  BookOpen,
-  Truck,
-} from "lucide-react";
+import { Search, CreditCard, User, GraduationCap, Users, BookOpen, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
-import {
-  CollegeEnrollmentsService,
-  CollegeTuitionBalancesService,
-  CollegeTransportBalancesService,
-} from "@/lib/services/college";
-import type {
-  CollegeEnrollmentWithStudentDetails,
-  CollegeStudentTransportPaymentSummary,
-} from "@/lib/types/college";
+import { CollegeEnrollmentsService, CollegeTuitionBalancesService, CollegeTransportBalancesService } from "@/lib/services/college";
+import type { CollegeEnrollmentWithStudentDetails, CollegeStudentTransportPaymentSummary } from "@/lib/types/college";
 import type { ExpectedTransportPaymentsResponse } from "@/lib/types/college/transport-fee-balances";
 import type { CollegeTuitionFeeBalanceRead } from "@/lib/types/college/tuition-fee-balances";
 
@@ -43,74 +30,209 @@ interface CollectFeeSearchProps {
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export const CollectFeeSearch = ({
-  onStartPayment,
-  searchResults,
-  setSearchResults,
-  searchQuery,
-  setSearchQuery,
-}: CollectFeeSearchProps) => {
+export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResults, searchQuery, setSearchQuery }: CollectFeeSearchProps) => {
   const [isSearching, setIsSearching] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [suggestions, setSuggestions] = useState<Array<{ admission_no: string; student_name: string; enrollment_id: number }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-  // Direct service calls for search functionality
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-
-    // Clear previous results immediately for fresh search
+  // Handle class change - reset group and clear results
+  const handleClassChange = useCallback((value: number | null) => {
+    setSelectedClassId(value);
+    setSelectedGroupId(null);
     setSearchResults([]);
+    setSearchQuery("");
+  }, [setSearchResults, setSearchQuery]);
+
+  // Handle group change - clear results
+  const handleGroupChange = useCallback((value: number | null) => {
+    setSelectedGroupId(value);
+    setSearchResults([]);
+    setSearchQuery("");
+  }, [setSearchResults, setSearchQuery]);
+
+  // Handle search
+  const handleSearch = useCallback(async (query?: string) => {
+    const searchTerm = query || searchQuery;
+    if (!searchTerm.trim()) {
+      toast({
+        title: "Search Required",
+        description: "Please enter a student admission number or name to search.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSearching(true);
     setHasSearched(true); // Mark that a search has been performed
-
+    
     try {
       const trimmedQuery = searchQuery.trim();
       let enrollment: CollegeEnrollmentWithStudentDetails | null = null;
-
+      
       // Search by admission number using enrollment endpoint
       // Note: Name-based search fallback removed as it requires class_id and group_id (mandatory parameters)
       enrollment = await CollegeEnrollmentsService.getByAdmission(trimmedQuery);
-
+      
       if (enrollment) {
         // Fetch tuition balance, transport summary, and expected transport payments using enrollment_id
-        const [tuitionBalance, transportSummary, transportExpectedPayments] =
-          await Promise.all([
-            CollegeTuitionBalancesService.getById(
-              enrollment.enrollment_id
-            ).catch(() => null),
-            CollegeTransportBalancesService.getStudentTransportPaymentSummaryByEnrollmentId(
-              enrollment.enrollment_id
-            ).catch(() => null),
-            CollegeTransportBalancesService.getExpectedTransportPaymentsByEnrollmentId(
-              enrollment.enrollment_id
-            ).catch(() => undefined),
-          ]);
+        const [tuitionBalance, transportSummary, transportExpectedPayments] = await Promise.all([
+          CollegeTuitionBalancesService.getById(enrollment.enrollment_id).catch(() => null),
+          CollegeTransportBalancesService.getStudentTransportPaymentSummaryByEnrollmentId(enrollment.enrollment_id).catch(() => null),
+          CollegeTransportBalancesService.getExpectedTransportPaymentsByEnrollmentId(enrollment.enrollment_id).catch(() => undefined)
+        ]);
 
         const studentDetails: StudentFeeDetails = {
           enrollment,
           tuitionBalance,
           transportExpectedPayments,
-          transportSummary, // Add transport summary for outstanding calculation
+          transportSummary // Add transport summary for outstanding calculation
         };
 
         setSearchResults([studentDetails]);
-      } else {
-        setSearchResults([]);
       }
     } catch (error) {
       console.error("Search error:", error);
+      toast({
+        title: "Student Not Found",
+        description: "No student found with the provided admission number or name. Please try again.",
+        variant: "destructive",
+      });
       setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [searchQuery, setSearchResults, toast]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && searchQuery.trim()) {
-      e.preventDefault();
+  // Fetch enrollments for suggestions when class and group are selected
+  const enrollmentsApiParams = useMemo(() => {
+    if (!selectedClassId || !selectedGroupId) return undefined;
+    return {
+      class_id: selectedClassId,
+      group_id: selectedGroupId,
+    };
+  }, [selectedClassId, selectedGroupId]);
+
+  const { data: enrollmentsData } = useCollegeEnrollmentsList(enrollmentsApiParams);
+
+  // Flatten enrollments for suggestions
+  const enrollments = useMemo(() => {
+    if (!enrollmentsData?.enrollments) return [];
+    const allEnrollments: (CollegeEnrollmentRead & { class_name?: string; group_name?: string; course_name?: string })[] = [];
+    enrollmentsData.enrollments.forEach((group: any) => {
+      if (group.students && Array.isArray(group.students)) {
+        group.students.forEach((student: CollegeEnrollmentRead) => {
+          allEnrollments.push({
+            ...student,
+            class_name: group.class_name,
+            group_name: group.group_name,
+            course_name: group.course_name,
+          });
+        });
+      }
+    });
+    return allEnrollments;
+  }, [enrollmentsData]);
+
+  // Handle Enter key press
+  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      setShowSuggestions(false);
       void handleSearch();
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
     }
-  };
+  }, [handleSearch]);
+
+  // Fetch suggestions as user types
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (!debouncedSearchQuery.trim() || debouncedSearchQuery.trim().length < 2) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      setIsLoadingSuggestions(true);
+      try {
+        const query = debouncedSearchQuery.trim();
+        
+        // If class_id and group_id are selected, filter from loaded enrollments
+        if (selectedClassId && selectedGroupId && enrollments.length > 0) {
+          const filtered = enrollments.filter((enrollment) => {
+            const matchesAdmission = enrollment.admission_no?.toLowerCase().includes(query.toLowerCase());
+            const matchesName = enrollment.student_name?.toLowerCase().includes(query.toLowerCase());
+            return matchesAdmission || matchesName;
+          });
+          
+          setSuggestions(
+            filtered.slice(0, 10).map((e) => ({
+              admission_no: e.admission_no,
+              student_name: e.student_name,
+              enrollment_id: e.enrollment_id,
+            }))
+          );
+          setShowSuggestions(true);
+          setIsLoadingSuggestions(false);
+          return;
+        }
+        
+        // Try exact match by admission number (works for any length >= 3)
+        if (query.length >= 3) {
+          try {
+            const enrollment = await CollegeEnrollmentsService.getByAdmission(query);
+            setSuggestions([{
+              admission_no: enrollment.admission_no,
+              student_name: enrollment.student_name,
+              enrollment_id: enrollment.enrollment_id,
+            }]);
+            setShowSuggestions(true);
+          } catch {
+            setSuggestions([]);
+          }
+        } else {
+          setSuggestions([]);
+        }
+      } catch (error) {
+        // Silently fail for suggestions
+        setSuggestions([]);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    };
+
+    void fetchSuggestions();
+  }, [debouncedSearchQuery, selectedClassId, selectedGroupId, enrollments]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        searchInputRef.current &&
+        !searchInputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Handle suggestion selection
+  const handleSuggestionSelect = useCallback((suggestion: { admission_no: string; student_name: string; enrollment_id: number }) => {
+    setSearchQuery(suggestion.admission_no);
+    setShowSuggestions(false);
+    // Trigger search automatically when suggestion is selected
+    void handleSearch(suggestion.admission_no);
+  }, [setSearchQuery, handleSearch]);
 
   const getTotalOutstanding = useCallback(
     (studentDetails: StudentFeeDetails) => {
@@ -248,13 +370,13 @@ export const CollectFeeSearch = ({
   );
 
   return (
-    <div className="space-y-6 ">
-      {/* Search Section */}
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-center gap-2">
-            <Search className="h-5 w-5" />
-            Search Student for Fee Collection
+    <div className="space-y-6">
+      {/* Student Selection Section with Dropdowns */}
+      <Card className="w-full border-2 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center justify-center gap-2 text-xl">
+            <User className="h-5 w-5 text-blue-600" />
+            Select Student for Fee Collection
           </CardTitle>
         </CardHeader>
         <CardContent className="w-full px-6">
@@ -276,11 +398,11 @@ export const CollectFeeSearch = ({
                   className="w-full h-12"
                 />
               </div>
-              <Button
+              <Button 
                 onClick={() => {
                   // Force fresh search even if same query
                   void handleSearch();
-                }}
+                }} 
                 disabled={isSearching || !searchQuery.trim()}
                 className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap h-12 px-4"
               >
@@ -288,9 +410,6 @@ export const CollectFeeSearch = ({
                 {isSearching ? "Searching..." : "Search"}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground text-center ">
-              Press Enter to search or click the Search button
-            </p>
           </div>
         </CardContent>
       </Card>
@@ -663,22 +782,6 @@ export const CollectFeeSearch = ({
         </div>
       )}
 
-      {/* No Results - Only show after a search has been performed */}
-      {hasSearched &&
-        searchResults.length === 0 &&
-        searchQuery &&
-        !isSearching && (
-          <Card>
-            <CardContent className="text-center py-8">
-              <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">No student found</h3>
-              <p className="text-muted-foreground">
-                No student found with admission number or name &quot;
-                {searchQuery}&quot;
-              </p>
-            </CardContent>
-          </Card>
-        )}
     </div>
   );
 };

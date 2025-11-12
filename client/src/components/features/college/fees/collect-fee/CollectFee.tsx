@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, useSearch } from "wouter";
-import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, User, GraduationCap, Calendar } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CollectFeeSearch } from "./CollectFeeSearch";
@@ -15,8 +14,9 @@ import type {
 } from "@/components/shared/payment/types/PaymentTypes";
 import { handleCollegePayByAdmissionWithIncomeId } from "@/lib/api-college";
 import { useToast } from "@/hooks/use-toast";
-import { CacheUtils } from "@/lib/api";
+import { invalidateAndRefetch } from "@/lib/hooks/common/useGlobalRefetch";
 import { collegeKeys } from "@/lib/hooks/college/query-keys";
+import { CacheUtils } from "@/lib/api";
 import type { CollegeTuitionFeeBalanceRead } from "@/lib/types/college/tuition-fee-balances";
 import { CollegeTransportBalancesService } from "@/lib/services/college/transport-fee-balances.service";
 import {
@@ -50,7 +50,6 @@ export const CollectFee = ({
   setSearchQuery,
 }: CollectFeeProps) => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const search = useSearch();
   const [selectedStudent, setSelectedStudent] =
@@ -91,10 +90,7 @@ export const CollectFee = ({
       setSelectedStudent(studentDetails);
       paymentSuccessRef.current = null;
       if (studentDetails?.enrollment?.admission_no) {
-        setTimeout(
-          () => updateUrlWithAdmission(studentDetails.enrollment.admission_no),
-          0
-        );
+        updateUrlWithAdmission(studentDetails.enrollment.admission_no);
       }
     },
     [updateUrlWithAdmission]
@@ -121,7 +117,7 @@ export const CollectFee = ({
         }
 
         setSearchQuery(admissionNo);
-        setTimeout(() => updateUrlWithAdmission(admissionNo), 0);
+        updateUrlWithAdmission(admissionNo);
 
         const cacheOptions = forceRefresh ? { cache: false } : undefined;
         const enrollment: CollegeEnrollmentWithStudentDetails =
@@ -325,45 +321,42 @@ export const CollectFee = ({
           })
           .catch(console.error);
 
-        // Refetch active queries - but use a small delay to ensure receipt modal opens first
-        // This matches the School version behavior
-        setTimeout(() => {
-          queryClient
-            .refetchQueries({
-              queryKey: collegeKeys.students.root(),
-              type: "active",
-              exact: false,
-            })
-            .catch(console.error);
-          queryClient
-            .refetchQueries({
-              queryKey: collegeKeys.enrollments.root(),
-              type: "active",
-              exact: false,
-            })
-            .catch(console.error);
-          queryClient
-            .refetchQueries({
-              queryKey: collegeKeys.tuition.root(),
-              type: "active",
-              exact: false,
-            })
-            .catch(console.error);
-          queryClient
-            .refetchQueries({
-              queryKey: collegeKeys.transport.root(),
-              type: "active",
-              exact: false,
-            })
-            .catch(console.error);
-          queryClient
-            .refetchQueries({
-              queryKey: collegeKeys.income.root(),
-              type: "active",
-              exact: false,
-            })
-            .catch(console.error);
-        }, 100);
+        // Refetch active queries
+        queryClient
+          .refetchQueries({
+            queryKey: collegeKeys.students.root(),
+            type: "active",
+            exact: false,
+          })
+          .catch(console.error);
+        queryClient
+          .refetchQueries({
+            queryKey: collegeKeys.enrollments.root(),
+            type: "active",
+            exact: false,
+          })
+          .catch(console.error);
+        queryClient
+          .refetchQueries({
+            queryKey: collegeKeys.tuition.root(),
+            type: "active",
+            exact: false,
+          })
+          .catch(console.error);
+        queryClient
+          .refetchQueries({
+            queryKey: collegeKeys.transport.root(),
+            type: "active",
+            exact: false,
+          })
+          .catch(console.error);
+        queryClient
+          .refetchQueries({
+            queryKey: collegeKeys.income.root(),
+            type: "active",
+            exact: false,
+          })
+          .catch(console.error);
 
         return result;
       } catch (error) {
@@ -418,7 +411,7 @@ export const CollectFee = ({
         throw error;
       }
     },
-    [queryClient, toast]
+    [toast]
   );
 
   // Transform student data
@@ -502,7 +495,8 @@ export const CollectFee = ({
   );
 
   // Wrapper component to handle async transformStudentData
-  const TransformStudentDataWrapper = ({
+  // Memoized to prevent unnecessary re-renders
+  const TransformStudentDataWrapper = React.memo(({
     studentDetails,
     onPaymentComplete,
     onCancel,
@@ -655,7 +649,7 @@ export const CollectFee = ({
         />
       </div>
     );
-  };
+  });
 
   return (
     <div className="space-y-6">

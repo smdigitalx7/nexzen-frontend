@@ -11,12 +11,11 @@ import {
 } from "@/components/ui/select";
 import { Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
 import { collegeKeys } from "@/lib/hooks/college/query-keys";
 import { CollegeReservationsService } from "@/lib/services/college";
 import { EnhancedDataTable } from "@/components/shared";
 import { ColumnDef } from "@tanstack/react-table";
-import { CacheUtils } from "@/lib/api";
+import { invalidateAndRefetch } from "@/lib/hooks/common/useGlobalRefetch";
 
 export type Reservation = {
   id: string;
@@ -269,8 +268,6 @@ const StatusUpdateTableComponent = ({
     []
   );
 
-  const queryClient = useQueryClient();
-
   const handleStatusUpdate = useCallback(
     async (
       reservation: Reservation,
@@ -289,45 +286,7 @@ const StatusUpdateTableComponent = ({
           payload
         );
 
-        // Small delay to ensure backend has processed the status update
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Step 2: Clear API cache (required due to custom cache layer)
-        CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
-        
-        // Step 3: Invalidate all reservation-related queries (following CACHE_REVIEW_ACADEMIC.md pattern)
-        // Invalidate specific reservation detail
-        queryClient.invalidateQueries({
-          queryKey: collegeKeys.reservations.detail(reservation.reservation_id),
-        }).catch(console.error);
-        
-        // Invalidate all reservation queries (list, detail, dashboard, recent)
-        queryClient.invalidateQueries({ 
-          queryKey: collegeKeys.reservations.root(),
-          exact: false 
-        }).catch(console.error);
-        
-        // Step 4: Refetch active queries (matches mutation hook pattern)
-        queryClient.refetchQueries({ 
-          queryKey: collegeKeys.reservations.root(), 
-          exact: false 
-        }).catch(console.error);
-        
-        queryClient.refetchQueries({ 
-          queryKey: collegeKeys.reservations.root(), 
-          type: 'active' 
-        }).catch(console.error);
-
-        // Step 5: Call onRefetch first (direct refetch from query hook)
-        if (onRefetch) {
-          await onRefetch();
-        }
-
-        // Step 6: Wait for React Query to update the cache and React to process state updates
-        await new Promise(resolve => setTimeout(resolve, 300));
-
-        // Step 7: Clear local state (pending changes) BEFORE table re-renders
-        // This ensures table doesn't briefly show stale local state
+        // Step 2: Clear local state immediately (before table re-renders)
         setStatusChanges((prev) => {
           const updated = { ...prev };
           delete updated[reservation.id];
@@ -338,10 +297,19 @@ const StatusUpdateTableComponent = ({
           [reservation.id]: "",
         }));
 
-        // Step 8: Force table refresh by updating refresh key (after local state is cleared)
+        // Step 3: Invalidate and refetch using debounced utility (prevents UI freeze)
+        invalidateAndRefetch(collegeKeys.reservations.detail(reservation.reservation_id));
+        invalidateAndRefetch(collegeKeys.reservations.root());
+
+        // Step 4: Call onRefetch callback if provided
+        if (onRefetch) {
+          void onRefetch();
+        }
+
+        // Step 5: Force table refresh by updating refresh key
         setRefreshKey((prev) => prev + 1);
         
-        // Step 9: Show success toast after everything is complete
+        // Step 6: Show success toast
         toast({
           title: "Status Updated",
           description: `Reservation ${reservation.no} status updated to ${newStatus} successfully.`,
@@ -359,7 +327,7 @@ const StatusUpdateTableComponent = ({
         });
       }
     },
-    [onRefetch, queryClient]
+    [onRefetch]
   );
 
   // Column definitions for EnhancedDataTable

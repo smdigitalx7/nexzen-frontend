@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   School,
@@ -28,22 +28,11 @@ import { TeachersTab } from "@/components/features/college/academic/teachers/Tea
 import { AcademicOverviewCards } from "@/components/features/college/academic/AcademicOverviewCards";
 import { useGrades } from "@/lib/hooks/general/useGrades";
 import GradesTab from "@/components/features/general/grades/GradesTab";
-import {
-  useTabNavigation,
-  useTabEnabled,
-} from "@/lib/hooks/use-tab-navigation";
+import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 
 const AcademicManagement = () => {
   const { currentBranch } = useAuthStore();
   const { activeTab, setActiveTab } = useTabNavigation("classes");
-
-  // ✅ LAZY LOADING: Get enabled states at the top level to avoid hook order issues
-  const classesEnabled = useTabEnabled("classes", "classes");
-  const subjectsEnabled = useTabEnabled("subjects", "classes");
-  const examsEnabled = useTabEnabled("exams", "classes");
-  const testsEnabled = useTabEnabled("tests", "classes");
-  const groupsEnabled = useTabEnabled("groups", "classes");
-  const coursesEnabled = useTabEnabled("courses", "classes");
 
   // ✅ Always fetch data for cards (not lazy loaded)
   // Cards need data immediately, so we fetch regardless of active tab
@@ -81,7 +70,6 @@ const AcademicManagement = () => {
     isLoading: testsLoading,
     isError: testsError,
     error: testsErrObj,
-    refetch: refetchTests,
   } = useCollegeTests();
   const tests = (testsData || []) as import("@/lib/types/college").CollegeTestRead[];
 
@@ -101,11 +89,8 @@ const AcademicManagement = () => {
   } = useCollegeCourses();
   const courses = (coursesData || []) as import("@/lib/types/college").CollegeCourseResponse[];
 
-  // Get effective classes
-  const effectiveClasses = backendClasses;
-
   // Calculate statistics
-  const totalClasses = effectiveClasses.length;
+  const totalClasses = backendClasses.length;
   const totalSubjects = backendSubjects.length;
   const totalGroups = groups.length;
   const totalCourses = courses.length;
@@ -155,7 +140,6 @@ const AcademicManagement = () => {
   // Grades hooks (for both school and college)
   const {
     grades: gradesData = [],
-    isLoadingGrades,
     createGrade: createGradeMutation,
     updateGrade: updateGradeMutation,
     deleteGrade: deleteGradeMutation,

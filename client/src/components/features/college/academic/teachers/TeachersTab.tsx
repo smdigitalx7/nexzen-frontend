@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { FormDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { TabSwitcher } from "@/components/shared";
-import { User, BookOpen, ClipboardList, ArrowRight } from "lucide-react";
-import { useTeachersByBranch, useEmployeesByBranch } from "@/lib/hooks/general";
+import { User, BookOpen, ArrowRight } from "lucide-react";
+import { useEmployeesByBranch } from "@/lib/hooks/general";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { TeacherCourseSubjectAssignmentsTab } from "./TeacherCourseSubjectAssignmentsTab";
@@ -17,7 +17,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 
 export const TeachersTab = () => {
-  const { data: teachersList = [] } = useTeachersByBranch();
   const { data: allEmployees = [], isLoading, error } = useEmployeesByBranch();
   const { data: assignments = [], isLoading: assignmentsLoading } = useTeacherCourseSubjectsList();
   const { data: groups = [] } = useCollegeGroups();

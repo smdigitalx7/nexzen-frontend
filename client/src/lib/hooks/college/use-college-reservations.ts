@@ -11,6 +11,7 @@ import type {
 } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
+import { invalidateAndRefetch } from "../common/useGlobalRefetch";
 
 export function useCollegeReservationsList(params?: {
   group_id?: number;
@@ -39,63 +40,54 @@ export function useCollegeReservation(
 }
 
 export function useCreateCollegeReservation() {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeReservationCreate) =>
       CollegeReservationsService.create(payload),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
-      void qc.refetchQueries({ queryKey: collegeKeys.reservations.root(), type: 'active' });
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(collegeKeys.reservations.root());
     },
   }, "Reservation created successfully");
 }
 
 export function useUpdateCollegeReservation(reservationId: number) {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeReservationUpdate) =>
       CollegeReservationsService.update(reservationId, payload),
     onSuccess: () => {
-      void qc.invalidateQueries({
-        queryKey: collegeKeys.reservations.detail(reservationId),
-      });
-      void qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
-      void qc.refetchQueries({ queryKey: collegeKeys.reservations.root(), type: 'active' });
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(collegeKeys.reservations.detail(reservationId));
+      invalidateAndRefetch(collegeKeys.reservations.root());
     },
   }, "Reservation updated successfully");
 }
 
 export function useDeleteCollegeReservation() {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (reservationId: number) =>
       CollegeReservationsService.delete(reservationId),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
-      void qc.refetchQueries({ queryKey: collegeKeys.reservations.root(), type: 'active' });
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(collegeKeys.reservations.root());
     },
   }, "Reservation deleted successfully");
 }
 
 export function useUpdateCollegeReservationStatus(reservationId: number) {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: {
       status: ReservationStatusEnum;
       remarks?: string | null;
     }) => CollegeReservationsService.updateStatus(reservationId, payload),
     onSuccess: () => {
-      void qc.invalidateQueries({
-        queryKey: collegeKeys.reservations.detail(reservationId),
-      });
-      void qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
-      void qc.refetchQueries({ queryKey: collegeKeys.reservations.root(), type: 'active' });
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(collegeKeys.reservations.detail(reservationId));
+      invalidateAndRefetch(collegeKeys.reservations.root());
     },
   }, "Reservation status updated successfully");
 }
 
 export function useUpdateCollegeReservationConcessions(reservationId: number) {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: {
       tuition_concession?: number | null;
@@ -103,11 +95,9 @@ export function useUpdateCollegeReservationConcessions(reservationId: number) {
       remarks?: string | null;
     }) => CollegeReservationsService.updateConcessions(reservationId, payload),
     onSuccess: () => {
-      void qc.invalidateQueries({
-        queryKey: collegeKeys.reservations.detail(reservationId),
-      });
-      void qc.invalidateQueries({ queryKey: collegeKeys.reservations.root() });
-      void qc.refetchQueries({ queryKey: collegeKeys.reservations.root(), type: 'active' });
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(collegeKeys.reservations.detail(reservationId));
+      invalidateAndRefetch(collegeKeys.reservations.root());
     },
   }, "Reservation concessions updated successfully");
 }

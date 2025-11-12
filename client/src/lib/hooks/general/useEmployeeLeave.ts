@@ -11,6 +11,7 @@ import type {
 } from '@/lib/types/general/employee-leave';
 import { useMutationWithSuccessToast } from '../common/use-mutation-with-toast';
 import { useGlobalRefetch } from '../common/useGlobalRefetch';
+import { invalidateAndRefetch } from '../common/useGlobalRefetch';
 import { CacheUtils } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -34,7 +35,7 @@ export const useEmployeeLeaves = (pageSize: number = 10, page: number = 1, leave
   });
 };
 
-export const useEmployeeLeavesByBranch = (month?: number, year?: number, pageSize: number = 10, page: number = 1, leaveStatus?: string) => {
+export const useEmployeeLeavesByBranch = (month?: number, year?: number, pageSize: number = 10, page: number = 1, leaveStatus?: string, enabled: boolean = true) => {
   // Default to current month/year if not provided (mandatory parameters)
   const now = new Date();
   const currentMonth = month ?? now.getMonth() + 1;
@@ -43,6 +44,9 @@ export const useEmployeeLeavesByBranch = (month?: number, year?: number, pageSiz
   return useQuery({
     queryKey: employeeLeaveKeys.byBranch({ pageSize, page, leaveStatus, month: currentMonth, year: currentYear }),
     queryFn: () => EmployeeLeaveService.listByBranch(currentMonth, currentYear, pageSize, page, leaveStatus),
+    enabled, // Allow conditional query execution to prevent unnecessary fetches
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 
@@ -93,73 +97,22 @@ export const useUpdateEmployeeLeave = () => {
 };
 
 export const useApproveEmployeeLeave = () => {
-  const queryClient = useQueryClient();
-  
   return useMutationWithSuccessToast({
     mutationFn: (id: number) => EmployeeLeaveService.approve(id),
     onSuccess: () => {
-      // Defer to next event loop to prevent blocking
-      setTimeout(() => {
-        // Clear API cache
-        CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
-        
-        // Use requestIdleCallback to make invalidateQueries non-blocking
-        // Fallback to setTimeout if requestIdleCallback is not available
-        const scheduleInvalidate = (callback: () => void) => {
-          if (typeof requestIdleCallback !== 'undefined') {
-            requestIdleCallback(callback, { timeout: 1000 });
-          } else {
-            setTimeout(callback, 0);
-          }
-        };
-        
-        scheduleInvalidate(() => {
-          // Invalidate all leave queries (with exact: false to match all variations)
-          queryClient.invalidateQueries({ 
-            queryKey: employeeLeaveKeys.all,
-            exact: false 
-          });
-          
-          // Force refetch active queries after a small delay - don't await, make it fire-and-forget
-          setTimeout(() => {
-            // Use void to explicitly ignore the promise and make it non-blocking
-            void queryClient.refetchQueries({ 
-              queryKey: employeeLeaveKeys.all,
-              type: 'active',
-              exact: false 
-            });
-          }, 50);
-        });
-      }, 0);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(employeeLeaveKeys.all);
     },
   }, "Leave request approved successfully");
 };
 
 export const useRejectEmployeeLeave = () => {
-  const queryClient = useQueryClient();
-  
   return useMutationWithSuccessToast({
     mutationFn: ({ id, data }: { id: number; data: EmployeeLeaveReject }) => 
       EmployeeLeaveService.reject(id, data),
     onSuccess: () => {
-      // Defer to next event loop to prevent blocking
-      setTimeout(() => {
-        // Clear API cache
-        CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
-        // Invalidate all leave queries (with exact: false to match all variations)
-        queryClient.invalidateQueries({ 
-          queryKey: employeeLeaveKeys.all,
-          exact: false 
-        });
-        // Force refetch active queries after a small delay
-        setTimeout(() => {
-          queryClient.refetchQueries({ 
-            queryKey: employeeLeaveKeys.all,
-            type: 'active',
-            exact: false 
-          });
-        }, 50);
-      }, 0);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(employeeLeaveKeys.all);
     },
   }, "Leave request rejected");
 };
