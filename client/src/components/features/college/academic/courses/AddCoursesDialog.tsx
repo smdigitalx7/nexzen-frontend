@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CollegeGroupDropdown } from "@/components/shared/Dropdowns/College/GroupDropdown";
 
 interface AddCourseDialogProps {
   isOpen: boolean;
@@ -70,18 +71,16 @@ export const AddCourseDialog = ({
           </div>
           <div>
             <Label htmlFor="group_id">Group ID</Label>
-            <Input
-              id="group_id"
-              type="number"
-              min="1"
-              value={courseData.group_id}
-              onChange={(e) =>
+            <CollegeGroupDropdown
+              value={courseData.group_id > 0 ? courseData.group_id : null}
+              onChange={(value) =>
                 setCourseData({
                   ...courseData,
-                  group_id: parseInt(e.target.value) || 0,
+                  group_id: value ?? 0,
                 })
               }
-              placeholder="Enter group ID"
+              placeholder="Select group"
+              required
             />
           </div>
         </div>

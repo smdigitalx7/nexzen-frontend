@@ -10,6 +10,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import {
   createIconTextColumn
 } from "@/lib/utils/factory/columnFactories";
+import { CollegeGroupDropdown } from "@/components/shared/Dropdowns/College/GroupDropdown";
 
 interface CoursesTabProps {
   coursesWithSubjects: any[];
@@ -241,13 +242,11 @@ export const CoursesTab = memo(({
           </div>
           <div className="space-y-2">
             <Label htmlFor="group_id">Group ID</Label>
-            <Input
-              id="group_id"
-              type="number"
-              min="1"
-              value={newCourse.group_id}
-              onChange={(e) => setNewCourse({ ...newCourse, group_id: parseInt(e.target.value) || 0 })}
-              placeholder="Enter group ID"
+            <CollegeGroupDropdown
+              value={newCourse.group_id > 0 ? newCourse.group_id : null}
+              onChange={(value) => setNewCourse({ ...newCourse, group_id: value ?? 0 })}
+              placeholder="Select group"
+              required
             />
           </div>
         </div>
