@@ -21,6 +21,7 @@ import {
   BookOpen,
   ExternalLink,
   FolderOpen,
+  Bug,
 } from "lucide-react";
 import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { cn } from "@/lib/utils";
@@ -558,137 +559,85 @@ const Sidebar = () => {
         </div>
       </div>
 
-      {/* Footer Section with Version and Document Links */}
-      {/* <div className="mt-auto border-t border-slate-200/80 bg-white/50 backdrop-blur-sm">
-        <div className="p-4 space-y-2">
- 
-          {sidebarOpen && user?.role && (
-            <div className="space-y-2">
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                Help & Resources
-              </h3>
+      {/* Footer Section with Version, Admin Guide, and Logout */}
+      <div className="mt-auto border-t border-slate-200/80 bg-white/50 backdrop-blur-sm">
+        <div className="p-3">
+          <div className="flex items-center justify-start gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+              className="h-10 w-10 hover:bg-red-100  bg-red-50 hover:text-red-900 text-red-600 hover:border-red-200 border border-red-100 transition-all duration-200 rounded-lg shrink-0"
+              title="Logout"
+              data-testid="sidebar-logout-button"
+            >
+              <LogOut className="h-4 w-4 text-red-600 hover:text-red-900 transition-colors" />
+            </Button>
+            {/* Version, Report Issue, Admin Guide, and Documents - Stacked layout */}
+            <div className="flex flex-col gap-1 text-[10px] text-slate-400">
+              {/* First line: Version | Report Issue */}
+              <div className="flex items-center gap-2">
+                <span>v1.0.0</span>
+                <span className="text-slate-300">|</span>
+                <button
+                  onClick={() =>
+                    window.open(
+                      "https://www.jotform.com/form/253145100074039",
+                      "_blank"
+                    )
+                  }
+                  className="hover:text-slate-600 transition-colors cursor-pointer flex items-center gap-1"
+                  title="Report an Issue"
+                >
+                  <Bug className="h-3 w-3" />
+                  Report Issue
+                </button>
+              </div>
 
+              {/* Second line: Admin Guide | Documents (only for admin) */}
               {(() => {
-                const userRoleUpper = String(user.role).toUpperCase().trim();
-                let guideUrl = "";
-                let guideTitle = "";
-
-                if (
-                  userRoleUpper === ROLES.ACADEMIC ||
-                  userRoleUpper === "ACADEMIC"
-                ) {
-                  guideUrl =
-                    "https://docs.google.com/document/d/1Lm2nX3UAVcJ42QVW2XONCoXUNuKHy5iv/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
-                  guideTitle = "Academic Guide";
-                } else if (
-                  userRoleUpper === ROLES.ACCOUNTANT ||
-                  userRoleUpper === "ACCOUNTANT"
-                ) {
-                  guideUrl =
-                    "https://docs.google.com/document/d/19XfkbLisVi5zql9Fuuv5_R4KijLGOow1/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
-                  guideTitle = "Accountant Guide";
-                } else if (
-                  userRoleUpper === ROLES.ADMIN ||
-                  userRoleUpper === "ADMIN" ||
-                  userRoleUpper === ROLES.INSTITUTE_ADMIN ||
-                  userRoleUpper === "INSTITUTE_ADMIN"
-                ) {
-                  guideUrl =
-                    "https://docs.google.com/document/d/1oNreLcS2plkfPVn7zQXsT98zdOhmPoBk/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
-                  guideTitle = "Admin Guide";
-                }
-
-                if (!guideUrl) return null;
-
-                return (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => window.open(guideUrl, "_blank")}
-                    className={cn(
-                      "w-full justify-start gap-3 h-10 hover-elevate relative transition-all duration-200 group rounded-lg overflow-hidden",
-                      "text-slate-600 hover:text-blue-600 hover:bg-blue-50/50"
-                    )}
-                    title={guideTitle}
-                  >
-                    <motion.div
-                      className="flex items-center gap-3 flex-1"
-                      whileHover={{ x: 4 }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
-                    >
-                      <BookOpen className="h-4 w-4 shrink-0 transition-colors duration-200 text-slate-400 group-hover:text-blue-600" />
-                      {sidebarOpen && (
-                        <>
-                          <span className="truncate text-sm">{guideTitle}</span>
-                          <ExternalLink className="h-3 w-3 ml-auto text-slate-400 group-hover:text-blue-600" />
-                        </>
-                      )}
-                    </motion.div>
-                  </Button>
-                );
-              })()}
-
-
-              {(() => {
-                const userRoleUpper = String(user.role).toUpperCase().trim();
+                const userRoleUpper = String(user?.role || "")
+                  .toUpperCase()
+                  .trim();
                 const isAdminRole =
                   userRoleUpper === ROLES.ADMIN ||
                   userRoleUpper === "ADMIN" ||
                   userRoleUpper === ROLES.INSTITUTE_ADMIN ||
                   userRoleUpper === "INSTITUTE_ADMIN";
 
-                if (!isAdminRole) return null;
+                if (isAdminRole) {
+                  const adminGuideUrl =
+                    "https://docs.google.com/document/d/1oNreLcS2plkfPVn7zQXsT98zdOhmPoBk/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
+                  const documentsUrl =
+                    "https://drive.google.com/drive/folders/10gsq1_6Nt4fTMbrEO0AobIaQmMHD1dWS?usp=drive_link";
 
-                return (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      window.open(
-                        "https://drive.google.com/drive/folders/10gsq1_6Nt4fTMbrEO0AobIaQmMHD1dWS?usp=drive_link",
-                        "_blank"
-                      )
-                    }
-                    className={cn(
-                      "w-full justify-start gap-3 h-10 hover-elevate relative transition-all duration-200 group rounded-lg overflow-hidden",
-                      "text-slate-600 hover:text-blue-600 hover:bg-blue-50/50"
-                    )}
-                    title="Documents"
-                  >
-                    <motion.div
-                      className="flex items-center gap-3 flex-1"
-                      whileHover={{ x: 4 }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
-                    >
-                      <FolderOpen className="h-4 w-4 shrink-0 transition-colors duration-200 text-slate-400 group-hover:text-blue-600" />
-                      {sidebarOpen && (
-                        <>
-                          <span className="truncate text-sm">Documents</span>
-                          <ExternalLink className="h-3 w-3 ml-auto text-slate-400 group-hover:text-blue-600" />
-                        </>
-                      )}
-                    </motion.div>
-                  </Button>
-                );
+                  return (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => window.open(adminGuideUrl, "_blank")}
+                        className="hover:text-slate-600 transition-colors cursor-pointer"
+                        title="Admin Guide"
+                      >
+                        Admin Guide
+                      </button>
+                      <span className="text-slate-300">|</span>
+                      <button
+                        onClick={() => window.open(documentsUrl, "_blank")}
+                        className="hover:text-slate-600 transition-colors cursor-pointer"
+                        title="Documents"
+                      >
+                        Documents
+                      </button>
+                    </div>
+                  );
+                }
+
+                return null;
               })()}
             </div>
-          )}
-
-    
-          <div
-            className={cn(
-              "flex items-center justify-center py-2 text-xs text-slate-400",
-              !sidebarOpen && "px-2"
-            )}
-          >
-            {sidebarOpen ? (
-              <span>Version 1.0.0</span>
-            ) : (
-              <span className="text-[10px]">v1.0.0</span>
-            )}
           </div>
         </div>
-      </div> */}
+      </div>
     </motion.aside>
   );
 };

@@ -1,5 +1,5 @@
 import React from "react";
-import { Header, Sidebar, Footer } from "@/components/layout";
+import { Header, Sidebar } from "@/components/layout";
 import { useNavigationStore } from "@/store/navigationStore";
 import { cn } from "@/lib/utils";
 
@@ -27,9 +27,7 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
         <main className="flex-1 overflow-auto scrollbar-hide">
           <div className="p-2">{children}</div>
         </main>
-        <Footer />
       </div>
     </div>
   );
 }
-

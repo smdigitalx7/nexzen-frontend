@@ -290,46 +290,15 @@ const Header = () => {
         animate={{ y: 0, opacity: 1 }}
         className="sticky top-0 z-30 w-full bg-gradient-to-r from-white to-slate-50 border-b border-slate-200/60 shadow-sm backdrop-blur-sm"
       >
-        <div className="container flex h-20 items-center justify-between px-6">
+        <div className="container flex h-20 items-center px-6 max-w-full">
           {/* Left: System Title */}
-          <div className="flex items-center justify-start gap-6">
+          <div className="flex items-center justify-start gap-6 shrink-0">
             <BranchSwitcher />
             <AcademicYearSwitcher />
           </div>
 
-          {/* Center: Welcome Message */}
-          {/* <div className="flex-1 flex justify-center">
-          <div className="text-center hidden md:block">
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <h2 className="text-lg font-semibold text-slate-700 mb-1">
-                {getGreeting()},{" "}
-                <span className="text-blue-600">
-                  {user?.full_name ||
-                    user?.email?.split("@")[0] ||
-                    (user ? "User" : "Guest")}
-                </span>
-                !
-              </h2>
-              <div className="flex items-center justify-center gap-2">
-                <p className="text-sm text-slate-500">
-                  {currentBranch?.branch_name || "Velonex"} Management System
-                </p>
-                {currentBranch?.branch_type && (
-                  <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-full font-medium">
-                    {currentBranch.branch_type}
-                  </span>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        </div> */}
-
-          {/* Right: Search, Year Badge, Notifications and User Menu */}
-          <div className="flex items-center justify-end gap-4">
+          {/* Right: Search and User Menu - Both justified to end */}
+          <div className="flex items-center justify-end gap-4 ml-auto shrink-0">
             {/* Inline Search Input */}
             <div
               className={`relative w-96 transition-all duration-200 ${isSearchFocused ? "z-[100]" : ""}`}
@@ -387,105 +356,115 @@ const Header = () => {
             )}
           </Button> */}
 
-            {/* User Menu */}
+            {/* User Menu - Modern Design */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="hover-elevate relative p-1 rounded-xl hover:bg-slate-100/60 transition-all duration-200"
+                  className="h-auto p-2 rounded-lg hover:bg-slate-100/80 transition-all duration-200 data-[state=open]:bg-slate-100"
                   data-testid="dropdown-user-menu"
                 >
                   <div className="flex items-center gap-3">
-                    {/* <Avatar className="h-10 w-10 ring-2 ring-white shadow-md">
+                    <Avatar className="h-9 w-9 ring-2 ring-slate-200 ring-offset-2">
                       <AvatarImage src={user?.avatar} alt={user?.full_name} />
-                      <AvatarFallback className="text-white font-semibold bg-gradient-to-br from-indigo-400 to-indigo-600">
+                      <AvatarFallback
+                        className={`text-white font-semibold ${getRoleColor(
+                          user?.role || ""
+                        )}`}
+                      >
                         {user?.full_name
                           ?.split(" ")
                           .map((n) => n[0])
-                          .join("") || "U"}
+                          .join("")
+                          .toUpperCase() || "U"}
                       </AvatarFallback>
-                    </Avatar> */}
-                    <User className="h-5 w-5 text-slate-400" />
+                    </Avatar>
                     <div className="hidden md:flex flex-col items-start">
-                      <span className="text-sm font-medium text-slate-700">
+                      <span className="text-sm font-semibold text-slate-900 leading-tight">
                         {user?.full_name}
                       </span>
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-slate-500 leading-tight">
                         {getRoleDisplay(user?.role || "")}
                       </span>
                     </div>
-                    <ChevronDown className="h-4 w-4 text-slate-400 hidden md:block" />
+                    <ChevronDown className="h-4 w-4 text-slate-400 hidden md:block transition-transform duration-200 data-[state=open]:rotate-180" />
                   </div>
                 </Button>
               </DropdownMenuTrigger>
-              <AnimatePresence>
-                <DropdownMenuContent
-                  className="w-56"
-                  align="end"
-                  forceMount
-                  asChild
-                >
-                  <motion.div
-                    initial={{ y: -10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -10, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <div className="flex items-center justify-start gap-2 p-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user?.avatar} alt={user?.full_name} />
-                        <AvatarFallback
-                          className={`text-white ${getRoleColor(
-                            user?.role || ""
-                          )}`}
-                        >
-                          {user?.full_name
-                            ?.split(" ")
-                            .map((n) => n[0])
-                            .join("") || "U"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">
-                          {user?.full_name}
-                        </p>
-                        <p className="text-xs leading-none text-muted-foreground">
-                          {user?.email}
-                        </p>
-                        <Badge variant="secondary" className="w-fit text-xs">
-                          {getRoleDisplay(user?.role || "")}
-                        </Badge>
-                      </div>
+              <DropdownMenuContent
+                className="w-72 p-2"
+                align="end"
+                sideOffset={8}
+              >
+                {/* User Info Section */}
+                <div className="flex items-start gap-3 px-2 py-3 mb-2 rounded-lg bg-gradient-to-br from-slate-50 to-slate-100/50 border border-slate-200/50">
+                  <Avatar className="h-11 w-11 ring-2 ring-white shadow-md">
+                    <AvatarImage src={user?.avatar} alt={user?.full_name} />
+                    <AvatarFallback
+                      className={`text-white font-semibold text-sm ${getRoleColor(
+                        user?.role || ""
+                      )}`}
+                    >
+                      {user?.full_name
+                        ?.split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col gap-1 flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-900 leading-tight truncate">
+                      {user?.full_name}
+                    </p>
+                    <p className="text-xs text-slate-600 leading-tight truncate">
+                      {user?.email}
+                    </p>
+                    <div className="mt-1">
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] font-medium px-2 py-0.5 bg-slate-200/80 text-slate-700 border-slate-300/50"
+                      >
+                        {getRoleDisplay(user?.role || "")}
+                      </Badge>
                     </div>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={handleProfileClick}
-                      className="hover-elevate"
-                      data-testid="menuitem-profile"
-                    >
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={handleSettingsClick}
-                      className="hover-elevate"
-                      data-testid="menuitem-settings"
-                    >
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={handleLogout}
-                      className="hover-elevate text-red-600 focus:text-red-600"
-                      data-testid="menuitem-logout"
-                    >
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
-                    </DropdownMenuItem>
-                  </motion.div>
-                </DropdownMenuContent>
-              </AnimatePresence>
+                  </div>
+                </div>
+
+                <DropdownMenuSeparator className="my-2" />
+
+                {/* Menu Items */}
+                <DropdownMenuItem
+                  onClick={handleProfileClick}
+                  className="px-3 py-2.5 rounded-md cursor-pointer focus:bg-slate-100 transition-colors"
+                  data-testid="menuitem-profile"
+                >
+                  <User className="mr-3 h-4 w-4 text-slate-600" />
+                  <span className="text-sm font-medium text-slate-700">
+                    Profile
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleSettingsClick}
+                  className="px-3 py-2.5 rounded-md cursor-pointer focus:bg-slate-100 transition-colors"
+                  data-testid="menuitem-settings"
+                >
+                  <Settings className="mr-3 h-4 w-4 text-slate-600" />
+                  <span className="text-sm font-medium text-slate-700">
+                    Settings
+                  </span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="my-2" />
+
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="px-3 py-2.5 rounded-md cursor-pointer focus:bg-red-50 text-red-600 focus:text-red-700 transition-colors"
+                  data-testid="menuitem-logout"
+                >
+                  <LogOut className="mr-3 h-4 w-4" />
+                  <span className="text-sm font-medium">Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
