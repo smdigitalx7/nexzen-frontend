@@ -325,42 +325,45 @@ export const CollectFee = ({
           })
           .catch(console.error);
 
-        // Refetch active queries
-        queryClient
-          .refetchQueries({
-            queryKey: collegeKeys.students.root(),
-            type: "active",
-            exact: false,
-          })
-          .catch(console.error);
-        queryClient
-          .refetchQueries({
-            queryKey: collegeKeys.enrollments.root(),
-            type: "active",
-            exact: false,
-          })
-          .catch(console.error);
-        queryClient
-          .refetchQueries({
-            queryKey: collegeKeys.tuition.root(),
-            type: "active",
-            exact: false,
-          })
-          .catch(console.error);
-        queryClient
-          .refetchQueries({
-            queryKey: collegeKeys.transport.root(),
-            type: "active",
-            exact: false,
-          })
-          .catch(console.error);
-        queryClient
-          .refetchQueries({
-            queryKey: collegeKeys.income.root(),
-            type: "active",
-            exact: false,
-          })
-          .catch(console.error);
+        // Refetch active queries - but use a small delay to ensure receipt modal opens first
+        // This matches the School version behavior
+        setTimeout(() => {
+          queryClient
+            .refetchQueries({
+              queryKey: collegeKeys.students.root(),
+              type: "active",
+              exact: false,
+            })
+            .catch(console.error);
+          queryClient
+            .refetchQueries({
+              queryKey: collegeKeys.enrollments.root(),
+              type: "active",
+              exact: false,
+            })
+            .catch(console.error);
+          queryClient
+            .refetchQueries({
+              queryKey: collegeKeys.tuition.root(),
+              type: "active",
+              exact: false,
+            })
+            .catch(console.error);
+          queryClient
+            .refetchQueries({
+              queryKey: collegeKeys.transport.root(),
+              type: "active",
+              exact: false,
+            })
+            .catch(console.error);
+          queryClient
+            .refetchQueries({
+              queryKey: collegeKeys.income.root(),
+              type: "active",
+              exact: false,
+            })
+            .catch(console.error);
+        }, 100);
 
         return result;
       } catch (error) {
@@ -513,8 +516,22 @@ export const CollectFee = ({
       feeBalances: FeeBalance;
     } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    
+    // Use ref to track the enrollment ID to prevent unnecessary re-transforms
+    // when the studentDetails object reference changes but the data is the same
+    const enrollmentIdRef = useRef<number | null>(null);
 
     useEffect(() => {
+      // Only transform if enrollment ID actually changed
+      const currentEnrollmentId = studentDetails.enrollment.enrollment_id;
+      if (enrollmentIdRef.current === currentEnrollmentId && transformedData) {
+        // Already transformed for this enrollment, skip
+        return;
+      }
+      
+      enrollmentIdRef.current = currentEnrollmentId;
+      setIsLoading(true);
+      
       transformStudentData(studentDetails)
         .then((data) => {
           setTransformedData(data);
@@ -576,7 +593,7 @@ export const CollectFee = ({
           setTransformedData({ student, feeBalances });
           setIsLoading(false);
         });
-    }, [studentDetails]);
+    }, [studentDetails.enrollment.enrollment_id]);
 
     if (isLoading || !transformedData) {
       return (
@@ -659,13 +676,14 @@ export const CollectFee = ({
       <AnimatePresence mode="wait">
         {selectedStudent && (
           <motion.div
-            key="payment-form"
+            key={`payment-form-${selectedStudent.enrollment.enrollment_id}`}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
             <TransformStudentDataWrapper
+              key={`transform-wrapper-${selectedStudent.enrollment.enrollment_id}`}
               studentDetails={selectedStudent}
               onPaymentComplete={handleMultiplePaymentComplete}
               onCancel={handleFormClose}
