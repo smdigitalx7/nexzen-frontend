@@ -138,7 +138,10 @@ const SettingsPage = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Card 
-                    className="group transition-all duration-200 hover:shadow-md hover:border-primary/50"
+                    className="group cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/50"
+                    onClick={() => {
+                      window.open('https://drive.google.com/drive/folders/10gsq1_6Nt4fTMbrEO0AobIaQmMHD1dWS', '_blank', 'noopener,noreferrer');
+                    }}
                   >
                     <CardContent className="p-6">
                       <div className="flex flex-col space-y-4">
