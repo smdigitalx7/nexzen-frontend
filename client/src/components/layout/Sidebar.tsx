@@ -431,7 +431,7 @@ const Sidebar = () => {
                   }
                   alt={
                     currentBranch?.branch_type === "SCHOOL"
-                      ? "Nexzen Logo"
+                      ? "Velonex Logo"
                       : "Velocity Logo"
                   }
                   className="w-full h-full object-contain"
@@ -439,7 +439,7 @@ const Sidebar = () => {
               </div>
               <div className="flex flex-col">
                 <span className="font-bold max-w-[100px] text-lg  bg-clip-text text-gray-800/90 leading-tight">
-                  {currentBranch?.branch_name || "Nexzen"}
+                  {currentBranch?.branch_name || "Velonex"}
                 </span>
                 {/* <span className="text-xs text-slate-500 font-medium capitalize">
                   {currentBranch?.branch_type || "Education"}
