@@ -1,11 +1,8 @@
 export interface CollegeTransportAssignmentCreate {
   enrollment_id: number;
   bus_route_id: number;
-  slab_id: number;
-  pickup_point?: string | null;
-  start_date: string; // ISO date
-  end_date?: string | null; // ISO date
-  is_active?: boolean;
+  pickup_point: string;
+  start_date: string; // ISO date format: YYYY-MM-DD
 }
 
 export interface CollegeTransportAssignmentUpdate {

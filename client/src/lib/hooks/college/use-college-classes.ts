@@ -13,8 +13,34 @@ import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 export function useCollegeClasses(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: collegeKeys.classes.list(),
-    queryFn: () =>
-      CollegeClassesService.list() as Promise<CollegeClassResponse[]>,
+    queryFn: async () => {
+      try {
+        return await CollegeClassesService.list();
+      } catch (error: unknown) {
+        // Handle 404 errors by returning empty array
+        if (import.meta.env.DEV) {
+          console.log("Classes API error:", error);
+        }
+        // Api class attaches status property to Error objects
+        if (error instanceof Error) {
+          const apiError = error as Error & { status?: number; data?: { detail?: string } };
+          if (apiError.status === 404) {
+            return [];
+          }
+        }
+        // Fallback check for other error formats
+        const errorObj = error as { message?: string; status?: number };
+        if (
+          errorObj?.status === 404 ||
+          errorObj?.message?.includes("404") ||
+          errorObj?.message?.includes("Classes not found") ||
+          errorObj?.message?.includes("Not Found")
+        ) {
+          return [];
+        }
+        throw error;
+      }
+    },
     enabled: options?.enabled !== false,
   });
 }

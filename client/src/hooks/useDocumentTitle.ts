@@ -44,9 +44,15 @@ const routeTitleMap: Record<string, string> = {
  */
 export function useDocumentTitle() {
   const [location] = useLocation();
-  const { currentBranch } = useAuthStore();
+  const { currentBranch, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
+    // If not authenticated, show Login title
+    if (!isAuthenticated) {
+      document.title = 'Login | Velonex';
+      return;
+    }
+
     // Get page title from route
     const pageTitle = routeTitleMap[location] || 'Velonex';
     
@@ -62,6 +68,6 @@ export function useDocumentTitle() {
     
     // Update document title
     document.title = fullTitle;
-  }, [location, currentBranch]);
+  }, [location, currentBranch, isAuthenticated]);
 }
 

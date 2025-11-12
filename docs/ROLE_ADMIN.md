@@ -822,12 +822,14 @@
 ### Permission System
 
 All permissions are centrally configured in `client/src/lib/permissions/config.ts`. This ensures:
+
 - Consistent permission enforcement across the application
 - Easy maintenance and updates
 - Type-safe permission checks
 - Dynamic UI filtering based on user roles
 
 **Key Features:**
+
 - Role-based access control (RBAC)
 - UI component visibility control (tabs, buttons, sections)
 - Action-level permissions (create, edit, delete, view, export)

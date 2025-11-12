@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { Save } from "lucide-react";
+import { Save, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { useMonthlyFeeConfig } from "@/lib/hooks/college/useMonthlyFeeConfig";
-import type { MonthlyFeeConfigUpdate } from "@/lib/types/college/monthly-fee-config";
+import type { MonthlyFeeConfigCreate, MonthlyFeeConfigUpdate } from "@/lib/types/college/monthly-fee-config";
 
 const MonthlyFeeConfigTab = () => {
   const {
@@ -34,7 +34,7 @@ const MonthlyFeeConfigTab = () => {
     }
   }, [monthlyFeeConfig]);
 
-  const handleSave = async () => {
+  const handleCreate = async () => {
     const amount = parseFloat(feeAmount);
     if (isNaN(amount) || amount < 0) {
       return;
@@ -42,13 +42,25 @@ const MonthlyFeeConfigTab = () => {
 
     setIsSaving(true);
     try {
-      if (monthlyFeeConfig) {
-        // Update existing config
-        await updateMonthlyFeeConfig.mutateAsync({ fee_amount: amount });
-      } else {
-        // Create new config
-        await createMonthlyFeeConfig.mutateAsync({ fee_amount: amount });
-      }
+      // Create new config using POST /api/v1/college/monthly-fee-config
+      await createMonthlyFeeConfig.mutateAsync({ fee_amount: amount } as MonthlyFeeConfigCreate);
+    } catch (error) {
+      // Error handling is done in the mutation
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    const amount = parseFloat(feeAmount);
+    if (isNaN(amount) || amount < 0) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Update existing config using PUT /api/v1/college/monthly-fee-config
+      await updateMonthlyFeeConfig.mutateAsync({ fee_amount: amount } as MonthlyFeeConfigUpdate);
     } catch (error) {
       // Error handling is done in the mutation
     } finally {
@@ -57,12 +69,14 @@ const MonthlyFeeConfigTab = () => {
   };
 
   const isLoading = isLoadingMonthlyFeeConfig;
-  const errorStatus = monthlyFeeConfigError ? (monthlyFeeConfigError as any)?.response?.status : null;
-  const notFound = errorStatus === 404;
-  const hasError = monthlyFeeConfigError && !notFound;
+  // If monthlyFeeConfig is null, it means 404 (config doesn't exist) - this is handled gracefully
+  // If monthlyFeeConfigError exists, it's a real error (not 404)
+  const hasError = monthlyFeeConfigError !== null && monthlyFeeConfigError !== undefined;
+  const notFound = monthlyFeeConfig === null; // null means 404 was handled gracefully
 
-  // Show form if: not loading AND (has config OR 404 not found OR no error)
-  const showForm = !isLoading && (monthlyFeeConfig || notFound || !monthlyFeeConfigError);
+  // Show form if: not loading AND no real error
+  // Form should always show when not loading, allowing user to create config
+  const showForm = !isLoading && !hasError;
 
   return (
     <Card>
@@ -113,7 +127,7 @@ const MonthlyFeeConfigTab = () => {
 
             <div className="space-y-2">
               <Label htmlFor="fee_amount">
-                {monthlyFeeConfig ? "Update Monthly Fee Amount (₹)" : "Set Monthly Fee Amount (₹)"}
+                {monthlyFeeConfig ? "Update Monthly Fee Amount (₹)" : "Create Monthly Fee Amount (₹)"}
               </Label>
               <div className="flex items-center gap-2">
                 <Input
@@ -126,17 +140,27 @@ const MonthlyFeeConfigTab = () => {
                   placeholder={monthlyFeeConfig ? "Enter new fee amount" : "Enter monthly fee amount"}
                   className="max-w-xs"
                 />
-                <Button
-                  onClick={handleSave}
-                  disabled={isSaving || !feeAmount || isNaN(parseFloat(feeAmount)) || parseFloat(feeAmount) < 0}
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {monthlyFeeConfig ? "Update Config" : "Create Config"}
-                </Button>
+                {monthlyFeeConfig ? (
+                  <Button
+                    onClick={handleUpdate}
+                    disabled={isSaving || !feeAmount || isNaN(parseFloat(feeAmount)) || parseFloat(feeAmount) < 0}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Update Config
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleCreate}
+                    disabled={isSaving || !feeAmount || isNaN(parseFloat(feeAmount)) || parseFloat(feeAmount) < 0}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Config
+                  </Button>
+                )}
               </div>
               {notFound && (
                 <p className="text-xs text-muted-foreground">
-                  No configuration found. Enter the fee amount above and click "Create Config" to set it up.
+                  No configuration found. Enter the fee amount above and click "Create Config" to create a new monthly fee configuration using POST /api/v1/college/monthly-fee-config.
                 </p>
               )}
             </div>
@@ -148,4 +172,3 @@ const MonthlyFeeConfigTab = () => {
 };
 
 export default MonthlyFeeConfigTab;
-

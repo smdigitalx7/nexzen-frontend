@@ -18,6 +18,9 @@ import {
   LogOut,
   ChevronDown,
   ChevronsDown,
+  BookOpen,
+  ExternalLink,
+  FolderOpen,
 } from "lucide-react";
 import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { cn } from "@/lib/utils";
@@ -108,7 +111,7 @@ const Sidebar = () => {
 
     // Build General modules based on role
     const modules: NavigationItem[] = [];
-    
+
     // Users - Only ADMIN and INSTITUTE_ADMIN
     if (isAdminRole || isInstituteAdminRole) {
       modules.push({
@@ -118,7 +121,7 @@ const Sidebar = () => {
         description: "User management",
       });
     }
-    
+
     // Employees - ADMIN, INSTITUTE_ADMIN, ACCOUNTANT, ACADEMIC
     if (
       isAdminRole ||
@@ -135,7 +138,7 @@ const Sidebar = () => {
         description: "Staff management",
       });
     }
-    
+
     // Payroll - Only ADMIN and INSTITUTE_ADMIN
     if (isAdminRole || isInstituteAdminRole) {
       modules.push({
@@ -145,7 +148,7 @@ const Sidebar = () => {
         description: "Salary and payments",
       });
     }
-    
+
     // Transport - ADMIN, INSTITUTE_ADMIN, ACCOUNTANT
     if (
       isAdminRole ||
@@ -160,7 +163,7 @@ const Sidebar = () => {
         description: "Bus routes and stops",
       });
     }
-    
+
     // Audit Log - Only ADMIN and INSTITUTE_ADMIN
     if (isAdminRole || isInstituteAdminRole) {
       modules.push({
@@ -170,7 +173,7 @@ const Sidebar = () => {
         description: "Immutable user action log",
       });
     }
-    
+
     return modules;
   }, [user?.role]);
 
@@ -555,42 +558,135 @@ const Sidebar = () => {
         </div>
       </div>
 
-      {/* <div className="relative mt-auto bg-transparent border-t border-slate-200/80">
-        {sidebarOpen && (
-          <div className="flex justify-center items-center py-3 absolute bottom-0 left-0 right-0   pt-10 pb-4 bg-gradient-to-b from-transparent to-white">
-            <ChevronsDown className="h-4 w-4 text-slate-400/70" />
-          </div>
-        )}
-        
-        <div className="px-4 pb-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
+      {/* Footer Section with Version and Document Links */}
+      {/* <div className="mt-auto border-t border-slate-200/80 bg-white/50 backdrop-blur-sm">
+        <div className="p-4 space-y-2">
+ 
+          {sidebarOpen && user?.role && (
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                Help & Resources
+              </h3>
+
+              {(() => {
+                const userRoleUpper = String(user.role).toUpperCase().trim();
+                let guideUrl = "";
+                let guideTitle = "";
+
+                if (
+                  userRoleUpper === ROLES.ACADEMIC ||
+                  userRoleUpper === "ACADEMIC"
+                ) {
+                  guideUrl =
+                    "https://docs.google.com/document/d/1Lm2nX3UAVcJ42QVW2XONCoXUNuKHy5iv/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
+                  guideTitle = "Academic Guide";
+                } else if (
+                  userRoleUpper === ROLES.ACCOUNTANT ||
+                  userRoleUpper === "ACCOUNTANT"
+                ) {
+                  guideUrl =
+                    "https://docs.google.com/document/d/19XfkbLisVi5zql9Fuuv5_R4KijLGOow1/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
+                  guideTitle = "Accountant Guide";
+                } else if (
+                  userRoleUpper === ROLES.ADMIN ||
+                  userRoleUpper === "ADMIN" ||
+                  userRoleUpper === ROLES.INSTITUTE_ADMIN ||
+                  userRoleUpper === "INSTITUTE_ADMIN"
+                ) {
+                  guideUrl =
+                    "https://docs.google.com/document/d/1oNreLcS2plkfPVn7zQXsT98zdOhmPoBk/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
+                  guideTitle = "Admin Guide";
+                }
+
+                if (!guideUrl) return null;
+
+                return (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.open(guideUrl, "_blank")}
+                    className={cn(
+                      "w-full justify-start gap-3 h-10 hover-elevate relative transition-all duration-200 group rounded-lg overflow-hidden",
+                      "text-slate-600 hover:text-blue-600 hover:bg-blue-50/50"
+                    )}
+                    title={guideTitle}
+                  >
+                    <motion.div
+                      className="flex items-center gap-3 flex-1"
+                      whileHover={{ x: 4 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                    >
+                      <BookOpen className="h-4 w-4 shrink-0 transition-colors duration-200 text-slate-400 group-hover:text-blue-600" />
+                      {sidebarOpen && (
+                        <>
+                          <span className="truncate text-sm">{guideTitle}</span>
+                          <ExternalLink className="h-3 w-3 ml-auto text-slate-400 group-hover:text-blue-600" />
+                        </>
+                      )}
+                    </motion.div>
+                  </Button>
+                );
+              })()}
+
+
+              {(() => {
+                const userRoleUpper = String(user.role).toUpperCase().trim();
+                const isAdminRole =
+                  userRoleUpper === ROLES.ADMIN ||
+                  userRoleUpper === "ADMIN" ||
+                  userRoleUpper === ROLES.INSTITUTE_ADMIN ||
+                  userRoleUpper === "INSTITUTE_ADMIN";
+
+                if (!isAdminRole) return null;
+
+                return (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      window.open(
+                        "https://drive.google.com/drive/folders/10gsq1_6Nt4fTMbrEO0AobIaQmMHD1dWS?usp=drive_link",
+                        "_blank"
+                      )
+                    }
+                    className={cn(
+                      "w-full justify-start gap-3 h-10 hover-elevate relative transition-all duration-200 group rounded-lg overflow-hidden",
+                      "text-slate-600 hover:text-blue-600 hover:bg-blue-50/50"
+                    )}
+                    title="Documents"
+                  >
+                    <motion.div
+                      className="flex items-center gap-3 flex-1"
+                      whileHover={{ x: 4 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                    >
+                      <FolderOpen className="h-4 w-4 shrink-0 transition-colors duration-200 text-slate-400 group-hover:text-blue-600" />
+                      {sidebarOpen && (
+                        <>
+                          <span className="truncate text-sm">Documents</span>
+                          <ExternalLink className="h-3 w-3 ml-auto text-slate-400 group-hover:text-blue-600" />
+                        </>
+                      )}
+                    </motion.div>
+                  </Button>
+                );
+              })()}
+            </div>
+          )}
+
+    
+          <div
             className={cn(
-              "w-full justify-start gap-3 h-10 hover-elevate relative transition-all duration-200 group rounded-lg overflow-hidden",
-              "text-slate-600 hover:text-red-600 hover:bg-red-50/50"
+              "flex items-center justify-center py-2 text-xs text-slate-400",
+              !sidebarOpen && "px-2"
             )}
-            data-testid="button-sidebar-logout"
           >
-            <motion.div
-              className="flex items-center gap-3 flex-1"
-              whileHover={{ x: 4 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-            >
-              <LogOut
-                className={cn(
-                  "h-4 w-4 shrink-0 transition-colors duration-200",
-                  "text-slate-400 group-hover:text-red-600"
-                )}
-              />
-              {sidebarOpen && (
-                <span className="truncate text-sm" title="Logout">
-                  Logout
-                </span>
-              )}
-            </motion.div>
-          </Button>
+            {sidebarOpen ? (
+              <span>Version 1.0.0</span>
+            ) : (
+              <span className="text-[10px]">v1.0.0</span>
+            )}
+          </div>
         </div>
       </div> */}
     </motion.aside>

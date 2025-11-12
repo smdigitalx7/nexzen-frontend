@@ -51,33 +51,33 @@
 
 ### Module Access Matrix
 
-| Module | Access Level | Create | Read | Update | Delete | Special Permissions |
-|--------|-------------|--------|------|--------|--------|-------------------|
-| **School Modules** |
-| Reservations | Full | ✅ | ✅ | ✅ | ❌ | Create, edit, convert to admission. **Cannot delete** |
-| Admissions | Full | ✅ | ✅ | ✅ | ❌ | Convert reservations, edit details |
-| Students | View Only | ❌ | ✅ | ❌ | ❌ | View only. Tabs: Enrollments, Transport (no Section Mapping) |
-| Fees | Full | ✅ | ✅ | ✅ | ❌ | Collect fees, generate receipts |
-| Financial Reports | Full | ✅ | ✅ | ❌ | ❌ | Generate, view, export reports. Expenditure tab: **Cannot edit/delete** |
-| Income & Expenditure | Full | ✅ | ✅ | ✅ | ✅ | Add income, add expenditure. Expenditure: **Cannot edit/delete** |
-| Announcements | Limited | ✅ | ✅ | ✅ | ✅ | Can create/view announcements |
-| **College Modules** |
-| Reservations | Full | ✅ | ✅ | ✅ | ❌ | Same as School. **Cannot delete** |
-| Admissions | Full | ✅ | ✅ | ✅ | ❌ | Same as School |
-| Students | View Only | ❌ | ✅ | ❌ | ❌ | Same as School. Tabs: Enrollments, Transport |
-| Fees | Full | ✅ | ✅ | ✅ | ❌ | Same as School |
-| Financial Reports | Full | ✅ | ✅ | ❌ | ❌ | Same as School. Expenditure: **Cannot edit/delete** |
-| Income & Expenditure | Full | ✅ | ✅ | ✅ | ✅ | Same as School. Expenditure: **Cannot edit/delete** |
-| Announcements | Limited | ✅ | ✅ | ✅ | ✅ | Same as School |
+| Module                 | Access Level | Create | Read | Update | Delete | Special Permissions                                                     |
+| ---------------------- | ------------ | ------ | ---- | ------ | ------ | ----------------------------------------------------------------------- |
+| **School Modules**     |
+| Reservations           | Full         | ✅     | ✅   | ✅     | ❌     | Create, edit, convert to admission. **Cannot delete**                   |
+| Admissions             | Full         | ✅     | ✅   | ✅     | ❌     | Convert reservations, edit details                                      |
+| Students               | View Only    | ❌     | ✅   | ❌     | ❌     | View only. Tabs: Enrollments, Transport (no Section Mapping)            |
+| Fees                   | Full         | ✅     | ✅   | ✅     | ❌     | Collect fees, generate receipts                                         |
+| Financial Reports      | Full         | ✅     | ✅   | ❌     | ❌     | Generate, view, export reports. Expenditure tab: **Cannot edit/delete** |
+| Income & Expenditure   | Full         | ✅     | ✅   | ✅     | ✅     | Add income, add expenditure. Expenditure: **Cannot edit/delete**        |
+| Announcements          | Limited      | ✅     | ✅   | ✅     | ✅     | Can create/view announcements                                           |
+| **College Modules**    |
+| Reservations           | Full         | ✅     | ✅   | ✅     | ❌     | Same as School. **Cannot delete**                                       |
+| Admissions             | Full         | ✅     | ✅   | ✅     | ❌     | Same as School                                                          |
+| Students               | View Only    | ❌     | ✅   | ❌     | ❌     | Same as School. Tabs: Enrollments, Transport                            |
+| Fees                   | Full         | ✅     | ✅   | ✅     | ❌     | Same as School                                                          |
+| Financial Reports      | Full         | ✅     | ✅   | ❌     | ❌     | Same as School. Expenditure: **Cannot edit/delete**                     |
+| Income & Expenditure   | Full         | ✅     | ✅   | ✅     | ✅     | Same as School. Expenditure: **Cannot edit/delete**                     |
+| Announcements          | Limited      | ✅     | ✅   | ✅     | ✅     | Same as School                                                          |
 | **Restricted Modules** |
-| Academic | ❌ | ❌ | ❌ | ❌ | ❌ | No access |
-| Attendance | ❌ | ❌ | ❌ | ❌ | ❌ | No access |
-| Marks | ❌ | ❌ | ❌ | ❌ | ❌ | No access |
-| Employee Management | ❌ | ❌ | ❌ | ❌ | ❌ | No access |
-| Payroll | ❌ | ❌ | ❌ | ❌ | ❌ | No access |
-| Transport Management | ❌ | ❌ | ❌ | ❌ | ❌ | No access |
-| User Management | ❌ | ❌ | ❌ | ❌ | ❌ | No access |
-| Audit Log | View Only | ❌ | ✅ | ❌ | ❌ | View own activities only |
+| Academic               | ❌           | ❌     | ❌   | ❌     | ❌     | No access                                                               |
+| Attendance             | ❌           | ❌     | ❌   | ❌     | ❌     | No access                                                               |
+| Marks                  | ❌           | ❌     | ❌   | ❌     | ❌     | No access                                                               |
+| Employee Management    | ❌           | ❌     | ❌   | ❌     | ❌     | No access                                                               |
+| Payroll                | ❌           | ❌     | ❌   | ❌     | ❌     | No access                                                               |
+| Transport Management   | ❌           | ❌     | ❌   | ❌     | ❌     | No access                                                               |
+| User Management        | ❌           | ❌     | ❌   | ❌     | ❌     | No access                                                               |
+| Audit Log              | View Only    | ❌     | ✅   | ❌     | ❌     | View own activities only                                                |
 
 ---
 
@@ -88,6 +88,7 @@
 #### 1.1 Create Reservations
 
 **Features:**
+
 - Create new student reservations
 - Fill complete reservation form
 - Enter personal details (name, Aadhar, DOB, gender)
@@ -103,6 +104,7 @@
 **Access:** Full Create access
 
 **Validations:**
+
 - Aadhar must be 12 digits
 - Mobile must be 10 digits
 - All required fields must be filled
@@ -113,6 +115,7 @@
 #### 1.2 View Reservations
 
 **Features:**
+
 - View all reservations
 - Search by reservation number, name, mobile
 - Filter by status, class, date
@@ -127,6 +130,7 @@
 #### 1.3 Edit Reservations
 
 **Features:**
+
 - Edit contact details
 - Edit transport details
 - Edit fees (if not paid)
@@ -136,6 +140,7 @@
 **Access:** Limited Update access
 
 **Restrictions:**
+
 - Cannot edit student name
 - Cannot edit Aadhar numbers
 - Cannot edit reservation number
@@ -146,12 +151,14 @@
 #### 1.4 Delete Reservations
 
 **Features:**
+
 - **Delete button is hidden** (Admin-only privilege)
 - Cannot delete reservations
 
 **Access:** No Delete access
 
 **Restrictions:**
+
 - ⚠️ **Cannot delete reservations** (Admin-only)
 - Delete button is not visible in UI
 - Must contact Admin to delete reservations
@@ -163,6 +170,7 @@
 #### 2.1 View Students
 
 **Features:**
+
 - View student enrollments
 - View student transport assignments
 - Search by name, admission number, mobile
@@ -172,10 +180,12 @@
 **Access:** View-only access
 
 **Available Tabs:**
+
 - **Enrollments Tab:** View all student enrollments
 - **Transport Tab:** View student transport assignments (view only, cannot edit/delete)
 
 **Restrictions:**
+
 - ⚠️ **Section Mapping tab is hidden** (Admin/Academic only)
 - Cannot create students (via admission only)
 - Cannot delete students
@@ -189,6 +199,7 @@
 #### 2.1 Convert Reservations to Admissions
 
 **Features:**
+
 - Search reservations by number
 - View reservation details
 - Convert confirmed reservations to admissions
@@ -200,6 +211,7 @@
 **Access:** Full Create access (via conversion)
 
 **Validations:**
+
 - Reservation must be confirmed
 - Application fee must be paid
 - Reservation fee must be paid
@@ -209,6 +221,7 @@
 #### 2.2 Fee Locking
 
 **Features:**
+
 - Enter concession amount (if principal approved)
 - Lock fees with concession
 - **Cannot unlock fees** (Admin-only privilege)
@@ -217,11 +230,13 @@
 **Access:** Limited Update access
 
 **Restrictions:**
+
 - ⚠️ **Cannot unlock fees once locked**
 - ⚠️ **Cannot edit locked fees**
 - Must contact Admin to unlock
 
 **Important Note:**
+
 - Once fee is locked, it cannot be changed
 - Lock fees only after Admin approval
 - Verify amounts before locking
@@ -231,6 +246,7 @@
 #### 2.3 Edit Admissions
 
 **Features:**
+
 - Edit contact details (address, mobile)
 - Edit transport details
 - Edit remarks
@@ -239,6 +255,7 @@
 **Access:** Limited Update access
 
 **Restrictions:**
+
 - Cannot edit student name
 - Cannot edit Aadhar numbers
 - Cannot edit admission number
@@ -250,6 +267,7 @@
 #### 2.4 View Admissions
 
 **Features:**
+
 - View all admissions
 - Search by admission number, name, mobile
 - Filter by class, section, status
@@ -266,6 +284,7 @@
 #### 3.1 Collect Fees
 
 **Features:**
+
 - Search student by admission number, name, mobile
 - View fee balance (tuition, transport, books)
 - Select fees to collect (books, terms, transport)
@@ -279,6 +298,7 @@
 **Access:** Full Create access
 
 **Validations:**
+
 - Books fee must be paid first (system enforced)
 - Term payment sequence: 40%, 30%, 30%
 - Transport fees before Term 3
@@ -290,6 +310,7 @@
 #### 3.2 View Fee Transactions
 
 **Features:**
+
 - View all fee transactions
 - View payment history
 - View fee balances
@@ -304,6 +325,7 @@
 #### 3.3 Regenerate Receipts
 
 **Features:**
+
 - Regenerate receipts from Income section
 - View receipt details
 - Print receipt multiple times
@@ -312,6 +334,7 @@
 **Access:** Full Read access (receipt regeneration)
 
 **Workflow:**
+
 1. Navigate to Financial Reports → Income
 2. Find payment transaction
 3. Click "Regenerate Receipt" or "View Receipt"
@@ -325,6 +348,7 @@
 #### 4.1 Available Reports
 
 **Features:**
+
 - New Reservations Report
 - Converted Admissions Report
 - Not Converted Reservations (with remarks)
@@ -344,6 +368,7 @@
 #### 4.2 Expenditure Tab Restrictions
 
 **Important:** In Financial Reports → Expenditure Tab:
+
 - ✅ Can view all expenditure entries
 - ✅ Can create new expenditure entries
 - ❌ **Cannot edit expenditure entries** (Admin-only)
@@ -351,6 +376,7 @@
 - Edit and Delete buttons are hidden in the UI
 
 **Workflow:**
+
 1. Navigate to Financial Reports → Expenditure
 2. View all expenditure entries
 3. Can add new expenditure entries
@@ -363,6 +389,7 @@
 #### 5.1 Income Management
 
 **Features:**
+
 - Add miscellaneous income
 - Enter income details (amount, description, date)
 - View all income entries
@@ -373,6 +400,7 @@
 **Access:** Full CRUD access
 
 **Validations:**
+
 - Amount must be positive
 - Date must be valid
 - Description is required
@@ -382,6 +410,7 @@
 #### 5.2 Expenditure Management
 
 **Features:**
+
 - Add expenditure entries
 - Enter expenditure details (amount, voucher, remarks)
 - View all expenditure entries
@@ -393,18 +422,21 @@
 **Access:** Create and View access only (no Edit/Delete)
 
 **Validations:**
+
 - Amount must be positive
 - Voucher number (if applicable)
 - Remarks are required
 - Date must be valid
 
 **Restrictions:**
+
 - ⚠️ **Cannot edit expenditure entries** (Admin-only)
 - ⚠️ **Cannot delete expenditure entries** (Admin-only)
 - Edit and Delete buttons are hidden in UI
 - Must contact Admin for corrections
 
 **Special Note:**
+
 - Expenditure entries are visible to Admin
 - Admin can review, edit, and delete
 - Export available for reporting
@@ -414,6 +446,7 @@
 ### 6. Announcements
 
 **Features:**
+
 - Create announcements
 - View announcements
 - Edit announcements (before start date)
@@ -423,6 +456,7 @@
 **Access:** Limited CRUD access
 
 **Restrictions:**
+
 - Cannot edit after start date
 - Cannot delete active announcements
 - Admin can override
@@ -434,6 +468,7 @@
 ### Create Operations
 
 **Allowed:**
+
 - ✅ Create reservations
 - ✅ Create admissions (via conversion)
 - ✅ Create fee transactions
@@ -443,6 +478,7 @@
 - ✅ Generate receipts
 
 **Restrictions:**
+
 - ❌ Cannot create students directly (via admission only)
 - ❌ Cannot create academic settings
 - ❌ Cannot create attendance/marks
@@ -454,6 +490,7 @@
 ### Read Operations
 
 **Allowed:**
+
 - ✅ Read all reservations
 - ✅ Read all admissions
 - ✅ Read all fee transactions
@@ -463,6 +500,7 @@
 - ✅ Read own audit logs
 
 **Restrictions:**
+
 - ❌ Cannot read academic data (attendance, marks)
 - ❌ Cannot read employee data
 - ❌ Cannot read transport management
@@ -473,6 +511,7 @@
 ### Update Operations
 
 **Allowed:**
+
 - ✅ Update reservation details (limited fields)
 - ✅ Update admission details (limited fields)
 - ✅ Update fee transactions (before processing)
@@ -481,6 +520,7 @@
 - ✅ Update announcements (before start date)
 
 **Restrictions:**
+
 - ❌ Cannot update student name
 - ❌ Cannot update Aadhar numbers
 - ❌ Cannot update locked fees
@@ -489,6 +529,7 @@
 - ❌ Cannot update employee data
 
 **Special Restrictions:**
+
 - ⚠️ **Cannot unlock fees** (Admin-only)
 - ⚠️ **Cannot edit locked fees**
 
@@ -497,10 +538,12 @@
 ### Delete Operations
 
 **Allowed:**
+
 - ✅ Delete income entries
 - ✅ Delete announcements (if not started)
 
 **Restrictions:**
+
 - ❌ **Cannot delete reservations** (Admin-only)
 - ❌ **Cannot delete expenditure entries** (Admin-only)
 - ❌ Cannot delete admissions
@@ -692,6 +735,7 @@
 ### Reservation Management
 
 **AC1:** Accountant can create reservation
+
 - ✅ All required fields validated
 - ✅ Aadhar numbers are 12 digits
 - ✅ Mobile numbers are 10 digits
@@ -699,12 +743,14 @@
 - ✅ Reservation saved successfully
 
 **AC2:** Accountant can edit reservation
+
 - ✅ Can edit contact details
 - ✅ Can edit transport details
 - ✅ Cannot edit name/Aadhar
 - ✅ Changes saved successfully
 
 **AC3:** Accountant can convert reservation to admission
+
 - ✅ Reservation is confirmed
 - ✅ Fees are paid
 - ✅ Admission form pre-filled
@@ -716,18 +762,21 @@
 ### Fee Collection
 
 **AC1:** Accountant can collect fees
+
 - ✅ Books fee must be paid first (system enforced)
 - ✅ Can pay any term after books fee
 - ✅ Payment amount validated
 - ✅ Receipt generated automatically
 
 **AC2:** Accountant can regenerate receipt
+
 - ✅ Navigate to Income section
 - ✅ Find transaction
 - ✅ Click regenerate receipt
 - ✅ Receipt regenerated successfully
 
 **AC3:** Payment retry on failure
+
 - ✅ System shows retry option
 - ✅ Refresh browser before retry
 - ✅ Payment processed successfully
@@ -737,12 +786,14 @@
 ### Fee Locking
 
 **AC1:** Accountant can lock fees
+
 - ✅ Enter concession amount
 - ✅ Click lock fee
 - ✅ Fee is locked
 - ✅ Cannot be unlocked (by design)
 
 **AC2:** Accountant cannot unlock fees
+
 - ✅ Unlock option not available
 - ✅ Must contact Admin
 - ✅ System enforces restriction
@@ -752,12 +803,14 @@
 ### Income & Expenditure
 
 **AC1:** Accountant can add income
+
 - ✅ Amount is positive
 - ✅ Description provided
 - ✅ Date is valid
 - ✅ Income saved successfully
 
 **AC2:** Accountant can add expenditure
+
 - ✅ Amount is positive
 - ✅ Voucher/remarks provided
 - ✅ Expenditure highlighted to Admin
@@ -887,12 +940,14 @@
 ### Permission System
 
 All permissions are centrally configured in `client/src/lib/permissions/config.ts`. This ensures:
+
 - Consistent permission enforcement across the application
 - Easy maintenance and updates
 - Type-safe permission checks
 - Dynamic UI filtering based on user roles
 
 **Key Restrictions for Accountant:**
+
 - ❌ Cannot delete reservations (Admin-only)
 - ❌ Cannot edit/delete expenditure entries (Admin-only)
 - ❌ Section Mapping tab hidden in Students module
@@ -901,9 +956,9 @@ All permissions are centrally configured in `client/src/lib/permissions/config.t
 ---
 
 **Related Documents:**
+
 - Overview: `USER_GUIDE_01_OVERVIEW.md`
 - School Guide: `USER_GUIDE_02_SCHOOL.md`
 - College Guide: `USER_GUIDE_03_COLLEGE.md`
 - General Guide: `USER_GUIDE_04_GENERAL.md`
 - Admin Role: `ROLE_ADMIN.md`
-

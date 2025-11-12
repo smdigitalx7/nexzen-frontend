@@ -20,13 +20,20 @@ export function useCollegeExams(options?: { enabled?: boolean }) {
         if (import.meta.env.DEV) {
           console.log("Exams API error:", error);
         }
+        // Api class attaches status property to Error objects
+        if (error instanceof Error) {
+          const apiError = error as Error & { status?: number; data?: { detail?: string } };
+          if (apiError.status === 404) {
+            return [];
+          }
+        }
+        // Fallback check for other error formats
         const errorObj = error as { message?: string; status?: number };
         if (
+          errorObj?.status === 404 ||
           errorObj?.message?.includes("404") ||
           errorObj?.message?.includes("Exams not found") ||
-          errorObj?.message?.includes("Not Found") ||
-          errorObj?.status === 404 ||
-          errorObj?.message === "Exams not found"
+          errorObj?.message?.includes("Not Found")
         ) {
           return [];
         }

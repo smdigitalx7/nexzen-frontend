@@ -11,10 +11,16 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+import {
   FileSpreadsheet,
   FileText,
   GraduationCap,
   CreditCard,
+  AlertCircle,
 } from "lucide-react";
 import { ReceiptPreviewModal } from "@/components/shared";
 import { handleCollegePayByAdmissionWithIncomeId } from "@/lib/api-college";
@@ -58,6 +64,7 @@ const AdmissionsList = () => {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const { data: admissions = [], isLoading } = useCollegeAdmissions();
   const { data: selectedAdmission } = useCollegeAdmissionById(selectedStudentId);
@@ -124,20 +131,26 @@ const AdmissionsList = () => {
 
   const handlePayAdmissionFee = useCallback(() => {
     if (selectedAdmission) {
-      setShowPaymentDialog(true);
+      // Clear any previous errors
+      setPaymentError(null);
+      // Close details dialog before opening payment dialog to avoid modal stacking
+      setShowDetailsDialog(false);
+      // Small delay to ensure smooth transition
+      setTimeout(() => {
+        setShowPaymentDialog(true);
+      }, 100);
     }
   }, [selectedAdmission]);
 
   const handleProcessPayment = useCallback(async () => {
     if (!selectedAdmission) return;
 
+    // Clear any previous errors
+    setPaymentError(null);
+
     const admissionFee = parseFloat(selectedAdmission.admission_fee?.toString() || "0");
     if (admissionFee <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Admission fee amount is invalid",
-        variant: "destructive",
-      });
+      setPaymentError("Admission fee amount is invalid. Please check the fee amount.");
       return;
     }
 
@@ -163,7 +176,11 @@ const AdmissionsList = () => {
       if (blobUrl) {
         setReceiptBlobUrl(blobUrl);
         setShowPaymentDialog(false);
+        // Close details dialog after successful payment
+        setShowDetailsDialog(false);
         setShowReceiptModal(true);
+        // Clear error on success
+        setPaymentError(null);
       }
 
       toast({
@@ -182,13 +199,11 @@ const AdmissionsList = () => {
       }
     } catch (error: any) {
       console.error("Payment failed:", error);
-      toast({
-        title: "Payment Failed",
-        description:
-          error?.message ||
-          "Failed to process admission fee payment. Please try again.",
-        variant: "destructive",
-      });
+      // Show error in the dialog instead of toast
+      setPaymentError(
+        error?.message ||
+        "Failed to process admission fee payment. Please try again."
+      );
     } finally {
       setIsProcessingPayment(false);
     }
@@ -307,7 +322,7 @@ const AdmissionsList = () => {
 
       {/* Admission Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-0">
+        <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-0" style={{ zIndex: 10000 }}>
           <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
             <DialogTitle>Admission Details</DialogTitle>
             <DialogDescription className="flex items-center justify-between">
@@ -736,8 +751,17 @@ const AdmissionsList = () => {
       </Dialog>
 
       {/* Payment Dialog */}
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent>
+      <Dialog 
+        open={showPaymentDialog} 
+        onOpenChange={(open) => {
+          setShowPaymentDialog(open);
+          // Clear error when dialog closes
+          if (!open) {
+            setPaymentError(null);
+          }
+        }}
+      >
+        <DialogContent style={{ zIndex: 10001 }}>
           <DialogHeader>
             <DialogTitle>Pay Admission Fee</DialogTitle>
             <DialogDescription>
@@ -759,6 +783,15 @@ const AdmissionsList = () => {
                     Student: {selectedAdmission.student_name}
                   </p>
                 </div>
+
+                {/* Error Alert */}
+                {paymentError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Payment Error</AlertTitle>
+                    <AlertDescription>{paymentError}</AlertDescription>
+                  </Alert>
+                )}
 
                 <Button
                   onClick={handleProcessPayment}

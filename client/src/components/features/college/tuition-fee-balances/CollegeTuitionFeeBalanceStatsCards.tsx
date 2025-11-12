@@ -1,22 +1,25 @@
-import React from 'react';
-import { 
-  BookOpen, 
-  TrendingUp, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
+import React from "react";
+import {
+  BookOpen,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
   Percent,
   Calculator,
   GraduationCap,
   Users,
   CreditCard,
-  Wallet
-} from 'lucide-react';
-import { IndianRupeeIcon } from '@/components/shared/IndianRupeeIcon';
-import { StatsCard, type StatsCardConfig } from '@/components/shared/dashboard/StatsCard';
-import { DashboardGrid } from '@/components/shared/dashboard/DashboardGrid';
-import { CollegeTuitionFeeBalanceDashboardStats } from '@/lib/types/college/tuition-fee-balances';
-import { formatCurrency } from '@/lib/utils';
+  Wallet,
+} from "lucide-react";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
+import {
+  StatsCard,
+  type StatsCardConfig,
+} from "@/components/shared/dashboard/StatsCard";
+import { DashboardGrid } from "@/components/shared/dashboard/DashboardGrid";
+import { CollegeTuitionFeeBalanceDashboardStats } from "@/lib/types/college/tuition-fee-balances";
+import { formatCurrency } from "@/lib/utils";
 
 interface CollegeTuitionFeeBalanceStatsCardsProps {
   stats: CollegeTuitionFeeBalanceDashboardStats;
@@ -24,11 +27,9 @@ interface CollegeTuitionFeeBalanceStatsCardsProps {
   className?: string;
 }
 
-export const CollegeTuitionFeeBalanceStatsCards: React.FC<CollegeTuitionFeeBalanceStatsCardsProps> = ({
-  stats,
-  loading = false,
-  className,
-}) => {
+export const CollegeTuitionFeeBalanceStatsCards: React.FC<
+  CollegeTuitionFeeBalanceStatsCardsProps
+> = ({ stats, loading = false, className }) => {
   const statsCards = [
     {
       title: "Total Balances",
@@ -111,74 +112,78 @@ export const CollegeTuitionFeeBalanceStatsCards: React.FC<CollegeTuitionFeeBalan
       variant: "bordered" as const,
       size: "sm" as const,
     },
-    {
-      title: "Book Paid",
-      value: stats.book_paid_count,
-      icon: CheckCircle,
-      color: "green" as const,
-      description: "Completed book payments",
-      variant: "bordered" as const,
-      size: "sm" as const,
-    },
-    {
-      title: "Term 1 Pending",
-      value: stats.term1_pending_count,
-      icon: Clock,
-      color: "orange" as const,
-      description: "Term 1 pending",
-      variant: "default" as const,
-      size: "sm" as const,
-    },
-    {
-      title: "Term 1 Paid",
-      value: stats.term1_paid_count,
-      icon: CheckCircle,
-      color: "green" as const,
-      description: "Term 1 completed",
-      variant: "default" as const,
-      size: "sm" as const,
-    },
-    {
-      title: "Term 2 Pending",
-      value: stats.term2_pending_count,
-      icon: Clock,
-      color: "orange" as const,
-      description: "Term 2 pending",
-      variant: "default" as const,
-      size: "sm" as const,
-    },
-    {
-      title: "Term 2 Paid",
-      value: stats.term2_paid_count,
-      icon: CheckCircle,
-      color: "green" as const,
-      description: "Term 2 completed",
-      variant: "default" as const,
-      size: "sm" as const,
-    },
-    {
-      title: "Term 3 Pending",
-      value: stats.term3_pending_count,
-      icon: Clock,
-      color: "orange" as const,
-      description: "Term 3 pending",
-      variant: "default" as const,
-      size: "sm" as const,
-    },
-    {
-      title: "Term 3 Paid",
-      value: stats.term3_paid_count,
-      icon: CheckCircle,
-      color: "green" as const,
-      description: "Term 3 completed",
-      variant: "default" as const,
-      size: "sm" as const,
-    },
+    // {
+    //   title: "Book Paid",
+    //   value: stats.book_paid_count,
+    //   icon: CheckCircle,
+    //   color: "green" as const,
+    //   description: "Completed book payments",
+    //   variant: "bordered" as const,
+    //   size: "sm" as const,
+    // },
+    // {
+    //   title: "Term 1 Pending",
+    //   value: stats.term1_pending_count,
+    //   icon: Clock,
+    //   color: "orange" as const,
+    //   description: "Term 1 pending",
+    //   variant: "default" as const,
+    //   size: "sm" as const,
+    // },
+    // {
+    //   title: "Term 1 Paid",
+    //   value: stats.term1_paid_count,
+    //   icon: CheckCircle,
+    //   color: "green" as const,
+    //   description: "Term 1 completed",
+    //   variant: "default" as const,
+    //   size: "sm" as const,
+    // },
+    // {
+    //   title: "Term 2 Pending",
+    //   value: stats.term2_pending_count,
+    //   icon: Clock,
+    //   color: "orange" as const,
+    //   description: "Term 2 pending",
+    //   variant: "default" as const,
+    //   size: "sm" as const,
+    // },
+    // {
+    //   title: "Term 2 Paid",
+    //   value: stats.term2_paid_count,
+    //   icon: CheckCircle,
+    //   color: "green" as const,
+    //   description: "Term 2 completed",
+    //   variant: "default" as const,
+    //   size: "sm" as const,
+    // },
+    // {
+    //   title: "Term 3 Pending",
+    //   value: stats.term3_pending_count,
+    //   icon: Clock,
+    //   color: "orange" as const,
+    //   description: "Term 3 pending",
+    //   variant: "default" as const,
+    //   size: "sm" as const,
+    // },
+    // {
+    //   title: "Term 3 Paid",
+    //   value: stats.term3_paid_count,
+    //   icon: CheckCircle,
+    //   color: "green" as const,
+    //   description: "Term 3 completed",
+    //   variant: "default" as const,
+    //   size: "sm" as const,
+    // },
     {
       title: "Payment Completion",
       value: `${stats.average_payment_completion.toFixed(1)}%`,
       icon: TrendingUp,
-      color: (stats.average_payment_completion >= 80 ? "green" : stats.average_payment_completion >= 60 ? "yellow" : "red") as "green" | "yellow" | "red",
+      color: (stats.average_payment_completion >= 80
+        ? "green"
+        : stats.average_payment_completion >= 60
+          ? "yellow"
+          : "red") as "green" | "yellow" | "red",
       description: "Average completion rate",
       variant: "gradient" as const,
       size: "sm" as const,
@@ -186,11 +191,7 @@ export const CollegeTuitionFeeBalanceStatsCards: React.FC<CollegeTuitionFeeBalan
   ];
 
   return (
-    <DashboardGrid 
-      columns={6} 
-      gap="md" 
-      className={className}
-    >
+    <DashboardGrid columns={5} gap="md" className={className}>
       {statsCards.map((stat, index) => (
         <StatsCard
           key={stat.title}
