@@ -14,6 +14,7 @@ import type {
 } from "@/components/shared/payment/types/PaymentTypes";
 import { handleCollegePayByAdmissionWithIncomeId } from "@/lib/api-college";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import { invalidateAndRefetch } from "@/lib/hooks/common/useGlobalRefetch";
 import { collegeKeys } from "@/lib/hooks/college/query-keys";
 import { CacheUtils } from "@/lib/api";
@@ -50,6 +51,7 @@ export const CollectFee = ({
   setSearchQuery,
 }: CollectFeeProps) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const search = useSearch();
   const [selectedStudent, setSelectedStudent] =

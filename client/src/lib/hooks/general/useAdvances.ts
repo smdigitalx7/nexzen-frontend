@@ -33,10 +33,13 @@ export const useAdvancesAll = (pageSize: number = 10, page: number = 1, month?: 
   });
 };
 
-export const useAdvancesByBranch = (pageSize: number = 10, page: number = 1, month?: number, year?: number, status?: string) => {
+export const useAdvancesByBranch = (pageSize: number = 10, page: number = 1, month?: number, year?: number, status?: string, enabled: boolean = true) => {
   return useQuery({
     queryKey: advanceKeys.byBranch({ pageSize, page, month, year, status }),
     queryFn: () => AdvancesService.listByBranch(pageSize, page, month, year, status),
+    enabled, // Allow conditional query execution to prevent unnecessary fetches
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 

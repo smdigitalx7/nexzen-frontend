@@ -31,7 +31,7 @@ export const useAttendanceAll = (month?: number, year?: number) => {
   });
 };
 
-export const useAttendanceByBranch = (month?: number, year?: number) => {
+export const useAttendanceByBranch = (month?: number, year?: number, enabled: boolean = true) => {
   // Default to current month/year if not provided (mandatory parameters)
   const now = new Date();
   const currentMonth = month ?? now.getMonth() + 1;
@@ -40,6 +40,9 @@ export const useAttendanceByBranch = (month?: number, year?: number) => {
   return useQuery({
     queryKey: employeeAttendanceKeys.byBranch({ month: currentMonth, year: currentYear }),
     queryFn: () => EmployeeAttendanceService.listByBranch(currentMonth, currentYear),
+    enabled, // Allow conditional query execution to prevent unnecessary fetches
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 

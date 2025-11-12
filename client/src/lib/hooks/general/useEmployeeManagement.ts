@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
-import { useTabNavigation } from "../use-tab-navigation";
+import { useTabNavigation, useTabEnabled } from "../use-tab-navigation";
 import { toast } from "@/hooks/use-toast";
 import { CacheUtils } from "@/lib/api";
 import { invalidateAndRefetch } from "../common/useGlobalRefetch";
@@ -22,6 +22,7 @@ import {
   useUpdateIndividualAttendance,
   useDeleteAttendance,
   useAttendanceByBranch,
+  employeeAttendanceKeys,
 } from "@/lib/hooks/general/useEmployeeAttendance";
 import { EmployeeAttendanceService } from "@/lib/services/general/employee-attendance.service";
 import {
@@ -109,6 +110,13 @@ export const useEmployeeManagement = (
   const { user, currentBranch } = useAuthStore();
   const { activeTab, setActiveTab } = useTabNavigation("employees");
 
+  // Get enabled states for conditional data fetching (avoids hook order issues)
+  // Employees needed for multiple tabs (employees, attendance, leaves, advances)
+  const employeesEnabled = useTabEnabled(["employees", "attendance", "leaves", "advances"], "employees");
+  const attendanceEnabled = useTabEnabled("attendance", "employees");
+  const leavesEnabled = useTabEnabled("leaves", "employees");
+  const advancesEnabled = useTabEnabled("advances", "employees");
+
   // UI State - Initialize month/year to current values (required parameters)
   const now = new Date();
   const [attendancePage, setAttendancePage] = useState(1);
@@ -120,24 +128,38 @@ export const useEmployeeManagement = (
   const [leaveYear, setLeaveYear] = useState<number>(now.getFullYear());
   const pageSize = 20;
 
-  // Data hooks
-  const { data: employees = [], isLoading, error } = useEmployeesByBranch();
+  // Data hooks - API calls are made per tab, not based on sidebar navigation
+  // Only fetch data when the respective tab is active to prevent unnecessary requests and UI freezes
+  // Note: Employees are needed for dialogs across multiple tabs, so enabled when any relevant tab is active
+  const { data: employees = [], isLoading, error } = useEmployeesByBranch(employeesEnabled);
+  
+  // Only fetch attendance when attendance tab is active
   const { data: attendanceData, isLoading: attendanceLoading } =
-    useAttendanceByBranch(attendanceMonth, attendanceYear);
-  // Only fetch leaves when leaves tab is active to prevent unnecessary requests and UI freezes
+    useAttendanceByBranch(attendanceMonth, attendanceYear, attendanceEnabled);
+  
+  // Only fetch leaves when leaves tab is active
   const { data: leavesData, isLoading: leavesLoading, refetch: refetchLeaves } = useEmployeeLeavesByBranch(
     leaveMonth,
     leaveYear,
     pageSize,
     leavesPage,
     undefined, // leaveStatus
-    activeTab === 'leaves' // Only fetch when leaves tab is active
+    leavesEnabled // Only fetch when leaves tab is active
   );
 
   // Extract data from response objects
   const attendance = attendanceData?.data || [];
   const leaves = leavesData?.data || [];
-  const { data: advancesData, isLoading: advancesLoading } = useAdvancesByBranch();
+  
+  // Only fetch advances when advances tab is active
+  const { data: advancesData, isLoading: advancesLoading } = useAdvancesByBranch(
+    pageSize,
+    1, // advancesPage - TODO: implement pagination if needed
+    undefined, // month
+    undefined, // year
+    undefined, // status
+    advancesEnabled // Only fetch when advances tab is active
+  );
   const advances = advancesData?.data || [];
 
   // Mutation hooks
@@ -306,16 +328,8 @@ export const useEmployeeManagement = (
       await createEmployeeMutation.mutateAsync(data);
       setShowEmployeeForm(false);
       
-      // Optimized cache invalidation - debounced to prevent UI freezing
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: employeeKeys.all });
-        queryClient.refetchQueries({
-          queryKey: employeeKeys.byBranch(),
-          type: 'active'
-        }).catch(() => {
-          // Silently handle errors
-        });
-      }, 100);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(employeeKeys.all);
     } catch (error) {
       console.error("Error creating employee:", error);
     }
@@ -327,16 +341,8 @@ export const useEmployeeManagement = (
       setShowEmployeeForm(false);
       setIsEditingEmployee(false);
       
-      // Optimized cache invalidation - debounced to prevent UI freezing
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: employeeKeys.all });
-        queryClient.refetchQueries({
-          queryKey: employeeKeys.byBranch(),
-          type: 'active'
-        }).catch(() => {
-          // Silently handle errors
-        });
-      }, 100);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(employeeKeys.all);
     } catch (error) {
       console.error("Error updating employee:", error);
     }
@@ -347,16 +353,8 @@ export const useEmployeeManagement = (
       await deleteEmployeeMutation.mutateAsync(id);
       setShowDeleteEmployeeDialog(false);
       
-      // Optimized cache invalidation - debounced to prevent UI freezing
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: employeeKeys.all });
-        queryClient.refetchQueries({
-          queryKey: employeeKeys.byBranch(),
-          type: 'active'
-        }).catch(() => {
-          // Silently handle errors
-        });
-      }, 100);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(employeeKeys.all);
     } catch (error) {
       console.error("Error deleting employee:", error);
     }
@@ -366,14 +364,8 @@ export const useEmployeeManagement = (
     try {
       await updateStatusMutation.mutateAsync({ id, status });
       
-      // Optimized cache invalidation - debounced to prevent UI freezing
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: employeeKeys.all });
-        queryClient.refetchQueries({
-          queryKey: employeeKeys.byBranch(),
-          type: 'active'
-        }).catch(() => {});
-      }, 100);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(employeeKeys.all);
     } catch (error) {
       console.error("Error updating employee status:", error);
     }
@@ -384,18 +376,9 @@ export const useEmployeeManagement = (
       await EmployeeAttendanceService.create(data);
       setShowAttendanceForm(false);
       
-      // Clear API cache for employee-attendances endpoints
-      CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
-      
-      // Optimized cache invalidation - debounced to prevent UI freezing
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['employee-attendances'], exact: false });
-        queryClient.refetchQueries({
-          queryKey: ['employee-attendances'],
-          exact: false,
-          type: 'active'
-        }).catch(() => {});
-      }, 100);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      // Note: invalidateAndRefetch handles API cache clearing internally
+      invalidateAndRefetch(employeeAttendanceKeys.all);
       
       toast({
         title: "Attendance Created",
@@ -419,20 +402,9 @@ export const useEmployeeManagement = (
       await EmployeeAttendanceService.createBulk(data);
       setShowAttendanceBulkCreateDialog(false);
       
-      // Clear API cache for employee-attendances endpoints
-      CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
-      
-      // Aggressive cache invalidation for immediate UI updates
-      // Invalidate all attendance-related queries using the proper key structure
-      queryClient.removeQueries({ queryKey: ['employee-attendances'], exact: false });
-      queryClient.invalidateQueries({ queryKey: ['employee-attendances'], exact: false });
-      
-      // Force refetch active queries
-      await queryClient.refetchQueries({
-        queryKey: ['employee-attendances'],
-        exact: false,
-        type: 'active'
-      });
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      // Note: invalidateAndRefetch handles API cache clearing internally
+      invalidateAndRefetch(employeeAttendanceKeys.all);
       
       toast({
         title: "Bulk Attendance Created",
@@ -466,20 +438,9 @@ export const useEmployeeManagement = (
       setShowAttendanceForm(false);
       setIsEditingAttendance(false);
       
-      // Clear API cache for employee-attendances endpoints
-      CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
-      
-      // Aggressive cache invalidation for immediate UI updates
-      // Invalidate all attendance-related queries using the proper key structure
-      queryClient.removeQueries({ queryKey: ['employee-attendances'], exact: false });
-      queryClient.invalidateQueries({ queryKey: ['employee-attendances'], exact: false });
-      
-      // Force refetch all active attendance queries
-      await queryClient.refetchQueries({
-        queryKey: ['employee-attendances'],
-        exact: false,
-        type: 'active'
-      });
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      // Note: invalidateAndRefetch handles API cache clearing internally
+      invalidateAndRefetch(employeeAttendanceKeys.all);
     } catch (error) {
       console.error("Error updating attendance:", error);
     }
@@ -491,18 +452,9 @@ export const useEmployeeManagement = (
       setShowAttendanceForm(false);
       setIsEditingAttendance(false);
       
-      // Clear API cache for employee-attendances endpoints
-      CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
-      
-      // Optimized cache invalidation - debounced to prevent UI freezing
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['employee-attendances'], exact: false });
-        queryClient.refetchQueries({
-          queryKey: ['employee-attendances'],
-          exact: false,
-          type: 'active'
-        }).catch(() => {});
-      }, 100);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      // Note: invalidateAndRefetch handles API cache clearing internally
+      invalidateAndRefetch(employeeAttendanceKeys.all);
       
       toast({
         title: "Attendance Updated",
@@ -525,18 +477,9 @@ export const useEmployeeManagement = (
       await deleteAttendanceMutation.mutateAsync(id);
       setShowAttendanceDeleteDialog(false);
       
-      // Clear API cache for employee-attendances endpoints
-      CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
-      
-      // Optimized cache invalidation - debounced to prevent UI freezing
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['employee-attendances'], exact: false });
-        queryClient.refetchQueries({
-          queryKey: ['employee-attendances'],
-          exact: false,
-          type: 'active'
-        }).catch(() => {});
-      }, 100);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      // Note: invalidateAndRefetch handles API cache clearing internally
+      invalidateAndRefetch(employeeAttendanceKeys.all);
     } catch (error) {
       console.error("Error deleting attendance:", error);
     }
@@ -565,8 +508,7 @@ export const useEmployeeManagement = (
       setShowLeaveForm(false);
       setIsEditingLeave(false);
       
-      // Use debounced invalidateAndRefetch to prevent UI freeze
-      invalidateAndRefetch(employeeLeaveKeys.all);
+      // Note: invalidateEntity is already called in the mutation hook's onSuccess
     } catch (error) {
       console.error("Error updating leave:", error);
     }
@@ -577,8 +519,7 @@ export const useEmployeeManagement = (
       await deleteLeaveMutation.mutateAsync(id);
       setShowLeaveDeleteDialog(false);
       
-      // Use debounced invalidateAndRefetch to prevent UI freeze
-      invalidateAndRefetch(employeeLeaveKeys.all);
+      // Note: invalidateEntity is already called in the mutation hook's onSuccess
     } catch (error) {
       console.error("Error deleting leave:", error);
     }
@@ -589,11 +530,8 @@ export const useEmployeeManagement = (
       await approveLeaveMutation.mutateAsync(id);
       
       // Close dialog immediately to prevent UI freeze
+      // Note: invalidateAndRefetch is already called in the mutation hook's onSuccess
       setShowLeaveApproveDialog(false);
-      
-      // Use debounced invalidateAndRefetch to prevent UI freeze
-      // Note: invalidateAndRefetch handles API cache clearing internally
-      invalidateAndRefetch(employeeLeaveKeys.all);
     } catch (error) {
       console.error("Error approving leave:", error);
       // Ensure dialog is closed even on error
@@ -609,11 +547,8 @@ export const useEmployeeManagement = (
       });
       
       // Close dialog immediately to prevent UI freeze
+      // Note: invalidateAndRefetch is already called in the mutation hook's onSuccess
       setShowLeaveRejectDialog(false);
-      
-      // Use debounced invalidateAndRefetch to prevent UI freeze
-      // Note: invalidateAndRefetch handles API cache clearing internally
-      invalidateAndRefetch(employeeLeaveKeys.all);
     } catch (error) {
       console.error("Error rejecting leave:", error);
       // Ensure dialog is closed even on error
@@ -631,14 +566,8 @@ export const useEmployeeManagement = (
       await createAdvanceMutation.mutateAsync(data);
       setShowAdvanceForm(false);
       
-      // Optimized cache invalidation - debounced to prevent UI freezing
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: advanceKeys.all });
-        queryClient.refetchQueries({
-          queryKey: advanceKeys.all,
-          type: 'active'
-        }).catch(() => {});
-      }, 100);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(advanceKeys.all);
     } catch (error) {
       console.error("Error creating advance:", error);
     }
@@ -650,14 +579,8 @@ export const useEmployeeManagement = (
       setShowAdvanceForm(false);
       setIsEditingAdvance(false);
       
-      // Optimized cache invalidation - debounced to prevent UI freezing
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: advanceKeys.all });
-        queryClient.refetchQueries({
-          queryKey: advanceKeys.all,
-          type: 'active'
-        }).catch(() => {});
-      }, 100);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(advanceKeys.all);
     } catch (error) {
       console.error("Error updating advance:", error);
     }
@@ -674,14 +597,8 @@ export const useEmployeeManagement = (
       setAdvanceStatus("");
       setAdvanceStatusReason("");
       
-      // Optimized cache invalidation - debounced to prevent UI freezing
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: advanceKeys.all });
-        queryClient.refetchQueries({
-          queryKey: advanceKeys.all,
-          type: 'active'
-        }).catch(() => {});
-      }, 100);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(advanceKeys.all);
     } catch (error) {
       console.error("Error updating advance status:", error);
     }
@@ -696,14 +613,8 @@ export const useEmployeeManagement = (
       });
       setShowAdvanceAmountDialog(false);
       
-      // Optimized cache invalidation - debounced to prevent UI freezing
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: advanceKeys.all });
-        queryClient.refetchQueries({
-          queryKey: advanceKeys.all,
-          type: 'active'
-        }).catch(() => {});
-      }, 100);
+      // Use debounced invalidateAndRefetch to prevent UI freeze
+      invalidateAndRefetch(advanceKeys.all);
     } catch (error) {
       console.error("Error updating advance amount:", error);
     }

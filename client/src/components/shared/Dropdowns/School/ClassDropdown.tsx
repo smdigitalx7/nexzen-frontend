@@ -14,6 +14,7 @@ export interface SchoolClassDropdownProps {
   className?: string;
   emptyValue?: boolean;
   emptyValueLabel?: string;
+  id?: string;
 }
 
 /**
@@ -33,6 +34,7 @@ export function SchoolClassDropdown({
   className,
   emptyValue = false,
   emptyValueLabel = "No class",
+  id,
 }: SchoolClassDropdownProps) {
   const { data, isLoading, error, refetch } = useSchoolClasses();
 
@@ -58,6 +60,7 @@ export function SchoolClassDropdown({
       required={required}
       placeholder={placeholder}
       className={className}
+      id={id}
       getValue={(option) => option.class_id}
       getLabel={(option) => option.class_name}
       noOptionsText="No classes available"

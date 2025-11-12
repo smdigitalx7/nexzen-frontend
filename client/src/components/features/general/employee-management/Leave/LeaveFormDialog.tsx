@@ -65,6 +65,7 @@ const LeaveFormDialog = ({ open, onOpenChange, isEditing, employees, formData, o
               <div>
                 <Label htmlFor="leave_employee_id">Employee *</Label>
                 <EmployeeSelect
+                  id="leave_employee_id"
                   value={formData.employee_id && formData.employee_id > 0 ? formData.employee_id.toString() : ""}
                   onValueChange={(value) => onChange("employee_id", value ? parseInt(value) : 0)}
                   placeholder="Search and select employee..."
@@ -76,7 +77,7 @@ const LeaveFormDialog = ({ open, onOpenChange, isEditing, employees, formData, o
                   value={formData.leave_type}
                   onValueChange={(value) => onChange("leave_type", value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="leave_type">
                     <SelectValue placeholder="Select leave type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -99,12 +100,12 @@ const LeaveFormDialog = ({ open, onOpenChange, isEditing, employees, formData, o
           
           {isEditing && (
             <div>
-              <Label htmlFor="leave_type">Leave Type *</Label>
+              <Label htmlFor="leave_type_edit">Leave Type *</Label>
               <Select
                 value={formData.leave_type}
                 onValueChange={(value) => onChange("leave_type", value)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="leave_type_edit">
                   <SelectValue placeholder="Select leave type" />
                 </SelectTrigger>
                 <SelectContent>

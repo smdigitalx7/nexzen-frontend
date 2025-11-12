@@ -15,6 +15,7 @@ export interface CollegeGroupDropdownProps {
   className?: string;
   emptyValue?: boolean;
   emptyValueLabel?: string;
+  id?: string;
 }
 
 /**
@@ -35,6 +36,7 @@ export function CollegeGroupDropdown({
   className,
   emptyValue = false,
   emptyValueLabel = "No group",
+  id,
 }: CollegeGroupDropdownProps) {
   const { data, isLoading, error, refetch } = useCollegeGroups(classId);
 
@@ -77,6 +79,7 @@ export function CollegeGroupDropdown({
           : placeholder
       }
       className={className}
+      id={id}
       getValue={(option) => option.group_id}
       getLabel={(option) => option.group_name}
       noOptionsText="No groups available"

@@ -10,7 +10,21 @@ interface AttendanceViewDialogProps {
 }
 
 export const AttendanceViewDialog = ({ open, onOpenChange, attendance, employee }: AttendanceViewDialogProps) => {
-  if (!attendance) return null;
+  // Don't render content if attendance is not provided, but keep dialog structure for React reconciliation
+  if (!attendance) {
+    return (
+      <FormDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        title=""
+        description=""
+        size="LARGE"
+        showFooter={false}
+      >
+        {/* Empty content to maintain React structure */}
+      </FormDialog>
+    );
+  }
 
   const calculateAttendancePercentage = () => {
     if (!attendance.total_working_days || attendance.total_working_days === 0) return 0;

@@ -21,6 +21,7 @@ export interface BaseDropdownProps<T> {
   required?: boolean;
   placeholder?: string;
   className?: string;
+  id?: string;
   getValue: (option: T) => number | string;
   getLabel: (option: T) => string;
   renderOption?: (option: T) => React.ReactNode;
@@ -53,6 +54,7 @@ export function BaseDropdown<T>({
   required = false,
   placeholder = "Select an option",
   className,
+  id,
   getValue,
   getLabel,
   renderOption,
@@ -91,6 +93,7 @@ export function BaseDropdown<T>({
       required={required}
     >
       <SelectTrigger
+        id={id}
         className={cn(
           "w-full",
           error && "border-destructive focus:ring-destructive",

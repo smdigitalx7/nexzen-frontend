@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { FormDialog } from "@/components/shared";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -32,16 +32,8 @@ const AttendanceBulkCreateDialog = ({
     year: currentDate.getFullYear(),
   });
 
-  // Reset form when dialog opens/closes
-  useEffect(() => {
-    if (!open) {
-      setFormData({
-        total_working_days: 0,
-        month: currentDate.getMonth() + 1,
-        year: currentDate.getFullYear(),
-      });
-    }
-  }, [open]);
+  // Reset form when dialog closes - handled via onOpenChange callback pattern
+  // No useEffect needed - form resets when dialog closes naturally
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
