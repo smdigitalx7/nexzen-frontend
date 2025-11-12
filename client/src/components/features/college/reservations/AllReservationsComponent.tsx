@@ -598,44 +598,56 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
           
           // Force table refresh immediately
           setRefreshKey((prev) => prev + 1);
+          setPaymentData(null);
           
           // Run data refresh in background - don't block modal close
-          setTimeout(() => {
-            const refreshData = async () => {
+          // Use requestIdleCallback or setTimeout with longer delay to ensure modal is fully closed
+          const scheduleRefresh = () => {
+            if ('requestIdleCallback' in window) {
+              requestIdleCallback(() => {
+                setTimeout(() => {
+                  refreshDataAfterReceiptClose();
+                }, 200);
+              }, { timeout: 1000 });
+            } else {
+              setTimeout(() => {
+                refreshDataAfterReceiptClose();
+              }, 300);
+            }
+          };
+
+          const refreshDataAfterReceiptClose = async () => {
+            try {
+              // Step 1: Clear API cache first to ensure fresh network request
               try {
-                // Step 1: Clear API cache first to ensure fresh network request
-                try {
-                  CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
-                } catch (error) {
-                  console.warn('Failed to clear API cache:', error);
-                }
-                
-                // Step 2: Invalidate all reservation-related queries
-                queryClient.invalidateQueries({ 
-                  queryKey: collegeKeys.reservations.root(),
-                  exact: false 
-                }).catch(console.error);
-                
-                // Step 3: Force refetch active queries (bypasses cache)
-                await queryClient.refetchQueries({
-                  queryKey: collegeKeys.reservations.root(),
-                  type: 'active',
-                  exact: false
-                });
-                
-                // Step 4: Call refetch callback
-                if (onRefetch) {
-                  await onRefetch();
-                }
+                CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
               } catch (error) {
-                console.error("Error refreshing data after receipt close:", error);
+                console.warn('Failed to clear API cache:', error);
               }
-            };
-            
-            refreshData().catch(console.error);
-          }, 100);
-          
-          setPaymentData(null);
+              
+              // Step 2: Invalidate all reservation-related queries (non-blocking)
+              queryClient.invalidateQueries({ 
+                queryKey: collegeKeys.reservations.root(),
+                exact: false 
+              }).catch(console.error);
+              
+              // Step 3: Force refetch active queries (bypasses cache) - non-blocking
+              queryClient.refetchQueries({
+                queryKey: collegeKeys.reservations.root(),
+                type: 'active',
+                exact: false
+              }).catch(console.error);
+              
+              // Step 4: Call refetch callback - non-blocking
+              if (onRefetch) {
+                onRefetch().catch(console.error);
+              }
+            } catch (error) {
+              console.error("Error refreshing data after receipt close:", error);
+            }
+          };
+
+          scheduleRefresh();
         }}
         blobUrl={receiptBlobUrl}
       />

@@ -20,6 +20,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const originalOverflowRef = useRef<string>("");
+  const isClosingRef = useRef(false);
 
   // Ensure component is mounted (for portal)
   useEffect(() => {
@@ -28,6 +29,12 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   }, []);
 
   const handleConfirmClose = useCallback(() => {
+    // Prevent multiple simultaneous close operations
+    if (isClosingRef.current) {
+      return;
+    }
+    isClosingRef.current = true;
+
     // IMMEDIATELY restore body overflow - CRITICAL for UI responsiveness
     // This must happen synchronously before any other operations
     const originalValue = originalOverflowRef.current || "";
@@ -38,7 +45,14 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
     setHasError(false);
     
     // Call onClose immediately - must be synchronous, not async
-    onClose();
+    // Use requestAnimationFrame to ensure DOM updates complete first
+    requestAnimationFrame(() => {
+      onClose();
+      // Reset closing flag after a brief delay to allow modal to fully unmount
+      setTimeout(() => {
+        isClosingRef.current = false;
+      }, 100);
+    });
   }, [onClose]);
 
   useEffect(() => {
@@ -59,19 +73,30 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   // Prevent body scroll when modal is open - with proper cleanup
   useEffect(() => {
     if (isOpen) {
-      // Store original overflow value
-      originalOverflowRef.current = document.body.style.overflow || "";
+      // Store original overflow value if not already stored
+      if (!originalOverflowRef.current) {
+        originalOverflowRef.current = document.body.style.overflow || "";
+      }
       document.body.style.overflow = "hidden";
     } else {
       // IMMEDIATELY restore original overflow value when modal closes
       // This is critical to prevent UI freeze
       const originalValue = originalOverflowRef.current || "";
       document.body.style.overflow = originalValue;
+      // Clear the ref after restoring
+      originalOverflowRef.current = "";
     }
     return () => {
       // Always restore on unmount - critical cleanup
+      // Use synchronous operation to ensure it happens immediately
       const originalValue = originalOverflowRef.current || "";
-      document.body.style.overflow = originalValue;
+      if (originalValue) {
+        document.body.style.overflow = originalValue;
+        originalOverflowRef.current = "";
+      } else {
+        // Fallback: if ref is empty, just clear any overflow restriction
+        document.body.style.overflow = "";
+      }
     };
   }, [isOpen]);
 

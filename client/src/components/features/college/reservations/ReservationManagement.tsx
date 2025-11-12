@@ -301,7 +301,8 @@ export default function ReservationNew() {
     }));
   }, [allReservations]);
 
-  const [form, setForm] = useState({
+  // Initial form state - moved outside component for better performance
+  const initialFormState = {
     // Personal Details
     studentName: "",
     studentAadhar: "",
@@ -360,7 +361,13 @@ export default function ReservationNew() {
 
     // Remarks
     remarks: "",
-  });
+  };
+
+  // Form state using initial state - set reservation_date to today when component mounts (matching school behavior)
+  const [form, setForm] = useState(() => ({
+    ...initialFormState,
+    reservationDate: new Date().toISOString().split("T")[0],
+  }));
 
   // Enable groups when a class is selected
   React.useEffect(() => {
@@ -640,37 +647,89 @@ export default function ReservationNew() {
       // Use mutation hook which handles cache invalidation automatically
       const res: any = await createReservationMutation.mutateAsync(payload);
 
-      // Invalidate and refetch reservations to show updated data
-      await queryClient.invalidateQueries({
-        queryKey: collegeKeys.reservations.root(),
-      });
-      await refetchReservations();
+      if (import.meta.env.DEV) {
+        console.log("Reservation creation response:", res);
+      }
 
       // Use backend reservation_id to display receipt number
-      setReservationNo(String(res?.reservation_id || ""));
+      const reservationId = res?.reservation_id || res?.reservation_no || "";
+      setReservationNo(String(reservationId));
+
+      // Capture form data for payment before clearing form
+      const formDataForPayment = {
+        studentName: form.studentName,
+        group: form.group,
+        courseName: form.courseName,
+        reservationFee: form.reservationFee,
+      };
+
+      // CLEAR FORM IMMEDIATELY - CRITICAL for UI responsiveness
+      // This must happen synchronously before any async operations
+      // Set reservation_date to today when clearing (matching school behavior)
+      setForm({
+        ...initialFormState,
+        reservationDate: new Date().toISOString().split("T")[0],
+      });
+      setSelectedGroupId(null);
+
+      // Show success toast message
+      toast({
+        title: "Reservation Created Successfully",
+        description: `Successfully created reservation with id ${reservationId}`,
+        variant: "success",
+      });
+
+      // Run data refresh in background - don't block UI
+      // Use setTimeout to ensure form clears first, then refresh data
+      setTimeout(() => {
+        const refreshData = async () => {
+          try {
+            // Additional API cache clearing
+            try {
+              CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
+            } catch (error) {
+              console.warn("Failed to clear API cache:", error);
+            }
+
+            // Mutation hook already handles invalidation, but we ensure refetch callback is called
+            await refetchReservations();
+          } catch (error) {
+            console.error(
+              "Error refreshing data after reservation creation:",
+              error
+            );
+          }
+        };
+
+        refreshData().catch(console.error);
+      }, 100);
 
       if (withPayment) {
-        // Prepare payment data for the payment processor
+        // Prepare payment data for the payment processor using captured form data
         const paymentData: ReservationPaymentData = {
           reservationId: res.reservation_id,
           reservationNo: res.reservation_no || String(res.reservation_id),
-          studentName: form.studentName,
-          className: `${form.group}${form.courseName ? ` - ${form.courseName}` : ""}`,
-          reservationFee: Number(form.reservationFee || 0),
-          totalAmount: Number(form.reservationFee || 0),
+          studentName: formDataForPayment.studentName,
+          className: `${formDataForPayment.group}${formDataForPayment.courseName ? ` - ${formDataForPayment.courseName}` : ""}`,
+          reservationFee: Number(formDataForPayment.reservationFee || 0),
+          totalAmount: Number(formDataForPayment.reservationFee || 0),
           paymentMethod: "CASH", // Default payment method
           purpose: "Reservation Fee Payment",
           note: `Payment for reservation ${res.reservation_id}`,
         };
 
-        setPaymentData(paymentData);
-        setShowPaymentProcessor(true);
-      } else {
-        setShowReceipt(true);
+        // Open payment dialog after a brief delay to ensure form dialog is fully closed
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            setPaymentData(paymentData);
+            setShowPaymentProcessor(true);
+          }, 150);
+        });
       }
     } catch (e: any) {
       console.error("Failed to create reservation:", e);
       // Error toast is handled by mutation hook
+      // Don't clear form on error - keep all field data
     }
   };
 
@@ -1890,40 +1949,61 @@ export default function ReservationNew() {
           setPaymentIncomeRecord(null);
           
           // Run data refresh in background - don't block modal close
-          setTimeout(() => {
-            const refreshData = async () => {
+          // Use requestIdleCallback or setTimeout with longer delay to ensure modal is fully closed
+          // This prevents UI freeze by ensuring DOM updates complete first
+          const scheduleRefresh = () => {
+            if ('requestIdleCallback' in window) {
+              requestIdleCallback(() => {
+                setTimeout(() => {
+                  refreshDataAfterReceiptClose();
+                }, 200);
+              }, { timeout: 1000 });
+            } else {
+              setTimeout(() => {
+                refreshDataAfterReceiptClose();
+              }, 300);
+            }
+          };
+
+          const refreshDataAfterReceiptClose = async () => {
+            try {
+              // Step 1: Clear API cache first to ensure fresh network request
               try {
-                // Step 1: Clear API cache first to ensure fresh network request
-                try {
-                  CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
-                } catch (error) {
-                  console.warn('Failed to clear API cache:', error);
-                }
-                
-                // Step 2: Invalidate all reservation-related queries
-                queryClient.invalidateQueries({ 
-                  queryKey: collegeKeys.reservations.root(),
-                  exact: false 
-                }).catch(console.error);
-                
-                // Step 3: Force refetch active queries (bypasses cache)
-                await queryClient.refetchQueries({
-                  queryKey: collegeKeys.reservations.root(),
-                  type: 'active',
-                  exact: false
-                });
-                
-                // Step 4: Call refetch callback
-                if (refetchReservations) {
-                  await refetchReservations();
-                }
+                CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
               } catch (error) {
-                console.error("Error refreshing data after receipt close:", error);
+                console.warn('Failed to clear API cache:', error);
               }
-            };
-            
-            refreshData().catch(console.error);
-          }, 100);
+              
+              // Step 2: Remove query data to force fresh fetch (non-blocking)
+              // This is critical - missing in college but present in school
+              queryClient.removeQueries({
+                queryKey: collegeKeys.reservations.root(),
+                exact: false,
+              });
+              
+              // Step 3: Invalidate all reservation-related queries (non-blocking)
+              queryClient.invalidateQueries({ 
+                queryKey: collegeKeys.reservations.root(),
+                exact: false 
+              }).catch(console.error);
+              
+              // Step 4: Force refetch active queries (bypasses cache) - non-blocking
+              queryClient.refetchQueries({
+                queryKey: collegeKeys.reservations.root(),
+                type: 'active',
+                exact: false
+              }).catch(console.error);
+              
+              // Step 5: Call refetch callback - non-blocking
+              if (refetchReservations) {
+                refetchReservations().catch(console.error);
+              }
+            } catch (error) {
+              console.error("Error refreshing data after receipt close:", error);
+            }
+          };
+
+          scheduleRefresh();
         }}
         blobUrl={receiptBlobUrl}
       />
@@ -1951,6 +2031,9 @@ export default function ReservationNew() {
                   // CLOSE PAYMENT DIALOG IMMEDIATELY - CRITICAL for UI responsiveness
                   setShowPaymentProcessor(false);
                   
+                  // Clear payment data immediately to prevent dialog from re-rendering
+                  setPaymentData(null);
+                  
                   // Set receipt data immediately
                   setPaymentIncomeRecord(incomeRecord);
                   setReceiptBlobUrl(blobUrl);
@@ -1963,40 +2046,58 @@ export default function ReservationNew() {
                   });
 
                   // Run cache invalidation in background - don't block UI
-                  setTimeout(() => {
-                    const refreshData = async () => {
-                      try {
-                        // Step 1: Clear API cache
-                        try {
-                          CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
-                        } catch (error) {
-                          console.warn('Failed to clear API cache:', error);
-                        }
-                        
-                        // Step 2: Invalidate queries
-                        queryClient.invalidateQueries({ 
-                          queryKey: collegeKeys.reservations.root(),
-                          exact: false 
-                        }).catch(console.error);
-                        
-                        // Step 3: Refetch active queries
-                        queryClient.refetchQueries({ 
-                          queryKey: collegeKeys.reservations.root(), 
-                          type: 'active',
-                          exact: false 
-                        }).catch(console.error);
+                  // Use requestIdleCallback or setTimeout with longer delay
+                  const scheduleRefresh = () => {
+                    if ('requestIdleCallback' in window) {
+                      requestIdleCallback(() => {
+                        refreshDataAfterPayment();
+                      }, { timeout: 1000 });
+                    } else {
+                      setTimeout(() => {
+                        refreshDataAfterPayment();
+                      }, 300);
+                    }
+                  };
 
-                        // Step 4: Call refetchReservations
-                        if (refetchReservations) {
-                          await refetchReservations();
-                        }
+                  const refreshDataAfterPayment = async () => {
+                    try {
+                      // Step 1: Clear API cache
+                      try {
+                        CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
                       } catch (error) {
-                        console.error("Error refreshing data after payment:", error);
+                        console.warn('Failed to clear API cache:', error);
                       }
-                    };
-                    
-                    refreshData().catch(console.error);
-                  }, 200);
+                      
+                      // Step 2: Remove queries from cache to force fresh fetch (non-blocking)
+                      // This is critical - missing in college but present in school
+                      queryClient.removeQueries({
+                        queryKey: collegeKeys.reservations.root(),
+                        exact: false,
+                      });
+                      
+                      // Step 3: Invalidate queries (non-blocking)
+                      queryClient.invalidateQueries({ 
+                        queryKey: collegeKeys.reservations.root(),
+                        exact: false 
+                      }).catch(console.error);
+                      
+                      // Step 4: Refetch active queries (non-blocking)
+                      queryClient.refetchQueries({ 
+                        queryKey: collegeKeys.reservations.root(), 
+                        type: 'active',
+                        exact: false 
+                      }).catch(console.error);
+
+                      // Step 5: Call refetchReservations (non-blocking)
+                      if (refetchReservations) {
+                        refetchReservations().catch(console.error);
+                      }
+                    } catch (error) {
+                      console.error("Error refreshing data after payment:", error);
+                    }
+                  };
+
+                  scheduleRefresh();
                 }}
                 onPaymentFailed={(error: string) => {
                   toast({

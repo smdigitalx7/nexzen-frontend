@@ -1531,47 +1531,62 @@ const ReservationManagementComponent = () => {
           }
 
           // Run data refresh in background - don't block modal close
-          // Use setTimeout to ensure modal closes first, then refresh data
-          setTimeout(() => {
-            const refreshData = async () => {
+          // Use requestIdleCallback or setTimeout with longer delay to ensure modal is fully closed
+          // This prevents UI freeze by ensuring DOM updates complete first
+          const scheduleRefresh = () => {
+            if ('requestIdleCallback' in window) {
+              requestIdleCallback(() => {
+                setTimeout(() => {
+                  refreshDataAfterReceiptClose();
+                }, 200);
+              }, { timeout: 1000 });
+            } else {
+              setTimeout(() => {
+                refreshDataAfterReceiptClose();
+              }, 300);
+            }
+          };
+
+          const refreshDataAfterReceiptClose = async () => {
+            try {
+              // Step 1: Clear API cache first to ensure fresh network request
               try {
-                // Step 1: Clear API cache first to ensure fresh network request
-                try {
-                  CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
-                } catch (error) {
-                  console.warn("Failed to clear API cache:", error);
-                }
-
-                // Step 2: Remove query data to force fresh fetch
-                queryClient.removeQueries({
-                  queryKey: schoolKeys.reservations.list(undefined),
-                });
-
-                // Step 3: Invalidate all reservation-related queries
-                queryClient.invalidateQueries({
-                  queryKey: schoolKeys.reservations.root(),
-                  exact: false,
-                });
-
-                // Step 4: Force refetch active queries (bypasses cache)
-                await queryClient.refetchQueries({
-                  queryKey: schoolKeys.reservations.root(),
-                  type: "active",
-                  exact: false,
-                });
-
-                // Step 5: Call refetch callback
-                await refetchReservations();
+                CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
               } catch (error) {
-                console.error(
-                  "Error refreshing data after receipt close:",
-                  error
-                );
+                console.warn("Failed to clear API cache:", error);
               }
-            };
 
-            refreshData().catch(console.error);
-          }, 100);
+              // Step 2: Remove query data to force fresh fetch
+              queryClient.removeQueries({
+                queryKey: schoolKeys.reservations.list(undefined),
+              });
+
+              // Step 3: Invalidate all reservation-related queries (non-blocking)
+              queryClient.invalidateQueries({
+                queryKey: schoolKeys.reservations.root(),
+                exact: false,
+              }).catch(console.error);
+
+              // Step 4: Force refetch active queries (bypasses cache) - non-blocking
+              queryClient.refetchQueries({
+                queryKey: schoolKeys.reservations.root(),
+                type: "active",
+                exact: false,
+              }).catch(console.error);
+
+              // Step 5: Call refetch callback - non-blocking
+              if (refetchReservations) {
+                refetchReservations().catch(console.error);
+              }
+            } catch (error) {
+              console.error(
+                "Error refreshing data after receipt close:",
+                error
+              );
+            }
+          };
+
+          scheduleRefresh();
         }}
         blobUrl={receiptBlobUrl}
       />
@@ -1763,51 +1778,62 @@ const ReservationManagementComponent = () => {
                   });
 
                   // Run cache invalidation in background - don't block UI
-                  setTimeout(() => {
-                    const refreshData = async () => {
+                  // Use requestIdleCallback or setTimeout with longer delay
+                  const scheduleRefresh = () => {
+                    if ('requestIdleCallback' in window) {
+                      requestIdleCallback(() => {
+                        refreshDataAfterPayment();
+                      }, { timeout: 1000 });
+                    } else {
+                      setTimeout(() => {
+                        refreshDataAfterPayment();
+                      }, 300);
+                    }
+                  };
+
+                  const refreshDataAfterPayment = async () => {
+                    try {
+                      // Step 1: Clear API cache
                       try {
-                        // Step 1: Clear API cache
-                        try {
-                          CacheUtils.clearByPattern(
-                            /GET:.*\/school\/reservations/i
-                          );
-                        } catch (error) {
-                          console.warn("Failed to clear API cache:", error);
-                        }
-
-                        // Step 2: Remove queries from cache to force fresh fetch
-                        queryClient.removeQueries({
-                          queryKey: schoolKeys.reservations.root(),
-                          exact: false,
-                        });
-
-                        // Step 3: Invalidate queries
-                        await queryClient.invalidateQueries({
-                          queryKey: schoolKeys.reservations.root(),
-                          exact: false,
-                        });
-
-                        // Step 4: Refetch active queries
-                        await queryClient.refetchQueries({
-                          queryKey: schoolKeys.reservations.root(),
-                          type: "active",
-                          exact: false,
-                        });
-
-                        // Step 5: Call refetchReservations
-                        if (refetchReservations) {
-                          await refetchReservations();
-                        }
-                      } catch (error) {
-                        console.error(
-                          "Error refreshing data after payment:",
-                          error
+                        CacheUtils.clearByPattern(
+                          /GET:.*\/school\/reservations/i
                         );
+                      } catch (error) {
+                        console.warn("Failed to clear API cache:", error);
                       }
-                    };
 
-                    refreshData().catch(console.error);
-                  }, 200);
+                      // Step 2: Remove queries from cache to force fresh fetch (non-blocking)
+                      queryClient.removeQueries({
+                        queryKey: schoolKeys.reservations.root(),
+                        exact: false,
+                      });
+
+                      // Step 3: Invalidate queries (non-blocking)
+                      queryClient.invalidateQueries({
+                        queryKey: schoolKeys.reservations.root(),
+                        exact: false,
+                      }).catch(console.error);
+
+                      // Step 4: Refetch active queries (non-blocking)
+                      queryClient.refetchQueries({
+                        queryKey: schoolKeys.reservations.root(),
+                        type: "active",
+                        exact: false,
+                      }).catch(console.error);
+
+                      // Step 5: Call refetchReservations (non-blocking)
+                      if (refetchReservations) {
+                        refetchReservations().catch(console.error);
+                      }
+                    } catch (error) {
+                      console.error(
+                        "Error refreshing data after payment:",
+                        error
+                      );
+                    }
+                  };
+
+                  scheduleRefresh();
                 }}
                 onPaymentFailed={(error: string) => {
                   toast({

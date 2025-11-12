@@ -595,48 +595,65 @@ const AllReservationsTableComponent = ({
             setReceiptBlobUrl(null);
           }
 
-          // Run data refresh in background - don't block modal close
-          setTimeout(() => {
-            const refreshData = async () => {
-              try {
-                // Step 1: Clear API cache first to ensure fresh network request
-                CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
-
-                // Step 2: Remove query data to force fresh fetch
-                queryClient.removeQueries({
-                  queryKey: schoolKeys.reservations.list(undefined),
-                });
-
-                // Step 3: Invalidate all reservation-related queries
-                queryClient.invalidateQueries({
-                  queryKey: schoolKeys.reservations.root(),
-                });
-
-                // Step 4: Force refetch active queries (bypasses cache)
-                await queryClient.refetchQueries({
-                  queryKey: schoolKeys.reservations.list(undefined),
-                  type: "active",
-                  exact: false,
-                });
-
-                // Step 5: Call refetch callback
-                if (onRefetch) {
-                  await onRefetch();
-                }
-              } catch (error) {
-                console.error(
-                  "Error refreshing data after receipt close:",
-                  error
-                );
-              }
-            };
-
-            refreshData().catch(console.error);
-          }, 100);
-
           // Force table refresh by updating refresh key
           setRefreshKey((prev) => prev + 1);
           setPaymentData(null);
+
+          // Run data refresh in background - don't block modal close
+          // Use requestIdleCallback or setTimeout with longer delay to ensure modal is fully closed
+          const scheduleRefresh = () => {
+            if ('requestIdleCallback' in window) {
+              requestIdleCallback(() => {
+                setTimeout(() => {
+                  refreshDataAfterReceiptClose();
+                }, 200);
+              }, { timeout: 1000 });
+            } else {
+              setTimeout(() => {
+                refreshDataAfterReceiptClose();
+              }, 300);
+            }
+          };
+
+          const refreshDataAfterReceiptClose = async () => {
+            try {
+              // Step 1: Clear API cache first to ensure fresh network request
+              try {
+                CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+              } catch (error) {
+                console.warn("Failed to clear API cache:", error);
+              }
+
+              // Step 2: Remove query data to force fresh fetch
+              queryClient.removeQueries({
+                queryKey: schoolKeys.reservations.list(undefined),
+              });
+
+              // Step 3: Invalidate all reservation-related queries (non-blocking)
+              queryClient.invalidateQueries({
+                queryKey: schoolKeys.reservations.root(),
+              }).catch(console.error);
+
+              // Step 4: Force refetch active queries (bypasses cache) - non-blocking
+              queryClient.refetchQueries({
+                queryKey: schoolKeys.reservations.list(undefined),
+                type: "active",
+                exact: false,
+              }).catch(console.error);
+
+              // Step 5: Call refetch callback - non-blocking
+              if (onRefetch) {
+                onRefetch().catch(console.error);
+              }
+            } catch (error) {
+              console.error(
+                "Error refreshing data after receipt close:",
+                error
+              );
+            }
+          };
+
+          scheduleRefresh();
         }}
         blobUrl={receiptBlobUrl}
       />
