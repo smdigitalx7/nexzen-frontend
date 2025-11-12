@@ -286,11 +286,11 @@ const AcademicManagement = () => {
             content: (
               <ClassesTab
                 classesWithSubjects={backendClasses}
-                classesLoading={isLoading}
+                classesLoading={classesLoading}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
-                hasError={hasError}
-                errorMessage={errorMessage}
+                hasError={classesError}
+                errorMessage={(classesErrObj as any)?.message}
               />
             ),
           },
@@ -355,9 +355,9 @@ const AcademicManagement = () => {
                 exams={exams}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
-                isLoading={isLoading}
-                hasError={hasError}
-                errorMessage={errorMessage}
+                isLoading={examsLoading}
+                hasError={examsError}
+                errorMessage={(examsErrObj as any)?.message}
               />
             ),
           },
