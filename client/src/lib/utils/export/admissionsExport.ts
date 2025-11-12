@@ -356,7 +356,7 @@ export async function exportSchoolAdmissionFormToPDF(
   doc.setFontSize(headerFontSize);
   doc.setFont("helvetica", "bold");
   doc.text(
-    String(admission.branch_name || "NEXZEN SCHOOL"),
+    String(admission.branch_name || "VELONEX SCHOOL"),
     pageWidth / 2,
     headerYPos,
     { align: "center" }
@@ -698,7 +698,7 @@ export async function exportCollegeAdmissionFormToPDF(
   doc.setFontSize(headerFontSize);
   doc.setFont("helvetica", "bold");
   doc.text(
-    String(admission.branch_name || "NEXZEN COLLEGE"),
+    String(admission.branch_name || "VELONEX COLLEGE"),
     pageWidth / 2,
     headerYPos,
     { align: "center" }

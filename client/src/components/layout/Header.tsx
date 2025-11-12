@@ -316,7 +316,7 @@ const Header = () => {
               </h2>
               <div className="flex items-center justify-center gap-2">
                 <p className="text-sm text-slate-500">
-                  {currentBranch?.branch_name || "Nexzen"} Management System
+                  {currentBranch?.branch_name || "Velonex"} Management System
                 </p>
                 {currentBranch?.branch_type && (
                   <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-full font-medium">

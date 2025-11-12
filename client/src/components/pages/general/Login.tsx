@@ -161,7 +161,7 @@ const Login = () => {
         >
           <img
             src="/assets/nexzen-logo.png"
-            alt="Nexzen Logo"
+            alt="Velonex Logo"
             className="h-36 w-auto object-contain"
           />
         </motion.div>
@@ -196,7 +196,7 @@ const Login = () => {
               >
                 <img
                   src="/assets/nexzen-logo.png"
-                  alt="Nexzen Logo"
+                  alt="Velonex Logo"
                   className="h-28 w-auto object-contain opacity-100"
                 />
               </motion.div>

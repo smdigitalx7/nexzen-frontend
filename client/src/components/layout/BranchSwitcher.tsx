@@ -80,7 +80,7 @@ const BranchSwitcher = () => {
                 }
                 alt={
                   currentBranch?.branch_type === "SCHOOL"
-                    ? "Nexzen Logo"
+                    ? "Velonex Logo"
                     : "Velocity Logo"
                 }
                 className="w-full h-full object-contain"
@@ -131,7 +131,7 @@ const BranchSwitcher = () => {
                       }
                       alt={
                         branch.branch_type === "SCHOOL"
-                          ? "Nexzen Logo"
+                          ? "Velonex Logo"
                           : "Velocity Logo"
                       }
                       className="w-full h-full object-contain"
