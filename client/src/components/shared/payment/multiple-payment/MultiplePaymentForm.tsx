@@ -3,12 +3,10 @@
  * Main orchestrator for multiple payment functionality
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, memo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { PurposeSelectionModal } from "./PurposeSelectionModal";
 import { PaymentItemsList } from "./PaymentItemsList";
 import { BookFeeComponent } from "./components/BookFeeComponent";
@@ -30,7 +28,7 @@ import type {
   PaymentError,
 } from "../types/PaymentTypes";
 
-export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
+export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = memo(({
   student,
   feeBalances,
   config,
@@ -44,14 +42,17 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [paymentCompleted, setPaymentCompleted] = useState<boolean>(false);
 
-  const formatTotalAmount = (amount: number) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  };
+  const formatTotalAmount = useMemo(
+    () => (amount: number) => {
+      return new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(amount);
+    },
+    []
+  );
   const [errors, setErrors] = useState<string[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
 
@@ -117,7 +118,7 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
   }, []);
 
   // Order payment items: Book Fee first, then Tuition terms (1,2,3), then Transport terms (1,2)
-  const getOrderedPaymentItems = (items: PaymentItem[]): PaymentItem[] => {
+  const getOrderedPaymentItems = useCallback((items: PaymentItem[]): PaymentItem[] => {
     return [...items].sort((a, b) => {
       // Define priority order
       const getPriority = (item: PaymentItem): number => {
@@ -137,7 +138,7 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
 
       return getPriority(a) - getPriority(b);
     });
-  };
+  }, []);
 
   // Calculate total amount whenever payment items change
   useEffect(() => {
@@ -182,6 +183,20 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
   };
 
   const handlePurposeSelect = (purpose: PaymentPurpose) => {
+    // For BOOK_FEE, add directly without showing component
+    if (purpose === 'BOOK_FEE' && feeBalances.bookFee.outstanding > 0) {
+      const bookFeeItem: PaymentItem = {
+        id: `book-fee-${Date.now()}`,
+        purpose: 'BOOK_FEE',
+        amount: feeBalances.bookFee.outstanding,
+        paymentMethod: 'CASH' // Default to CASH
+      };
+      setPaymentItems((prev) => [...prev, bookFeeItem]);
+      setShowPurposeModal(false);
+      return;
+    }
+    
+    // For other purposes, show the component
     setSelectedPurpose(purpose);
     setShowPurposeModal(false);
     setShowPurposeComponent(true);
@@ -513,23 +528,24 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
   }, [receiptBlobUrl, showReceiptModal]);
 
   return (
-    <div className="space-y-4">
-      {/* Payment Completed Message - Green */}
+    <div className="space-y-5">
+      {/* Payment Completed Message - Enhanced */}
       {paymentCompleted && (
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="border-2 border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4"
+          initial={{ opacity: 0, y: -20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="relative overflow-hidden border-2 border-emerald-300/60 bg-gradient-to-r from-emerald-50/80 to-green-50/60 rounded-xl p-5 shadow-lg"
         >
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-full">
-              <CheckCircle2 className="h-6 w-6 text-green-600" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-200/20 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+          <div className="relative flex items-center gap-4">
+            <div className="p-2.5 bg-emerald-100 rounded-xl shadow-sm">
+              <CheckCircle2 className="h-6 w-6 text-emerald-600" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-green-800 text-lg">
+              <h3 className="font-bold text-emerald-900 text-lg">
                 Payment Completed
               </h3>
-              <p className="text-sm text-green-700 mt-1">
+              <p className="text-sm text-emerald-700 mt-1 leading-relaxed">
                 Your payment has been processed successfully. Receipt will be
                 displayed shortly.
               </p>
@@ -538,50 +554,6 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
         </motion.div>
       )}
 
-      {/* Student Information Card - Simplified */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between border-b border-gray-200 pb-4 mb-4">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                {student.name}
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Admission No: {student.admissionNo}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-500">Class</p>
-              <p className="text-sm font-medium text-gray-900">
-                {student.className}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                {student.academicYear}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Book Fee Outstanding Warning - Simplified */}
-      {feeBalances.bookFee.outstanding > 0 && (
-        <Alert className="border border-gray-300 bg-gray-50">
-          <AlertCircle className="h-4 w-4 text-gray-600" />
-          <AlertDescription className="text-gray-700">
-            <strong className="font-medium">Book Fee Outstanding:</strong> A
-            book fee of{" "}
-            <strong>
-              {new Intl.NumberFormat("en-IN", {
-                style: "currency",
-                currency: "INR",
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              }).format(feeBalances.bookFee.outstanding)}
-            </strong>{" "}
-            must be paid before processing any other payments.
-          </AlertDescription>
-        </Alert>
-      )}
 
       {/* Payment Items List */}
       <PaymentItemsList
@@ -628,52 +600,7 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Success/Error Messages - Simplified */}
-      <AnimatePresence>
-        {errors.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-          >
-            <Alert className="border border-gray-300 bg-gray-50">
-              <AlertCircle className="h-4 w-4 text-gray-600" />
-              <AlertDescription className="text-gray-700">
-                <div className="space-y-1">
-                  {errors.map((error, index) => (
-                    <div key={index} className="text-sm">
-                      {error}
-                    </div>
-                  ))}
-                </div>
-              </AlertDescription>
-            </Alert>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {warnings.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-          >
-            <Alert className="border border-gray-300 bg-gray-50">
-              <AlertCircle className="h-4 w-4 text-gray-600" />
-              <AlertDescription className="text-gray-700">
-                <div className="space-y-1">
-                  {warnings.map((warning, index) => (
-                    <div key={index} className="text-sm">
-                      {warning}
-                    </div>
-                  ))}
-                </div>
-              </AlertDescription>
-            </Alert>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Success/Error Messages - Enhanced (moved to PaymentItemsList) */}
 
       {/* Receipt Preview Modal - Always render but control visibility */}
       {receiptBlobUrl && (
@@ -686,6 +613,8 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({
       )}
     </div>
   );
-};
+});
+
+MultiplePaymentForm.displayName = "MultiplePaymentForm";
 
 export default MultiplePaymentForm;

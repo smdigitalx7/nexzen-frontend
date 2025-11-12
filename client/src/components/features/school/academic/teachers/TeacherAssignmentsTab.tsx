@@ -59,10 +59,18 @@ export const TeacherAssignmentsTab = ({
   handleAddClick,
 }: TeacherAssignmentsTabProps) => {
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Permission checks
-  const canAddSubject = useCanViewUIComponent("teachers", "button", "teacher-assignment-add-subject");
-  const canDeleteSubject = useCanViewUIComponent("teachers", "button", "teacher-assignment-delete-subject");
+  const canAddSubject = useCanViewUIComponent(
+    "teachers",
+    "button",
+    "teacher-assignment-add-subject"
+  );
+  const canDeleteSubject = useCanViewUIComponent(
+    "teachers",
+    "button",
+    "teacher-assignment-delete-subject"
+  );
   const [deleteConfirm, setDeleteConfirm] = React.useState<{
     open: boolean;
     teacherId: number;
@@ -429,7 +437,7 @@ export const TeacherAssignmentsTab = ({
                               <h3 className="text-lg font-semibold">
                                 {teacher.teacher_name}
                               </h3>
-                              {teacherDetails?.employee_code && (
+                              {/* {teacherDetails?.employee_code && (
                                 <Badge
                                   variant="secondary"
                                   className="text-xs font-normal"
@@ -437,7 +445,7 @@ export const TeacherAssignmentsTab = ({
                                   <Hash className="h-3 w-3 mr-1" />
                                   {teacherDetails.employee_code}
                                 </Badge>
-                              )}
+                              )} */}
                             </div>
                             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                               {teacherDetails?.mobile_no && (
@@ -457,7 +465,7 @@ export const TeacherAssignmentsTab = ({
                                 <GraduationCap className="h-3.5 w-3.5" />
                                 <span>
                                   {totalSubjects}{" "}
-                                  {totalSubjects === 1 ? "Subject" : "Subjects"}
+                                  {totalSubjects === 1 ? "Section" : "Sections"}
                                 </span>
                               </div>
                             </div>

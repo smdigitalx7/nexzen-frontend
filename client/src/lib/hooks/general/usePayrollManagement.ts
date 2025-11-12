@@ -311,20 +311,20 @@ export const usePayrollManagement = () => {
   const createPayrollMutation = useMutationWithSuccessToast(
     {
       mutationFn: (data: PayrollCreate) => PayrollsService.create(data),
-      onSuccess: async () => {
-        // Aggressive cache invalidation for immediate UI updates
-        // Step 1: Remove query data to force fresh fetch
-        queryClient.removeQueries({ queryKey: payrollKeys.all });
-        queryClient.removeQueries({ queryKey: employeeKeys.all });
-        
-        // Step 2: Invalidate all payroll and employee-related queries
-        queryClient.invalidateQueries({ queryKey: payrollKeys.all });
-        queryClient.invalidateQueries({ queryKey: employeeKeys.all });
-        
-        // Step 3: Force refetch active queries
-        await queryClient.refetchQueries({ queryKey: payrollKeys.byBranch(), type: 'active' });
-        await queryClient.refetchQueries({ queryKey: payrollKeys.dashboard(), type: 'active' });
-        await queryClient.refetchQueries({ queryKey: employeeKeys.byBranch(), type: 'active' });
+      onSuccess: () => {
+        // Optimized cache invalidation - only invalidate what's needed
+        // Use setTimeout to debounce and prevent UI freezing
+        setTimeout(() => {
+          // Only invalidate payroll queries, not employee queries
+          queryClient.invalidateQueries({ queryKey: payrollKeys.all });
+          // Refetch only active queries without blocking
+          queryClient.refetchQueries({ 
+            queryKey: payrollKeys.byBranch(), 
+            type: 'active' 
+          }).catch(() => {
+            // Silently handle errors
+          });
+        }, 100);
         
         setShowCreateDialog(false);
       },
@@ -337,20 +337,20 @@ export const usePayrollManagement = () => {
     {
       mutationFn: ({ id, data }: { id: number; data: PayrollUpdate }) => 
         PayrollsService.update(id, data),
-      onSuccess: async () => {
-        // Aggressive cache invalidation for immediate UI updates
-        // Step 1: Remove query data to force fresh fetch
-        queryClient.removeQueries({ queryKey: payrollKeys.all });
-        queryClient.removeQueries({ queryKey: employeeKeys.all });
-        
-        // Step 2: Invalidate all payroll and employee-related queries
-        queryClient.invalidateQueries({ queryKey: payrollKeys.all });
-        queryClient.invalidateQueries({ queryKey: employeeKeys.all });
-        
-        // Step 3: Force refetch active queries
-        await queryClient.refetchQueries({ queryKey: payrollKeys.byBranch(), type: 'active' });
-        await queryClient.refetchQueries({ queryKey: payrollKeys.dashboard(), type: 'active' });
-        await queryClient.refetchQueries({ queryKey: employeeKeys.byBranch(), type: 'active' });
+      onSuccess: () => {
+        // Optimized cache invalidation - only invalidate what's needed
+        // Use setTimeout to debounce and prevent UI freezing
+        setTimeout(() => {
+          // Only invalidate payroll queries, not employee queries
+          queryClient.invalidateQueries({ queryKey: payrollKeys.all });
+          // Refetch only active queries without blocking
+          queryClient.refetchQueries({ 
+            queryKey: payrollKeys.byBranch(), 
+            type: 'active' 
+          }).catch(() => {
+            // Silently handle errors
+          });
+        }, 100);
         
         setShowUpdateDialog(false);
         setSelectedPayroll(null);

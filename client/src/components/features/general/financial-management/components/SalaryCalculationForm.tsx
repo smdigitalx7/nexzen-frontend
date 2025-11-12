@@ -1,12 +1,25 @@
-import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { Calculator, Save, X, User, Calendar, CreditCard, AlertCircle, CheckCircle, Eye, Loader2 } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Calculator,
+  Save,
+  X,
+  User,
+  Calendar,
+  CreditCard,
+  AlertCircle,
+  CheckCircle,
+  Eye,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -14,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { EmployeeCombobox } from "@/components/ui/employee-combobox";
+import { EmployeeSelect } from "@/components/ui/employee-select";
 import {
   Dialog,
   DialogContent,
@@ -23,8 +36,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { PayrollCreate, PayrollUpdate, PayrollPreview } from "@/lib/types/general/payrolls";
-import { PayrollStatusEnum, PaymentMethodEnum } from "@/lib/types/general/payrolls";
+import type {
+  PayrollCreate,
+  PayrollUpdate,
+  PayrollPreview,
+} from "@/lib/types/general/payrolls";
+import {
+  PayrollStatusEnum,
+  PaymentMethodEnum,
+} from "@/lib/types/general/payrolls";
 import { formatCurrency } from "@/lib/utils";
 import { useFormState } from "@/lib/hooks/common";
 import { PayrollsService } from "@/lib/services/general/payrolls.service";
@@ -47,27 +67,32 @@ export const SalaryCalculationForm = ({
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [previewData, setPreviewData] = useState<PayrollPreview | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [pendingPayrollData, setPendingPayrollData] = useState<PayrollCreate | null>(null);
+  const [pendingPayrollData, setPendingPayrollData] =
+    useState<PayrollCreate | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [paymentOption, setPaymentOption] = useState<
+    "full" | "half" | "custom"
+  >("full");
+
+  // Initial form data
+  const initialFormData = {
+    employee_id: "",
+    payroll_month: new Date().getMonth() + 1,
+    payroll_year: new Date().getFullYear(),
+    previous_balance: 0,
+    gross_pay: 0,
+    lop: 0,
+    advance_deduction: 0,
+    other_deductions: 0,
+    paid_amount: 0,
+    payment_method: PaymentMethodEnum.CASH,
+    payment_notes: "",
+    status: PayrollStatusEnum.PENDING,
+  };
 
   // Using shared form state management
-  const {
-    formData,
-    updateField,
-  } = useFormState({
-    initialData: {
-      employee_id: "",
-      payroll_month: new Date().getMonth() + 1,
-      payroll_year: new Date().getFullYear(),
-      previous_balance: 0,
-      gross_pay: 0,
-      lop: 0,
-      advance_deduction: 0,
-      other_deductions: 0,
-      paid_amount: 0,
-      payment_method: PaymentMethodEnum.CASH,
-      payment_notes: "",
-      status: PayrollStatusEnum.PENDING,
-    }
+  const { formData, updateField, resetForm } = useFormState({
+    initialData: initialFormData,
   });
 
   const calculatedNet = useMemo(() => {
@@ -76,58 +101,119 @@ export const SalaryCalculationForm = ({
     const advance = formData.advance_deduction || 0;
     const other = formData.other_deductions || 0;
     return gross - lop - advance - other;
-  }, [formData.gross_pay, formData.lop, formData.advance_deduction, formData.other_deductions]);
+  }, [
+    formData.gross_pay,
+    formData.lop,
+    formData.advance_deduction,
+    formData.other_deductions,
+  ]);
+
+  // Update paid amount based on payment option
+  const handlePaymentOptionChange = (option: "full" | "half" | "custom") => {
+    setPaymentOption(option);
+    if (option === "full") {
+      updateField("paid_amount", calculatedNet);
+    } else if (option === "half") {
+      updateField("paid_amount", calculatedNet / 2);
+    } else {
+      // For custom, keep current value or set to 0
+      if (
+        !formData.paid_amount ||
+        formData.paid_amount === calculatedNet ||
+        formData.paid_amount === calculatedNet / 2
+      ) {
+        updateField("paid_amount", 0);
+      }
+    }
+  };
+
+  // Update payment option when paid amount changes manually
+  const handlePaidAmountChange = (value: number) => {
+    updateField("paid_amount", value);
+    if (value === calculatedNet) {
+      setPaymentOption("full");
+    } else if (value === calculatedNet / 2) {
+      setPaymentOption("half");
+    } else {
+      setPaymentOption("custom");
+    }
+  };
+
+  // Update paid amount when calculatedNet changes
+  useEffect(() => {
+    if (paymentOption === "full" && calculatedNet > 0) {
+      updateField("paid_amount", calculatedNet);
+    } else if (paymentOption === "half" && calculatedNet > 0) {
+      updateField("paid_amount", calculatedNet / 2);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calculatedNet, paymentOption]);
 
   const handlePreview = async () => {
-    if (!formData.employee_id || !formData.payroll_month || !formData.payroll_year) {
-      toast({
-        title: "Validation Error",
-        description: "Please select employee, month, and year to preview",
-        variant: "destructive",
-      });
+    if (
+      !formData.employee_id ||
+      !formData.payroll_month ||
+      !formData.payroll_year
+    ) {
+      setPreviewError("Please select employee, month, and year to preview");
       return;
     }
 
     setIsLoadingPreview(true);
     setPreviewData(null);
+    setPreviewError(null);
     try {
       const preview = await PayrollsService.getPreview({
         employee_id: Number(formData.employee_id),
         month: Number(formData.payroll_month),
         year: Number(formData.payroll_year),
       });
-      
+
       setPreviewData(preview);
-      
+      setPreviewError(null);
+
       // Auto-populate form with preview data
       updateField("gross_pay", preview.gross_pay);
       updateField("previous_balance", preview.previous_balance);
       updateField("lop", preview.lop);
       updateField("advance_deduction", preview.advance_deduction);
       updateField("other_deductions", preview.other_deductions);
-      
-      toast({
-        title: "Success",
-        description: "Payroll preview loaded successfully",
-        variant: "success",
-      });
     } catch (error: any) {
       console.error("Failed to get payroll preview:", error);
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to load payroll preview. Please check if employee has attendance for this month.",
-        variant: "destructive",
-      });
+      // Extract error message
+      const errorData = error?.data || error?.response?.data;
+      const errorDetail = errorData?.detail;
+      let errorMessage = "Failed to load payroll preview.";
+
+      if (
+        errorDetail &&
+        typeof errorDetail === "object" &&
+        "message" in errorDetail
+      ) {
+        errorMessage = errorDetail.message;
+      } else if (typeof errorDetail === "string") {
+        errorMessage = errorDetail;
+      } else if (errorData?.message) {
+        errorMessage = errorData.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      setPreviewError(
+        errorMessage ||
+          "Failed to load payroll preview. Please check if employee has attendance for this month."
+      );
     } finally {
       setIsLoadingPreview(false);
     }
   };
 
-  const canPreview = formData.employee_id && formData.payroll_month && formData.payroll_year;
+  const canPreview =
+    formData.employee_id && formData.payroll_month && formData.payroll_year;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Create new payroll
     if (!previewData) {
       toast({
@@ -182,11 +268,26 @@ export const SalaryCalculationForm = ({
     setShowConfirmDialog(true);
   };
 
-  const handleConfirmCreate = () => {
+  const handleConfirmCreate = async () => {
     if (pendingPayrollData) {
-      onSubmit(pendingPayrollData);
-      setShowConfirmDialog(false);
-      setPendingPayrollData(null);
+      try {
+        await onSubmit(pendingPayrollData);
+        // Reset form state after successful submission
+        setShowConfirmDialog(false);
+        setPendingPayrollData(null);
+        setPreviewData(null);
+        setPreviewError(null);
+        setPaymentOption("full");
+        // Reset form using the resetForm function
+        resetForm();
+        // Close dialog after a short delay to allow state updates
+        setTimeout(() => {
+          onClose();
+        }, 100);
+      } catch (error) {
+        // Error handling is done by the mutation hook
+        console.error("Failed to create payroll:", error);
+      }
     }
   };
 
@@ -199,343 +300,601 @@ export const SalaryCalculationForm = ({
     updateField(field as keyof typeof formData, value);
   };
 
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset all state when dialog closes
+      setPreviewData(null);
+      setPreviewError(null);
+      setPaymentOption("full");
+      setShowConfirmDialog(false);
+      setPendingPayrollData(null);
+      // Reset form using the resetForm function
+      resetForm();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-        <DialogHeader className="pb-4">
-          <DialogTitle className="flex items-center gap-3 text-xl">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Calculator className="h-6 w-6 text-primary" />
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose();
+        }
+      }}
+    >
+      <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto scrollbar-hide p-0 sm:rounded-2xl">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 bg-gradient-to-r from-blue-50/50 to-indigo-50/30">
+          <DialogTitle className="flex items-center gap-3 text-2xl font-semibold text-gray-900">
+            <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-sm">
+              <Calculator className="h-6 w-6 text-white" />
             </div>
             Preview Payroll
           </DialogTitle>
-          <DialogDescription className="text-base">
-            Preview payroll calculations for an employee. Use the 'Get Preview' button to load calculated values from attendance data.
+          <DialogDescription className="text-sm text-gray-600 mt-2 leading-relaxed">
+            Preview payroll calculations for an employee. Use the 'Get Preview'
+            button to load calculated values from attendance data.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
           {/* Employee & Period Selection */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
+            className="space-y-5"
           >
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <User className="h-4 w-4" />
-              Employee & Period Information
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="p-1.5 bg-blue-100 rounded-lg">
+                <User className="h-4 w-4 text-blue-600" />
+              </div>
+              <h3 className="text-base font-semibold text-gray-900">
+                Employee & Period Information
+              </h3>
             </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {/* Employee Selection */}
-              <Card className="p-4">
-                <div className="space-y-3">
-                  <Label htmlFor="employee" className="text-sm font-medium flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Select Employee
-                  </Label>
-                  <EmployeeCombobox
-                    value={formData.employee_id?.toString() || ""}
-                    onValueChange={(value) => {
-                      handleInputChange("employee_id", value);
-                      setPreviewData(null); // Clear preview when employee changes
-                    }}
-                    placeholder="Search and select employee..."
-                    className="h-11"
-                  />
-                </div>
+              <Card className="border border-gray-200 shadow-sm">
+                <CardContent className="p-5">
+                  <div className="space-y-3">
+                    <Label
+                      htmlFor="employee"
+                      className="text-sm font-semibold text-gray-700 flex items-center gap-2"
+                    >
+                      <User className="h-4 w-4 text-gray-500" />
+                      Select Employee <span className="text-red-500">*</span>
+                    </Label>
+                    <EmployeeSelect
+                      value={formData.employee_id?.toString() || ""}
+                      onValueChange={(value) => {
+                        handleInputChange("employee_id", value);
+                        setPreviewData(null);
+                        setPreviewError(null);
+                      }}
+                      placeholder="Search and select employee..."
+                      className="h-11"
+                    />
+                  </div>
+                </CardContent>
               </Card>
 
               {/* Pay Period */}
-              <Card className="p-4">
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Pay Period
-                  </Label>
-                  <div className="flex gap-3">
-                    <div className="flex-1">
-                      <Select
-                        value={formData.payroll_month?.toString() || ""}
-                        onValueChange={(value) => {
-                          handleInputChange("payroll_month", value);
-                          setPreviewData(null); // Clear preview when month changes
-                        }}
-                      >
-                        <SelectTrigger className="h-11">
-                          <SelectValue placeholder="Month" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: 12 }, (_, i) => (
-                            <SelectItem key={i + 1} value={(i + 1).toString()}>
-                              {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="w-24">
-                      <Input
-                        type="number"
-                        value={formData.payroll_year}
-                        onChange={(e) => {
-                          handleInputChange("payroll_year", e.target.value);
-                          setPreviewData(null); // Clear preview when year changes
-                        }}
-                        placeholder="Year"
-                        className="h-11"
-                        min="2020"
-                        max="2030"
-                      />
+              <Card className="border border-gray-200 shadow-sm">
+                <CardContent className="p-5">
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      Pay Period <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <Select
+                          value={formData.payroll_month?.toString() || ""}
+                          onValueChange={(value) => {
+                            handleInputChange("payroll_month", value);
+                            setPreviewData(null);
+                            setPreviewError(null);
+                          }}
+                        >
+                          <SelectTrigger className="h-11 border-gray-300">
+                            <SelectValue placeholder="Month" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 12 }, (_, i) => (
+                              <SelectItem
+                                key={i + 1}
+                                value={(i + 1).toString()}
+                              >
+                                {new Date(0, i).toLocaleString("default", {
+                                  month: "long",
+                                })}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="w-28">
+                        <Input
+                          type="number"
+                          value={formData.payroll_year}
+                          onChange={(e) => {
+                            handleInputChange("payroll_year", e.target.value);
+                            setPreviewData(null);
+                            setPreviewError(null);
+                          }}
+                          placeholder="Year"
+                          className="h-11 border-gray-300"
+                          min="2020"
+                          max="2030"
+                        />
+                      </div>
                     </div>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handlePreview}
-                    disabled={!canPreview || isLoadingPreview}
-                    className="w-full mt-2"
-                  >
-                    {isLoadingPreview ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Loading Preview...
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Get Preview
-                      </>
-                    )}
-                  </Button>
-                </div>
+                </CardContent>
               </Card>
             </div>
+            <div className="flex justify-center">
+              <Button
+                type="button"
+                onClick={handlePreview}
+                disabled={!canPreview || isLoadingPreview}
+                className="w-[80%] mt-1 bg-blue-600 hover:bg-blue-700 text-white h-10 font-medium "
+              >
+                {isLoadingPreview ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Loading Preview...
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4 mr-2" />
+                    Get Preview
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Error Message Display */}
+            <AnimatePresence>
+              {previewError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                >
+                  <Alert
+                    variant="destructive"
+                    className="border-red-200 bg-red-50"
+                  >
+                    <AlertCircle className="h-4 w-4 text-red-600" />
+                    <AlertDescription className="text-sm text-red-800 font-medium">
+                      {previewError}
+                    </AlertDescription>
+                  </Alert>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
 
-          <Separator />
+          {previewData && <Separator className="bg-gray-200" />}
 
           {/* Show full form only after preview is loaded */}
           {previewData ? (
             <>
               {/* Salary Calculation Section */}
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="space-y-6"
-          >
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <span className="text-sm font-bold">₹</span>
-              Salary Calculation
-            </div>
-
-            <Card className="border-2 border-dashed border-primary/20">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Calculator className="h-5 w-5 text-primary" />
-                  Salary Breakdown
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Gross Pay and Previous Balance */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Gross Pay */}
-                <div className="space-y-3">
-                  <Label htmlFor="gross_pay" className="text-sm font-medium">Gross Salary</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm font-bold text-muted-foreground">₹</span>
-                    <Input
-                      type="number"
-                      id="gross_pay"
-                      value={formData.gross_pay}
-                      onChange={(e) => handleInputChange("gross_pay", Number(e.target.value))}
-                      placeholder="Enter gross salary amount"
-                      className="pl-10 h-11 text-lg font-medium"
-                      readOnly
-                      disabled
-                    />
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="space-y-5"
+              >
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="p-1.5 bg-green-100 rounded-lg">
+                    <Calculator className="h-4 w-4 text-green-600" />
                   </div>
+                  <h3 className="text-base font-semibold text-gray-900">
+                    Salary Calculation
+                  </h3>
                 </div>
 
-                  {/* Previous Balance */}
-                  <div className="space-y-3">
-                    <Label htmlFor="previous_balance" className="text-sm font-medium">Previous Balance</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm font-bold text-muted-foreground">₹</span>
+                <Card className="border border-gray-200 shadow-sm">
+                  <CardHeader className="pb-4 px-5 pt-5 border-b border-gray-200">
+                    <CardTitle className="flex items-center gap-2.5 text-lg font-semibold text-gray-900">
+                      <div className="p-1.5 bg-blue-100 rounded-lg">
+                        <Calculator className="h-5 w-5 text-blue-600" />
+                      </div>
+                      Salary Breakdown
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-5 p-5">
+                    {/* Gross Pay and Previous Balance */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Gross Pay */}
+                      <div className="space-y-2.5">
+                        <Label
+                          htmlFor="gross_pay"
+                          className="text-sm font-semibold text-gray-700"
+                        >
+                          Gross Salary
+                        </Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm font-bold text-gray-500">
+                            ₹
+                          </span>
+                          <Input
+                            type="number"
+                            id="gross_pay"
+                            value={formData.gross_pay}
+                            onChange={(e) =>
+                              handleInputChange(
+                                "gross_pay",
+                                Number(e.target.value)
+                              )
+                            }
+                            placeholder="Enter gross salary amount"
+                            className="pl-10 h-11 text-base font-semibold border-gray-300 bg-gray-50"
+                            readOnly
+                            disabled
+                          />
+                        </div>
+                      </div>
+
+                      {/* Previous Balance */}
+                      <div className="space-y-2.5">
+                        <Label
+                          htmlFor="previous_balance"
+                          className="text-sm font-semibold text-gray-700"
+                        >
+                          Previous Balance
+                        </Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm font-bold text-gray-500">
+                            ₹
+                          </span>
+                          <Input
+                            type="number"
+                            id="previous_balance"
+                            value={formData.previous_balance}
+                            onChange={(e) =>
+                              handleInputChange(
+                                "previous_balance",
+                                Number(e.target.value)
+                              )
+                            }
+                            placeholder="Previous balance amount"
+                            className="pl-10 h-11 border-gray-300 bg-gray-50"
+                            readOnly
+                            disabled
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Deductions Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2.5">
+                        <Label
+                          htmlFor="lop"
+                          className="text-sm font-semibold text-orange-700"
+                        >
+                          Loss of Pay (LOP)
+                        </Label>
+                        <Input
+                          type="number"
+                          id="lop"
+                          value={formData.lop}
+                          onChange={(e) =>
+                            handleInputChange("lop", Number(e.target.value))
+                          }
+                          placeholder="0"
+                          className="h-11 border-gray-300 bg-gray-50"
+                          readOnly
+                          disabled
+                        />
+                      </div>
+
+                      <div className="space-y-2.5">
+                        <Label
+                          htmlFor="advance_deduction"
+                          className="text-sm font-semibold text-blue-700"
+                        >
+                          Advance Deduction
+                        </Label>
+                        <Input
+                          type="number"
+                          id="advance_deduction"
+                          value={formData.advance_deduction}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "advance_deduction",
+                              Number(e.target.value)
+                            )
+                          }
+                          placeholder="0"
+                          className="h-11 border-gray-300"
+                          min="0"
+                        />
+                        {previewData && (
+                          <p className="text-xs text-gray-600 mt-1.5">
+                            Available Balance:{" "}
+                            <span className="font-semibold text-gray-900">
+                              ₹
+                              {previewData.advance_deduction?.toLocaleString(
+                                "en-IN",
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                }
+                              ) || "0.00"}
+                            </span>
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2.5">
+                        <Label
+                          htmlFor="other_deductions"
+                          className="text-sm font-semibold text-red-700"
+                        >
+                          Other Deductions
+                        </Label>
+                        <Input
+                          type="number"
+                          id="other_deductions"
+                          value={formData.other_deductions}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "other_deductions",
+                              Number(e.target.value)
+                            )
+                          }
+                          placeholder="0"
+                          className="h-11 border-gray-300"
+                          min="0"
+                          step="0.01"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Net Salary Display */}
+                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border-2 border-green-200 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                          </div>
+                          <div>
+                            <span className="text-base font-semibold text-gray-900 block">
+                              Net Salary
+                            </span>
+                            <span className="text-xs text-gray-600">
+                              After all deductions
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-3xl font-bold text-green-700">
+                            {formatCurrency(calculatedNet)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <Separator className="bg-gray-200" />
+
+              {/* Payment Information */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-1 bg-purple-100 rounded-lg">
+                    <CreditCard className="h-3.5 w-3.5 text-purple-600" />
+                  </div>
+                  <h3 className="text-[15px] font-semibold text-gray-900">
+                    Payment Information
+                  </h3>
+                </div>
+
+                <Card className="border border-gray-200 shadow-sm">
+                  <CardContent className="p-4 space-y-4">
+                    {/* Payment Method - Radio Buttons */}
+                    <div className="space-y-2">
+                      <Label className="text-[14px] font-semibold text-gray-700">
+                        Payment Method <span className="text-red-500">*</span>
+                      </Label>
+                      <RadioGroup
+                        value={formData.payment_method}
+                        onValueChange={(value) =>
+                          handleInputChange("payment_method", value)
+                        }
+                        className="grid grid-cols-2 gap-3"
+                      >
+                        <label
+                          className={`flex items-center gap-2.5 p-3 border rounded-lg cursor-pointer transition-colors text-[14px] ${
+                            formData.payment_method === PaymentMethodEnum.CASH
+                              ? "border-blue-500 bg-blue-50"
+                              : "border-gray-200 bg-white hover:border-gray-300"
+                          }`}
+                        >
+                          <RadioGroupItem
+                            value={PaymentMethodEnum.CASH}
+                            id="cash"
+                            className="text-blue-600"
+                          />
+                          <span className="text-[15px] font-medium">Cash</span>
+                        </label>
+                        <label
+                          className={`flex items-center gap-2.5 p-3 border rounded-lg cursor-pointer transition-colors text-[14px] ${
+                            formData.payment_method === PaymentMethodEnum.ONLINE
+                              ? "border-blue-500 bg-blue-50"
+                              : "border-gray-200 bg-white hover:border-gray-300"
+                          }`}
+                        >
+                          <RadioGroupItem
+                            value={PaymentMethodEnum.ONLINE}
+                            id="online"
+                            className="text-blue-600"
+                          />
+                          <CreditCard className="h-4 w-4 text-gray-600" />
+                          <span className="text-[15px] font-medium">
+                            Online
+                          </span>
+                        </label>
+                      </RadioGroup>
+                    </div>
+
+                    {/* Payment Options */}
+                    <div className="space-y-2">
+                      <Label className="text-[14px] font-semibold text-gray-700">
+                        Payment Option <span className="text-red-500">*</span>
+                      </Label>
+                      <RadioGroup
+                        value={paymentOption}
+                        onValueChange={(value) =>
+                          handlePaymentOptionChange(
+                            value as "full" | "half" | "custom"
+                          )
+                        }
+                        className="grid grid-cols-3 gap-2"
+                      >
+                        <label
+                          className={`flex items-center justify-center gap-2 p-2.5 border rounded-lg cursor-pointer transition-colors text-[13px] ${
+                            paymentOption === "full"
+                              ? "border-green-500 bg-green-50"
+                              : "border-gray-200 bg-white hover:border-gray-300"
+                          }`}
+                        >
+                          <RadioGroupItem
+                            value="full"
+                            id="full"
+                            className="text-green-600"
+                          />
+                          <span className="font-medium">Pay in Full</span>
+                        </label>
+                        <label
+                          className={`flex items-center justify-center gap-2 p-2.5 border rounded-lg cursor-pointer transition-colors text-[13px] ${
+                            paymentOption === "half"
+                              ? "border-orange-500 bg-orange-50"
+                              : "border-gray-200 bg-white hover:border-gray-300"
+                          }`}
+                        >
+                          <RadioGroupItem
+                            value="half"
+                            id="half"
+                            className="text-orange-600"
+                          />
+                          <span className="font-medium">Pay Half</span>
+                        </label>
+                        <label
+                          className={`flex items-center justify-center gap-2 p-2.5 border rounded-lg cursor-pointer transition-colors text-[13px] ${
+                            paymentOption === "custom"
+                              ? "border-blue-500 bg-blue-50"
+                              : "border-gray-200 bg-white hover:border-gray-300"
+                          }`}
+                        >
+                          <RadioGroupItem
+                            value="custom"
+                            id="custom"
+                            className="text-blue-600"
+                          />
+                          <span className="font-medium">Custom Pay</span>
+                        </label>
+                      </RadioGroup>
+                    </div>
+
+                    {/* Paid Amount */}
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="paid_amount"
+                        className="text-[14px] font-semibold text-gray-700"
+                      >
+                        Paid Amount <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[15px] font-bold text-gray-600">
+                          ₹
+                        </span>
+                        <Input
+                          type="number"
+                          id="paid_amount"
+                          value={formData.paid_amount || ""}
+                          onChange={(e) => {
+                            const value =
+                              e.target.value === ""
+                                ? 0
+                                : Number(e.target.value);
+                            handlePaidAmountChange(value);
+                          }}
+                          placeholder="Enter paid amount"
+                          className="pl-9 h-10 text-[15px] border-gray-300"
+                          min="0"
+                          step="0.01"
+                          required
+                          disabled={paymentOption !== "custom"}
+                        />
+                      </div>
+                      {paymentOption !== "custom" && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Amount:{" "}
+                          <span className="font-semibold">
+                            {formatCurrency(
+                              paymentOption === "full"
+                                ? calculatedNet
+                                : calculatedNet / 2
+                            )}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Payment Notes */}
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="payment_notes"
+                        className="text-[14px] font-semibold text-gray-700"
+                      >
+                        Payment Notes <span className="text-red-500">*</span>
+                      </Label>
                       <Input
-                        type="number"
-                        id="previous_balance"
-                        value={formData.previous_balance}
-                        onChange={(e) => handleInputChange("previous_balance", Number(e.target.value))}
-                        placeholder="Previous balance amount"
-                        className="pl-10 h-11"
-                        readOnly
-                        disabled
+                        id="payment_notes"
+                        value={formData.payment_notes}
+                        onChange={(e) =>
+                          handleInputChange("payment_notes", e.target.value)
+                        }
+                        placeholder="Enter payment notes"
+                        className="h-10 text-[15px] border-gray-300"
+                        required
                       />
                     </div>
-                  </div>
-                </div>
-
-                {/* Deductions Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="lop" className="text-sm font-medium text-orange-600">Loss of Pay (LOP)</Label>
-                    <Input
-                      type="number"
-                      id="lop"
-                      value={formData.lop}
-                      onChange={(e) => handleInputChange("lop", Number(e.target.value))}
-                      placeholder="0"
-                      className="h-10"
-                      readOnly
-                      disabled
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="advance_deduction" className="text-sm font-medium text-blue-600">Advance Deduction</Label>
-                    <Input
-                      type="number"
-                      id="advance_deduction"
-                      value={formData.advance_deduction}
-                      onChange={(e) => handleInputChange("advance_deduction", Number(e.target.value))}
-                      placeholder="0"
-                      className="h-10"
-                      min="0"
-                    />
-                    {previewData && (
-                      <p className="text-xs text-muted-foreground mt-1.5">
-                        Available Balance: <span className="font-medium">₹{previewData.advance_deduction?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</span>
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="other_deductions" className="text-sm font-medium text-red-600">Other Deductions</Label>
-                    <Input
-                      type="number"
-                      id="other_deductions"
-                      value={formData.other_deductions}
-                      onChange={(e) => handleInputChange("other_deductions", Number(e.target.value))}
-                      placeholder="0"
-                      className="h-10"
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-                </div>
-
-                {/* Net Salary Display */}
-                <div className="bg-gradient-to-r from-primary/5 to-primary/10 p-6 rounded-xl border-2 border-primary/20">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5 text-primary" />
-                      <span className="text-lg font-semibold">Net Salary</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-3xl font-bold text-primary">
-                        {formatCurrency(calculatedNet)}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        After all deductions
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <Separator />
-
-          {/* Payment Information */}
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-6"
-          >
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <CreditCard className="h-4 w-4" />
-              Payment Information
-            </div>
-
-            <div className="space-y-3">
-              <Label htmlFor="payment_method" className="text-sm font-medium">
-                Payment Method <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={formData.payment_method}
-                onValueChange={(value) => handleInputChange("payment_method", value)}
-                required
-              >
-                <SelectTrigger className="h-11">
-                  <SelectValue placeholder="Select payment method" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={PaymentMethodEnum.CASH}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold">₹</span>
-                      Cash
-                    </div>
-                  </SelectItem>
-                  <SelectItem value={PaymentMethodEnum.ONLINE}>
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4" />
-                      Online
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
-              <Label htmlFor="paid_amount" className="text-sm font-medium">
-                Paid Amount <span className="text-red-500">*</span>
-              </Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm font-bold text-muted-foreground">₹</span>
-                <Input
-                  type="number"
-                  id="paid_amount"
-                  value={formData.paid_amount || ""}
-                  onChange={(e) => handleInputChange("paid_amount", e.target.value === "" ? "" : Number(e.target.value))}
-                  placeholder="Enter paid amount"
-                  className="pl-10 h-11"
-                  min="0"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <Label htmlFor="payment_notes" className="text-sm font-medium">
-                Payment Notes <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="payment_notes"
-                value={formData.payment_notes}
-                onChange={(e) => handleInputChange("payment_notes", e.target.value)}
-                placeholder="Enter payment notes"
-                className="h-11"
-                required
-              />
-            </div>
-          </motion.div>
-
-          <Separator />
+                  </CardContent>
+                </Card>
+              </motion.div>
             </>
           ) : null}
 
-          <DialogFooter className="pt-4">
-            <div className="flex gap-3 w-full">
-              <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-                <X className="h-4 w-4 mr-2" />
-                Close
-              </Button>
+          <DialogFooter className="px-6 py-4 border-t border-gray-200 bg-gray-50/50">
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <AlertCircle className="h-4 w-4 text-gray-400" />
+                <span>
+                  {previewData
+                    ? "Review the payroll details above and click 'Create Payroll' to proceed."
+                    : "Please select employee, month, and year, then click 'Get Preview' to load payroll calculations."}
+                </span>
+              </div>
               {previewData && (
-                <Button type="submit" className="flex-1">
+                <Button
+                  type="submit"
+                  className="h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium px-6"
+                >
                   <Save className="h-4 w-4 mr-2" />
                   Create Payroll
                 </Button>
@@ -553,18 +912,27 @@ export const SalaryCalculationForm = ({
         description={
           pendingPayrollData ? (
             <div className="space-y-2 mt-2">
-              <p className="font-medium">Are you sure you want to create this payroll?</p>
+              <p className="font-medium">
+                Are you sure you want to create this payroll?
+              </p>
               <div className="bg-muted/50 p-3 rounded-md space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Employee:</span>
                   <span className="font-medium">
-                    {employees.find(emp => emp.employee_id === pendingPayrollData.employee_id)?.employee_name || `ID: ${pendingPayrollData.employee_id}`}
+                    {employees.find(
+                      (emp) =>
+                        emp.employee_id === pendingPayrollData.employee_id
+                    )?.employee_name || `ID: ${pendingPayrollData.employee_id}`}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Period:</span>
                   <span className="font-medium">
-                    {new Date(0, pendingPayrollData.payroll_month - 1).toLocaleString('default', { month: 'long' })} {pendingPayrollData.payroll_year}
+                    {new Date(
+                      0,
+                      pendingPayrollData.payroll_month - 1
+                    ).toLocaleString("default", { month: "long" })}{" "}
+                    {pendingPayrollData.payroll_year}
                   </span>
                 </div>
                 <div className="flex justify-between">

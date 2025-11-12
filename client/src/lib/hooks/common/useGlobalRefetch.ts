@@ -13,30 +13,37 @@ function clearApiCacheForQueryKey(queryKey: QueryKey) {
     // ["users"] -> "/users"
     // ["school", "classes"] -> "/school/classes"
     // ["college", "subjects", "detail", 123] -> "/college/subjects"
-    const pathParts = queryKey.filter((k): k is string => typeof k === 'string' && k !== 'list' && k !== 'detail' && k !== 'root' && !/^\d+$/.test(String(k)));
-    
+    const pathParts = queryKey.filter(
+      (k): k is string =>
+        typeof k === "string" &&
+        k !== "list" &&
+        k !== "detail" &&
+        k !== "root" &&
+        !/^\d+$/.test(String(k))
+    );
+
     if (pathParts.length === 0) return;
-    
-    const pathPattern = `/${pathParts.join('/')}`;
-    
+
+    const pathPattern = `/${pathParts.join("/")}`;
+
     // Clear all cache entries matching this path
     // Pattern matches: "GET:/api/v1/users", "GET:/api/v1/users/roles-and-branches", etc.
     // Use multiple patterns to catch variations
     const patterns = [
-      new RegExp(`GET:.*${pathPattern.replace(/\//g, '\\/')}`, 'i'), // Exact match
-      new RegExp(`GET:.*${pathPattern.replace(/\//g, '\\/')}.*`, 'i'), // With query params
+      new RegExp(`GET:.*${pathPattern.replace(/\//g, "\\/")}`, "i"), // Exact match
+      new RegExp(`GET:.*${pathPattern.replace(/\//g, "\\/")}.*`, "i"), // With query params
     ];
-    
-    patterns.forEach(pattern => {
+
+    patterns.forEach((pattern) => {
       CacheUtils.clearByPattern(pattern);
     });
   } catch (error) {
-    console.warn('Failed to clear API cache for query key:', queryKey, error);
+    console.warn("Failed to clear API cache for query key:", queryKey, error);
     // Fallback: clear all cache if pattern matching fails
     try {
       CacheUtils.clearAll();
     } catch (e) {
-      console.error('Failed to clear all API cache:', e);
+      console.error("Failed to clear all API cache:", e);
     }
   }
 }
@@ -113,19 +120,34 @@ export type EntityType = keyof typeof ENTITY_QUERY_MAP;
  * Global Refetch Hook
  * Provides centralized query invalidation for entities
  */
+// Debounce utility to prevent refetch storms
+let refetchTimeout: NodeJS.Timeout | null = null;
+const REFETCH_DEBOUNCE_MS = 300;
+
 /**
  * Utility function to invalidate and refetch queries with API cache clearing
  * Use this in mutation hooks for consistent behavior
+ * Debounced to prevent UI freezing from multiple rapid invalidations
  */
 export function invalidateAndRefetch(queryKey: QueryKey) {
   // Clear API cache first
   clearApiCacheForQueryKey(queryKey);
-  
-  // Invalidate React Query cache
+
+  // Invalidate React Query cache immediately (lightweight operation)
   void queryClient.invalidateQueries({ queryKey });
-  
-  // Refetch active queries immediately
-  void queryClient.refetchQueries({ queryKey, type: 'active' });
+
+  // Debounce refetch to prevent multiple simultaneous refetches
+  if (refetchTimeout) {
+    clearTimeout(refetchTimeout);
+  }
+
+  refetchTimeout = setTimeout(() => {
+    // Refetch active queries after debounce delay
+    void queryClient.refetchQueries({ queryKey, type: "active" }).catch(() => {
+      // Silently handle errors to prevent UI blocking
+    });
+    refetchTimeout = null;
+  }, REFETCH_DEBOUNCE_MS);
 }
 
 export function useGlobalRefetch() {
@@ -137,10 +159,28 @@ export function useGlobalRefetch() {
       return;
     }
 
-    // Invalidate and refetch all queries for the entity
+    // Invalidate all query keys immediately (lightweight)
     queryKeys.forEach((key) => {
-      invalidateAndRefetch(key);
+      clearApiCacheForQueryKey(key);
+      void queryClient.invalidateQueries({ queryKey: key });
     });
+
+    // Debounce refetch to prevent UI freezing
+    if (refetchTimeout) {
+      clearTimeout(refetchTimeout);
+    }
+
+    refetchTimeout = setTimeout(() => {
+      // Refetch all active queries for the entity
+      queryKeys.forEach((key) => {
+        void queryClient
+          .refetchQueries({ queryKey: key, type: "active" })
+          .catch(() => {
+            // Silently handle errors
+          });
+      });
+      refetchTimeout = null;
+    }, REFETCH_DEBOUNCE_MS);
   }, []);
 
   const invalidateAll = useCallback(() => {

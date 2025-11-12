@@ -1,11 +1,11 @@
 /**
- * Payment Item Card Component
- * Displays individual payment items in the multiple payment form
+ * Payment Item Card Component - Modern Redesign
+ * Displays individual payment items with modern shadcn/21st.dev UI
  */
 
-import React from "react";
+import React, { useMemo, memo } from "react";
 import { motion } from "framer-motion";
-import { Trash2, BookOpen, GraduationCap, Truck, Plus } from "lucide-react";
+import { Trash2, BookOpen, GraduationCap, Truck, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,200 +18,233 @@ const purposeIcons = {
   OTHER: Plus,
 };
 
-export const PaymentItemCard = React.forwardRef<
-  HTMLDivElement,
-  PaymentItemCardProps
->(({ item, onRemove, institutionType, orderNumber, allItems = [] }, ref) => {
-  const PurposeIcon = purposeIcons[item.purpose as keyof typeof purposeIcons];
+const purposeColors = {
+  BOOK_FEE: {
+    bg: "from-blue-50 to-blue-50/50",
+    border: "border-blue-200/60",
+    icon: "bg-blue-100 text-blue-600",
+    badge: "bg-blue-50 text-blue-700 border-blue-200",
+    amount: "text-blue-700",
+  },
+  TUITION_FEE: {
+    bg: "from-emerald-50 to-emerald-50/50",
+    border: "border-emerald-200/60",
+    icon: "bg-emerald-100 text-emerald-600",
+    badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    amount: "text-emerald-700",
+  },
+  TRANSPORT_FEE: {
+    bg: "from-orange-50 to-orange-50/50",
+    border: "border-orange-200/60",
+    icon: "bg-orange-100 text-orange-600",
+    badge: "bg-orange-50 text-orange-700 border-orange-200",
+    amount: "text-orange-700",
+  },
+  OTHER: {
+    bg: "from-purple-50 to-purple-50/50",
+    border: "border-purple-200/60",
+    icon: "bg-purple-100 text-purple-600",
+    badge: "bg-purple-50 text-purple-700 border-purple-200",
+    amount: "text-purple-700",
+  },
+};
 
-  // Check if this term can be deleted (must be the last term in sequence)
-  const canDeleteTerm = (): boolean => {
-    if (item.purpose !== "TUITION_FEE" && item.purpose !== "TRANSPORT_FEE") {
-      return true; // Non-term items can always be deleted
-    }
+export const PaymentItemCard = memo(
+  React.forwardRef<HTMLDivElement, PaymentItemCardProps>(
+    ({ item, onRemove, institutionType, orderNumber, allItems = [] }, ref) => {
+      const PurposeIcon = purposeIcons[item.purpose as keyof typeof purposeIcons];
+      const colors = purposeColors[item.purpose as keyof typeof purposeColors] || purposeColors.OTHER;
 
-    // For college transport fees with paymentMonth, allow deletion (monthly payments are independent)
-    if (item.purpose === 'TRANSPORT_FEE' && institutionType === 'college' && item.paymentMonth) {
-      return true;
-    }
-
-    if (!item.termNumber) {
-      return true; // Items without term numbers can be deleted
-    }
-
-    // Find all items of the same purpose
-    const samePurposeItems = allItems.filter((i) => i.purpose === item.purpose);
-
-    if (samePurposeItems.length <= 1) {
-      return true; // Only one item of this purpose, can be deleted
-    }
-
-    // Find the highest term number for this purpose
-    const maxTermNumber = Math.max(
-      ...samePurposeItems.map((i) => i.termNumber || 0)
-    );
-
-    // Can only delete if this is the highest term number
-    return item.termNumber === maxTermNumber;
-  };
-
-  const canDelete = canDeleteTerm();
-
-  const formatPaymentMonth = (monthString: string): string => {
-    if (!monthString) return '';
-    try {
-      // Parse YYYY-MM-01 format
-      const date = new Date(monthString);
-      return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    } catch {
-      return monthString;
-    }
-  };
-
-  const getPurposeLabel = () => {
-    switch (item.purpose) {
-      case "BOOK_FEE":
-        return "Book Fee";
-      case "TUITION_FEE":
-        return `Tuition Fee - Term ${item.termNumber}`;
-      case "TRANSPORT_FEE":
-        // For colleges, use paymentMonth; for schools, use termNumber
-        if (institutionType === 'college' && item.paymentMonth) {
-          return `Transport Fee - ${formatPaymentMonth(item.paymentMonth)}`;
-        } else if (item.termNumber) {
-          return `Transport Fee - Term ${item.termNumber}`;
-        } else {
-          return 'Transport Fee';
+      // Check if this term can be deleted (must be the last term in sequence)
+      const canDeleteTerm = useMemo((): boolean => {
+        if (item.purpose !== "TUITION_FEE" && item.purpose !== "TRANSPORT_FEE") {
+          return true;
         }
-      case "OTHER":
-        return item.customPurposeName || "Other";
-      default:
-        return item.purpose;
-    }
-  };
 
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  };
+        if (item.purpose === 'TRANSPORT_FEE' && institutionType === 'college' && item.paymentMonth) {
+          return true;
+        }
 
-  return (
-    <motion.div
-      ref={ref}
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.2 }}
-    >
-      <Card className="border-l-4 border-l-blue-500 border border-gray-200 hover:border-l-blue-600 hover:shadow-md transition-all bg-white">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between gap-4">
-            {/* Left side - Purpose and Amount */}
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              {/* Order Number */}
-              {orderNumber && (
-                <div className="flex items-center justify-center w-9 h-9 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold shrink-0 border-2 border-blue-200">
-                  {orderNumber}
-                </div>
-              )}
+        if (!item.termNumber) {
+          return true;
+        }
 
-              <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200 shrink-0">
-                <PurposeIcon className="h-5 w-5 text-blue-600" />
-              </div>
+        const samePurposeItems = allItems.filter((i) => i.purpose === item.purpose);
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <h3 className="font-semibold text-gray-900 text-base">
-                    {getPurposeLabel()}
-                  </h3>
-                  <Badge
-                    variant="outline"
-                    className="text-xs border-blue-200 text-blue-700 bg-blue-50"
-                  >
-                    {item.purpose.replace("_", " ")}
-                  </Badge>
-                </div>
+        if (samePurposeItems.length <= 1) {
+          return true;
+        }
 
-                <div className="flex items-center gap-3">
-                  <span className="font-bold text-lg text-blue-700">
-                    {formatAmount(item.amount)}
-                  </span>
-                </div>
-              </div>
-            </div>
+        const maxTermNumber = Math.max(
+          ...samePurposeItems.map((i) => i.termNumber || 0)
+        );
 
-            {/* Right side - Action Buttons */}
-            <div className="flex items-center shrink-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onRemove(item.id)}
-                disabled={!canDelete}
-                className={`h-9 w-9 p-0 ${
-                  canDelete
-                    ? "hover:bg-red-50 hover:text-red-600 text-red-500"
-                    : "opacity-40 cursor-not-allowed"
-                }`}
-                title={!canDelete ? "Delete higher terms first" : "Delete item"}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+        return item.termNumber === maxTermNumber;
+      }, [item, allItems, institutionType]);
 
-          {/* Additional Info for Term-based Payments */}
-          {(item.purpose === "TUITION_FEE" ||
-            item.purpose === "TRANSPORT_FEE") && (
-            <div className="mt-3 pt-3 border-t border-gray-100">
-              <div className="flex items-center justify-between text-xs text-gray-600">
-                <span>
-                  {item.purpose === "TRANSPORT_FEE" && institutionType === "college" && item.paymentMonth
-                    ? "Payment Month"
-                    : institutionType === "college"
-                    ? "College Term"
-                    : "School Term"}
-                </span>
-                <span className="font-medium">
-                  {item.purpose === "TRANSPORT_FEE" && institutionType === "college" && item.paymentMonth
-                    ? formatPaymentMonth(item.paymentMonth)
-                    : `Term ${item.termNumber}`}
-                </span>
-              </div>
+      const formatPaymentMonth = useMemo(
+        () => (monthString: string): string => {
+          if (!monthString) return '';
+          try {
+            const date = new Date(monthString);
+            return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+          } catch {
+            return monthString;
+          }
+        },
+        []
+      );
 
-              {/* Deletion Order Warning */}
-              {!canDelete && item.termNumber && (
-                <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded text-xs text-gray-600">
-                  Delete higher terms first (Term{" "}
-                  {Math.max(
-                    ...allItems
-                      .filter((i) => i.purpose === item.purpose)
-                      .map((i) => i.termNumber || 0)
+      const getPurposeLabel = useMemo(() => {
+        switch (item.purpose) {
+          case "BOOK_FEE":
+            return "Book Fee";
+          case "TUITION_FEE":
+            return `Tuition Fee - Term ${item.termNumber}`;
+          case "TRANSPORT_FEE":
+            if (institutionType === 'college' && item.paymentMonth) {
+              return `Transport Fee - ${formatPaymentMonth(item.paymentMonth)}`;
+            } else if (item.termNumber) {
+              return `Transport Fee - Term ${item.termNumber}`;
+            } else {
+              return 'Transport Fee';
+            }
+          case "OTHER":
+            return item.customPurposeName || "Other";
+          default:
+            return item.purpose;
+        }
+      }, [item, institutionType, formatPaymentMonth]);
+
+      const formatAmount = useMemo(
+        () => (amount: number) => {
+          return new Intl.NumberFormat("en-IN", {
+            style: "currency",
+            currency: "INR",
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }).format(amount);
+        },
+        []
+      );
+
+      return (
+        <motion.div
+          ref={ref}
+          layout
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20, scale: 0.95 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+        >
+          <Card className={`border border-gray-200 shadow-sm bg-white hover:shadow-md transition-all`}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between gap-4">
+                {/* Left side - Purpose and Amount */}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  {/* Order Number */}
+                  {orderNumber && (
+                    <div className={`flex items-center justify-center w-9 h-9 rounded-lg ${colors.icon} text-sm font-semibold shrink-0`}>
+                      {orderNumber}
+                    </div>
                   )}
-                  )
+
+                  {/* Icon - Simplified */}
+                  <div className={`p-1.5 rounded ${colors.icon} shrink-0`}>
+                    <PurposeIcon className="h-4 w-4" />
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-gray-900 text-base">
+                        {getPurposeLabel}
+                      </h3>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${colors.badge} font-medium px-2 py-0.5`}
+                      >
+                        {item.purpose.replace("_", " ")}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center">
+                      <span className={`font-bold text-lg ${colors.amount}`}>
+                        {formatAmount(item.amount)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right side - Action Button */}
+                <div className="flex items-center shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onRemove(item.id)}
+                    disabled={!canDeleteTerm}
+                    className={`h-9 w-9 p-0 transition-colors ${
+                      canDeleteTerm
+                        ? "hover:bg-red-50 hover:text-red-600 text-red-500"
+                        : "opacity-40 cursor-not-allowed"
+                    }`}
+                    title={!canDeleteTerm ? "Delete higher terms first" : "Remove item"}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Additional Info for Term-based Payments */}
+              {(item.purpose === "TUITION_FEE" ||
+                item.purpose === "TRANSPORT_FEE") && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="flex items-center justify-between text-sm text-gray-600">
+                    <span>
+                      {item.purpose === "TRANSPORT_FEE" && institutionType === "college" && item.paymentMonth
+                        ? "Payment Month"
+                        : institutionType === "college"
+                        ? "College Term"
+                        : "School Term"}
+                    </span>
+                    <span className="font-medium text-gray-900">
+                      {item.purpose === "TRANSPORT_FEE" && institutionType === "college" && item.paymentMonth
+                        ? formatPaymentMonth(item.paymentMonth)
+                        : `Term ${item.termNumber}`}
+                    </span>
+                  </div>
+
+                  {/* Deletion Order Warning */}
+                  {!canDeleteTerm && item.termNumber && (
+                    <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
+                      Delete higher terms first (Term{" "}
+                      {Math.max(
+                        ...allItems
+                          .filter((i) => i.purpose === item.purpose)
+                          .map((i) => i.termNumber || 0)
+                      )}
+                      )
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
 
-          {/* Additional Info for Custom Purpose */}
-          {item.purpose === "OTHER" && item.customPurposeName && (
-            <div className="mt-3 pt-3 border-t border-gray-100">
-              <div className="text-xs text-gray-600">
-                <span className="font-medium">Custom Purpose:</span>{" "}
-                {item.customPurposeName}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-});
+              {/* Additional Info for Custom Purpose */}
+              {item.purpose === "OTHER" && item.customPurposeName && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="text-sm text-gray-600">
+                    <span className="font-medium">Custom Purpose:</span>{" "}
+                    <span className="text-gray-900">{item.customPurposeName}</span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      );
+    }
+  )
+);
 
 PaymentItemCard.displayName = "PaymentItemCard";
 
