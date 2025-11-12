@@ -6,7 +6,6 @@ import {
   XCircle,
   Loader2,
   AlertCircle,
-  Receipt,
   User,
   IndianRupee,
 } from "lucide-react";
@@ -14,8 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { handleCollegePayByReservation } from "@/lib/api-college";
 import type { CollegeIncomeRead } from "@/lib/types/college/income";
@@ -53,46 +50,13 @@ const CollegeReservationPaymentProcessor: React.FC<
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     "CASH" | "ONLINE"
   >("CASH");
-  const [paymentAmount, setPaymentAmount] = useState<string>(
-    reservationData.totalAmount.toString()
-  );
-  const [amountError, setAmountError] = useState<string | null>(null);
-
-  const handleAmountChange = (value: string) => {
-    // Remove any non-numeric characters except decimal point
-    const cleanedValue = value.replace(/[^\d.]/g, "");
-    
-    // Allow only one decimal point
-    const parts = cleanedValue.split(".");
-    const formattedValue = parts.length > 2 
-      ? parts[0] + "." + parts.slice(1).join("")
-      : cleanedValue;
-    
-    setPaymentAmount(formattedValue);
-    
-    // Validate amount
-    const numValue = parseFloat(formattedValue);
-    if (formattedValue && (isNaN(numValue) || numValue < 0)) {
-      setAmountError("Please enter a valid amount (must be a positive number)");
-    } else if (formattedValue && numValue === 0) {
-      setAmountError("Amount cannot be zero");
-    } else {
-      setAmountError(null);
-    }
-  };
 
   const handleConfirmPayment = async () => {
-    // Validate amount before proceeding
-    const amount = parseFloat(paymentAmount);
-    if (!paymentAmount || isNaN(amount) || amount <= 0) {
-      setAmountError("Please enter a valid payment amount");
-      return;
-    }
     try {
       setCurrentStep("processing");
 
-      // Prepare the payload for the API
-      const amount = parseFloat(paymentAmount);
+      // Use the reservation fee amount (read-only, not editable)
+      const amount = reservationData.reservationFee;
       const payload = {
         details: [
           {
@@ -124,7 +88,7 @@ const CollegeReservationPaymentProcessor: React.FC<
         reservation_id: reservationData.reservationId,
         total_amount:
           paymentData.data?.context?.total_amount ||
-          parseFloat(paymentAmount || "0"),
+          reservationData.reservationFee,
         receipt_no: paymentData.data?.context?.receipt_no || null,
         student_name: reservationData.studentName,
         remarks: reservationData.note || null,
@@ -237,63 +201,90 @@ const CollegeReservationPaymentProcessor: React.FC<
 
           {/* Payment Details */}
           {currentStep === "confirm" && (
-            <div className="space-y-4">
-              <h3 className="text-md font-semibold flex items-center gap-2">
-                <IndianRupee className="w-4 h-4" />
-                Payment Details
-              </h3>
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-md font-semibold flex items-center gap-2">
+                  <IndianRupee className="w-4 h-4" />
+                  Payment Amount
+                </h3>
+                <div className="bg-muted/50 rounded-lg p-4 border">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Application Fee</span>
+                    <span className="text-2xl font-bold">
+                      ₹{reservationData.reservationFee.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
               <div className="space-y-4">
-                <div>
-                  <Label htmlFor="paymentAmount">Payment Amount *</Label>
-                  <Input
-                    id="paymentAmount"
-                    type="text"
-                    value={paymentAmount}
-                    onChange={(e) => handleAmountChange(e.target.value)}
-                    placeholder="Enter payment amount"
-                    className={cn(amountError && "border-red-500")}
-                  />
-                  {amountError && (
-                    <p className="text-sm text-red-500 mt-1">{amountError}</p>
-                  )}
-                </div>
-
-                <div>
-                  <Label>Payment Method *</Label>
-                  <RadioGroup
-                    value={selectedPaymentMethod}
-                    onValueChange={(value) =>
-                      setSelectedPaymentMethod(value as "CASH" | "ONLINE")
-                    }
+                <h3 className="text-md font-semibold flex items-center gap-2">
+                  <CreditCard className="w-4 h-4" />
+                  Payment Method
+                </h3>
+                <RadioGroup
+                  value={selectedPaymentMethod}
+                  onValueChange={(value) =>
+                    setSelectedPaymentMethod(value as "CASH" | "ONLINE")
+                  }
+                  className="grid grid-cols-2 gap-3"
+                >
+                  <label
+                    htmlFor="cash"
+                    className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      selectedPaymentMethod === "CASH"
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/30"
+                    }`}
                   >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="CASH" id="cash" />
-                      <Label htmlFor="cash" className="font-normal cursor-pointer">
-                        Cash
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="ONLINE" id="online" />
-                      <Label
-                        htmlFor="online"
-                        className="font-normal cursor-pointer"
-                      >
-                        Online
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
+                    <RadioGroupItem value="CASH" id="cash" />
+                    <span
+                      className={`font-medium ${
+                        selectedPaymentMethod === "CASH"
+                          ? "text-blue-700"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      Cash
+                    </span>
+                  </label>
+                  <label
+                    htmlFor="online"
+                    className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      selectedPaymentMethod === "ONLINE"
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/30"
+                    }`}
+                  >
+                    <RadioGroupItem value="ONLINE" id="online" />
+                    <span
+                      className={`font-medium ${
+                        selectedPaymentMethod === "ONLINE"
+                          ? "text-blue-700"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      Online
+                    </span>
+                  </label>
+                </RadioGroup>
               </div>
 
               <div className="flex gap-2 pt-4">
                 <Button
                   onClick={handleConfirmPayment}
-                  disabled={!!amountError || !paymentAmount}
+                  disabled={currentStep !== "confirm"}
                   className="flex-1"
                 >
                   <CreditCard className="w-4 h-4 mr-2" />
-                  Confirm Payment
+                  Confirm Payment (₹
+                  {reservationData.reservationFee.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })})
                 </Button>
                 {onPaymentCancel && (
                   <Button
