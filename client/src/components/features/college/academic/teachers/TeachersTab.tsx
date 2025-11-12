@@ -11,16 +11,31 @@ import { useEmployeesByBranch } from "@/lib/hooks/general";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { TeacherCourseSubjectAssignmentsTab } from "./TeacherCourseSubjectAssignmentsTab";
-import { useTeacherCourseSubjectsList, useCreateTeacherCourseSubject, useDeleteTeacherCourseSubjectRelation, useCollegeGroups } from "@/lib/hooks/college";
-import { useCollegeCourses, useCollegeSubjects } from "@/lib/hooks/college/use-college-dropdowns";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  useTeacherCourseSubjectsList,
+  useCreateTeacherCourseSubject,
+  useDeleteTeacherCourseSubjectRelation,
+  useCollegeGroups,
+} from "@/lib/hooks/college";
+import {
+  useCollegeCourses,
+  useCollegeSubjects,
+} from "@/lib/hooks/college/use-college-dropdowns";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export const TeachersTab = () => {
   const { data: allEmployees = [], isLoading, error } = useEmployeesByBranch();
-  const { data: assignments = [], isLoading: assignmentsLoading } = useTeacherCourseSubjectsList();
+  const { data: assignments = [], isLoading: assignmentsLoading } =
+    useTeacherCourseSubjectsList();
   const { data: groups = [] } = useCollegeGroups();
-  
+
   // Filter to only teaching staff and map to include all fields
   const teachers = useMemo(() => {
     return allEmployees
@@ -40,13 +55,13 @@ export const TeachersTab = () => {
     });
     return map;
   }, [allEmployees]);
-  
+
   const [, navigate] = useLocation();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<any>(null);
-  const [activeSubTab, setActiveSubTab] = useState("assignments");
-  
+  const [activeSubTab, setActiveSubTab] = useState("teachers");
+
   // Form state
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
@@ -59,11 +74,15 @@ export const TeachersTab = () => {
   const { toast } = useToast();
 
   // Get courses for selected group - fetch courses with group filter
-  const { data: coursesData } = useCollegeCourses(selectedGroupId ? parseInt(selectedGroupId) : 0);
+  const { data: coursesData } = useCollegeCourses(
+    selectedGroupId ? parseInt(selectedGroupId) : 0
+  );
   const courses = coursesData?.items || [];
-  
+
   // Get subjects for selected group
-  const { data: subjectsData } = useCollegeSubjects(selectedGroupId ? parseInt(selectedGroupId) : 0);
+  const { data: subjectsData } = useCollegeSubjects(
+    selectedGroupId ? parseInt(selectedGroupId) : 0
+  );
   const subjects = subjectsData?.items || [];
 
   const resetForm = () => {
@@ -78,7 +97,11 @@ export const TeachersTab = () => {
     setIsAddOpen(true);
   };
 
-  const handleDelete = async (teacherId: number, courseId: number, subjectId: number) => {
+  const handleDelete = async (
+    teacherId: number,
+    courseId: number,
+    subjectId: number
+  ) => {
     try {
       await deleteMutation.mutateAsync({ teacherId, courseId, subjectId });
     } catch (error: any) {
@@ -87,7 +110,12 @@ export const TeachersTab = () => {
   };
 
   const handleFormSubmit = async () => {
-    if (!selectedTeacherId || !selectedGroupId || !selectedCourseId || !selectedSubjectId) {
+    if (
+      !selectedTeacherId ||
+      !selectedGroupId ||
+      !selectedCourseId ||
+      !selectedSubjectId
+    ) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -114,56 +142,61 @@ export const TeachersTab = () => {
     }
   };
 
-
-  const columns: ColumnDef<any>[] = useMemo(() => [
-    {
-      accessorKey: "employee_name",
-      header: "Name",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <User className="h-4 w-4 text-gray-500" />
-          <span className="font-medium">{row.getValue("employee_name")}</span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "designation",
-      header: "Designation",
-      cell: ({ row }) => (
-        <Badge variant="secondary">
-          {row.getValue("designation") || "Teacher"}
-        </Badge>
-      ),
-    },
-    {
-      accessorKey: "email",
-      header: "Email",
-    },
-    {
-      accessorKey: "phone",
-      header: "Phone",
-    },
-    {
-      accessorKey: "is_active",
-      header: "Status",
-      cell: ({ row }) => (
-        <Badge variant={row.getValue("is_active") ? "default" : "secondary"}>
-          {row.getValue("is_active") ? "Active" : "Inactive"}
-        </Badge>
-      ),
-    },
-  ], []);
+  const columns: ColumnDef<any>[] = useMemo(
+    () => [
+      {
+        accessorKey: "employee_name",
+        header: "Name",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-gray-500" />
+            <span className="font-medium">{row.getValue("employee_name")}</span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "designation",
+        header: "Designation",
+        cell: ({ row }) => (
+          <Badge variant="secondary">
+            {row.getValue("designation") || "Teacher"}
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: "email",
+        header: "Email",
+      },
+      {
+        accessorKey: "phone",
+        header: "Phone",
+      },
+      {
+        accessorKey: "is_active",
+        header: "Status",
+        cell: ({ row }) => (
+          <Badge variant={row.getValue("is_active") ? "default" : "secondary"}>
+            {row.getValue("is_active") ? "Active" : "Inactive"}
+          </Badge>
+        ),
+      },
+    ],
+    []
+  );
 
   // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
-    {
-      type: 'edit' as const,
-      onClick: (row: any) => {
-        setSelectedTeacher(row);
-        setIsEditOpen(true);
-      }
-    }
-  ], []);
+  const actionButtonGroups = useMemo(
+    () => [
+      {
+        type: "edit" as const,
+        onClick: (row: any) => {
+          setSelectedTeacher(row);
+          setIsEditOpen(true);
+        },
+      },
+    ],
+    []
+  );
 
   if (error) {
     return (
@@ -241,13 +274,19 @@ export const TeachersTab = () => {
           {/* Teacher Selection */}
           <div className="space-y-2">
             <Label htmlFor="teacher">Teacher *</Label>
-            <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId}>
+            <Select
+              value={selectedTeacherId}
+              onValueChange={setSelectedTeacherId}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select teacher" />
               </SelectTrigger>
               <SelectContent>
                 {teachers.map((teacher: any) => (
-                  <SelectItem key={teacher.employee_id} value={teacher.employee_id.toString()}>
+                  <SelectItem
+                    key={teacher.employee_id}
+                    value={teacher.employee_id.toString()}
+                  >
                     {teacher.employee_name}
                   </SelectItem>
                 ))}
@@ -258,8 +297,8 @@ export const TeachersTab = () => {
           {/* Group Selection */}
           <div className="space-y-2">
             <Label htmlFor="group">Group *</Label>
-            <Select 
-              value={selectedGroupId} 
+            <Select
+              value={selectedGroupId}
               onValueChange={(value) => {
                 setSelectedGroupId(value);
                 setSelectedCourseId(""); // Reset course when group changes
@@ -270,7 +309,10 @@ export const TeachersTab = () => {
               </SelectTrigger>
               <SelectContent>
                 {groups.map((group: any) => (
-                  <SelectItem key={group.group_id} value={group.group_id.toString()}>
+                  <SelectItem
+                    key={group.group_id}
+                    value={group.group_id.toString()}
+                  >
                     {group.group_name}
                   </SelectItem>
                 ))}
@@ -281,17 +323,24 @@ export const TeachersTab = () => {
           {/* Course Selection */}
           <div className="space-y-2">
             <Label htmlFor="course">Course *</Label>
-            <Select 
-              value={selectedCourseId} 
+            <Select
+              value={selectedCourseId}
               onValueChange={setSelectedCourseId}
               disabled={!selectedGroupId}
             >
               <SelectTrigger>
-                <SelectValue placeholder={selectedGroupId ? "Select course" : "Select group first"} />
+                <SelectValue
+                  placeholder={
+                    selectedGroupId ? "Select course" : "Select group first"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {courses.map((course: any) => (
-                  <SelectItem key={course.course_id} value={course.course_id.toString()}>
+                  <SelectItem
+                    key={course.course_id}
+                    value={course.course_id.toString()}
+                  >
                     {course.course_name}
                   </SelectItem>
                 ))}
@@ -302,17 +351,24 @@ export const TeachersTab = () => {
           {/* Subject Selection */}
           <div className="space-y-2">
             <Label htmlFor="subject">Subject *</Label>
-            <Select 
-              value={selectedSubjectId} 
+            <Select
+              value={selectedSubjectId}
               onValueChange={setSelectedSubjectId}
               disabled={!selectedGroupId}
             >
               <SelectTrigger>
-                <SelectValue placeholder={selectedGroupId ? "Select subject" : "Select group first"} />
+                <SelectValue
+                  placeholder={
+                    selectedGroupId ? "Select subject" : "Select group first"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {subjects.map((subject: any) => (
-                  <SelectItem key={subject.subject_id} value={subject.subject_id.toString()}>
+                  <SelectItem
+                    key={subject.subject_id}
+                    value={subject.subject_id.toString()}
+                  >
                     {subject.subject_name}
                   </SelectItem>
                 ))}
@@ -322,12 +378,15 @@ export const TeachersTab = () => {
 
           {/* Active Toggle */}
           <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="is_active" 
+            <Checkbox
+              id="is_active"
               checked={isActive}
               onCheckedChange={(checked) => setIsActive(checked as boolean)}
             />
-            <Label htmlFor="is_active" className="text-sm font-normal cursor-pointer">
+            <Label
+              htmlFor="is_active"
+              className="text-sm font-normal cursor-pointer"
+            >
               Active Assignment
             </Label>
           </div>
@@ -350,7 +409,8 @@ export const TeachersTab = () => {
           <div className="text-center py-8">
             <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500 mb-6">
-              To edit teacher information, please use the Employee Management section.
+              To edit teacher information, please use the Employee Management
+              section.
             </p>
             <Button
               onClick={() => {

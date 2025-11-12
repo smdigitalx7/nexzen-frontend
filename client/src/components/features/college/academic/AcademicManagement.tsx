@@ -16,7 +16,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
 import { useAuthStore } from "@/store/authStore";
-import { useCollegeClasses, useCollegeSubjects, useCollegeExams, useCollegeTests, useCollegeGroups, useCollegeCourses } from "@/lib/hooks/college";
+import {
+  useCollegeClasses,
+  useCollegeSubjects,
+  useCollegeExams,
+  useCollegeTests,
+  useCollegeGroups,
+  useCollegeCourses,
+} from "@/lib/hooks/college";
 import AcademicYearManagement from "@/components/features/college/academic/academic-years/AcademicYearManagement";
 import { ClassesTab } from "@/components/features/college/academic/classes/ClassesTab";
 import { SubjectsTab } from "@/components/features/college/academic/subjects/SubjectsTab";
@@ -71,7 +78,8 @@ const AcademicManagement = () => {
     isError: testsError,
     error: testsErrObj,
   } = useCollegeTests();
-  const tests = (testsData || []) as import("@/lib/types/college").CollegeTestRead[];
+  const tests = (testsData ||
+    []) as import("@/lib/types/college").CollegeTestRead[];
 
   const {
     data: groupsData,
@@ -79,7 +87,8 @@ const AcademicManagement = () => {
     isError: groupsError,
     error: groupsErrObj,
   } = useCollegeGroups();
-  const groups = (groupsData || []) as import("@/lib/types/college").CollegeGroupResponse[];
+  const groups = (groupsData ||
+    []) as import("@/lib/types/college").CollegeGroupResponse[];
 
   const {
     data: coursesData,
@@ -87,7 +96,8 @@ const AcademicManagement = () => {
     isError: coursesError,
     error: coursesErrObj,
   } = useCollegeCourses();
-  const courses = (coursesData || []) as import("@/lib/types/college").CollegeCourseResponse[];
+  const courses = (coursesData ||
+    []) as import("@/lib/types/college").CollegeCourseResponse[];
 
   // Calculate statistics
   const totalClasses = backendClasses.length;
@@ -195,16 +205,17 @@ const AcademicManagement = () => {
           title: "Tests Management",
           description: "Manage academic tests and assessments",
         };
-      case "academic-years":
-        return {
-          title: "Academic Years Management",
-          description: "Manage academic years, terms, and academic calendar",
-        };
       case "grades":
         return {
           title: "Grades Management",
           description: "Define grade codes and their percentage ranges",
         };
+      case "academic-years":
+        return {
+          title: "Academic Years Management",
+          description: "Manage academic years, terms, and academic calendar",
+        };
+
       default:
         return {
           title: "Academic Management",
@@ -361,12 +372,6 @@ const AcademicManagement = () => {
             ),
           },
           {
-            value: "academic-years",
-            label: "Academic Years",
-            icon: Settings,
-            content: <AcademicYearManagement />,
-          },
-          {
             value: "grades",
             label: "Grades",
             icon: Award,
@@ -383,6 +388,12 @@ const AcademicManagement = () => {
                 deleteGradeMutation={deleteGradeMutation}
               />
             ),
+          },
+          {
+            value: "academic-years",
+            label: "Academic Years",
+            icon: Settings,
+            content: <AcademicYearManagement />,
           },
         ]}
         activeTab={activeTab}

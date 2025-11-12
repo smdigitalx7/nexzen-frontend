@@ -183,26 +183,26 @@ const generateDaySheetExcel = (
     incomeHeader.alignment = { horizontal: 'left', vertical: 'middle' };
     currentRow++;
 
-    // Income Table Headers
+    // Income Table Headers - Professional styling
     const incomeHeaders = ['S.No', 'Receipt No', 'Student Name', 'ID No', 'Purpose', 'Payment', 'Amount', 'Created By'];
     incomeHeaders.forEach((header, idx) => {
       const cell = worksheet.getCell(currentRow, idx + 1);
       cell.value = header;
       cell.font = { size: 10, bold: true };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.alignment = { horizontal: idx === 0 || idx === 6 ? 'center' : 'left', vertical: 'middle' };
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: 'FFF5F5F5' }
+        fgColor: { argb: 'FFE5E7EB' } // Slightly darker gray for better contrast
       };
       cell.border = {
-        top: { style: 'thin' },
-        bottom: { style: 'thin' },
-        left: { style: 'thin' },
-        right: { style: 'thin' }
+        top: { style: 'thin', color: { argb: 'FF9CA3AF' } },
+        bottom: { style: 'thin', color: { argb: 'FF9CA3AF' } },
+        left: { style: 'thin', color: { argb: 'FF9CA3AF' } },
+        right: { style: 'thin', color: { argb: 'FF9CA3AF' } }
       };
     });
-    worksheet.getRow(currentRow).height = 18;
+    worksheet.getRow(currentRow).height = 20; // Increased height for better readability
     currentRow++;
 
     // Income Table Data
@@ -224,13 +224,21 @@ const generateDaySheetExcel = (
         cell.font = { size: 10 };
         cell.alignment = { horizontal: idx === 0 || idx === 6 ? 'center' : 'left', vertical: 'middle' };
         cell.border = {
-          top: { style: 'thin' },
-          bottom: { style: 'thin' },
-          left: { style: 'thin' },
-          right: { style: 'thin' }
+          top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
         };
+        // Alternate row coloring for better readability
+        if (currentRow % 2 === 0) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF9FAFB' } // Very light gray for alternate rows
+          };
+        }
       });
-      worksheet.getRow(currentRow).height = 18;
+      worksheet.getRow(currentRow).height = 20; // Increased height for better readability
       currentRow++;
     });
 
@@ -388,12 +396,12 @@ const generateDaySheetExcel = (
   footerCell.font = { size: 9, italic: true };
   footerCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
-  // Set column widths
+  // Set column widths - Increased widths for Student Name and ID No
   worksheet.columns = [
     { width: 8 },   // S.No
     { width: 25 }, // Receipt/Voucher No
-    { width: 30 }, // Student Name / Bill Date
-    { width: 20 }, // ID No / Purpose
+    { width: 40 }, // Student Name (increased from 30)
+    { width: 28 }, // ID No (increased from 20)
     { width: 20 }, // Purpose / Payment
     { width: 18 }, // Payment / Amount
     { width: 20 }, // Amount / Created By
@@ -612,8 +620,13 @@ const generateDaySheetPDF = (
   };
 
   // Header Section - Professional Design
-  drawLine(margin, yPosition, pageWidth - margin, yPosition, 0.3);
-  yPosition += 4;
+  // Start with more top padding
+  yPosition += 5; // Add top padding before the first line
+  
+  // Draw top border line - ensure it's within page bounds
+  const lineMargin = margin + 0.5; // Slight inset to prevent cutting
+  drawLine(lineMargin, yPosition, pageWidth - lineMargin, yPosition, 0.3);
+  yPosition += 8; // Increased gap after top line (from 4 to 8)
   
   addText(report.institute_name.toUpperCase(), pageWidth / 2, yPosition, {
     fontSize: 16,
@@ -633,7 +646,8 @@ const generateDaySheetPDF = (
   });
 
   yPosition += 4;
-  drawLine(margin, yPosition, pageWidth - margin, yPosition, 0.3);
+  // Draw bottom border line - ensure it's within page bounds
+  drawLine(lineMargin, yPosition, pageWidth - lineMargin, yPosition, 0.3);
   yPosition += 5;
 
   // Branch Information Section - Professional Layout
@@ -743,28 +757,29 @@ const generateDaySheetPDF = (
     yPosition += 4;
 
     // Table Header - Optimized for landscape A4 with proper borders
-    doc.setFillColor(245, 245, 245);
-    doc.rect(margin, yPosition, contentWidth, 7, 'F');
+    doc.setFillColor(230, 231, 233); // Slightly darker gray for better contrast
+    doc.rect(margin, yPosition, contentWidth, 8, 'F'); // Increased height
     // Top border
-    drawLine(margin, yPosition, pageWidth - margin, yPosition, 0.3);
+    drawLine(margin, yPosition, pageWidth - margin, yPosition, 0.4);
     // Bottom border
-    drawLine(margin, yPosition + 7, pageWidth - margin, yPosition + 7, 0.3);
+    drawLine(margin, yPosition + 8, pageWidth - margin, yPosition + 8, 0.4);
     // Left border
-    drawLine(margin, yPosition, margin, yPosition + 7, 0.3);
+    drawLine(margin, yPosition, margin, yPosition + 8, 0.4);
     // Right border
-    drawLine(pageWidth - margin, yPosition, pageWidth - margin, yPosition + 7, 0.3);
+    drawLine(pageWidth - margin, yPosition, pageWidth - margin, yPosition + 8, 0.4);
     
     // Column widths optimized for landscape A4 (297mm width, ~281mm content width)
-    const colWidths = [12, 32, 40, 22, 28, 22, 28, 25];
+    // Increased widths for Student Name and ID No for better readability
+    const colWidths = [12, 32, 50, 30, 28, 22, 28, 25];
     const headers = ['S.No', 'Receipt No', 'Student Name', 'ID No', 'Purpose', 'Payment', 'Amount', 'Created By'];
     xPos = margin + 1;
 
     headers.forEach((header, idx) => {
       if (idx > 0) {
         // Vertical column dividers
-        drawLine(xPos - 0.5, yPosition, xPos - 0.5, yPosition + 7, 0.3);
+        drawLine(xPos - 0.5, yPosition, xPos - 0.5, yPosition + 8, 0.4);
       }
-      addText(header, xPos + colWidths[idx] / 2, yPosition + 5, {
+      addText(header, xPos + colWidths[idx] / 2, yPosition + 5.5, {
         fontSize: 9,
         fontStyle: 'bold',
         align: 'center',
@@ -773,7 +788,7 @@ const generateDaySheetPDF = (
       xPos += colWidths[idx];
     });
 
-    yPosition += 7;
+    yPosition += 8;
 
     // Table Rows - Professional styling with proper spacing
     report.income_object.income_list.forEach((income, idx) => {
@@ -783,12 +798,18 @@ const generateDaySheetPDF = (
         yPosition = margin;
       }
 
+      // Alternate row background for better readability
+      if (idx % 2 === 0) {
+        doc.setFillColor(250, 250, 250);
+        doc.rect(margin, yPosition, contentWidth, 7, 'F');
+      }
+
       // Draw top row border
-      drawLine(margin, yPosition, pageWidth - margin, yPosition, 0.3);
+      drawLine(margin, yPosition, pageWidth - margin, yPosition, 0.2);
       // Draw left border
-      drawLine(margin, yPosition, margin, yPosition + 6, 0.3);
+      drawLine(margin, yPosition, margin, yPosition + 7, 0.2);
       // Draw right border
-      drawLine(pageWidth - margin, yPosition, pageWidth - margin, yPosition + 6, 0.3);
+      drawLine(pageWidth - margin, yPosition, pageWidth - margin, yPosition + 7, 0.2);
 
       xPos = margin + 1;
       const rowData = [
@@ -805,18 +826,19 @@ const generateDaySheetPDF = (
       rowData.forEach((cell, cellIdx) => {
         if (cellIdx > 0) {
           // Vertical column dividers
-          drawLine(xPos - 0.5, yPosition, xPos - 0.5, yPosition + 6, 0.3);
+          drawLine(xPos - 0.5, yPosition, xPos - 0.5, yPosition + 7, 0.2);
         }
-        addText(cell, xPos + 1, yPosition + 4, {
+        addText(cell, xPos + 1, yPosition + 4.5, {
           fontSize: 8,
-          maxWidth: colWidths[cellIdx] - 2
+          maxWidth: colWidths[cellIdx] - 2,
+          align: cellIdx === 0 ? 'center' : 'left' // Center S.No, left-align others
         });
         xPos += colWidths[cellIdx];
       });
 
       // Draw bottom border for row
-      drawLine(margin, yPosition + 6, pageWidth - margin, yPosition + 6, 0.3);
-      yPosition += 6;
+      drawLine(margin, yPosition + 7, pageWidth - margin, yPosition + 7, 0.2);
+      yPosition += 7;
     });
 
     // Total Income Row with borders
