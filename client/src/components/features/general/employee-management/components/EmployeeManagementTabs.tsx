@@ -112,7 +112,6 @@ interface EmployeeManagementTabsProps {
   onAddAdvance: () => void;
   onApproveAdvance: (advance: EmployeeAdvanceRead) => void;
   onEditAdvance: (advance: EmployeeAdvanceRead) => void;
-  onDeleteAdvance: (id: number) => void;
   onViewAdvance: (advance: EmployeeAdvanceRead) => void;
   onUpdateAmount: (advance: EmployeeAdvanceRead) => void;
   onRejectAdvance: (advance: EmployeeAdvanceRead) => void;
@@ -166,7 +165,6 @@ export const EmployeeManagementTabs = ({
   onAddAdvance,
   onApproveAdvance,
   onEditAdvance,
-  onDeleteAdvance,
   onViewAdvance,
   onUpdateAmount,
   onRejectAdvance,
@@ -280,7 +278,6 @@ export const EmployeeManagementTabs = ({
           isLoading={advancesLoading}
           onAddAdvance={onAddAdvance}
           onEditAdvance={onEditAdvance}
-          onDeleteAdvance={onDeleteAdvance}
           onViewAdvance={onViewAdvance}
           onApproveAdvance={onApproveAdvance}
           onRejectAdvance={onRejectAdvance}

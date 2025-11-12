@@ -13,7 +13,6 @@ import AdvanceFormDialog from "../Advance/AdvanceFormDialog";
 import { AdvanceViewDialog } from "../Advance/AdvanceViewDialog";
 import AdvanceStatusDialog from "../Advance/AdvanceStatusDialog";
 import AdvanceAmountDialog from "../Advance/AdvanceAmountDialog";
-import AdvanceDeleteDialog from "../Advance/AdvanceDeleteDialog";
 import { useAuthStore } from "@/store/authStore";
 
 interface EmployeeManagementDialogsProps {
@@ -83,10 +82,6 @@ interface EmployeeManagementDialogsProps {
   advanceToView: any;
   setAdvanceToView: (advance: any) => void;
   isEditingAdvance: boolean;
-  advanceToDelete: any;
-  setAdvanceToDelete: (advance: any) => void;
-  showAdvanceDeleteDialog: boolean;
-  setShowAdvanceDeleteDialog: (show: boolean) => void;
   showAdvanceStatusDialog: boolean;
   setShowAdvanceStatusDialog: (show: boolean) => void;
   showAdvanceAmountDialog: boolean;
@@ -126,6 +121,8 @@ interface EmployeeManagementDialogsProps {
   // Loading states
   createEmployeePending?: boolean;
   updateEmployeePending?: boolean;
+  approveLeavePending?: boolean;
+  rejectLeavePending?: boolean;
 }
 
 export const EmployeeManagementDialogs = ({
@@ -195,10 +192,6 @@ export const EmployeeManagementDialogs = ({
   advanceToView,
   setAdvanceToView,
   isEditingAdvance,
-  advanceToDelete,
-  setAdvanceToDelete,
-  showAdvanceDeleteDialog,
-  setShowAdvanceDeleteDialog,
   showAdvanceStatusDialog,
   setShowAdvanceStatusDialog,
   showAdvanceAmountDialog,
@@ -236,6 +229,8 @@ export const EmployeeManagementDialogs = ({
   handleDeleteAttendance,
   createEmployeePending = false,
   updateEmployeePending = false,
+  approveLeavePending = false,
+  rejectLeavePending = false,
 }: EmployeeManagementDialogsProps) => {
   return (
     <>
@@ -311,11 +306,12 @@ export const EmployeeManagementDialogs = ({
       <LeaveApproveDialog
         open={showLeaveApproveDialog}
         onOpenChange={setShowLeaveApproveDialog}
-        onApprove={async () => {
+        onApprove={() => {
           if (leaveToApprove) {
-            await handleApproveLeave(leaveToApprove.leave_id);
+            handleApproveLeave(leaveToApprove.leave_id);
           }
         }}
+        isLoading={approveLeavePending}
       />
       
       {/* Leave Reject Dialog */}
@@ -324,12 +320,12 @@ export const EmployeeManagementDialogs = ({
         onOpenChange={setShowLeaveRejectDialog}
         reason={rejectionReason}
         onReasonChange={setRejectionReason}
-        onReject={async () => {
+        onReject={() => {
           if (leaveToReject) {
-            await handleRejectLeave(leaveToReject.leave_id, rejectionReason);
-            setRejectionReason(""); // Reset after rejection
+            handleRejectLeave(leaveToReject.leave_id, rejectionReason);
           }
         }}
+        isLoading={rejectLeavePending}
       />
       
       {/* Leave Delete Confirm Dialog */}
@@ -417,18 +413,6 @@ export const EmployeeManagementDialogs = ({
         onUpdate={async (amount) => {
           if (advanceToUpdate) {
             await handleUpdateAdvanceAmountPaid(advanceToUpdate.advance_id, amount);
-          }
-        }}
-      />
-      
-      {/* Advance Delete Dialog */}
-      <AdvanceDeleteDialog
-        open={showAdvanceDeleteDialog}
-        onOpenChange={setShowAdvanceDeleteDialog}
-        onConfirm={async () => {
-          if (advanceToDelete) {
-            // Add delete handler when available
-            setShowAdvanceDeleteDialog(false);
           }
         }}
       />

@@ -165,10 +165,6 @@ export const EmployeeManagementTemplate = () => {
     setAdvanceToView,
     isEditingAdvance,
     setIsEditingAdvance,
-    advanceToDelete,
-    setAdvanceToDelete,
-    showAdvanceDeleteDialog,
-    setShowAdvanceDeleteDialog,
     showAdvanceStatusDialog,
     setShowAdvanceStatusDialog,
     showAdvanceAmountDialog,
@@ -186,6 +182,8 @@ export const EmployeeManagementTemplate = () => {
     user,
     createEmployeePending,
     updateEmployeePending,
+    approveLeavePending,
+    rejectLeavePending,
     
     // Leave filters
     leaveMonth,
@@ -583,13 +581,6 @@ export const EmployeeManagementTemplate = () => {
                 setIsEditingAdvance(true);
                 setShowAdvanceForm(true);
               }, [setAdvanceFormData, setAdvanceToUpdate, setIsEditingAdvance, setShowAdvanceForm])}
-        onDeleteAdvance={useCallback((id: number) => {
-                const advance = advances.find((a) => a.advance_id === id);
-                if (advance) {
-                  setAdvanceToDelete(advance);
-                  setShowAdvanceDeleteDialog(true);
-                }
-              }, [advances, setAdvanceToDelete, setShowAdvanceDeleteDialog])}
         onViewAdvance={useCallback((advance) => {
                 // Transform EmployeeAdvanceRead (without created_at) back to AdvanceRead for hook
                 const fullAdvance: AdvanceRead = {
@@ -696,22 +687,18 @@ export const EmployeeManagementTemplate = () => {
         advanceToView={advanceToView}
         setAdvanceToView={setAdvanceToView}
         isEditingAdvance={isEditingAdvance}
-        advanceToDelete={advanceToDelete}
-        setAdvanceToDelete={setAdvanceToDelete}
-        showAdvanceDeleteDialog={showAdvanceDeleteDialog}
-        setShowAdvanceDeleteDialog={setShowAdvanceDeleteDialog}
         showAdvanceStatusDialog={showAdvanceStatusDialog}
         setShowAdvanceStatusDialog={setShowAdvanceStatusDialog}
         showAdvanceAmountDialog={showAdvanceAmountDialog}
         setShowAdvanceAmountDialog={setShowAdvanceAmountDialog}
-    advanceToUpdate={advanceToUpdate}
-    setAdvanceToUpdate={setAdvanceToUpdate}
-    advanceStatus={advanceStatus}
-    setAdvanceStatus={setAdvanceStatus}
-    advanceStatusReason={advanceStatusReason}
-    setAdvanceStatusReason={setAdvanceStatusReason}
-    advanceFormData={advanceFormData}
-    setAdvanceFormData={setAdvanceFormData}
+        advanceToUpdate={advanceToUpdate}
+        setAdvanceToUpdate={setAdvanceToUpdate}
+        advanceStatus={advanceStatus}
+        setAdvanceStatus={setAdvanceStatus}
+        advanceStatusReason={advanceStatusReason}
+        setAdvanceStatusReason={setAdvanceStatusReason}
+        advanceFormData={advanceFormData}
+        setAdvanceFormData={setAdvanceFormData}
         
         // Data
         employees={employeesData}
@@ -737,6 +724,8 @@ export const EmployeeManagementTemplate = () => {
         handleDeleteAttendance={handleDeleteAttendance}
         createEmployeePending={createEmployeePending}
         updateEmployeePending={updateEmployeePending}
+        approveLeavePending={approveLeavePending}
+        rejectLeavePending={rejectLeavePending}
       />
     </div>
   );

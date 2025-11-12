@@ -57,7 +57,20 @@ export function useAssignSectionsToEnrollments() {
       void qc.invalidateQueries({ 
         queryKey: [...schoolKeys.enrollments.root(), "for-section-assignment", variables.class_id] 
       });
+      // Invalidate sections dropdown cache to refresh filter options
+      void qc.invalidateQueries({ 
+        queryKey: ["school-dropdowns", "sections", variables.class_id] 
+      });
+      // Also invalidate sections list cache
+      void qc.invalidateQueries({ 
+        queryKey: schoolKeys.sections.listByClass(variables.class_id) 
+      });
       void qc.refetchQueries({ queryKey: schoolKeys.enrollments.root(), type: 'active' });
+      // Refetch sections dropdown for the class
+      void qc.refetchQueries({ 
+        queryKey: ["school-dropdowns", "sections", variables.class_id],
+        type: 'active' 
+      });
     },
   }, "Sections assigned successfully");
 }

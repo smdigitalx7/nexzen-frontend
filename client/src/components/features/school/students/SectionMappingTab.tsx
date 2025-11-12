@@ -8,6 +8,7 @@ import { useSchoolSections } from '@/lib/hooks/school/use-school-dropdowns';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Table,
   TableBody,
@@ -23,12 +24,24 @@ const SectionMappingTab = () => {
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
   const [selectedEnrollments, setSelectedEnrollments] = useState<Set<number>>(new Set());
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: enrollments = [], isLoading, isError, error, refetch } = useSchoolEnrollmentsForSectionAssignment(selectedClassId);
-  const { data: sectionsData } = useSchoolSections(selectedClassId || 0);
+  const { data: sectionsData, refetch: refetchSections } = useSchoolSections(selectedClassId || 0);
   const assignSectionsMutation = useAssignSectionsToEnrollments();
 
   const sections = sectionsData?.items || [];
+
+  // Refetch sections when class changes to ensure fresh data
+  useEffect(() => {
+    if (selectedClassId && selectedClassId > 0) {
+      // Invalidate and refetch sections dropdown when class changes
+      queryClient.invalidateQueries({ 
+        queryKey: ["school-dropdowns", "sections", selectedClassId] 
+      });
+      refetchSections();
+    }
+  }, [selectedClassId, queryClient, refetchSections]);
 
   // Toggle selection for a single enrollment
   const toggleEnrollment = (enrollmentId: number) => {
@@ -122,7 +135,17 @@ const SectionMappingTab = () => {
       
       // Clear selection and refresh data
       setSelectedEnrollments(new Set());
+      // Reset section selection to allow selecting a different section
+      setSelectedSectionId(null);
+      
+      // Wait a bit for cache invalidation to complete, then refetch
+      await new Promise(resolve => setTimeout(resolve, 100));
       await refetch();
+      
+      // Also refetch sections dropdown to ensure it's up to date
+      if (selectedClassId) {
+        await refetchSections();
+      }
     } catch (error) {
       // Error toast is handled by mutation hook
     }

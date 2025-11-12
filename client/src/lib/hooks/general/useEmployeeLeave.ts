@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { EmployeeLeaveService } from '@/lib/services/general/employee-leave.service';
 import type { 
   EmployeeLeaveRead, 
@@ -11,6 +11,8 @@ import type {
 } from '@/lib/types/general/employee-leave';
 import { useMutationWithSuccessToast } from '../common/use-mutation-with-toast';
 import { useGlobalRefetch } from '../common/useGlobalRefetch';
+import { CacheUtils } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 // Query keys
 export const employeeLeaveKeys = {
@@ -91,24 +93,73 @@ export const useUpdateEmployeeLeave = () => {
 };
 
 export const useApproveEmployeeLeave = () => {
-  const { invalidateEntity } = useGlobalRefetch();
+  const queryClient = useQueryClient();
   
   return useMutationWithSuccessToast({
     mutationFn: (id: number) => EmployeeLeaveService.approve(id),
     onSuccess: () => {
-      invalidateEntity("leaves");
+      // Defer to next event loop to prevent blocking
+      setTimeout(() => {
+        // Clear API cache
+        CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
+        
+        // Use requestIdleCallback to make invalidateQueries non-blocking
+        // Fallback to setTimeout if requestIdleCallback is not available
+        const scheduleInvalidate = (callback: () => void) => {
+          if (typeof requestIdleCallback !== 'undefined') {
+            requestIdleCallback(callback, { timeout: 1000 });
+          } else {
+            setTimeout(callback, 0);
+          }
+        };
+        
+        scheduleInvalidate(() => {
+          // Invalidate all leave queries (with exact: false to match all variations)
+          queryClient.invalidateQueries({ 
+            queryKey: employeeLeaveKeys.all,
+            exact: false 
+          });
+          
+          // Force refetch active queries after a small delay - don't await, make it fire-and-forget
+          setTimeout(() => {
+            // Use void to explicitly ignore the promise and make it non-blocking
+            void queryClient.refetchQueries({ 
+              queryKey: employeeLeaveKeys.all,
+              type: 'active',
+              exact: false 
+            });
+          }, 50);
+        });
+      }, 0);
     },
   }, "Leave request approved successfully");
 };
 
 export const useRejectEmployeeLeave = () => {
-  const { invalidateEntity } = useGlobalRefetch();
+  const queryClient = useQueryClient();
   
   return useMutationWithSuccessToast({
     mutationFn: ({ id, data }: { id: number; data: EmployeeLeaveReject }) => 
       EmployeeLeaveService.reject(id, data),
     onSuccess: () => {
-      invalidateEntity("leaves");
+      // Defer to next event loop to prevent blocking
+      setTimeout(() => {
+        // Clear API cache
+        CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
+        // Invalidate all leave queries (with exact: false to match all variations)
+        queryClient.invalidateQueries({ 
+          queryKey: employeeLeaveKeys.all,
+          exact: false 
+        });
+        // Force refetch active queries after a small delay
+        setTimeout(() => {
+          queryClient.refetchQueries({ 
+            queryKey: employeeLeaveKeys.all,
+            type: 'active',
+            exact: false 
+          });
+        }, 50);
+      }, 0);
     },
   }, "Leave request rejected");
 };
@@ -123,3 +174,4 @@ export const useDeleteEmployeeLeave = () => {
     },
   }, "Leave request deleted successfully");
 };
+

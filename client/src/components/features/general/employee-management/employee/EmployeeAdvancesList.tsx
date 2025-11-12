@@ -1,14 +1,13 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { Edit, CheckCircle, XCircle } from "lucide-react";
 
 interface EmployeeAdvancesListProps {
   advances: any[];
   employees: any[];
   onApprove: (advance: any) => void;
   onEdit: (advance: any) => void;
-  onDelete: (advance: any) => void;
   onUpdateAmount?: (advance: any) => void;
   onReject?: (advance: any) => void;
   page: number;
@@ -26,7 +25,7 @@ const statusColor = (status: string) => {
   }
 };
 
-const EmployeeAdvancesList = ({ advances, employees, onApprove, onEdit, onDelete, onUpdateAmount, onReject, page, pageSize, total, setPage }: EmployeeAdvancesListProps) => {
+const EmployeeAdvancesList = ({ advances, employees, onApprove, onEdit, onUpdateAmount, onReject, page, pageSize, total, setPage }: EmployeeAdvancesListProps) => {
   return (
     <div className="space-y-4">
       {advances.map((advance) => {
@@ -60,9 +59,6 @@ const EmployeeAdvancesList = ({ advances, employees, onApprove, onEdit, onDelete
                   )}
                   <Button variant="ghost" size="sm" onClick={() => onEdit(advance)} title="Edit">
                     <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => onDelete(advance)} className="text-red-600 hover:text-red-700" title="Delete">
-                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>

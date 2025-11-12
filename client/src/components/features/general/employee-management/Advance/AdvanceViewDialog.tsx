@@ -14,11 +14,12 @@ interface AdvanceViewDialogProps {
 }
 
 export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee, onChangeStatus, onUpdateAmount }: AdvanceViewDialogProps) => {
-  if (!advance) return null;
-
   // Check permissions for change status and update amount buttons
+  // Hooks must be called before any early returns
   const canChangeStatus = useCanViewUIComponent("employee_advances", "button", "advance-change-status");
   const canUpdateAmount = useCanViewUIComponent("employee_advances", "button", "advance-update-amount");
+
+  if (!advance) return null;
 
   const getStatusColor = (status: string) => {
     switch (status) {

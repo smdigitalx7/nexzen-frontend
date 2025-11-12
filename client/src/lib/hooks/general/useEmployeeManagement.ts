@@ -123,7 +123,7 @@ export const useEmployeeManagement = (
   const { data: employees = [], isLoading, error } = useEmployeesByBranch();
   const { data: attendanceData, isLoading: attendanceLoading } =
     useAttendanceByBranch(attendanceMonth, attendanceYear);
-  const { data: leavesData, isLoading: leavesLoading } = useEmployeeLeavesByBranch(
+  const { data: leavesData, isLoading: leavesLoading, refetch: refetchLeaves } = useEmployeeLeavesByBranch(
     leaveMonth,
     leaveYear,
     pageSize,
@@ -539,6 +539,9 @@ export const useEmployeeManagement = (
       await createLeaveMutation.mutateAsync(data);
       setShowLeaveForm(false);
       
+      // Clear API cache for employee-leave endpoints
+      CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
+      
       // Aggressive cache invalidation for immediate UI updates
       // Step 1: Remove query data to force fresh fetch
       queryClient.removeQueries({ queryKey: employeeLeaveKeys.all });
@@ -565,6 +568,9 @@ export const useEmployeeManagement = (
       setShowLeaveForm(false);
       setIsEditingLeave(false);
       
+      // Clear API cache for employee-leave endpoints
+      CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
+      
       // Aggressive cache invalidation for immediate UI updates
       // Step 1: Remove query data to force fresh fetch
       queryClient.removeQueries({ queryKey: employeeLeaveKeys.all });
@@ -590,6 +596,9 @@ export const useEmployeeManagement = (
       await deleteLeaveMutation.mutateAsync(id);
       setShowLeaveDeleteDialog(false);
       
+      // Clear API cache for employee-leave endpoints
+      CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
+      
       // Aggressive cache invalidation for immediate UI updates
       // Step 1: Remove query data to force fresh fetch
       queryClient.removeQueries({ queryKey: employeeLeaveKeys.all });
@@ -610,69 +619,23 @@ export const useEmployeeManagement = (
     }
   };
 
-  const handleApproveLeave = async (id: number, notes?: string) => {
-    try {
-      await approveLeaveMutation.mutateAsync(id);
-      
-      // Close dialog immediately to prevent UI freeze
-      setShowLeaveApproveDialog(false);
-      
-      // Clear API cache first (non-blocking)
-      try {
-        CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
-      } catch (error) {
-        console.warn('Failed to clear API cache:', error);
-      }
-      
-      // Invalidate and refetch queries asynchronously (non-blocking)
-      // This allows the UI to remain responsive
-      queryClient.removeQueries({ queryKey: employeeLeaveKeys.all });
-      queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all }).catch(console.error);
-      
-      // Refetch in background without blocking
-      queryClient.refetchQueries({
-        queryKey: employeeLeaveKeys.all,
-        type: 'active'
-      }).catch(console.error);
-    } catch (error) {
-      console.error("Error approving leave:", error);
-      // Ensure dialog is closed even on error
-      setShowLeaveApproveDialog(false);
-    }
+  const handleApproveLeave = (id: number, notes?: string) => {
+    const leaveToApproveId = leaveToApprove?.leave_id || id;
+    setShowLeaveApproveDialog(false);
+    setLeaveToApprove(null);
+    approveLeaveMutation.mutate(leaveToApproveId);
   };
 
-  const handleRejectLeave = async (id: number, reason: string) => {
-    try {
-      await rejectLeaveMutation.mutateAsync({
-        id,
-        data: { rejection_reason: reason },
-      });
-      
-      // Close dialog immediately to prevent UI freeze
-      setShowLeaveRejectDialog(false);
-      
-      // Clear API cache first (non-blocking)
-      try {
-        CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
-      } catch (error) {
-        console.warn('Failed to clear API cache:', error);
-      }
-      
-      // Invalidate and refetch queries asynchronously (non-blocking)
-      // This allows the UI to remain responsive
-      queryClient.removeQueries({ queryKey: employeeLeaveKeys.all });
-      queryClient.invalidateQueries({ queryKey: employeeLeaveKeys.all }).catch(console.error);
-      
-      // Refetch in background without blocking
-      queryClient.refetchQueries({
-        queryKey: employeeLeaveKeys.all,
-        type: 'active'
-      }).catch(console.error);
-    } catch (error) {
-      console.error("Error rejecting leave:", error);
-      // Ensure dialog is closed even on error
-      setShowLeaveRejectDialog(false);
-    }
+  const handleRejectLeave = (id: number, reason: string) => {
+    const savedReason = rejectionReason;
+    const leaveToRejectId = leaveToReject?.leave_id || id;
+    setShowLeaveRejectDialog(false);
+    setLeaveToReject(null);
+    setRejectionReason("");
+    rejectLeaveMutation.mutate({
+      id: leaveToRejectId,
+      data: { rejection_reason: savedReason },
+    });
   };
 
   const handleViewLeave = (leave: EmployeeLeaveRead) => {
@@ -917,5 +880,7 @@ export const useEmployeeManagement = (
     // Mutation loading states
     createEmployeePending: createEmployeeMutation.isPending,
     updateEmployeePending: updateEmployeeMutation.isPending,
+    approveLeavePending: approveLeaveMutation.isPending,
+    rejectLeavePending: rejectLeaveMutation.isPending,
   };
 };

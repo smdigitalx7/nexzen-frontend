@@ -48,24 +48,24 @@ export function useMutationWithSuccessToast<TData = unknown, TError = unknown, T
   return useMutation<TData, TError, TVariables, TContext>({
     ...mutationOptions,
     onSuccess: (data: TData, variables: TVariables, onMutateResult: TContext | undefined, context: any) => {
-      // CRITICAL: Clear ALL API cache on any mutation success
-      // This ensures fresh data is fetched when queries are refetched
-      // The API layer cache was preventing UI updates after mutations
-      try {
-        CacheUtils.clearAll();
-      } catch (error) {
-        console.warn('Failed to clear API cache on mutation success:', error);
-      }
-
-      // Show success toast
+      // Show success toast immediately
       toast({
         title: 'Success',
         description: successMessage,
         variant: 'success',
       });
 
-      // Call the provided onSuccess callback if it exists
+      // Call the provided onSuccess callback if it exists (do this first)
       mutationOptions.onSuccess?.(data, variables, onMutateResult, context);
+
+      // Defer cache clearing to prevent UI blocking
+      setTimeout(() => {
+        try {
+          CacheUtils.clearAll();
+        } catch (error) {
+          console.warn('Failed to clear API cache on mutation success:', error);
+        }
+      }, 0);
     },
     onError: (error: TError, variables: TVariables, onMutateResult: TContext | undefined, context: any) => {
       // Show error toast

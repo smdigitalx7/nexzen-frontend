@@ -9,11 +9,12 @@ interface LeaveRejectDialogProps {
   reason: string;
   onReasonChange: (value: string) => void;
   onReject: () => void;
+  isLoading?: boolean;
 }
 
-const LeaveRejectDialog = ({ open, onOpenChange, reason, onReasonChange, onReject }: LeaveRejectDialogProps) => {
+const LeaveRejectDialog = ({ open, onOpenChange, reason, onReasonChange, onReject, isLoading = false }: LeaveRejectDialogProps) => {
   const handleSave = () => {
-    if (reason.trim()) {
+    if (reason.trim() && !isLoading) {
       onReject();
     }
   };
@@ -21,7 +22,12 @@ const LeaveRejectDialog = ({ open, onOpenChange, reason, onReasonChange, onRejec
   return (
     <FormDialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(newOpen) => {
+        // Prevent closing while loading
+        if (!isLoading) {
+          onOpenChange(newOpen);
+        }
+      }}
       title="Reject Leave Request"
       description="Please provide a reason for rejecting this leave request."
       size="MEDIUM"
@@ -29,7 +35,8 @@ const LeaveRejectDialog = ({ open, onOpenChange, reason, onReasonChange, onRejec
       saveText="Reject"
       cancelText="Cancel"
       saveVariant="destructive"
-      disabled={!reason.trim()}
+      disabled={!reason.trim() || isLoading}
+      isLoading={isLoading}
     >
       <div className="space-y-4">
         <div>
@@ -41,6 +48,7 @@ const LeaveRejectDialog = ({ open, onOpenChange, reason, onReasonChange, onRejec
             placeholder="Please provide a reason for rejection..."
             rows={3}
             required
+            disabled={isLoading}
           />
         </div>
       </div>

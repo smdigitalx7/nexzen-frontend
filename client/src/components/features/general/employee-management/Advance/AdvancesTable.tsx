@@ -1,5 +1,4 @@
 import { useMemo, memo } from "react";
-import { Eye, Edit, Trash2 } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { useCanViewUIComponent, useCanCreate } from "@/lib/permissions";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -25,7 +24,6 @@ interface AdvancesTableProps {
   isLoading: boolean;
   onAddAdvance: () => void;
   onEditAdvance: (advance: EmployeeAdvanceRead) => void;
-  onDeleteAdvance: (id: number) => void;
   onViewAdvance: (advance: EmployeeAdvanceRead) => void;
   onApproveAdvance?: (advance: EmployeeAdvanceRead) => void;
   onRejectAdvance?: (advance: EmployeeAdvanceRead) => void;
@@ -38,7 +36,6 @@ const AdvancesTableComponent = ({
   isLoading,
   onAddAdvance,
   onEditAdvance,
-  onDeleteAdvance,
   onViewAdvance,
   onApproveAdvance,
   onRejectAdvance,
@@ -123,7 +120,6 @@ const AdvancesTableComponent = ({
 
   // Check permissions
   const canEditAdvance = useCanViewUIComponent("employee_advances", "button", "advance-edit");
-  const canDeleteAdvance = useCanViewUIComponent("employee_advances", "button", "advance-delete");
   const canCreateAdvance = useCanCreate("employee_advances");
 
   // Action button groups for EnhancedDataTable
@@ -136,13 +132,8 @@ const AdvancesTableComponent = ({
       type: 'edit' as const,
       onClick: (row: EmployeeAdvanceRead) => onEditAdvance(row),
       show: () => canEditAdvance
-    },
-    {
-      type: 'delete' as const,
-      onClick: (row: EmployeeAdvanceRead) => onDeleteAdvance(row.advance_id),
-      show: () => canDeleteAdvance
     }
-  ], [onViewAdvance, onEditAdvance, onDeleteAdvance, canEditAdvance, canDeleteAdvance]);
+  ], [onViewAdvance, onEditAdvance, canEditAdvance]);
 
   if (isLoading) {
     return (
