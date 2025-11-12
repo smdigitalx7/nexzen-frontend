@@ -1086,10 +1086,13 @@ const ConfirmedReservationsTabComponent = () => {
         setReceiptBlobUrl(blobUrl);
         // Close payment dialog immediately
         setShowPaymentDialog(false);
-        // Open receipt modal after a brief delay to ensure payment dialog closes first
-        setTimeout(() => {
-          setShowReceiptModal(true);
-        }, 150);
+        // Open receipt modal after ensuring payment dialog is fully closed and unmounted
+        // Use requestAnimationFrame to ensure DOM updates are complete
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            setShowReceiptModal(true);
+          }, 200);
+        });
       } else {
         // If no blob URL, still close the payment dialog
         setShowPaymentDialog(false);

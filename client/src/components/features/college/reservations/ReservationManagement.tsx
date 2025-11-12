@@ -1878,42 +1878,52 @@ export default function ReservationNew() {
       {/* Receipt Preview Modal - Shows PDF receipt after payment */}
       <ReceiptPreviewModal
         isOpen={showReceipt && !!receiptBlobUrl}
-        onClose={async () => {
+        onClose={() => {
+          // Close modal immediately - don't block UI
           setShowReceipt(false);
+          
+          // Clean up blob URL immediately
           if (receiptBlobUrl) {
             URL.revokeObjectURL(receiptBlobUrl);
             setReceiptBlobUrl(null);
           }
           setPaymentIncomeRecord(null);
           
-          // After closing receipt, ensure data is fresh (following CACHE_REVIEW_ACADEMIC.md pattern)
-          // Step 1: Clear API cache first to ensure fresh network request
-          try {
-            CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
-          } catch (error) {
-            console.warn('Failed to clear API cache:', error);
-          }
-          
-          // Step 2: Invalidate all reservation-related queries
-          queryClient.invalidateQueries({ 
-            queryKey: collegeKeys.reservations.root(),
-            exact: false 
-          }).catch(console.error);
-          
-          // Step 3: Force refetch active queries (bypasses cache)
-          await queryClient.refetchQueries({
-            queryKey: collegeKeys.reservations.root(),
-            type: 'active',
-            exact: false
-          });
-          
-          // Step 4: Call refetch callback and wait for it to complete
-          if (refetchReservations) {
-            await refetchReservations();
-          }
-          
-          // Step 5: Wait for React Query to update the cache
-          await new Promise(resolve => setTimeout(resolve, 300));
+          // Run data refresh in background - don't block modal close
+          setTimeout(() => {
+            const refreshData = async () => {
+              try {
+                // Step 1: Clear API cache first to ensure fresh network request
+                try {
+                  CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
+                } catch (error) {
+                  console.warn('Failed to clear API cache:', error);
+                }
+                
+                // Step 2: Invalidate all reservation-related queries
+                queryClient.invalidateQueries({ 
+                  queryKey: collegeKeys.reservations.root(),
+                  exact: false 
+                }).catch(console.error);
+                
+                // Step 3: Force refetch active queries (bypasses cache)
+                await queryClient.refetchQueries({
+                  queryKey: collegeKeys.reservations.root(),
+                  type: 'active',
+                  exact: false
+                });
+                
+                // Step 4: Call refetch callback
+                if (refetchReservations) {
+                  await refetchReservations();
+                }
+              } catch (error) {
+                console.error("Error refreshing data after receipt close:", error);
+              }
+            };
+            
+            refreshData().catch(console.error);
+          }, 100);
         }}
         blobUrl={receiptBlobUrl}
       />
@@ -1934,47 +1944,59 @@ export default function ReservationNew() {
             <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
               <CollegeReservationPaymentProcessor
                 reservationData={paymentData}
-                onPaymentComplete={async (
+                onPaymentComplete={(
                   incomeRecord: CollegeIncomeRead,
                   blobUrl: string
                 ) => {
+                  // CLOSE PAYMENT DIALOG IMMEDIATELY - CRITICAL for UI responsiveness
+                  setShowPaymentProcessor(false);
+                  
+                  // Set receipt data immediately
                   setPaymentIncomeRecord(incomeRecord);
                   setReceiptBlobUrl(blobUrl);
-                  setShowPaymentProcessor(false);
 
-                  // Small delay to ensure backend has processed the payment
-                  await new Promise(resolve => setTimeout(resolve, 100));
+                  // Show receipt modal after ensuring payment dialog is fully closed
+                  requestAnimationFrame(() => {
+                    setTimeout(() => {
+                      setShowReceipt(true);
+                    }, 150);
+                  });
 
-                  // Cache invalidation after payment (following CACHE_REVIEW_ACADEMIC.md pattern)
-                  // Step 1: Clear API cache (matches useMutationWithSuccessToast pattern)
-                  try {
-                    CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
-                  } catch (error) {
-                    console.warn('Failed to clear API cache:', error);
-                  }
-                  
-                  // Step 2: Invalidate queries (following mutation hook pattern)
-                  queryClient.invalidateQueries({ 
-                    queryKey: collegeKeys.reservations.root(),
-                    exact: false 
-                  }).catch(console.error);
-                  
-                  // Step 3: Refetch active queries (matches mutation hook pattern)
-                  queryClient.refetchQueries({ 
-                    queryKey: collegeKeys.reservations.root(), 
-                    type: 'active',
-                    exact: false 
-                  }).catch(console.error);
-
-                  // Also call refetchReservations to ensure immediate API call
-                  if (refetchReservations) {
-                    await refetchReservations();
-                  }
-
-                  // Show receipt modal after closing payment processor
+                  // Run cache invalidation in background - don't block UI
                   setTimeout(() => {
-                    setShowReceipt(true);
-                  }, 100);
+                    const refreshData = async () => {
+                      try {
+                        // Step 1: Clear API cache
+                        try {
+                          CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
+                        } catch (error) {
+                          console.warn('Failed to clear API cache:', error);
+                        }
+                        
+                        // Step 2: Invalidate queries
+                        queryClient.invalidateQueries({ 
+                          queryKey: collegeKeys.reservations.root(),
+                          exact: false 
+                        }).catch(console.error);
+                        
+                        // Step 3: Refetch active queries
+                        queryClient.refetchQueries({ 
+                          queryKey: collegeKeys.reservations.root(), 
+                          type: 'active',
+                          exact: false 
+                        }).catch(console.error);
+
+                        // Step 4: Call refetchReservations
+                        if (refetchReservations) {
+                          await refetchReservations();
+                        }
+                      } catch (error) {
+                        console.error("Error refreshing data after payment:", error);
+                      }
+                    };
+                    
+                    refreshData().catch(console.error);
+                  }, 200);
                 }}
                 onPaymentFailed={(error: string) => {
                   toast({

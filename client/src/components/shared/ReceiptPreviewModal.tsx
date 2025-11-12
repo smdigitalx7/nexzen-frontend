@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Printer, X, Download, AlertCircle, ExternalLink } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -17,10 +18,26 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const originalOverflowRef = useRef<string>("");
+
+  // Ensure component is mounted (for portal)
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   const handleConfirmClose = useCallback(() => {
+    // IMMEDIATELY restore body overflow - CRITICAL for UI responsiveness
+    // This must happen synchronously before any other operations
+    const originalValue = originalOverflowRef.current || "";
+    document.body.style.overflow = originalValue;
+    
+    // Reset state immediately
     setIsLoading(false);
     setHasError(false);
+    
+    // Call onClose immediately - must be synchronous, not async
     onClose();
   }, [onClose]);
 
@@ -39,15 +56,22 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
     }
   }, [isOpen, blobUrl]);
 
-  // Prevent body scroll when modal is open
+  // Prevent body scroll when modal is open - with proper cleanup
   useEffect(() => {
     if (isOpen) {
+      // Store original overflow value
+      originalOverflowRef.current = document.body.style.overflow || "";
       document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = "";
+      // IMMEDIATELY restore original overflow value when modal closes
+      // This is critical to prevent UI freeze
+      const originalValue = originalOverflowRef.current || "";
+      document.body.style.overflow = originalValue;
     }
     return () => {
-      document.body.style.overflow = "";
+      // Always restore on unmount - critical cleanup
+      const originalValue = originalOverflowRef.current || "";
+      document.body.style.overflow = originalValue;
     };
   }, [isOpen]);
 
@@ -158,17 +182,24 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
     }
   };
 
-  if (!isOpen) {
+  if (!isOpen || !mounted) {
     return null;
   }
 
-  return (
+  const modalContent = (
     <div
-      className="fixed inset-0 z-[9999] bg-background flex flex-col"
+      className="fixed inset-0 z-[10000] bg-background flex flex-col"
       role="dialog"
       aria-modal="true"
       aria-labelledby="receipt-preview-title"
       aria-describedby="receipt-preview-description"
+      onClick={(e) => {
+        // Close on backdrop click (but not on content click)
+        if (e.target === e.currentTarget) {
+          handleConfirmClose();
+        }
+      }}
+      style={{ pointerEvents: "auto" }}
     >
       {/* Header Bar */}
       <div className="flex items-center justify-between p-4 border-b bg-background shadow-sm">
@@ -244,6 +275,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
         {blobUrl ? (
           <div className="w-full h-full">
             <iframe
+              key={blobUrl} // Force remount when blobUrl changes
               src={blobUrl}
               className="w-full h-full border-0"
               title="Receipt Preview"
@@ -312,6 +344,9 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
       </div>
     </div>
   );
+
+  // Use portal to render modal at document body level to avoid z-index conflicts
+  return createPortal(modalContent, document.body);
 };
 
 export default ReceiptPreviewModal;

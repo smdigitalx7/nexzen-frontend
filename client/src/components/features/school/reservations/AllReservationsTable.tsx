@@ -240,16 +240,17 @@ const AllReservationsTableComponent = ({
         accessorKey: "date",
         header: "Date",
         cell: ({ row }) => (
-          <div className="text-sm">
-            {formatDate(row.getValue("date"))}
-          </div>
+          <div className="text-sm">{formatDate(row.getValue("date"))}</div>
         ),
       },
       {
         accessorKey: "application_income_id",
         header: "Application Fee Status",
         cell: ({ row }) => {
-          const applicationIncomeId = row.getValue("application_income_id") as number | null | undefined;
+          const applicationIncomeId = row.getValue("application_income_id") as
+            | number
+            | null
+            | undefined;
           return (
             <ApplicationFeeBadge applicationIncomeId={applicationIncomeId} />
           );
@@ -263,13 +264,14 @@ const AllReservationsTableComponent = ({
   // Uses application_income_id only (backend doesn't return application_fee_paid in list)
   const isApplicationFeePaid = useCallback((row: Reservation): boolean => {
     const applicationIncomeId = row.application_income_id;
-    
+
     // Fee is paid if application_income_id exists and is a valid positive number
     return (
-      applicationIncomeId !== null && 
-      applicationIncomeId !== undefined && 
+      applicationIncomeId !== null &&
+      applicationIncomeId !== undefined &&
       applicationIncomeId !== 0 &&
-      (typeof applicationIncomeId === 'number' && applicationIncomeId > 0)
+      typeof applicationIncomeId === "number" &&
+      applicationIncomeId > 0
     );
   }, []);
 
@@ -310,10 +312,11 @@ const AllReservationsTableComponent = ({
       setIsLoadingPaymentData(true);
 
       // Get reservation number - use reservation_no if available, otherwise fallback to reservation_id
-      const reservationNo = reservation.no && reservation.no.trim() !== "" 
-        ? reservation.no 
-        : String(reservation.reservation_id);
-      
+      const reservationNo =
+        reservation.no && reservation.no.trim() !== ""
+          ? reservation.no
+          : String(reservation.reservation_id);
+
       if (!reservationNo) {
         toast({
           title: "Error",
@@ -332,7 +335,7 @@ const AllReservationsTableComponent = ({
       // Get application fee from full reservation data
       // Handle null, undefined, or 0 values - allow payment to proceed and let backend validate
       const applicationFee = fullReservationData.application_fee;
-      
+
       // Check if application_fee is explicitly null or undefined (not just 0)
       if (applicationFee === null || applicationFee === undefined) {
         toast({
@@ -346,7 +349,7 @@ const AllReservationsTableComponent = ({
 
       // Convert to number and use 0 as fallback if conversion fails
       const feeAmount = Number(applicationFee) || 0;
-      
+
       // If fee is 0, warn but allow payment to proceed (backend will handle validation)
       if (feeAmount === 0) {
         toast({
@@ -359,8 +362,10 @@ const AllReservationsTableComponent = ({
       const paymentData: ReservationPaymentData = {
         reservationId: reservation.reservation_id,
         reservationNo: reservationNo,
-        studentName: reservation.studentName || fullReservationData.student_name,
-        className: reservation.classAdmission || fullReservationData.class_name || "N/A",
+        studentName:
+          reservation.studentName || fullReservationData.student_name,
+        className:
+          reservation.classAdmission || fullReservationData.class_name || "N/A",
         reservationFee: feeAmount,
         totalAmount: feeAmount,
         paymentMethod: "CASH",
@@ -374,7 +379,9 @@ const AllReservationsTableComponent = ({
       console.error("Failed to load reservation for payment:", error);
       toast({
         title: "Failed to Load Reservation",
-        description: error?.message || "Could not load reservation details. Please try again.",
+        description:
+          error?.message ||
+          "Could not load reservation details. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -410,11 +417,9 @@ const AllReservationsTableComponent = ({
           // 3. Status is PENDING (show for pending reservations)
           // Note: Backend will validate that reservation fee exists when applying concession
           const isPending = row.status === "PENDING";
-          
+
           return Boolean(
-            canViewConcession && 
-            !row.concession_lock &&
-            isPending
+            canViewConcession && !row.concession_lock && isPending
           );
         },
       },
@@ -477,67 +482,86 @@ const AllReservationsTableComponent = ({
             <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
               <DialogTitle>Pay Application Fee (Reservation Fee)</DialogTitle>
               <DialogDescription>
-                Process application fee payment for reservation {paymentData.reservationNo}
+                Process application fee payment for reservation{" "}
+                {paymentData.reservationNo}
               </DialogDescription>
             </DialogHeader>
             <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
               <ReservationPaymentProcessor
                 reservationData={paymentData}
-                onPaymentComplete={async (
+                onPaymentComplete={(
                   incomeRecord: SchoolIncomeRead,
                   blobUrl: string
                 ) => {
-                  setReceiptBlobUrl(blobUrl);
+                  // CLOSE PAYMENT DIALOG IMMEDIATELY - CRITICAL for UI responsiveness
                   setShowPaymentProcessor(false);
-                  
-                  // Delay to ensure backend transaction is committed
-                  await new Promise(resolve => setTimeout(resolve, 300));
-                  
-                  // Cache invalidation after payment
-                  // Step 1: Clear API cache
-                  try {
-                    CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
-                  } catch (error) {
-                    console.warn('Failed to clear API cache:', error);
-                  }
-                  
-                  // Step 2: Remove queries from cache to force fresh fetch (bypasses staleTime)
-                  queryClient.removeQueries({ 
-                    queryKey: schoolKeys.reservations.root(),
-                    exact: false 
-                  });
-                  
-                  // Step 3: Invalidate queries (AWAIT to ensure it completes)
-                  await queryClient.invalidateQueries({ 
-                    queryKey: schoolKeys.reservations.root(),
-                    exact: false 
-                  });
-                  
-                  // Step 4: Refetch active queries (AWAIT to ensure it completes)
-                  await queryClient.refetchQueries({ 
-                    queryKey: schoolKeys.reservations.root(), 
-                    type: 'active',
-                    exact: false 
+
+                  // Set receipt data immediately
+                  setReceiptBlobUrl(blobUrl);
+
+                  // Force table refresh immediately
+                  setRefreshKey((prev) => prev + 1);
+
+                  // Show receipt modal after ensuring payment dialog is fully closed
+                  requestAnimationFrame(() => {
+                    setTimeout(() => {
+                      setShowReceipt(true);
+                    }, 150);
                   });
 
-                  // Step 5: Call refetch callback and wait for it to complete
-                  if (onRefetch) {
-                    await onRefetch();
-                  }
-                  
-                  // Step 6: Additional delay to ensure React processes state updates
-                  await new Promise(resolve => setTimeout(resolve, 200));
-                  
-                  // Step 7: Force table refresh by updating refresh key
-                  setRefreshKey((prev) => prev + 1);
-                  
-                  setShowReceipt(true);
-                  
+                  // Show toast immediately
                   toast({
                     title: "Payment Successful",
                     description: "Application fee has been paid successfully",
                     variant: "success",
                   });
+
+                  // Run cache invalidation in background - don't block UI
+                  setTimeout(() => {
+                    const refreshData = async () => {
+                      try {
+                        // Step 1: Clear API cache
+                        try {
+                          CacheUtils.clearByPattern(
+                            /GET:.*\/school\/reservations/i
+                          );
+                        } catch (error) {
+                          console.warn("Failed to clear API cache:", error);
+                        }
+
+                        // Step 2: Remove queries from cache
+                        queryClient.removeQueries({
+                          queryKey: schoolKeys.reservations.root(),
+                          exact: false,
+                        });
+
+                        // Step 3: Invalidate queries
+                        await queryClient.invalidateQueries({
+                          queryKey: schoolKeys.reservations.root(),
+                          exact: false,
+                        });
+
+                        // Step 4: Refetch active queries
+                        await queryClient.refetchQueries({
+                          queryKey: schoolKeys.reservations.root(),
+                          type: "active",
+                          exact: false,
+                        });
+
+                        // Step 5: Call refetch callback
+                        if (onRefetch) {
+                          await onRefetch();
+                        }
+                      } catch (error) {
+                        console.error(
+                          "Error refreshing data after payment:",
+                          error
+                        );
+                      }
+                    };
+
+                    refreshData().catch(console.error);
+                  }, 200);
                 }}
                 onPaymentFailed={(error: string) => {
                   toast({
@@ -561,41 +585,57 @@ const AllReservationsTableComponent = ({
       {/* Receipt Preview Modal */}
       <ReceiptPreviewModal
         isOpen={showReceipt}
-        onClose={async () => {
+        onClose={() => {
+          // Close modal immediately - don't block UI
           setShowReceipt(false);
+
+          // Clean up blob URL immediately
           if (receiptBlobUrl) {
             URL.revokeObjectURL(receiptBlobUrl);
             setReceiptBlobUrl(null);
           }
-          
-          // After closing receipt, ensure data is fresh
-          // Step 1: Clear API cache first to ensure fresh network request
-          CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
-          
-          // Step 2: Remove query data to force fresh fetch
-          queryClient.removeQueries({ queryKey: schoolKeys.reservations.list(undefined) });
-          
-          // Step 3: Invalidate all reservation-related queries
-          queryClient.invalidateQueries({ queryKey: schoolKeys.reservations.root() });
-          
-          // Step 4: Force refetch active queries (bypasses cache)
-          await queryClient.refetchQueries({
-            queryKey: schoolKeys.reservations.list(undefined),
-            type: 'active',
-            exact: false
-          });
-          
-          // Step 5: Call refetch callback and wait for it to complete
-          if (onRefetch) {
-            await onRefetch();
-          }
-          
-          // Step 6: Wait for React Query to update the cache
-          await new Promise(resolve => setTimeout(resolve, 200));
-          
-          // Step 7: Force table refresh by updating refresh key
+
+          // Run data refresh in background - don't block modal close
+          setTimeout(() => {
+            const refreshData = async () => {
+              try {
+                // Step 1: Clear API cache first to ensure fresh network request
+                CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+
+                // Step 2: Remove query data to force fresh fetch
+                queryClient.removeQueries({
+                  queryKey: schoolKeys.reservations.list(undefined),
+                });
+
+                // Step 3: Invalidate all reservation-related queries
+                queryClient.invalidateQueries({
+                  queryKey: schoolKeys.reservations.root(),
+                });
+
+                // Step 4: Force refetch active queries (bypasses cache)
+                await queryClient.refetchQueries({
+                  queryKey: schoolKeys.reservations.list(undefined),
+                  type: "active",
+                  exact: false,
+                });
+
+                // Step 5: Call refetch callback
+                if (onRefetch) {
+                  await onRefetch();
+                }
+              } catch (error) {
+                console.error(
+                  "Error refreshing data after receipt close:",
+                  error
+                );
+              }
+            };
+
+            refreshData().catch(console.error);
+          }, 100);
+
+          // Force table refresh by updating refresh key
           setRefreshKey((prev) => prev + 1);
-          
           setPaymentData(null);
         }}
         blobUrl={receiptBlobUrl}

@@ -6,7 +6,6 @@ import {
   XCircle,
   Loader2,
   AlertCircle,
-  Receipt,
   User,
   IndianRupee,
 } from "lucide-react";
@@ -14,8 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { handlePayByReservation } from "@/lib/api-school";
 import type { SchoolIncomeRead } from "@/lib/types/school";
@@ -64,46 +61,13 @@ const ReservationPaymentProcessor: React.FC<
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     "CASH" | "ONLINE"
   >("CASH");
-  const [paymentAmount, setPaymentAmount] = useState<string>(
-    reservationData.totalAmount.toString()
-  );
-  const [amountError, setAmountError] = useState<string | null>(null);
-
-  const handleAmountChange = (value: string) => {
-    // Remove any non-numeric characters except decimal point
-    const cleanedValue = value.replace(/[^\d.]/g, "");
-    
-    // Allow only one decimal point
-    const parts = cleanedValue.split(".");
-    const formattedValue = parts.length > 2 
-      ? parts[0] + "." + parts.slice(1).join("")
-      : cleanedValue;
-    
-    setPaymentAmount(formattedValue);
-    
-    // Validate amount
-    const numValue = parseFloat(formattedValue);
-    if (formattedValue && (isNaN(numValue) || numValue < 0)) {
-      setAmountError("Please enter a valid amount (must be a positive number)");
-    } else if (formattedValue && numValue === 0) {
-      setAmountError("Amount cannot be zero");
-    } else {
-      setAmountError(null);
-    }
-  };
 
   const handleConfirmPayment = async () => {
-    // Validate amount before proceeding
-    const amount = parseFloat(paymentAmount);
-    if (!paymentAmount || isNaN(amount) || amount <= 0) {
-      setAmountError("Please enter a valid payment amount");
-      return;
-    }
     try {
       setCurrentStep("processing");
 
-      // Prepare the payload for the API
-      const amount = parseFloat(paymentAmount);
+      // Use the reservation fee amount (read-only, not editable)
+      const amount = reservationData.reservationFee;
       const payload = {
         details: [
           {
@@ -137,7 +101,7 @@ const ReservationPaymentProcessor: React.FC<
         purpose: "APPLICATION_FEE",
         amount:
           paymentData.data?.context?.total_amount ||
-          parseFloat(paymentAmount || "0"),
+          reservationData.reservationFee,
         income_date: new Date().toISOString().split("T")[0],
         payment_method: selectedPaymentMethod,
         note: reservationData.note,
@@ -257,14 +221,34 @@ const ReservationPaymentProcessor: React.FC<
 
           <Separator />
 
-          {/* Payment Method Selection */}
-          <div className="space-y-4">
-            <h3 className="text-md font-semibold flex items-center gap-2">
-              <CreditCard className="w-4 h-4" />
-              Payment Method
-            </h3>
-            <div className="space-y-3">
-              <Label>Select Payment Method</Label>
+          {/* Payment Details */}
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <h3 className="text-md font-semibold flex items-center gap-2">
+                <IndianRupee className="w-4 h-4" />
+                Payment Amount
+              </h3>
+              <div className="bg-muted/50 rounded-lg p-4 border">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Application Fee
+                  </span>
+                  <span className="text-2xl font-bold">
+                    ₹
+                    {reservationData.reservationFee.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-md font-semibold flex items-center gap-2">
+                <CreditCard className="w-4 h-4" />
+                Payment Method
+              </h3>
               <RadioGroup
                 value={selectedPaymentMethod}
                 onValueChange={(value: "CASH" | "ONLINE") =>
@@ -314,63 +298,6 @@ const ReservationPaymentProcessor: React.FC<
             </div>
           </div>
 
-          <Separator />
-
-          {/* Payment Details */}
-          <div className="space-y-4">
-            <h3 className="text-md font-semibold flex items-center gap-2">
-              <IndianRupee className="w-4 h-4" />
-              Payment Details
-            </h3>
-            <div className="space-y-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Expected Application Fee</span>
-                <span>₹{reservationData.reservationFee.toLocaleString()}</span>
-              </div>
-              
-              {/* Editable Payment Amount */}
-              <div className="space-y-2">
-                <Label htmlFor="payment-amount" className="text-sm font-medium">
-                  Payment Amount <span className="text-red-500">*</span>
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-medium">
-                    ₹
-                  </span>
-                  <Input
-                    id="payment-amount"
-                    type="text"
-                    placeholder="Enter payment amount"
-                    value={paymentAmount}
-                    onChange={(e) => handleAmountChange(e.target.value)}
-                    className={cn(
-                      "pl-8",
-                      amountError && "border-red-500 focus-visible:ring-red-500"
-                    )}
-                    disabled={currentStep !== "confirm"}
-                  />
-                </div>
-                {amountError && (
-                  <p className="text-xs text-red-500">{amountError}</p>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Expected fee: ₹{reservationData.reservationFee.toLocaleString()}
-                </p>
-              </div>
-              
-              <Separator />
-              <div className="flex justify-between text-lg font-semibold">
-                <span>Total Amount to Pay</span>
-                <span className="text-green-600">
-                  ₹{parseFloat(paymentAmount || "0").toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-              </div>
-            </div>
-          </div>
-
           {/* Error Message */}
           {error && (
             <motion.div
@@ -395,14 +322,15 @@ const ReservationPaymentProcessor: React.FC<
                 }}
                 className="w-full"
                 size="lg"
-                disabled={!!amountError || !paymentAmount || parseFloat(paymentAmount || "0") <= 0}
+                disabled={currentStep !== "confirm"}
               >
                 <CreditCard className="w-4 h-4 mr-2" />
                 Record Payment (₹
-                {parseFloat(paymentAmount || "0").toLocaleString(undefined, {
+                {reservationData.reservationFee.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
-                })})
+                })}
+                )
               </Button>
             )}
 

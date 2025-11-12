@@ -161,339 +161,366 @@ ReservationHeader.displayName = "ReservationHeader";
 
 // Memoized view dialog content component
 const ViewDialogContent = memo(
-  ({ viewReservation, routeNames = [], distanceSlabs = [], classes = [] }: { viewReservation: any; routeNames?: any[]; distanceSlabs?: any[]; classes?: any[] }) => {
+  ({
+    viewReservation,
+    routeNames = [],
+    distanceSlabs = [],
+    classes = [],
+  }: {
+    viewReservation: any;
+    routeNames?: any[];
+    distanceSlabs?: any[];
+    classes?: any[];
+  }) => {
     // Find route name by ID
     const routeName = viewReservation.preferred_transport_id
-      ? routeNames.find((r: any) => r.bus_route_id === Number(viewReservation.preferred_transport_id))?.route_name || `ID: ${viewReservation.preferred_transport_id}`
+      ? routeNames.find(
+          (r: any) =>
+            r.bus_route_id === Number(viewReservation.preferred_transport_id)
+        )?.route_name || `ID: ${viewReservation.preferred_transport_id}`
       : "-";
-    
+
     // Find slab name by ID
     const slabName = viewReservation.preferred_distance_slab_id
-      ? distanceSlabs.find((s: any) => s.slab_id === Number(viewReservation.preferred_distance_slab_id))?.slab_name || `ID: ${viewReservation.preferred_distance_slab_id}`
+      ? distanceSlabs.find(
+          (s: any) =>
+            s.slab_id === Number(viewReservation.preferred_distance_slab_id)
+        )?.slab_name || `ID: ${viewReservation.preferred_distance_slab_id}`
       : "-";
-    
+
     // Find class name by ID (use class_name from viewReservation if available, otherwise lookup)
-    const className = viewReservation.class_name || (viewReservation.preferred_class_id
-      ? classes.find((c: any) => c.class_id === Number(viewReservation.preferred_class_id))?.class_name || `ID: ${viewReservation.preferred_class_id}`
-      : "-");
-    
+    const className =
+      viewReservation.class_name ||
+      (viewReservation.preferred_class_id
+        ? classes.find(
+            (c: any) =>
+              c.class_id === Number(viewReservation.preferred_class_id)
+          )?.class_name || `ID: ${viewReservation.preferred_class_id}`
+        : "-");
+
     return (
-    <div className="space-y-6 text-sm flex-1 overflow-y-auto scrollbar-hide pr-1">
-      {/* Reservation Information */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <strong>Reservation No:</strong>{" "}
-          {viewReservation.reservation_no || "-"}
-        </div>
-        <div>
-          <strong>Reservation Date:</strong>{" "}
-          {viewReservation.reservation_date || "-"}
-        </div>
-        <div>
-          <strong>Status:</strong>{" "}
-          <Badge
-            variant={
-              viewReservation.status === "CONFIRMED"
-                ? "secondary"
-                : viewReservation.status === "CANCELLED"
-                  ? "destructive"
-                  : "default"
-            }
-            className={
-              viewReservation.status === "CONFIRMED"
-                ? "bg-green-500 text-white"
-                : ""
-            }
-          >
-            {viewReservation.status || "-"}
-          </Badge>
-        </div>
-        <div>
-          <strong>Enrollment Status:</strong>{" "}
-          {viewReservation.is_enrolled ? (
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              Enrolled
+      <div className="space-y-6 text-sm flex-1 overflow-y-auto scrollbar-hide pr-1">
+        {/* Reservation Information */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <strong>Reservation No:</strong>{" "}
+            {viewReservation.reservation_no || "-"}
+          </div>
+          <div>
+            <strong>Reservation Date:</strong>{" "}
+            {viewReservation.reservation_date || "-"}
+          </div>
+          <div>
+            <strong>Status:</strong>{" "}
+            <Badge
+              variant={
+                viewReservation.status === "CONFIRMED"
+                  ? "secondary"
+                  : viewReservation.status === "CANCELLED"
+                    ? "destructive"
+                    : "default"
+              }
+              className={
+                viewReservation.status === "CONFIRMED"
+                  ? "bg-green-500 text-white"
+                  : ""
+              }
+            >
+              {viewReservation.status || "-"}
             </Badge>
-          ) : (
-            <Badge variant="outline">Not Enrolled</Badge>
-          )}
+          </div>
+          <div>
+            <strong>Enrollment Status:</strong>{" "}
+            {viewReservation.is_enrolled ? (
+              <Badge
+                variant="secondary"
+                className="bg-green-100 text-green-800"
+              >
+                Enrolled
+              </Badge>
+            ) : (
+              <Badge variant="outline">Not Enrolled</Badge>
+            )}
+          </div>
+          <div>
+            <strong>Referred By:</strong>{" "}
+            {viewReservation.referred_by_name ||
+              viewReservation.referred_by ||
+              "-"}
+          </div>
+          <div>
+            <strong>Concession Lock:</strong>{" "}
+            {viewReservation.concession_lock ? (
+              <Badge
+                variant="secondary"
+                className="bg-amber-100 text-amber-800"
+              >
+                Locked
+              </Badge>
+            ) : (
+              <Badge variant="outline">Unlocked</Badge>
+            )}
+          </div>
         </div>
-        <div>
-          <strong>Referred By:</strong>{" "}
-          {viewReservation.referred_by_name ||
-            viewReservation.referred_by ||
-            "-"}
-        </div>
-        <div>
-          <strong>Concession Lock:</strong>{" "}
-          {viewReservation.concession_lock ? (
-            <Badge variant="secondary" className="bg-amber-100 text-amber-800">
-              Locked
-            </Badge>
-          ) : (
-            <Badge variant="outline">Unlocked</Badge>
-          )}
-        </div>
-      </div>
 
-      {/* Student Details */}
-      <div className="border-t pt-4">
-        <div className="font-medium mb-2">Student Details</div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <strong>Name:</strong> {viewReservation.student_name || "-"}
-          </div>
-          <div>
-            <strong>Aadhar No:</strong> {viewReservation.aadhar_no || "-"}
-          </div>
-          <div>
-            <strong>Gender:</strong> {viewReservation.gender || "-"}
-          </div>
-          <div>
-            <strong>Date of Birth:</strong> {viewReservation.dob || "-"}
-          </div>
-        </div>
-      </div>
-
-      {/* Parent/Guardian Details */}
-      <div className="border-t pt-4">
-        <div className="font-medium mb-2">Father/Guardian Details</div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <strong>Name:</strong>{" "}
-            {viewReservation.father_or_guardian_name || "-"}
-          </div>
-          <div>
-            <strong>Aadhar No:</strong>{" "}
-            {viewReservation.father_or_guardian_aadhar_no || "-"}
-          </div>
-          <div>
-            <strong>Mobile:</strong>{" "}
-            {viewReservation.father_or_guardian_mobile || "-"}
-          </div>
-          <div>
-            <strong>Occupation:</strong>{" "}
-            {viewReservation.father_or_guardian_occupation || "-"}
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t pt-4">
-        <div className="font-medium mb-2">Mother/Guardian Details</div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <strong>Name:</strong>{" "}
-            {viewReservation.mother_or_guardian_name || "-"}
-          </div>
-          <div>
-            <strong>Aadhar No:</strong>{" "}
-            {viewReservation.mother_or_guardian_aadhar_no || "-"}
-          </div>
-          <div>
-            <strong>Mobile:</strong>{" "}
-            {viewReservation.mother_or_guardian_mobile || "-"}
-          </div>
-          <div>
-            <strong>Occupation:</strong>{" "}
-            {viewReservation.mother_or_guardian_occupation || "-"}
-          </div>
-        </div>
-      </div>
-
-      {/* Siblings */}
-      {viewReservation.siblings &&
-        Array.isArray(viewReservation.siblings) &&
-        viewReservation.siblings.length > 0 && (
-          <div className="border-t pt-4">
-            <div className="font-medium mb-2">Siblings</div>
-            <div className="space-y-2">
-              {viewReservation.siblings.map((sibling: any, index: number) => (
-                <div
-                  key={index}
-                  className="grid grid-cols-4 gap-4 p-2 bg-muted rounded"
-                >
-                  <div>
-                    <strong>Name:</strong> {sibling.name || "-"}
-                  </div>
-                  <div>
-                    <strong>Class:</strong> {sibling.class_name || "-"}
-                  </div>
-                  <div>
-                    <strong>Where:</strong> {sibling.where || "-"}
-                  </div>
-                  <div>
-                    <strong>Gender:</strong> {sibling.gender || "-"}
-                  </div>
-                </div>
-              ))}
+        {/* Student Details */}
+        <div className="border-t pt-4">
+          <div className="font-medium mb-2">Student Details</div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <strong>Name:</strong> {viewReservation.student_name || "-"}
+            </div>
+            <div>
+              <strong>Aadhar No:</strong> {viewReservation.aadhar_no || "-"}
+            </div>
+            <div>
+              <strong>Gender:</strong> {viewReservation.gender || "-"}
+            </div>
+            <div>
+              <strong>Date of Birth:</strong> {viewReservation.dob || "-"}
             </div>
           </div>
-        )}
+        </div>
 
-      {/* Academic Details */}
-      <div className="border-t pt-4">
-        <div className="font-medium mb-2">Academic Details</div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <strong>Preferred Class:</strong> {className}
-          </div>
-          <div>
-            <strong>Previous Class:</strong>{" "}
-            {viewReservation.previous_class || "-"}
-          </div>
-          <div>
-            <strong>Previous School:</strong>{" "}
-            {viewReservation.previous_school_details || "-"}
+        {/* Parent/Guardian Details */}
+        <div className="border-t pt-4">
+          <div className="font-medium mb-2">Father/Guardian Details</div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <strong>Name:</strong>{" "}
+              {viewReservation.father_or_guardian_name || "-"}
+            </div>
+            <div>
+              <strong>Aadhar No:</strong>{" "}
+              {viewReservation.father_or_guardian_aadhar_no || "-"}
+            </div>
+            <div>
+              <strong>Mobile:</strong>{" "}
+              {viewReservation.father_or_guardian_mobile || "-"}
+            </div>
+            <div>
+              <strong>Occupation:</strong>{" "}
+              {viewReservation.father_or_guardian_occupation || "-"}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Address Details */}
-      <div className="border-t pt-4">
-        <div className="font-medium mb-2">Address Details</div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <strong>Present Address:</strong>{" "}
-            {viewReservation.present_address || "-"}
-          </div>
-          <div>
-            <strong>Permanent Address:</strong>{" "}
-            {viewReservation.permanent_address || "-"}
+        <div className="border-t pt-4">
+          <div className="font-medium mb-2">Mother/Guardian Details</div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <strong>Name:</strong>{" "}
+              {viewReservation.mother_or_guardian_name || "-"}
+            </div>
+            <div>
+              <strong>Aadhar No:</strong>{" "}
+              {viewReservation.mother_or_guardian_aadhar_no || "-"}
+            </div>
+            <div>
+              <strong>Mobile:</strong>{" "}
+              {viewReservation.mother_or_guardian_mobile || "-"}
+            </div>
+            <div>
+              <strong>Occupation:</strong>{" "}
+              {viewReservation.mother_or_guardian_occupation || "-"}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Fee Details */}
-      <div className="border-t pt-4">
-        <div className="font-medium mb-2">Fee Details</div>
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <span>Application Fee:</span>
-            <span>
-              ₹{Number(viewReservation.application_fee || 0).toLocaleString()}
-            </span>
+        {/* Siblings */}
+        {viewReservation.siblings &&
+          Array.isArray(viewReservation.siblings) &&
+          viewReservation.siblings.length > 0 && (
+            <div className="border-t pt-4">
+              <div className="font-medium mb-2">Siblings</div>
+              <div className="space-y-2">
+                {viewReservation.siblings.map((sibling: any, index: number) => (
+                  <div
+                    key={index}
+                    className="grid grid-cols-4 gap-4 p-2 bg-muted rounded"
+                  >
+                    <div>
+                      <strong>Name:</strong> {sibling.name || "-"}
+                    </div>
+                    <div>
+                      <strong>Class:</strong> {sibling.class_name || "-"}
+                    </div>
+                    <div>
+                      <strong>Where:</strong> {sibling.where || "-"}
+                    </div>
+                    <div>
+                      <strong>Gender:</strong> {sibling.gender || "-"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+        {/* Academic Details */}
+        <div className="border-t pt-4">
+          <div className="font-medium mb-2">Academic Details</div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <strong>Preferred Class:</strong> {className}
+            </div>
+            <div>
+              <strong>Previous Class:</strong>{" "}
+              {viewReservation.previous_class || "-"}
+            </div>
+            <div>
+              <strong>Previous School:</strong>{" "}
+              {viewReservation.previous_school_details || "-"}
+            </div>
           </div>
-          <div className="flex justify-between">
-            <span>Application Fee Paid:</span>
-            <span>
-              {viewReservation.application_fee_paid ? (
+        </div>
+
+        {/* Address Details */}
+        <div className="border-t pt-4">
+          <div className="font-medium mb-2">Address Details</div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <strong>Present Address:</strong>{" "}
+              {viewReservation.present_address || "-"}
+            </div>
+            <div>
+              <strong>Permanent Address:</strong>{" "}
+              {viewReservation.permanent_address || "-"}
+            </div>
+          </div>
+        </div>
+
+        {/* Fee Details */}
+        <div className="border-t pt-4">
+          <div className="font-medium mb-2">Fee Details</div>
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span>Application Fee:</span>
+              <span>
+                ₹{Number(viewReservation.application_fee || 0).toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Application Fee Paid:</span>
+              <span>
+                {viewReservation.application_fee_paid ? (
+                  <Badge
+                    variant="secondary"
+                    className="bg-green-100 text-green-800"
+                  >
+                    Yes
+                  </Badge>
+                ) : (
+                  <Badge variant="outline">No</Badge>
+                )}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Tuition Fee:</span>
+              <span>
+                ₹{Number(viewReservation.tuition_fee || 0).toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Tuition Concession:</span>
+              <span>
+                ₹
+                {Number(
+                  viewReservation.tuition_concession || 0
+                ).toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Book Fee:</span>
+              <span>
+                ₹{Number(viewReservation.book_fee || 0).toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Transport Fee:</span>
+              <span>
+                ₹{Number(viewReservation.transport_fee || 0).toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Transport Concession:</span>
+              <span>
+                ₹
+                {Number(
+                  viewReservation.transport_concession || 0
+                ).toLocaleString()}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Transport Details */}
+        {viewReservation.transport_required && (
+          <div className="border-t pt-4">
+            <div className="font-medium mb-2">Transport Details</div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <strong>Transport Required:</strong>{" "}
                 <Badge
                   variant="secondary"
                   className="bg-green-100 text-green-800"
                 >
                   Yes
                 </Badge>
-              ) : (
-                <Badge variant="outline">No</Badge>
-              )}
-            </span>
+              </div>
+              <div>
+                <strong>Preferred Transport Route:</strong> {routeName}
+              </div>
+              <div>
+                <strong>Preferred Distance Slab:</strong> {slabName}
+              </div>
+              <div>
+                <strong>Pickup Point:</strong>{" "}
+                {viewReservation.pickup_point || "-"}
+              </div>
+            </div>
           </div>
-          <div className="flex justify-between">
-            <span>Tuition Fee:</span>
-            <span>
-              ₹{Number(viewReservation.tuition_fee || 0).toLocaleString()}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span>Tuition Concession:</span>
-            <span>
-              ₹
-              {Number(viewReservation.tuition_concession || 0).toLocaleString()}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span>Book Fee:</span>
-            <span>
-              ₹{Number(viewReservation.book_fee || 0).toLocaleString()}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span>Transport Fee:</span>
-            <span>
-              ₹{Number(viewReservation.transport_fee || 0).toLocaleString()}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span>Transport Concession:</span>
-            <span>
-              ₹
-              {Number(
-                viewReservation.transport_concession || 0
-              ).toLocaleString()}
-            </span>
-          </div>
-        </div>
-      </div>
+        )}
 
-      {/* Transport Details */}
-      {viewReservation.transport_required && (
+        {/* Additional Information */}
         <div className="border-t pt-4">
-          <div className="font-medium mb-2">Transport Details</div>
+          <div className="font-medium mb-2">Additional Information</div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <strong>Transport Required:</strong>{" "}
-              <Badge
-                variant="secondary"
-                className="bg-green-100 text-green-800"
-              >
-                Yes
-              </Badge>
+              <strong>Remarks:</strong> {viewReservation.remarks || "-"}
             </div>
-            <div>
-              <strong>Preferred Transport Route:</strong>{" "}
-              {routeName}
-            </div>
-            <div>
-              <strong>Preferred Distance Slab:</strong>{" "}
-              {slabName}
-            </div>
-            <div>
-              <strong>Pickup Point:</strong>{" "}
-              {viewReservation.pickup_point || "-"}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Additional Information */}
-      <div className="border-t pt-4">
-        <div className="font-medium mb-2">Additional Information</div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <strong>Remarks:</strong> {viewReservation.remarks || "-"}
-          </div>
-          {/* <div>
+            {/* <div>
             <strong>Admission Income ID:</strong>{" "}
             {viewReservation.admission_income_id || "-"}
           </div> */}
-        </div>
-      </div>
-
-      {/* System Information */}
-      <div className="border-t pt-4">
-        <div className="font-medium mb-2">System Information</div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <strong>Created At:</strong>{" "}
-            {viewReservation.created_at
-              ? new Date(viewReservation.created_at).toLocaleString()
-              : "-"}
           </div>
-          {/* <div>
+        </div>
+
+        {/* System Information */}
+        <div className="border-t pt-4">
+          <div className="font-medium mb-2">System Information</div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <strong>Created At:</strong>{" "}
+              {viewReservation.created_at
+                ? new Date(viewReservation.created_at).toLocaleString()
+                : "-"}
+            </div>
+            {/* <div>
             <strong>Created By:</strong> {viewReservation.created_by || "-"}
           </div> */}
-          <div>
-            <strong>Updated At:</strong>{" "}
-            {viewReservation.updated_at
-              ? new Date(viewReservation.updated_at).toLocaleString()
-              : "-"}
-          </div>
-          {/* <div>
+            <div>
+              <strong>Updated At:</strong>{" "}
+              {viewReservation.updated_at
+                ? new Date(viewReservation.updated_at).toLocaleString()
+                : "-"}
+            </div>
+            {/* <div>
             <strong>Updated By:</strong> {viewReservation.updated_by || "-"}
           </div> */}
+          </div>
         </div>
       </div>
-    </div>
     );
   }
 );
@@ -509,17 +536,20 @@ const ReservationManagementComponent = () => {
   // State management
   const [reservationNo, setReservationNo] = useState<string>("");
   const [showReceipt, setShowReceipt] = useState(false);
-  const [selectedReservation, setSelectedReservation] = useState<SchoolReservationRead | null>(null);
+  const [selectedReservation, setSelectedReservation] =
+    useState<SchoolReservationRead | null>(null);
 
   // Initialize mutation hooks (after state is defined)
   const createReservationMutation = useCreateSchoolReservation();
   const deleteReservation = useDeleteSchoolReservation();
   const [showViewDialog, setShowViewDialog] = useState(false);
-  const [viewReservation, setViewReservation] = useState<SchoolReservationRead | null>(null);
+  const [viewReservation, setViewReservation] =
+    useState<SchoolReservationRead | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editForm, setEditForm] = useState<ReservationFormState | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [reservationToDelete, setReservationToDelete] = useState<SchoolReservationRead | null>(null);
+  const [reservationToDelete, setReservationToDelete] =
+    useState<SchoolReservationRead | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [editSelectedClassId, setEditSelectedClassId] = useState<number | null>(
     null
@@ -851,33 +881,33 @@ const ReservationManagementComponent = () => {
         try {
           CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
         } catch (error) {
-          console.warn('Failed to clear API cache:', error);
+          console.warn("Failed to clear API cache:", error);
         }
 
         // Step 2: Remove query data to force fresh fetch
-        queryClient.removeQueries({ 
+        queryClient.removeQueries({
           queryKey: schoolKeys.reservations.root(),
-          exact: false 
+          exact: false,
         });
 
         // Step 3: Invalidate all reservation-related queries
-        await queryClient.invalidateQueries({ 
+        await queryClient.invalidateQueries({
           queryKey: schoolKeys.reservations.root(),
-          exact: false 
+          exact: false,
         });
 
         // Step 4: Force refetch active queries (bypasses cache)
         await queryClient.refetchQueries({
           queryKey: schoolKeys.reservations.root(),
-          type: 'active',
-          exact: false
+          type: "active",
+          exact: false,
         });
 
         // Step 5: Call refetchReservations to ensure immediate API call
         await refetchReservations();
 
         // Step 6: Wait for React Query to update the cache
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
 
         // Fetch fresh reservation data immediately after update
         // This ensures if user reopens the dialog, it has the latest data with updated concession_lock status
@@ -1002,6 +1032,11 @@ const ReservationManagementComponent = () => {
         const reservationId = res?.reservation_id || res?.reservation_no || "";
         setReservationNo(String(reservationId));
 
+        // CLEAR FORM IMMEDIATELY - CRITICAL for UI responsiveness
+        // This must happen synchronously before any async operations
+        setForm(initialFormState);
+        setSelectedClassId(null);
+
         // Show success toast message
         toast({
           title: "Reservation Created Successfully",
@@ -1009,22 +1044,30 @@ const ReservationManagementComponent = () => {
           variant: "success",
         });
 
-        // Clear form fields only after successful reservation creation
-        setForm(initialFormState);
-        setSelectedClassId(null);
+        // Run data refresh in background - don't block UI
+        // Use setTimeout to ensure form clears first, then refresh data
+        setTimeout(() => {
+          const refreshData = async () => {
+            try {
+              // Additional API cache clearing
+              try {
+                CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+              } catch (error) {
+                console.warn("Failed to clear API cache:", error);
+              }
 
-        // Additional API cache clearing (mutation hook already invalidates, but we clear cache for consistency)
-        try {
-          CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
-        } catch (error) {
-          console.warn('Failed to clear API cache:', error);
-        }
+              // Mutation hook already handles invalidation, but we ensure refetch callback is called
+              await refetchReservations();
+            } catch (error) {
+              console.error(
+                "Error refreshing data after reservation creation:",
+                error
+              );
+            }
+          };
 
-        // Mutation hook already handles invalidation and refetch, but we ensure refetch callback is called
-        await refetchReservations();
-        
-        // Wait for React Query to update the cache
-        await new Promise(resolve => setTimeout(resolve, 200));
+          refreshData().catch(console.error);
+        }, 100);
 
         if (withPayment) {
           // Prepare payment data for the payment processor
@@ -1040,10 +1083,13 @@ const ReservationManagementComponent = () => {
             note: `Payment for reservation ${res.reservation_id}`,
           };
 
-          setPaymentData(paymentData);
-          setShowPaymentProcessor(true);
-        } else {
-          setShowReceipt(true);
+          // Open payment dialog after a brief delay to ensure form dialog is fully closed
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              setPaymentData(paymentData);
+              setShowPaymentProcessor(true);
+            }, 150);
+          });
         }
       } catch (e: any) {
         console.error("Failed to create reservation:", e);
@@ -1087,9 +1133,11 @@ const ReservationManagementComponent = () => {
     tuition_fee: r.tuition_fee != null ? String(r.tuition_fee) : "0",
     book_fee: r.book_fee != null ? String(r.book_fee) : "0",
     transport_required:
-      r.transport_required !== undefined 
+      r.transport_required !== undefined
         ? Boolean(r.transport_required)
-        : (r.preferred_transport_id ? true : false),
+        : r.preferred_transport_id
+          ? true
+          : false,
     preferred_transport_id: r.preferred_transport_id
       ? String(r.preferred_transport_id)
       : "0",
@@ -1113,7 +1161,7 @@ const ReservationManagementComponent = () => {
         distanceSlabs: true,
         routes: true,
       }));
-      
+
       const data = await SchoolReservationsService.getById(r.reservation_id);
       setViewReservation(data);
       setShowViewDialog(true);
@@ -1251,7 +1299,9 @@ const ReservationManagementComponent = () => {
             isError={reservationsError}
             error={reservationsErrObj}
             totalCount={reservationsData?.total_count}
-            onRefetch={() => { refetchReservations().catch(console.error); }}
+            onRefetch={() => {
+              refetchReservations().catch(console.error);
+            }}
           />
         ),
       },
@@ -1300,7 +1350,10 @@ const ReservationManagementComponent = () => {
         mother_or_guardian_mobile: editForm.mother_or_guardian_mobile || "",
         mother_or_guardian_occupation:
           editForm.mother_or_guardian_occupation || "",
-        siblings: (editForm.siblings && editForm.siblings.length > 0) ? editForm.siblings : [],
+        siblings:
+          editForm.siblings && editForm.siblings.length > 0
+            ? editForm.siblings
+            : [],
         previous_class: editForm.previous_class || "",
         previous_school_details: editForm.previous_school_details || "",
         present_address: editForm.present_address || "",
@@ -1341,13 +1394,13 @@ const ReservationManagementComponent = () => {
       try {
         CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
       } catch (error) {
-        console.warn('Failed to clear API cache:', error);
+        console.warn("Failed to clear API cache:", error);
       }
 
       // Step 2: Remove queries from cache to force fresh fetch (bypasses staleTime)
-      queryClient.removeQueries({ 
+      queryClient.removeQueries({
         queryKey: schoolKeys.reservations.root(),
-        exact: false 
+        exact: false,
       });
 
       // Step 3: Invalidate all reservation-related queries
@@ -1367,14 +1420,14 @@ const ReservationManagementComponent = () => {
       await refetchReservations();
 
       // Step 6: Wait for React Query to update the cache
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       toast({
         title: "Reservation Updated",
         description: "Reservation details have been updated successfully.",
         variant: "success",
       });
-      
+
       // Reset state before closing dialog
       setEditForm(null);
       setSelectedReservation(null);
@@ -1416,32 +1469,32 @@ const ReservationManagementComponent = () => {
         try {
           CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
         } catch (error) {
-          console.warn('Failed to clear API cache:', error);
+          console.warn("Failed to clear API cache:", error);
         }
-        
+
         // Step 2: Remove queries from cache to force fresh fetch (bypasses staleTime)
-        queryClient.removeQueries({ 
+        queryClient.removeQueries({
           queryKey: schoolKeys.reservations.root(),
-          exact: false 
+          exact: false,
         });
-        
+
         // Step 3: Invalidate queries
         await queryClient.invalidateQueries({
           queryKey: schoolKeys.reservations.root(),
-          exact: false
+          exact: false,
         });
-        
+
         // Step 4: Refetch active queries
         await queryClient.refetchQueries({
           queryKey: schoolKeys.reservations.root(),
-          type: 'active',
-          exact: false
+          type: "active",
+          exact: false,
         });
-        
+
         // Step 5: Call refetchReservations
         await refetchReservations();
       };
-      
+
       refreshData().catch(console.error);
     }
   }, [activeTab, refetchReservations, queryClient]);
@@ -1467,42 +1520,58 @@ const ReservationManagementComponent = () => {
       {/* Receipt Preview Modal - Shows PDF receipt after payment */}
       <ReceiptPreviewModal
         isOpen={showReceipt}
-        onClose={async () => {
+        onClose={() => {
+          // Close modal immediately - don't block UI
           setShowReceipt(false);
+
+          // Clean up blob URL immediately
           if (receiptBlobUrl) {
             URL.revokeObjectURL(receiptBlobUrl);
             setReceiptBlobUrl(null);
           }
 
-          // After closing receipt, ensure data is fresh (matching AllReservationsTable pattern)
-          // Step 1: Clear API cache first to ensure fresh network request
-          try {
-            CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
-          } catch (error) {
-            console.warn('Failed to clear API cache:', error);
-          }
+          // Run data refresh in background - don't block modal close
+          // Use setTimeout to ensure modal closes first, then refresh data
+          setTimeout(() => {
+            const refreshData = async () => {
+              try {
+                // Step 1: Clear API cache first to ensure fresh network request
+                try {
+                  CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
+                } catch (error) {
+                  console.warn("Failed to clear API cache:", error);
+                }
 
-          // Step 2: Remove query data to force fresh fetch
-          queryClient.removeQueries({ queryKey: schoolKeys.reservations.list(undefined) });
+                // Step 2: Remove query data to force fresh fetch
+                queryClient.removeQueries({
+                  queryKey: schoolKeys.reservations.list(undefined),
+                });
 
-          // Step 3: Invalidate all reservation-related queries
-          queryClient.invalidateQueries({ 
-            queryKey: schoolKeys.reservations.root(),
-            exact: false 
-          });
+                // Step 3: Invalidate all reservation-related queries
+                queryClient.invalidateQueries({
+                  queryKey: schoolKeys.reservations.root(),
+                  exact: false,
+                });
 
-          // Step 4: Force refetch active queries (bypasses cache)
-          await queryClient.refetchQueries({
-            queryKey: schoolKeys.reservations.root(),
-            type: 'active',
-            exact: false
-          });
+                // Step 4: Force refetch active queries (bypasses cache)
+                await queryClient.refetchQueries({
+                  queryKey: schoolKeys.reservations.root(),
+                  type: "active",
+                  exact: false,
+                });
 
-          // Step 5: Call refetch callback and wait for it to complete
-          await refetchReservations();
+                // Step 5: Call refetch callback
+                await refetchReservations();
+              } catch (error) {
+                console.error(
+                  "Error refreshing data after receipt close:",
+                  error
+                );
+              }
+            };
 
-          // Step 6: Wait for React Query to update the cache
-          await new Promise(resolve => setTimeout(resolve, 200));
+            refreshData().catch(console.error);
+          }, 100);
         }}
         blobUrl={receiptBlobUrl}
       />
@@ -1518,8 +1587,8 @@ const ReservationManagementComponent = () => {
             {!viewReservation ? (
               <div className="p-4 text-sm">Loading...</div>
             ) : (
-              <ViewDialogContent 
-                viewReservation={viewReservation} 
+              <ViewDialogContent
+                viewReservation={viewReservation}
                 routeNames={routeNames}
                 distanceSlabs={distanceSlabs}
                 classes={classes}
@@ -1633,14 +1702,14 @@ const ReservationManagementComponent = () => {
                   try {
                     CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
                   } catch (error) {
-                    console.warn('Failed to clear API cache:', error);
+                    console.warn("Failed to clear API cache:", error);
                   }
 
                   // Mutation hook already handles invalidation and refetch, but we ensure refetch callback is called
                   await refetchReservations();
-                  
+
                   // Wait for React Query to update the cache
-                  await new Promise(resolve => setTimeout(resolve, 200));
+                  await new Promise((resolve) => setTimeout(resolve, 200));
 
                   // Toast handled by mutation hook
                   setShowDeleteDialog(false);
@@ -1674,56 +1743,71 @@ const ReservationManagementComponent = () => {
             <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
               <ReservationPaymentProcessor
                 reservationData={paymentData}
-                onPaymentComplete={async (
+                onPaymentComplete={(
                   incomeRecord: SchoolIncomeRead,
                   blobUrl: string
                 ) => {
-                  setPaymentIncomeRecord(incomeRecord);
-                  setReceiptBlobUrl(blobUrl);
+                  // CLOSE PAYMENT DIALOG IMMEDIATELY - CRITICAL for UI responsiveness
                   setShowPaymentProcessor(false);
 
-                  // Delay to ensure backend transaction is committed
-                  await new Promise(resolve => setTimeout(resolve, 300));
+                  // Set receipt data immediately
+                  setPaymentIncomeRecord(incomeRecord);
+                  setReceiptBlobUrl(blobUrl);
 
-                  // Cache invalidation after payment
-                  // Step 1: Clear API cache
-                  try {
-                    CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
-                  } catch (error) {
-                    console.warn('Failed to clear API cache:', error);
-                  }
-                  
-                  // Step 2: Remove queries from cache to force fresh fetch (bypasses staleTime)
-                  queryClient.removeQueries({ 
-                    queryKey: schoolKeys.reservations.root(),
-                    exact: false 
-                  });
-                  
-                  // Step 3: Invalidate queries (AWAIT to ensure it completes)
-                  await queryClient.invalidateQueries({ 
-                    queryKey: schoolKeys.reservations.root(),
-                    exact: false 
-                  });
-                  
-                  // Step 4: Refetch active queries (AWAIT to ensure it completes)
-                  await queryClient.refetchQueries({ 
-                    queryKey: schoolKeys.reservations.root(), 
-                    type: 'active',
-                    exact: false 
+                  // Show receipt modal after ensuring payment dialog is fully closed
+                  // Use requestAnimationFrame to ensure DOM updates are complete
+                  requestAnimationFrame(() => {
+                    setTimeout(() => {
+                      setShowReceipt(true);
+                    }, 150);
                   });
 
-                  // Step 5: Call refetchReservations to ensure immediate API call
-                  if (refetchReservations) {
-                    await refetchReservations();
-                  }
-
-                  // Step 6: Additional delay to ensure React processes state updates
-                  await new Promise(resolve => setTimeout(resolve, 200));
-
-                  // Show receipt modal after closing payment processor
+                  // Run cache invalidation in background - don't block UI
                   setTimeout(() => {
-                    setShowReceipt(true);
-                  }, 100);
+                    const refreshData = async () => {
+                      try {
+                        // Step 1: Clear API cache
+                        try {
+                          CacheUtils.clearByPattern(
+                            /GET:.*\/school\/reservations/i
+                          );
+                        } catch (error) {
+                          console.warn("Failed to clear API cache:", error);
+                        }
+
+                        // Step 2: Remove queries from cache to force fresh fetch
+                        queryClient.removeQueries({
+                          queryKey: schoolKeys.reservations.root(),
+                          exact: false,
+                        });
+
+                        // Step 3: Invalidate queries
+                        await queryClient.invalidateQueries({
+                          queryKey: schoolKeys.reservations.root(),
+                          exact: false,
+                        });
+
+                        // Step 4: Refetch active queries
+                        await queryClient.refetchQueries({
+                          queryKey: schoolKeys.reservations.root(),
+                          type: "active",
+                          exact: false,
+                        });
+
+                        // Step 5: Call refetchReservations
+                        if (refetchReservations) {
+                          await refetchReservations();
+                        }
+                      } catch (error) {
+                        console.error(
+                          "Error refreshing data after payment:",
+                          error
+                        );
+                      }
+                    };
+
+                    refreshData().catch(console.error);
+                  }, 200);
                 }}
                 onPaymentFailed={(error: string) => {
                   toast({
