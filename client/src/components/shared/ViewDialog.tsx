@@ -38,7 +38,7 @@ export interface ViewDialogField {
   type?: 'text' | 'currency' | 'date' | 'phone' | 'email' | 'badge' | 'link';
   icon?: React.ReactNode;
   className?: string;
-  badgeVariant?: 'default' | 'secondary' | 'destructive' | 'outline';
+  badgeVariant?: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info';
 }
 
 export interface ViewDialogSection {
@@ -112,12 +112,15 @@ const getIconColorClasses = (color: string) => {
   return colorMap[color as keyof typeof colorMap] || colorMap.gray;
 };
 
-const getBadgeVariant = (variant: string): "default" | "secondary" | "destructive" | "outline" => {
+const getBadgeVariant = (variant: string): "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info" => {
   const variantMap = {
     default: 'default' as const,
     secondary: 'secondary' as const,
     destructive: 'destructive' as const,
     outline: 'outline' as const,
+    success: 'success' as const,
+    warning: 'warning' as const,
+    info: 'info' as const,
   };
   return variantMap[variant as keyof typeof variantMap] || 'default';
 };

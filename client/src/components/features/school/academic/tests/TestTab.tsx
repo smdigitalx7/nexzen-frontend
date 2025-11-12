@@ -14,6 +14,7 @@ import {
 } from "@/lib/utils/factory/columnFactories";
 import { useCreateSchoolTest, useDeleteSchoolTest, useUpdateSchoolTest } from "@/lib/hooks/school";
 import type { SchoolTestCreate, SchoolTestRead, SchoolTestUpdate } from "@/lib/types/school";
+import { useCanViewUIComponent } from "@/lib/permissions";
 
 export interface TestTabProps {
   searchTerm: string;
@@ -200,17 +201,27 @@ const TestTabComponent = ({
     })
   ], []);
 
+  // Permission checks
+  const canDeleteTest = useCanViewUIComponent("tests", "button", "test-delete");
+
   // Memoized action button groups
-  const actionButtonGroups = useMemo(() => [
-    {
-      type: 'edit' as const,
-      onClick: handleEditClick
-    },
-    {
-      type: 'delete' as const,
-      onClick: handleDeleteClick
+  const actionButtonGroups = useMemo(() => {
+    const buttons = [
+      {
+        type: 'edit' as const,
+        onClick: handleEditClick
+      }
+    ];
+    
+    if (canDeleteTest) {
+      buttons.push({
+        type: 'delete' as const,
+        onClick: handleDeleteClick
+      });
     }
-  ], [handleEditClick, handleDeleteClick]);
+    
+    return buttons;
+  }, [handleEditClick, handleDeleteClick, canDeleteTest]);
 
   // Memoized dialog close handlers
   const closeAddDialog = useCallback(() => {

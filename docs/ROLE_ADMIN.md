@@ -1,9 +1,11 @@
 # Admin Role - Complete Feature & Permission Guide
 
-**Version:** 1.0.0  
+**Version:** 2.0.0  
 **Last Updated:** January 2025  
 **Role:** Admin (Full System Access)  
 **System:** Velonex ERP - School & College Management
+
+> **Note:** This document reflects the current permission system implementation. All permissions are centrally managed in `client/src/lib/permissions/config.ts` for easy maintenance and updates.
 
 ---
 
@@ -812,10 +814,24 @@
 
 ## 📝 Document Information
 
-**Version:** 1.0.0  
+**Version:** 2.0.0  
 **Last Updated:** January 2025  
 **Role:** Admin  
 **Status:** Production Documentation
+
+### Permission System
+
+All permissions are centrally configured in `client/src/lib/permissions/config.ts`. This ensures:
+- Consistent permission enforcement across the application
+- Easy maintenance and updates
+- Type-safe permission checks
+- Dynamic UI filtering based on user roles
+
+**Key Features:**
+- Role-based access control (RBAC)
+- UI component visibility control (tabs, buttons, sections)
+- Action-level permissions (create, edit, delete, view, export)
+- Granular button-level restrictions
 
 ---
 

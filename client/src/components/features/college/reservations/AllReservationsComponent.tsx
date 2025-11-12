@@ -6,6 +6,7 @@ import { Percent, CreditCard } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared";
 import { useAuthStore } from "@/store/authStore";
 import { ROLES } from "@/lib/constants";
+import { useCanDelete } from "@/lib/permissions";
 import type { ReservationStatusEnum } from "@/lib/types/college/reservations";
 import {
   Dialog,
@@ -372,6 +373,9 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
     []
   );
 
+  // Check delete permission
+  const canDeleteReservation = useCanDelete("reservations");
+
   // Memoized action buttons for EnhancedDataTable
   const actionButtonGroups = useMemo(
     () => [
@@ -389,6 +393,8 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
         type: "delete" as const,
         onClick: (row: ReservationForAllReservations) => onDelete(row),
         show: (row: ReservationForAllReservations) => {
+          // Hide delete button if user doesn't have permission
+          if (!canDeleteReservation) return false;
           // Show delete button if:
           // 1. Application fee is paid, OR
           // 2. Status is PENDING (allow deletion of pending reservations)
@@ -397,7 +403,7 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
         },
       },
     ],
-    [onView, onEdit, onDelete, isApplicationFeePaid]
+    [onView, onEdit, onDelete, isApplicationFeePaid, canDeleteReservation]
   );
 
   // Custom action buttons for payment and concession

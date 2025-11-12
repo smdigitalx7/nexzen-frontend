@@ -22,6 +22,7 @@ import {
   Search,
   Download,
 } from "lucide-react";
+import { useCanViewUIComponent } from "@/lib/permissions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,6 +59,10 @@ export const TeacherAssignmentsTab = ({
   handleAddClick,
 }: TeacherAssignmentsTabProps) => {
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Permission checks
+  const canAddSubject = useCanViewUIComponent("teachers", "button", "teacher-assignment-add-subject");
+  const canDeleteSubject = useCanViewUIComponent("teachers", "button", "teacher-assignment-delete-subject");
   const [deleteConfirm, setDeleteConfirm] = React.useState<{
     open: boolean;
     teacherId: number;
@@ -291,14 +296,16 @@ export const TeacherAssignmentsTab = ({
             <Download className="h-4 w-4" />
             Export Excel
           </Button>
-          <Button
-            onClick={handleAddClick}
-            className="flex items-center gap-2"
-            size="default"
-          >
-            <Plus className="h-4 w-4" />
-            Assign Subject
-          </Button>
+          {canAddSubject && (
+            <Button
+              onClick={handleAddClick}
+              className="flex items-center gap-2"
+              size="default"
+            >
+              <Plus className="h-4 w-4" />
+              Assign Subject
+            </Button>
+          )}
         </div>
       </div>
 
@@ -528,24 +535,26 @@ export const TeacherAssignmentsTab = ({
                                             </Badge>
                                           )}
                                         </div>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground shrink-0"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDeleteClick(
-                                              teacher.employee_id,
-                                              classItem.class_id,
-                                              subject.subject_id,
-                                              section.section_id,
-                                              subject.subject_name
-                                            );
-                                          }}
-                                          title={`Remove ${subject.subject_name}`}
-                                        >
-                                          <X className="h-3 w-3" />
-                                        </Button>
+                                        {canDeleteSubject && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground shrink-0"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDeleteClick(
+                                                teacher.employee_id,
+                                                classItem.class_id,
+                                                subject.subject_id,
+                                                section.section_id,
+                                                subject.subject_name
+                                              );
+                                            }}
+                                            title={`Remove ${subject.subject_name}`}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        )}
                                       </div>
                                     ))}
                                   </div>

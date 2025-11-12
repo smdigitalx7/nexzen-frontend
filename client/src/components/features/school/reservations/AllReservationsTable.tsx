@@ -6,6 +6,7 @@ import { EnhancedDataTable } from "@/components/shared";
 import { ColumnDef } from "@tanstack/react-table";
 import { useAuthStore } from "@/store/authStore";
 import { ROLES } from "@/lib/constants";
+import { useCanDelete } from "@/lib/permissions";
 import {
   Dialog,
   DialogContent,
@@ -275,10 +276,13 @@ const AllReservationsTableComponent = ({
     );
   }, []);
 
+  // Check delete permission
+  const canDeleteReservation = useCanDelete("reservations");
+
   // Memoized action buttons for EnhancedDataTable
   // Use actionButtonGroups for standard actions (view, edit, delete) to use EnhancedDataTable's built-in icons
   // Show view/edit buttons ONLY when fee IS paid
-  // Show delete button when fee IS paid OR status is PENDING
+  // Show delete button when fee IS paid OR status is PENDING AND user has delete permission
   const actionButtonGroups = useMemo(
     () => [
       {
@@ -295,6 +299,8 @@ const AllReservationsTableComponent = ({
         type: "delete" as const,
         onClick: (row: Reservation) => onDelete(row),
         show: (row: Reservation) => {
+          // Hide delete button if user doesn't have permission
+          if (!canDeleteReservation) return false;
           // Show delete button if:
           // 1. Application fee is paid, OR
           // 2. Status is PENDING (allow deletion of pending reservations)
@@ -303,7 +309,7 @@ const AllReservationsTableComponent = ({
         },
       },
     ],
-    [onView, onEdit, onDelete, isApplicationFeePaid]
+    [onView, onEdit, onDelete, isApplicationFeePaid, canDeleteReservation]
   );
 
   // Handle pay fee button click
@@ -602,12 +608,15 @@ const AllReservationsTableComponent = ({
           // Run data refresh in background - don't block modal close
           // Use requestIdleCallback or setTimeout with longer delay to ensure modal is fully closed
           const scheduleRefresh = () => {
-            if ('requestIdleCallback' in window) {
-              requestIdleCallback(() => {
-                setTimeout(() => {
-                  refreshDataAfterReceiptClose();
-                }, 200);
-              }, { timeout: 1000 });
+            if ("requestIdleCallback" in window) {
+              requestIdleCallback(
+                () => {
+                  setTimeout(() => {
+                    refreshDataAfterReceiptClose();
+                  }, 200);
+                },
+                { timeout: 1000 }
+              );
             } else {
               setTimeout(() => {
                 refreshDataAfterReceiptClose();
@@ -630,16 +639,20 @@ const AllReservationsTableComponent = ({
               });
 
               // Step 3: Invalidate all reservation-related queries (non-blocking)
-              queryClient.invalidateQueries({
-                queryKey: schoolKeys.reservations.root(),
-              }).catch(console.error);
+              queryClient
+                .invalidateQueries({
+                  queryKey: schoolKeys.reservations.root(),
+                })
+                .catch(console.error);
 
               // Step 4: Force refetch active queries (bypasses cache) - non-blocking
-              queryClient.refetchQueries({
-                queryKey: schoolKeys.reservations.list(undefined),
-                type: "active",
-                exact: false,
-              }).catch(console.error);
+              queryClient
+                .refetchQueries({
+                  queryKey: schoolKeys.reservations.list(undefined),
+                  type: "active",
+                  exact: false,
+                })
+                .catch(console.error);
 
               // Step 5: Call refetch callback - non-blocking
               if (onRefetch) {

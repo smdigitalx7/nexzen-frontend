@@ -1,9 +1,11 @@
 # Accountant Role - Complete Feature & Permission Guide
 
-**Version:** 1.0.0  
+**Version:** 2.0.0  
 **Last Updated:** January 2025  
 **Role:** Accountant (Financial & Student Registration)  
 **System:** Velonex ERP - School & College Management
+
+> **Note:** This document reflects the current permission system implementation. All permissions are centrally managed in `client/src/lib/permissions/config.ts` for easy maintenance and updates.
 
 ---
 
@@ -52,20 +54,20 @@
 | Module | Access Level | Create | Read | Update | Delete | Special Permissions |
 |--------|-------------|--------|------|--------|--------|-------------------|
 | **School Modules** |
-| Reservations | Full | ✅ | ✅ | ✅ | ✅ | Create, edit, convert to admission |
+| Reservations | Full | ✅ | ✅ | ✅ | ❌ | Create, edit, convert to admission. **Cannot delete** |
 | Admissions | Full | ✅ | ✅ | ✅ | ❌ | Convert reservations, edit details |
-| Students | View Only | ❌ | ✅ | ⚠️ | ❌ | View only, cannot create/delete |
+| Students | View Only | ❌ | ✅ | ❌ | ❌ | View only. Tabs: Enrollments, Transport (no Section Mapping) |
 | Fees | Full | ✅ | ✅ | ✅ | ❌ | Collect fees, generate receipts |
-| Financial Reports | Full | ✅ | ✅ | ❌ | ❌ | Generate, view, export reports |
-| Income & Expenditure | Full | ✅ | ✅ | ✅ | ✅ | Add income, add expenditure |
+| Financial Reports | Full | ✅ | ✅ | ❌ | ❌ | Generate, view, export reports. Expenditure tab: **Cannot edit/delete** |
+| Income & Expenditure | Full | ✅ | ✅ | ✅ | ✅ | Add income, add expenditure. Expenditure: **Cannot edit/delete** |
 | Announcements | Limited | ✅ | ✅ | ✅ | ✅ | Can create/view announcements |
 | **College Modules** |
-| Reservations | Full | ✅ | ✅ | ✅ | ✅ | Same as School |
+| Reservations | Full | ✅ | ✅ | ✅ | ❌ | Same as School. **Cannot delete** |
 | Admissions | Full | ✅ | ✅ | ✅ | ❌ | Same as School |
-| Students | View Only | ❌ | ✅ | ⚠️ | ❌ | Same as School |
+| Students | View Only | ❌ | ✅ | ❌ | ❌ | Same as School. Tabs: Enrollments, Transport |
 | Fees | Full | ✅ | ✅ | ✅ | ❌ | Same as School |
-| Financial Reports | Full | ✅ | ✅ | ❌ | ❌ | Same as School |
-| Income & Expenditure | Full | ✅ | ✅ | ✅ | ✅ | Same as School |
+| Financial Reports | Full | ✅ | ✅ | ❌ | ❌ | Same as School. Expenditure: **Cannot edit/delete** |
+| Income & Expenditure | Full | ✅ | ✅ | ✅ | ✅ | Same as School. Expenditure: **Cannot edit/delete** |
 | Announcements | Limited | ✅ | ✅ | ✅ | ✅ | Same as School |
 | **Restricted Modules** |
 | Academic | ❌ | ❌ | ❌ | ❌ | ❌ | No access |
@@ -144,18 +146,45 @@
 #### 1.4 Delete Reservations
 
 **Features:**
-- Delete reservations (if not converted)
-- Cannot delete if converted to admission
+- **Delete button is hidden** (Admin-only privilege)
+- Cannot delete reservations
 
-**Access:** Limited Delete access
+**Access:** No Delete access
 
 **Restrictions:**
-- Cannot delete converted reservations
-- Cannot delete if payment exists
+- ⚠️ **Cannot delete reservations** (Admin-only)
+- Delete button is not visible in UI
+- Must contact Admin to delete reservations
 
 ---
 
-### 2. Admissions Management
+### 2. Students Management
+
+#### 2.1 View Students
+
+**Features:**
+- View student enrollments
+- View student transport assignments
+- Search by name, admission number, mobile
+- Filter by class, section
+- Export student list
+
+**Access:** View-only access
+
+**Available Tabs:**
+- **Enrollments Tab:** View all student enrollments
+- **Transport Tab:** View student transport assignments (view only, cannot edit/delete)
+
+**Restrictions:**
+- ⚠️ **Section Mapping tab is hidden** (Admin/Academic only)
+- Cannot create students (via admission only)
+- Cannot delete students
+- Cannot edit transport assignments (no Edit/Delete buttons)
+- Cannot assign sections (Academic role)
+
+---
+
+### 3. Admissions Management
 
 #### 2.1 Convert Reservations to Admissions
 
@@ -305,40 +334,27 @@
 - Date Range Report
 - Terms-wise Report
 - Outstanding Fee Report
+- Income Reports
+- Expenditure Reports (view only, cannot edit/delete)
 
 **Access:** Full Read access, can generate and export
 
 ---
 
-#### 4.2 Report Filters
+#### 4.2 Expenditure Tab Restrictions
 
-**Features:**
-- Filter by date range
-- Filter by class
-- Filter by accountant (own transactions)
-- Filter by payment mode
-- Filter by status
-- Export to Excel
+**Important:** In Financial Reports → Expenditure Tab:
+- ✅ Can view all expenditure entries
+- ✅ Can create new expenditure entries
+- ❌ **Cannot edit expenditure entries** (Admin-only)
+- ❌ **Cannot delete expenditure entries** (Admin-only)
+- Edit and Delete buttons are hidden in the UI
 
-**Access:** Full filter and export access
-
----
-
-#### 4.3 Report Generation
-
-**Features:**
-- Generate reports on-demand
-- View reports on-screen
-- Export to Excel
-- Print reports
-- Save reports
-
-**Access:** Full generate and export access
-
-**Restrictions:**
-- Cannot delete reports
-- Cannot modify report data
-- Reports are read-only after generation
+**Workflow:**
+1. Navigate to Financial Reports → Expenditure
+2. View all expenditure entries
+3. Can add new expenditure entries
+4. Edit/Delete buttons are not visible (restricted to Admin)
 
 ---
 
@@ -369,12 +385,12 @@
 - Add expenditure entries
 - Enter expenditure details (amount, voucher, remarks)
 - View all expenditure entries
-- Edit expenditure entries
-- Delete expenditure entries
+- **Cannot edit expenditure entries** (Admin-only)
+- **Cannot delete expenditure entries** (Admin-only)
 - Export expenditure report
 - **Expenditure is highlighted to Admin** (for review)
 
-**Access:** Full CRUD access
+**Access:** Create and View access only (no Edit/Delete)
 
 **Validations:**
 - Amount must be positive
@@ -382,9 +398,15 @@
 - Remarks are required
 - Date must be valid
 
+**Restrictions:**
+- ⚠️ **Cannot edit expenditure entries** (Admin-only)
+- ⚠️ **Cannot delete expenditure entries** (Admin-only)
+- Edit and Delete buttons are hidden in UI
+- Must contact Admin for corrections
+
 **Special Note:**
 - Expenditure entries are visible to Admin
-- Admin can review and approve
+- Admin can review, edit, and delete
 - Export available for reporting
 
 ---
@@ -475,12 +497,12 @@
 ### Delete Operations
 
 **Allowed:**
-- ✅ Delete reservations (if not converted)
 - ✅ Delete income entries
-- ✅ Delete expenditure entries
 - ✅ Delete announcements (if not started)
 
 **Restrictions:**
+- ❌ **Cannot delete reservations** (Admin-only)
+- ❌ **Cannot delete expenditure entries** (Admin-only)
 - ❌ Cannot delete admissions
 - ❌ Cannot delete fee transactions
 - ❌ Cannot delete payment history
@@ -627,6 +649,8 @@
    - Cannot delete students
    - Cannot assign sections (Academic role)
    - Cannot change sections (Academic role)
+   - **Section Mapping tab is hidden** (only Enrollments and Transport tabs visible)
+   - Cannot edit/delete transport assignments (view only)
 
 3. **Data Modification:**
    - Cannot edit student name
@@ -639,6 +663,7 @@
 ### Business Rule Restrictions
 
 1. **Reservation Restrictions:**
+   - **Cannot delete reservations** (Admin-only privilege)
    - Cannot delete if converted to admission
    - Cannot edit name/Aadhar after creation
    - Cannot edit payment history
@@ -654,6 +679,11 @@
    - Books fee must be first
    - Cannot exceed outstanding
    - Cannot delete payment transactions
+
+4. **Expenditure Restrictions:**
+   - ⚠️ **Cannot edit expenditure entries** (Admin-only)
+   - ⚠️ **Cannot delete expenditure entries** (Admin-only)
+   - Must contact Admin for corrections
 
 ---
 
@@ -849,10 +879,24 @@
 
 ## 📝 Document Information
 
-**Version:** 1.0.0  
+**Version:** 2.0.0  
 **Last Updated:** January 2025  
 **Role:** Accountant  
 **Status:** Production Documentation
+
+### Permission System
+
+All permissions are centrally configured in `client/src/lib/permissions/config.ts`. This ensures:
+- Consistent permission enforcement across the application
+- Easy maintenance and updates
+- Type-safe permission checks
+- Dynamic UI filtering based on user roles
+
+**Key Restrictions for Accountant:**
+- ❌ Cannot delete reservations (Admin-only)
+- ❌ Cannot edit/delete expenditure entries (Admin-only)
+- ❌ Section Mapping tab hidden in Students module
+- ❌ Cannot edit/delete transport assignments (view only)
 
 ---
 

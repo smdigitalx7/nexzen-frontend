@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Eye, Edit, Trash2 } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
+import { useCanViewUIComponent, useCanEdit, useCanCreate } from "@/lib/permissions";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn,
@@ -66,6 +67,11 @@ export const LeavesTable = ({
     createDateColumn<EmployeeLeaveRead>("applied_date", { header: "Applied Date" }),
   ], []);
 
+  // Check permissions
+  const canEditLeave = useCanEdit("employee_leaves");
+  const canDeleteLeave = useCanViewUIComponent("employee_leaves", "button", "leave-delete");
+  const canCreateLeave = useCanCreate("employee_leaves");
+
   // Action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => [
     {
@@ -74,13 +80,15 @@ export const LeavesTable = ({
     },
     {
       type: 'edit' as const,
-      onClick: (row: EmployeeLeaveRead) => onEditLeave(row)
+      onClick: (row: EmployeeLeaveRead) => onEditLeave(row),
+      show: () => canEditLeave
     },
     {
       type: 'delete' as const,
-      onClick: (row: EmployeeLeaveRead) => onDeleteLeave(row.leave_id)
+      onClick: (row: EmployeeLeaveRead) => onDeleteLeave(row.leave_id),
+      show: () => canDeleteLeave
     }
-  ], [onViewLeave, onEditLeave, onDeleteLeave]);
+  ], [onViewLeave, onEditLeave, onDeleteLeave, canEditLeave, canDeleteLeave]);
 
   if (isLoading) {
     return (
@@ -98,7 +106,7 @@ export const LeavesTable = ({
       searchKey="employee_name"
       showSearch={showSearch}
       exportable={true}
-      onAdd={onAddLeave}
+      onAdd={canCreateLeave ? onAddLeave : undefined}
       addButtonText="Add Leave"
       showActions={true}
       actionButtonGroups={actionButtonGroups}

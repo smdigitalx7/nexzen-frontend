@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useCanViewUIComponent } from "@/lib/permissions";
 import { Calendar, User, FileText, Clock, CalendarDays, Check, X } from "lucide-react";
 import { DIALOG_SIZES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,10 @@ interface LeaveViewDialogProps {
 
 export const LeaveViewDialog = ({ open, onOpenChange, leave, employee, onApprove, onReject }: LeaveViewDialogProps) => {
   if (!leave) return null;
+
+  // Check permissions for approve/reject buttons
+  const canApproveLeave = useCanViewUIComponent("employee_leaves", "button", "leave-approve");
+  const canRejectLeave = useCanViewUIComponent("employee_leaves", "button", "leave-reject");
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -64,9 +69,9 @@ export const LeaveViewDialog = ({ open, onOpenChange, leave, employee, onApprove
               </DialogDescription>
             </div>
             {/* Action Buttons - Show only for pending leaves - Beside heading */}
-            {(leave.leave_status === "PENDING" || leave.status === "PENDING") && (onApprove || onReject) && (
+            {(leave.leave_status === "PENDING" || leave.status === "PENDING") && (onApprove || onReject) && (canApproveLeave || canRejectLeave) && (
               <div className="flex items-center gap-3 ml-4 mr-2">
-                {onReject && (
+                {onReject && canRejectLeave && (
                   <Button
                     variant="destructive"
                     onClick={() => onReject(leave.leave_id)}
@@ -76,7 +81,7 @@ export const LeaveViewDialog = ({ open, onOpenChange, leave, employee, onApprove
                     Reject
                   </Button>
                 )}
-                {onApprove && (
+                {onApprove && canApproveLeave && (
                   <Button
                     variant="default"
                     onClick={() => onApprove(leave.leave_id)}

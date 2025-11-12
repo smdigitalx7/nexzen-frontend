@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Plus } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { Button } from "@/components/ui/button";
+import { useCanViewUIComponent } from "@/lib/permissions";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn
@@ -62,6 +63,10 @@ export const AttendanceTable = ({
     createTextColumn<EmployeeAttendanceRead>("unpaid_leaves", { header: "Unpaid Leaves", fallback: "-" }),
   ], []);
 
+  // Check permissions
+  const canEditAttendance = useCanViewUIComponent("employee_attendance", "button", "attendance-edit");
+  const canDeleteAttendance = useCanViewUIComponent("employee_attendance", "button", "attendance-delete");
+
   // Action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => [
     {
@@ -70,13 +75,15 @@ export const AttendanceTable = ({
     },
     {
       type: 'edit' as const,
-      onClick: (row: EmployeeAttendanceRead) => onEditAttendance(row)
+      onClick: (row: EmployeeAttendanceRead) => onEditAttendance(row),
+      show: () => canEditAttendance
     },
     {
       type: 'delete' as const,
-      onClick: (row: EmployeeAttendanceRead) => onDeleteAttendance(row.attendance_id)
+      onClick: (row: EmployeeAttendanceRead) => onDeleteAttendance(row.attendance_id),
+      show: () => canDeleteAttendance
     }
-  ], [onViewAttendance, onEditAttendance, onDeleteAttendance]);
+  ], [onViewAttendance, onEditAttendance, onDeleteAttendance, canEditAttendance, canDeleteAttendance]);
 
   if (isLoading) {
     return (

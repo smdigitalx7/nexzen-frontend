@@ -15,6 +15,7 @@ import {
   createIconTextColumn
 } from "@/lib/utils/factory/columnFactories";
 import type { SchoolClassRead } from "@/lib/types/school";
+import { useCanViewUIComponent } from "@/lib/permissions";
 
 // Component to display subjects for a specific class
 const ClassSubjectsCell = memo(({ subjects }: { subjects?: { subject_id: number; subject_name: string }[] }) => {
@@ -320,17 +321,29 @@ export const ClassesTab = memo(({
     },
   ], []);
 
+  // Permission checks
+  const canAddClass = useCanViewUIComponent("classes", "button", "class-add");
+  const canEditClass = useCanViewUIComponent("classes", "button", "class-edit");
+
   // Memoized action button groups
-  const actionButtonGroups = useMemo(() => [
-    {
-      type: 'view' as const,
-      onClick: handleViewClick
-    },
-    {
-      type: 'edit' as const,
-      onClick: handleEditClick
+  const actionButtonGroups = useMemo(() => {
+    const buttons = [
+      {
+        type: 'view' as const,
+        onClick: handleViewClick
+      }
+    ];
+    
+    // Only add edit button if user has permission
+    if (canEditClass) {
+      buttons.push({
+        type: 'edit' as const,
+        onClick: handleEditClick
+      });
     }
-  ], [handleViewClick, handleEditClick]);
+    
+    return buttons;
+  }, [handleViewClick, handleEditClick, canEditClass]);
 
   // Use optimistic subjects if available, otherwise use server data
   const currentSubjects = optimisticSubjects !== null 
@@ -394,7 +407,7 @@ export const ClassesTab = memo(({
         searchKey="class_name"
         searchPlaceholder="Search classes..."
         exportable={true}
-        onAdd={() => setIsAddClassOpen(true)}
+        onAdd={canAddClass ? () => setIsAddClassOpen(true) : undefined}
         addButtonText="Add Class"
         showActions={true}
         actionButtonGroups={actionButtonGroups}

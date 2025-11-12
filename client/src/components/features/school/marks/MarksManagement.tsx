@@ -28,6 +28,7 @@ import {
   StudentPerformanceSearchView,
 } from "./components";
 import { useAuthStore } from "@/store/authStore";
+import { useFilteredTabs } from "@/lib/permissions";
 
 const MarksManagementComponent = () => {
   const { currentBranch } = useAuthStore();
@@ -148,7 +149,7 @@ const MarksManagementComponent = () => {
 
   // Memoized tabs configuration - components receive props but instances stay stable
   // forceMount in TabSwitcher keeps components mounted, preventing remounts
-  const tabsConfig = useMemo(
+  const allTabsConfig = useMemo(
     () => [
       {
         value: "exam-marks",
@@ -264,6 +265,9 @@ const MarksManagementComponent = () => {
       studentViewsActiveTab,
     ]
   );
+
+  // Filter tabs based on permissions (ACADEMIC should not see Reports tab)
+  const tabsConfig = useFilteredTabs("marks", allTabsConfig);
 
   return (
     <div className="flex flex-col h-full bg-slate-50/30">

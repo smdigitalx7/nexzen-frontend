@@ -106,43 +106,72 @@ const Sidebar = () => {
       });
     }
 
-    // Only ADMIN and INSTITUTE_ADMIN can see General modules
+    // Build General modules based on role
+    const modules: NavigationItem[] = [];
+    
+    // Users - Only ADMIN and INSTITUTE_ADMIN
     if (isAdminRole || isInstituteAdminRole) {
-      return [
-        {
-          title: "Users",
-          href: "/users",
-          icon: Users,
-          description: "User management",
-        },
-        {
-          title: "Employees",
-          href: "/employees",
-          icon: UserCheck,
-          description: "Staff management",
-        },
-        {
-          title: "Payroll",
-          href: "/payroll",
-          icon: CreditCard,
-          description: "Salary and payments",
-        },
-        {
-          title: "Transport",
-          href: "/transport",
-          icon: Bus,
-          description: "Bus routes and stops",
-        },
-        {
-          title: "Audit Log",
-          href: "/audit-log",
-          icon: FileText,
-          description: "Immutable user action log",
-        },
-      ];
+      modules.push({
+        title: "Users",
+        href: "/users",
+        icon: Users,
+        description: "User management",
+      });
     }
-    // ACCOUNTANT and ACADEMIC have no General menu
-    return [];
+    
+    // Employees - ADMIN, INSTITUTE_ADMIN, ACCOUNTANT, ACADEMIC
+    if (
+      isAdminRole ||
+      isInstituteAdminRole ||
+      userRoleUpper === ROLES.ACCOUNTANT ||
+      userRoleUpper === "ACCOUNTANT" ||
+      userRoleUpper === ROLES.ACADEMIC ||
+      userRoleUpper === "ACADEMIC"
+    ) {
+      modules.push({
+        title: "Employees",
+        href: "/employees",
+        icon: UserCheck,
+        description: "Staff management",
+      });
+    }
+    
+    // Payroll - Only ADMIN and INSTITUTE_ADMIN
+    if (isAdminRole || isInstituteAdminRole) {
+      modules.push({
+        title: "Payroll",
+        href: "/payroll",
+        icon: CreditCard,
+        description: "Salary and payments",
+      });
+    }
+    
+    // Transport - ADMIN, INSTITUTE_ADMIN, ACCOUNTANT
+    if (
+      isAdminRole ||
+      isInstituteAdminRole ||
+      userRoleUpper === ROLES.ACCOUNTANT ||
+      userRoleUpper === "ACCOUNTANT"
+    ) {
+      modules.push({
+        title: "Transport",
+        href: "/transport",
+        icon: Bus,
+        description: "Bus routes and stops",
+      });
+    }
+    
+    // Audit Log - Only ADMIN and INSTITUTE_ADMIN
+    if (isAdminRole || isInstituteAdminRole) {
+      modules.push({
+        title: "Audit Log",
+        href: "/audit-log",
+        icon: FileText,
+        description: "Immutable user action log",
+      });
+    }
+    
+    return modules;
   }, [user?.role]);
 
   // Get Schema-specific modules (School/College) based on role (memoized for performance)

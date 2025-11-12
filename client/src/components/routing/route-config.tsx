@@ -109,7 +109,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: "/employees",
-    roles: ["ADMIN", "INSTITUTE_ADMIN"],
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACCOUNTANT", "ACADEMIC"],
     component: EmployeeManagement,
   },
   {
@@ -119,7 +119,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: "/transport",
-    roles: ["ADMIN", "INSTITUTE_ADMIN"],
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACCOUNTANT"],
     component: TransportManagement,
   },
   {

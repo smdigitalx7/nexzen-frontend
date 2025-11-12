@@ -16,6 +16,7 @@ import {
   useCollegeEnrollmentsList,
 } from '@/lib/hooks/college';
 import { useBusRoutes, useDistanceSlabs } from '@/lib/hooks/general';
+import { useCanViewUIComponent } from '@/lib/permissions';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { 
   CollegeTransportAssignmentCreate, 
@@ -224,8 +225,12 @@ const TransportTabComponent = () => {
       pickup_point: editFormData.pickup_point || undefined,
       start_date: editFormData.start_date || undefined,
       end_date: editFormData.end_date || undefined,
-      is_active: editFormData.is_active,
     };
+    
+    // Explicitly include is_active if it's a boolean (true or false)
+    if (typeof editFormData.is_active === 'boolean') {
+      updatePayload.is_active = editFormData.is_active;
+    }
     
     try {
       await updateMutation.mutateAsync({ id: selectedAssignmentId, payload: updatePayload });
@@ -324,6 +329,10 @@ const TransportTabComponent = () => {
     },
   ], []);
 
+  // Check permissions for transport edit/delete
+  const canEditTransport = useCanViewUIComponent("students", "button", "transport-edit");
+  const canDeleteTransport = useCanViewUIComponent("students", "button", "transport-delete");
+
   // Action button groups for EnhancedDataTable
   type FlatTransportData = CollegeTransportStudent & { route_name: string; route_no: number; class_name: string; group_name: string };
   const actionButtonGroups = useMemo(() => [
@@ -333,13 +342,15 @@ const TransportTabComponent = () => {
     },
     {
       type: 'edit' as const,
-      onClick: (row: FlatTransportData) => handleEdit(row)
+      onClick: (row: FlatTransportData) => handleEdit(row),
+      show: () => canEditTransport
     },
     {
       type: 'delete' as const,
-      onClick: (row: FlatTransportData) => handleDelete(row)
+      onClick: (row: FlatTransportData) => handleDelete(row),
+      show: () => canDeleteTransport
     }
-  ], [handleView, handleEdit, handleDelete]);
+  ], [handleView, handleEdit, handleDelete, canEditTransport, canDeleteTransport]);
 
   return (
     <div className="space-y-4">

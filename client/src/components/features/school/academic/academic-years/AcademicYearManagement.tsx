@@ -13,6 +13,7 @@ import {
   createDateColumn,
   createBadgeColumn
 } from "@/lib/utils/factory/columnFactories";
+import { useCanViewUIComponent } from "@/lib/permissions";
 
 // UI row shape for the table
 type UIAcademicYearRow = {
@@ -136,17 +137,31 @@ const AcademicYearManagement = () => {
     createBadgeColumn<UIAcademicYearRow>('is_active', { header: 'Status', variant: 'outline', fallback: 'Inactive' }),
   ], [handleEditClick, handleDeleteClick]);
 
+  // Permission checks
+  const canAddAcademicYear = useCanViewUIComponent("academic_years", "button", "academic-year-add");
+  const canEditAcademicYear = useCanViewUIComponent("academic_years", "button", "academic-year-edit");
+  const canDeleteAcademicYear = useCanViewUIComponent("academic_years", "button", "academic-year-delete");
+
   // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
-    {
-      type: 'edit' as const,
-      onClick: (academicYear: UIAcademicYearRow) => handleEditClick(academicYear)
-    },
-    {
-      type: 'delete' as const,
-      onClick: (academicYear: UIAcademicYearRow) => handleDeleteClick(academicYear)
+  const actionButtonGroups = useMemo(() => {
+    const buttons = [];
+    
+    if (canEditAcademicYear) {
+      buttons.push({
+        type: 'edit' as const,
+        onClick: (academicYear: UIAcademicYearRow) => handleEditClick(academicYear)
+      });
     }
-  ], [handleEditClick, handleDeleteClick]);
+    
+    if (canDeleteAcademicYear) {
+      buttons.push({
+        type: 'delete' as const,
+        onClick: (academicYear: UIAcademicYearRow) => handleDeleteClick(academicYear)
+      });
+    }
+    
+    return buttons;
+  }, [handleEditClick, handleDeleteClick, canEditAcademicYear, canDeleteAcademicYear]);
 
   if (error) {
     return (
@@ -172,7 +187,7 @@ const AcademicYearManagement = () => {
         title="Academic Years"
         searchKey="year_name"
         exportable={true}
-        onAdd={() => setIsAddDialogOpen(true)}
+        onAdd={canAddAcademicYear ? () => setIsAddDialogOpen(true) : undefined}
         addButtonText="Add Academic Year"
         showActions={true}
         actionButtonGroups={actionButtonGroups}

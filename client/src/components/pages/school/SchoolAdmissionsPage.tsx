@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { TabSwitcher } from "@/components/shared";
 import type { TabItem } from "@/components/shared/TabSwitcher";
 import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
@@ -7,12 +7,13 @@ import { useAuthStore } from "@/store/authStore";
 import { Badge } from "@/components/ui/badge";
 import { AdmissionsList } from "@/components/features/school";
 import ConfirmedReservationsTab from "@/components/features/school/admissions/ConfirmedReservationsTab";
+import { useFilteredTabs } from "@/lib/permissions";
 
 const SchoolAdmissionsPage = () => {
   const { currentBranch } = useAuthStore();
-  const { activeTab, setActiveTab } = useTabNavigation("reservations");
+  const { activeTab, setActiveTab } = useTabNavigation("admissions");
 
-  const tabs: TabItem[] = [
+  const allTabs: TabItem[] = useMemo(() => [
     {
       value: "reservations",
       label: "Confirmed Reservations",
@@ -25,7 +26,10 @@ const SchoolAdmissionsPage = () => {
       icon: Users,
       content: <AdmissionsList />,
     },
-  ];
+  ], []);
+
+  // Filter tabs based on permissions (ACADEMIC only sees Student Admissions)
+  const tabs = useFilteredTabs("admissions", allTabs);
 
   return (
     <div className="space-y-6 p-6">

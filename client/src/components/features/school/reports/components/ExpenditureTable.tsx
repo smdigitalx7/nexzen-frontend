@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Eye, Edit, Trash2 } from "lucide-react";
 import { useUpdateSchoolExpenditure, useDeleteSchoolExpenditure, useSchoolExpenditure } from "@/lib/hooks/school";
+import { useCanEdit, useCanDelete } from "@/lib/permissions";
 import type { SchoolExpenditureRead } from "@/lib/types/school";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { ViewExpenditureDialog } from "./ViewExpenditureDialog";
@@ -144,6 +145,10 @@ export const ExpenditureTable = ({
     },
   ];
 
+  // Check permissions for edit/delete
+  const canEditExpenditure = useCanEdit("expenditure");
+  const canDeleteExpenditure = useCanDelete("expenditure");
+
   // Action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => [
     {
@@ -156,15 +161,17 @@ export const ExpenditureTable = ({
       type: 'edit' as const,
       onClick: (expenditure: SchoolExpenditureRead) => {
         handleEdit(expenditure);
-      }
+      },
+      show: () => canEditExpenditure
     },
     {
       type: 'delete' as const,
       onClick: (expenditure: SchoolExpenditureRead) => {
         handleDelete(expenditure);
-      }
+      },
+      show: () => canDeleteExpenditure
     }
-  ], []);
+  ], [canEditExpenditure, canDeleteExpenditure]);
 
   return (
     <motion.div

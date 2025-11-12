@@ -106,7 +106,7 @@ export const TransportEditDialog = ({
           <input
             type="checkbox"
             id="edit_is_active"
-            checked={formData.is_active ?? true}
+            checked={formData.is_active === true}
             onChange={(e) => onFormDataChange({ ...formData, is_active: e.target.checked })}
             className="h-4 w-4"
           />

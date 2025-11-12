@@ -5,16 +5,15 @@ import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
 import { useAuthStore } from "@/store/authStore";
 import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
+import { useFilteredTabs, useDefaultTab } from "@/lib/permissions";
 import { StudentsTab } from "./StudentsTab";
 import { EnrollmentsTab } from "./EnrollmentsTab";
 import { TransportTab } from "./TransportTab";
 
 const StudentManagement = () => {
   const { currentBranch } = useAuthStore();
-  const { activeTab: activePageTab, setActiveTab: setActivePageTab } =
-    useTabNavigation("enrollments");
-
-  const tabs = useMemo(() => [
+  
+  const allTabs = useMemo(() => [
     {
       value: "enrollments",
       label: "Enrollments",
@@ -28,6 +27,14 @@ const StudentManagement = () => {
       content: <TransportTab />,
     },
   ], []);
+
+  // Filter tabs based on permissions
+  const tabs = useFilteredTabs("students", allTabs);
+  
+  // Get default tab (enrollments for ACCOUNTANT)
+  const defaultTab = useDefaultTab("students", "enrollments");
+  const { activeTab: activePageTab, setActiveTab: setActivePageTab } =
+    useTabNavigation(defaultTab || "enrollments");
 
   // Auto-select first tab if current tab doesn't exist
   useEffect(() => {

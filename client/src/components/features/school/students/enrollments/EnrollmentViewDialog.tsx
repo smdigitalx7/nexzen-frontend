@@ -4,6 +4,25 @@ import { User, Calendar, GraduationCap } from 'lucide-react';
 import type { SchoolEnrollmentWithStudentDetails } from '@/lib/types/school';
 import { useSchoolStudent } from '@/lib/hooks/school';
 
+// Utility function to get status badge variant and display name
+const getStudentStatusBadge = (status: string | null | undefined) => {
+  if (!status) return { variant: 'secondary' as const, label: 'N/A' };
+  
+  const statusUpper = status.toUpperCase();
+  switch (statusUpper) {
+    case 'ACTIVE':
+      return { variant: 'success' as const, label: 'Active' };
+    case 'INACTIVE':
+      return { variant: 'secondary' as const, label: 'Inactive' };
+    case 'DROPPED_OUT':
+      return { variant: 'destructive' as const, label: 'Dropped Out' };
+    case 'ABSCONDED':
+      return { variant: 'warning' as const, label: 'Absconded' };
+    default:
+      return { variant: 'secondary' as const, label: status };
+  }
+};
+
 interface EnrollmentViewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -49,6 +68,7 @@ export const EnrollmentViewDialog = ({
   const permanentAddress = studentData?.permanent_address || '-';
   const admissionDate = studentData?.admission_date || '-';
   const status = studentData?.status || '-';
+  const statusBadge = getStudentStatusBadge(status);
 
   // Actions for the dialog
   const actions: ViewDialogAction[] = [];
@@ -84,7 +104,7 @@ export const EnrollmentViewDialog = ({
             { label: "Present Address", value: presentAddress, type: "text" },
             { label: "Permanent Address", value: permanentAddress, type: "text" },
             { label: "Admission Date", value: admissionDate, type: "date" },
-            { label: "Status", value: status, type: "text" },
+            { label: "Status", value: statusBadge.label, type: "badge", badgeVariant: statusBadge.variant },
           ] as ViewDialogField[],
         },
         {

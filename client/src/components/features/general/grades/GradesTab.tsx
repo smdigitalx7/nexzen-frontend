@@ -5,6 +5,7 @@ import { EnhancedDataTable, ConfirmDialog } from "@/components/shared";
 import GradeFormDialog from "./GradeFormDialog";
 import type { GradeRead, GradeCreate, GradeUpdate } from "@/lib/types/general/grades";
 import type { UseMutationResult } from "@tanstack/react-query";
+import { useCanViewUIComponent } from "@/lib/permissions";
 
 interface GradesTabProps {
   gradesData: GradeRead[];
@@ -91,17 +92,27 @@ const GradesTab = ({
     },
   ], []);
 
+  // Permission checks
+  const canDeleteGrade = useCanViewUIComponent("grades", "button", "grade-delete");
+
   // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
-    {
-      type: 'edit' as const,
-      onClick: (row: GradeRead) => handleEditGrade(row)
-    },
-    {
-      type: 'delete' as const,
-      onClick: (row: GradeRead) => handleDeleteClick(row.grade)
+  const actionButtonGroups = useMemo(() => {
+    const buttons = [
+      {
+        type: 'edit' as const,
+        onClick: (row: GradeRead) => handleEditGrade(row)
+      }
+    ];
+    
+    if (canDeleteGrade) {
+      buttons.push({
+        type: 'delete' as const,
+        onClick: (row: GradeRead) => handleDeleteClick(row.grade)
+      });
     }
-  ], []);
+    
+    return buttons;
+  }, [canDeleteGrade]);
 
   const handleAddGrade = (data: GradeCreate | { gradeCode: string; data: GradeUpdate }) => {
     // When adding (not editing), the dialog will only pass GradeCreate

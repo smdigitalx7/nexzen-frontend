@@ -1,6 +1,7 @@
 import React from "react";
 import { FormDialog } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
+import { useCanViewUIComponent } from "@/lib/permissions";
 import { User, Mail, Phone, MapPin, Calendar, Briefcase } from "lucide-react";
 
 interface EmployeeDetailDialogProps {
@@ -17,6 +18,8 @@ interface EmployeeDetailDialogProps {
 }
 
 const EmployeeDetailDialog = ({ open, onOpenChange, employee, newStatus, onStatusChange, onUpdateStatus, isUpdating, getStatusColor, statusOptions, formatCurrency }: EmployeeDetailDialogProps) => {
+  const canUpdateStatus = useCanViewUIComponent("employees", "button", "employee-update-status");
+  
   const handleSave = () => {
     onUpdateStatus();
   };
@@ -29,11 +32,11 @@ const EmployeeDetailDialog = ({ open, onOpenChange, employee, newStatus, onStatu
       description="View employee information and update status"
       size="LARGE"
       isLoading={isUpdating}
-      onSave={handleSave}
+      onSave={canUpdateStatus ? handleSave : undefined}
       saveText="Update Status"
       showCancelButton={false}
       disabled={newStatus === employee?.status}
-      showStatusUpdate={true}
+      showStatusUpdate={canUpdateStatus}
       currentStatus={employee?.status}
       newStatus={newStatus}
       onStatusChange={onStatusChange}

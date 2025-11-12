@@ -1,6 +1,7 @@
 import { FormDialog } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useCanViewUIComponent } from "@/lib/permissions";
 import { Calendar, User, FileText, Clock, CheckCircle, XCircle, X } from "lucide-react";
 
 interface AdvanceViewDialogProps {
@@ -14,6 +15,10 @@ interface AdvanceViewDialogProps {
 
 export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee, onChangeStatus, onUpdateAmount }: AdvanceViewDialogProps) => {
   if (!advance) return null;
+
+  // Check permissions for change status and update amount buttons
+  const canChangeStatus = useCanViewUIComponent("employee_advances", "button", "advance-change-status");
+  const canUpdateAmount = useCanViewUIComponent("employee_advances", "button", "advance-update-amount");
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -143,9 +148,9 @@ export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee, onCha
         )}
 
         {/* Action Buttons */}
-        {(onChangeStatus || onUpdateAmount) && (
+        {(onChangeStatus || onUpdateAmount) && (canChangeStatus || canUpdateAmount) && (
           <div className="flex items-center justify-end gap-3 pt-2 border-t">
-            {onChangeStatus && (
+            {onChangeStatus && canChangeStatus && (
               <Button
                 variant="outline"
                 onClick={() => onChangeStatus(advance.advance_id)}
@@ -155,7 +160,7 @@ export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee, onCha
                 Change Status
               </Button>
             )}
-            {onUpdateAmount && (
+            {onUpdateAmount && canUpdateAmount && (
               <Button
                 variant="default"
                 onClick={() => onUpdateAmount(advance.advance_id)}

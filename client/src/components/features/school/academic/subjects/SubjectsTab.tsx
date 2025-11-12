@@ -11,6 +11,7 @@ import {
   createIconTextColumn
 } from "@/lib/utils/factory/columnFactories";
 import type { SchoolSubjectRead } from "@/lib/types/school";
+import { useCanViewUIComponent } from "@/lib/permissions";
 
 interface SubjectsTabProps {
   backendSubjects: SchoolSubjectRead[];
@@ -134,17 +135,31 @@ const SubjectsTabComponent = ({
     }),
   ], []);
 
+  // Permission checks
+  const canAddSubject = useCanViewUIComponent("subjects", "button", "subject-add");
+  const canEditSubject = useCanViewUIComponent("subjects", "button", "subject-edit");
+  const canDeleteSubject = useCanViewUIComponent("subjects", "button", "subject-delete");
+
   // Memoized action button groups
-  const actionButtonGroups = useMemo(() => [
-    {
-      type: 'edit' as const,
-      onClick: handleEditClick
-    },
-    {
-      type: 'delete' as const,
-      onClick: handleDeleteClick
+  const actionButtonGroups = useMemo(() => {
+    const buttons = [];
+    
+    if (canEditSubject) {
+      buttons.push({
+        type: 'edit' as const,
+        onClick: handleEditClick
+      });
     }
-  ], [handleEditClick, handleDeleteClick]);
+    
+    if (canDeleteSubject) {
+      buttons.push({
+        type: 'delete' as const,
+        onClick: handleDeleteClick
+      });
+    }
+    
+    return buttons;
+  }, [handleEditClick, handleDeleteClick, canEditSubject, canDeleteSubject]);
 
   // Memoized dialog close handlers
   const closeAddDialog = useCallback(() => {
@@ -188,7 +203,7 @@ const SubjectsTabComponent = ({
         title="Subjects"
         searchKey="subject_name"
         exportable={true}
-        onAdd={() => setIsAddSubjectOpen(true)}
+        onAdd={canAddSubject ? () => setIsAddSubjectOpen(true) : undefined}
         addButtonText="Add Subject"
         showActions={true}
         actionButtonGroups={actionButtonGroups}

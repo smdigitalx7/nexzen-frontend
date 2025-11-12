@@ -22,6 +22,7 @@ import {
 } from "@/lib/hooks/school";
 import { useEmployeesByBranch } from "@/lib/hooks/general";
 import { useToast } from "@/hooks/use-toast";
+import { useCanViewUIComponent } from "@/lib/permissions";
 
 interface ClassTeacherData {
   id?: number;
@@ -44,6 +45,10 @@ export const ClassTeacherTab = () => {
   const { data: allEmployees = [] } = useEmployeesByBranch();
   const { data: classes = [] } = useSchoolClasses();
   const { toast } = useToast();
+  
+  // Permission checks
+  const canAssignClassTeacher = useCanViewUIComponent("teachers", "button", "class-teacher-assign");
+  const canDeleteClassTeacher = useCanViewUIComponent("teachers", "button", "class-teacher-delete");
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
@@ -137,9 +142,9 @@ export const ClassTeacherTab = () => {
         searchPlaceholder="Search by teacher name..."
         loading={assignmentsLoading}
         exportable={true}
-        onAdd={handleAddClick}
+        onAdd={canAssignClassTeacher ? handleAddClick : undefined}
         addButtonText="Assign Class Teacher"
-        actionButtons={[
+        actionButtons={canDeleteClassTeacher ? [
           {
             id: "delete",
             label: "Delete",
@@ -149,7 +154,7 @@ export const ClassTeacherTab = () => {
             onClick: (row) => handleDelete(row),
             className: "text-red-600 hover:text-red-700 hover:bg-red-50",
           },
-        ]}
+        ] : []}
         actionColumnHeader="Actions"
         showActions={true}
         showActionLabels={true}

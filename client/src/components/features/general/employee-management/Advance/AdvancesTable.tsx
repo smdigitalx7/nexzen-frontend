@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Eye, Edit, Trash2 } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
+import { useCanViewUIComponent, useCanCreate } from "@/lib/permissions";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn,
@@ -120,6 +121,11 @@ export const AdvancesTable = ({
     },
   ], []);
 
+  // Check permissions
+  const canEditAdvance = useCanViewUIComponent("employee_advances", "button", "advance-edit");
+  const canDeleteAdvance = useCanViewUIComponent("employee_advances", "button", "advance-delete");
+  const canCreateAdvance = useCanCreate("employee_advances");
+
   // Action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => [
     {
@@ -128,13 +134,15 @@ export const AdvancesTable = ({
     },
     {
       type: 'edit' as const,
-      onClick: (row: EmployeeAdvanceRead) => onEditAdvance(row)
+      onClick: (row: EmployeeAdvanceRead) => onEditAdvance(row),
+      show: () => canEditAdvance
     },
     {
       type: 'delete' as const,
-      onClick: (row: EmployeeAdvanceRead) => onDeleteAdvance(row.advance_id)
+      onClick: (row: EmployeeAdvanceRead) => onDeleteAdvance(row.advance_id),
+      show: () => canDeleteAdvance
     }
-  ], [onViewAdvance, onEditAdvance, onDeleteAdvance]);
+  ], [onViewAdvance, onEditAdvance, onDeleteAdvance, canEditAdvance, canDeleteAdvance]);
 
   if (isLoading) {
     return (
@@ -152,7 +160,7 @@ export const AdvancesTable = ({
       searchKey="employee_name"
       showSearch={showSearch}
       exportable={true}
-      onAdd={onAddAdvance}
+      onAdd={canCreateAdvance ? onAddAdvance : undefined}
       addButtonText="Add Advance"
       showActions={true}
       actionButtonGroups={actionButtonGroups}

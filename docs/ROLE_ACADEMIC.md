@@ -1,9 +1,11 @@
 # Academic Role - Complete Feature & Permission Guide
 
-**Version:** 1.0.0  
+**Version:** 2.0.0  
 **Last Updated:** January 2025  
 **Role:** Academic (Academic & Student Management)  
 **System:** Velonex ERP - School & College Management
+
+> **Note:** This document reflects the current permission system implementation. All permissions are centrally managed in `client/src/lib/permissions/config.ts` for easy maintenance and updates.
 
 ---
 
@@ -49,41 +51,72 @@
 
 ### Module Access Matrix
 
-| Module | Access Level | Create | Read | Update | Delete | Special Permissions |
-|--------|-------------|--------|------|--------|--------|-------------------|
-| **School Modules** |
-| Students | Full | ❌ | ✅ | ✅ | ❌ | View, edit section, view profiles |
-| Academic | Full | ✅ | ✅ | ✅ | ✅ | Manage academic structure |
-| Attendance | Full | ✅ | ✅ | ✅ | ❌ | Create, edit (before lock) |
-| Marks | Full | ✅ | ✅ | ✅ | ❌ | Create, edit (before lock) |
-| Announcements | Full | ✅ | ✅ | ✅ | ✅ | Create, edit, delete |
-| **College Modules** |
-| Students | Full | ❌ | ✅ | ✅ | ❌ | Same as School |
-| Academic | Full | ✅ | ✅ | ✅ | ✅ | Same as School + Groups/Courses |
-| Attendance | Full | ✅ | ✅ | ✅ | ❌ | Same as School |
-| Marks | Full | ✅ | ✅ | ✅ | ❌ | Same as School |
-| Announcements | Full | ✅ | ✅ | ✅ | ✅ | Same as School |
+| Module                 | Access Level | Create | Read | Update | Delete | Special Permissions                                         |
+| ---------------------- | ------------ | ------ | ---- | ------ | ------ | ----------------------------------------------------------- |
+| **School Modules**     |
+| Admissions             | Limited      | ❌     | ✅   | ❌     | ❌     | **Only Student Admissions tab** (no Confirmed Reservations) |
+| Students               | Full         | ❌     | ✅   | ✅     | ❌     | Tabs: Section Mapping, Enrollments, Transport (view only)   |
+| Academic               | Limited      | ⚠️     | ✅   | ⚠️     | ❌     | **See detailed restrictions below**                         |
+| Attendance             | Full         | ✅     | ✅   | ✅     | ❌     | Create, edit (before lock), all permissions                 |
+| Marks                  | Limited      | ✅     | ✅   | ✅     | ❌     | **Only Marks, Tests, Student Views tabs** (no Reports)      |
+| Announcements          | Full         | ✅     | ✅   | ✅     | ✅     | Create, edit, delete                                        |
+| **College Modules**    |
+| Admissions             | Limited      | ❌     | ✅   | ❌     | ❌     | Same as School                                              |
+| Students               | Full         | ❌     | ✅   | ✅     | ❌     | Same as School                                              |
+| Academic               | Limited      | ⚠️     | ✅   | ⚠️     | ❌     | Same as School + Groups/Courses                             |
+| Attendance             | Full         | ✅     | ✅   | ✅     | ❌     | Same as School                                              |
+| Marks                  | Limited      | ✅     | ✅   | ✅     | ❌     | Same as School                                              |
+| Announcements          | Full         | ✅     | ✅   | ✅     | ✅     | Same as School                                              |
 | **Restricted Modules** |
-| Reservations | ❌ | ❌ | ❌ | ❌ | ❌ | No access |
-| Admissions | ❌ | ❌ | ❌ | ❌ | ❌ | No access |
-| Fees | ❌ | ❌ | ❌ | ❌ | ❌ | No access |
-| Financial Reports | ❌ | ❌ | ❌ | ❌ | ❌ | No access |
-| Income & Expenditure | ❌ | ❌ | ❌ | ❌ | ❌ | No access |
-| Employee Management | ❌ | ❌ | ❌ | ❌ | ❌ | No access |
-| Payroll | ❌ | ❌ | ❌ | ❌ | ❌ | No access |
-| Transport Management | ❌ | ❌ | ❌ | ❌ | ❌ | No access |
-| User Management | ❌ | ❌ | ❌ | ❌ | ❌ | No access |
-| Audit Log | View Only | ❌ | ✅ | ❌ | ❌ | View own activities only |
+| Reservations           | ❌           | ❌     | ❌   | ❌     | ❌     | No access (Confirmed Reservations tab hidden)               |
+| Fees                   | ❌           | ❌     | ❌   | ❌     | ❌     | No access                                                   |
+| Financial Reports      | ❌           | ❌     | ❌   | ❌     | ❌     | No access                                                   |
+| Income & Expenditure   | ❌           | ❌     | ❌   | ❌     | ❌     | No access                                                   |
+| Employee Management    | View Only    | ❌     | ✅   | ❌     | ❌     | View employees only (no edit/delete)                        |
+| Payroll                | ❌           | ❌     | ❌   | ❌     | ❌     | No access                                                   |
+| Transport Management   | ❌           | ❌     | ❌   | ❌     | ❌     | No access (except student transport view)                   |
+| User Management        | ❌           | ❌     | ❌   | ❌     | ❌     | No access                                                   |
+| Audit Log              | View Only    | ❌     | ✅   | ❌     | ❌     | View own activities only                                    |
 
 ---
 
 ## ✨ Available Features
 
-### 1. Student Management
+### 1. Admissions Management
 
-#### 1.1 View Students
+#### 1.1 Student Admissions
 
 **Features:**
+
+- View all student admissions
+- Search by admission number, name, mobile
+- Filter by class, section, status
+- View admission details
+- View student information
+- Export admission list
+
+**Access:** View-only access
+
+**Available Tabs:**
+
+- **Student Admissions Tab:** View all student admissions (full access)
+
+**Restrictions:**
+
+- ⚠️ **Confirmed Reservations tab is hidden** (Admin/Accountant only)
+- Cannot create admissions (Accountant creates via conversion)
+- Cannot edit admission details
+- Cannot delete admissions
+- Cannot access reservation management
+
+---
+
+### 2. Student Management
+
+#### 2.1 View Students
+
+**Features:**
+
 - View all students
 - Search by name, admission number, mobile, class
 - Filter by class, section, academic year
@@ -95,16 +128,25 @@
 
 **Access:** Full Read access
 
+**Available Tabs:**
+
+- **Section Mapping Tab:** Assign sections to students
+- **Enrollments Tab:** View all student enrollments
+- **Transport Tab:** View student transport assignments (view only)
+
 **Restrictions:**
+
 - Cannot create students (Accountant creates via admission)
 - Cannot delete students
 - Cannot edit personal details (name, Aadhar)
+- Cannot edit/delete transport assignments (view only, no Edit/Delete buttons)
 
 ---
 
-#### 1.2 Section Mapping
+#### 2.2 Section Mapping
 
 **Features:**
+
 - View students without sections
 - Select class from dropdown
 - Select multiple students
@@ -116,6 +158,7 @@
 **Access:** Full Update access (section assignment)
 
 **Workflow:**
+
 1. Navigate to Students → Section Mapping
 2. Select class
 3. Select students (individual or bulk)
@@ -124,15 +167,17 @@
 6. Confirmation message
 
 **Validations:**
+
 - Section must exist for selected class
 - Student must be enrolled in class
 - Cannot assign to different class section
 
 ---
 
-#### 1.3 Change Student Section
+#### 2.3 Change Student Section
 
 **Features:**
+
 - Select student from list
 - View current section
 - Select new section
@@ -143,15 +188,17 @@
 **Access:** Full Update access
 
 **Restrictions:**
+
 - Can only change to sections in same class
 - Cannot change if student has active exams (validation)
 - Change is logged for audit
 
 ---
 
-#### 1.4 Student Profile
+#### 2.4 Student Profile
 
 **Features:**
+
 - View complete student profile
 - View personal details
 - View academic information (class, section)
@@ -164,6 +211,7 @@
 **Access:** Full Read access
 
 **Restrictions:**
+
 - Cannot edit personal details
 - Cannot edit fee information
 - Cannot edit transport details
@@ -171,170 +219,212 @@
 
 ---
 
-### 2. Academic Management
+### 3. Academic Management
 
-#### 2.1 Academic Year Management
+#### 3.1 Academic Year Management
 
 **Features:**
+
 - View academic years
-- Create new academic year
-- Edit academic year details
-- Set active academic year
+- **Cannot create new academic year** (Admin-only)
+- **Cannot edit academic year details** (Admin-only)
+- **Cannot delete academic years** (Admin-only)
 - View academic year history
 
-**Access:** Full CRUD access
-
-**Validations:**
-- Year name must be unique
-- End date must be after start date
-- Cannot overlap with existing years
-
----
-
-#### 2.2 Class Management
-
-**Features:**
-- View all classes
-- Create new class
-- Edit class details
-- Deactivate class (cannot delete with students)
-- View class-wise student count
-
-**Access:** Full CRUD access (with restrictions)
-
-**Validations:**
-- Class name must be unique
-- Class order must be unique
-- Must be numeric
+**Access:** View-only access
 
 **Restrictions:**
-- Cannot delete class with students
-- Cannot delete class with subjects
-- Must deactivate instead
+
+- ⚠️ **Add Academic Year button is hidden** (Admin-only)
+- ⚠️ **Edit button is hidden** (Admin-only)
+- ⚠️ **Delete button is hidden** (Admin-only)
+- Can only view academic years
+
+**Validations:**
+
+- Year name must be unique (Admin-only)
+- End date must be after start date (Admin-only)
+- Cannot overlap with existing years (Admin-only)
 
 ---
 
-#### 2.3 Subject Management
+#### 3.2 Class Management
 
 **Features:**
+
+- View all classes
+- **Cannot create new class** (Admin-only)
+- **Cannot edit class details** (Admin-only)
+- View class-wise student count
+- View class subjects
+
+**Access:** View-only access (with restrictions)
+
+**Restrictions:**
+
+- ⚠️ **Add Class button is hidden** (Admin-only)
+- ⚠️ **Edit button is hidden** (Admin-only)
+- Cannot delete classes (Admin-only)
+- Can only view classes and their details
+
+**Validations:**
+
+- Class name must be unique (Admin-only)
+- Class order must be unique (Admin-only)
+- Must be numeric (Admin-only)
+
+---
+
+#### 3.3 Subject Management
+
+**Features:**
+
 - View all subjects
 - Create new subject
 - Edit subject details
-- Delete subject (if no marks)
+- **Cannot delete subjects** (Admin-only)
 - View subject-wise marks
 
-**Access:** Full CRUD access (with restrictions)
+**Access:** Create and Edit access only (no Delete)
+
+**Restrictions:**
+
+- ⚠️ **Delete button is hidden** (Admin-only)
+- Can add and edit subjects
+- Cannot delete subjects (even if no marks)
 
 **Validations:**
+
 - Subject name must be unique
 - Subject code must be unique (if provided)
 
-**Restrictions:**
-- Cannot delete subject with marks
-- Cannot delete subject assigned to classes
-
 ---
 
-#### 2.4 Section Management
+#### 3.4 Section Management
 
 **Features:**
+
 - View all sections
 - Create new section for class
 - Edit section details
-- Delete section (if no students)
+- **Cannot delete sections** (Admin-only)
 - View section-wise student count
 
-**Access:** Full CRUD access (with restrictions)
+**Access:** Create and Edit access only (no Delete)
+
+**Restrictions:**
+
+- ⚠️ **Delete button is hidden** (Admin-only)
+- Can add and edit sections
+- Cannot delete sections (even if no students)
 
 **Validations:**
+
 - Section name must be unique within class
 - Cannot exceed class capacity (if set)
 
-**Restrictions:**
-- Cannot delete section with students
-- Must reassign students before deletion
-
 ---
 
-#### 2.5 Exam Management
+#### 3.5 Exam Management
 
 **Features:**
+
 - View all exams
-- Create new exam
+- **Cannot create new exam** (Admin-only)
 - Edit exam details
-- Delete exam (if no marks)
-- Set exam dates
-- Set maximum marks
+- **Cannot delete exams** (Admin-only)
+- View exam dates
+- View maximum marks
 - View exam-wise marks
 
-**Access:** Full CRUD access (with restrictions)
+**Access:** Edit access only (no Create/Delete)
+
+**Restrictions:**
+
+- ⚠️ **Add Exam button is hidden** (Admin-only)
+- ⚠️ **Delete button is hidden** (Admin-only)
+- Can edit existing exam details
+- Cannot create or delete exams
 
 **Validations:**
-- Exam name must be unique
+
+- Exam name must be unique (Admin-only for creation)
 - End date must be after start date
 - Must be within academic year
 
-**Restrictions:**
-- Cannot delete exam with marks
-- Cannot edit exam dates after marks entry starts
-
 ---
 
-#### 2.6 Test Management
+#### 3.6 Test Management
 
 **Features:**
+
 - View all tests
 - Create new test
 - Edit test details
-- Delete test (if no marks)
+- **Cannot delete tests** (Admin-only)
 - Assign subjects to test
 - Assign classes to test
 - View test-wise marks
 
-**Access:** Full CRUD access (with restrictions)
+**Access:** Create and Edit access only (no Delete)
+
+**Restrictions:**
+
+- ⚠️ **Delete button is hidden** (Admin-only)
+- Can create and edit tests
+- Cannot delete tests (even if no marks)
 
 **Validations:**
+
 - Test date must be valid
 - Must select at least one subject
 - Must select at least one class
 
-**Restrictions:**
-- Cannot delete test with marks
-- Cannot edit test date after marks entry
-
 ---
 
-#### 2.7 Teacher Assignments
+#### 3.7 Teacher Assignments
 
 **Features:**
+
 - View all teacher assignments
-- Assign teachers to subjects
-- Assign teachers to classes
-- Assign teachers to sections (optional)
 - View teacher-wise assignments
-- Edit teacher assignments
-- Delete teacher assignments
-
-**Access:** Full CRUD access
-
-**Features:**
-- One teacher can teach multiple subjects
-- One teacher can teach multiple classes
-- Can assign section-specific teachers
 - View assignments by teacher, subject, class
 
+**Available Subtabs:**
+
+- **Teacher Assignments Subtab:** View subject assignments
+- **Class Teachers Subtab:** View class teacher assignments
+
+**Access:** View-only access (with restrictions)
+
+**Restrictions - Teacher Assignments Subtab:**
+
+- ⚠️ **Add Subject button is hidden** (Admin-only)
+- ⚠️ **Delete Subject button is hidden** (Admin-only)
+- Can only view teacher-subject assignments
+- Cannot add or remove subject assignments
+
+**Restrictions - Class Teachers Subtab:**
+
+- ⚠️ **Assign Class Teacher button is hidden** (Admin-only)
+- ⚠️ **Delete button is hidden** (Admin-only)
+- Can only view class teacher assignments
+- Cannot assign or remove class teachers
+
 **College-Specific:**
-- Assign teachers to Course + Group + Subject
-- One teacher can teach multiple Groups
-- One teacher can teach multiple Courses
+
+- View assignments to Course + Group + Subject
+- View teacher assignments across Groups
+- View teacher assignments across Courses
 
 ---
 
-### 3. Attendance Management
+### 4. Attendance Management
 
-#### 3.1 Monthly Attendance Entry
+#### 4.1 Monthly Attendance Entry
 
 **Features:**
+
 - Create monthly attendance
 - Select class and section
 - Select month and year
@@ -349,6 +439,7 @@
 **Access:** Full Create and Update access (before lock)
 
 **Workflow:**
+
 1. Navigate to Attendance → Create
 2. Select academic year, class, section
 3. Select month and year
@@ -358,21 +449,24 @@
 7. Save attendance (locks for month)
 
 **Validations:**
+
 - Present + Absent + Leave = Total Working Days
 - Cannot exceed total working days
 - Cannot be negative
 - Must be numeric
 
 **Restrictions:**
+
 - ⚠️ **Cannot edit after saving** (locked for month)
 - ⚠️ **Cannot edit previous months**
 - Admin can override locks
 
 ---
 
-#### 3.2 View Attendance
+#### 4.2 View Attendance
 
 **Features:**
+
 - View all attendance records
 - View by student
 - View by class
@@ -385,9 +479,10 @@
 
 ---
 
-#### 3.3 Attendance Statistics
+#### 4.3 Attendance Statistics
 
 **Features:**
+
 - View overall attendance rate
 - View class-wise attendance
 - View monthly trends
@@ -398,11 +493,31 @@
 
 ---
 
-### 4. Marks Management
+### 5. Marks Management
 
-#### 4.1 Exam Marks Entry
+#### 5.1 Available Tabs
 
 **Features:**
+
+- **Marks Tab:** Exam marks entry and management
+- **Tests Tab:** Test marks entry and management
+- **Student Views Tab:** View individual student marks and performance
+- **Reports Tab:** ⚠️ **Hidden** (Admin-only)
+
+**Access:** Limited tab access
+
+**Restrictions:**
+
+- ⚠️ **Reports tab is hidden** (Admin-only)
+- Can access Marks, Tests, and Student Views tabs only
+- Cannot generate marks reports
+
+---
+
+#### 5.2 Exam Marks Entry
+
+**Features:**
+
 - Create exam marks entry
 - Select exam from dropdown
 - Select class and section
@@ -417,6 +532,7 @@
 **Access:** Full Create and Update access (before lock)
 
 **Workflow:**
+
 1. Navigate to Marks → Exam Marks
 2. Select exam
 3. Select class and section
@@ -426,21 +542,24 @@
 7. Save marks (locks marks)
 
 **Validations:**
+
 - Marks cannot exceed maximum
 - Marks cannot be negative
 - All required subjects must have marks
 - Must be numeric (decimal allowed if configured)
 
 **Restrictions:**
+
 - ⚠️ **Cannot edit after saving** (locked)
 - ⚠️ **Cannot edit previous exam marks**
 - Admin can override locks
 
 ---
 
-#### 4.2 Test Marks Entry
+#### 5.3 Test Marks Entry
 
 **Features:**
+
 - Create test marks entry
 - Select test from dropdown
 - Select class and section
@@ -450,13 +569,15 @@
 **Access:** Full Create and Update access (before lock)
 
 **Restrictions:**
+
 - Same as exam marks (locked after save)
 
 ---
 
-#### 4.3 View Marks
+#### 5.4 View Marks
 
 **Features:**
+
 - View all marks
 - View by student
 - View by exam/test
@@ -468,25 +589,32 @@
 
 ---
 
-#### 4.4 Marks Reports
+#### 5.5 Student Views
 
 **Features:**
-- Student Performance Report
-- Semwise Report (Sem-1: FA1, FA2, SA1; Sem-2: FA3, FA4, SA2)
-- Total Exams Report (combined Sem1 and Sem2)
-- Subject-wise Report
-- Class-wise Report
-- Export to PDF/Excel
 
-**Access:** Full Read and Export access
+- Student Marks View: Search and view individual student marks
+- Student Performance View: View student performance analytics
+- Search by admission number, name, class
+- View marks by exam/test
+- View performance trends
+
+**Access:** Full Read access
+
+**Restrictions:**
+
+- ⚠️ **Reports tab is hidden** (Admin-only)
+- Cannot generate marks reports
+- Can only view individual student data
 
 ---
 
-### 5. Announcements
+### 6. Announcements
 
-#### 5.1 Create Announcements
+#### 6.1 Create Announcements
 
 **Features:**
+
 - Create new announcement
 - Enter title and message
 - Select announcement type (Holiday, Transport Issue, General, Exam/Test)
@@ -498,6 +626,7 @@
 **Access:** Full Create access
 
 **Validations:**
+
 - Title is required
 - Message is required
 - Type is required
@@ -506,9 +635,10 @@
 
 ---
 
-#### 5.2 View Announcements
+#### 6.2 View Announcements
 
 **Features:**
+
 - View all announcements
 - Filter by type, date, class
 - Search by title
@@ -519,9 +649,10 @@
 
 ---
 
-#### 5.3 Edit Announcements
+#### 6.3 Edit Announcements
 
 **Features:**
+
 - Edit announcement details
 - Edit title, message, dates
 - Change target audience
@@ -530,21 +661,24 @@
 **Access:** Limited Update access
 
 **Restrictions:**
+
 - ⚠️ **Cannot edit after start date**
 - ⚠️ **Cannot edit active announcements**
 - Can edit before start date only
 
 ---
 
-#### 5.4 Delete Announcements
+#### 6.4 Delete Announcements
 
 **Features:**
+
 - Delete announcements
 - Remove from system
 
 **Access:** Limited Delete access
 
 **Restrictions:**
+
 - ⚠️ **Cannot delete if started**
 - ⚠️ **Cannot delete active announcements**
 - Can delete before start date only
@@ -557,14 +691,21 @@
 ### Create Operations
 
 **Allowed:**
-- ✅ Create academic years, classes, subjects, sections
-- ✅ Create exams and tests
+
+- ✅ Create subjects
+- ✅ Create sections
+- ✅ Create tests
+- ✅ Create grades
 - ✅ Create attendance entries
 - ✅ Create marks entries
-- ✅ Create teacher assignments
 - ✅ Create announcements
 
 **Restrictions:**
+
+- ❌ **Cannot create academic years** (Admin-only)
+- ❌ **Cannot create classes** (Admin-only)
+- ❌ **Cannot create exams** (Admin-only)
+- ❌ **Cannot create teacher assignments** (Admin-only)
 - ❌ Cannot create students (Accountant creates via admission)
 - ❌ Cannot create reservations
 - ❌ Cannot create admissions
@@ -576,6 +717,7 @@
 ### Read Operations
 
 **Allowed:**
+
 - ✅ Read all student data
 - ✅ Read all academic data
 - ✅ Read all attendance records
@@ -585,6 +727,7 @@
 - ✅ Read own audit logs
 
 **Restrictions:**
+
 - ❌ Cannot read financial data (fees, payments)
 - ❌ Cannot read reservations/admissions
 - ❌ Cannot read employee data
@@ -596,14 +739,22 @@
 ### Update Operations
 
 **Allowed:**
+
 - ✅ Update student sections
-- ✅ Update academic settings (classes, subjects, sections, exams)
+- ✅ Update subjects (edit only)
+- ✅ Update sections (edit only)
+- ✅ Update exams (edit only, cannot create)
+- ✅ Update tests (edit and create)
+- ✅ Update grades (edit and create)
 - ✅ Update attendance (before lock)
 - ✅ Update marks (before lock)
-- ✅ Update teacher assignments
 - ✅ Update announcements (before start date)
 
 **Restrictions:**
+
+- ❌ **Cannot update academic years** (Admin-only)
+- ❌ **Cannot update classes** (Admin-only)
+- ❌ **Cannot update teacher assignments** (Admin-only)
 - ❌ Cannot update student personal details (name, Aadhar)
 - ❌ Cannot update locked attendance (Admin can)
 - ❌ Cannot update locked marks (Admin can)
@@ -611,6 +762,7 @@
 - ❌ Cannot update reservations/admissions
 
 **Special Restrictions:**
+
 - ⚠️ **Cannot edit attendance after saving** (locked for month)
 - ⚠️ **Cannot edit marks after saving** (locked)
 - ⚠️ **Cannot edit announcements after start date**
@@ -620,16 +772,20 @@
 ### Delete Operations
 
 **Allowed:**
-- ✅ Delete academic settings (if no dependencies)
-- ✅ Delete exams/tests (if no marks)
-- ✅ Delete teacher assignments
+
 - ✅ Delete announcements (if not started)
 
 **Restrictions:**
+
+- ❌ **Cannot delete academic years** (Admin-only)
+- ❌ **Cannot delete classes** (Admin-only)
+- ❌ **Cannot delete subjects** (Admin-only)
+- ❌ **Cannot delete sections** (Admin-only)
+- ❌ **Cannot delete exams** (Admin-only)
+- ❌ **Cannot delete tests** (Admin-only)
+- ❌ **Cannot delete grades** (Admin-only)
+- ❌ **Cannot delete teacher assignments** (Admin-only)
 - ❌ Cannot delete students
-- ❌ Cannot delete classes with students
-- ❌ Cannot delete subjects with marks
-- ❌ Cannot delete exams/tests with marks
 - ❌ Cannot delete attendance records (locked)
 - ❌ Cannot delete marks records (locked)
 - ❌ Cannot delete announcements after start
@@ -703,26 +859,47 @@
 ### Academic Structure Validations
 
 1. **Class Management:**
-   - Class name must be unique
-   - Class order must be unique
-   - Must be numeric
-   - Cannot delete with students/subjects
+   - Class name must be unique (Admin-only)
+   - Class order must be unique (Admin-only)
+   - Must be numeric (Admin-only)
+   - Cannot create/edit/delete (Admin-only)
 
 2. **Subject Management:**
    - Subject name must be unique
    - Subject code must be unique (if provided)
-   - Cannot delete with marks
+   - Can create and edit
+   - Cannot delete (Admin-only)
 
 3. **Section Management:**
    - Section name must be unique within class
    - Cannot exceed class capacity (if set)
-   - Cannot delete with students
+   - Can create and edit
+   - Cannot delete (Admin-only)
 
-4. **Exam/Test Management:**
-   - Exam name must be unique
+4. **Exam Management:**
+   - Exam name must be unique (Admin-only for creation)
    - Dates must be within academic year
    - End date must be after start date
-   - Cannot delete with marks
+   - Can edit existing exams
+   - Cannot create or delete (Admin-only)
+
+5. **Test Management:**
+   - Test date must be valid
+   - Must select at least one subject
+   - Must select at least one class
+   - Can create and edit
+   - Cannot delete (Admin-only)
+
+6. **Grades Management:**
+   - Grade boundaries must be valid
+   - Min percentage < Max percentage
+   - Can create and edit
+   - Cannot delete (Admin-only)
+
+7. **Academic Year Management:**
+   - Year name must be unique (Admin-only)
+   - End date must be after start date (Admin-only)
+   - Cannot create/edit/delete (Admin-only)
 
 ---
 
@@ -748,40 +925,65 @@
 ### Access Restrictions
 
 1. **Cannot Access:**
-   - Financial modules (Reservations, Admissions, Fees, Financial Reports)
-   - Employee Management
+   - Reservations module (Confirmed Reservations tab hidden)
+   - Fees module
+   - Financial Reports module
+   - Income & Expenditure module
+   - Employee Management (view only, no edit/delete)
    - Payroll Management
-   - Transport Management
+   - Transport Management (except student transport view)
    - User Management
    - Full Audit Log (only own activities)
 
 2. **Limited Access:**
-   - Students: Cannot create/delete, can edit section only
+   - **Admissions:** Only Student Admissions tab (Confirmed Reservations hidden)
+   - **Students:** Can edit section, view enrollments and transport (view only)
+   - **Academic:** Many buttons hidden (see detailed restrictions above)
+   - **Marks:** Only Marks, Tests, Student Views tabs (Reports tab hidden)
    - Announcements: Cannot edit/delete after start date
 
 ---
 
 ### Functional Restrictions
 
-1. **Attendance Management:**
-   - ⚠️ **Cannot edit after saving** (locked for month)
-   - ⚠️ **Cannot edit previous months**
-   - Admin can override locks
-   - Must contact Admin for corrections
+1. **Admissions Management:**
+   - ⚠️ **Confirmed Reservations tab is hidden** (Admin/Accountant only)
+   - Can only view Student Admissions
+   - Cannot create/edit/delete admissions
 
-2. **Marks Management:**
+2. **Academic Management:**
+   - ⚠️ **Classes Tab:** No Add Class button, No Edit button
+   - ⚠️ **Subjects Tab:** No Delete button (can Add and Edit)
+   - ⚠️ **Sections Tab:** No Delete button (can Add and Edit)
+   - ⚠️ **Exams Tab:** No Add Exam button, No Delete button (can Edit)
+   - ⚠️ **Tests Tab:** No Delete button (can Add and Edit)
+   - ⚠️ **Grades Tab:** No Delete button (can Add and Edit)
+   - ⚠️ **Academic Years Tab:** No Add/Edit/Delete buttons (view only)
+   - ⚠️ **Teachers Tab - Teacher Assignments:** No Add Subject button, No Delete Subject button
+   - ⚠️ **Teachers Tab - Class Teachers:** No Assign Class Teacher button, No Delete button
+
+3. **Marks Management:**
+   - ⚠️ **Reports tab is hidden** (Admin-only)
+   - Can only access Marks, Tests, and Student Views tabs
    - ⚠️ **Cannot edit after saving** (locked)
    - ⚠️ **Cannot edit previous exam marks**
    - Admin can override locks
    - Must contact Admin for corrections
 
-3. **Student Management:**
+4. **Attendance Management:**
+   - ⚠️ **Cannot edit after saving** (locked for month)
+   - ⚠️ **Cannot edit previous months**
+   - Admin can override locks
+   - Must contact Admin for corrections
+
+5. **Student Management:**
    - Cannot create students (Accountant creates via admission)
    - Cannot delete students
    - Cannot edit personal details (name, Aadhar)
    - Can only edit section
+   - Cannot edit/delete transport assignments (view only)
 
-4. **Announcement Management:**
+6. **Announcement Management:**
    - Cannot edit after start date
    - Cannot delete if started
    - Admin can override
@@ -791,10 +993,14 @@
 ### Business Rule Restrictions
 
 1. **Academic Structure:**
-   - Cannot delete classes with students
-   - Cannot delete subjects with marks
-   - Cannot delete exams/tests with marks
-   - Must deactivate instead
+   - Cannot create/edit/delete classes (Admin-only)
+   - Cannot delete subjects (Admin-only, can create/edit)
+   - Cannot delete sections (Admin-only, can create/edit)
+   - Cannot create/delete exams (Admin-only, can edit)
+   - Cannot delete tests (Admin-only, can create/edit)
+   - Cannot delete grades (Admin-only, can create/edit)
+   - Cannot create/edit/delete academic years (Admin-only)
+   - Cannot create/delete teacher assignments (Admin-only)
 
 2. **Data Integrity:**
    - Cannot modify locked data
@@ -808,6 +1014,7 @@
 ### Section Mapping
 
 **AC1:** Academic can assign sections
+
 - ✅ Select class from dropdown
 - ✅ Select students (individual or bulk)
 - ✅ Select section
@@ -815,6 +1022,7 @@
 - ✅ Students appear in section list
 
 **AC2:** Academic can change section
+
 - ✅ Select student
 - ✅ Select new section (same class)
 - ✅ Enter reason (optional)
@@ -826,6 +1034,7 @@
 ### Attendance Entry
 
 **AC1:** Academic can create attendance
+
 - ✅ Select class, section, month
 - ✅ Enter attendance for students
 - ✅ Present + Absent + Leave = Total Working Days
@@ -833,6 +1042,7 @@
 - ✅ Attendance locked for month
 
 **AC2:** Academic cannot edit locked attendance
+
 - ✅ Edit option not available
 - ✅ Must contact Admin
 - ✅ System enforces restriction
@@ -842,6 +1052,7 @@
 ### Marks Entry
 
 **AC1:** Academic can enter marks
+
 - ✅ Select exam/test
 - ✅ Select class, section
 - ✅ Enter marks for all students and subjects
@@ -849,7 +1060,15 @@
 - ✅ Marks saved successfully
 - ✅ Marks locked
 
-**AC2:** Academic cannot edit locked marks
+**AC2:** Academic can view marks tabs
+
+- ✅ Marks tab visible
+- ✅ Tests tab visible
+- ✅ Student Views tab visible
+- ❌ Reports tab hidden (Admin-only)
+
+**AC3:** Academic cannot edit locked marks
+
 - ✅ Edit option not available
 - ✅ Must contact Admin
 - ✅ System enforces restriction
@@ -858,17 +1077,53 @@
 
 ### Academic Management
 
-**AC1:** Academic can manage academic structure
-- ✅ Create classes, subjects, sections
-- ✅ Create exams and tests
-- ✅ Edit academic settings
-- ✅ Cannot delete with dependencies
+**AC1:** Academic can view academic structure
 
-**AC2:** Academic can assign teachers
-- ✅ Assign teacher to subject
-- ✅ Assign teacher to class/section
-- ✅ One teacher can teach multiple subjects
-- ✅ Assignment saved successfully
+- ✅ View classes, subjects, sections
+- ✅ View exams and tests
+- ✅ View academic years
+- ✅ Cannot create/edit/delete classes (Admin-only)
+- ✅ Cannot create/edit/delete academic years (Admin-only)
+
+**AC2:** Academic can manage subjects
+
+- ✅ Create new subjects
+- ✅ Edit subject details
+- ❌ Cannot delete subjects (Admin-only)
+- ✅ Subject saved successfully
+
+**AC3:** Academic can manage sections
+
+- ✅ Create new sections
+- ✅ Edit section details
+- ❌ Cannot delete sections (Admin-only)
+- ✅ Section saved successfully
+
+**AC4:** Academic can manage exams
+
+- ❌ Cannot create exams (Admin-only)
+- ✅ Edit exam details
+- ❌ Cannot delete exams (Admin-only)
+
+**AC5:** Academic can manage tests
+
+- ✅ Create new tests
+- ✅ Edit test details
+- ❌ Cannot delete tests (Admin-only)
+- ✅ Test saved successfully
+
+**AC6:** Academic can manage grades
+
+- ✅ Create new grades
+- ✅ Edit grade details
+- ❌ Cannot delete grades (Admin-only)
+- ✅ Grade saved successfully
+
+**AC7:** Academic can view teacher assignments
+
+- ✅ View teacher-subject assignments
+- ✅ View class teacher assignments
+- ❌ Cannot add/delete teacher assignments (Admin-only)
 
 ---
 
@@ -951,7 +1206,7 @@
 
 ### Academic Management Best Practices
 
-1. **Before Creating:**
+1. **Before Creating (Subjects, Sections, Tests, Grades):**
    - Verify academic year is set
    - Check for duplicates
    - Review existing structure
@@ -963,11 +1218,13 @@
    - Verify relationships
    - Test assignments
 
-3. **Before Deleting:**
-   - Check for dependencies
-   - Verify no students/subjects/marks
-   - Use deactivate instead
-   - Document reason
+3. **Understanding Restrictions:**
+   - Classes: View only (Admin creates/edits)
+   - Academic Years: View only (Admin manages)
+   - Exams: Can edit only (Admin creates/deletes)
+   - Subjects/Sections/Tests/Grades: Can create/edit, cannot delete
+   - Teacher Assignments: View only (Admin manages)
+   - Contact Admin for any create/delete operations on restricted items
 
 ---
 
@@ -994,27 +1251,51 @@
    - Check section capacity
 
 4. **Cannot Delete Academic Setting:**
-   - Check for dependencies
-   - Verify no students/subjects/marks
-   - Use deactivate instead
-   - Review error message
+   - Delete buttons are hidden (Admin-only)
+   - Cannot delete subjects, sections, tests, grades
+   - Cannot delete classes, academic years, exams
+   - Contact Admin for deletion
+   - Review restrictions in documentation
+
+5. **Cannot See Reports Tab:**
+   - Reports tab is hidden (Admin-only)
+   - Can only access Marks, Tests, Student Views tabs
+   - Contact Admin for reports generation
 
 ---
 
 ## 📝 Document Information
 
-**Version:** 1.0.0  
+**Version:** 2.0.0  
 **Last Updated:** January 2025  
 **Role:** Academic  
 **Status:** Production Documentation
 
+### Permission System
+
+All permissions are centrally configured in `client/src/lib/permissions/config.ts`. This ensures:
+
+- Consistent permission enforcement across the application
+- Easy maintenance and updates
+- Type-safe permission checks
+- Dynamic UI filtering based on user roles
+
+**Key Restrictions for Academic:**
+
+- ❌ Confirmed Reservations tab hidden (only Student Admissions visible)
+- ❌ Reports tab hidden in Marks module (only Marks, Tests, Student Views)
+- ❌ Many buttons hidden in Academic module (see detailed restrictions above)
+- ❌ Cannot create/edit/delete classes, academic years, exams
+- ❌ Cannot delete subjects, sections, tests, grades
+- ❌ Cannot manage teacher assignments (view only)
+
 ---
 
 **Related Documents:**
+
 - Overview: `USER_GUIDE_01_OVERVIEW.md`
 - School Guide: `USER_GUIDE_02_SCHOOL.md`
 - College Guide: `USER_GUIDE_03_COLLEGE.md`
 - General Guide: `USER_GUIDE_04_GENERAL.md`
 - Admin Role: `ROLE_ADMIN.md`
 - Accountant Role: `ROLE_ACCOUNTANT.md`
-

@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useUpdateCollegeExpenditure, useDeleteCollegeExpenditure, useCollegeExpenditure } from "@/lib/hooks/college";
+import { useCanEdit, useCanDelete } from "@/lib/permissions";
 import type { CollegeExpenditureRead } from "@/lib/types/college";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { ViewExpenditureDialog } from "./ViewExpenditureDialog";
@@ -159,6 +160,10 @@ export const ExpenditureTable = ({
     },
   ];
 
+  // Check permissions for edit/delete
+  const canEditExpenditure = useCanEdit("expenditure");
+  const canDeleteExpenditure = useCanDelete("expenditure");
+
   // Action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => [
     {
@@ -183,7 +188,8 @@ export const ExpenditureTable = ({
           console.log("College Edit clicked - expenditure:", expenditure);
         }
         handleEdit(expenditure);
-      }
+      },
+      show: () => canEditExpenditure
     },
     {
       type: 'delete' as const,
@@ -192,9 +198,10 @@ export const ExpenditureTable = ({
           console.log("College Delete clicked - expenditure:", expenditure);
         }
         handleDelete(expenditure);
-      }
+      },
+      show: () => canDeleteExpenditure
     }
-  ], [onViewExpenditure]);
+  ], [canEditExpenditure, canDeleteExpenditure, onViewExpenditure]);
 
   return (
     <motion.div

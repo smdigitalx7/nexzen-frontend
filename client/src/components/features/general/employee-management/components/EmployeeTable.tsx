@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Eye, Edit, Trash2 } from "lucide-react";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
+import { useCanViewUIComponent, useCanCreate } from "@/lib/permissions";
 import type { ColumnDef } from "@tanstack/react-table";
 import { 
   createAvatarColumn, 
@@ -60,6 +61,11 @@ export const EmployeeTable = ({
     createStatusColumn<EmployeeRead>("status", StatusColors.employee, StatusIcons.employee, { header: "Status" })
   ], []);
 
+  // Check permissions
+  const canEditEmployee = useCanViewUIComponent("employees", "button", "employee-edit");
+  const canDeleteEmployee = useCanViewUIComponent("employees", "button", "employee-delete");
+  const canCreateEmployee = useCanCreate("employees");
+
   // Action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => [
     {
@@ -68,13 +74,15 @@ export const EmployeeTable = ({
     },
     {
       type: 'edit' as const,
-      onClick: (row: EmployeeRead) => onEditEmployee(row)
+      onClick: (row: EmployeeRead) => onEditEmployee(row),
+      show: () => canEditEmployee
     },
     {
       type: 'delete' as const,
-      onClick: (row: EmployeeRead) => onDeleteEmployee(row.employee_id)
+      onClick: (row: EmployeeRead) => onDeleteEmployee(row.employee_id),
+      show: () => canDeleteEmployee
     }
-  ], [onViewEmployee, onEditEmployee, onDeleteEmployee]);
+  ], [onViewEmployee, onEditEmployee, onDeleteEmployee, canEditEmployee, canDeleteEmployee]);
 
   if (isLoading) {
     return (
@@ -92,7 +100,7 @@ export const EmployeeTable = ({
       searchKey="employee_name"
       exportable={true}
       showSearch={showSearch}
-      onAdd={onAddEmployee}
+      onAdd={canCreateEmployee ? onAddEmployee : undefined}
       addButtonText="Add Employee"
       showActions={true}
       actionButtonGroups={actionButtonGroups}

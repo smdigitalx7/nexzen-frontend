@@ -14,6 +14,7 @@ import {
 } from "@/lib/utils/factory/columnFactories";
 import { useCreateSchoolExam, useDeleteSchoolExam, useUpdateSchoolExam } from "@/lib/hooks/school";
 import type { SchoolExamCreate, SchoolExamRead, SchoolExamUpdate } from "@/lib/types/school";
+import { useCanViewUIComponent } from "@/lib/permissions";
 
 interface ExamsTabProps {
   exams: SchoolExamRead[];
@@ -187,17 +188,28 @@ export const ExamsTab = ({
     })
   ], []);
 
+  // Permission checks
+  const canAddExam = useCanViewUIComponent("exams", "button", "exam-add");
+  const canDeleteExam = useCanViewUIComponent("exams", "button", "exam-delete");
+
   // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
-    {
-      type: 'edit' as const,
-      onClick: (row: SchoolExamRead) => handleEditClick(row)
-    },
-    {
-      type: 'delete' as const,
-      onClick: (row: SchoolExamRead) => handleDeleteClick(row)
+  const actionButtonGroups = useMemo(() => {
+    const buttons = [
+      {
+        type: 'edit' as const,
+        onClick: (row: SchoolExamRead) => handleEditClick(row)
+      }
+    ];
+    
+    if (canDeleteExam) {
+      buttons.push({
+        type: 'delete' as const,
+        onClick: (row: SchoolExamRead) => handleDeleteClick(row)
+      });
     }
-  ], []);
+    
+    return buttons;
+  }, [canDeleteExam]);
 
   if (hasError) {
     return (
@@ -223,7 +235,7 @@ export const ExamsTab = ({
         title="Exams"
         searchKey="exam_name"
         exportable={true}
-        onAdd={() => setIsAddExamOpen(true)}
+        onAdd={canAddExam ? () => setIsAddExamOpen(true) : undefined}
         addButtonText="Add Exam"
         showActions={true}
         actionButtonGroups={actionButtonGroups}

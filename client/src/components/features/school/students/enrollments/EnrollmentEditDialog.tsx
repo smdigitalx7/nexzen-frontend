@@ -3,10 +3,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { FormDialog } from '@/components/shared';
 import { DatePicker } from '@/components/ui/date-picker';
 import { useSchoolStudent, useUpdateSchoolStudent } from '@/lib/hooks/school';
 import type { SchoolStudentUpdate } from '@/lib/types/school';
+
+// Utility function to get status badge variant and display name
+const getStudentStatusBadge = (status: string | null | undefined) => {
+  if (!status) return { variant: 'secondary' as const, label: 'N/A' };
+  
+  const statusUpper = status.toUpperCase();
+  switch (statusUpper) {
+    case 'ACTIVE':
+      return { variant: 'success' as const, label: 'Active' };
+    case 'INACTIVE':
+      return { variant: 'secondary' as const, label: 'Inactive' };
+    case 'DROPPED_OUT':
+      return { variant: 'destructive' as const, label: 'Dropped Out' };
+    case 'ABSCONDED':
+      return { variant: 'warning' as const, label: 'Absconded' };
+    default:
+      return { variant: 'secondary' as const, label: status };
+  }
+};
 
 interface EnrollmentEditDialogProps {
   open: boolean;
@@ -60,11 +80,11 @@ export const EnrollmentEditDialog = ({
         father_name: apiData.father_or_guardian_name || studentData.father_name || null,
         father_aadhar_no: apiData.father_or_guardian_aadhar_no || studentData.father_aadhar_no || null,
         father_or_guardian_mobile: studentData.father_or_guardian_mobile || null,
-        father_occupation: studentData.father_occupation || null,
+        father_occupation: apiData.father_or_guardian_occupation || studentData.father_occupation || null,
         mother_name: apiData.mother_or_guardian_name || studentData.mother_name || null,
         mother_aadhar_no: apiData.mother_or_guardian_aadhar_no || studentData.mother_aadhar_no || null,
         mother_or_guardian_mobile: studentData.mother_or_guardian_mobile || null,
-        mother_occupation: studentData.mother_occupation || null,
+        mother_occupation: apiData.mother_or_guardian_occupation || studentData.mother_occupation || null,
         present_address: studentData.present_address || null,
         permanent_address: studentData.permanent_address || null,
         admission_date: studentData.admission_date || null,
@@ -175,7 +195,14 @@ export const EnrollmentEditDialog = ({
               />
             </div>
             <div>
-              <Label htmlFor="status">Status</Label>
+              <div className="flex items-center gap-2 mb-2">
+                <Label htmlFor="status">Status</Label>
+                {formData.status && (
+                  <Badge variant={getStudentStatusBadge(formData.status).variant} size="sm">
+                    {getStudentStatusBadge(formData.status).label}
+                  </Badge>
+                )}
+              </div>
               <Select
                 value={formData.status || ''}
                 onValueChange={(value) => setFormData({ ...formData, status: value as any || null })}

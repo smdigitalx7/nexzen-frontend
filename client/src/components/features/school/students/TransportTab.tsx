@@ -19,6 +19,7 @@ import { useSchoolClasses, useSchoolSections } from '@/lib/hooks/school/use-scho
 import { useBusRoutes } from '@/lib/hooks/general';
 import { useDistanceSlabs } from '@/lib/hooks/general';
 import { useSchoolEnrollmentsList } from '@/lib/hooks/school';
+import { useCanViewUIComponent } from '@/lib/permissions';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SchoolStudentTransportAssignmentCreate, SchoolStudentTransportAssignmentUpdate } from '@/lib/types/school';
 import type { 
@@ -204,8 +205,12 @@ const TransportTabComponent = () => {
       pickup_point: editFormData.pickup_point || undefined,
       start_date: editFormData.start_date || undefined,
       end_date: editFormData.end_date || undefined,
-      is_active: editFormData.is_active ?? undefined,
     };
+    
+    // Explicitly include is_active if it's a boolean (true or false)
+    if (typeof editFormData.is_active === 'boolean') {
+      updatePayload.is_active = editFormData.is_active;
+    }
     
     try {
       await updateMutation.mutateAsync({ id: selectedAssignmentId, payload: updatePayload });
@@ -293,6 +298,10 @@ const TransportTabComponent = () => {
     return flattened;
   }, [result.data]);
 
+  // Check permissions for transport edit/delete
+  const canEditTransport = useCanViewUIComponent("students", "button", "transport-edit");
+  const canDeleteTransport = useCanViewUIComponent("students", "button", "transport-delete");
+
   // Action button groups for EnhancedDataTable
   type FlatTransportData = SchoolStudentTransportAssignmentMinimal & { route_name: string; class_name: string };
   const actionButtonGroups = useMemo(() => [
@@ -302,13 +311,15 @@ const TransportTabComponent = () => {
     },
     {
       type: 'edit' as const,
-      onClick: (row: FlatTransportData) => handleEdit(row)
+      onClick: (row: FlatTransportData) => handleEdit(row),
+      show: () => canEditTransport
     },
     {
       type: 'delete' as const,
-      onClick: (row: FlatTransportData) => handleDelete(row)
+      onClick: (row: FlatTransportData) => handleDelete(row),
+      show: () => canDeleteTransport
     }
-  ], [handleView, handleEdit, handleDelete]);
+  ], [handleView, handleEdit, handleDelete, canEditTransport, canDeleteTransport]);
 
   // Define columns
   const columns: ColumnDef<any>[] = useMemo(() => [

@@ -14,6 +14,7 @@ import { FormDialog, ConfirmDialog } from "@/components/shared";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { useSchoolClasses, useSchoolSectionsByClass, useCreateSchoolSection, useUpdateSchoolSection, useDeleteSchoolSection } from "@/lib/hooks/school";
 import type { SchoolSectionRead, SchoolClassRead } from "@/lib/types/school";
+import { useCanViewUIComponent } from "@/lib/permissions";
 
 // Initial form state
 const initialSectionForm = { 
@@ -144,17 +145,27 @@ const SectionsTabComponent = () => {
     }
   }, []);
 
+  // Permission checks
+  const canDeleteSection = useCanViewUIComponent("sections", "button", "section-delete");
+
   // Memoized action button groups
-  const actionButtonGroups = useMemo(() => [
-    {
-      type: 'edit' as const,
-      onClick: handleEditClick
-    },
-    {
-      type: 'delete' as const,
-      onClick: handleDeleteClick
+  const actionButtonGroups = useMemo(() => {
+    const buttons = [
+      {
+        type: 'edit' as const,
+        onClick: handleEditClick
+      }
+    ];
+    
+    if (canDeleteSection) {
+      buttons.push({
+        type: 'delete' as const,
+        onClick: handleDeleteClick
+      });
     }
-  ], [handleEditClick, handleDeleteClick]);
+    
+    return buttons;
+  }, [handleEditClick, handleDeleteClick, canDeleteSection]);
 
   // Memoized dialog close handlers
   const closeAddDialog = useCallback(() => {
