@@ -15,12 +15,11 @@ import { useToast } from '@/hooks/use-toast';
 import { SchoolStudentAttendanceService } from '@/lib/services/school';
 import { schoolKeys } from '@/lib/hooks/school/query-keys';
 import type { SchoolStudentAttendanceMonthlyGroupedResponse, SchoolClassRead, SchoolSectionRead, SchoolStudentAttendanceRead } from '@/lib/types/school';
-import { useQueryClient } from '@tanstack/react-query';
+import { invalidateAndRefetch } from '@/lib/hooks/common/useGlobalRefetch';
 
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 export default function AttendanceView() {
-  const queryClient = useQueryClient();
   const deleteAttendanceMutation = useDeleteSchoolAttendance();
   
   // Initialize with current month/year (required parameters)
@@ -257,10 +256,8 @@ export default function AttendanceView() {
                 // Update attendance via service
                 await SchoolStudentAttendanceService.update(editingRow.attendance_id, { absent_days: absent, remarks: editRemarks || null });
                 
-                // Invalidate and refetch queries to refresh the UI
-                await queryClient.invalidateQueries({ queryKey: schoolKeys.attendance.detail(editingRow.attendance_id) });
-                await queryClient.invalidateQueries({ queryKey: schoolKeys.attendance.root() });
-                await queryClient.refetchQueries({ queryKey: schoolKeys.attendance.root(), type: 'active' });
+                // Invalidate and refetch queries using debounced utility (prevents UI freeze)
+                invalidateAndRefetch(schoolKeys.attendance.root());
                 
                 // Refetch the students list to show updated data
                 await studentsQuery.refetch();

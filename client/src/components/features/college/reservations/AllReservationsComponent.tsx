@@ -19,11 +19,10 @@ import CollegeReservationPaymentProcessor from "@/components/shared/payment/Coll
 import { ReservationPaymentData } from "@/components/shared/payment";
 import { ReceiptPreviewModal } from "@/components/shared";
 import type { CollegeIncomeRead } from "@/lib/types/college/income";
-import { useQueryClient } from "@tanstack/react-query";
 import { collegeKeys } from "@/lib/hooks/college/query-keys";
 import { toast } from "@/hooks/use-toast";
 import { CollegeReservationsService } from "@/lib/services/college";
-import { CacheUtils } from "@/lib/api";
+import { invalidateAndRefetch } from "@/lib/hooks/common/useGlobalRefetch";
 
 // Helper function to format date from ISO format to YYYY-MM-DD
 const formatDate = (dateString: string | null | undefined): string => {
@@ -160,7 +159,6 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
   onStatusFilterChange,
 }) => {
   const { user } = useAuthStore();
-  const queryClient = useQueryClient();
 
   // Payment related state
   const [showPaymentProcessor, setShowPaymentProcessor] = useState(false);
@@ -534,41 +532,13 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
                     variant: "success",
                   });
 
-                  // Run cache invalidation in background - don't block UI
-                  setTimeout(() => {
-                    const refreshData = async () => {
-                      try {
-                        // Step 1: Clear API cache
-                        try {
-                          CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
-                        } catch (error) {
-                          console.warn('Failed to clear API cache:', error);
-                        }
-                        
-                        // Step 2: Invalidate queries
-                        queryClient.invalidateQueries({ 
-                          queryKey: collegeKeys.reservations.root(),
-                          exact: false 
-                        }).catch(console.error);
-                        
-                        // Step 3: Refetch active queries
-                        queryClient.refetchQueries({ 
-                          queryKey: collegeKeys.reservations.root(), 
-                          type: 'active',
-                          exact: false 
-                        }).catch(console.error);
+                  // Invalidate and refetch using debounced utility (prevents UI freeze)
+                  invalidateAndRefetch(collegeKeys.reservations.root());
 
-                        // Step 4: Call refetch callback
+                  // Call refetch callback if provided
                         if (onRefetch) {
-                          await onRefetch();
-                        }
-                      } catch (error) {
-                        console.error("Error refreshing data after payment:", error);
+                    void onRefetch();
                       }
-                    };
-                    
-                    refreshData().catch(console.error);
-                  }, 200);
                 }}
                 onPaymentFailed={(error: string) => {
                   toast({
@@ -606,54 +576,13 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
           setRefreshKey((prev) => prev + 1);
           setPaymentData(null);
           
-          // Run data refresh in background - don't block modal close
-          // Use requestIdleCallback or setTimeout with longer delay to ensure modal is fully closed
-          const scheduleRefresh = () => {
-            if ('requestIdleCallback' in window) {
-              requestIdleCallback(() => {
-                setTimeout(() => {
-                  refreshDataAfterReceiptClose();
-                }, 200);
-              }, { timeout: 1000 });
-            } else {
-              setTimeout(() => {
-                refreshDataAfterReceiptClose();
-              }, 300);
-            }
-          };
-
-          const refreshDataAfterReceiptClose = async () => {
-            try {
-              // Step 1: Clear API cache first to ensure fresh network request
-              try {
-                CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
-              } catch (error) {
-                console.warn('Failed to clear API cache:', error);
-              }
+          // Invalidate and refetch using debounced utility (prevents UI freeze)
+          invalidateAndRefetch(collegeKeys.reservations.root());
               
-              // Step 2: Invalidate all reservation-related queries (non-blocking)
-              queryClient.invalidateQueries({ 
-                queryKey: collegeKeys.reservations.root(),
-                exact: false 
-              }).catch(console.error);
-              
-              // Step 3: Force refetch active queries (bypasses cache) - non-blocking
-              queryClient.refetchQueries({
-                queryKey: collegeKeys.reservations.root(),
-                type: 'active',
-                exact: false
-              }).catch(console.error);
-              
-              // Step 4: Call refetch callback - non-blocking
+          // Call refetch callback if provided
               if (onRefetch) {
-                onRefetch().catch(console.error);
-              }
-            } catch (error) {
-              console.error("Error refreshing data after receipt close:", error);
+            void onRefetch();
             }
-          };
-
-          scheduleRefresh();
         }}
         blobUrl={receiptBlobUrl}
       />

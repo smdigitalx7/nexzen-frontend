@@ -822,8 +822,23 @@ const ConfirmedReservationsTabComponent = () => {
   }, [reservationsData]);
 
   // Watch for reservations data changes and force table re-render
+  // OPTIMIZED: Use efficient hash for large arrays to prevent UI freeze
   const reservationsHash = useMemo(() => {
-    return allReservations.map(r => `${r.reservation_id}-${r.is_enrolled}-${r.application_income_id}-${r.admission_income_id}`).join('|');
+    if (allReservations.length === 0) return '';
+    
+    // For large arrays, use a more efficient hash to prevent UI freeze
+    if (allReservations.length > 50) {
+      // Only track changes in critical fields, use length as part of hash
+      const criticalFields = allReservations
+        .slice(0, 20) // Only check first 20 for performance
+        .map(r => `${r.reservation_id}:${r.is_enrolled ? '1' : '0'}:${r.application_income_id || 0}:${r.admission_income_id || 0}`);
+      return criticalFields.join('|') + `|${allReservations.length}`;
+    }
+    
+    // For small arrays, use simple join
+    return allReservations.map(r => 
+      `${r.reservation_id}-${r.is_enrolled}-${r.application_income_id}-${r.admission_income_id}`
+    ).join('|');
   }, [allReservations]);
   
   useEffect(() => {

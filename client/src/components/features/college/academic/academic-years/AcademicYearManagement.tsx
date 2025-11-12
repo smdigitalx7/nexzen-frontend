@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Calendar, Edit, Trash2 } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { Calendar } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -112,7 +112,7 @@ const AcademicYearManagement = () => {
     }
   };
 
-  const handleEditClick = (academicYear: UIAcademicYearRow) => {
+  const handleEditClick = useCallback((academicYear: UIAcademicYearRow) => {
     setSelectedAcademicYear(academicYear);
     setEditAcademicYear({
       year_name: academicYear.year_name,
@@ -121,12 +121,12 @@ const AcademicYearManagement = () => {
       is_active: academicYear.is_active,
     });
     setIsEditDialogOpen(true);
-  };
+  }, []);
 
-  const handleDeleteClick = (academicYear: UIAcademicYearRow) => {
+  const handleDeleteClick = useCallback((academicYear: UIAcademicYearRow) => {
     setSelectedAcademicYear(academicYear);
     setIsDeleteDialogOpen(true);
-  };
+  }, []);
 
   // Define columns for the data table
   const columns: ColumnDef<UIAcademicYearRow>[] = useMemo(() => [

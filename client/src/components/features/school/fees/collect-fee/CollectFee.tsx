@@ -1,11 +1,9 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, useSearch } from "wouter";
-import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, User, GraduationCap, Calendar } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { CollectFeeSearch } from "./CollectFeeSearch";
 import { MultiplePaymentForm } from "@/components/shared/payment/multiple-payment/MultiplePaymentForm";
 import { schoolPaymentConfig } from "@/components/shared/payment/config/PaymentConfig";
@@ -16,7 +14,7 @@ import type {
 } from "@/components/shared/payment/types/PaymentTypes";
 import { handleSchoolPayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/lib/api-school";
 import { useToast } from "@/hooks/use-toast";
-import { CacheUtils } from "@/lib/api";
+import { invalidateAndRefetch } from "@/lib/hooks/common/useGlobalRefetch";
 import { schoolKeys } from "@/lib/hooks/school/query-keys";
 import { EnrollmentsService } from "@/lib/services/school/enrollments.service";
 import { SchoolTuitionFeeBalancesService } from "@/lib/services/school/tuition-fee-balances.service";
@@ -43,7 +41,6 @@ export const CollectFee = ({
   setSearchQuery,
 }: CollectFeeProps) => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const search = useSearch();
   const [selectedStudent, setSelectedStudent] = useState<StudentFeeDetails | null>(null);
@@ -78,10 +75,7 @@ export const CollectFee = ({
     setSelectedStudent(studentDetails);
     paymentSuccessRef.current = null;
     if (studentDetails?.enrollment?.admission_no) {
-      setTimeout(
-        () => updateUrlWithAdmission(studentDetails.enrollment.admission_no),
-        0
-      );
+      updateUrlWithAdmission(studentDetails.enrollment.admission_no);
     }
   }, [updateUrlWithAdmission]);
 
@@ -94,7 +88,7 @@ export const CollectFee = ({
   const searchStudent = useCallback(async (admissionNo: string, showToast = true) => {
     try {
       setSearchQuery(admissionNo);
-      setTimeout(() => updateUrlWithAdmission(admissionNo), 0);
+      updateUrlWithAdmission(admissionNo);
 
       const enrollment = await EnrollmentsService.getByAdmission(admissionNo);
       
@@ -186,65 +180,12 @@ export const CollectFee = ({
 
       paymentSuccessRef.current = paymentData.admissionNo;
 
-      // Invalidate caches
-      try {
-        CacheUtils.clearByPattern(/GET:.*\/school\/student-enrollments/i);
-        CacheUtils.clearByPattern(/GET:.*\/school\/students/i);
-        CacheUtils.clearByPattern(/GET:.*\/school\/tuition-fee-balances/i);
-        CacheUtils.clearByPattern(/GET:.*\/school\/transport-fee-balances/i);
-        CacheUtils.clearByPattern(/GET:.*\/school\/income/i);
-      } catch (error) {
-        console.warn('Failed to clear API cache:', error);
-      }
-
-      // Invalidate React Query cache
-      queryClient.invalidateQueries({ 
-        queryKey: schoolKeys.students.root(),
-        exact: false 
-      }).catch(console.error);
-      queryClient.invalidateQueries({ 
-        queryKey: schoolKeys.enrollments.root(),
-        exact: false 
-      }).catch(console.error);
-      queryClient.invalidateQueries({ 
-        queryKey: schoolKeys.tuition.root(),
-        exact: false 
-      }).catch(console.error);
-      queryClient.invalidateQueries({ 
-        queryKey: schoolKeys.transport.root(),
-        exact: false 
-      }).catch(console.error);
-      queryClient.invalidateQueries({ 
-        queryKey: schoolKeys.income.root(),
-        exact: false 
-      }).catch(console.error);
-
-      // Refetch active queries
-      queryClient.refetchQueries({ 
-        queryKey: schoolKeys.students.root(),
-        type: 'active',
-        exact: false 
-      }).catch(console.error);
-      queryClient.refetchQueries({ 
-        queryKey: schoolKeys.enrollments.root(),
-        type: 'active',
-        exact: false 
-      }).catch(console.error);
-      queryClient.refetchQueries({ 
-        queryKey: schoolKeys.tuition.root(),
-        type: 'active',
-        exact: false 
-      }).catch(console.error);
-      queryClient.refetchQueries({ 
-        queryKey: schoolKeys.transport.root(),
-        type: 'active',
-        exact: false 
-      }).catch(console.error);
-      queryClient.refetchQueries({ 
-        queryKey: schoolKeys.income.root(),
-        type: 'active',
-        exact: false 
-      }).catch(console.error);
+      // Invalidate and refetch queries using debounced utility (prevents UI freeze)
+      invalidateAndRefetch(schoolKeys.students.root());
+      invalidateAndRefetch(schoolKeys.enrollments.root());
+      invalidateAndRefetch(schoolKeys.tuition.root());
+      invalidateAndRefetch(schoolKeys.transport.root());
+      invalidateAndRefetch(schoolKeys.income.root());
 
       return result;
     } catch (error) {
@@ -258,7 +199,7 @@ export const CollectFee = ({
       });
       throw error;
     }
-  }, [queryClient, toast]);
+  }, [toast]);
 
   // Transform existing student data to new format
   const transformStudentData = useCallback((

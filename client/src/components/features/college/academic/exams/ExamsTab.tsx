@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Award, Edit, Trash2 } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { Award } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
@@ -162,7 +162,7 @@ export const ExamsTab = ({
     }
   };
 
-  const handleEditClick = (exam: CollegeExamRead) => {
+  const handleEditClick = useCallback((exam: CollegeExamRead) => {
     setSelectedExam(exam);
     setEditExam({ 
       exam_name: exam.exam_name,
@@ -170,12 +170,12 @@ export const ExamsTab = ({
       max_marks: exam.max_marks?.toString() || "100"
     });
     setIsEditExamOpen(true);
-  };
+  }, []);
 
-  const handleDeleteClick = (exam: any) => {
+  const handleDeleteClick = useCallback((exam: any) => {
     setSelectedExam(exam);
     setIsDeleteDialogOpen(true);
-  };
+  }, []);
 
   // Define columns for the data table using column factories
   const columns: ColumnDef<CollegeExamRead>[] = useMemo(() => [
@@ -209,7 +209,7 @@ export const ExamsTab = ({
       type: 'delete' as const,
       onClick: (row: CollegeExamRead) => handleDeleteClick(row)
     }
-  ], []);
+  ], [handleEditClick, handleDeleteClick]);
 
   if (hasError) {
     return (

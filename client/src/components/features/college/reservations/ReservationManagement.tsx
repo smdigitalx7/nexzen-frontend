@@ -1,13 +1,13 @@
 import { useMemo, useState, useEffect } from "react";
 import React from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   useDeleteCollegeReservation,
   useCollegeReservationDashboard,
   useCreateCollegeReservation,
 } from "@/lib/hooks/college";
 import { collegeKeys } from "@/lib/hooks/college";
-import { CacheUtils } from "@/lib/api";
+import { invalidateAndRefetch } from "@/lib/hooks/common/useGlobalRefetch";
 
 import { motion } from "framer-motion";
 import { Label } from "@/components/ui/label";
@@ -112,7 +112,6 @@ import type { CollegeIncomeRead } from "@/lib/types/college/income";
 import { Building2, University } from "lucide-react";
 
 export default function ReservationNew() {
-  const queryClient = useQueryClient();
   const { academicYear, currentBranch } = useAuthStore();
 
   // Initialize mutation hooks
@@ -248,7 +247,13 @@ export default function ReservationNew() {
     useState<CollegeIncomeRead | null>(null);
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
 
-  // Use React Query hook for reservations - Fetch when All Reservations or Status tab is active
+  // Pagination state - CRITICAL: Prevents fetching ALL reservations at once
+  // This fixes UI freeze by limiting data fetched per request
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 50; // Fetch 50 reservations at a time (prevents loading 1000+ at once)
+
+  // Use React Query hook for reservations - WITH PAGINATION
+  // CRITICAL: Only fetch when tab is active to prevent unnecessary requests and UI freezes
   const {
     data: reservationsData,
     isLoading: isLoadingReservations,
@@ -256,9 +261,11 @@ export default function ReservationNew() {
     error: reservationsErrObj,
     refetch: refetchReservations,
   } = useQuery({
-    queryKey: collegeKeys.reservations.list({}),
-    queryFn: () => CollegeReservationsService.list({}),
-    enabled: activeTab === "all" || activeTab === "status",
+    queryKey: collegeKeys.reservations.list({ page: currentPage, page_size: pageSize }),
+    queryFn: () => CollegeReservationsService.list({ page: currentPage, page_size: pageSize }),
+    enabled: activeTab === "all" || activeTab === "status", // Only fetch when tab is active
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Delete reservation hook
@@ -481,38 +488,12 @@ export default function ReservationNew() {
         remarks: remarks || null,
       });
 
-      // Comprehensive refresh to ensure All Reservations table updates
-      // Step 1: Clear API cache first to ensure fresh network request
-      try {
-        CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
-      } catch (error) {
-        console.warn('Failed to clear API cache:', error);
-      }
+      // Invalidate and refetch using debounced utility (prevents UI freeze)
+      // Note: invalidateAndRefetch handles API cache clearing internally
+      invalidateAndRefetch(collegeKeys.reservations.root());
 
-      // Step 2: Remove query data to force fresh fetch
-      queryClient.removeQueries({ 
-        queryKey: collegeKeys.reservations.root(),
-        exact: false 
-      });
-
-      // Step 3: Invalidate all reservation-related queries
-      await queryClient.invalidateQueries({ 
-        queryKey: collegeKeys.reservations.root(),
-        exact: false 
-      });
-
-      // Step 4: Force refetch active queries (bypasses cache)
-      await queryClient.refetchQueries({
-        queryKey: collegeKeys.reservations.root(),
-        type: 'active',
-        exact: false
-      });
-
-      // Step 5: Call refetchReservations to ensure immediate API call
-      await refetchReservations();
-
-      // Step 6: Wait for React Query to update the cache
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Step 4: Call refetchReservations to ensure immediate API call
+      void refetchReservations();
 
       // Fetch fresh reservation data immediately after update
       // This ensures if user reopens the dialog, it has the latest data with updated concession_lock status
@@ -684,13 +665,6 @@ export default function ReservationNew() {
       setTimeout(() => {
         const refreshData = async () => {
           try {
-            // Additional API cache clearing
-            try {
-              CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
-            } catch (error) {
-              console.warn("Failed to clear API cache:", error);
-            }
-
             // Mutation hook already handles invalidation, but we ensure refetch callback is called
             await refetchReservations();
           } catch (error) {
@@ -964,38 +938,12 @@ export default function ReservationNew() {
         payload
       );
 
-      // Comprehensive cache invalidation after update (matching school pattern)
-      // Step 1: Clear API cache first to ensure fresh network request
-      try {
-        CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
-      } catch (error) {
-        console.warn('Failed to clear API cache:', error);
-      }
+      // Invalidate and refetch using debounced utility (prevents UI freeze)
+      // Note: invalidateAndRefetch handles API cache clearing internally
+      invalidateAndRefetch(collegeKeys.reservations.root());
 
-      // Step 2: Remove queries from cache to force fresh fetch (bypasses staleTime)
-      queryClient.removeQueries({ 
-        queryKey: collegeKeys.reservations.root(),
-        exact: false 
-      });
-
-      // Step 3: Invalidate all reservation-related queries
-      await queryClient.invalidateQueries({
-        queryKey: collegeKeys.reservations.root(),
-        exact: false,
-      });
-
-      // Step 4: Force refetch active queries (bypasses cache)
-      await queryClient.refetchQueries({
-        queryKey: collegeKeys.reservations.root(),
-        type: "active",
-        exact: false,
-      });
-
-      // Step 5: Call refetch callback and wait for it to complete
-      await refetchReservations();
-
-      // Step 6: Wait for React Query to update the cache
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Step 5: Call refetch callback
+      void refetchReservations();
 
       toast({
         title: "Reservation Updated",
@@ -1109,15 +1057,15 @@ export default function ReservationNew() {
     }
   }, [reservationsError, reservationsErrObj]);
 
-  // Refetch reservations when Status tab becomes active to ensure fresh data
-  useEffect(() => {
-    if (activeTab === "status") {
-      queryClient.invalidateQueries({
-        queryKey: collegeKeys.reservations.root(),
-      });
-      refetchReservations();
-    }
-  }, [activeTab, refetchReservations, queryClient]);
+  // REMOVED: useEffect that was causing infinite loops and UI freezes
+  // React Query automatically handles:
+  // 1. Refetching when tab becomes active (via enabled: activeTab === "all" || activeTab === "status")
+  // 2. Refetching when query key changes (page/pageSize)
+  // 3. Cache invalidation from mutations (handled by invalidateAndRefetch in mutation hooks)
+  // Manual refetch on tab change was causing:
+  // - Infinite loops (refetch → re-render → refetch)
+  // - UI freezes (blocking refetch operations)
+  // - Unnecessary network requests
 
   return (
     <div className="space-y-6 p-6">
@@ -1949,61 +1897,13 @@ export default function ReservationNew() {
           setPaymentIncomeRecord(null);
           
           // Run data refresh in background - don't block modal close
-          // Use requestIdleCallback or setTimeout with longer delay to ensure modal is fully closed
-          // This prevents UI freeze by ensuring DOM updates complete first
-          const scheduleRefresh = () => {
-            if ('requestIdleCallback' in window) {
-              requestIdleCallback(() => {
-                setTimeout(() => {
-                  refreshDataAfterReceiptClose();
-                }, 200);
-              }, { timeout: 1000 });
-            } else {
-              setTimeout(() => {
-                refreshDataAfterReceiptClose();
-              }, 300);
-            }
-          };
-
-          const refreshDataAfterReceiptClose = async () => {
-            try {
-              // Step 1: Clear API cache first to ensure fresh network request
-              try {
-                CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
-              } catch (error) {
-                console.warn('Failed to clear API cache:', error);
-              }
+          // Invalidate and refetch using debounced utility (prevents UI freeze)
+          invalidateAndRefetch(collegeKeys.reservations.root());
               
-              // Step 2: Remove query data to force fresh fetch (non-blocking)
-              // This is critical - missing in college but present in school
-              queryClient.removeQueries({
-                queryKey: collegeKeys.reservations.root(),
-                exact: false,
-              });
-              
-              // Step 3: Invalidate all reservation-related queries (non-blocking)
-              queryClient.invalidateQueries({ 
-                queryKey: collegeKeys.reservations.root(),
-                exact: false 
-              }).catch(console.error);
-              
-              // Step 4: Force refetch active queries (bypasses cache) - non-blocking
-              queryClient.refetchQueries({
-                queryKey: collegeKeys.reservations.root(),
-                type: 'active',
-                exact: false
-              }).catch(console.error);
-              
-              // Step 5: Call refetch callback - non-blocking
+          // Call refetch callback if provided
               if (refetchReservations) {
-                refetchReservations().catch(console.error);
-              }
-            } catch (error) {
-              console.error("Error refreshing data after receipt close:", error);
+            void refetchReservations();
             }
-          };
-
-          scheduleRefresh();
         }}
         blobUrl={receiptBlobUrl}
       />
@@ -2045,59 +1945,13 @@ export default function ReservationNew() {
                     }, 150);
                   });
 
-                  // Run cache invalidation in background - don't block UI
-                  // Use requestIdleCallback or setTimeout with longer delay
-                  const scheduleRefresh = () => {
-                    if ('requestIdleCallback' in window) {
-                      requestIdleCallback(() => {
-                        refreshDataAfterPayment();
-                      }, { timeout: 1000 });
-                    } else {
-                      setTimeout(() => {
-                        refreshDataAfterPayment();
-                      }, 300);
-                    }
-                  };
-
-                  const refreshDataAfterPayment = async () => {
-                    try {
-                      // Step 1: Clear API cache
-                      try {
-                        CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
-                      } catch (error) {
-                        console.warn('Failed to clear API cache:', error);
-                      }
+                  // Invalidate and refetch using debounced utility (prevents UI freeze)
+                  invalidateAndRefetch(collegeKeys.reservations.root());
                       
-                      // Step 2: Remove queries from cache to force fresh fetch (non-blocking)
-                      // This is critical - missing in college but present in school
-                      queryClient.removeQueries({
-                        queryKey: collegeKeys.reservations.root(),
-                        exact: false,
-                      });
-                      
-                      // Step 3: Invalidate queries (non-blocking)
-                      queryClient.invalidateQueries({ 
-                        queryKey: collegeKeys.reservations.root(),
-                        exact: false 
-                      }).catch(console.error);
-                      
-                      // Step 4: Refetch active queries (non-blocking)
-                      queryClient.refetchQueries({ 
-                        queryKey: collegeKeys.reservations.root(), 
-                        type: 'active',
-                        exact: false 
-                      }).catch(console.error);
-
-                      // Step 5: Call refetchReservations (non-blocking)
+                  // Call refetch callback if provided
                       if (refetchReservations) {
-                        refetchReservations().catch(console.error);
-                      }
-                    } catch (error) {
-                      console.error("Error refreshing data after payment:", error);
+                    void refetchReservations();
                     }
-                  };
-
-                  scheduleRefresh();
                 }}
                 onPaymentFailed={(error: string) => {
                   toast({

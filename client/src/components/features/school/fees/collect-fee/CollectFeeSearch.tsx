@@ -1,21 +1,27 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
-  Search,
   CreditCard,
   User,
   GraduationCap,
   Users,
   BookOpen,
   Bus,
+  Search,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
 import { EnrollmentsService } from "@/lib/services/school/enrollments.service";
 import { SchoolTuitionFeeBalancesService, SchoolTransportFeeBalancesService } from "@/lib/services/school";
+import { SchoolClassDropdown, SchoolSectionDropdown } from "@/components/shared/Dropdowns";
+import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/lib/hooks/common/useDebounce";
 import type { SchoolEnrollmentWithStudentDetails } from "@/lib/types/school/enrollments";
 
 interface StudentFeeDetails {
@@ -41,67 +47,192 @@ export const CollectFeeSearch = ({
   searchQuery,
   setSearchQuery,
 }: CollectFeeSearchProps) => {
+  const { toast } = useToast();
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+  const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [suggestions, setSuggestions] = useState<Array<{ admission_no: string; student_name: string; enrollment_id: number }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-  // Direct service calls for search functionality
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-
-    // Clear previous results immediately for fresh search
+  // Handle class change - reset section and clear results
+  const handleClassChange = useCallback((value: number | null) => {
+    setSelectedClassId(value);
+    setSelectedSectionId(null);
     setSearchResults([]);
+    setSearchQuery("");
+  }, [setSearchResults, setSearchQuery]);
+
+  // Handle section change - clear results
+  const handleSectionChange = useCallback((value: number | null) => {
+    setSelectedSectionId(value);
+    setSearchResults([]);
+    setSearchQuery("");
+  }, [setSearchResults, setSearchQuery]);
+
+  // Handle search
+  const handleSearch = useCallback(async (query?: string) => {
+    const searchTerm = query || searchQuery;
+    if (!searchTerm.trim()) {
+      toast({
+        title: "Search Required",
+        description: "Please enter a student admission number or name to search.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSearching(true);
-    setHasSearched(true); // Mark that a search has been performed
+    setSearchResults([]);
 
     try {
-      const trimmedQuery = searchQuery.trim();
-      let enrollment: SchoolEnrollmentWithStudentDetails | null = null;
+      const enrollment = await EnrollmentsService.getByAdmission(searchTerm.trim());
+      
+      const [tuitionBalance, transportBalance] = await Promise.all([
+        SchoolTuitionFeeBalancesService.getById(enrollment.enrollment_id).catch(() => null),
+        SchoolTransportFeeBalancesService.getById(enrollment.enrollment_id).catch(() => null)
+      ]);
 
-      // First try to search by admission number using enrollment endpoint
-      try {
-        enrollment = await EnrollmentsService.getByAdmission(trimmedQuery);
-      } catch (error) {
-        // If enrollment search fails, return empty results
-        // Name search in enrollments would require iterating through all classes
-        if (import.meta.env.DEV) {
-          console.log("Enrollment search by admission failed");
-        }
-      }
+      const studentDetails: StudentFeeDetails = {
+        enrollment,
+        tuitionBalance,
+        transportBalance,
+      };
 
-      if (enrollment) {
-        // Fetch tuition and transport balances using enrollment_id
-        const [tuitionBalance, transportBalance] = await Promise.all([
-          SchoolTuitionFeeBalancesService.getById(enrollment.enrollment_id).catch(() => null),
-          SchoolTransportFeeBalancesService.getById(enrollment.enrollment_id).catch(() => null)
-        ]);
-
-        const studentDetails: StudentFeeDetails = {
-          enrollment,
-          tuitionBalance,
-          transportBalance,
-        };
-
-        setSearchResults([studentDetails]);
-      } else {
-        setSearchResults([]);
-      }
+      setSearchResults([studentDetails]);
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error("Search error:", error);
-      }
+      console.error("Search error:", error);
+      toast({
+        title: "Student Not Found",
+        description: "No student found with the provided admission number or name. Please try again.",
+        variant: "destructive",
+      });
       setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [searchQuery, setSearchResults, toast]);
 
-  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && searchQuery.trim()) {
-      e.preventDefault();
-      await handleSearch();
+  // Handle Enter key press
+  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      setShowSuggestions(false);
+      void handleSearch();
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
     }
-  };
+  }, [handleSearch]);
+
+  // Fetch suggestions as user types
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (!debouncedSearchQuery.trim() || debouncedSearchQuery.trim().length < 2) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      setIsLoadingSuggestions(true);
+      try {
+        const query = debouncedSearchQuery.trim();
+        
+        // If class_id is selected, use list endpoint with admission_no filter
+        if (selectedClassId && query.length >= 2) {
+          try {
+            const response = await EnrollmentsService.list({
+              class_id: selectedClassId,
+              section_id: selectedSectionId || undefined,
+              admission_no: query,
+              page: 1,
+              page_size: 10,
+            });
+            
+            if (response?.enrollments && response.enrollments.length > 0) {
+              const allSuggestions: Array<{ admission_no: string; student_name: string; enrollment_id: number }> = [];
+              
+              response.enrollments.forEach((classGroup: any) => {
+                if (classGroup.students && Array.isArray(classGroup.students)) {
+                  classGroup.students.forEach((student: any) => {
+                    // Filter by admission number or name
+                    const matchesAdmission = student.admission_no?.toLowerCase().includes(query.toLowerCase());
+                    const matchesName = student.student_name?.toLowerCase().includes(query.toLowerCase());
+                    
+                    if (matchesAdmission || matchesName) {
+                      allSuggestions.push({
+                        admission_no: student.admission_no,
+                        student_name: student.student_name,
+                        enrollment_id: student.enrollment_id,
+                      });
+                    }
+                  });
+                }
+              });
+              
+              setSuggestions(allSuggestions.slice(0, 10)); // Limit to 10 suggestions
+              setShowSuggestions(true);
+              return;
+            }
+          } catch {
+            // Fall through to try exact match
+          }
+        }
+        
+        // Try exact match by admission number (works for any length >= 3)
+        if (query.length >= 3) {
+          try {
+            const enrollment = await EnrollmentsService.getByAdmission(query);
+            setSuggestions([{
+              admission_no: enrollment.admission_no,
+              student_name: enrollment.student_name,
+              enrollment_id: enrollment.enrollment_id,
+            }]);
+            setShowSuggestions(true);
+          } catch {
+            setSuggestions([]);
+          }
+        } else {
+          setSuggestions([]);
+        }
+      } catch (error) {
+        // Silently fail for suggestions
+        setSuggestions([]);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    };
+
+    void fetchSuggestions();
+  }, [debouncedSearchQuery, selectedClassId, selectedSectionId]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        searchInputRef.current &&
+        !searchInputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Handle suggestion selection
+  const handleSuggestionSelect = useCallback((suggestion: { admission_no: string; student_name: string; enrollment_id: number }) => {
+    setSearchQuery(suggestion.admission_no);
+    setShowSuggestions(false);
+    // Trigger search automatically when suggestion is selected
+    void handleSearch(suggestion.admission_no);
+  }, [setSearchQuery, handleSearch]);
 
   const getTotalOutstanding = useCallback(
     (studentDetails: StudentFeeDetails) => {
@@ -205,51 +336,136 @@ export const CollectFeeSearch = ({
   );
 
   return (
-    <div className="space-y-6 ">
-      {/* Search Section */}
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-center gap-2">
-            <Search className="h-5 w-5" />
-            Search Student for Fee Collection
+    <div className="space-y-6">
+      {/* Student Selection Section with Dropdowns */}
+      <Card className="w-full border-2 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center justify-center gap-2 text-xl">
+            <User className="h-5 w-5 text-blue-600" />
+            Select Student for Fee Collection
           </CardTitle>
         </CardHeader>
-        <CardContent className="w-full px-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 w-full">
-              <div className="flex-1 min-w-0">
-                <Input
-                  placeholder="Enter admission number or student name to search..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    // Reset hasSearched when user starts typing a new query
-                    if (hasSearched) {
-                      setHasSearched(false);
-                      setSearchResults([]); // Clear previous results
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    void handleKeyDown(e);
-                  }}
-                  className="w-full h-12  "
+        <CardContent className="w-full px-6 pb-6">
+          <div className="space-y-4">
+            {/* Class and Section Selection */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="class-select" className="text-sm font-medium">
+                  Class <span className="text-muted-foreground">(Optional)</span>
+                </Label>
+                <SchoolClassDropdown
+                  value={selectedClassId}
+                  onChange={handleClassChange}
+                  placeholder="Select class (optional)"
+                  className="w-full"
+                  emptyValue
+                  emptyValueLabel="All Classes"
                 />
               </div>
-              <Button
-                onClick={() => {
-                  // Force fresh search even if same query
-                  void handleSearch();
-                }}
-                disabled={isSearching || !searchQuery.trim()}
-                className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap h-12 px-4"
-              >
-                <Search className="h-4 w-4 mr-1" />
-                {isSearching ? "Searching..." : "Search"}
-              </Button>
+              <div className="space-y-2">
+                <Label htmlFor="section-select" className="text-sm font-medium">
+                  Section <span className="text-muted-foreground">(Optional)</span>
+                </Label>
+                <SchoolSectionDropdown
+                  classId={selectedClassId || 0}
+                  value={selectedSectionId}
+                  onChange={handleSectionChange}
+                  disabled={!selectedClassId}
+                  placeholder={selectedClassId ? "Select section (optional)" : "Select class first"}
+                  className="w-full"
+                  emptyValue
+                  emptyValueLabel="All Sections"
+                />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground text-center ">
-              Press Enter to search or click the Search button
-            </p>
+
+            {/* Student Search Input with Suggestions */}
+            <div className="space-y-2">
+              <Label htmlFor="student-search" className="text-sm font-medium">
+                Search Student <span className="text-red-500">*</span>
+              </Label>
+              <div className="relative flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+                  {isLoadingSuggestions && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin z-10" />
+                  )}
+                  <Input
+                    ref={searchInputRef}
+                    id="student-search"
+                    placeholder="Enter admission number or student name..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onKeyPress={handleKeyPress}
+                    onFocus={() => {
+                      if (suggestions.length > 0) {
+                        setShowSuggestions(true);
+                      }
+                    }}
+                    className="pl-9 pr-9 h-12"
+                    disabled={isSearching}
+                  />
+                  
+                  {/* Suggestions Dropdown */}
+                  {showSuggestions && (suggestions.length > 0 || isLoadingSuggestions) && (
+                    <div
+                      ref={suggestionsRef}
+                      className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-900 border border-border rounded-md shadow-lg max-h-60 overflow-y-auto"
+                    >
+                      {isLoadingSuggestions ? (
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
+                          <span className="text-sm text-muted-foreground">Searching...</span>
+                        </div>
+                      ) : suggestions.length > 0 ? (
+                        <div className="py-1">
+                          {suggestions.map((suggestion, index) => (
+                            <button
+                              key={`${suggestion.enrollment_id}-${index}`}
+                              type="button"
+                              onClick={() => handleSuggestionSelect(suggestion)}
+                              className="w-full px-4 py-2 text-left hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-3 cursor-pointer"
+                            >
+                              <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                              <div className="flex flex-col flex-1 min-w-0">
+                                <span className="font-medium text-sm truncate">{suggestion.student_name}</span>
+                                <span className="text-xs text-muted-foreground truncate">
+                                  {suggestion.admission_no}
+                                </span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+                <Button
+                  onClick={() => {
+                    setShowSuggestions(false);
+                    void handleSearch();
+                  }}
+                  disabled={isSearching || !searchQuery.trim()}
+                  size="lg"
+                  className="h-12 px-6"
+                >
+                  {isSearching ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
+                      Searching...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-4 w-4 mr-2" />
+                      Search
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -318,11 +534,11 @@ export const CollectFeeSearch = ({
                               </p>
                               <div className="flex gap-2 items-center">
                                 <Badge variant="outline">
-                                  {studentDetails.tuitionBalance?.class_name || "N/A"}
+                                  {(studentDetails.enrollment as any).class_name || "N/A"}
                                 </Badge>
-                                {studentDetails.tuitionBalance?.section_name && (
+                                {(studentDetails.enrollment as any).section_name && (
                                   <Badge variant="outline">
-                                    {studentDetails.tuitionBalance.section_name}
+                                    {(studentDetails.enrollment as any).section_name}
                                   </Badge>
                                 )}
                               </div>
@@ -473,22 +689,6 @@ export const CollectFeeSearch = ({
         </div>
       )}
 
-      {/* No Results - Only show after a search has been performed */}
-      {hasSearched &&
-        searchResults.length === 0 &&
-        searchQuery &&
-        !isSearching && (
-          <Card>
-            <CardContent className="text-center py-8">
-              <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">No student found</h3>
-              <p className="text-muted-foreground">
-                No student found with admission number or name &quot;
-                {searchQuery}&quot;
-              </p>
-            </CardContent>
-          </Card>
-        )}
     </div>
   );
 };

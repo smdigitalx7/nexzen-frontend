@@ -12,15 +12,14 @@ import { useCollegeAttendance, useCollegeClassGroups } from '@/lib/hooks/college
 import { useToast } from '@/hooks/use-toast';
 import { CollegeAttendanceService } from '@/lib/services/college';
 import { collegeKeys } from '@/lib/hooks/college/query-keys';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { invalidateAndRefetch } from '@/lib/hooks/common/useGlobalRefetch';
 import { Info } from 'lucide-react';
 import type { CollegeStudentAttendanceRead } from '@/lib/types/college/attendance';
 
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 export default function AttendanceView() {
-  const queryClient = useQueryClient();
-  
   // Initialize with current month/year (required parameters)
   const now = new Date();
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
@@ -76,10 +75,8 @@ export default function AttendanceView() {
       // Update attendance via service
       await CollegeAttendanceService.update(student.attendance_id, { absent_days: Math.max(0, nextAbsent) });
       
-      // Invalidate and refetch queries to refresh the UI
-      await queryClient.invalidateQueries({ queryKey: collegeKeys.attendance.detail(student.attendance_id) });
-      await queryClient.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
-      await queryClient.refetchQueries({ queryKey: collegeKeys.attendance.root(), type: 'active' });
+      // Invalidate and refetch queries using debounced utility (prevents UI freeze)
+      invalidateAndRefetch(collegeKeys.attendance.root());
       
       // Refetch the students list to show updated data
       await studentsQuery.refetch();
@@ -275,10 +272,8 @@ export default function AttendanceView() {
                 // Update attendance via service
                 await CollegeAttendanceService.update(editingRow.attendance_id, { absent_days: absent, remarks: editRemarks || null });
                 
-                // Invalidate and refetch queries to refresh the UI
-                await queryClient.invalidateQueries({ queryKey: collegeKeys.attendance.detail(editingRow.attendance_id) });
-                await queryClient.invalidateQueries({ queryKey: collegeKeys.attendance.root() });
-                await queryClient.refetchQueries({ queryKey: collegeKeys.attendance.root(), type: 'active' });
+                // Invalidate and refetch queries using debounced utility (prevents UI freeze)
+                invalidateAndRefetch(collegeKeys.attendance.root());
                 
                 // Refetch the students list to show updated data
                 await studentsQuery.refetch();

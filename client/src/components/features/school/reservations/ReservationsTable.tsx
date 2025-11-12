@@ -430,7 +430,7 @@ const ReservationsTableComponent = ({
   }, [filteredReservations, currentPage, itemsPerPage]);
 
   // Reset to first page when filters change
-  useMemo(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [statusFilter, searchTerm]);
 

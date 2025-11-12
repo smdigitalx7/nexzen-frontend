@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, memo, useCallback } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   useSchoolReservationsList,
   useDeleteSchoolReservation,
@@ -8,6 +8,7 @@ import {
 } from "@/lib/hooks/school/use-school-reservations";
 import { schoolKeys } from "@/lib/hooks/school/query-keys";
 import { useSchoolClass } from "@/lib/hooks/school";
+import { invalidateAndRefetch } from "@/lib/hooks/common/useGlobalRefetch";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +40,6 @@ import {
   TransportService,
   SchoolReservationsService,
 } from "@/lib/services/school";
-import { CacheUtils } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Plus, List, BarChart3, School, Building2 } from "lucide-react";
 import { TabSwitcher } from "@/components/shared";
@@ -528,7 +528,6 @@ const ViewDialogContent = memo(
 ViewDialogContent.displayName = "ViewDialogContent";
 
 const ReservationManagementComponent = () => {
-  const queryClient = useQueryClient();
   const { currentBranch } = useAuthStore();
 
   const { activeTab, setActiveTab } = useTabNavigation("new");
@@ -622,21 +621,29 @@ const ReservationManagementComponent = () => {
   const { data: dashboardStats, isLoading: dashboardLoading } =
     useSchoolReservationsDashboard();
 
-  // Use React Query hook for reservations - Fetch when All Reservations or Status tab is active
+  // Status filter state
+  const [statusFilter, setStatusFilter] = useState("all");
+  
+  // Pagination state - CRITICAL: Prevents fetching ALL reservations at once
+  // This fixes UI freeze by limiting data fetched per request
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 50; // Fetch 50 reservations at a time (prevents loading 1000+ at once)
+
+  // Use React Query hook for reservations - WITH PAGINATION
+  // CRITICAL: Only fetch when tab is active to prevent unnecessary requests and UI freezes
   const {
     data: reservationsData,
     isLoading: isLoadingReservations,
     isError: reservationsError,
     error: reservationsErrObj,
     refetch: refetchReservations,
-  } = useSchoolReservationsList({
-    // No page_size limit - fetch all reservations
+  } = useQuery({
+    queryKey: schoolKeys.reservations.list({ page: currentPage, page_size: pageSize }),
+    queryFn: () => SchoolReservationsService.list({ page: currentPage, page_size: pageSize }),
+    enabled: activeTab === "all" || activeTab === "status", // Only fetch when tab is active
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
-  // Query is enabled when either "all" or "status" tab is active
-  // This ensures data is fetched when Status tab is active
-
-  // Status filter state
-  const [statusFilter, setStatusFilter] = useState("all");
 
   // Memoized reservations data processing
   const allReservations = useMemo(() => {
@@ -825,15 +832,8 @@ const ReservationManagementComponent = () => {
   const handleUpdateConcession = useCallback(
     async (reservation: any) => {
       try {
-        // Always clear cache first to ensure fresh data
-        queryClient.removeQueries({
-          queryKey: schoolKeys.reservations.detail(reservation.reservation_id),
-        });
-
-        // Also invalidate to ensure no stale cache
-        await queryClient.invalidateQueries({
-          queryKey: schoolKeys.reservations.detail(reservation.reservation_id),
-        });
+        // Invalidate and refetch using debounced utility (prevents UI freeze)
+        invalidateAndRefetch(schoolKeys.reservations.detail(reservation.reservation_id));
 
         // Fetch the full reservation details for the dialog (fresh from API)
         // This will always get the latest data from backend
@@ -856,7 +856,7 @@ const ReservationManagementComponent = () => {
         });
       }
     },
-    [queryClient]
+    []
   );
 
   // Use the hook for concession updates - create hook with a placeholder ID
@@ -876,38 +876,12 @@ const ReservationManagementComponent = () => {
           remarks: remarks || null,
         });
 
-        // Comprehensive refresh to ensure All Reservations table updates
-        // Step 1: Clear API cache first to ensure fresh network request
-        try {
-          CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
-        } catch (error) {
-          console.warn("Failed to clear API cache:", error);
-        }
+        // Invalidate and refetch using debounced utility (prevents UI freeze)
+        // Note: invalidateAndRefetch handles API cache clearing internally
+        invalidateAndRefetch(schoolKeys.reservations.root());
 
-        // Step 2: Remove query data to force fresh fetch
-        queryClient.removeQueries({
-          queryKey: schoolKeys.reservations.root(),
-          exact: false,
-        });
-
-        // Step 3: Invalidate all reservation-related queries
-        await queryClient.invalidateQueries({
-          queryKey: schoolKeys.reservations.root(),
-          exact: false,
-        });
-
-        // Step 4: Force refetch active queries (bypasses cache)
-        await queryClient.refetchQueries({
-          queryKey: schoolKeys.reservations.root(),
-          type: "active",
-          exact: false,
-        });
-
-        // Step 5: Call refetchReservations to ensure immediate API call
-        await refetchReservations();
-
-        // Step 6: Wait for React Query to update the cache
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        // Step 4: Call refetchReservations
+        void refetchReservations();
 
         // Fetch fresh reservation data immediately after update
         // This ensures if user reopens the dialog, it has the latest data with updated concession_lock status
@@ -940,7 +914,7 @@ const ReservationManagementComponent = () => {
         throw error; // Re-throw to let the dialog handle it
       }
     },
-    [queryClient, refetchReservations]
+    [refetchReservations]
   );
 
   // Memoized route mapping
@@ -1049,13 +1023,6 @@ const ReservationManagementComponent = () => {
         setTimeout(() => {
           const refreshData = async () => {
             try {
-              // Additional API cache clearing
-              try {
-                CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
-              } catch (error) {
-                console.warn("Failed to clear API cache:", error);
-              }
-
               // Mutation hook already handles invalidation, but we ensure refetch callback is called
               await refetchReservations();
             } catch (error) {
@@ -1103,7 +1070,6 @@ const ReservationManagementComponent = () => {
       getPreferredDistanceSlabId,
       transportFee,
       createReservationMutation,
-      queryClient,
       refetchReservations,
     ]
   );
@@ -1389,38 +1355,12 @@ const ReservationManagementComponent = () => {
         payload
       );
 
-      // Comprehensive cache invalidation after update (matching payment pattern)
-      // Step 1: Clear API cache first to ensure fresh network request
-      try {
-        CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
-      } catch (error) {
-        console.warn("Failed to clear API cache:", error);
-      }
+      // Invalidate and refetch using debounced utility (prevents UI freeze)
+      // Note: invalidateAndRefetch handles API cache clearing internally
+      invalidateAndRefetch(schoolKeys.reservations.root());
 
-      // Step 2: Remove queries from cache to force fresh fetch (bypasses staleTime)
-      queryClient.removeQueries({
-        queryKey: schoolKeys.reservations.root(),
-        exact: false,
-      });
-
-      // Step 3: Invalidate all reservation-related queries
-      await queryClient.invalidateQueries({
-        queryKey: schoolKeys.reservations.root(),
-        exact: false,
-      });
-
-      // Step 4: Force refetch active queries (bypasses cache)
-      await queryClient.refetchQueries({
-        queryKey: schoolKeys.reservations.root(),
-        type: "active",
-        exact: false,
-      });
-
-      // Step 5: Call refetch callback and wait for it to complete
-      await refetchReservations();
-
-      // Step 6: Wait for React Query to update the cache
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      // Step 3: Call refetch callback
+      void refetchReservations();
 
       toast({
         title: "Reservation Updated",
@@ -1450,7 +1390,6 @@ const ReservationManagementComponent = () => {
     getPreferredClassId,
     getPreferredDistanceSlabId,
     editTransportFee,
-    queryClient,
     refetchReservations,
   ]);
 
@@ -1461,43 +1400,15 @@ const ReservationManagementComponent = () => {
     }
   }, [reservationsError, reservationsErrObj]);
 
-  // Refetch reservations when Status or All Reservations tab becomes active to ensure fresh data
-  useEffect(() => {
-    if (activeTab === "status" || activeTab === "all") {
-      const refreshData = async () => {
-        // Step 1: Clear API cache
-        try {
-          CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
-        } catch (error) {
-          console.warn("Failed to clear API cache:", error);
-        }
-
-        // Step 2: Remove queries from cache to force fresh fetch (bypasses staleTime)
-        queryClient.removeQueries({
-          queryKey: schoolKeys.reservations.root(),
-          exact: false,
-        });
-
-        // Step 3: Invalidate queries
-        await queryClient.invalidateQueries({
-          queryKey: schoolKeys.reservations.root(),
-          exact: false,
-        });
-
-        // Step 4: Refetch active queries
-        await queryClient.refetchQueries({
-          queryKey: schoolKeys.reservations.root(),
-          type: "active",
-          exact: false,
-        });
-
-        // Step 5: Call refetchReservations
-        await refetchReservations();
-      };
-
-      refreshData().catch(console.error);
-    }
-  }, [activeTab, refetchReservations, queryClient]);
+  // REMOVED: useEffect that was causing infinite loops and UI freezes
+  // React Query automatically handles:
+  // 1. Refetching when tab becomes active (via enabled: activeTab === "all" || activeTab === "status")
+  // 2. Refetching when query key changes (page/pageSize)
+  // 3. Cache invalidation from mutations (handled by invalidateAndRefetch in mutation hooks)
+  // Manual refetch on tab change was causing:
+  // - Infinite loops (refetch → re-render → refetch)
+  // - UI freezes (blocking refetch operations)
+  // - Unnecessary network requests
 
   return (
     <div className="space-y-6 p-6">
@@ -1530,63 +1441,13 @@ const ReservationManagementComponent = () => {
             setReceiptBlobUrl(null);
           }
 
-          // Run data refresh in background - don't block modal close
-          // Use requestIdleCallback or setTimeout with longer delay to ensure modal is fully closed
-          // This prevents UI freeze by ensuring DOM updates complete first
-          const scheduleRefresh = () => {
-            if ('requestIdleCallback' in window) {
-              requestIdleCallback(() => {
-                setTimeout(() => {
-                  refreshDataAfterReceiptClose();
-                }, 200);
-              }, { timeout: 1000 });
-            } else {
-              setTimeout(() => {
-                refreshDataAfterReceiptClose();
-              }, 300);
-            }
-          };
+          // Invalidate and refetch using debounced utility (prevents UI freeze)
+          invalidateAndRefetch(schoolKeys.reservations.root());
 
-          const refreshDataAfterReceiptClose = async () => {
-            try {
-              // Step 1: Clear API cache first to ensure fresh network request
-              try {
-                CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
-              } catch (error) {
-                console.warn("Failed to clear API cache:", error);
-              }
-
-              // Step 2: Remove query data to force fresh fetch
-              queryClient.removeQueries({
-                queryKey: schoolKeys.reservations.list(undefined),
-              });
-
-              // Step 3: Invalidate all reservation-related queries (non-blocking)
-              queryClient.invalidateQueries({
-                queryKey: schoolKeys.reservations.root(),
-                exact: false,
-              }).catch(console.error);
-
-              // Step 4: Force refetch active queries (bypasses cache) - non-blocking
-              queryClient.refetchQueries({
-                queryKey: schoolKeys.reservations.root(),
-                type: "active",
-                exact: false,
-              }).catch(console.error);
-
-              // Step 5: Call refetch callback - non-blocking
-              if (refetchReservations) {
-                refetchReservations().catch(console.error);
-              }
-            } catch (error) {
-              console.error(
-                "Error refreshing data after receipt close:",
-                error
-              );
-            }
-          };
-
-          scheduleRefresh();
+          // Call refetch callback if provided
+          if (refetchReservations) {
+            void refetchReservations();
+          }
         }}
         blobUrl={receiptBlobUrl}
       />
@@ -1713,18 +1574,8 @@ const ReservationManagementComponent = () => {
                     reservationToDelete.reservation_id
                   );
 
-                  // Additional API cache clearing (mutation hook already invalidates, but we clear cache for consistency)
-                  try {
-                    CacheUtils.clearByPattern(/GET:.*\/school\/reservations/i);
-                  } catch (error) {
-                    console.warn("Failed to clear API cache:", error);
-                  }
-
                   // Mutation hook already handles invalidation and refetch, but we ensure refetch callback is called
-                  await refetchReservations();
-
-                  // Wait for React Query to update the cache
-                  await new Promise((resolve) => setTimeout(resolve, 200));
+                  void refetchReservations();
 
                   // Toast handled by mutation hook
                   setShowDeleteDialog(false);
@@ -1777,63 +1628,13 @@ const ReservationManagementComponent = () => {
                     }, 150);
                   });
 
-                  // Run cache invalidation in background - don't block UI
-                  // Use requestIdleCallback or setTimeout with longer delay
-                  const scheduleRefresh = () => {
-                    if ('requestIdleCallback' in window) {
-                      requestIdleCallback(() => {
-                        refreshDataAfterPayment();
-                      }, { timeout: 1000 });
-                    } else {
-                      setTimeout(() => {
-                        refreshDataAfterPayment();
-                      }, 300);
-                    }
-                  };
+                  // Invalidate and refetch using debounced utility (prevents UI freeze)
+                  invalidateAndRefetch(schoolKeys.reservations.root());
 
-                  const refreshDataAfterPayment = async () => {
-                    try {
-                      // Step 1: Clear API cache
-                      try {
-                        CacheUtils.clearByPattern(
-                          /GET:.*\/school\/reservations/i
-                        );
-                      } catch (error) {
-                        console.warn("Failed to clear API cache:", error);
-                      }
-
-                      // Step 2: Remove queries from cache to force fresh fetch (non-blocking)
-                      queryClient.removeQueries({
-                        queryKey: schoolKeys.reservations.root(),
-                        exact: false,
-                      });
-
-                      // Step 3: Invalidate queries (non-blocking)
-                      queryClient.invalidateQueries({
-                        queryKey: schoolKeys.reservations.root(),
-                        exact: false,
-                      }).catch(console.error);
-
-                      // Step 4: Refetch active queries (non-blocking)
-                      queryClient.refetchQueries({
-                        queryKey: schoolKeys.reservations.root(),
-                        type: "active",
-                        exact: false,
-                      }).catch(console.error);
-
-                      // Step 5: Call refetchReservations (non-blocking)
-                      if (refetchReservations) {
-                        refetchReservations().catch(console.error);
-                      }
-                    } catch (error) {
-                      console.error(
-                        "Error refreshing data after payment:",
-                        error
-                      );
-                    }
-                  };
-
-                  scheduleRefresh();
+                  // Call refetch callback if provided
+                  if (refetchReservations) {
+                    void refetchReservations();
+                  }
                 }}
                 onPaymentFailed={(error: string) => {
                   toast({

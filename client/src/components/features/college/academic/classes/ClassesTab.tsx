@@ -1,5 +1,5 @@
-import { useState, memo, useMemo } from "react";
-import { BookOpen, Edit, Trash2 } from "lucide-react";
+import { useState, memo, useMemo, useCallback } from "react";
+import { BookOpen } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
@@ -89,34 +89,27 @@ export const ClassesTab = memo(({
   const handleDeleteClass = async () => {
     if (!selectedClass) return;
 
-    try {
-      // Add delete logic here
+    // Delete functionality not yet implemented - API endpoint missing
       toast({
-        title: "Success",
-        description: "Class deleted successfully",
+      title: "Not Available",
+      description: "Delete functionality is not yet implemented",
+      variant: "destructive",
       });
       
       setSelectedClass(null);
       setIsDeleteDialogOpen(false);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete class",
-        variant: "destructive",
-      });
-    }
   };
 
-  const handleEditClick = (classItem: import("@/lib/types/college").CollegeClassResponse) => {
+  const handleEditClick = useCallback((classItem: import("@/lib/types/college").CollegeClassResponse) => {
     setSelectedClass(classItem);
     setEditClass({ class_name: classItem.class_name });
     setIsEditClassOpen(true);
-  };
+  }, []);
 
-  const handleDeleteClick = (classItem: any) => {
+  const handleDeleteClick = useCallback((classItem: any) => {
     setSelectedClass(classItem);
     setIsDeleteDialogOpen(true);
-  };
+  }, []);
 
   // Define columns for the data table
   const columns: ColumnDef<any>[] = useMemo(() => [
