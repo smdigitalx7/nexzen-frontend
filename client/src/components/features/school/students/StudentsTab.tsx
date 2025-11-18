@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { EnhancedDataTable } from '@/components/shared';
+import { Loader } from '@/components/ui/ProfessionalLoader';
 import { 
   createAvatarColumn, 
   createTextColumn,
@@ -264,6 +265,8 @@ const StudentsTabComponent = () => {
   const [viewStudentId, setViewStudentId] = useState<number | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  // ✅ FIX: Add refreshKey to force table refresh after updates
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Hooks
   const { currentBranch } = useAuthStore();
@@ -271,8 +274,12 @@ const StudentsTabComponent = () => {
   const { data: viewStudentData, isLoading: isViewLoading } = useSchoolStudent(viewStudentId);
   const updateStudentMutation = useUpdateSchoolStudent(selectedStudent?.student_id || 0);
 
-  // Memoized students data
-  const students = useMemo(() => studentsResp?.data ?? [], [studentsResp?.data]);
+  // ✅ FIX: Remove memoization or add dataUpdatedAt to detect changes
+  // Use dataUpdatedAt to ensure we detect when React Query refetches
+  const students = useMemo(() => studentsResp?.data ?? [], [
+    studentsResp?.data,
+    studentsResp?.dataUpdatedAt, // ✅ Add timestamp to detect refetches
+  ]);
 
   // Form setup
   const form = useForm<StudentFormData>({
@@ -313,6 +320,8 @@ const StudentsTabComponent = () => {
       await updateStudentMutation.mutateAsync(data as any);
       setIsEditDialogOpen(false);
       form.reset();
+      // ✅ FIX: Increment refreshKey to force table refresh
+      setRefreshKey(prev => prev + 1);
     } catch (error: any) {
       // Error toast is handled by mutation hook
     }
@@ -354,7 +363,7 @@ const StudentsTabComponent = () => {
   return (
     <div className="space-y-4">
       {isLoading ? (
-        <Card><CardContent className="py-8 text-center">Loading students...</CardContent></Card>
+        <Loader.Table rows={10} columns={5} />
       ) : error ? (
         <Card><CardContent className="py-8 text-center text-red-600">Error loading students</CardContent></Card>
       ) : (
@@ -369,6 +378,7 @@ const StudentsTabComponent = () => {
           actionButtonGroups={actionButtonGroups}
           actionColumnHeader="Actions"
           showActionLabels={true}
+          refreshKey={refreshKey}
         />
       )}
 
@@ -391,7 +401,16 @@ const StudentsTabComponent = () => {
                     <X className="h-4 w-4 mr-2" />Cancel
                   </Button>
                   <Button type="submit" disabled={updateStudentMutation.isPending}>
-                    {updateStudentMutation.isPending ? 'Updating...' : (<><Save className="h-4 w-4 mr-2" />Update Student</>)}
+                    {updateStudentMutation.isPending ? (
+                      <>
+                        <Loader.Button size="sm" />
+                        <span className="ml-2">Updating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />Update Student
+                      </>
+                    )}
                   </Button>
                 </div>
               </form>

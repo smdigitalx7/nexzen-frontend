@@ -3,8 +3,8 @@
  */
 
 import React, { memo, Suspense, lazy, useMemo } from 'react';
-import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader } from '@/components/ui/ProfessionalLoader';
 import { createOptimizedLazyComponent, optimizeImports } from '@/lib/utils/performance/bundleOptimizer';
 
 // Lazy load heavy components with optimization
@@ -82,10 +82,7 @@ export const OptimizedComponent = memo<OptimizedComponentProps>(({
         {showChart && chartData && (
           <Suspense 
             fallback={
-              <div className="flex items-center justify-center h-32">
-                <Loader2 className="h-6 w-6 animate-spin" />
-                <span className="ml-2">Loading chart...</span>
-              </div>
+              <Loader.Data message="Loading chart..." />
             }
           >
             <div className="h-64">

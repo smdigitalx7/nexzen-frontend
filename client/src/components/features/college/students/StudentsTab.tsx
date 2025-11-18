@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { EnhancedDataTable } from '@/components/shared';
+import { Loader } from '@/components/ui/ProfessionalLoader';
 import { 
   createAvatarColumn,
   createTextColumn,
@@ -48,6 +49,8 @@ export const StudentsTab = () => {
   const deleteStudentMutation = useDeleteCollegeStudent();
   const [selectedStudent, setSelectedStudent] = useState<CollegeStudentFullDetails | null>(null);
   const updateStudentMutation = useUpdateCollegeStudent(selectedStudent?.student_id || 0);
+  // ✅ FIX: Add refreshKey to force table refresh after updates
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
@@ -109,6 +112,8 @@ export const StudentsTab = () => {
       await updateStudentMutation.mutateAsync(data as any);
       setIsEditDialogOpen(false);
       form.reset();
+      // ✅ FIX: Increment refreshKey to force table refresh
+      setRefreshKey(prev => prev + 1);
     } catch (error: any) {
       // Error toast is handled by mutation hook
     }
@@ -137,7 +142,7 @@ export const StudentsTab = () => {
   return (
     <div className="space-y-4">
       {isLoading ? (
-        <Card><CardContent className="py-8 text-center">Loading students...</CardContent></Card>
+        <Loader.Table rows={10} columns={5} />
       ) : error ? (
         <Card><CardContent className="py-8 text-center text-red-600">Error loading students</CardContent></Card>
       ) : (
@@ -152,6 +157,7 @@ export const StudentsTab = () => {
           actionButtonGroups={actionButtonGroups}
           actionColumnHeader="Actions"
           showActionLabels={true}
+          refreshKey={refreshKey}
         />
       )}
 
@@ -220,7 +226,16 @@ export const StudentsTab = () => {
                   <X className="h-4 w-4 mr-2" />Cancel
                 </Button>
                 <Button type="submit" disabled={updateStudentMutation.isPending}>
-                  {updateStudentMutation.isPending ? 'Updating...' : (<><Save className="h-4 w-4 mr-2" />Update Student</>)}
+                  {updateStudentMutation.isPending ? (
+                    <>
+                      <Loader.Button size="sm" />
+                      <span className="ml-2">Updating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />Update Student
+                    </>
+                  )}
                 </Button>
               </div>
             </form>

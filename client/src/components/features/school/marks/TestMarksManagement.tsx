@@ -44,7 +44,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { EnhancedDataTable } from "@/components/shared";
-import { LoadingStates } from "@/components/ui/loading";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 import { useSearchFilters } from "@/lib/hooks/common";
 import {
   SchoolClassDropdown,
@@ -208,13 +208,14 @@ const TestMarksManagementComponent = ({
   const calculateGrade = useMemo(() => createCalculateGradeFunction(grades), [grades]);
   
   // Get enrollments filtered by class and section
+  // ✅ FIX: Reduced page size from 1000 to 100 to prevent UI freezes
   const enrollmentsParams = useMemo(() => {
     if (!selectedClass) return undefined;
     return {
       class_id: selectedClass,
       section_id: selectedSection || undefined,
       page: 1,
-      page_size: 1000,
+      page_size: 100, // Reduced from 1000 to prevent UI freezes
     };
   }, [selectedClass, selectedSection]);
 

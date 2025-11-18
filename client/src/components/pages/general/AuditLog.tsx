@@ -40,10 +40,10 @@ import {
 } from "@/components/ui/tooltip";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 import {
   Download,
   RefreshCw,
-  Loader2,
   Trash2,
   ChevronLeft,
   AlertCircle,
@@ -328,7 +328,7 @@ function SummaryTab() {
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader.Button size="xs" />
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
@@ -355,7 +355,7 @@ function SummaryTab() {
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <Loader.Data message="Loading audit logs..." />
             </div>
           ) : error ? (
             <div className="text-center py-12 text-destructive">
@@ -782,7 +782,7 @@ function LogsTab() {
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader.Button size="xs" />
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
@@ -848,7 +848,7 @@ function LogsTab() {
                         }
                       >
                         {(deleteLogsMutation.isPending || deleteLogsByIdsMutation.isPending) ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Loader.Button size="xs" />
                         ) : (
                           <Trash2 className="h-4 w-4" />
                         )}
@@ -869,7 +869,7 @@ function LogsTab() {
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <Loader.Data message="Loading audit logs..." />
             </div>
           ) : error ? (
             <div className="text-center py-12 text-destructive">

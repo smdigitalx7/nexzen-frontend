@@ -14,7 +14,7 @@ import type {
 } from "@/components/shared/payment/types/PaymentTypes";
 import { handleSchoolPayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/lib/api-school";
 import { useToast } from "@/hooks/use-toast";
-import { invalidateAndRefetch } from "@/lib/hooks/common/useGlobalRefetch";
+import { batchInvalidateAndRefetch } from "@/lib/hooks/common/useGlobalRefetch";
 import { schoolKeys } from "@/lib/hooks/school/query-keys";
 import { EnrollmentsService } from "@/lib/services/school/enrollments.service";
 import { SchoolTuitionFeeBalancesService } from "@/lib/services/school/tuition-fee-balances.service";
@@ -125,8 +125,10 @@ export const CollectFee = ({
     }
   }, [setSearchQuery, updateUrlWithAdmission, setSearchResults, toast]);
 
-  // Re-search the student after successful payment
+  // ✅ FIX: Re-search the student after successful payment with proper delay
   const reSearchStudent = useCallback(async (admissionNo: string) => {
+    // Small delay to ensure React Query cache is updated
+    await new Promise((resolve) => setTimeout(resolve, 100));
     await searchStudent(admissionNo, true);
   }, [searchStudent]);
 
@@ -180,12 +182,14 @@ export const CollectFee = ({
 
       paymentSuccessRef.current = paymentData.admissionNo;
 
-      // Invalidate and refetch queries using debounced utility (prevents UI freeze)
-      invalidateAndRefetch(schoolKeys.students.root());
-      invalidateAndRefetch(schoolKeys.enrollments.root());
-      invalidateAndRefetch(schoolKeys.tuition.root());
-      invalidateAndRefetch(schoolKeys.transport.root());
-      invalidateAndRefetch(schoolKeys.income.root());
+      // ✅ FIX: Batch invalidate all queries together to prevent UI freeze
+      batchInvalidateAndRefetch([
+        schoolKeys.students.root(),
+        schoolKeys.enrollments.root(),
+        schoolKeys.tuition.root(),
+        schoolKeys.transport.root(),
+        schoolKeys.income.root(),
+      ]);
 
       return result;
     } catch (error) {

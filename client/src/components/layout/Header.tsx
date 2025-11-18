@@ -6,9 +6,9 @@ import {
   Settings,
   LogOut,
   Search,
-  Loader2,
   X,
 } from "lucide-react";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -123,16 +123,7 @@ const Header = () => {
     if (isSearching) {
       return (
         <div className="flex flex-col items-center justify-center py-16">
-          <div className="relative">
-            <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-4" />
-            <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl animate-pulse" />
-          </div>
-          <p className="text-sm font-medium text-slate-700 mt-2">
-            Searching...
-          </p>
-          <p className="text-xs text-slate-400 mt-1">
-            Please wait while we find the student
-          </p>
+          <Loader.Data message="Searching... Please wait while we find the student" />
         </div>
       );
     }
@@ -325,7 +316,7 @@ const Header = () => {
                 />
                 {isSearching && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
-                    <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                    <Loader.Button size="xs" />
                   </div>
                 )}
               </div>

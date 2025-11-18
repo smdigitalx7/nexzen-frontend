@@ -1,8 +1,9 @@
 import * as React from "react";
-import { Check, ChevronsUpDown, Loader2, X } from "lucide-react";
+import { Check, ChevronsUpDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 import { EmployeesService } from "@/lib/services/general/employees.service";
 import type { EmployeeRead } from "@/lib/types/general/employees";
 
@@ -176,10 +177,7 @@ export function EmployeeSelect({
           {/* Employee List */}
           <div className="overflow-y-auto max-h-48">
             {isLoading ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">Loading...</span>
-              </div>
+              <Loader.Data message="Loading..." />
             ) : filteredEmployees.length === 0 ? (
               <div className="px-4 py-6 text-center text-sm text-muted-foreground">
                 No employee found.

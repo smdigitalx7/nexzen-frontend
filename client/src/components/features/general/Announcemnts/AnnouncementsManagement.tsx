@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Plus, AlertTriangle, Info, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -53,18 +53,20 @@ const AnnouncementsManagement = () => {
   const updateAnnouncementMutation = useUpdateAnnouncement();
   const deleteAnnouncementMutation = useDeleteAnnouncement();
 
-  // Apply all frontend filters
-  const filteredAnnouncements = announcements.filter((announcement) => {
-    const matchesSearch =
-      announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      announcement.content.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "all" || announcement.announcement_type.toLowerCase() === selectedCategory;
-    const matchesPriority =
-      selectedPriority === "all" || announcement.priority.toLowerCase() === selectedPriority;
-    
-    return matchesSearch && matchesCategory && matchesPriority;
-  });
+  // ✅ FIX: Memoize expensive filter operation to prevent re-computation on every render
+  const filteredAnnouncements = useMemo(() => {
+    return announcements.filter((announcement) => {
+      const matchesSearch =
+        announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        announcement.content.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory =
+        selectedCategory === "all" || announcement.announcement_type.toLowerCase() === selectedCategory;
+      const matchesPriority =
+        selectedPriority === "all" || announcement.priority.toLowerCase() === selectedPriority;
+      
+      return matchesSearch && matchesCategory && matchesPriority;
+    });
+  }, [announcements, searchTerm, selectedCategory, selectedPriority]);
 
   const getPriorityIcon = (priority: string) => {
     switch (priority) {

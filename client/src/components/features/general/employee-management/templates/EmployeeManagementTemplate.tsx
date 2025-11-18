@@ -44,6 +44,9 @@ export const EmployeeManagementTemplate = () => {
   const { data: leaveDashboardStats, isLoading: leaveDashboardLoading } = useLeaveDashboard();
   const { data: advanceDashboardStats, isLoading: advanceDashboardLoading } = useAdvanceDashboard();
   
+  // ✅ FIX: Aggregate loading states from all parallel dashboard queries
+  const isDashboardLoading = dashboardLoading || attendanceDashboardLoading || leaveDashboardLoading || advanceDashboardLoading;
+  
   const {
     // Data
     employees,

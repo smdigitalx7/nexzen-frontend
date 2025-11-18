@@ -5,7 +5,8 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { CreditCard, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader } from '@/components/ui/ProfessionalLoader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -190,7 +191,7 @@ export const PaymentSummary: React.FC<PaymentSummaryProps> = ({
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader.Button size="sm" className="mr-2" />
                 Processing...
               </>
             ) : (
@@ -210,7 +211,7 @@ export const PaymentSummary: React.FC<PaymentSummaryProps> = ({
             className="bg-blue-50 border border-blue-200 rounded-lg p-3"
           >
             <div className="flex items-center gap-2 text-sm text-blue-800">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader.Button size="xs" />
               <span>Processing your payment. Please wait...</span>
             </div>
           </motion.div>

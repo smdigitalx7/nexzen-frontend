@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Bus, Route } from "lucide-react";
 import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
@@ -37,7 +37,8 @@ const TransportManagement = () => {
   const createRouteMutation = useCreateBusRoute();
   const updateRouteMutation = useUpdateBusRoute();
 
-  const busRoutes = routesData.map((r: BusRouteRead) => ({
+  // ✅ FIX: Memoize expensive map operation to prevent re-computation on every render
+  const busRoutes = useMemo(() => routesData.map((r: BusRouteRead) => ({
     id: r.bus_route_id,
     route_number: r.route_no || "-",
     route_name: r.route_name || "-",
@@ -61,7 +62,7 @@ const TransportManagement = () => {
     students_count: 0, // This would need to be calculated from student transport assignments
     fuel_cost: 0, // Not available in current schema
     maintenance_cost: 0, // Not available in current schema
-  }));
+  })), [routesData]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isTabSwitching, setIsTabSwitching] = useState(false);
@@ -73,26 +74,39 @@ const TransportManagement = () => {
     setTimeout(() => setIsTabSwitching(false), 300);
   };
 
-  // Calculate overview metrics
-  const totalStudents = busRoutes.reduce(
-    (sum, route) => sum + route.students_count,
-    0
-  );
-  const totalCapacity = busRoutes.reduce(
-    (sum, route) => sum + route.vehicle_capacity,
-    0
-  );
-  const overallUtilization =
-    totalCapacity > 0 ? (totalStudents / totalCapacity) * 100 : 0;
-  const totalFuelCost = busRoutes.reduce(
-    (sum, route) => sum + (route.fuel_cost || 0),
-    0
-  );
-  const totalMaintenanceCost = busRoutes.reduce(
-    (sum, route) => sum + (route.maintenance_cost || 0),
-    0
-  );
-  const activeRoutes = busRoutes.filter((r) => r.active).length;
+  // ✅ FIX: Memoize expensive reduce/filter operations to prevent re-computation on every render
+  const overviewMetrics = useMemo(() => {
+    const totalStudents = busRoutes.reduce(
+      (sum, route) => sum + route.students_count,
+      0
+    );
+    const totalCapacity = busRoutes.reduce(
+      (sum, route) => sum + route.vehicle_capacity,
+      0
+    );
+    const overallUtilization =
+      totalCapacity > 0 ? (totalStudents / totalCapacity) * 100 : 0;
+    const totalFuelCost = busRoutes.reduce(
+      (sum, route) => sum + (route.fuel_cost || 0),
+      0
+    );
+    const totalMaintenanceCost = busRoutes.reduce(
+      (sum, route) => sum + (route.maintenance_cost || 0),
+      0
+    );
+    const activeRoutes = busRoutes.filter((r) => r.active).length;
+    
+    return {
+      totalStudents,
+      totalCapacity,
+      overallUtilization,
+      totalFuelCost,
+      totalMaintenanceCost,
+      activeRoutes,
+    };
+  }, [busRoutes]);
+
+  const { totalStudents, totalCapacity, overallUtilization, totalFuelCost, totalMaintenanceCost, activeRoutes } = overviewMetrics;
 
   return (
     <div className="space-y-6 p-6">

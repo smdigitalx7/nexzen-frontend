@@ -17,12 +17,16 @@ const AcademicYearSwitcher = () => {
   const { academicYear, academicYears, switchAcademicYear } = useAuthStore();
   const { data: academicYearsData } = useAcademicYears();
 
-  const handleAcademicYearSwitch = async (year: any) => {
+  const handleAcademicYearSwitch = (year: any) => {
     try {
-      await switchAcademicYear(year);
-      // Academic year switching doesn't need URL change or reload
-      // Just trigger a custom event for components to refresh their data
+      // Switch academic year (this will clear cache and refetch all queries)
+      switchAcademicYear(year);
+      
+      // ✅ SMOOTH SWITCH: Cache has been cleared and queries refetched
+      // Trigger custom event for components that need to react to academic year change
       window.dispatchEvent(new Event('academic-year-switched'));
+      
+      console.log(`Academic year switched to ${year.year_name} - cache cleared and data refreshed`);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Failed to switch academic year:", error);

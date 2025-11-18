@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send } from "lucide-react";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -304,7 +305,7 @@ const AnnouncementFormDialog = ({
             disabled={isLoading}
           >
             {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader.Button size="sm" className="mr-2" />
             ) : (
               <Send className="h-4 w-4" />
             )}

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,25 +6,11 @@ import { Toaster } from "@/components/ui/toaster";
 import ProductionErrorBoundary from "./ProductionErrorBoundary";
 import { config, configUtils } from "@/lib/config/production";
 import { productionUtils } from "@/lib/utils/performance/production-optimizations";
-import { LoadingStates } from "@/components/ui/loading";
+import { Loader } from "@/components/ui/ProfessionalLoader";
+import { useAuthStore } from "@/store/authStore";
 
-// Loading component
-const LoadingFallback = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="flex flex-col items-center space-y-4">
-      {/* Simple circle spinner */}
-      <div className="relative">
-        <div className="w-12 h-12 border-4 border-primary/20 rounded-full"></div>
-        <div className="absolute top-0 left-0 w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-
-      {/* Message */}
-      <p className="text-sm font-medium text-muted-foreground">
-        Loading application...
-      </p>
-    </div>
-  </div>
-);
+// ✅ FIX: Use professional loader for consistent UX
+const LoadingFallback = () => <Loader.Page message="Loading application..." />;
 
 // Error fallback component
 const ErrorFallback = ({
@@ -67,6 +53,25 @@ interface ProductionAppProps {
 }
 
 export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
+  const { isBranchSwitching } = useAuthStore();
+  const [isAcademicYearSwitching, setIsAcademicYearSwitching] = useState(false);
+
+  // Listen for academic year switch events
+  useEffect(() => {
+    const handleAcademicYearSwitch = () => {
+      setIsAcademicYearSwitching(true);
+      // Reset after a short delay to allow queries to refetch
+      setTimeout(() => {
+        setIsAcademicYearSwitching(false);
+      }, 500);
+    };
+
+    window.addEventListener('academic-year-switched', handleAcademicYearSwitch);
+    return () => {
+      window.removeEventListener('academic-year-switched', handleAcademicYearSwitch);
+    };
+  }, []);
+
   // Initialize production utilities
   useEffect(() => {
     // Setup global error handling (always enabled for better error tracking)
@@ -152,7 +157,21 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
     >
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <div className="min-h-screen bg-background text-foreground">
+          <div className="min-h-screen bg-background text-foreground relative">
+            {/* Global loading overlay during branch/academic year switch */}
+            {(isBranchSwitching || isAcademicYearSwitching) && (
+              <div className="fixed inset-0 z-[9999] bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                <div className="text-center space-y-4">
+                  <Loader.Page 
+                    message={
+                      isBranchSwitching 
+                        ? "Switching branch and refreshing data..." 
+                        : "Switching academic year and refreshing data..."
+                    } 
+                  />
+                </div>
+              </div>
+            )}
             {children}
           </div>
           <Toaster />

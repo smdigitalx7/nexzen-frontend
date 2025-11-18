@@ -574,6 +574,15 @@ const ReservationManagementComponent = () => {
     setSelectedReservationForConcession,
   ] = useState<SchoolReservationRead | null>(null);
 
+  // ✅ FIX: Cleanup blob URL on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (receiptBlobUrl) {
+        URL.revokeObjectURL(receiptBlobUrl);
+      }
+    };
+  }, [receiptBlobUrl]);
+
   // Track dropdown opens for lazy loading
   const [dropdownsOpened, setDropdownsOpened] = useState({
     classes: false,

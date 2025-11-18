@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, memo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
-import { useQueryClient } from "@tanstack/react-query";
+import { batchInvalidateAndRefetch } from "@/lib/hooks/common/useGlobalRefetch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -55,7 +55,6 @@ const StatusBadge = memo(({ status }: { status: string }) => {
 StatusBadge.displayName = "StatusBadge";
 
 const AdmissionsList = () => {
-  const queryClient = useQueryClient();
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(
     null
   );
@@ -189,14 +188,12 @@ const AdmissionsList = () => {
         variant: "success",
       });
 
-      // Invalidate admissions cache to refresh the list
-      void queryClient.invalidateQueries({ queryKey: ["college", "admissions"] });
-      // Refetch the current admission to update the status
+      // ✅ FIX: Batch invalidate queries to prevent UI freeze
+      const keysToInvalidate: any[] = [["college", "admissions"]];
       if (selectedStudentId) {
-        void queryClient.invalidateQueries({ 
-          queryKey: ["college", "admissions", selectedStudentId] 
-        });
+        keysToInvalidate.push(["college", "admissions", selectedStudentId]);
       }
+      batchInvalidateAndRefetch(keysToInvalidate);
     } catch (error: any) {
       console.error("Payment failed:", error);
       // Show error in the dialog instead of toast
@@ -207,18 +204,16 @@ const AdmissionsList = () => {
     } finally {
       setIsProcessingPayment(false);
     }
-  }, [selectedAdmission, queryClient, selectedStudentId]);
+  }, [selectedAdmission, selectedStudentId]);
 
   const handleCloseReceiptModal = useCallback(() => {
     setShowReceiptModal(false);
     setReceiptBlobUrl(null);
-    // Refetch admission details to show updated status
+    // ✅ FIX: Batch invalidate queries to prevent UI freeze
     if (selectedStudentId) {
-      void queryClient.invalidateQueries({ 
-        queryKey: ["college", "admissions", selectedStudentId] 
-      });
+      batchInvalidateAndRefetch([["college", "admissions", selectedStudentId]]);
     }
-  }, [selectedStudentId, queryClient]);
+  }, [selectedStudentId]);
 
   // Memoized action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => [

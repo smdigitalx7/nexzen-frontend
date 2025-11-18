@@ -1,7 +1,7 @@
 import React, { Suspense, Component, ErrorInfo, ReactNode } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Loading, LoadingStates } from "@/components/ui/loading";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 
 interface LazyLoadingWrapperProps {
   children: ReactNode;
@@ -58,19 +58,12 @@ class SimpleErrorBoundary extends Component<
   }
 }
 
-// Simple Loading Spinner - full screen to match Router hydration loader
+// ✅ FIX: Use professional loader for consistent UX
 const SimpleLoadingSpinner = ({
   message = "Loading...",
 }: {
   message?: string;
-}) => (
-  <div className="flex items-center justify-center h-screen">
-    <div className="text-center">
-      <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-      <p className="text-sm text-muted-foreground">{message}</p>
-    </div>
-  </div>
-);
+}) => <Loader.Page message={message} />;
 
 // Simple Error Fallback Component
 const ErrorFallback = ({

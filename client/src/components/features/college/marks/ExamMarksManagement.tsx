@@ -149,13 +149,14 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
   const calculateGrade = useMemo(() => createCalculateGradeFunction(grades), [grades]);
 
   // Get enrollments filtered by class and group
+  // ✅ FIX: Reduced page size from 1000 to 100 to prevent UI freezes
   const enrollmentsParams = useMemo(() => {
     if (!selectedClass || !selectedGroup) return undefined;
     return {
       class_id: selectedClass,
       group_id: selectedGroup,
       page: 1,
-      pageSize: 1000,
+      pageSize: 100, // Reduced from 1000 to prevent UI freezes
     };
   }, [selectedClass, selectedGroup]);
 

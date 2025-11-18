@@ -416,8 +416,10 @@ let cleanupInterval: NodeJS.Timeout | null = null;
 export const setupCacheCleanup = () => {
   const cache = useCacheStore.getState();
   
+  // ✅ FIX: Clear existing interval before creating new one
   if (cleanupInterval) {
     clearInterval(cleanupInterval);
+    cleanupInterval = null;
   }
   
   cleanupInterval = setInterval(() => {
@@ -426,8 +428,12 @@ export const setupCacheCleanup = () => {
 };
 
 export const stopCacheCleanup = () => {
+  // ✅ FIX: Properly stop cleanup interval to prevent memory leaks
   if (cleanupInterval) {
     clearInterval(cleanupInterval);
     cleanupInterval = null;
   }
 };
+
+// ✅ FIX: Export function to check if cleanup is running
+export const isCacheCleanupRunning = () => cleanupInterval !== null;

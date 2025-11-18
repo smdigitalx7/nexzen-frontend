@@ -4,11 +4,11 @@ import {
   CreditCard,
   CheckCircle,
   XCircle,
-  Loader2,
   AlertCircle,
   User,
   IndianRupee,
 } from "lucide-react";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -154,7 +154,7 @@ const ReservationPaymentProcessor: React.FC<
       case "failed":
         return XCircle;
       case "processing":
-        return Loader2;
+        return () => <Loader.Button size="sm" />;
       default:
         return CreditCard;
     }
@@ -361,7 +361,7 @@ const ReservationPaymentProcessor: React.FC<
 
             {currentStep === "processing" && (
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader.Button size="xs" />
                 <span>Recording payment method...</span>
               </div>
             )}

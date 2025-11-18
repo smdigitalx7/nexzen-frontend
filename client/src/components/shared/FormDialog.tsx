@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ButtonLoading } from '@/components/ui/loading';
+import { Loader } from '@/components/ui/ProfessionalLoader';
 import { DIALOG_SIZES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
@@ -183,7 +183,7 @@ export const FormDialog: React.FC<FormDialogProps> = ({
                 onClick={onSave}
                 disabled={disabled || isLoading || (showStatusUpdate && newStatus === currentStatus)}
               >
-                {isLoading && <span className="mr-2"><ButtonLoading size="sm" /></span>}
+                {isLoading && <span className="mr-2"><Loader.Button size="sm" /></span>}
                 {showStatusUpdate ? statusUpdateText : saveText}
               </Button>
             )}

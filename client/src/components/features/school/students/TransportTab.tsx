@@ -49,13 +49,14 @@ const TransportTabComponent = () => {
   const { distanceSlabs } = useDistanceSlabs();
   
   // Get enrollments filtered by class and section
+  // ✅ FIX: Reduced page size from 1000 to 100 to prevent UI freezes
   const enrollmentsParams = useMemo(() => {
     if (!query.class_id) return undefined;
     return {
       class_id: Number(query.class_id),
       section_id: query.section_id ? Number(query.section_id) : undefined,
       page: 1,
-      page_size: 1000,
+      page_size: 100, // Reduced from 1000 to prevent UI freezes
     };
   }, [query.class_id, query.section_id]);
   

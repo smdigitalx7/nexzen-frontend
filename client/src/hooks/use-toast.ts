@@ -6,7 +6,7 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_REMOVE_DELAY = 5000 // 5 seconds instead of 16.6 minutes
 
 type ToasterToast = ToastProps & {
   id: string
@@ -171,6 +171,8 @@ function toast({ ...props }: Toast) {
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
+  // ✅ FIX: Empty deps - run once on mount to prevent infinite loops
+  // setState function reference is stable, so we don't need it in deps
   React.useEffect(() => {
     listeners.push(setState)
     return () => {
@@ -179,7 +181,16 @@ function useToast() {
         listeners.splice(index, 1)
       }
     }
-  }, [state])
+  }, []) // ✅ Empty deps - prevents infinite re-renders
+
+  // ✅ FIX: Cleanup toast timeouts on unmount to prevent memory leaks
+  React.useEffect(() => {
+    return () => {
+      // Clear all pending timeouts when component unmounts
+      toastTimeouts.forEach((timeout) => clearTimeout(timeout))
+      toastTimeouts.clear()
+    }
+  }, [])
 
   return {
     ...state,

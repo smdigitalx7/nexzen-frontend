@@ -10,11 +10,11 @@ import {
   AlertCircle,
   CreditCard,
   FileText,
-  Loader2,
   CheckCircle,
   Sparkles,
   X,
 } from "lucide-react";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -401,7 +401,7 @@ export const PaymentItemsList = memo<PaymentItemsListProps>(
                       className="border border-blue-200 bg-blue-50/50 rounded-lg p-3.5"
                     >
                       <div className="flex items-center gap-2.5 text-sm text-blue-800">
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader.Button size="xs" />
                         <span className="font-medium">
                           Processing your payment. Please wait...
                         </span>

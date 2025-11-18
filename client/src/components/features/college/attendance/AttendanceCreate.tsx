@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { CollegeClassDropdown, CollegeGroupDropdown } from '@/components/shared/Dropdowns';
 import { useBulkCreateCollegeAttendance } from '@/lib/hooks/college';
-import { Calendar, Users, CalendarDays, FileCheck, Loader2 } from 'lucide-react';
+import { Calendar, Users, CalendarDays, FileCheck } from 'lucide-react';
+import { Loader } from '@/components/ui/ProfessionalLoader';
 
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -246,7 +247,7 @@ export default function AttendanceCreate() {
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader.Button size="sm" className="mr-2" />
                   Creating...
                 </>
               ) : (

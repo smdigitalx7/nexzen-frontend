@@ -27,10 +27,10 @@ import {
 } from "@/lib/utils/export/admissionsExport";
 import type { SchoolAdmissionDetails, SchoolAdmissionListItem } from "@/lib/types/school/admissions";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { CircleSpinner } from "@/components/ui/loading";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 import { ReceiptPreviewModal } from "@/components/shared";
 import { handleSchoolPayByAdmissionWithIncomeId } from "@/lib/api-school";
-import { useQueryClient } from "@tanstack/react-query";
+import { batchInvalidateAndRefetch } from "@/lib/hooks/common/useGlobalRefetch";
 
 // Memoized status badge component
 const StatusBadge = memo(({ status }: { status: string }) => {
@@ -404,7 +404,6 @@ const DialogHeader = memo(({
 DialogHeader.displayName = "DialogHeader";
 
 const AdmissionsListComponent = () => {
-  const queryClient = useQueryClient();
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(
     null
   );
@@ -542,14 +541,12 @@ const AdmissionsListComponent = () => {
         variant: "success",
       });
 
-      // Invalidate admissions cache to refresh the list
-      void queryClient.invalidateQueries({ queryKey: ["school", "admissions"] });
-      // Refetch the current admission to update the status
+      // ✅ FIX: Batch invalidate queries to prevent UI freeze
+      const keysToInvalidate: any[] = [["school", "admissions"]];
       if (selectedStudentId) {
-        void queryClient.invalidateQueries({ 
-          queryKey: ["school", "admissions", selectedStudentId] 
-        });
+        keysToInvalidate.push(["school", "admissions", selectedStudentId]);
       }
+      batchInvalidateAndRefetch(keysToInvalidate);
     } catch (error: any) {
       console.error("Payment failed:", error);
       // Close payment dialog even on error
@@ -564,18 +561,16 @@ const AdmissionsListComponent = () => {
     } finally {
       setIsProcessingPayment(false);
     }
-  }, [selectedAdmission, queryClient, selectedStudentId]);
+  }, [selectedAdmission, selectedStudentId]);
 
   const handleCloseReceiptModal = useCallback(() => {
     setShowReceiptModal(false);
     setReceiptBlobUrl(null);
-    // Refetch admission details to show updated status
+    // ✅ FIX: Batch invalidate queries to prevent UI freeze
     if (selectedStudentId) {
-      void queryClient.invalidateQueries({ 
-        queryKey: ["school", "admissions", selectedStudentId] 
-      });
+      batchInvalidateAndRefetch([["school", "admissions", selectedStudentId]]);
     }
-  }, [selectedStudentId, queryClient]);
+  }, [selectedStudentId]);
 
   // Memoized action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => [
@@ -669,9 +664,7 @@ const AdmissionsListComponent = () => {
       >
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto scrollbar-hide" style={{ zIndex: 9999 }}>
           {isLoadingAdmission ? (
-            <div className="flex items-center justify-center py-12">
-              <CircleSpinner size="lg" message="Loading admission details..." />
-            </div>
+            <Loader.Data message="Loading admission details..." />
           ) : selectedAdmission ? (
             <>
               <DialogHeader

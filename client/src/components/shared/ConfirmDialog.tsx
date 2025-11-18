@@ -9,7 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ButtonLoading } from '@/components/ui/loading';
+import { Loader } from '@/components/ui/ProfessionalLoader';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -73,7 +73,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             className={variant === 'destructive' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
             asChild={false}
           >
-            {isLoading && <span className="mr-2"><ButtonLoading size="sm" /></span>}
+            {isLoading && <span className="mr-2"><Loader.Button size="sm" /></span>}
             {confirmText}
           </AlertDialogAction>
         </AlertDialogFooter>

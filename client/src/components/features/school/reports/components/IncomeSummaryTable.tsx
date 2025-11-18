@@ -1,11 +1,15 @@
-import { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Printer, Loader2 } from "lucide-react";
+import { Printer } from "lucide-react";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 import { SchoolIncomeService } from "@/lib/services/school";
-import type { SchoolIncomeSummary, SchoolIncomeSummaryParams } from "@/lib/types/school/income";
+import type {
+  SchoolIncomeSummary,
+  SchoolIncomeSummaryParams,
+} from "@/lib/types/school/income";
 import { ViewIncomeDialog } from "./ViewIncomeDialog";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { createCurrencyColumn } from "@/lib/utils/factory/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -14,6 +18,15 @@ import { Badge } from "@/components/ui/badge";
 import { handleRegenerateReceipt } from "@/lib/api";
 import { ReceiptPreviewModal } from "@/components/shared";
 import { toast } from "@/hooks/use-toast";
+
+// ✅ FIX: Create a proper component wrapper for Loader.Button that accepts className
+// Moved outside component to prevent recreation on every render
+const LoadingIcon = React.memo<{ className?: string }>(({ className }) => (
+  <div className={className}>
+    <Loader.Button size="xs" />
+  </div>
+));
+LoadingIcon.displayName = "LoadingIcon";
 
 interface IncomeSummaryTableProps {
   onExportCSV?: () => void;
@@ -27,30 +40,33 @@ export const IncomeSummaryTable = ({
   // View dialog state
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [viewIncomeId, setViewIncomeId] = useState<number | null>(null);
-  
+
   // Receipt modal state
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
   const [loadingReceiptId, setLoadingReceiptId] = useState<number | null>(null);
-  
+
   // Build query parameters
   const queryParams: SchoolIncomeSummaryParams = {};
 
   // Fetch income summary data
-  const { 
-    data: incomeData, 
-    isLoading, 
-    error, 
-    refetch 
+  const {
+    data: incomeData,
+    isLoading,
+    error,
+    refetch,
   } = useQuery({
-    queryKey: ['school-income-summary', queryParams],
+    queryKey: ["school-income-summary", queryParams],
     queryFn: () => SchoolIncomeService.getIncomeSummary(queryParams),
   });
 
-
   // Fetch income receipt for viewing
-  const { data: viewReceipt, isLoading: isViewLoading, error: viewError } = useQuery({
-    queryKey: ['school-income-receipt-view', viewIncomeId],
+  const {
+    data: viewReceipt,
+    isLoading: isViewLoading,
+    error: viewError,
+  } = useQuery({
+    queryKey: ["school-income-receipt-view", viewIncomeId],
     queryFn: () => SchoolIncomeService.getIncomeReceipt(viewIncomeId!),
     enabled: !!viewIncomeId,
   });
@@ -66,38 +82,47 @@ export const IncomeSummaryTable = ({
   };
 
   // Handle print receipt action
-  const handlePrintReceipt = useCallback(async (income: SchoolIncomeSummary) => {
-    if (!income || !income.income_id) {
-      toast({
-        title: "Receipt Not Available",
-        description: "This income record does not have a valid income ID.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handlePrintReceipt = useCallback(
+    async (income: SchoolIncomeSummary) => {
+      if (!income || !income.income_id) {
+        toast({
+          title: "Receipt Not Available",
+          description: "This income record does not have a valid income ID.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    setLoadingReceiptId(income.income_id);
-    try {
-      const blobUrl = await handleRegenerateReceipt(income.income_id, 'school');
-      setReceiptBlobUrl(blobUrl);
-      setShowReceiptModal(true);
-      
-      toast({
-        title: "Receipt Generated",
-        description: "Receipt has been generated and is ready for viewing.",
-        variant: "success",
-      });
-    } catch (error) {
-      console.error("Receipt regeneration failed:", error);
-      toast({
-        title: "Receipt Generation Failed",
-        description: error instanceof Error ? error.message : "An unexpected error occurred.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingReceiptId(null);
-    }
-  }, []);
+      setLoadingReceiptId(income.income_id);
+      try {
+        const blobUrl = await handleRegenerateReceipt(
+          income.income_id,
+          "school"
+        );
+        setReceiptBlobUrl(blobUrl);
+        setShowReceiptModal(true);
+
+        toast({
+          title: "Receipt Generated",
+          description: "Receipt has been generated and is ready for viewing.",
+          variant: "success",
+        });
+      } catch (error) {
+        console.error("Receipt regeneration failed:", error);
+        toast({
+          title: "Receipt Generation Failed",
+          description:
+            error instanceof Error
+              ? error.message
+              : "An unexpected error occurred.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingReceiptId(null);
+      }
+    },
+    []
+  );
 
   const handleCloseReceiptModal = useCallback(() => {
     setShowReceiptModal(false);
@@ -107,74 +132,83 @@ export const IncomeSummaryTable = ({
     }
   }, [receiptBlobUrl]);
 
-
   // Define columns for EnhancedDataTable
   const columns: ColumnDef<SchoolIncomeSummary>[] = [
     {
-      accessorKey: 'created_at',
-      header: 'Date',
+      accessorKey: "created_at",
+      header: "Date",
       cell: ({ row }) => formatDate(row.getValue("created_at")),
     },
     {
-      accessorKey: 'receipt_no',
-      header: 'Receipt No',
+      accessorKey: "receipt_no",
+      header: "Receipt No",
       cell: ({ row }) => row.getValue("receipt_no") || "-",
     },
     {
-      accessorKey: 'student_name',
-      header: 'Student',
+      accessorKey: "student_name",
+      header: "Student",
       cell: ({ row }) => row.getValue("student_name") || "-",
     },
     {
-      accessorKey: 'identity_no',
-      header: 'Admission/Reservation No',
+      accessorKey: "identity_no",
+      header: "Admission/Reservation No",
       cell: ({ row }) => row.getValue("identity_no") || "-",
     },
     {
-      accessorKey: 'purpose',
-      header: 'Purpose',
+      accessorKey: "purpose",
+      header: "Purpose",
       cell: ({ row }) => {
         const purpose = row.getValue("purpose");
         return (
           <Badge variant="secondary" className="max-w-[200px] truncate">
-            {purpose && typeof purpose === 'string' ? purpose : "-"}
+            {purpose && typeof purpose === "string" ? purpose : "-"}
           </Badge>
         );
       },
     },
-    createCurrencyColumn<SchoolIncomeSummary>("total_amount", { 
+    createCurrencyColumn<SchoolIncomeSummary>("total_amount", {
       header: "Amount",
       className: "text-green-600 font-bold",
     }),
   ];
 
   // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
-    {
-      type: 'view' as const,
-      onClick: (income: SchoolIncomeSummary) => {
-        if (income) {
-          handleView(income);
-        } else {
-          console.error("income is undefined");
-        }
-      }
-    }
-  ], []);
+  const actionButtonGroups = useMemo(
+    () => [
+      {
+        type: "view" as const,
+        onClick: (income: SchoolIncomeSummary) => {
+          if (income) {
+            handleView(income);
+          } else {
+            console.error("income is undefined");
+          }
+        },
+      },
+    ],
+    []
+  );
 
   // Action buttons for EnhancedDataTable (including print receipt)
-  const actionButtons = useMemo(() => [
-    {
-      id: 'print-receipt',
-      label: (income: SchoolIncomeSummary) => loadingReceiptId === income.income_id ? 'Generating...' : 'Print Receipt',
-      icon: (income: SchoolIncomeSummary) => loadingReceiptId === income.income_id ? Loader2 : Printer,
-      variant: 'outline' as const,
-      onClick: (income: SchoolIncomeSummary) => handlePrintReceipt(income),
-      show: (income: SchoolIncomeSummary) => true,
-      disabled: (income: SchoolIncomeSummary) => loadingReceiptId === income.income_id,
-    }
-  ], [handlePrintReceipt, loadingReceiptId]);
-
+  const actionButtons = useMemo(
+    () => [
+      {
+        id: "print-receipt",
+        label: (income: SchoolIncomeSummary) =>
+          loadingReceiptId === income.income_id
+            ? "Generating..."
+            : "Print Receipt",
+        icon: (income: SchoolIncomeSummary) =>
+          loadingReceiptId === income.income_id ? LoadingIcon : Printer,
+        variant: "outline" as const,
+        onClick: (income: SchoolIncomeSummary) => handlePrintReceipt(income),
+        show: (income: SchoolIncomeSummary) => true,
+        disabled: (income: SchoolIncomeSummary) =>
+          loadingReceiptId === income.income_id,
+      },
+    ],
+    [handlePrintReceipt, loadingReceiptId]
+  );
 
   return (
     <motion.div
@@ -183,7 +217,6 @@ export const IncomeSummaryTable = ({
       transition={{ delay: 0.3 }}
       className="space-y-4"
     >
-
       {/* Error State */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
@@ -191,9 +224,9 @@ export const IncomeSummaryTable = ({
             <div className="text-red-600 text-sm">
               ❌ Error loading income data: {error.message}
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => refetch()}
               className="ml-4"
             >
@@ -202,7 +235,7 @@ export const IncomeSummaryTable = ({
           </div>
         </div>
       )}
-      
+
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center h-32">
@@ -210,21 +243,23 @@ export const IncomeSummaryTable = ({
           <span className="ml-2">Loading income data...</span>
         </div>
       )}
-      
+
       {/* Empty State */}
-      {!isLoading && !error && (!incomeData?.items || incomeData.items.length === 0) && (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">No income records found</p>
-          <Button 
-            variant="outline" 
-            onClick={() => refetch()}
-            className="mt-2"
-          >
-            Refresh
-          </Button>
-        </div>
-      )}
-      
+      {!isLoading &&
+        !error &&
+        (!incomeData?.items || incomeData.items.length === 0) && (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No income records found</p>
+            <Button
+              variant="outline"
+              onClick={() => refetch()}
+              className="mt-2"
+            >
+              Refresh
+            </Button>
+          </div>
+        )}
+
       {/* Data Table */}
       <EnhancedDataTable
         data={incomeData?.items || []}

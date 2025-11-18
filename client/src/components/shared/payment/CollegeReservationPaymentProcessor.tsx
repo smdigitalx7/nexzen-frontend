@@ -4,11 +4,11 @@ import {
   CreditCard,
   CheckCircle,
   XCircle,
-  Loader2,
   AlertCircle,
   User,
   IndianRupee,
 } from "lucide-react";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -140,7 +140,7 @@ const CollegeReservationPaymentProcessor: React.FC<
       case "failed":
         return XCircle;
       case "processing":
-        return Loader2;
+        return () => <Loader.Button size="sm" />;
       default:
         return CreditCard;
     }
@@ -302,8 +302,7 @@ const CollegeReservationPaymentProcessor: React.FC<
           {/* Processing State */}
           {currentStep === "processing" && (
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
-              <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
-              <p className="text-muted-foreground">Processing payment...</p>
+              <Loader.Data message="Processing payment..." />
             </div>
           )}
 

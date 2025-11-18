@@ -2,16 +2,12 @@ import { create } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { AuthService } from "@/lib/services/general";
-import { AuthTokenTimers, DedupeUtils, CacheUtils } from "@/lib/api";
+import { AuthTokenTimers, DedupeUtils } from "@/lib/api";
 import { ROLES, normalizeRole } from "@/lib/constants";
 import { extractPrimaryRole } from "@/lib/utils/roles";
 import { useCacheStore } from "@/store/cacheStore";
 import { queryClient } from "@/lib/query";
 import { getTokenExpiration, decodeJWT, getRoleFromToken } from "@/lib/utils/auth/jwt";
-import { payrollKeys } from "@/lib/hooks/general/usePayrollManagement";
-import { employeeKeys } from "@/lib/hooks/general/useEmployees";
-import { advanceKeys } from "@/lib/hooks/general/useAdvances";
-import { employeeLeaveKeys } from "@/lib/hooks/general/useEmployeeLeave";
 
 // Import extracted types and modules
 export type {
@@ -365,32 +361,20 @@ export const useAuthStore = create<AuthState>()(
                 "Branch switched successfully with new token and clients updated"
               );
 
-              // Hard refresh general modules after branch switch - completely clear all cache
+              // ✅ COMPLETE REFRESH: Clear ALL React Query cache and refetch active queries
               try {
-                // Step 1: Clear API cache for all general module endpoints
-                CacheUtils.clearByPattern(/GET:.*\/payrolls/i);
-                CacheUtils.clearByPattern(/GET:.*\/employees/i);
-                CacheUtils.clearByPattern(/GET:.*\/advances/i);
-                CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
-                CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
+                // Clear all queries to ensure fresh data for new branch
+                queryClient.clear();
                 
-                // Step 2: Remove ALL queries completely (not just invalidate - this clears cache)
-                queryClient.removeQueries({ queryKey: payrollKeys.all, exact: false });
-                queryClient.removeQueries({ queryKey: employeeKeys.all, exact: false });
-                queryClient.removeQueries({ queryKey: advanceKeys.all, exact: false });
-                queryClient.removeQueries({ queryKey: employeeLeaveKeys.all, exact: false });
-                queryClient.removeQueries({ queryKey: ['employee-attendances'], exact: false });
+                // Use requestAnimationFrame to ensure UI updates smoothly
+                // Then refetch active queries in the next frame to prevent blocking
+                requestAnimationFrame(() => {
+                  queryClient.refetchQueries({ type: 'active' });
+                });
                 
-                // Step 3: Reset queries to ensure fresh state (no cached data)
-                queryClient.resetQueries({ queryKey: payrollKeys.all, exact: false });
-                queryClient.resetQueries({ queryKey: employeeKeys.all, exact: false });
-                queryClient.resetQueries({ queryKey: advanceKeys.all, exact: false });
-                queryClient.resetQueries({ queryKey: employeeLeaveKeys.all, exact: false });
-                queryClient.resetQueries({ queryKey: ['employee-attendances'], exact: false });
-                
-                console.log("General modules cache completely cleared after branch switch");
+                console.log("Complete cache cleared and active queries will refetch after branch switch");
               } catch (error) {
-                console.error("Error clearing general modules cache after branch switch:", error);
+                console.error("Error clearing cache after branch switch:", error);
               }
             } else {
               // Fallback to just updating the branch if no token response
@@ -435,32 +419,20 @@ export const useAuthStore = create<AuthState>()(
               }
               console.log("Branch switched locally (no token response)");
 
-              // Hard refresh general modules after branch switch - completely clear all cache
+              // ✅ COMPLETE REFRESH: Clear ALL React Query cache and refetch active queries
               try {
-                // Step 1: Clear API cache for all general module endpoints
-                CacheUtils.clearByPattern(/GET:.*\/payrolls/i);
-                CacheUtils.clearByPattern(/GET:.*\/employees/i);
-                CacheUtils.clearByPattern(/GET:.*\/advances/i);
-                CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
-                CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
+                // Clear all queries to ensure fresh data for new branch
+                queryClient.clear();
                 
-                // Step 2: Remove ALL queries completely (not just invalidate - this clears cache)
-                queryClient.removeQueries({ queryKey: payrollKeys.all, exact: false });
-                queryClient.removeQueries({ queryKey: employeeKeys.all, exact: false });
-                queryClient.removeQueries({ queryKey: advanceKeys.all, exact: false });
-                queryClient.removeQueries({ queryKey: employeeLeaveKeys.all, exact: false });
-                queryClient.removeQueries({ queryKey: ['employee-attendances'], exact: false });
+                // Use requestAnimationFrame to ensure UI updates smoothly
+                // Then refetch active queries in the next frame to prevent blocking
+                requestAnimationFrame(() => {
+                  queryClient.refetchQueries({ type: 'active' });
+                });
                 
-                // Step 3: Reset queries to ensure fresh state (no cached data)
-                queryClient.resetQueries({ queryKey: payrollKeys.all, exact: false });
-                queryClient.resetQueries({ queryKey: employeeKeys.all, exact: false });
-                queryClient.resetQueries({ queryKey: advanceKeys.all, exact: false });
-                queryClient.resetQueries({ queryKey: employeeLeaveKeys.all, exact: false });
-                queryClient.resetQueries({ queryKey: ['employee-attendances'], exact: false });
-                
-                console.log("General modules cache completely cleared after branch switch");
+                console.log("Complete cache cleared and active queries will refetch after branch switch");
               } catch (error) {
-                console.error("Error clearing general modules cache after branch switch:", error);
+                console.error("Error clearing cache after branch switch:", error);
               }
             }
           } catch (error) {
@@ -507,32 +479,17 @@ export const useAuthStore = create<AuthState>()(
             }
             console.log("Branch switched locally (API call failed)");
 
-            // Hard refresh general modules after branch switch (even on error) - completely clear all cache
+            // ✅ COMPLETE REFRESH: Clear ALL React Query cache and refetch active queries (even on error)
             try {
-              // Step 1: Clear API cache for all general module endpoints
-              CacheUtils.clearByPattern(/GET:.*\/payrolls/i);
-              CacheUtils.clearByPattern(/GET:.*\/employees/i);
-              CacheUtils.clearByPattern(/GET:.*\/advances/i);
-              CacheUtils.clearByPattern(/GET:.*\/employee-leave/i);
-              CacheUtils.clearByPattern(/GET:.*\/employee-attendances/i);
+              // Clear all queries to ensure fresh data for new branch
+              queryClient.clear();
               
-              // Step 2: Remove ALL queries completely (not just invalidate - this clears cache)
-              queryClient.removeQueries({ queryKey: payrollKeys.all, exact: false });
-              queryClient.removeQueries({ queryKey: employeeKeys.all, exact: false });
-              queryClient.removeQueries({ queryKey: advanceKeys.all, exact: false });
-              queryClient.removeQueries({ queryKey: employeeLeaveKeys.all, exact: false });
-              queryClient.removeQueries({ queryKey: ['employee-attendances'], exact: false });
+              // Refetch all active queries to load data for the new branch
+              queryClient.refetchQueries({ type: 'active' });
               
-              // Step 3: Reset queries to ensure fresh state (no cached data)
-              queryClient.resetQueries({ queryKey: payrollKeys.all, exact: false });
-              queryClient.resetQueries({ queryKey: employeeKeys.all, exact: false });
-              queryClient.resetQueries({ queryKey: advanceKeys.all, exact: false });
-              queryClient.resetQueries({ queryKey: employeeLeaveKeys.all, exact: false });
-              queryClient.resetQueries({ queryKey: ['employee-attendances'], exact: false });
-              
-              console.log("General modules cache completely cleared after branch switch");
+              console.log("Complete cache cleared and active queries refetched after branch switch");
             } catch (error) {
-              console.error("Error clearing general modules cache after branch switch:", error);
+              console.error("Error clearing cache after branch switch:", error);
             }
           }
         },
@@ -542,6 +499,22 @@ export const useAuthStore = create<AuthState>()(
             academicYear: year.year_name,
             isAuthenticated: true, // Preserve authentication
           });
+
+          // ✅ COMPLETE REFRESH: Clear ALL React Query cache and refetch active queries
+          try {
+            // Clear all queries to ensure fresh data for new academic year
+            queryClient.clear();
+            
+            // Use requestAnimationFrame to ensure UI updates smoothly
+            // Then refetch active queries in the next frame to prevent blocking
+            requestAnimationFrame(() => {
+              queryClient.refetchQueries({ type: 'active' });
+            });
+            
+            console.log("Complete cache cleared and active queries will refetch after academic year switch");
+          } catch (error) {
+            console.error("Error clearing cache after academic year switch:", error);
+          }
         },
         setAcademicYears: (years) => {
           set({ academicYears: years });

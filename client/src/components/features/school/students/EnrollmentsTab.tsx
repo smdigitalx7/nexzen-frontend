@@ -14,7 +14,7 @@ import {
 // Note: useSchoolClasses, useSchoolSections from dropdowns (naming conflict)
 import { useSchoolClasses, useSchoolSections } from '@/lib/hooks/school/use-school-dropdowns';
 import { schoolKeys } from '@/lib/hooks/school/query-keys';
-import { CacheUtils } from '@/lib/api';
+import { batchInvalidateAndRefetch } from '@/lib/hooks/common/useGlobalRefetch';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SchoolEnrollmentRead } from '@/lib/types/school';
 import { formatDate } from '@/lib/utils/formatting/date';
@@ -28,6 +28,8 @@ const EnrollmentsTabComponent = () => {
     section_id: '', 
     admission_no: '' 
   });
+  // ✅ FIX: Add refreshKey to force table refresh after updates
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Fetch dropdown data
   const { data: classesData } = useSchoolClasses();
@@ -60,7 +62,10 @@ const EnrollmentsTabComponent = () => {
   
   // Determine which data source to use
   const shouldUseAdmissionNo = Boolean(query.admission_no?.trim());
-  const isLoading = shouldUseAdmissionNo ? admissionNoResult.isLoading : result.isLoading;
+  // ✅ FIX: Aggregate loading states from all parallel queries
+  const isLoading = classesData === undefined || 
+    (query.class_id ? sectionsData === undefined : false) ||
+    (shouldUseAdmissionNo ? admissionNoResult.isLoading : result.isLoading);
   const isError = shouldUseAdmissionNo ? admissionNoResult.isError : result.isError;
 
   // Dialog state
@@ -86,44 +91,20 @@ const EnrollmentsTabComponent = () => {
     }
   }, []);
 
-  // Handle edit success - refresh data and reopen view
+  // ✅ FIX: Handle edit success - batch invalidate queries and force table refresh
   const handleEditSuccess = useCallback(async () => {
-    // Comprehensive cache invalidation after edit (matching reservation pattern)
-    // Step 1: Clear API cache first to ensure fresh network request
-    try {
-      CacheUtils.clearByPattern(/GET:.*\/school\/enrollments/i);
-    } catch (error) {
-      console.warn('Failed to clear API cache:', error);
-    }
+    // Batch invalidate all related queries
+    batchInvalidateAndRefetch([
+      schoolKeys.enrollments.root(),
+      schoolKeys.students.root(),
+    ]);
 
-    // Step 2: Remove queries from cache to force fresh fetch (bypasses staleTime)
-    queryClient.removeQueries({ 
-      queryKey: schoolKeys.enrollments.root(),
-      exact: false 
-    });
-
-    // Step 3: Invalidate all enrollment-related queries
-    await queryClient.invalidateQueries({
-      queryKey: schoolKeys.enrollments.root(),
-      exact: false,
-    });
-
-    // Step 4: Force refetch active queries (bypasses cache)
-    await queryClient.refetchQueries({
-      queryKey: schoolKeys.enrollments.root(),
-      type: "active",
-      exact: false,
-    });
-
-    // Step 5: Also invalidate student queries since student data was updated
-    await queryClient.invalidateQueries({
-      queryKey: schoolKeys.students.root(),
-      exact: false,
-    });
-
-    // Step 6: Wait for React Query to update the cache
+    // Small delay to ensure React Query cache is updated
     await new Promise(resolve => setTimeout(resolve, 200));
-  }, [queryClient]);
+    
+    // ✅ FIX: Increment refreshKey to force table refresh
+    setRefreshKey(prev => prev + 1);
+  }, []);
 
   // Memoized handlers
   const handleSectionChange = useCallback((value: string) => {
@@ -264,6 +245,7 @@ const EnrollmentsTabComponent = () => {
         actionButtonGroups={actionButtonGroups}
         actionColumnHeader="Actions"
         showActionLabels={true}
+        refreshKey={refreshKey}
       />
 
       {/* View Enrollment Dialog */}

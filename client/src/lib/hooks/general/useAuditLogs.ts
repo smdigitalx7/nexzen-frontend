@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { AuditLogsService } from "@/lib/services/general/audit-logs.service";
 import type {
   ActivitySummaryParams,
@@ -7,7 +7,7 @@ import type {
   AuditLogDeleteByIdsParams,
 } from "@/lib/types/general/audit-logs";
 import { useToast } from "@/hooks/use-toast";
-import { CacheUtils } from "@/lib/api";
+import { batchInvalidateAndRefetch } from "../common/useGlobalRefetch";
 
 /**
  * Hook for getting activity summary from audit logs
@@ -41,7 +41,6 @@ export const useReadableLogs = (params?: AuditLogReadableParams) => {
  */
 export const useDeleteLogs = () => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (params: AuditLogDeleteParams) =>
@@ -53,22 +52,9 @@ export const useDeleteLogs = () => {
         variant: "success",
       });
       
-      // CRITICAL: Clear API-level cache first (this was the root cause!)
-      // The API layer caches GET requests, so we need to clear it before refetching
-      CacheUtils.clearByPattern(/GET:.*\/audit-logs/i);
-      
-      // Remove all audit-logs queries from React Query cache
-      queryClient.removeQueries({
-        queryKey: ["audit-logs"],
-        exact: false,
-      });
-      
-      // Force refetch all active queries (they will now fetch fresh data from API)
-      await queryClient.refetchQueries({
-        queryKey: ["audit-logs"],
-        exact: false,
-        type: "active",
-      });
+      // ✅ FIX: Batch invalidate queries to prevent UI freeze
+      // React Query handles caching properly, no need for API-level cache clearing
+      batchInvalidateAndRefetch([["audit-logs"]]);
     },
     onError: (error: any) => {
       toast({
@@ -89,7 +75,6 @@ export const useDeleteLogs = () => {
  */
 export const useDeleteLogsByIds = () => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (params: AuditLogDeleteByIdsParams) =>
@@ -101,22 +86,9 @@ export const useDeleteLogsByIds = () => {
         variant: "success",
       });
       
-      // CRITICAL: Clear API-level cache first (this was the root cause!)
-      // The API layer caches GET requests, so we need to clear it before refetching
-      CacheUtils.clearByPattern(/GET:.*\/audit-logs/i);
-      
-      // Remove all audit-logs queries from React Query cache
-      queryClient.removeQueries({
-        queryKey: ["audit-logs"],
-        exact: false,
-      });
-      
-      // Force refetch all active queries (they will now fetch fresh data from API)
-      await queryClient.refetchQueries({
-        queryKey: ["audit-logs"],
-        exact: false,
-        type: "active",
-      });
+      // ✅ FIX: Batch invalidate queries to prevent UI freeze
+      // React Query handles caching properly, no need for API-level cache clearing
+      batchInvalidateAndRefetch([["audit-logs"]]);
     },
     onError: (error: any) => {
       toast({

@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { CollegeStudentsService } from "@/lib/services/college/students.service";
 import type {
   CollegeStudentCreate,
@@ -9,6 +9,7 @@ import type {
 } from "@/lib/types/college/index.ts";
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
+import { batchInvalidateAndRefetch } from "../common/useGlobalRefetch";
 
 export function useCollegeStudentsList(params?: { page?: number; pageSize?: number }) {
   return useQuery({
@@ -26,36 +27,43 @@ export function useCollegeStudent(studentId: number | null | undefined) {
 }
 
 export function useCreateCollegeStudent() {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeStudentCreate) => CollegeStudentsService.create(payload),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: collegeKeys.students.root() });
-      void qc.refetchQueries({ queryKey: collegeKeys.students.root(), type: 'active' });
+      // ✅ FIX: Batch invalidate all student and enrollment queries to ensure table updates
+      batchInvalidateAndRefetch([
+        collegeKeys.students.root(),
+        collegeKeys.enrollments.root(), // Student name appears in enrollment data
+      ]);
     },
   }, "Student created successfully");
 }
 
 export function useUpdateCollegeStudent(studentId: number) {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: CollegeStudentUpdate) =>
       CollegeStudentsService.update(studentId, payload),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: collegeKeys.students.detail(studentId) });
-      void qc.invalidateQueries({ queryKey: collegeKeys.students.root() });
-      void qc.refetchQueries({ queryKey: collegeKeys.students.root(), type: 'active' });
+      // ✅ FIX: Batch invalidate all student and enrollment queries to ensure table updates
+      // This ensures both StudentsTab and EnrollmentsTab refresh correctly
+      batchInvalidateAndRefetch([
+        collegeKeys.students.detail(studentId),
+        collegeKeys.students.root(),
+        collegeKeys.enrollments.root(), // Student name appears in enrollment data
+      ]);
     },
   }, "Student updated successfully");
 }
 
 export function useDeleteCollegeStudent() {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (studentId: number) => CollegeStudentsService.delete(studentId),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: collegeKeys.students.root() });
-      void qc.refetchQueries({ queryKey: collegeKeys.students.root(), type: 'active' });
+      // ✅ FIX: Batch invalidate all student and enrollment queries to ensure table updates
+      batchInvalidateAndRefetch([
+        collegeKeys.students.root(),
+        collegeKeys.enrollments.root(), // Student deletion affects enrollment data
+      ]);
     },
   }, "Student deleted successfully");
 }

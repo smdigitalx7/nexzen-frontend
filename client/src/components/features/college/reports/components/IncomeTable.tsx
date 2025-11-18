@@ -1,15 +1,28 @@
-import { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Printer, Loader2 } from "lucide-react";
-import type { CollegeIncomeSummary, CollegeIncomeSummaryParams } from "@/lib/types/college";
+import { Printer } from "lucide-react";
+import { Loader } from "@/components/ui/ProfessionalLoader";
+import type {
+  CollegeIncomeSummary,
+  CollegeIncomeSummaryParams,
+} from "@/lib/types/college";
 import { useCollegeIncomeSummary } from "@/lib/hooks/college";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { createTextColumn, createCurrencyColumn } from "@/lib/utils/factory/columnFactories";
+import { createCurrencyColumn } from "@/lib/utils/factory/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 import { handleRegenerateReceipt } from "@/lib/api";
 import { ReceiptPreviewModal } from "@/components/shared";
 import { toast } from "@/hooks/use-toast";
+
+// ✅ FIX: Create a proper component wrapper for Loader.Button that accepts className
+// Moved outside component to prevent recreation on every render
+const LoadingIcon = React.memo<{ className?: string }>(({ className }) => (
+  <div className={className}>
+    <Loader.Button size="xs" />
+  </div>
+));
+LoadingIcon.displayName = "LoadingIcon";
 
 interface IncomeTableProps {
   onViewIncome?: (income: CollegeIncomeSummary) => void;
@@ -26,11 +39,11 @@ export const IncomeTable = ({
   const [loadingReceiptId, setLoadingReceiptId] = useState<number | null>(null);
 
   // Fetch income summary data using the hook
-  const { 
-    data: incomeResponse, 
-    isLoading, 
-    error, 
-    refetch 
+  const {
+    data: incomeResponse,
+    isLoading,
+    error,
+    refetch,
   } = useCollegeIncomeSummary(params);
 
   const incomeData = incomeResponse?.items || [];
@@ -39,40 +52,40 @@ export const IncomeTable = ({
   // Define columns for EnhancedDataTable
   const columns: ColumnDef<CollegeIncomeSummary>[] = [
     {
-      id: 'created_at',
-      header: 'Date',
+      id: "created_at",
+      header: "Date",
       cell: ({ row }) => {
         const value = row.original.created_at;
         return formatDate(value);
       },
     },
     {
-      id: 'receipt_no',
-      header: 'Receipt No',
+      id: "receipt_no",
+      header: "Receipt No",
       cell: ({ row }) => {
         const value = row.original.receipt_no;
         return value || "-";
       },
     },
     {
-      id: 'student_name',
-      header: 'Student',
+      id: "student_name",
+      header: "Student",
       cell: ({ row }) => {
         const value = row.original.student_name;
         return value || "-";
       },
     },
     {
-      id: 'identity_no',
-      header: 'Identity No',
+      id: "identity_no",
+      header: "Identity No",
       cell: ({ row }) => {
         const value = row.original.identity_no;
         return value || "-";
       },
     },
     {
-      id: 'purpose',
-      header: 'Purpose',
+      id: "purpose",
+      header: "Purpose",
       cell: ({ row }) => {
         const value = row.original.purpose;
         return value || "-";
@@ -85,52 +98,68 @@ export const IncomeTable = ({
   ];
 
   // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
-    ...(onViewIncome ? [{
-      type: 'view' as const,
-      onClick: (income: CollegeIncomeSummary) => {
-        if (!income || !income.income_id) {
-          console.error("Invalid income object:", income);
-          return;
-        }
-        onViewIncome(income);
-      }
-    }] : [])
-  ], [onViewIncome]);
+  const actionButtonGroups = useMemo(
+    () => [
+      ...(onViewIncome
+        ? [
+            {
+              type: "view" as const,
+              onClick: (income: CollegeIncomeSummary) => {
+                if (!income || !income.income_id) {
+                  console.error("Invalid income object:", income);
+                  return;
+                }
+                onViewIncome(income);
+              },
+            },
+          ]
+        : []),
+    ],
+    [onViewIncome]
+  );
 
   // Handle print receipt action
-  const handlePrintReceipt = useCallback(async (income: CollegeIncomeSummary) => {
-    if (!income || !income.income_id) {
-      toast({
-        title: "Receipt Not Available",
-        description: "This income record does not have a valid income ID.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handlePrintReceipt = useCallback(
+    async (income: CollegeIncomeSummary) => {
+      if (!income || !income.income_id) {
+        toast({
+          title: "Receipt Not Available",
+          description: "This income record does not have a valid income ID.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    setLoadingReceiptId(income.income_id);
-    try {
-      const blobUrl = await handleRegenerateReceipt(income.income_id, 'college');
-      setReceiptBlobUrl(blobUrl);
-      setShowReceiptModal(true);
-      
-      toast({
-        title: "Receipt Generated",
-        description: "Receipt has been generated and is ready for viewing.",
-        variant: "success",
-      });
-    } catch (error) {
-      console.error("Receipt regeneration failed:", error);
-      toast({
-        title: "Receipt Generation Failed",
-        description: error instanceof Error ? error.message : "An unexpected error occurred.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingReceiptId(null);
-    }
-  }, []);
+      setLoadingReceiptId(income.income_id);
+      try {
+        const blobUrl = await handleRegenerateReceipt(
+          income.income_id,
+          "college"
+        );
+        setReceiptBlobUrl(blobUrl);
+        setShowReceiptModal(true);
+
+        toast({
+          title: "Receipt Generated",
+          description: "Receipt has been generated and is ready for viewing.",
+          variant: "success",
+        });
+      } catch (error) {
+        console.error("Receipt regeneration failed:", error);
+        toast({
+          title: "Receipt Generation Failed",
+          description:
+            error instanceof Error
+              ? error.message
+              : "An unexpected error occurred.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingReceiptId(null);
+      }
+    },
+    []
+  );
 
   const handleCloseReceiptModal = useCallback(() => {
     setShowReceiptModal(false);
@@ -141,17 +170,25 @@ export const IncomeTable = ({
   }, [receiptBlobUrl]);
 
   // Action buttons for EnhancedDataTable (including print receipt)
-  const actionButtons = useMemo(() => [
-    {
-      id: 'print-receipt',
-      label: (income: CollegeIncomeSummary) => loadingReceiptId === income.income_id ? 'Generating...' : 'Print Receipt',
-      icon: (income: CollegeIncomeSummary) => loadingReceiptId === income.income_id ? Loader2 : Printer,
-      variant: 'outline' as const,
-      onClick: (income: CollegeIncomeSummary) => handlePrintReceipt(income),
-      show: (income: CollegeIncomeSummary) => true,
-      disabled: (income: CollegeIncomeSummary) => loadingReceiptId === income.income_id,
-    }
-  ], [handlePrintReceipt, loadingReceiptId]);
+  const actionButtons = useMemo(
+    () => [
+      {
+        id: "print-receipt",
+        label: (income: CollegeIncomeSummary) =>
+          loadingReceiptId === income.income_id
+            ? "Generating..."
+            : "Print Receipt",
+        icon: (income: CollegeIncomeSummary) =>
+          loadingReceiptId === income.income_id ? LoadingIcon : Printer,
+        variant: "outline" as const,
+        onClick: (income: CollegeIncomeSummary) => handlePrintReceipt(income),
+        show: (income: CollegeIncomeSummary) => true,
+        disabled: (income: CollegeIncomeSummary) =>
+          loadingReceiptId === income.income_id,
+      },
+    ],
+    [handlePrintReceipt, loadingReceiptId]
+  );
 
   // Handle loading and error states
   if (isLoading) {
@@ -178,7 +215,9 @@ export const IncomeTable = ({
         className="space-y-4"
       >
         <div className="flex items-center justify-center p-8">
-          <div className="text-red-500">Error loading income data. Please try again.</div>
+          <div className="text-red-500">
+            Error loading income data. Please try again.
+          </div>
         </div>
       </motion.div>
     );
@@ -211,7 +250,6 @@ export const IncomeTable = ({
         onClose={handleCloseReceiptModal}
         blobUrl={receiptBlobUrl || null}
       />
-
     </motion.div>
   );
 };

@@ -8,7 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 import { cn } from "@/lib/utils";
 
 export interface BaseDropdownProps<T> {
@@ -107,10 +108,7 @@ export function BaseDropdown<T>({
       <SelectContent>
         {isLoading ? (
           <div className="flex items-center justify-center py-6">
-            <div className="flex flex-col items-center gap-2">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{loadingText}</span>
-            </div>
+            <Loader.Data message={loadingText} />
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-6 px-4">

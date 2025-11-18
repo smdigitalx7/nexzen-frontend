@@ -14,10 +14,8 @@ import type {
 } from "@/components/shared/payment/types/PaymentTypes";
 import { handleCollegePayByAdmissionWithIncomeId } from "@/lib/api-college";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
-import { invalidateAndRefetch } from "@/lib/hooks/common/useGlobalRefetch";
+import { batchInvalidateAndRefetch } from "@/lib/hooks/common/useGlobalRefetch";
 import { collegeKeys } from "@/lib/hooks/college/query-keys";
-import { CacheUtils } from "@/lib/api";
 import type { CollegeTuitionFeeBalanceRead } from "@/lib/types/college/tuition-fee-balances";
 import { CollegeTransportBalancesService } from "@/lib/services/college/transport-fee-balances.service";
 import {
@@ -51,7 +49,6 @@ export const CollectFee = ({
   setSearchQuery,
 }: CollectFeeProps) => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const search = useSearch();
   const [selectedStudent, setSelectedStudent] =
@@ -103,44 +100,32 @@ export const CollectFee = ({
     removeAdmissionFromUrl();
   }, [removeAdmissionFromUrl]);
 
-  // Search student function
+  // ✅ FIX: Search student function - removed CacheUtils, using React Query cache
   const searchStudent = useCallback(
     async (admissionNo: string, showToast = true, forceRefresh = false) => {
       try {
         if (forceRefresh) {
           setSearchResults([]);
-          CacheUtils.clearByPattern(
-            /^GET:\/college\/student-enrollments\/by-admission\//
-          );
-          CacheUtils.clearByPattern(/^GET:\/college\/tuition-fee-balances\//);
-          CacheUtils.clearByPattern(
-            /^GET:\/college\/student-transport-payment\//
-          );
+          // React Query will handle cache invalidation automatically
         }
 
         setSearchQuery(admissionNo);
         updateUrlWithAdmission(admissionNo);
 
-        const cacheOptions = forceRefresh ? { cache: false } : undefined;
+        // ✅ FIX: Removed cacheOptions - React Query handles caching
         const enrollment: CollegeEnrollmentWithStudentDetails =
-          await CollegeEnrollmentsService.getByAdmission(
-            admissionNo,
-            cacheOptions
-          );
+          await CollegeEnrollmentsService.getByAdmission(admissionNo);
 
         const [tuitionBalance, transportSummary, transportExpectedPayments] =
           await Promise.all([
             CollegeTuitionBalancesService.getById(
-              enrollment.enrollment_id,
-              cacheOptions
+              enrollment.enrollment_id
             ).catch(() => null),
             CollegeTransportBalancesService.getStudentTransportPaymentSummaryByEnrollmentId(
-              enrollment.enrollment_id,
-              cacheOptions
+              enrollment.enrollment_id
             ).catch(() => null),
             CollegeTransportBalancesService.getExpectedTransportPaymentsByEnrollmentId(
-              enrollment.enrollment_id,
-              cacheOptions
+              enrollment.enrollment_id
             ).catch(() => undefined),
           ]);
 
@@ -175,9 +160,11 @@ export const CollectFee = ({
     [setSearchQuery, updateUrlWithAdmission, setSearchResults, toast]
   );
 
-  // Re-search the student after successful payment
+  // ✅ FIX: Re-search the student after successful payment with proper delay
   const reSearchStudent = useCallback(
     async (admissionNo: string) => {
+      // Small delay to ensure React Query cache is updated
+      await new Promise((resolve) => setTimeout(resolve, 100));
       await searchStudent(admissionNo, true, true);
     },
     [searchStudent]
@@ -278,87 +265,15 @@ export const CollectFee = ({
 
         paymentSuccessRef.current = paymentData.admissionNo;
 
-        // Invalidate caches
-        try {
-          CacheUtils.clearByPattern(/GET:.*\/college\/student-enrollments/i);
-          CacheUtils.clearByPattern(/GET:.*\/college\/students/i);
-          CacheUtils.clearByPattern(/GET:.*\/college\/tuition-fee-balances/i);
-          CacheUtils.clearByPattern(
-            /GET:.*\/college\/student-transport-payment/i
-          );
-          CacheUtils.clearByPattern(/GET:.*\/college\/income/i);
-        } catch (error) {
-          console.warn("Failed to clear API cache:", error);
-        }
-
-        // Invalidate React Query cache
-        queryClient
-          .invalidateQueries({
-            queryKey: collegeKeys.students.root(),
-            exact: false,
-          })
-          .catch(console.error);
-        queryClient
-          .invalidateQueries({
-            queryKey: collegeKeys.enrollments.root(),
-            exact: false,
-          })
-          .catch(console.error);
-        queryClient
-          .invalidateQueries({
-            queryKey: collegeKeys.tuition.root(),
-            exact: false,
-          })
-          .catch(console.error);
-        queryClient
-          .invalidateQueries({
-            queryKey: collegeKeys.transport.root(),
-            exact: false,
-          })
-          .catch(console.error);
-        queryClient
-          .invalidateQueries({
-            queryKey: collegeKeys.income.root(),
-            exact: false,
-          })
-          .catch(console.error);
-
-        // Refetch active queries
-        queryClient
-          .refetchQueries({
-            queryKey: collegeKeys.students.root(),
-            type: "active",
-            exact: false,
-          })
-          .catch(console.error);
-        queryClient
-          .refetchQueries({
-            queryKey: collegeKeys.enrollments.root(),
-            type: "active",
-            exact: false,
-          })
-          .catch(console.error);
-        queryClient
-          .refetchQueries({
-            queryKey: collegeKeys.tuition.root(),
-            type: "active",
-            exact: false,
-          })
-          .catch(console.error);
-        queryClient
-          .refetchQueries({
-            queryKey: collegeKeys.transport.root(),
-            type: "active",
-            exact: false,
-          })
-          .catch(console.error);
-        queryClient
-          .refetchQueries({
-            queryKey: collegeKeys.income.root(),
-            type: "active",
-            exact: false,
-          })
-          .catch(console.error);
+        // ✅ FIX: Batch invalidate all queries together to prevent UI freeze
+        // Removed CacheUtils calls - React Query handles caching properly
+        batchInvalidateAndRefetch([
+          collegeKeys.students.root(),
+          collegeKeys.enrollments.root(),
+          collegeKeys.tuition.root(),
+          collegeKeys.transport.root(),
+          collegeKeys.income.root(),
+        ]);
 
         return result;
       } catch (error) {

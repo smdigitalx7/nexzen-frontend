@@ -3,7 +3,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
 import { useTabNavigation, useTabEnabled } from "../use-tab-navigation";
 import { toast } from "@/hooks/use-toast";
-import { CacheUtils } from "@/lib/api";
 import { invalidateAndRefetch } from "../common/useGlobalRefetch";
 import {
   useEmployeesByBranch,

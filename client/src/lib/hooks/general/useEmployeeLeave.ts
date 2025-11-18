@@ -12,7 +12,6 @@ import type {
 import { useMutationWithSuccessToast } from '../common/use-mutation-with-toast';
 import { useGlobalRefetch } from '../common/useGlobalRefetch';
 import { invalidateAndRefetch } from '../common/useGlobalRefetch';
-import { CacheUtils } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
 // Query keys

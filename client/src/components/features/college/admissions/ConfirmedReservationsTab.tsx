@@ -34,7 +34,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ReceiptPreviewModal } from "@/components/shared";
 import { handleCollegePayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/lib/api-college";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
-import { CacheUtils } from "@/lib/api";
+import { batchInvalidateAndRefetch } from "@/lib/hooks/common/useGlobalRefetch";
 import { collegeKeys } from "@/lib/hooks/college/query-keys";
 
 // Use the actual API types instead of custom interface
@@ -935,13 +935,8 @@ const ConfirmedReservationsTabComponent = () => {
       // Following CACHE_REVIEW_ACADEMIC.md: mutation hook already invalidates and refetches
       await updateReservationMutation.mutateAsync(updatePayload);
 
-      // Additional API cache clearing (mutation hook clears all, but we clear specific pattern for safety)
-      // Note: useMutationWithSuccessToast already clears all API cache, but we keep this for reservations
-      try {
-        CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
-      } catch (error) {
-        console.warn('Failed to clear API cache:', error);
-      }
+      // ✅ FIX: Removed CacheUtils - React Query handles caching properly
+      // Mutation hook already invalidates queries, no need for additional cache clearing
 
       // Wait for React Query to update the cache and React to process state updates
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -1045,32 +1040,11 @@ const ConfirmedReservationsTabComponent = () => {
       // Small delay to ensure backend has processed the enrollment
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Cache invalidation after enrollment
-      try {
-        CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
-      } catch (error) {
-        console.warn('Failed to clear API cache:', error);
-      }
-      
-      queryClient.invalidateQueries({ 
-        queryKey: collegeKeys.reservations.root(),
-        exact: false 
-      }).catch(console.error);
-      
-      queryClient.invalidateQueries({ 
-        queryKey: collegeKeys.students.root() 
-      }).catch(console.error);
-      
-      queryClient.refetchQueries({ 
-        queryKey: collegeKeys.reservations.root(), 
-        type: 'active',
-        exact: false 
-      }).catch(console.error);
-      
-      queryClient.refetchQueries({ 
-        queryKey: collegeKeys.students.root(), 
-        type: 'active' 
-      }).catch(console.error);
+      // ✅ FIX: Batch invalidate queries to prevent UI freeze
+      batchInvalidateAndRefetch([
+        collegeKeys.reservations.root(),
+        collegeKeys.students.root(),
+      ]);
 
       // Wait for React Query to update the cache
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -1136,50 +1110,12 @@ const ConfirmedReservationsTabComponent = () => {
       // Small delay to ensure backend has processed the payment
       await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Cache invalidation after payment (following CACHE_REVIEW_ACADEMIC.md pattern)
-        // Step 1: Clear API cache (matches useMutationWithSuccessToast pattern)
-        try {
-          CacheUtils.clearByPattern(/GET:.*\/college\/reservations/i);
-          CacheUtils.clearByPattern(/GET:.*\/college\/admissions/i);
-        } catch (error) {
-          console.warn('Failed to clear API cache:', error);
-        }
-        
-        // Step 2: Invalidate queries (following mutation hook pattern)
-        queryClient.invalidateQueries({ 
-          queryKey: collegeKeys.reservations.root(),
-          exact: false 
-        }).catch(console.error);
-        
-        // Also invalidate students queries since payment affects student records
-        queryClient.invalidateQueries({ 
-          queryKey: collegeKeys.students.root() 
-        }).catch(console.error);
-        
-        // CRITICAL: Invalidate admissions queries since admission_fee_paid status is shown there
-        queryClient.invalidateQueries({ 
-          queryKey: ["college", "admissions"],
-          exact: false 
-        }).catch(console.error);
-        
-        // Step 3: Refetch active queries (matches mutation hook pattern)
-        queryClient.refetchQueries({ 
-          queryKey: collegeKeys.reservations.root(), 
-          type: 'active',
-          exact: false 
-        }).catch(console.error);
-        
-        queryClient.refetchQueries({ 
-          queryKey: collegeKeys.students.root(), 
-          type: 'active' 
-        }).catch(console.error);
-        
-        // Refetch admissions queries to update admission_fee_paid status
-        queryClient.refetchQueries({ 
-          queryKey: ["college", "admissions"],
-          type: 'active',
-          exact: false 
-        }).catch(console.error);
+        // ✅ FIX: Batch invalidate queries to prevent UI freeze
+        batchInvalidateAndRefetch([
+          collegeKeys.reservations.root(),
+          collegeKeys.students.root(),
+          ["college", "admissions"],
+        ]);
 
       // Step 4: Wait for React Query to update the cache and React to process state updates
       await new Promise(resolve => setTimeout(resolve, 300));

@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
-import { ButtonLoading } from "@/components/ui/loading";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 import { useLocation } from "wouter";
 
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ const BranchSwitcher = () => {
         const currentBranchType = currentBranch?.branch_type || "COLLEGE";
         const targetBranchType = branch.branch_type;
 
-        // Switch branch first
+        // Switch branch first (this will clear cache and refetch)
         await switchBranch(branch);
 
         // Calculate equivalent URL for the new branch type
@@ -38,16 +38,18 @@ const BranchSwitcher = () => {
           targetBranchType
         );
 
-        // Navigate to the equivalent URL
-        setLocation(equivalentUrl);
-
-        // Instead of full reload, just clear cache and refresh data
-        // This preserves authentication state
+        // ✅ SMOOTH SWITCH: Use smooth navigation instead of full page reload
+        // This preserves React state and provides better UX
         if (window.location.pathname !== equivalentUrl) {
-          // Only reload if URL actually changed
-          window.location.href = equivalentUrl;
+          // Navigate smoothly to the equivalent URL
+          // The cache has already been cleared and queries refetched by switchBranch
+          setLocation(equivalentUrl);
+          
+          // Small delay to ensure navigation completes before any potential refetch
+          // This prevents race conditions
+          await new Promise(resolve => setTimeout(resolve, 100));
         } else {
-          // URL didn't change, just trigger a soft refresh
+          // URL didn't change, just trigger a refresh event for components that listen
           window.dispatchEvent(new Event('branch-switched'));
         }
       } catch (error) {
@@ -99,7 +101,7 @@ const BranchSwitcher = () => {
           </div>
           {isBranchSwitching ? (
             <div className="text-slate-400">
-              <ButtonLoading size="sm" />
+              <Loader.Button size="sm" />
             </div>
           ) : (
             <ChevronDown className="h-4 w-4 text-slate-400" />

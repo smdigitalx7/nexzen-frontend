@@ -8,8 +8,8 @@ import {
   BookOpen,
   Bus,
   Search,
-  Loader2,
 } from "lucide-react";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -388,7 +388,7 @@ export const CollectFeeSearch = ({
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
                   {isLoadingSuggestions && (
-                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin z-10" />
+                    <Loader.Button size="xs" className="absolute right-3 top-1/2 -translate-y-1/2 z-10" />
                   )}
                   <Input
                     ref={searchInputRef}
@@ -417,8 +417,7 @@ export const CollectFeeSearch = ({
                     >
                       {isLoadingSuggestions ? (
                         <div className="flex items-center justify-center py-4">
-                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
-                          <span className="text-sm text-muted-foreground">Searching...</span>
+                          <Loader.Data message="Searching..." />
                         </div>
                       ) : suggestions.length > 0 ? (
                         <div className="py-1">

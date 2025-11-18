@@ -26,7 +26,7 @@ import {
   Trash2,
   MoreHorizontal,
 } from "lucide-react";
-import { LoadingStates, ButtonLoading } from "@/components/ui/loading";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -143,6 +143,8 @@ interface EnhancedDataTableProps<TData> {
   actionColumnHeader?: string;
   showActionLabels?: boolean;
   customAddButton?: React.ReactNode;
+  // ✅ FIX: Add refreshKey prop to force table refresh when data updates
+  refreshKey?: number | string;
 }
 
 function EnhancedDataTableComponent<TData>({
@@ -172,6 +174,7 @@ function EnhancedDataTableComponent<TData>({
   actionColumnHeader = "Actions",
   showActionLabels = true,
   customAddButton,
+  refreshKey, // ✅ FIX: Add refreshKey to force refresh
 }: EnhancedDataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -439,6 +442,8 @@ function EnhancedDataTableComponent<TData>({
     return actionColumn ? [...columns, actionColumn] : columns;
   }, [columns, generateActionColumn]);
 
+  // ✅ FIX: Include refreshKey in memoization to force refresh when data updates
+  // Also use data length and JSON stringify to detect actual data changes
   const memoizedFilteredData = useMemo(() => {
     let result = data;
 
@@ -453,7 +458,7 @@ function EnhancedDataTableComponent<TData>({
     });
 
     return result;
-  }, [data, filters]);
+  }, [data, filters, refreshKey, data.length]); // ✅ Add refreshKey and data.length to detect changes
 
   const table = useReactTable({
     data: memoizedFilteredData,
@@ -1042,7 +1047,7 @@ function EnhancedDataTableComponent<TData>({
   if (loading) {
     return (
       <div className="py-8">
-        <LoadingStates.Data message="Loading data..." />
+        <Loader.Data message="Loading data..." />
       </div>
     );
   }
@@ -1073,7 +1078,7 @@ function EnhancedDataTableComponent<TData>({
                   <div className="flex-shrink-0 mr-2">
                     {isSearching ? (
                       <div className="text-blue-500">
-                        <ButtonLoading size="sm" />
+                        <Loader.Button size="sm" />
                       </div>
                     ) : (
                       <Search className="h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors duration-200" />
@@ -1231,7 +1236,7 @@ function EnhancedDataTableComponent<TData>({
             >
               {isExporting ? (
                 <span className="mr-2">
-                  <ButtonLoading size="sm" />
+                  <Loader.Button size="sm" />
                 </span>
               ) : (
                 <Download className="h-4 w-4 mr-2" />

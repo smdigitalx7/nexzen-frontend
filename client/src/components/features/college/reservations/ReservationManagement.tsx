@@ -247,6 +247,15 @@ export default function ReservationNew() {
     useState<CollegeIncomeRead | null>(null);
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
 
+  // ✅ FIX: Cleanup blob URL on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (receiptBlobUrl) {
+        URL.revokeObjectURL(receiptBlobUrl);
+      }
+    };
+  }, [receiptBlobUrl]);
+
   // Pagination state - CRITICAL: Prevents fetching ALL reservations at once
   // This fixes UI freeze by limiting data fetched per request
   const [currentPage, setCurrentPage] = useState(1);

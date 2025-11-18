@@ -3,6 +3,7 @@ import { useAuthStore } from "@/store/authStore";
 import { getRoleFromToken } from "@/lib/utils/auth/jwt";
 import { ROLES } from "@/lib/constants/auth/roles";
 import { lazy } from "react";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 
 // Lazy-loaded dashboard components
 const AdminDashboard = lazy(
@@ -39,22 +40,15 @@ export function DashboardRouter() {
     }
   }
 
+  // ✅ FIX: Use professional skeleton loader for initial page load
   // Show loading state until mounted and authenticated
   if (!mounted || !isAuthenticated || !token) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">Loading dashboard...</div>
-      </div>
-    );
+    return <Loader.Page message="Loading dashboard..." />;
   }
 
   // If we have a token but no role yet, show loading
   if (!role) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">Loading dashboard...</div>
-      </div>
-    );
+    return <Loader.Page message="Loading dashboard..." />;
   }
 
   if (role === ROLES.ADMIN || role === ROLES.INSTITUTE_ADMIN) {

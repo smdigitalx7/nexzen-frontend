@@ -77,13 +77,14 @@ const AddExamMarkForm = ({
   const [activeTab, setActiveTab] = useState('single');
   
   // Get enrollments filtered by class and section
+  // ✅ FIX: Reduced page size from 1000 to 100 to prevent UI freezes
   const enrollmentsParams = useMemo(() => {
     if (!selectedClass) return undefined;
     return {
       class_id: selectedClass,
       section_id: selectedSection || undefined,
       page: 1,
-      page_size: 1000,
+      page_size: 100, // Reduced from 1000 to prevent UI freezes
     };
   }, [selectedClass, selectedSection]);
 

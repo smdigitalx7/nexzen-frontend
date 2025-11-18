@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { User, Search, Loader2 } from "lucide-react";
+import { User, Search } from "lucide-react";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 import { FormDialog } from "@/components/shared";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -85,7 +86,7 @@ const AssignDriverDialog = ({ isOpen, onClose, onAssign, isAssigning }: AssignDr
         {/* Driver List */}
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <Loader.Data message="Loading drivers..." />
           </div>
         ) : filteredDrivers.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">

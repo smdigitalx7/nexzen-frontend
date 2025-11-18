@@ -1,52 +1,12 @@
 import { useCallback } from "react";
 import { queryClient } from "@/lib/query";
 import type { QueryKey } from "@tanstack/react-query";
-import { CacheUtils } from "@/lib/api";
 
 /**
- * Clear API cache for a given query key
- * This is needed because the API layer has its own cache that intercepts requests
+ * ✅ REMOVED: API cache clearing - React Query handles caching properly
+ * We no longer need to clear API-level cache as it was causing conflicts
+ * React Query's invalidation is sufficient and more reliable
  */
-function clearApiCacheForQueryKey(queryKey: QueryKey) {
-  try {
-    // Convert React Query key to API path pattern
-    // ["users"] -> "/users"
-    // ["school", "classes"] -> "/school/classes"
-    // ["college", "subjects", "detail", 123] -> "/college/subjects"
-    const pathParts = queryKey.filter(
-      (k): k is string =>
-        typeof k === "string" &&
-        k !== "list" &&
-        k !== "detail" &&
-        k !== "root" &&
-        !/^\d+$/.test(String(k))
-    );
-
-    if (pathParts.length === 0) return;
-
-    const pathPattern = `/${pathParts.join("/")}`;
-
-    // Clear all cache entries matching this path
-    // Pattern matches: "GET:/api/v1/users", "GET:/api/v1/users/roles-and-branches", etc.
-    // Use multiple patterns to catch variations
-    const patterns = [
-      new RegExp(`GET:.*${pathPattern.replace(/\//g, "\\/")}`, "i"), // Exact match
-      new RegExp(`GET:.*${pathPattern.replace(/\//g, "\\/")}.*`, "i"), // With query params
-    ];
-
-    patterns.forEach((pattern) => {
-      CacheUtils.clearByPattern(pattern);
-    });
-  } catch (error) {
-    console.warn("Failed to clear API cache for query key:", queryKey, error);
-    // Fallback: clear all cache if pattern matching fails
-    try {
-      CacheUtils.clearAll();
-    } catch (e) {
-      console.error("Failed to clear all API cache:", e);
-    }
-  }
-}
 
 /**
  * Entity Query Key Mapping
@@ -125,14 +85,13 @@ let refetchTimeout: NodeJS.Timeout | null = null;
 const REFETCH_DEBOUNCE_MS = 300;
 
 /**
- * Utility function to invalidate and refetch queries with API cache clearing
+ * Utility function to invalidate and refetch queries
  * Use this in mutation hooks for consistent behavior
  * Debounced to prevent UI freezing from multiple rapid invalidations
+ *
+ * ✅ REMOVED: API cache clearing - React Query handles caching properly
  */
 export function invalidateAndRefetch(queryKey: QueryKey) {
-  // Clear API cache first
-  clearApiCacheForQueryKey(queryKey);
-
   // Invalidate React Query cache immediately (lightweight operation)
   void queryClient.invalidateQueries({ queryKey });
 
@@ -150,6 +109,56 @@ export function invalidateAndRefetch(queryKey: QueryKey) {
   }, REFETCH_DEBOUNCE_MS);
 }
 
+/**
+ * Batch invalidate and refetch multiple query keys
+ * Prevents UI freezes from multiple simultaneous invalidations
+ * All invalidations are batched and debounced together
+ */
+let batchTimeout: NodeJS.Timeout | null = null;
+const pendingBatchKeys = new Set<string>();
+
+export function batchInvalidateAndRefetch(queryKeys: QueryKey[]) {
+  // Add all keys to pending batch
+  queryKeys.forEach((key) => {
+    // Serialize key for Set comparison
+    const keyStr = JSON.stringify(key);
+    pendingBatchKeys.add(keyStr);
+
+    // Invalidate immediately (lightweight)
+    void queryClient.invalidateQueries({ queryKey: key });
+  });
+
+  // Clear existing batch timeout
+  if (batchTimeout) {
+    clearTimeout(batchTimeout);
+  }
+
+  // Debounce batch refetch
+  batchTimeout = setTimeout(() => {
+    // Refetch all pending keys
+    pendingBatchKeys.forEach((keyStr) => {
+      try {
+        const key = JSON.parse(keyStr) as QueryKey;
+        void queryClient
+          .refetchQueries({ queryKey: key, type: "active" })
+          .catch(() => {
+            // Silently handle errors
+          });
+      } catch (error) {
+        console.warn(
+          "Failed to parse query key for batch refetch:",
+          keyStr,
+          error
+        );
+      }
+    });
+
+    // Clear pending keys
+    pendingBatchKeys.clear();
+    batchTimeout = null;
+  }, REFETCH_DEBOUNCE_MS);
+}
+
 export function useGlobalRefetch() {
   const invalidateEntity = useCallback((entity: EntityType) => {
     const queryKeys = ENTITY_QUERY_MAP[entity];
@@ -159,9 +168,9 @@ export function useGlobalRefetch() {
       return;
     }
 
+    // ✅ REMOVED: API cache clearing - React Query handles caching properly
     // Invalidate all query keys immediately (lightweight)
     queryKeys.forEach((key) => {
-      clearApiCacheForQueryKey(key);
       void queryClient.invalidateQueries({ queryKey: key });
     });
 
