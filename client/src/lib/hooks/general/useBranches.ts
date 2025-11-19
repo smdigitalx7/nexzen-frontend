@@ -14,10 +14,18 @@ export const branchKeys = {
 };
 
 // Hooks for fetching data
+/**
+ * ✅ OPTIMIZATION: Made on-demand - branches are fetched from auth store
+ * Only fetch when explicitly needed (e.g., admin branch management)
+ */
 export const useBranches = () => {
   return useQuery({
     queryKey: branchKeys.lists(),
     queryFn: () => BranchesService.list(),
+    enabled: false, // ✅ OPTIMIZATION: On-demand only - branches come from auth store
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
   });
 };
 

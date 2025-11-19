@@ -6,7 +6,7 @@ import { useAuthStore } from "@/store/authStore";
 import { TrendingUp, PieChart } from "lucide-react";
 import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { TabSwitcher } from "@/components/shared";
-import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
+import { useTabNavigation, useTabEnabled } from "@/lib/hooks/use-tab-navigation";
 import {
   useCollegeIncomeList,
   useCollegeIncomeDashboard,
@@ -31,32 +31,39 @@ export const CollegeReportsTemplate = () => {
   const [showViewIncomeDialog, setShowViewIncomeDialog] = useState(false);
   const [selectedIncomeId, setSelectedIncomeId] = useState<number | null>(null);
 
-  // Fetch real income and expenditure data
+  // ✅ OPTIMIZATION: Get enabled states for each tab - only fetch when tab is active
+  const incomeTabEnabled = useTabEnabled("income", "income");
+  const expenditureTabEnabled = useTabEnabled("expenditure", "income");
+  const analyticsTabEnabled = useTabEnabled("analytics", "income");
+
+  // ✅ OPTIMIZATION: Only fetch income data when Income tab is active
   const {
     data: incomeData = [],
     isLoading: incomeLoading,
     error: incomeError,
-  } = useCollegeIncomeList();
+  } = useCollegeIncomeList(undefined, { enabled: incomeTabEnabled });
+
+  // ✅ OPTIMIZATION: Only fetch expenditure data when Expenditure tab is active
   const {
     data: expenditureData = [],
     isLoading: expenditureLoading,
     error: expenditureError,
-  } = useCollegeExpenditureList();
+  } = useCollegeExpenditureList(undefined, { enabled: expenditureTabEnabled });
 
   // Define income params for the IncomeTable component
   const incomeParams = {};
 
-  // Fetch dashboard data for financial stats
+  // ✅ OPTIMIZATION: Only fetch dashboard data when respective tabs are active
   const {
     data: incomeDashboard,
     error: incomeDashboardError,
     isLoading: incomeDashboardLoading,
-  } = useCollegeIncomeDashboard();
+  } = useCollegeIncomeDashboard({ enabled: incomeTabEnabled || analyticsTabEnabled });
   const {
     data: expenditureDashboard,
     error: expenditureDashboardError,
     isLoading: expenditureDashboardLoading,
-  } = useCollegeExpenditureDashboard();
+  } = useCollegeExpenditureDashboard({ enabled: expenditureTabEnabled || analyticsTabEnabled });
 
   // Fetch individual income data for view dialog
   const {
@@ -133,6 +140,7 @@ export const CollegeReportsTemplate = () => {
               <IncomeTable
                 onViewIncome={handleViewIncome}
                 params={incomeParams}
+                enabled={incomeTabEnabled}
               />
             ),
           },

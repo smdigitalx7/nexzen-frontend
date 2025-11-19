@@ -5,10 +5,14 @@ import type { SchoolExpenditureCreate, SchoolExpenditureRead, SchoolExpenditureU
 import { schoolKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
-export function useSchoolIncomeList(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string }) {
+export function useSchoolIncomeList(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string }, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: schoolKeys.income.list(params as Record<string, unknown> | undefined),
     queryFn: () => SchoolIncomeService.list(params),
+    enabled: options?.enabled !== false, // ✅ OPTIMIZATION: Allow disabling for on-demand fetching
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true, // Refetch on mount if enabled and data is stale
   });
 }
 
@@ -20,10 +24,14 @@ export function useSchoolIncome(incomeId: number | null | undefined) {
   });
 }
 
-export function useSchoolIncomeDashboard() {
+export function useSchoolIncomeDashboard(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [...schoolKeys.income.root(), "dashboard"],
     queryFn: () => SchoolIncomeService.getDashboard(),
+    enabled: options?.enabled !== false, // ✅ OPTIMIZATION: Allow disabling for on-demand fetching
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true, // Refetch on mount if enabled and data is stale
   });
 }
 
@@ -34,10 +42,14 @@ export function useSchoolIncomeRecent(limit?: number) {
   });
 }
 
-export function useSchoolExpenditureDashboard() {
+export function useSchoolExpenditureDashboard(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [...schoolKeys.expenditure.root(), "dashboard"],
     queryFn: () => SchoolExpenditureService.getDashboard(),
+    enabled: options?.enabled !== false, // ✅ OPTIMIZATION: Allow disabling for on-demand fetching
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true, // Refetch on mount if enabled and data is stale
   });
 }
 
@@ -94,10 +106,14 @@ export function useCreateSchoolIncomeByReservation() {
   }, "Income record created successfully");
 }
 
-export function useSchoolExpenditureList(params?: { start_date?: string; end_date?: string }) {
+export function useSchoolExpenditureList(params?: { start_date?: string; end_date?: string }, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: schoolKeys.expenditure.list(params as Record<string, unknown> | undefined),
     queryFn: () => SchoolExpenditureService.list(params),
+    enabled: options?.enabled !== false, // ✅ OPTIMIZATION: Allow disabling for on-demand fetching
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true, // Refetch on mount if enabled and data is stale
   });
 }
 

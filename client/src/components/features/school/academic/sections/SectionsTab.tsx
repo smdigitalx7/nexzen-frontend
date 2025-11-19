@@ -37,7 +37,7 @@ const SectionsTabComponent = () => {
   const [editSection, setEditSection] = useState(initialSectionForm);
 
   // Data fetching - only fetch when a class is selected
-  const { data: sections = [] } = useSchoolSectionsByClass(selectedClassId);
+  const { data: sections = [], isLoading: isLoadingSections } = useSchoolSectionsByClass(selectedClassId);
 
   // Hooks
   const createSection = useCreateSchoolSection((selectedClassId || 0));
@@ -232,6 +232,7 @@ const SectionsTabComponent = () => {
           actionButtonGroups={actionButtonGroups}
           actionColumnHeader="Actions"
           showActionLabels={true}
+          loading={isLoadingSections} // ✅ Add loader while fetching sections
         />
       )}
 

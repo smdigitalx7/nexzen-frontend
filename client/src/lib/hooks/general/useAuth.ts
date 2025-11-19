@@ -112,7 +112,13 @@ export function useLogin() {
       let instituteId = "1";
       let currentBranchId = currentBranch.branch_id;
       try {
-        const meResponse = await unifiedApi.get<any>("/auth/me");
+        // ✅ FIX: Properly type /auth/me response
+        interface AuthMeResponse {
+          user_id?: number | string;
+          institute_id?: number | string;
+          current_branch_id?: number;
+        }
+        const meResponse = await unifiedApi.get<AuthMeResponse>("/auth/me");
         if (meResponse) {
           userId = meResponse.user_id ? String(meResponse.user_id) : "";
           instituteId = meResponse.institute_id
@@ -180,14 +186,15 @@ export function useLogin() {
       }
 
       // Step 9: Login user - pass token and refreshToken explicitly
+      // ✅ FIX: Types match, no need for `as any` casts
       await login(
-        user as any, 
-        branchList as any, 
+        user, 
+        branchList, 
         loginResponse.access_token,
         undefined // refreshToken is in httpOnly cookie, not in response
       );
 
-      // Step 9.5: CRITICAL - Clear API cache after login to prevent stale data from previous role
+      // Step 9.5: CRITICAL - Invalidate queries after login to prevent stale data from previous role
       // This ensures dashboard and other data is fresh for the new role
       try {
         useCacheStore.getState().clear();
@@ -195,11 +202,13 @@ export function useLogin() {
         console.warn("Failed to clear cache store on login:", e);
       }
       
+      // ✅ FIX: Invalidate all queries instead of clear() - prevents flicker
+      // On login, we DO want to invalidate everything since user/role changed
       try {
-        queryClient.clear();
+        void queryClient.invalidateQueries();
         queryClient.resetQueries();
       } catch (e) {
-        console.warn("Failed to clear React Query cache on login:", e);
+        console.warn("Failed to invalidate React Query cache on login:", e);
       }
 
       // Step 10: Determine redirect path based on role and branch type
@@ -234,8 +243,9 @@ export function useLogin() {
         variant: "success",
       });
     },
-    onError: (error: any) => {
-      const message = error?.message || "Login failed";
+    onError: (error: unknown) => {
+      // ✅ FIX: Properly type error handling
+      const message = error instanceof Error ? error.message : "Login failed";
       toast({
         title: "Login failed",
         description: message,
@@ -267,10 +277,12 @@ export function useLogout() {
         description: "You have been logged out.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      // ✅ FIX: Properly type error handling
+      const message = error instanceof Error ? error.message : "Failed to logout";
       toast({
         title: "Logout failed",
-        description: error?.message || "Failed to logout",
+        description: message,
         variant: "destructive",
       });
     },

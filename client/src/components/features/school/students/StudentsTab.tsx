@@ -7,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
-import { EnhancedDataTable } from '@/components/shared';
+import { EnhancedDataTable, ServerSidePagination } from '@/components/shared';
 import { Loader } from '@/components/ui/ProfessionalLoader';
 import { 
   createAvatarColumn, 
@@ -21,6 +21,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Badge } from '@/components/ui/badge';
+import { useTabEnabled } from '@/lib/hooks/use-tab-navigation';
 
 const studentFormSchema = z.object({
   student_name: z.string().min(1, 'Student name is required').max(255, 'Name too long'),
@@ -260,6 +261,15 @@ const AdmissionInfoSection = memo(({ form }: { form: any }) => (
 AdmissionInfoSection.displayName = "AdmissionInfoSection";
 
 const StudentsTabComponent = () => {
+  // ✅ OPTIMIZATION: Check if this tab is active before fetching
+  // Note: StudentsTab might be used in different contexts, so we check for common tab names
+  // If used in StudentManagement, it's not in the tabs array, so this component might not be rendered
+  // But if it's used elsewhere with a "students" tab, we gate it properly
+  const isStudentsTabActive = useTabEnabled("students", "enrollments");
+  const isEnrollmentsTabActive = useTabEnabled("enrollments", "enrollments");
+  // ✅ OPTIMIZATION: Only fetch if any relevant tab is active (covers different contexts)
+  const isTabActive = isStudentsTabActive || isEnrollmentsTabActive;
+
   // State management
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [viewStudentId, setViewStudentId] = useState<number | null>(null);
@@ -268,9 +278,18 @@ const StudentsTabComponent = () => {
   // ✅ FIX: Add refreshKey to force table refresh after updates
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // ✅ Server-side pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+
   // Hooks
   const { currentBranch } = useAuthStore();
-  const { data: studentsResp, isLoading, error } = useSchoolStudentsList({ page: 1, page_size: 50 });
+  // ✅ OPTIMIZATION: Only fetch when tab is active
+  const { data: studentsResp, isLoading, error } = useSchoolStudentsList({ 
+    page: currentPage, 
+    page_size: pageSize,
+    enabled: isTabActive, // ✅ Only fetch when relevant tab is active
+  });
   const { data: viewStudentData, isLoading: isViewLoading } = useSchoolStudent(viewStudentId);
   const updateStudentMutation = useUpdateSchoolStudent(selectedStudent?.student_id || 0);
 
@@ -367,19 +386,40 @@ const StudentsTabComponent = () => {
       ) : error ? (
         <Card><CardContent className="py-8 text-center text-red-600">Error loading students</CardContent></Card>
       ) : (
-        <EnhancedDataTable
-          data={students}
-          columns={columns}
-          title="Students"
-          searchKey="student_name"
-          exportable={true}
-          selectable={true}
-          showActions={true}
-          actionButtonGroups={actionButtonGroups}
-          actionColumnHeader="Actions"
-          showActionLabels={true}
-          refreshKey={refreshKey}
-        />
+        <div className="space-y-4">
+          <EnhancedDataTable
+            data={students}
+            columns={columns}
+            title="Students"
+            searchKey="student_name"
+            exportable={true}
+            selectable={true}
+            showActions={true}
+            actionButtonGroups={actionButtonGroups}
+            actionColumnHeader="Actions"
+            showActionLabels={true}
+            refreshKey={refreshKey}
+            enableClientSidePagination={false}
+          />
+          {/* ✅ Server-side pagination controls */}
+          {studentsResp && (
+            <ServerSidePagination
+              currentPage={currentPage}
+              totalPages={studentsResp.total_pages || 1}
+              totalCount={studentsResp.total_count || students.length}
+              pageSize={pageSize}
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onPageSizeChange={(newPageSize) => {
+                setPageSize(newPageSize);
+                setCurrentPage(1);
+              }}
+              isLoading={isLoading}
+            />
+          )}
+        </div>
       )}
 
       {/* Edit Student Dialog */}

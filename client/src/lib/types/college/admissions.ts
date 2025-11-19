@@ -12,6 +12,14 @@ export interface CollegeAdmissionListItem {
   payable_transport_fee: string | null;
 }
 
+export interface CollegeAdmissionsPaginatedResponse {
+  data?: CollegeAdmissionListItem[] | null;
+  total_pages: number;
+  current_page: number;
+  page_size?: number | null;
+  total_count?: number | null;
+}
+
 export interface CollegeAdmissionDetails {
   student_id: number;
   branch_name: string;

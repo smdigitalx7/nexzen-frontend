@@ -27,24 +27,26 @@ LoadingIcon.displayName = "LoadingIcon";
 interface IncomeTableProps {
   onViewIncome?: (income: CollegeIncomeSummary) => void;
   params?: CollegeIncomeSummaryParams;
+  enabled?: boolean; // ✅ OPTIMIZATION: Allow parent to control when to fetch
 }
 
 export const IncomeTable = ({
   onViewIncome,
   params = {},
+  enabled = true, // Default to enabled for backward compatibility
 }: IncomeTableProps) => {
   // Receipt modal state
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
   const [loadingReceiptId, setLoadingReceiptId] = useState<number | null>(null);
 
-  // Fetch income summary data using the hook
+  // ✅ OPTIMIZATION: Only fetch when enabled (tab is active)
   const {
     data: incomeResponse,
     isLoading,
     error,
     refetch,
-  } = useCollegeIncomeSummary(params);
+  } = useCollegeIncomeSummary(params, { enabled });
 
   const incomeData = incomeResponse?.items || [];
   const totalCount = incomeResponse?.total || 0;

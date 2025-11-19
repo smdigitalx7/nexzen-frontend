@@ -7,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
-import { EnhancedDataTable } from '@/components/shared';
+import { EnhancedDataTable, ServerSidePagination } from '@/components/shared';
 import { Loader } from '@/components/ui/ProfessionalLoader';
 import { 
   createAvatarColumn,
@@ -43,8 +43,12 @@ const studentFormSchema = z.object({
 type StudentFormData = z.infer<typeof studentFormSchema>;
 
 export const StudentsTab = () => {
+  // ✅ Server-side pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+
   const { currentBranch } = useAuthStore();
-  const { data: studentsResp, isLoading, error } = useCollegeStudentsList({ page: 1, pageSize: 50 });
+  const { data: studentsResp, isLoading, error } = useCollegeStudentsList({ page: currentPage, pageSize: pageSize });
   const students: CollegeStudentRead[] = studentsResp?.data ?? [];
   const deleteStudentMutation = useDeleteCollegeStudent();
   const [selectedStudent, setSelectedStudent] = useState<CollegeStudentFullDetails | null>(null);
@@ -146,19 +150,40 @@ export const StudentsTab = () => {
       ) : error ? (
         <Card><CardContent className="py-8 text-center text-red-600">Error loading students</CardContent></Card>
       ) : (
-        <EnhancedDataTable
-          data={students}
-          columns={columns}
-          title="Students"
-          searchKey="student_name"
-          exportable={true}
-          selectable={true}
-          showActions={true}
-          actionButtonGroups={actionButtonGroups}
-          actionColumnHeader="Actions"
-          showActionLabels={true}
-          refreshKey={refreshKey}
-        />
+        <div className="space-y-4">
+          <EnhancedDataTable
+            data={students}
+            columns={columns}
+            title="Students"
+            searchKey="student_name"
+            exportable={true}
+            selectable={true}
+            showActions={true}
+            actionButtonGroups={actionButtonGroups}
+            actionColumnHeader="Actions"
+            showActionLabels={true}
+            refreshKey={refreshKey}
+            enableClientSidePagination={false}
+          />
+          {/* ✅ Server-side pagination controls */}
+          {studentsResp && (
+            <ServerSidePagination
+              currentPage={currentPage}
+              totalPages={studentsResp.total_pages || 1}
+              totalCount={studentsResp.total_count || students.length}
+              pageSize={pageSize}
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onPageSizeChange={(newPageSize) => {
+                setPageSize(newPageSize);
+                setCurrentPage(1);
+              }}
+              isLoading={isLoading}
+            />
+          )}
+        </div>
       )}
 
       {/* Edit Student Dialog */}

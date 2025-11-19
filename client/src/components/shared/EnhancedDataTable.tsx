@@ -145,6 +145,8 @@ interface EnhancedDataTableProps<TData> {
   customAddButton?: React.ReactNode;
   // ✅ FIX: Add refreshKey prop to force table refresh when data updates
   refreshKey?: number | string;
+  // ✅ Server-side pagination support
+  enableClientSidePagination?: boolean; // Default: true (for backward compatibility)
 }
 
 function EnhancedDataTableComponent<TData>({
@@ -175,6 +177,7 @@ function EnhancedDataTableComponent<TData>({
   showActionLabels = true,
   customAddButton,
   refreshKey, // ✅ FIX: Add refreshKey to force refresh
+  enableClientSidePagination = true, // ✅ Default to true for backward compatibility
 }: EnhancedDataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -467,7 +470,8 @@ function EnhancedDataTableComponent<TData>({
     onColumnFiltersChange: setColumnFilters,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    // ✅ Conditionally enable client-side pagination
+    ...(enableClientSidePagination && { getPaginationRowModel: getPaginationRowModel() }),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setRowSelection,
@@ -1533,7 +1537,8 @@ function EnhancedDataTableComponent<TData>({
         </div>
       </div>
 
-      {/* Pagination */}
+      {/* Pagination - Only show if client-side pagination is enabled */}
+      {enableClientSidePagination && (
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-2">
         <div className="flex items-center space-x-3">
           <div className="text-sm font-medium text-slate-600 dark:text-slate-400">
@@ -1672,6 +1677,7 @@ function EnhancedDataTableComponent<TData>({
           </div>
         </div>
       </div>
+      )}
     </motion.div>
   );
 }

@@ -42,21 +42,43 @@ export const ClassTeacherTab = () => {
     useClassTeachers();
   const createClassTeacherMutation = useCreateClassTeacher();
   const deleteClassTeacherMutation = useDeleteClassTeacher();
-  const { data: allEmployees = [] } = useEmployeesByBranch();
-  const { data: classes = [] } = useSchoolClasses();
   const { toast } = useToast();
-  
+
   // Permission checks
-  const canAssignClassTeacher = useCanViewUIComponent("teachers", "button", "class-teacher-assign");
-  const canDeleteClassTeacher = useCanViewUIComponent("teachers", "button", "class-teacher-delete");
+  const canAssignClassTeacher = useCanViewUIComponent(
+    "teachers",
+    "button",
+    "class-teacher-assign"
+  );
+  const canDeleteClassTeacher = useCanViewUIComponent(
+    "teachers",
+    "button",
+    "class-teacher-delete"
+  );
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [selectedSectionId, setSelectedSectionId] = useState<string>("");
 
+  // ✅ OPTIMIZATION: Track dropdown open states for on-demand fetching
+  const [teachersDropdownOpen, setTeachersDropdownOpen] = useState(false);
+  const [classesDropdownOpen, setClassesDropdownOpen] = useState(false);
+
+  // ✅ OPTIMIZATION: Only fetch employees when teachers dropdown is opened
+  // User requirement: Don't call Teachers API - only call when clicking dropdowns
+  const { data: allEmployees = [] } =
+    useEmployeesByBranch(teachersDropdownOpen);
+
+  // ✅ OPTIMIZATION: Only fetch classes when classes dropdown is opened
+  // User requirement: Don't call Classes API - only call when clicking dropdowns
+  const { data: classes = [] } = useSchoolClasses({
+    enabled: classesDropdownOpen,
+  });
+
+  // Get sections based on selected class - only fetch when classes dropdown was opened AND class is selected
   const { data: sections = [] } = useSchoolSectionsByClass(
-    selectedClassId ? parseInt(selectedClassId) : null
+    classesDropdownOpen && selectedClassId ? parseInt(selectedClassId) : null
   );
 
   const resetForm = () => {
@@ -144,17 +166,21 @@ export const ClassTeacherTab = () => {
         exportable={true}
         onAdd={canAssignClassTeacher ? handleAddClick : undefined}
         addButtonText="Assign Class Teacher"
-        actionButtons={canDeleteClassTeacher ? [
-          {
-            id: "delete",
-            label: "Delete",
-            icon: Trash2,
-            variant: "destructive" as const,
-            size: "sm" as const,
-            onClick: (row) => handleDelete(row),
-            className: "text-red-600 hover:text-red-700 hover:bg-red-50",
-          },
-        ] : []}
+        actionButtons={
+          canDeleteClassTeacher
+            ? [
+                {
+                  id: "delete",
+                  label: "Delete",
+                  icon: Trash2,
+                  variant: "destructive" as const,
+                  size: "sm" as const,
+                  onClick: (row) => handleDelete(row),
+                  className: "text-red-600 hover:text-red-700 hover:bg-red-50",
+                },
+              ]
+            : []
+        }
         actionColumnHeader="Actions"
         showActions={true}
         showActionLabels={true}
@@ -185,6 +211,9 @@ export const ClassTeacherTab = () => {
             <Select
               value={selectedTeacherId}
               onValueChange={setSelectedTeacherId}
+              onOpenChange={(open) => {
+                setTeachersDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select teacher" />
@@ -210,6 +239,9 @@ export const ClassTeacherTab = () => {
               onValueChange={(value) => {
                 setSelectedClassId(value);
                 setSelectedSectionId(""); // Reset section when class changes
+              }}
+              onOpenChange={(open) => {
+                setClassesDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
               }}
             >
               <SelectTrigger>

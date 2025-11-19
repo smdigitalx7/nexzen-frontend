@@ -21,8 +21,8 @@ export interface CollegeClassDropdownProps {
  * CollegeClassDropdown - Reusable dropdown for selecting college classes
  * 
  * Features:
- * - Fetches classes from college API
- * - Loading and error states
+ * - ✅ OPTIMIZATION: On-demand fetching - only fetches when dropdown is opened
+ * - Loading and error states with loader in dropdown
  * - Consistent styling
  */
 export function CollegeClassDropdown({
@@ -36,7 +36,9 @@ export function CollegeClassDropdown({
   emptyValueLabel = "No class",
   id,
 }: CollegeClassDropdownProps) {
-  const { data, isLoading, error, refetch } = useCollegeClasses();
+  // ✅ OPTIMIZATION: Start with enabled: false - fetch only when dropdown opens
+  const [shouldFetch, setShouldFetch] = React.useState(false);
+  const { data, isLoading, error, refetch } = useCollegeClasses({ enabled: shouldFetch });
 
   const options = React.useMemo(() => {
     return data?.items || [];
@@ -47,6 +49,16 @@ export function CollegeClassDropdown({
       onChange?.(newValue === null ? null : Number(newValue));
     },
     [onChange]
+  );
+
+  // ✅ OPTIMIZATION: Trigger fetch when dropdown opens
+  const handleOpenChange = React.useCallback(
+    (open: boolean) => {
+      if (open && !shouldFetch) {
+        setShouldFetch(true);
+      }
+    },
+    [shouldFetch]
   );
 
   return (
@@ -69,6 +81,7 @@ export function CollegeClassDropdown({
       onRetry={() => refetch()}
       emptyValue={emptyValue}
       emptyValueLabel={emptyValueLabel}
+      onOpenChange={handleOpenChange}
     />
   );
 }

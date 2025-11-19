@@ -24,6 +24,8 @@ interface ProfessionalLoaderProps {
   fullScreen?: boolean;
   /** Overlay mode (absolute positioned) */
   overlay?: boolean;
+  /** Container mode (relative positioned, for main content area) */
+  container?: boolean;
   /** Custom className */
   className?: string;
   /** Inline mode (no centering) */
@@ -137,6 +139,7 @@ export const ProfessionalLoader: React.FC<ProfessionalLoaderProps> = ({
   showMessage = false,
   fullScreen = false,
   overlay = false,
+  container = false,
   className,
   inline = false,
 }) => {
@@ -183,6 +186,14 @@ export const ProfessionalLoader: React.FC<ProfessionalLoaderProps> = ({
     );
   }
 
+  if (container) {
+    return (
+      <div className="absolute inset-0 z-40 flex items-center justify-center bg-transparent backdrop-blur-md">
+        {content}
+      </div>
+    );
+  }
+
   if (overlay) {
     return (
       <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/50 backdrop-blur-sm">
@@ -202,6 +213,17 @@ export const Loader = {
   Page: ({ message = "Loading..." }: { message?: string }) => (
     <ProfessionalLoader
       fullScreen
+      size="lg"
+      variant="spinner"
+      message={message}
+      showMessage
+    />
+  ),
+
+  /** Container loader - For main content area (doesn't cover sidebar/header) */
+  Container: ({ message = "Loading..." }: { message?: string }) => (
+    <ProfessionalLoader
+      container
       size="lg"
       variant="spinner"
       message={message}

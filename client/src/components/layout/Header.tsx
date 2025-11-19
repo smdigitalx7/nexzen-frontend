@@ -212,10 +212,8 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       // Use the centralized logout method from auth store
+      // logoutAsync() already handles query cache invalidation
       await logoutAsync();
-
-      // Clear React Query cache after logout
-      queryClient.clear();
       
       // Navigate to root after logout
       setLocation("/");

@@ -2,12 +2,14 @@ import { create } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { AuthService } from "@/lib/services/general";
-import { AuthTokenTimers, DedupeUtils } from "@/lib/api";
+import { AuthTokenTimers } from "@/lib/api";
 import { ROLES, normalizeRole } from "@/lib/constants";
 import { extractPrimaryRole } from "@/lib/utils/roles";
 import { useCacheStore } from "@/store/cacheStore";
 import { queryClient } from "@/lib/query";
 import { getTokenExpiration, decodeJWT, getRoleFromToken } from "@/lib/utils/auth/jwt";
+import { batchInvalidateQueries } from "@/lib/hooks/common/useGlobalRefetch";
+import { getBranchDependentQueryKeys, getAcademicYearDependentQueryKeys } from "@/lib/hooks/common/branch-dependent-keys";
 
 // Import extracted types and modules
 export type {
@@ -152,12 +154,7 @@ export const useAuthStore = create<AuthState>()(
         logout: () => {
           AuthTokenTimers.clearProactiveRefresh();
 
-          // CRITICAL: Clear pending API requests to prevent them from completing with old token
-          try {
-            DedupeUtils.clearAll();
-          } catch (e) {
-            console.warn("Failed to clear pending requests:", e);
-          }
+          // Note: Request deduplication is handled by React Query automatically
 
           // CRITICAL: Clear user state FIRST to prevent hooks from accessing stale data
           set((state) => {
@@ -193,13 +190,15 @@ export const useAuthStore = create<AuthState>()(
               console.warn("Failed to clear cache store:", e);
             }
             
-            // CRITICAL: Clear React Query cache to prevent stale dashboard data
+            // ✅ FIX: Invalidate all queries instead of clearing (prevents flicker)
+            // Note: On logout, we DO want to clear everything since user is leaving
             try {
-              queryClient.clear();
-              // Reset all queries to ensure fresh state
+              // Invalidate all queries - React Query will handle cleanup
+              void queryClient.invalidateQueries();
+              // Reset queries to ensure fresh state on next login
               queryClient.resetQueries();
             } catch (e) {
-              console.warn("Failed to clear React Query cache:", e);
+              console.warn("Failed to invalidate React Query cache:", e);
             }
           }
         },
@@ -217,12 +216,7 @@ export const useAuthStore = create<AuthState>()(
             // Clear all client-side state (same as logout())
             AuthTokenTimers.clearProactiveRefresh();
 
-            // CRITICAL: Clear pending API requests to prevent them from completing with old token
-            try {
-              DedupeUtils.clearAll();
-            } catch (e) {
-              console.warn("Failed to clear pending requests:", e);
-            }
+            // Note: Request deduplication is handled by React Query automatically
 
             // CRITICAL: Clear auth store FIRST to prevent hooks from accessing stale data
             set({
@@ -254,13 +248,15 @@ export const useAuthStore = create<AuthState>()(
                 console.warn("Failed to clear cache store:", e);
               }
               
-              // CRITICAL: Clear React Query cache to prevent stale dashboard data
+              // ✅ FIX: Invalidate all queries instead of clearing (prevents flicker)
+              // Note: On logout, we DO want to clear everything since user is leaving
               try {
-                queryClient.clear();
-                // Reset all queries to ensure fresh state
+                // Invalidate all queries - React Query will handle cleanup
+                void queryClient.invalidateQueries();
+                // Reset queries to ensure fresh state on next login
                 queryClient.resetQueries();
               } catch (e) {
-                console.warn("Failed to clear React Query cache:", e);
+                console.warn("Failed to invalidate React Query cache:", e);
               }
             }
 
@@ -361,20 +357,20 @@ export const useAuthStore = create<AuthState>()(
                 "Branch switched successfully with new token and clients updated"
               );
 
-              // ✅ COMPLETE REFRESH: Clear ALL React Query cache and refetch active queries
+              // ✅ FIX: Selective invalidation instead of clear() - prevents UI flicker
               try {
-                // Clear all queries to ensure fresh data for new branch
-                queryClient.clear();
+                // Only invalidate queries that depend on branch context
+                const branchDependentKeys = getBranchDependentQueryKeys();
+                batchInvalidateQueries(branchDependentKeys);
                 
-                // Use requestAnimationFrame to ensure UI updates smoothly
-                // Then refetch active queries in the next frame to prevent blocking
+                // Refetch active queries in next frame (React Query handles deduplication)
                 requestAnimationFrame(() => {
                   queryClient.refetchQueries({ type: 'active' });
                 });
                 
-                console.log("Complete cache cleared and active queries will refetch after branch switch");
+                console.log("Branch-dependent queries invalidated and will refetch");
               } catch (error) {
-                console.error("Error clearing cache after branch switch:", error);
+                console.error("Error invalidating queries after branch switch:", error);
               }
             } else {
               // Fallback to just updating the branch if no token response
@@ -419,20 +415,20 @@ export const useAuthStore = create<AuthState>()(
               }
               console.log("Branch switched locally (no token response)");
 
-              // ✅ COMPLETE REFRESH: Clear ALL React Query cache and refetch active queries
+              // ✅ FIX: Selective invalidation instead of clear() - prevents UI flicker
               try {
-                // Clear all queries to ensure fresh data for new branch
-                queryClient.clear();
+                // Only invalidate queries that depend on branch context
+                const branchDependentKeys = getBranchDependentQueryKeys();
+                batchInvalidateQueries(branchDependentKeys);
                 
-                // Use requestAnimationFrame to ensure UI updates smoothly
-                // Then refetch active queries in the next frame to prevent blocking
+                // Refetch active queries in next frame (React Query handles deduplication)
                 requestAnimationFrame(() => {
                   queryClient.refetchQueries({ type: 'active' });
                 });
                 
-                console.log("Complete cache cleared and active queries will refetch after branch switch");
+                console.log("Branch-dependent queries invalidated and will refetch");
               } catch (error) {
-                console.error("Error clearing cache after branch switch:", error);
+                console.error("Error invalidating queries after branch switch:", error);
               }
             }
           } catch (error) {
@@ -479,17 +475,18 @@ export const useAuthStore = create<AuthState>()(
             }
             console.log("Branch switched locally (API call failed)");
 
-            // ✅ COMPLETE REFRESH: Clear ALL React Query cache and refetch active queries (even on error)
+            // ✅ FIX: Selective invalidation instead of clear() - prevents UI flicker
             try {
-              // Clear all queries to ensure fresh data for new branch
-              queryClient.clear();
+              // Only invalidate queries that depend on branch context
+              const branchDependentKeys = getBranchDependentQueryKeys();
+              batchInvalidateQueries(branchDependentKeys);
               
-              // Refetch all active queries to load data for the new branch
+              // Refetch active queries (React Query handles deduplication)
               queryClient.refetchQueries({ type: 'active' });
               
-              console.log("Complete cache cleared and active queries refetched after branch switch");
+              console.log("Branch-dependent queries invalidated and refetched");
             } catch (error) {
-              console.error("Error clearing cache after branch switch:", error);
+              console.error("Error invalidating queries after branch switch:", error);
             }
           }
         },
@@ -500,20 +497,20 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true, // Preserve authentication
           });
 
-          // ✅ COMPLETE REFRESH: Clear ALL React Query cache and refetch active queries
+          // ✅ FIX: Selective invalidation instead of clear() - prevents UI flicker
           try {
-            // Clear all queries to ensure fresh data for new academic year
-            queryClient.clear();
+            // Only invalidate queries that depend on academic year context
+            const academicYearDependentKeys = getAcademicYearDependentQueryKeys();
+            batchInvalidateQueries(academicYearDependentKeys);
             
-            // Use requestAnimationFrame to ensure UI updates smoothly
-            // Then refetch active queries in the next frame to prevent blocking
+            // Refetch active queries in next frame (React Query handles deduplication)
             requestAnimationFrame(() => {
               queryClient.refetchQueries({ type: 'active' });
             });
             
-            console.log("Complete cache cleared and active queries will refetch after academic year switch");
+            console.log("Academic year-dependent queries invalidated and will refetch");
           } catch (error) {
-            console.error("Error clearing cache after academic year switch:", error);
+            console.error("Error invalidating queries after academic year switch:", error);
           }
         },
         setAcademicYears: (years) => {

@@ -38,7 +38,9 @@ export function SchoolSectionDropdown({
   emptyValueLabel = "No section",
   id,
 }: SchoolSectionDropdownProps) {
-  const { data, isLoading, error, refetch } = useSchoolSections(classId);
+  // ✅ OPTIMIZATION: Start with enabled: false - fetch only when dropdown opens
+  const [shouldFetch, setShouldFetch] = React.useState(false);
+  const { data, isLoading, error, refetch } = useSchoolSections(classId, { enabled: shouldFetch && classId > 0 });
 
   const options = React.useMemo(() => {
     // Don't show options when classId is invalid
@@ -60,6 +62,16 @@ export function SchoolSectionDropdown({
       onChange?.(newValue === null ? null : Number(newValue));
     },
     [onChange]
+  );
+
+  // ✅ OPTIMIZATION: Trigger fetch when dropdown opens (only if classId is valid)
+  const handleOpenChange = React.useCallback(
+    (open: boolean) => {
+      if (open && !shouldFetch && classId > 0) {
+        setShouldFetch(true);
+      }
+    },
+    [shouldFetch, classId]
   );
 
   const isDisabled = disabled || classId <= 0;
@@ -93,6 +105,7 @@ export function SchoolSectionDropdown({
       onRetry={() => refetch()}
       emptyValue={shouldUseEmptyValue}
       emptyValueLabel={emptyValueLabel}
+      onOpenChange={handleOpenChange}
     />
   );
 }

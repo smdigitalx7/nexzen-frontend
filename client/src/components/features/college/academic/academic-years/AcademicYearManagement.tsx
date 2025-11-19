@@ -13,6 +13,7 @@ import {
   createDateColumn,
   createBadgeColumn
 } from "@/lib/utils/factory/columnFactories";
+import { useTabEnabled } from "@/lib/hooks/use-tab-navigation";
 
 // UI row shape for the table
 type UIAcademicYearRow = {
@@ -28,7 +29,9 @@ type UIAcademicYearRow = {
 };
 
 const AcademicYearManagement = () => {
-  const { data: academicYears = [], isLoading: academicYearsLoading, error } = useAcademicYears();
+  // ✅ OPTIMIZATION: Only fetch academic years when this tab is active
+  const academicYearsTabEnabled = useTabEnabled("academic-years", "classes");
+  const { data: academicYears = [], isLoading: academicYearsLoading, error, refetch: refetchAcademicYears } = useAcademicYears({ enabled: academicYearsTabEnabled });
   
   const createAcademicYearMutation = useCreateAcademicYear();
   const updateAcademicYearMutation = useUpdateAcademicYear();

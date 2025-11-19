@@ -79,84 +79,50 @@ export type EntityType = keyof typeof ENTITY_QUERY_MAP;
 /**
  * Global Refetch Hook
  * Provides centralized query invalidation for entities
+ * 
+ * Note: React Query handles refetching automatically - no debouncing needed
  */
-// Debounce utility to prevent refetch storms
-let refetchTimeout: NodeJS.Timeout | null = null;
-const REFETCH_DEBOUNCE_MS = 300;
 
 /**
- * Utility function to invalidate and refetch queries
+ * Utility function to invalidate queries
+ * React Query automatically handles refetching in the background
  * Use this in mutation hooks for consistent behavior
- * Debounced to prevent UI freezing from multiple rapid invalidations
  *
- * ✅ REMOVED: API cache clearing - React Query handles caching properly
+ * Note: React Query handles caching, deduplication, and background refetching automatically
  */
-export function invalidateAndRefetch(queryKey: QueryKey) {
-  // Invalidate React Query cache immediately (lightweight operation)
-  void queryClient.invalidateQueries({ queryKey });
-
-  // Debounce refetch to prevent multiple simultaneous refetches
-  if (refetchTimeout) {
-    clearTimeout(refetchTimeout);
-  }
-
-  refetchTimeout = setTimeout(() => {
-    // Refetch active queries after debounce delay
-    void queryClient.refetchQueries({ queryKey, type: "active" }).catch(() => {
-      // Silently handle errors to prevent UI blocking
-    });
-    refetchTimeout = null;
-  }, REFETCH_DEBOUNCE_MS);
+export function invalidateQueries(queryKey: QueryKey) {
+  // Invalidate React Query cache - React Query will automatically refetch active queries
+  // ✅ FIX: Explicitly set exact: false to ensure prefix matching works correctly
+  void queryClient.invalidateQueries({ queryKey, exact: false });
 }
 
 /**
- * Batch invalidate and refetch multiple query keys
- * Prevents UI freezes from multiple simultaneous invalidations
- * All invalidations are batched and debounced together
+ * @deprecated Use invalidateQueries() instead
+ * This function is kept for backward compatibility but simply calls invalidateQueries()
  */
-let batchTimeout: NodeJS.Timeout | null = null;
-const pendingBatchKeys = new Set<string>();
+export function invalidateAndRefetch(queryKey: QueryKey) {
+  invalidateQueries(queryKey);
+}
 
-export function batchInvalidateAndRefetch(queryKeys: QueryKey[]) {
-  // Add all keys to pending batch
+/**
+ * Batch invalidate multiple query keys
+ * React Query handles refetching automatically
+ * 
+ * ✅ FIX: Explicitly set exact: false to ensure prefix matching works correctly
+ */
+export function batchInvalidateQueries(queryKeys: QueryKey[]) {
+  // Invalidate all keys - React Query handles refetching automatically
+  // ✅ FIX: Explicitly set exact: false to ensure prefix matching works correctly
   queryKeys.forEach((key) => {
-    // Serialize key for Set comparison
-    const keyStr = JSON.stringify(key);
-    pendingBatchKeys.add(keyStr);
-
-    // Invalidate immediately (lightweight)
-    void queryClient.invalidateQueries({ queryKey: key });
+    void queryClient.invalidateQueries({ queryKey: key, exact: false });
   });
+}
 
-  // Clear existing batch timeout
-  if (batchTimeout) {
-    clearTimeout(batchTimeout);
-  }
-
-  // Debounce batch refetch
-  batchTimeout = setTimeout(() => {
-    // Refetch all pending keys
-    pendingBatchKeys.forEach((keyStr) => {
-      try {
-        const key = JSON.parse(keyStr) as QueryKey;
-        void queryClient
-          .refetchQueries({ queryKey: key, type: "active" })
-          .catch(() => {
-            // Silently handle errors
-          });
-      } catch (error) {
-        console.warn(
-          "Failed to parse query key for batch refetch:",
-          keyStr,
-          error
-        );
-      }
-    });
-
-    // Clear pending keys
-    pendingBatchKeys.clear();
-    batchTimeout = null;
-  }, REFETCH_DEBOUNCE_MS);
+/**
+ * @deprecated Use batchInvalidateQueries() instead
+ */
+export function batchInvalidateAndRefetch(queryKeys: QueryKey[]) {
+  batchInvalidateQueries(queryKeys);
 }
 
 export function useGlobalRefetch() {
@@ -168,28 +134,11 @@ export function useGlobalRefetch() {
       return;
     }
 
-    // ✅ REMOVED: API cache clearing - React Query handles caching properly
-    // Invalidate all query keys immediately (lightweight)
+    // Invalidate all query keys - React Query handles refetching automatically
+    // ✅ FIX: Explicitly set exact: false to ensure prefix matching works correctly
     queryKeys.forEach((key) => {
-      void queryClient.invalidateQueries({ queryKey: key });
+      void queryClient.invalidateQueries({ queryKey: key, exact: false });
     });
-
-    // Debounce refetch to prevent UI freezing
-    if (refetchTimeout) {
-      clearTimeout(refetchTimeout);
-    }
-
-    refetchTimeout = setTimeout(() => {
-      // Refetch all active queries for the entity
-      queryKeys.forEach((key) => {
-        void queryClient
-          .refetchQueries({ queryKey: key, type: "active" })
-          .catch(() => {
-            // Silently handle errors
-          });
-      });
-      refetchTimeout = null;
-    }, REFETCH_DEBOUNCE_MS);
   }, []);
 
   const invalidateAll = useCallback(() => {

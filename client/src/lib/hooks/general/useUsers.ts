@@ -23,6 +23,8 @@ export const useUsers = () => {
   return useQuery({
     queryKey: userKeys.lists(),
     queryFn: () => UsersService.list(),
+    staleTime: 5 * 60 * 1000, // 5 minutes - users don't change frequently
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 };
 
@@ -31,6 +33,8 @@ export const useUser = (id: number) => {
     queryKey: userKeys.detail(id),
     queryFn: () => UsersService.getById(id),
     enabled: !!id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 };
 
@@ -38,6 +42,8 @@ export const useUsersWithRolesAndBranches = () => {
   return useQuery({
     queryKey: userKeys.rolesAndBranches(),
     queryFn: () => UsersService.listWithRolesAndBranches(),
+    staleTime: 5 * 60 * 1000, // 5 minutes - user roles/branches don't change frequently
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 };
 

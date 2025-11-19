@@ -16,34 +16,48 @@ import { useQuery } from '@tanstack/react-query';
 import { invalidateAndRefetch } from '@/lib/hooks/common/useGlobalRefetch';
 import { Info } from 'lucide-react';
 import type { CollegeStudentAttendanceRead } from '@/lib/types/college/attendance';
+import { useTabEnabled } from '@/lib/hooks/use-tab-navigation';
 
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 export default function AttendanceView() {
+  // ✅ OPTIMIZATION: Check if this tab is active before fetching
+  const isTabActive = useTabEnabled("view", "view");
+  
   // Initialize with current month/year (required parameters)
   const now = new Date();
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
-  const { data: classGroups } = useCollegeClassGroups(selectedClassId || 0);
+  // ✅ OPTIMIZATION: Only fetch class groups when tab is active
+  const { data: classGroups } = useCollegeClassGroups(isTabActive ? (selectedClassId || 0) : 0);
   const groups = (classGroups as any)?.groups || [];
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   
-  // Build query params - class_id, group_id, month, and year are required
+  // ✅ OPTIMIZATION: Build query params - only when tab is active AND required params are provided
   const attendanceParams = useMemo(() => {
-    if (!selectedClassId || !selectedGroupId) return null;
+    if (!isTabActive || !selectedClassId || !selectedGroupId) return null;
     return {
       class_id: selectedClassId,
       group_id: selectedGroupId,
       month: selectedMonth,
       year: selectedYear,
     };
-  }, [selectedClassId, selectedGroupId, selectedMonth, selectedYear]);
+  }, [selectedClassId, selectedGroupId, selectedMonth, selectedYear, isTabActive]);
+  
+  // ✅ OPTIMIZATION: Stabilize query key
+  const attendanceQueryKey = useMemo(
+    () => ['college-attendance-all', attendanceParams],
+    [attendanceParams]
+  );
   
   const studentsQuery = useQuery({
-    queryKey: ['college-attendance-all', attendanceParams],
+    queryKey: attendanceQueryKey,
     queryFn: () => CollegeAttendanceService.getAll(attendanceParams!),
-    enabled: !!attendanceParams,
+    enabled: !!attendanceParams && isTabActive, // ✅ Gate by tab active state
+    refetchOnWindowFocus: false, // ✅ OPTIMIZATION: No refetch on tab focus
+    refetchOnReconnect: false, // ✅ OPTIMIZATION: No refetch on reconnect
+    refetchOnMount: true, // Only refetch on mount if data is stale
   });
   const groupedData = (studentsQuery.data as any[]) || [];
   const allStudents = (groupedData?.[0]?.attendance?.[0]?.students as any[]) || [];

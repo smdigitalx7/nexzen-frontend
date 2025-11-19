@@ -24,8 +24,8 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
         )}
       >
         <Header />
-        <main className="flex-1 overflow-auto scrollbar-hide">
-          <div className="p-2">{children}</div>
+        <main className="flex-1 overflow-auto scrollbar-hide relative">
+          <div className="p-2 relative min-h-full">{children}</div>
         </main>
       </div>
     </div>

@@ -13,9 +13,12 @@ export function useSchoolSubjects(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: schoolKeys.subjects.list(),
     queryFn: () => SchoolSubjectsService.list(),
-    enabled: options?.enabled !== false,
+    enabled: options?.enabled === true, // ✅ OPTIMIZATION: Only fetch when explicitly enabled (on-demand)
     staleTime: 5 * 60 * 1000, // 5 minutes - subjects don't change often
     gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
   });
 }
 

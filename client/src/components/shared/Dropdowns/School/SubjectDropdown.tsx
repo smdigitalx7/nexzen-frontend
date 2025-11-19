@@ -36,7 +36,9 @@ export function SchoolSubjectDropdown({
   emptyValue = false,
   emptyValueLabel = "No subject",
 }: SchoolSubjectDropdownProps) {
-  const { data, isLoading, error, refetch } = useSchoolSubjects(classId);
+  // ✅ OPTIMIZATION: Start with enabled: false - fetch only when dropdown opens
+  const [shouldFetch, setShouldFetch] = React.useState(false);
+  const { data, isLoading, error, refetch } = useSchoolSubjects(classId, { enabled: shouldFetch && classId > 0 });
 
   const options = React.useMemo(() => {
     return data?.items || [];
@@ -54,6 +56,16 @@ export function SchoolSubjectDropdown({
       onChange?.(newValue === null ? null : Number(newValue));
     },
     [onChange]
+  );
+
+  // ✅ OPTIMIZATION: Trigger fetch when dropdown opens (only if classId is valid)
+  const handleOpenChange = React.useCallback(
+    (open: boolean) => {
+      if (open && !shouldFetch && classId > 0) {
+        setShouldFetch(true);
+      }
+    },
+    [shouldFetch, classId]
   );
 
   const isDisabled = disabled || classId <= 0;
@@ -77,6 +89,7 @@ export function SchoolSubjectDropdown({
       onRetry={() => refetch()}
       emptyValue={emptyValue}
       emptyValueLabel={emptyValueLabel}
+      onOpenChange={handleOpenChange}
     />
   );
 }

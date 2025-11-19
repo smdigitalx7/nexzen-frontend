@@ -23,6 +23,7 @@ import { CollegeReservationsService, CollegeIncomeService } from "@/lib/services
 import {
   ReceiptPreviewModal,
   ConcessionUpdateDialog,
+  ServerSidePagination,
 } from "@/components/shared";
 import type {
   CollegeReservationMinimalRead,
@@ -63,6 +64,15 @@ export type ReservationsTableProps = {
   onEdit: (reservation: Reservation) => void;
   onDelete: (reservation: Reservation) => void;
   onUpdateConcession?: (reservation: Reservation) => void;
+  // ✅ Server-side pagination props
+  currentPage?: number;
+  totalPages?: number;
+  totalCount?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+  enableServerSidePagination?: boolean;
+  isLoading?: boolean;
 };
 
 export default function ReservationsTable({
@@ -71,11 +81,31 @@ export default function ReservationsTable({
   onEdit,
   onDelete,
   onUpdateConcession,
+  // ✅ Server-side pagination props
+  currentPage: serverCurrentPage,
+  totalPages: serverTotalPages,
+  totalCount: serverTotalCount,
+  pageSize: serverPageSize,
+  onPageChange: onServerPageChange,
+  onPageSizeChange: onServerPageSizeChange,
+  enableServerSidePagination = false,
+  isLoading = false,
 }: ReservationsTableProps) {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  // ✅ Use server-side pagination if enabled, otherwise use client-side
+  const [clientCurrentPage, setClientCurrentPage] = useState<number>(1);
+  const [clientItemsPerPage, setClientItemsPerPage] = useState<number>(10);
+  
+  // Determine which pagination to use
+  const currentPage = enableServerSidePagination ? (serverCurrentPage ?? 1) : clientCurrentPage;
+  const itemsPerPage = enableServerSidePagination ? (serverPageSize ?? 10) : clientItemsPerPage;
+  const setCurrentPage = enableServerSidePagination 
+    ? (onServerPageChange ?? (() => {}))
+    : setClientCurrentPage;
+  const setItemsPerPage = enableServerSidePagination
+    ? (onServerPageSizeChange ?? (() => {}))
+    : setClientItemsPerPage;
   const [regeneratingReceipts, setRegeneratingReceipts] = useState<Set<number>>(
     new Set()
   );
@@ -107,14 +137,29 @@ export default function ReservationsTable({
     return filtered;
   }, [reservations, statusFilter, searchTerm]);
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredReservations.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedReservations = filteredReservations.slice(
-    startIndex,
-    endIndex
-  );
+  // ✅ Pagination logic - Use server-side if enabled, otherwise client-side
+  const totalPages = enableServerSidePagination 
+    ? (serverTotalPages ?? 1)
+    : Math.ceil(filteredReservations.length / itemsPerPage);
+  const totalCount = enableServerSidePagination
+    ? (serverTotalCount ?? 0)
+    : filteredReservations.length;
+  
+  // For server-side pagination, use all reservations (already paginated by server)
+  // For client-side pagination, slice the filtered results
+  const paginatedReservations = enableServerSidePagination
+    ? filteredReservations // Server already paginated, just filter/search
+    : filteredReservations.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+      );
+  
+  const startIndex = enableServerSidePagination
+    ? (currentPage - 1) * itemsPerPage + 1
+    : (currentPage - 1) * itemsPerPage + 1;
+  const endIndex = enableServerSidePagination
+    ? Math.min(currentPage * itemsPerPage, totalCount)
+    : Math.min(currentPage * itemsPerPage, filteredReservations.length);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -357,12 +402,29 @@ export default function ReservationsTable({
         </TableBody>
       </Table>
 
-      {/* Pagination Controls */}
-      {filteredReservations.length > 0 && (
+      {/* ✅ Pagination Controls - Use ServerSidePagination when enabled */}
+      {enableServerSidePagination &&
+      serverCurrentPage !== undefined &&
+      serverTotalPages !== undefined &&
+      serverTotalCount !== undefined &&
+      serverPageSize !== undefined &&
+      onServerPageChange &&
+      onServerPageSizeChange ? (
+        <ServerSidePagination
+          currentPage={serverCurrentPage}
+          totalPages={serverTotalPages}
+          pageSize={serverPageSize}
+          totalCount={serverTotalCount}
+          onPageChange={onServerPageChange}
+          onPageSizeChange={onServerPageSizeChange}
+          isLoading={isLoading}
+        />
+      ) : filteredReservations.length > 0 ? (
+        // Fallback to client-side pagination controls
         <div className="flex items-center justify-between px-2 py-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>
-              Showing {startIndex + 1} to{" "}
+              Showing {startIndex} to{" "}
               {Math.min(endIndex, filteredReservations.length)} of{" "}
               {filteredReservations.length} reservations
             </span>
@@ -439,7 +501,7 @@ export default function ReservationsTable({
             </Button>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Receipt Preview Modal */}
       <ReceiptPreviewModal

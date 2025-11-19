@@ -58,12 +58,12 @@ class SimpleErrorBoundary extends Component<
   }
 }
 
-// ✅ FIX: Use professional loader for consistent UX
+// ✅ FIX: Use container loader for main content area (doesn't cover sidebar/header)
 const SimpleLoadingSpinner = ({
   message = "Loading...",
 }: {
   message?: string;
-}) => <Loader.Page message={message} />;
+}) => <Loader.Container message={message} />;
 
 // Simple Error Fallback Component
 const ErrorFallback = ({

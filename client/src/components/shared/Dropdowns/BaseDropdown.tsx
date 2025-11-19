@@ -32,6 +32,8 @@ export interface BaseDropdownProps<T> {
   onRetry?: () => void;
   emptyValue?: boolean;
   emptyValueLabel?: string;
+  /** ✅ OPTIMIZATION: Callback when dropdown opens/closes - used for on-demand fetching */
+  onOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -65,6 +67,7 @@ export function BaseDropdown<T>({
   onRetry,
   emptyValue = false,
   emptyValueLabel = "None",
+  onOpenChange,
 }: BaseDropdownProps<T>) {
   const handleValueChange = React.useCallback(
     (newValue: string) => {
@@ -90,6 +93,7 @@ export function BaseDropdown<T>({
     <Select
       value={stringValue}
       onValueChange={handleValueChange}
+      onOpenChange={onOpenChange}
       disabled={isDisabled}
       required={required}
     >

@@ -31,10 +31,33 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 
 export const TeachersTab = () => {
-  const { data: allEmployees = [], isLoading, error } = useEmployeesByBranch();
+  // ✅ OPTIMIZATION: Only fetch assignments data - teachers/groups/courses/subjects fetched on-demand when dialog opens
+  // User requirement: Don't call Teachers, Groups, Courses, Subjects APIs - only call when clicking dropdowns
   const { data: assignments = [], isLoading: assignmentsLoading } =
     useTeacherCourseSubjectsList();
-  const { data: groups = [] } = useCollegeGroups();
+
+  const [, navigate] = useLocation();
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState<any>(null);
+  const [activeSubTab, setActiveSubTab] = useState("teachers");
+
+  // Form state
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
+  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
+  const [isActive, setIsActive] = useState(true);
+
+  // ✅ OPTIMIZATION: Track dropdown open states for on-demand fetching
+  const [teachersDropdownOpen, setTeachersDropdownOpen] = useState(false);
+  const [groupsDropdownOpen, setGroupsDropdownOpen] = useState(false);
+  const [coursesDropdownOpen, setCoursesDropdownOpen] = useState(false);
+  const [subjectsDropdownOpen, setSubjectsDropdownOpen] = useState(false);
+
+  // ✅ OPTIMIZATION: Only fetch teachers/employees when their dropdown is opened
+  // User requirement: Don't call Teachers API - only call when clicking dropdowns
+  const { data: allEmployees = [], isLoading, error } = useEmployeesByBranch(teachersDropdownOpen);
 
   // Filter to only teaching staff and map to include all fields
   const teachers = useMemo(() => {
@@ -56,32 +79,28 @@ export const TeachersTab = () => {
     return map;
   }, [allEmployees]);
 
-  const [, navigate] = useLocation();
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [selectedTeacher, setSelectedTeacher] = useState<any>(null);
-  const [activeSubTab, setActiveSubTab] = useState("teachers");
-
-  // Form state
-  const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
-  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
-  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
-  const [isActive, setIsActive] = useState(true);
-
   const createMutation = useCreateTeacherCourseSubject();
   const deleteMutation = useDeleteTeacherCourseSubjectRelation();
   const { toast } = useToast();
 
-  // Get courses for selected group - fetch courses with group filter
+  // ✅ OPTIMIZATION: Only fetch groups when groups dropdown is opened
+  // User requirement: Don't call Groups API - only call when clicking dropdowns
+  const { data: groupsData } = useCollegeGroups({ enabled: groupsDropdownOpen });
+  const groups = Array.isArray(groupsData) ? groupsData : [];
+
+  // ✅ OPTIMIZATION: Only fetch courses when courses dropdown is opened AND groupId is selected
+  // User requirement: Don't call Courses API - only call when clicking dropdowns
   const { data: coursesData } = useCollegeCourses(
-    selectedGroupId ? parseInt(selectedGroupId) : 0
+    coursesDropdownOpen && selectedGroupId ? parseInt(selectedGroupId) : 0,
+    { enabled: coursesDropdownOpen && !!selectedGroupId }
   );
   const courses = coursesData?.items || [];
 
-  // Get subjects for selected group
+  // ✅ OPTIMIZATION: Only fetch subjects when subjects dropdown is opened AND groupId is selected
+  // User requirement: Don't call Subjects API - only call when clicking dropdowns
   const { data: subjectsData } = useCollegeSubjects(
-    selectedGroupId ? parseInt(selectedGroupId) : 0
+    subjectsDropdownOpen && selectedGroupId ? parseInt(selectedGroupId) : 0,
+    { enabled: subjectsDropdownOpen && !!selectedGroupId }
   );
   const subjects = subjectsData?.items || [];
 
@@ -277,6 +296,9 @@ export const TeachersTab = () => {
             <Select
               value={selectedTeacherId}
               onValueChange={setSelectedTeacherId}
+              onOpenChange={(open) => {
+                setTeachersDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select teacher" />
@@ -303,6 +325,9 @@ export const TeachersTab = () => {
                 setSelectedGroupId(value);
                 setSelectedCourseId(""); // Reset course when group changes
               }}
+              onOpenChange={(open) => {
+                setGroupsDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select group" />
@@ -327,6 +352,9 @@ export const TeachersTab = () => {
               value={selectedCourseId}
               onValueChange={setSelectedCourseId}
               disabled={!selectedGroupId}
+              onOpenChange={(open) => {
+                setCoursesDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
+              }}
             >
               <SelectTrigger>
                 <SelectValue
@@ -355,6 +383,9 @@ export const TeachersTab = () => {
               value={selectedSubjectId}
               onValueChange={setSelectedSubjectId}
               disabled={!selectedGroupId}
+              onOpenChange={(open) => {
+                setSubjectsDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
+              }}
             >
               <SelectTrigger>
                 <SelectValue

@@ -15,7 +15,8 @@ import { useAcademicYears } from "@/lib/hooks/general/useAcademicYear";
 
 const AcademicYearSwitcher = () => {
   const { academicYear, academicYears, switchAcademicYear } = useAuthStore();
-  const { data: academicYearsData } = useAcademicYears();
+  // ✅ OPTIMIZATION: Enable query for switcher - it needs academic years to function
+  const { data: academicYearsData } = useAcademicYears({ enabled: true });
 
   const handleAcademicYearSwitch = (year: any) => {
     try {

@@ -4,7 +4,7 @@ import type { CollegeTestCreate, CollegeTestRead, CollegeTestResponse, CollegeTe
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
-export function useCollegeTests() {
+export function useCollegeTests(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: collegeKeys.tests.list(),
     queryFn: async () => {
@@ -26,6 +26,10 @@ export function useCollegeTests() {
         throw error;
       }
     },
+    enabled: options?.enabled !== false, // Default to true, but allow disabling
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true,
   });
 }
 

@@ -148,7 +148,8 @@ const MarksManagementComponent = () => {
   const [studentViewsActiveTab, setStudentViewsActiveTab] = useState<"marks" | "performance">("marks");
 
   // Memoized tabs configuration - components receive props but instances stay stable
-  // forceMount in TabSwitcher keeps components mounted, preventing remounts
+  // ✅ OPTIMIZATION: TabSwitcher defaults to forceMount={false}, so inactive tabs are not mounted
+  // This ensures queries in ExamMarksManagement and TestMarksManagement only run when their tab is active
   const allTabsConfig = useMemo(
     () => [
       {

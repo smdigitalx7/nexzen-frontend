@@ -1,14 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { CollegeAdmissionsService } from "@/lib/services/college/admissions.service";
+import { CollegeAdmissionsService, CollegeAdmissionsListParams } from "@/lib/services/college/admissions.service";
+import { collegeKeys } from "./query-keys";
 
 /**
- * Hook to fetch all admissions list
+ * Hook to fetch admissions list with pagination
  */
-export function useCollegeAdmissions() {
+export function useCollegeAdmissions(params?: CollegeAdmissionsListParams) {
   return useQuery({
-    queryKey: ["college", "admissions", "list"],
-    queryFn: () => CollegeAdmissionsService.list(),
+    queryKey: collegeKeys.admissions.list(params),
+    queryFn: () => CollegeAdmissionsService.list(params),
     staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 

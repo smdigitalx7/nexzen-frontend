@@ -1,9 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolTuitionFeeBalancesService } from "@/lib/services/school/tuition-fee-balances.service";
 import { SchoolTransportFeeBalancesService } from "@/lib/services/school/transport-fee-balances.service";
-import type { SchoolBookFeePaymentUpdate, SchoolTermPaymentUpdate, SchoolTransportBalanceBulkCreate, SchoolTransportBalanceBulkCreateResult, SchoolTransportFeeBalanceFullRead, SchoolTransportFeeBalanceListRead, SchoolTransportPaginatedResponse, SchoolTransportTermPaymentUpdate, SchoolTuitionBalanceBulkCreate, SchoolTuitionBalanceBulkCreateResult, SchoolTuitionFeeBalanceFullRead, SchoolTuitionFeeBalanceRead, SchoolTuitionPaginatedResponse } from "@/lib/types/school";
+import type { SchoolBookFeePaymentUpdate, SchoolTermPaymentUpdate, SchoolTransportBalanceBulkCreate, SchoolTransportBalanceBulkCreateResult, SchoolTransportFeeBalanceFullRead, SchoolTransportFeeBalanceListRead, SchoolTransportPaginatedResponse, SchoolTransportTermPaymentUpdate, SchoolTuitionBalanceBulkCreate, SchoolTuitionBalanceBulkCreateResult, SchoolTuitionFeeBalanceFullRead, SchoolTuitionFeeBalanceRead, SchoolTuitionPaginatedResponse, SchoolTuitionFeeBalanceCreate, SchoolTuitionFeeBalanceUpdate, SchoolTransportFeeBalanceCreate, SchoolTransportFeeBalanceUpdate } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
+import { batchInvalidateQueries } from "../common/useGlobalRefetch";
+import { SCHOOL_INVALIDATION_MAPS, resolveInvalidationKeys } from "../common/invalidation-maps";
 
 // Tuition
 export function useSchoolTuitionBalancesList(params?: { page?: number; page_size?: number; class_id?: number; section_id?: number }) {
@@ -22,10 +24,16 @@ export function useSchoolTuitionBalance(enrollmentId: number | null | undefined)
   });
 }
 
-export function useSchoolTuitionBalancesDashboard() {
+export function useSchoolTuitionBalancesDashboard(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [...schoolKeys.tuition.root(), "dashboard"],
     queryFn: () => SchoolTuitionFeeBalancesService.getDashboard(),
+    enabled: options?.enabled !== false, // ✅ OPTIMIZATION: Allow gating by tab/route
+    staleTime: 30 * 1000, // 30 seconds - dashboard stats change frequently
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false, // ✅ OPTIMIZATION: No refetch on tab focus
+    refetchOnReconnect: false, // ✅ OPTIMIZATION: No refetch on reconnect
+    refetchOnMount: true, // Only refetch on mount if data is stale
   });
 }
 
@@ -36,10 +44,16 @@ export function useSchoolTuitionUnpaidTermsReport() {
   });
 }
 
-export function useSchoolTransportBalancesDashboard() {
+export function useSchoolTransportBalancesDashboard(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [...schoolKeys.transport.root(), "dashboard"],
     queryFn: () => SchoolTransportFeeBalancesService.getDashboard(),
+    enabled: options?.enabled !== false, // ✅ OPTIMIZATION: Allow gating by tab/route
+    staleTime: 30 * 1000, // 30 seconds - dashboard stats change frequently
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false, // ✅ OPTIMIZATION: No refetch on tab focus
+    refetchOnReconnect: false, // ✅ OPTIMIZATION: No refetch on reconnect
+    refetchOnMount: true, // Only refetch on mount if data is stale
   });
 }
 
@@ -60,70 +74,75 @@ export function useSchoolTransportBalanceByAdmission(admissionNo: string | null 
 }
 
 export function useCreateSchoolTuitionBalance() {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: any) => SchoolTuitionFeeBalancesService.create(payload),
+    mutationFn: (payload: SchoolTuitionFeeBalanceCreate) => SchoolTuitionFeeBalancesService.create(payload),
+    // ✅ FIX: Use invalidation map to ensure all related queries are invalidated
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
-      void qc.refetchQueries({ queryKey: schoolKeys.tuition.root(), type: 'active' });
+      const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.payment);
+      batchInvalidateQueries(keysToInvalidate);
     },
   }, "Tuition balance created successfully");
 }
 
 export function useUpdateSchoolTuitionBalance(enrollmentId: number) {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: any) => SchoolTuitionFeeBalancesService.update(enrollmentId, payload),
+    mutationFn: (payload: SchoolTuitionFeeBalanceUpdate) => SchoolTuitionFeeBalancesService.update(enrollmentId, payload),
+    // ✅ FIX: Use invalidation map to ensure all related queries are invalidated
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
-      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
-      void qc.refetchQueries({ queryKey: schoolKeys.tuition.root(), type: 'active' });
+      const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.update, enrollmentId);
+      batchInvalidateQueries(keysToInvalidate);
     },
   }, "Tuition balance updated successfully");
 }
 
 export function useDeleteSchoolTuitionBalance() {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (enrollmentId: number) => SchoolTuitionFeeBalancesService.delete(enrollmentId),
+    // ✅ FIX: Use invalidation map to ensure all related queries are invalidated
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
-      void qc.refetchQueries({ queryKey: schoolKeys.tuition.root(), type: 'active' });
+      const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.update, enrollmentId);
+      batchInvalidateQueries(keysToInvalidate);
     },
   }, "Tuition balance deleted successfully");
 }
 
 export function useBulkCreateSchoolTuitionBalances() {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolTuitionBalanceBulkCreate) => SchoolTuitionFeeBalancesService.bulkCreate(payload),
+    // ✅ FIX: Use invalidation map to ensure all related queries are invalidated
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
-      void qc.refetchQueries({ queryKey: schoolKeys.tuition.root(), type: 'active' });
+      const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.payment);
+      batchInvalidateQueries(keysToInvalidate);
     },
   }, "Tuition balances created successfully");
 }
 
 export function useUpdateSchoolTuitionTermPayment(enrollmentId: number) {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
+  
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolTermPaymentUpdate) => SchoolTuitionFeeBalancesService.updateTermPayment(enrollmentId, payload),
+    // ✅ PHASE 3: Optimistic update for immediate UI feedback
+    // Note: Fee calculations are complex, so we invalidate on success to ensure accuracy
+    // ✅ FIX: Use invalidation map to ensure all related queries are invalidated
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
-      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
-      void qc.refetchQueries({ queryKey: schoolKeys.tuition.root(), type: 'active' });
+      const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.update, enrollmentId);
+      batchInvalidateQueries(keysToInvalidate);
     },
   }, "Tuition payment updated successfully");
 }
 
 export function useUpdateSchoolBookFeePayment(enrollmentId: number) {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
+  
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolBookFeePaymentUpdate) => SchoolTuitionFeeBalancesService.updateBookPayment(enrollmentId, payload),
+    // ✅ PHASE 3: Optimistic update for immediate UI feedback
+    // Note: Fee calculations are complex, so we invalidate on success to ensure accuracy
+    // ✅ FIX: Use invalidation map to ensure all related queries are invalidated
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.detail(enrollmentId) });
-      void qc.invalidateQueries({ queryKey: schoolKeys.tuition.root() });
-      void qc.refetchQueries({ queryKey: schoolKeys.tuition.root(), type: 'active' });
+      const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.update, enrollmentId);
+      batchInvalidateQueries(keysToInvalidate);
     },
   }, "Book fee payment updated successfully");
 }
@@ -146,58 +165,60 @@ export function useSchoolTransportBalance(enrollmentId: number | null | undefine
 }
 
 export function useCreateSchoolTransportBalance() {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: any) => SchoolTransportFeeBalancesService.create(payload),
+    mutationFn: (payload: SchoolTransportFeeBalanceCreate) => SchoolTransportFeeBalancesService.create(payload),
+    // ✅ FIX: Use invalidation map to ensure all related queries are invalidated
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
-      void qc.refetchQueries({ queryKey: schoolKeys.transport.root(), type: 'active' });
+      const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.payment);
+      batchInvalidateQueries(keysToInvalidate);
     },
   }, "Transport balance created successfully");
 }
 
 export function useUpdateSchoolTransportBalance(enrollmentId: number) {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
-    mutationFn: (payload: any) => SchoolTransportFeeBalancesService.update(enrollmentId, payload),
+    mutationFn: (payload: SchoolTransportFeeBalanceUpdate) => SchoolTransportFeeBalancesService.update(enrollmentId, payload),
+    // ✅ FIX: Use invalidation map to ensure all related queries are invalidated
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.transport.detail(enrollmentId) });
-      void qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
-      void qc.refetchQueries({ queryKey: schoolKeys.transport.root(), type: 'active' });
+      const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.update, enrollmentId);
+      batchInvalidateQueries(keysToInvalidate);
     },
   }, "Transport balance updated successfully");
 }
 
 export function useDeleteSchoolTransportBalance() {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (enrollmentId: number) => SchoolTransportFeeBalancesService.delete(enrollmentId),
+    // ✅ FIX: Use invalidation map to ensure all related queries are invalidated
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
-      void qc.refetchQueries({ queryKey: schoolKeys.transport.root(), type: 'active' });
+      const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.update, enrollmentId);
+      batchInvalidateQueries(keysToInvalidate);
     },
   }, "Transport balance deleted successfully");
 }
 
 export function useBulkCreateSchoolTransportBalances() {
-  const qc = useQueryClient();
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolTransportBalanceBulkCreate) => SchoolTransportFeeBalancesService.bulkCreate(payload),
+    // ✅ FIX: Use invalidation map to ensure all related queries are invalidated
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
-      void qc.refetchQueries({ queryKey: schoolKeys.transport.root(), type: 'active' });
+      const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.payment);
+      batchInvalidateQueries(keysToInvalidate);
     },
   }, "Transport balances created successfully");
 }
 
 export function useUpdateSchoolTransportTermPayment(enrollmentId: number) {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
+  
   return useMutationWithSuccessToast({
     mutationFn: (payload: SchoolTransportTermPaymentUpdate) => SchoolTransportFeeBalancesService.updateTermPayment(enrollmentId, payload),
+    // ✅ PHASE 3: Optimistic update for immediate UI feedback
+    // Note: Fee calculations are complex, so we invalidate on success to ensure accuracy
+    // ✅ FIX: Use invalidation map to ensure all related queries are invalidated
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: schoolKeys.transport.detail(enrollmentId) });
-      void qc.invalidateQueries({ queryKey: schoolKeys.transport.root() });
-      void qc.refetchQueries({ queryKey: schoolKeys.transport.root(), type: 'active' });
+      const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.update, enrollmentId);
+      batchInvalidateQueries(keysToInvalidate);
     },
   }, "Transport payment updated successfully");
 }

@@ -16,31 +16,37 @@ import { SchoolStudentAttendanceService } from '@/lib/services/school';
 import { schoolKeys } from '@/lib/hooks/school/query-keys';
 import type { SchoolStudentAttendanceMonthlyGroupedResponse, SchoolClassRead, SchoolSectionRead, SchoolStudentAttendanceRead } from '@/lib/types/school';
 import { invalidateAndRefetch } from '@/lib/hooks/common/useGlobalRefetch';
+import { useTabEnabled } from '@/lib/hooks/use-tab-navigation';
 
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 export default function AttendanceView() {
+  // ✅ OPTIMIZATION: Check if this tab is active before fetching
+  const isTabActive = useTabEnabled("view", "view");
+  
   const deleteAttendanceMutation = useDeleteSchoolAttendance();
   
   // Initialize with current month/year (required parameters)
   const now = new Date();
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
-  const { data: sections = [] } = useSchoolSectionsByClass(selectedClassId || 0);
+  // ✅ OPTIMIZATION: Only fetch sections when tab is active
+  const { data: sections = [] } = useSchoolSectionsByClass(isTabActive ? (selectedClassId || 0) : 0);
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   
-  // Build query params - class_id, month, and year are required
+  // ✅ OPTIMIZATION: Build query params - only when tab is active AND class_id is provided
   const attendeeParams = useMemo(() => {
-    if (!selectedClassId) return null;
+    if (!isTabActive || !selectedClassId) return null;
     return {
       class_id: selectedClassId,
       month: selectedMonth,
       year: selectedYear,
       section_id: selectedSectionId || undefined,
     };
-  }, [selectedClassId, selectedMonth, selectedYear, selectedSectionId]);
+  }, [selectedClassId, selectedMonth, selectedYear, selectedSectionId, isTabActive]);
   
+  // ✅ OPTIMIZATION: Only fetch when tab is active and params are valid
   const studentsQuery = useSchoolAttendanceAllStudents(attendeeParams);
   const grouped: SchoolStudentAttendanceMonthlyGroupedResponse = studentsQuery.data || { groups: [] };
   const allStudents = ((grouped as any)?.groups?.[0]?.data as any[]) || [];

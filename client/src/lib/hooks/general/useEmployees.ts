@@ -53,10 +53,16 @@ export const useEmployeesWithBranches = () => {
   });
 };
 
-export const useTeachersByBranch = () => {
+export const useTeachersByBranch = (enabled: boolean = true) => {
   return useQuery({
     queryKey: employeeKeys.teachersByBranch(),
     queryFn: () => EmployeesService.getTeachersByBranch(),
+    enabled, // ✅ OPTIMIZATION: Allow conditional query execution to prevent unnecessary fetches
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
   });
 };
 

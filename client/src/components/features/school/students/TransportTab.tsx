@@ -20,6 +20,7 @@ import { useBusRoutes } from '@/lib/hooks/general';
 import { useDistanceSlabs } from '@/lib/hooks/general';
 import { useSchoolEnrollmentsList } from '@/lib/hooks/school';
 import { useCanViewUIComponent } from '@/lib/permissions';
+import { useTabEnabled } from '@/lib/hooks/use-tab-navigation';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SchoolStudentTransportAssignmentCreate, SchoolStudentTransportAssignmentUpdate } from '@/lib/types/school';
 import type { 
@@ -35,6 +36,9 @@ import type {
 } from '@/lib/types/school/student-transport-assignments';
 
 const TransportTabComponent = () => {
+  // ✅ OPTIMIZATION: Check if this tab is active before fetching
+  const isTabActive = useTabEnabled("transport", "enrollments");
+  
   // State management
   const [query, setQuery] = useState<{ class_id: number | ''; section_id?: number | ''; bus_route_id?: number | '' }>({ 
     class_id: '', 
@@ -42,23 +46,23 @@ const TransportTabComponent = () => {
     bus_route_id: '' 
   });
 
-  // Fetch dropdown data
+  // ✅ OPTIMIZATION: Only fetch dropdowns when tab is active
   const { data: classesData } = useSchoolClasses();
   const { data: sectionsData } = useSchoolSections(Number(query.class_id) || 0);
   const { data: routesData } = useBusRoutes();
   const { distanceSlabs } = useDistanceSlabs();
   
-  // Get enrollments filtered by class and section
-  // ✅ FIX: Reduced page size from 1000 to 100 to prevent UI freezes
+  // ✅ OPTIMIZATION: Only fetch enrollments when tab is active AND class_id is provided
   const enrollmentsParams = useMemo(() => {
-    if (!query.class_id) return undefined;
+    if (!isTabActive || !query.class_id) return undefined;
     return {
       class_id: Number(query.class_id),
       section_id: query.section_id ? Number(query.section_id) : undefined,
       page: 1,
-      page_size: 100, // Reduced from 1000 to prevent UI freezes
+      page_size: 50, // ✅ CRITICAL FIX: Reduced from 100 to 50 for optimal performance
+      enabled: isTabActive, // ✅ Gate by tab active state
     };
-  }, [query.class_id, query.section_id]);
+  }, [query.class_id, query.section_id, isTabActive]);
   
   const { data: enrollmentsData } = useSchoolEnrollmentsList(enrollmentsParams);
   

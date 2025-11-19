@@ -23,8 +23,9 @@ export function useGlobalSearch(): UseGlobalSearchReturn {
   const [error, setError] = useState<string | null>(null);
   const { currentBranch } = useAuthStore();
 
-  // Debounce the query to avoid excessive API calls - 300ms delay for smooth typing
-  const debouncedQuery = useDebounce(query, 300);
+  // Debounce the query to avoid excessive API calls - 150ms delay for better responsiveness
+  // ✅ FIX: Reduced from 300ms to 150ms for faster search feedback
+  const debouncedQuery = useDebounce(query, 150);
 
   const performSearch = useCallback(async () => {
     const trimmedQuery = debouncedQuery?.trim() || "";

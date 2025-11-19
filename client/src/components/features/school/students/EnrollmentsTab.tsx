@@ -18,9 +18,13 @@ import { batchInvalidateAndRefetch } from '@/lib/hooks/common/useGlobalRefetch';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SchoolEnrollmentRead } from '@/lib/types/school';
 import { formatDate } from '@/lib/utils/formatting/date';
+import { useTabEnabled } from '@/lib/hooks/use-tab-navigation';
 
 const EnrollmentsTabComponent = () => {
   const queryClient = useQueryClient();
+  
+  // ✅ OPTIMIZATION: Check if this tab is active before fetching
+  const isTabActive = useTabEnabled("enrollments", "enrollments");
   
   // State management
   const [query, setQuery] = useState<{ class_id: number | ''; section_id?: number | ''; admission_no?: string }>({ 
@@ -31,14 +35,25 @@ const EnrollmentsTabComponent = () => {
   // ✅ FIX: Add refreshKey to force table refresh after updates
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Fetch dropdown data
-  const { data: classesData } = useSchoolClasses();
-  const { data: sectionsData } = useSchoolSections(Number(query.class_id) || 0);
+  // ✅ OPTIMIZATION: Only fetch dropdowns when tab is active
+  // ✅ FIX: Get loading states from hooks, not just data existence
+  // Note: Dropdowns are on-demand, so they won't fetch unless explicitly enabled
+  const { data: classesData, isLoading: isLoadingClasses } = useSchoolClasses({ enabled: isTabActive });
+  const { data: sectionsData, isLoading: isLoadingSections } = useSchoolSections(
+    Number(query.class_id) || 0,
+    { enabled: isTabActive && Boolean(query.class_id) }
+  );
   
-  // Fetch sections for enrollment class when searching by admission_no
-  const admissionNoResult = useSchoolEnrollmentByAdmission(query.admission_no?.trim());
+  // ✅ OPTIMIZATION: Only fetch enrollment data when tab is active AND class_id is provided
+  const shouldFetchEnrollments = isTabActive && Boolean(query.class_id);
+  const admissionNoResult = useSchoolEnrollmentByAdmission(
+    shouldFetchEnrollments ? query.admission_no?.trim() : null
+  );
   const enrollmentClassId = admissionNoResult.data?.class_id;
-  const { data: enrollmentSectionsData } = useSchoolSections(enrollmentClassId || 0);
+  const { data: enrollmentSectionsData, isLoading: isLoadingEnrollmentSections } = useSchoolSections(
+    enrollmentClassId || 0,
+    { enabled: isTabActive && Boolean(enrollmentClassId) }
+  );
   
   const classes = classesData?.items || [];
   const sections = sectionsData?.items || [];
@@ -47,6 +62,7 @@ const EnrollmentsTabComponent = () => {
 
   // Memoized API parameters - class_id is required
   const apiParams = useMemo(() => {
+    if (!shouldFetchEnrollments) return undefined;
     const params: Record<string, number | string> = {};
     if (query.class_id) {
       params.class_id = Number(query.class_id);
@@ -55,17 +71,25 @@ const EnrollmentsTabComponent = () => {
       }
     }
     return params;
-  }, [query.class_id, query.section_id]);
+  }, [query.class_id, query.section_id, shouldFetchEnrollments]);
 
-  // API hooks - use by-admission endpoint when admission_no is provided, otherwise use list
-  const result = useSchoolEnrollmentsList(apiParams);
+  // ✅ OPTIMIZATION: API hooks - only fetch when tab is active and params are valid
+  const result = useSchoolEnrollmentsList({
+    ...apiParams,
+    enabled: shouldFetchEnrollments, // ✅ Gate by tab active state
+  });
   
   // Determine which data source to use
   const shouldUseAdmissionNo = Boolean(query.admission_no?.trim());
-  // ✅ FIX: Aggregate loading states from all parallel queries
-  const isLoading = classesData === undefined || 
-    (query.class_id ? sectionsData === undefined : false) ||
-    (shouldUseAdmissionNo ? admissionNoResult.isLoading : result.isLoading);
+  // ✅ FIX: Aggregate loading states from query hooks (not data existence checks)
+  // Only show loading if queries are actually enabled and loading
+  // For dropdowns: only show loading if they're enabled (tab is active) AND actually loading
+  // For enrollments: only show loading if query is enabled AND loading
+  const isLoading = 
+    (isTabActive && isLoadingClasses) ||
+    (isTabActive && query.class_id && isLoadingSections) ||
+    (isTabActive && enrollmentClassId && isLoadingEnrollmentSections) ||
+    (shouldUseAdmissionNo ? admissionNoResult.isLoading : (shouldFetchEnrollments && result.isLoading));
   const isError = shouldUseAdmissionNo ? admissionNoResult.isError : result.isError;
 
   // Dialog state

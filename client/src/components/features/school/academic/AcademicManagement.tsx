@@ -14,9 +14,12 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TabSwitcher } from "@/components/shared";
-import { useSchoolClasses, useSchoolSubjects, useSchoolExams, useSchoolTests } from "@/lib/hooks/school";
-import { useQueries } from "@tanstack/react-query";
-import { SchoolDropdownsService } from "@/lib/services/school/dropdowns.service";
+import {
+  useSchoolClasses,
+  useSchoolSubjects,
+  useSchoolExams,
+  useSchoolTests,
+} from "@/lib/hooks/school";
 import AcademicYearManagement from "@/components/features/school/academic/academic-years/AcademicYearManagement";
 import { ClassesTab } from "@/components/features/school/academic/classes/ClassesTab";
 import { SubjectsTab } from "@/components/features/school/academic/subjects/SubjectsTab";
@@ -37,30 +40,36 @@ const AcademicManagement = () => {
   const { currentBranch } = useAuthStore();
   const { activeTab, setActiveTab } = useTabNavigation("classes");
 
-  // ✅ LAZY LOADING: Get enabled states at the top level to avoid hook order issues
-  const classesEnabled = useTabEnabled(["classes", "sections"], "classes"); // Classes needed for sections
-  const subjectsEnabled = useTabEnabled("subjects", "classes");
-  const examsEnabled = useTabEnabled("exams", "classes");
-  const testsEnabled = useTabEnabled("tests", "classes");
+  // ✅ OPTIMIZATION: Get enabled states for each tab - only fetch when tab is active
+  const classesTabEnabled = useTabEnabled("classes", "classes");
+  const subjectsTabEnabled = useTabEnabled("subjects", "classes");
+  const examsTabEnabled = useTabEnabled("exams", "classes");
+  const testsTabEnabled = useTabEnabled("tests", "classes");
+  const sectionsTabEnabled = useTabEnabled("sections", "classes");
+  const teachersTabEnabled = useTabEnabled("teachers", "classes");
+  const academicYearsTabEnabled = useTabEnabled("academic-years", "classes");
+  const gradesTabEnabled = useTabEnabled("grades", "classes");
 
-  // ✅ Always fetch data for cards (not lazy loaded)
-  // Cards need data immediately, so we fetch regardless of active tab
+  // ✅ OPTIMIZATION: Minimal data fetching for cards only (lightweight counts)
+  // Cards need minimal data for stats, so we fetch lightweight counts
+  // Full data will be fetched by individual tabs when they become active
   const {
     data: backendClasses = [],
     isLoading: classesLoading,
     isError: classesError,
     error: classesErrObj,
   } = useSchoolClasses({
-    enabled: true, // Always enabled for cards
+    enabled: true, // Always enabled for cards (minimal data)
   });
 
+  // ✅ OPTIMIZATION: Only fetch full data when respective tabs are active
   const {
     data: backendSubjects = [],
     isLoading: subjectsLoading,
     isError: subjectsError,
     error: subjectsErrObj,
   } = useSchoolSubjects({
-    enabled: true, // Always enabled for cards
+    enabled: subjectsTabEnabled, // Only fetch when subjects tab is active
   });
 
   const {
@@ -69,7 +78,7 @@ const AcademicManagement = () => {
     isError: examsError,
     error: examsErrObj,
   } = useSchoolExams({
-    enabled: true, // Always enabled for cards
+    enabled: examsTabEnabled, // Only fetch when exams tab is active
   });
 
   const {
@@ -78,36 +87,19 @@ const AcademicManagement = () => {
     isError: testsError,
     error: testsErrObj,
   } = useSchoolTests({
-    enabled: true, // Always enabled for cards
+    enabled: testsTabEnabled, // Only fetch when tests tab is active
   });
 
   // Memoized effective classes
   const effectiveClasses = useMemo(() => backendClasses, [backendClasses]);
 
-  // Fetch sections for all classes to calculate total sections (non-blocking)
-  // Using dropdown service which is cached and faster
-  const sectionsQueries = useQueries({
-    queries: effectiveClasses.map((classItem) => ({
-      queryKey: ["school-dropdowns", "sections", classItem.class_id],
-      queryFn: async () => {
-        const response = await SchoolDropdownsService.getSections(classItem.class_id);
-        return response.items || [];
-      },
-      enabled: effectiveClasses.length > 0,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: 1, // Only retry once to avoid long waits
-    })),
-  });
-
-  // Calculate total sections from all queries (non-blocking - updates as data arrives)
-  const totalSectionsCount = useMemo(() => {
-    return sectionsQueries.reduce((total, query) => {
-      if (query.data && Array.isArray(query.data)) {
-        return total + query.data.length;
-      }
-      return total;
-    }, 0);
-  }, [sectionsQueries]);
+  // ✅ OPTIMIZATION: Removed sections queries - sections are fetched on-demand in SectionsTab when class is selected
+  // User requirement: Sections API should NOT be called when Classes tab is active
+  // Sections are only fetched when:
+  // 1. Sections tab is active AND
+  // 2. A specific class is selected in the dropdown
+  // This is handled by SectionsTab component itself
+  const totalSectionsCount = 0; // Cards will show 0 - sections count is not needed for cards
 
   // Memoized calculations
   const academicStats = useMemo(() => {
@@ -136,21 +128,27 @@ const AcademicManagement = () => {
     };
   }, [effectiveClasses, backendSubjects, exams, tests, totalSectionsCount]);
 
-  // Memoized loading and error states
+  // ✅ OPTIMIZATION: Loading states - only show loading for cards (classes) and active tab
   // Note: sectionsLoading is excluded from main loading state to avoid blocking UI
   // Sections count will update as data arrives (non-blocking)
   const loadingStates = useMemo(() => {
+    // Cards always need classes data, so always show loading for classes
+    // Other data only loads when their respective tabs are active
     const isLoading =
       classesLoading ||
-      subjectsLoading ||
-      examsLoading ||
-      testsLoading;
-    const hasError = classesError || subjectsError || examsError || testsError;
+      (subjectsTabEnabled && subjectsLoading) ||
+      (examsTabEnabled && examsLoading) ||
+      (testsTabEnabled && testsLoading);
+    const hasError =
+      classesError ||
+      (subjectsTabEnabled && subjectsError) ||
+      (examsTabEnabled && examsError) ||
+      (testsTabEnabled && testsError);
     const errorMessage =
       (classesErrObj as any)?.message ||
-      (subjectsErrObj as any)?.message ||
-      (examsErrObj as any)?.message ||
-      (testsErrObj as any)?.message ||
+      (subjectsTabEnabled && (subjectsErrObj as any)?.message) ||
+      (examsTabEnabled && (examsErrObj as any)?.message) ||
+      (testsTabEnabled && (testsErrObj as any)?.message) ||
       undefined;
 
     return { isLoading, hasError, errorMessage };
@@ -167,6 +165,9 @@ const AcademicManagement = () => {
     subjectsErrObj,
     examsErrObj,
     testsErrObj,
+    subjectsTabEnabled,
+    examsTabEnabled,
+    testsTabEnabled,
   ]);
 
   // Local state for filters
@@ -175,14 +176,15 @@ const AcademicManagement = () => {
   const [selectedClass, setSelectedClass] = useState<string>("all");
   const [gradesSearchTerm, setGradesSearchTerm] = useState("");
 
-  // Grades hooks (for both school and college)
+  // ✅ OPTIMIZATION: Grades hooks - only fetch when Grades tab is active
+  // User requirement: Grades API should NOT be called when Classes tab is active
   const {
     grades: gradesData = [],
     isLoadingGrades,
     createGrade: createGradeMutation,
     updateGrade: updateGradeMutation,
     deleteGrade: deleteGradeMutation,
-  } = useGrades();
+  } = useGrades({ enabled: gradesTabEnabled }); // ✅ Only fetch when Grades tab is active
 
   const handleCreateGrade = (data: any) => {
     createGradeMutation.mutate(data);
@@ -223,13 +225,13 @@ const AcademicManagement = () => {
         title: "Tests Management",
         description: "Manage academic tests and assessments",
       },
-      "academic-years": {
-        title: "Academic Years Management",
-        description: "Manage academic years, terms, and academic calendar",
-      },
       grades: {
         title: "Grades Management",
         description: "Define grade codes and their percentage ranges",
+      },
+      "academic-years": {
+        title: "Academic Years Management",
+        description: "Manage academic years, terms, and academic calendar",
       },
     };
 
@@ -252,9 +254,11 @@ const AcademicManagement = () => {
         content: (
           <ClassesTab
             classesWithSubjects={backendClasses}
-            classesLoading={loadingStates.isLoading}
-            hasError={loadingStates.hasError}
-            errorMessage={loadingStates.errorMessage}
+            classesLoading={classesTabEnabled ? classesLoading : false}
+            hasError={classesTabEnabled ? classesError : false}
+            errorMessage={
+              classesTabEnabled ? (classesErrObj as any)?.message : undefined
+            }
           />
         ),
       },
@@ -264,8 +268,8 @@ const AcademicManagement = () => {
         icon: GraduationCap,
         content: (
           <SubjectsTab
-            backendSubjects={backendSubjects}
-            subjectsLoading={loadingStates.isLoading}
+            backendSubjects={subjectsTabEnabled ? backendSubjects : []}
+            subjectsLoading={subjectsTabEnabled ? subjectsLoading : false}
             currentBranch={currentBranch}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
@@ -292,12 +296,14 @@ const AcademicManagement = () => {
         icon: Calendar,
         content: (
           <ExamsTab
-            exams={exams}
+            exams={examsTabEnabled ? exams : []}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
-            isLoading={loadingStates.isLoading}
-            hasError={loadingStates.hasError}
-            errorMessage={loadingStates.errorMessage}
+            isLoading={examsTabEnabled ? examsLoading : false}
+            hasError={examsTabEnabled ? examsError : false}
+            errorMessage={
+              examsTabEnabled ? (examsErrObj as any)?.message : undefined
+            }
           />
         ),
       },
@@ -309,18 +315,14 @@ const AcademicManagement = () => {
           <TestTab
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
-            tests={tests}
-            isLoading={testsLoading}
-            hasError={testsError}
-            errorMessage={(testsErrObj as any)?.message}
+            tests={testsTabEnabled ? tests : []}
+            isLoading={testsTabEnabled ? testsLoading : false}
+            hasError={testsTabEnabled ? testsError : false}
+            errorMessage={
+              testsTabEnabled ? (testsErrObj as any)?.message : undefined
+            }
           />
         ),
-      },
-      {
-        value: "academic-years",
-        label: "Academic Years",
-        icon: Settings,
-        content: <AcademicYearManagement />,
       },
       {
         value: "grades",
@@ -339,6 +341,12 @@ const AcademicManagement = () => {
             deleteGradeMutation={deleteGradeMutation}
           />
         ),
+      },
+      {
+        value: "academic-years",
+        label: "Academic Years",
+        icon: Settings,
+        content: <AcademicYearManagement />,
       },
     ],
     [

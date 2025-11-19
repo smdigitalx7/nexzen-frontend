@@ -10,8 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 
 /**
  * Hook for managing grades
+ * ✅ OPTIMIZATION: Supports enabled option for on-demand fetching
  */
-export const useGrades = () => {
+export const useGrades = (options?: { enabled?: boolean }) => {
   const { invalidateEntity } = useGlobalRefetch();
   const { toast } = useToast();
 
@@ -24,6 +25,10 @@ export const useGrades = () => {
   } = useQuery({
     queryKey: ["grades"],
     queryFn: () => GradesService.listGrades(),
+    enabled: options?.enabled !== false, // Default to true, but allow disabling
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true,
   });
 
   // Get grade by code

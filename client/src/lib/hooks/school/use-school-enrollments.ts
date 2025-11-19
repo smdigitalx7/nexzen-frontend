@@ -1,14 +1,39 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { EnrollmentsService } from "@/lib/services/school/enrollments.service";
 import type { SchoolEnrollmentCreate, SchoolEnrollmentFilterParams, SchoolEnrollmentWithStudentDetails, SchoolEnrollmentsPaginatedResponse, SchoolEnrollmentForSectionAssignment, AssignSectionsRequest } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
-export function useSchoolEnrollmentsList(params?: SchoolEnrollmentFilterParams) {
+/**
+ * ✅ OPTIMIZATION: Query key stabilized, supports enabled flag for tab gating
+ */
+export function useSchoolEnrollmentsList(params?: SchoolEnrollmentFilterParams & { enabled?: boolean }) {
+  // ✅ OPTIMIZATION: Stabilize query key
+  const stableParams = useMemo(() => {
+    if (!params) return undefined;
+    const { enabled, ...rest } = params;
+    return rest;
+  }, [params]);
+  
+  const queryKey = useMemo(
+    () => schoolKeys.enrollments.list(stableParams as Record<string, unknown> | undefined),
+    [stableParams]
+  );
+
+  // ✅ OPTIMIZATION: Check both tab enabled state AND class_id requirement
+  const isEnabled = (params?.enabled !== false) && 
+    (typeof (stableParams as any)?.class_id === "number" && (stableParams as any).class_id > 0);
+
   return useQuery({
-    queryKey: schoolKeys.enrollments.list(params as Record<string, unknown> | undefined),
-    queryFn: () => EnrollmentsService.list(params as any),
-    enabled: typeof (params as any)?.class_id === "number" && (params as any).class_id > 0,
+    queryKey,
+    queryFn: () => EnrollmentsService.list(stableParams as any),
+    enabled: isEnabled,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false, // ✅ OPTIMIZATION: No refetch on tab focus
+    refetchOnReconnect: false, // ✅ OPTIMIZATION: No refetch on reconnect
+    refetchOnMount: true, // Only refetch on mount if data is stale
   });
 }
 

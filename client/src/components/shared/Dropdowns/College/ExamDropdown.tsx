@@ -34,7 +34,9 @@ export function CollegeExamDropdown({
   emptyValue = false,
   emptyValueLabel = "No exam",
 }: CollegeExamDropdownProps) {
-  const { data, isLoading, error, refetch } = useCollegeExams();
+  // ✅ OPTIMIZATION: Start with enabled: false - fetch only when dropdown opens
+  const [shouldFetch, setShouldFetch] = React.useState(false);
+  const { data, isLoading, error, refetch } = useCollegeExams({ enabled: shouldFetch });
 
   const options = React.useMemo(() => {
     return data?.items || [];
@@ -45,6 +47,16 @@ export function CollegeExamDropdown({
       onChange?.(newValue === null ? null : Number(newValue));
     },
     [onChange]
+  );
+
+  // ✅ OPTIMIZATION: Trigger fetch when dropdown opens
+  const handleOpenChange = React.useCallback(
+    (open: boolean) => {
+      if (open && !shouldFetch) {
+        setShouldFetch(true);
+      }
+    },
+    [shouldFetch]
   );
 
   const renderOption = React.useCallback((option: ExamOption) => {
@@ -81,6 +93,7 @@ export function CollegeExamDropdown({
       onRetry={() => refetch()}
       emptyValue={emptyValue}
       emptyValueLabel={emptyValueLabel}
+      onOpenChange={handleOpenChange}
     />
   );
 }

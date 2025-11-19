@@ -4,6 +4,7 @@ import { CreditCard, Building2, Truck } from "lucide-react";
 import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { TabSwitcher } from "@/components/shared";
 import { useSchoolFeesManagement, useSchoolTuitionBalancesDashboard, useSchoolTransportBalancesDashboard } from "@/lib/hooks/school";
+import { useTabEnabled } from "@/lib/hooks/use-tab-navigation";
 import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalancesPanel";
 import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeBalancesPanel";
 import { SchoolTuitionFeeBalanceStatsCards } from "./tution-fee-balance/SchoolTuitionFeeBalanceStatsCards";
@@ -74,9 +75,17 @@ const FeesManagementComponent = () => {
   const { currentBranch } = useAuthStore();
   const { activeTab, setActiveTab, tuitionBalances } = useSchoolFeesManagement();
   
-  // Dashboard stats hooks
-  const { data: tuitionDashboardStats, isLoading: tuitionDashboardLoading } = useSchoolTuitionBalancesDashboard();
-  const { data: transportDashboardStats, isLoading: transportDashboardLoading } = useSchoolTransportBalancesDashboard();
+  // ✅ OPTIMIZATION: Check if tabs are active before fetching dashboard stats
+  const isTuitionTabActive = useTabEnabled("tuition-balances", "collect");
+  const isTransportTabActive = useTabEnabled("transport-balances", "collect");
+  
+  // ✅ OPTIMIZATION: Dashboard stats hooks - only fetch when respective tab is active
+  const { data: tuitionDashboardStats, isLoading: tuitionDashboardLoading } = useSchoolTuitionBalancesDashboard({
+    enabled: isTuitionTabActive,
+  });
+  const { data: transportDashboardStats, isLoading: transportDashboardLoading } = useSchoolTransportBalancesDashboard({
+    enabled: isTransportTabActive,
+  });
   
   // State for collect fee search persistence across tab switches
   const [collectFeeSearchResults, setCollectFeeSearchResults] = React.useState<any[]>([]);

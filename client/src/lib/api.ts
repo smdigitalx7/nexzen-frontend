@@ -1,10 +1,16 @@
 import { useAuthStore } from "@/store/authStore";
-import { useCacheStore } from "@/store/cacheStore";
 import { useUIStore } from "@/store/uiStore";
+import type {
+  ApiErrorResponse,
+  LoginResponse,
+  ApiValidationError,
+} from "@/lib/types/api";
+import { ApiError, isApiErrorResponse, isValidationErrorResponse } from "@/lib/types/api";
 
 // For the simple API, we need to use /api/v1 since the proxy forwards /api to the external server
 // and the external server expects /v1 paths
-const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || "/api/v1";
+// ✅ FIX: Properly type import.meta.env
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) || "/api/v1";
 
 // Debug: Log API configuration on module load
 
@@ -19,21 +25,15 @@ export interface ApiRequestOptions {
   noAuth?: boolean;
   // internal flag to avoid infinite refresh loops
   _isRetry?: boolean;
-  // Cache options
-  cache?: boolean;
-  cacheKey?: string;
-  cacheTTL?: number;
-  // Request deduplication
-  dedupe?: boolean;
   // Request timeout
   timeout?: number;
 }
 
-// Request deduplication object (avoiding Map for Immer compatibility)
-const pendingRequests: Record<string, Promise<any>> = {};
-
 // Request timeout default
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
+
+// Note: Request deduplication is handled by React Query automatically
+// This API client is a pure HTTP layer with NO caching logic
 
 // CSRF Protection helpers
 export const CSRFProtection = {
@@ -97,54 +97,8 @@ function buildQuery(query?: ApiRequestOptions["query"]) {
   return s ? `?${s}` : "";
 }
 
-// Generate cache key from request options
-function generateCacheKey(options: ApiRequestOptions): string {
-  if (options.cacheKey) return options.cacheKey;
-
-  const { method = "GET", path, query } = options;
-  const queryString = buildQuery(query);
-  return `${method}:${path}${queryString}`;
-}
-
-// Check if request should be cached
-function shouldCache(options: ApiRequestOptions): boolean {
-  return options.cache !== false && options.method === "GET";
-}
-
-// Get cached data
-function getCachedData<T>(cacheKey: string): T | null {
-  const cache = useCacheStore.getState();
-  return cache.get<T>(cacheKey);
-}
-
-// Set cached data
-function setCachedData<T>(cacheKey: string, data: T, ttl?: number): void {
-  const cache = useCacheStore.getState();
-  cache.set(cacheKey, data, { ttl });
-}
-
-// Request deduplication
-function getDedupeKey(options: ApiRequestOptions): string {
-  const { method = "GET", path, query, body } = options;
-  const queryString = buildQuery(query);
-  const bodyString = body ? JSON.stringify(body) : "";
-  return `${method}:${path}${queryString}:${bodyString}`;
-}
-
-// Check if request is already pending
-function getPendingRequest<T>(dedupeKey: string): Promise<T> | null {
-  return pendingRequests[dedupeKey] || null;
-}
-
-// Set pending request
-function setPendingRequest<T>(dedupeKey: string, request: Promise<T>): void {
-  pendingRequests[dedupeKey] = request;
-}
-
-// Clear pending request
-function clearPendingRequest(dedupeKey: string): void {
-  delete pendingRequests[dedupeKey];
-}
+// Note: All caching and request deduplication is handled by React Query
+// This API client is a pure HTTP layer - no caching logic here
 
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 let isRefreshing = false;
@@ -152,6 +106,9 @@ let isRefreshing = false;
 let refreshPromise: Promise<string | null> | null = null;
 // Track if tab is visible (Page Visibility API)
 let isTabVisible = true;
+// ✅ FIX: Track last refresh attempt to prevent rapid retries
+let lastRefreshAttempt = 0;
+const MIN_REFRESH_INTERVAL = 1000; // 1 second minimum between attempts
 // Refresh metrics tracking
 interface RefreshMetrics {
   totalAttempts: number;
@@ -244,14 +201,30 @@ async function tryRefreshToken(
     return null;
   }
 
+  // ✅ FIX: Prevent rapid retries with minimum interval check
+  const now = Date.now();
+  if (now - lastRefreshAttempt < MIN_REFRESH_INTERVAL && refreshPromise) {
+    // Too soon since last attempt, return existing promise
+    try {
+      return await refreshPromise;
+    } catch {
+      // If previous refresh failed, wait for minimum interval
+      return null;
+    }
+  }
+
   // Use Promise-based queue instead of polling
   if (refreshPromise) {
     // Wait for ongoing refresh to complete
     try {
       return await refreshPromise;
     } catch {
-      // If refresh failed, return null to allow retry
-      return null;
+      // If refresh failed, check if we can retry
+      if (now - lastRefreshAttempt >= MIN_REFRESH_INTERVAL) {
+        refreshPromise = null; // Allow retry after backoff
+      } else {
+        return null; // Still too soon, don't retry
+      }
     }
   }
 
@@ -259,6 +232,9 @@ async function tryRefreshToken(
   if (!isTabVisible) {
     return null;
   }
+
+  // Update last refresh attempt time
+  lastRefreshAttempt = now;
 
   // Track metrics
   refreshMetrics.totalAttempts++;
@@ -418,300 +394,243 @@ export async function api<T = unknown>({
   headers = {},
   noAuth = false,
   _isRetry = false,
-  cache = true,
-  cacheKey,
-  cacheTTL,
-  dedupe = true,
   timeout = DEFAULT_TIMEOUT,
 }: ApiRequestOptions): Promise<T> {
-  // Generate cache key and check cache for GET requests
-  const cacheKeyGenerated = generateCacheKey({ method, path, query, cacheKey });
+  // Pure HTTP client - no caching logic
+  // React Query handles all caching and request deduplication
+  
+  const state = useAuthStore.getState();
+  let token = state.token;
 
-  if (shouldCache({ method, path, cache })) {
-    const cachedData = getCachedData<T>(cacheKeyGenerated);
-    if (cachedData) {
-      return cachedData;
+  const url = `${API_BASE_URL}${path}${buildQuery(query)}`;
+
+  // Check token expiry and refresh proactively if needed
+  if (token && !noAuth && state.tokenExpireAt) {
+    const now = Date.now();
+    const isExpired = now >= state.tokenExpireAt;
+    const expiresSoon = state.tokenExpireAt - now < 60_000; // 60 seconds before expiry
+
+    if (isExpired || expiresSoon) {
+      // Token expired or expiring soon - try to refresh
+      try {
+        const refreshed = await tryRefreshToken(token);
+        if (refreshed) {
+          // Update token reference for this request
+          const newState = useAuthStore.getState();
+          token = newState.token;
+        } else if (isExpired) {
+          // Token expired and refresh failed - throw error
+          throw new TokenExpiredError(
+            "Token expired and refresh failed. Please log in again."
+          );
+        }
+      } catch (error) {
+        // If it's a network error, continue with the request (might succeed)
+        // If it's a refresh error, throw it
+        if (
+          error instanceof TokenRefreshError ||
+          error instanceof TokenExpiredError
+        ) {
+          throw error;
+        }
+        // Network errors - log but continue
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "Token refresh network error, continuing with current token:",
+            error
+          );
+        }
+      }
     }
   }
 
-  // Check for request deduplication
-  const dedupeKey = getDedupeKey({ method, path, query, body });
-  if (dedupe) {
-    const pendingRequest = getPendingRequest<T>(dedupeKey);
-    if (pendingRequest) {
-      return pendingRequest;
-    }
-  }
-
-  // Create the actual request
-  const makeRequest = async (): Promise<T> => {
-    const state = useAuthStore.getState();
-    let token = state.token;
-
-    const url = `${API_BASE_URL}${path}${buildQuery(query)}`;
-
-    // Check token expiry and refresh proactively if needed
-    if (token && !noAuth && state.tokenExpireAt) {
-      const now = Date.now();
-      const isExpired = now >= state.tokenExpireAt;
-      const expiresSoon = state.tokenExpireAt - now < 60_000; // 60 seconds before expiry (reduced from 2 minutes)
-
-      if (isExpired || expiresSoon) {
-        // Token expired or expiring soon - try to refresh
-        try {
-          const refreshed = await tryRefreshToken(token);
-          if (refreshed) {
-            // Update token reference for this request
-            const newState = useAuthStore.getState();
-            token = newState.token;
-          } else if (isExpired) {
-            // Token expired and refresh failed - throw error
-            throw new TokenExpiredError(
-              "Token expired and refresh failed. Please log in again."
-            );
-          }
-        } catch (error) {
-          // If it's a network error, continue with the request (might succeed)
-          // If it's a refresh error, throw it
-          if (
-            error instanceof TokenRefreshError ||
-            error instanceof TokenExpiredError
-          ) {
-            throw error;
-          }
-          // Network errors - log but continue
-          if (process.env.NODE_ENV === "development") {
-            console.warn(
-              "Token refresh network error, continuing with current token:",
-              error
-            );
-          }
-        }
-      }
-    }
-
-    const requestHeaders: Record<string, string> = {
-      "Content-Type": "application/json",
-      ...headers,
-    };
-
-    // Add CSRF token for state-changing requests
-    if (method !== "GET" && !noAuth) {
-      CSRFProtection.addToHeaders(requestHeaders);
-    }
-
-    if (!noAuth && token) {
-      requestHeaders["Authorization"] = `Bearer ${token}`;
-    } else if (!noAuth && !token) {
-      console.warn(
-        `⚠️ No token available for authenticated request to ${path}`
-      );
-    }
-
-    // Create AbortController for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: requestHeaders,
-        body: body !== undefined ? JSON.stringify(body) : undefined,
-        credentials: "include",
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      // Handle 204 No Content and other empty responses - no body to parse
-      if (res.status === 204 || res.status === 205) {
-        return undefined as T;
-      }
-
-      const contentType = res.headers.get("content-type") || "";
-      const isJson = contentType.includes("application/json");
-      
-      // Check if response has content before trying to parse
-      const contentLength = res.headers.get("content-length");
-      const hasContent = contentLength !== "0" && contentLength !== null;
-      
-      let data: T;
-      if (!hasContent) {
-        // No content, return undefined
-        data = undefined as T;
-      } else if (isJson) {
-        try {
-          data = await res.json();
-        } catch (error) {
-          // If JSON parsing fails, it might be an empty response
-          // For successful responses (2xx), return undefined if parsing fails
-          if (res.ok) {
-            data = undefined as T;
-          } else {
-            // For error responses, try to get text for error message
-            try {
-              const text = await res.text();
-              throw new Error(text || "Failed to parse response");
-            } catch (textError) {
-              // If we can't get text either, use the original error
-              throw error instanceof Error ? error : new Error("Failed to parse response");
-            }
-          }
-        }
-      } else {
-        const text = await res.text();
-        data = (text || undefined) as unknown as T;
-      }
-
-      // If this was a login call, store token and schedule proactive refresh
-      if (path === "/auth/login" && res.ok && isJson) {
-        const access = (data as any)?.access_token as string | undefined;
-        const expireIso = (data as any)?.expiretime as string | undefined;
-        if (access && expireIso) {
-          useAuthStore
-            .getState()
-            .setTokenAndExpiry(access, new Date(expireIso).getTime());
-          scheduleProactiveRefresh();
-        }
-      }
-
-      // Attempt refresh on 401 only (Unauthorized) - 403 (Forbidden) is permission-based, not auth
-      // Only retry with refresh on 401, not 403
-      if (!noAuth && res.status === 401 && !_isRetry) {
-        try {
-          const refreshed = await tryRefreshToken(token);
-          if (refreshed) {
-            return api<T>({
-              method,
-              path,
-              body,
-              query,
-              headers,
-              noAuth,
-              _isRetry: true,
-              cache,
-              cacheKey,
-              cacheTTL,
-              dedupe,
-              timeout,
-            });
-          }
-        } catch (refreshError) {
-          // If refresh fails, let the error propagate
-          // The error handler below will handle it
-          if (process.env.NODE_ENV === "development") {
-            console.warn("Token refresh failed on 401:", refreshError);
-          }
-        }
-      }
-      
-      // For 403 errors, don't attempt refresh - it's a permission issue, not authentication
-      // Just let the error propagate normally
-
-      if (!res.ok) {
-        // Handle specific error cases
-        let message =
-          (isJson && ((data as any)?.detail || (data as any)?.message)) ||
-          res.statusText ||
-          "Request failed";
-
-        // Enhance error messages based on status code
-        if (res.status === 401) {
-          message = "Authentication required. Please log in again.";
-        } else if (res.status === 403) {
-          // Use the API detail message if available, otherwise use generic message
-          if (message === res.statusText || message === "Request failed") {
-            message =
-              "Access forbidden. You don't have permission to perform this action.";
-          }
-          // If message already contains API detail/message, keep it as is
-        } else if (res.status === 404) {
-          // Use the detail message from API if available (already extracted above), 
-          // otherwise use generic message
-          // The message variable already contains the API detail/message from line 614
-          // Only use generic message if we don't have a specific API message
-          if (message === res.statusText || message === "Request failed") {
-            message = "Resource not found.";
-          }
-          // If message already contains API detail/message, keep it as is
-        } else if (res.status === 422) {
-          // Handle validation errors - detail can be an array of error objects
-          if (isJson && (data as any)?.detail) {
-            const detail = (data as any).detail;
-            if (Array.isArray(detail) && detail.length > 0) {
-              // Extract validation error messages from array of objects
-              const messages = detail
-                .map((item: any) => {
-                  if (typeof item === "string") {
-                    return item;
-                  }
-                  if (typeof item === "object" && item !== null) {
-                    // Format: "field_name: error message" or just "error message"
-                    const fieldPath = Array.isArray(item.loc) 
-                      ? item.loc.filter((part: string) => part !== "body").join(".") 
-                      : "";
-                    const errorMsg = item.msg || item.message || "";
-                    return fieldPath ? `${fieldPath}: ${errorMsg}` : errorMsg;
-                  }
-                  return String(item);
-                })
-                .filter((msg: string) => msg && msg.length > 0);
-              
-              if (messages.length > 0) {
-                message = messages.join("; ");
-              } else {
-                message = "Validation error: Invalid input data.";
-              }
-            } else if (typeof detail === "string") {
-              message = "Validation error: " + detail;
-            } else {
-              message = "Validation error: " + (message || "Invalid input data.");
-            }
-          } else {
-            message = "Validation error: " + (message || "Invalid input data.");
-          }
-        } else if (res.status === 429) {
-          message = "Too many requests. Please try again later.";
-        } else if (res.status >= 500) {
-          message = "Server error. Please try again later.";
-        }
-
-        const error = new Error(message as string);
-        (error as any).status = res.status;
-        (error as any).data = data;
-        throw error;
-      }
-
-      // Cache successful GET requests
-      if (shouldCache({ method, path, cache }) && res.ok) {
-        setCachedData(cacheKeyGenerated, data, cacheTTL);
-      }
-
-      return data as T;
-    } catch (error) {
-      clearTimeout(timeoutId);
-
-      if (error instanceof Error && error.name === "AbortError") {
-        throw new Error(`Request timeout after ${timeout}ms`);
-      }
-
-      throw error;
-    } finally {
-      // Clear pending request
-      if (dedupe) {
-        clearPendingRequest(dedupeKey);
-      }
-    }
+  const requestHeaders: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...headers,
   };
 
-  // Set pending request for deduplication
-  if (dedupe) {
-    const requestPromise = makeRequest();
-    setPendingRequest(dedupeKey, requestPromise);
-    return requestPromise;
+  // Add CSRF token for state-changing requests
+  if (method !== "GET" && !noAuth) {
+    CSRFProtection.addToHeaders(requestHeaders);
   }
 
-  return makeRequest();
+  if (!noAuth && token) {
+    requestHeaders["Authorization"] = `Bearer ${token}`;
+  } else if (!noAuth && !token) {
+    console.warn(
+      `⚠️ No token available for authenticated request to ${path}`
+    );
+  }
+
+  // Create AbortController for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: requestHeaders,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      credentials: "include",
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    // Handle 204 No Content and other empty responses - no body to parse
+    if (res.status === 204 || res.status === 205) {
+      return undefined as T;
+    }
+
+    const contentType = res.headers.get("content-type") || "";
+    const isJson = contentType.includes("application/json");
+    
+    // Check if response has content before trying to parse
+    const contentLength = res.headers.get("content-length");
+    const hasContent = contentLength !== "0" && contentLength !== null;
+    
+    let data: T;
+    if (!hasContent) {
+      // No content, return undefined
+      data = undefined as T;
+    } else if (isJson) {
+      try {
+        data = await res.json();
+      } catch (error) {
+        // If JSON parsing fails, it might be an empty response
+        // For successful responses (2xx), return undefined if parsing fails
+        if (res.ok) {
+          data = undefined as T;
+        } else {
+          // For error responses, try to get text for error message
+          try {
+            const text = await res.text();
+            throw new Error(text || "Failed to parse response");
+          } catch (textError) {
+            // If we can't get text either, use the original error
+            throw error instanceof Error ? error : new Error("Failed to parse response");
+          }
+        }
+      }
+    } else {
+      const text = await res.text();
+      data = (text || undefined) as unknown as T;
+    }
+
+    // If this was a login call, store token and schedule proactive refresh
+    if (path === "/auth/login" && res.ok && isJson) {
+      // ✅ FIX: Properly type login response
+      const loginData = data as LoginResponse;
+      const access = loginData?.access_token;
+      const expireIso = loginData?.expiretime;
+      if (access && expireIso) {
+        useAuthStore
+          .getState()
+          .setTokenAndExpiry(access, new Date(expireIso).getTime());
+        scheduleProactiveRefresh();
+      }
+    }
+
+    // Attempt refresh on 401 only (Unauthorized) - 403 (Forbidden) is permission-based, not auth
+    // Only retry with refresh on 401, not 403
+    if (!noAuth && res.status === 401 && !_isRetry) {
+      try {
+        const refreshed = await tryRefreshToken(token);
+        if (refreshed) {
+          return api<T>({
+            method,
+            path,
+            body,
+            query,
+            headers,
+            noAuth,
+            _isRetry: true,
+            timeout,
+          });
+        }
+      } catch (refreshError) {
+        // If refresh fails, let the error propagate
+        // The error handler below will handle it
+        if (process.env.NODE_ENV === "development") {
+          console.warn("Token refresh failed on 401:", refreshError);
+        }
+      }
+    }
+    
+    // For 403 errors, don't attempt refresh - it's a permission issue, not authentication
+    // Just let the error propagate normally
+
+    if (!res.ok) {
+      // ✅ FIX: Properly type error responses
+      let message = res.statusText || "Request failed";
+
+      if (isJson && isApiErrorResponse(data)) {
+        // Extract message from API error response
+        if (typeof data.detail === "string") {
+          message = data.detail;
+        } else if (data.message) {
+          message = data.message;
+        }
+      }
+
+      // Enhance error messages based on status code
+      if (res.status === 401) {
+        message = "Authentication required. Please log in again.";
+      } else if (res.status === 403) {
+        // Use the API detail message if available, otherwise use generic message
+        if (message === res.statusText || message === "Request failed") {
+          message =
+            "Access forbidden. You don't have permission to perform this action.";
+        }
+      } else if (res.status === 404) {
+        if (message === res.statusText || message === "Request failed") {
+          message = "Resource not found.";
+        }
+      } else if (res.status === 422) {
+        // Handle validation errors - detail can be an array of error objects
+        if (isJson && isValidationErrorResponse(data)) {
+          const detail = data.detail;
+          // Extract validation error messages from array of objects
+          const messages = detail
+            .map((item: ApiValidationError) => {
+              const fieldPath = Array.isArray(item.loc)
+                ? item.loc.filter((part) => part !== "body").join(".")
+                : "";
+              const errorMsg = item.msg || "";
+              return fieldPath ? `${fieldPath}: ${errorMsg}` : errorMsg;
+            })
+            .filter((msg: string) => msg && msg.length > 0);
+
+          if (messages.length > 0) {
+            message = messages.join("; ");
+          } else {
+            message = "Validation error: Invalid input data.";
+          }
+        } else if (isJson && isApiErrorResponse(data) && typeof data.detail === "string") {
+          message = "Validation error: " + data.detail;
+        } else {
+          message = "Validation error: " + (message || "Invalid input data.");
+        }
+      } else if (res.status === 429) {
+        message = "Too many requests. Please try again later.";
+      } else if (res.status >= 500) {
+        message = "Server error. Please try again later.";
+      }
+
+      // ✅ FIX: Use proper ApiError class instead of extending Error with any
+      throw new ApiError(message, res.status, data);
+    }
+
+    return data as T;
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Request timeout after ${timeout}ms`);
+    }
+
+    throw error;
+  }
 }
 
 export const Api = {
@@ -726,10 +645,6 @@ export const Api = {
       path,
       query,
       headers,
-      cache: opts?.cache ?? true,
-      cacheKey: opts?.cacheKey,
-      cacheTTL: opts?.cacheTTL,
-      dedupe: opts?.dedupe ?? true,
       timeout: opts?.timeout,
     }),
   post: <T>(
@@ -744,10 +659,6 @@ export const Api = {
       body,
       headers,
       noAuth: opts?.noAuth,
-      cache: opts?.cache ?? false,
-      cacheKey: opts?.cacheKey,
-      cacheTTL: opts?.cacheTTL,
-      dedupe: opts?.dedupe ?? true,
       timeout: opts?.timeout,
     }),
   put: <T>(
@@ -761,10 +672,6 @@ export const Api = {
       path,
       body,
       headers,
-      cache: opts?.cache ?? false,
-      cacheKey: opts?.cacheKey,
-      cacheTTL: opts?.cacheTTL,
-      dedupe: opts?.dedupe ?? true,
       timeout: opts?.timeout,
     }),
   patch: <T>(
@@ -778,10 +685,6 @@ export const Api = {
       path,
       body,
       headers,
-      cache: opts?.cache ?? false,
-      cacheKey: opts?.cacheKey,
-      cacheTTL: opts?.cacheTTL,
-      dedupe: opts?.dedupe ?? true,
       timeout: opts?.timeout,
     }),
   delete: <T>(
@@ -795,10 +698,6 @@ export const Api = {
       path,
       query,
       headers,
-      cache: opts?.cache ?? false,
-      cacheKey: opts?.cacheKey,
-      cacheTTL: opts?.cacheTTL,
-      dedupe: opts?.dedupe ?? true,
       timeout: opts?.timeout,
     }),
 
@@ -829,11 +728,16 @@ export const Api = {
       ? await res.json()
       : ((await res.text()) as unknown as T);
     if (!res.ok) {
-      const message =
-        (isJson && ((data as any)?.detail || (data as any)?.message)) ||
-        res.statusText ||
-        "Request failed";
-      throw new Error(message as string);
+      // ✅ FIX: Properly type error responses
+      let message = res.statusText || "Request failed";
+      if (isJson && isApiErrorResponse(data)) {
+        if (typeof data.detail === "string") {
+          message = data.detail;
+        } else if (data.message) {
+          message = data.message;
+        }
+      }
+      throw new ApiError(message, res.status, data);
     }
     return data as T;
   },
@@ -864,11 +768,16 @@ export const Api = {
       ? await res.json()
       : ((await res.text()) as unknown as T);
     if (!res.ok) {
-      const message =
-        (isJson && ((data as any)?.detail || (data as any)?.message)) ||
-        res.statusText ||
-        "Request failed";
-      throw new Error(message as string);
+      // ✅ FIX: Properly type error responses
+      let message = res.statusText || "Request failed";
+      if (isJson && isApiErrorResponse(data)) {
+        if (typeof data.detail === "string") {
+          message = data.detail;
+        } else if (data.message) {
+          message = data.message;
+        }
+      }
+      throw new ApiError(message, res.status, data);
     }
     return data as T;
   },
@@ -1008,68 +917,8 @@ export async function batchRequests<T>(
   return results;
 }
 
-// Cache management utilities
-export const CacheUtils = {
-  // Clear cache by pattern
-  clearByPattern: (pattern: string | RegExp) => {
-    const cache = useCacheStore.getState();
-    cache.invalidate(pattern);
-  },
-
-  // Clear cache by tag
-  clearByTag: (tag: string) => {
-    const cache = useCacheStore.getState();
-    cache.clearByTag(tag);
-  },
-
-  // Clear all cache
-  clearAll: () => {
-    const cache = useCacheStore.getState();
-    cache.clear();
-  },
-
-  // Get cache statistics
-  getStats: () => {
-    const cache = useCacheStore.getState();
-    return cache.getCacheStats();
-  },
-
-  // Preload data
-  preload: async <T>(
-    key: string,
-    fetcher: () => Promise<T>,
-    options?: { ttl?: number; tags?: string[] }
-  ) => {
-    const cache = useCacheStore.getState();
-    try {
-      const data = await fetcher();
-      cache.set(key, data, options);
-      return data;
-    } catch (error) {
-      console.error("Preload failed:", error);
-      throw error;
-    }
-  },
-};
-
-// Request deduplication utilities
-export const DedupeUtils = {
-  // Clear all pending requests
-  clearAll: () => {
-    Object.keys(pendingRequests).forEach((key) => delete pendingRequests[key]);
-  },
-
-  // Get pending request count
-  getPendingCount: () => {
-    return Object.keys(pendingRequests).length;
-  },
-
-  // Check if request is pending
-  isPending: (options: ApiRequestOptions) => {
-    const dedupeKey = getDedupeKey(options);
-    return dedupeKey in pendingRequests;
-  },
-};
+// Note: Cache management and request deduplication are handled by React Query
+// This API client is a pure HTTP layer with no caching logic
 
 // Expose helpers for lifecycle
 export const AuthTokenTimers = {

@@ -92,6 +92,11 @@ export function useCollegeClassGroups(classId: number | null | undefined) {
         classId as number
       ),
     enabled: typeof classId === "number" && classId > 0,
+    staleTime: 30 * 1000, // 30 seconds - groups change more frequently
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false, // ✅ OPTIMIZATION: No refetch on tab focus
+    refetchOnReconnect: false, // ✅ OPTIMIZATION: No refetch on reconnect
+    refetchOnMount: true, // Only refetch on mount if data is stale
   });
 }
 

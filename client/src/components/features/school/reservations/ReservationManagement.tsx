@@ -13,7 +13,10 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
-import { useTabNavigation, useTabEnabled } from "@/lib/hooks/use-tab-navigation";
+import {
+  useTabNavigation,
+  useTabEnabled,
+} from "@/lib/hooks/use-tab-navigation";
 import {
   Dialog,
   DialogContent,
@@ -531,7 +534,7 @@ const ReservationManagementComponent = () => {
   const { currentBranch } = useAuthStore();
 
   const { activeTab, setActiveTab } = useTabNavigation("new");
-  
+
   // Get enabled states for conditional data fetching (avoids hook order issues)
   // Reservations list needed for "all" and "status" tabs
   const reservationsEnabled = useTabEnabled(["all", "status"], "new");
@@ -636,11 +639,33 @@ const ReservationManagementComponent = () => {
 
   // Status filter state
   const [statusFilter, setStatusFilter] = useState("all");
-  
-  // Pagination state - CRITICAL: Prevents fetching ALL reservations at once
+
+  // ✅ Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, selectedClassId]);
+
+  // ✅ Server-side pagination state - CRITICAL: Prevents fetching ALL reservations at once
   // This fixes UI freeze by limiting data fetched per request
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 50; // Fetch 50 reservations at a time (prevents loading 1000+ at once)
+  const [pageSize, setPageSize] = useState(50); // Fetch 50 reservations at a time (prevents loading 1000+ at once)
+
+  // ✅ OPTIMIZATION: Stabilize query params to prevent unnecessary refetches
+  const reservationParams = useMemo(
+    () => ({
+      page: currentPage,
+      page_size: pageSize,
+      class_id: selectedClassId || undefined,
+      status: statusFilter !== "all" ? statusFilter : undefined,
+    }),
+    [currentPage, pageSize, selectedClassId, statusFilter]
+  );
+
+  // ✅ OPTIMIZATION: Stabilize query key
+  const reservationQueryKey = useMemo(
+    () => schoolKeys.reservations.list(reservationParams),
+    [reservationParams]
+  );
 
   // Use React Query hook for reservations - WITH PAGINATION
   // CRITICAL: Only fetch when tab is active to prevent unnecessary requests and UI freezes
@@ -652,11 +677,14 @@ const ReservationManagementComponent = () => {
     error: reservationsErrObj,
     refetch: refetchReservations,
   } = useQuery({
-    queryKey: schoolKeys.reservations.list({ page: currentPage, page_size: pageSize }),
-    queryFn: () => SchoolReservationsService.list({ page: currentPage, page_size: pageSize }),
+    queryKey: reservationQueryKey,
+    queryFn: () => SchoolReservationsService.list(reservationParams),
     enabled: reservationsEnabled, // Only fetch when "all" or "status" tab is active
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false, // ✅ OPTIMIZATION: No refetch on tab focus
+    refetchOnReconnect: false, // ✅ OPTIMIZATION: No refetch on reconnect
+    refetchOnMount: true, // Only refetch on mount if data is stale
   });
 
   // Memoized reservations data processing
@@ -849,35 +877,31 @@ const ReservationManagementComponent = () => {
     distanceSlabs,
   ]);
 
-  const handleUpdateConcession = useCallback(
-    async (reservation: any) => {
-      try {
-        // Invalidate and refetch using debounced utility (prevents UI freeze)
-        invalidateAndRefetch(schoolKeys.reservations.detail(reservation.reservation_id));
+  const handleUpdateConcession = useCallback(async (reservation: any) => {
+    try {
+      // Invalidate and refetch using debounced utility (prevents UI freeze)
+      invalidateAndRefetch(
+        schoolKeys.reservations.detail(reservation.reservation_id)
+      );
 
-        // Fetch the full reservation details for the dialog (fresh from API)
-        // This will always get the latest data from backend
-        const fullReservationData = await SchoolReservationsService.getById(
-          reservation.reservation_id
-        );
+      // Fetch the full reservation details for the dialog (fresh from API)
+      // This will always get the latest data from backend
+      const fullReservationData = await SchoolReservationsService.getById(
+        reservation.reservation_id
+      );
 
-        // Update state with fresh data
-        setSelectedReservationForConcession(fullReservationData);
-        setShowConcessionDialog(true);
-      } catch (error) {
-        console.error(
-          "Failed to load reservation for concession update:",
-          error
-        );
-        toast({
-          title: "Failed to Load Reservation",
-          description: "Could not load reservation details. Please try again.",
-          variant: "destructive",
-        });
-      }
-    },
-    []
-  );
+      // Update state with fresh data
+      setSelectedReservationForConcession(fullReservationData);
+      setShowConcessionDialog(true);
+    } catch (error) {
+      console.error("Failed to load reservation for concession update:", error);
+      toast({
+        title: "Failed to Load Reservation",
+        description: "Could not load reservation details. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, []);
 
   // Use the hook for concession updates - create hook with a placeholder ID
   // We'll use the service directly but follow the same cache invalidation pattern
@@ -1271,6 +1295,21 @@ const ReservationManagementComponent = () => {
             onUpdateConcession={handleUpdateConcession}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
+            // ✅ Server-side pagination props
+            enableServerSidePagination={true}
+            currentPage={currentPage}
+            totalPages={reservationsData?.total_pages || 1}
+            totalCount={reservationsData?.total_count || 0}
+            pageSize={pageSize}
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              // Scroll to top when page changes
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            onPageSizeChange={(newPageSize) => {
+              setPageSize(newPageSize);
+              setCurrentPage(1); // Reset to first page when page size changes
+            }}
           />
         ),
       },
@@ -1465,9 +1504,9 @@ const ReservationManagementComponent = () => {
           invalidateAndRefetch(schoolKeys.reservations.root());
 
           // Call refetch callback if provided
-              if (refetchReservations) {
+          if (refetchReservations) {
             void refetchReservations();
-            }
+          }
         }}
         blobUrl={receiptBlobUrl}
       />
@@ -1633,28 +1672,33 @@ const ReservationManagementComponent = () => {
                   incomeRecord: SchoolIncomeRead,
                   blobUrl: string
                 ) => {
-                  // CLOSE PAYMENT DIALOG IMMEDIATELY - CRITICAL for UI responsiveness
+                  // ✅ CRITICAL: Close payment modal immediately (no blocking)
                   setShowPaymentProcessor(false);
 
-                  // Set receipt data immediately
+                  // ✅ CRITICAL: Set receipt data immediately (needed for receipt modal)
                   setPaymentIncomeRecord(incomeRecord);
                   setReceiptBlobUrl(blobUrl);
 
-                  // Show receipt modal after ensuring payment dialog is fully closed
-                  // Use requestAnimationFrame to ensure DOM updates are complete
-                  requestAnimationFrame(() => {
-                    setTimeout(() => {
-                      setShowReceipt(true);
-                    }, 150);
-                  });
+                  // ✅ DEFER: Clear payment data (not critical, defer to next tick)
+                  setTimeout(() => {
+                    setPaymentData(null);
+                  }, 0);
 
-                  // Invalidate and refetch using debounced utility (prevents UI freeze)
-                  invalidateAndRefetch(schoolKeys.reservations.root());
+                  // ✅ DEFER: Query invalidation (low priority, defer to next tick)
+                  setTimeout(() => {
+                    invalidateAndRefetch(schoolKeys.reservations.root());
 
-                  // Call refetch callback if provided
-                      if (refetchReservations) {
-                    void refetchReservations();
+                    // ✅ DEFER: Refetch callback (low priority)
+                    if (refetchReservations) {
+                      void refetchReservations();
                     }
+                  }, 0);
+
+                  // ✅ DEFER: Receipt modal (wait for payment modal to close completely)
+                  // Radix UI Dialog has ~200ms close animation, wait for it to complete
+                  setTimeout(() => {
+                    setShowReceipt(true);
+                  }, 250);
                 }}
                 onPaymentFailed={(error: string) => {
                   toast({

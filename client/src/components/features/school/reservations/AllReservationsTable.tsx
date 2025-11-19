@@ -2,7 +2,7 @@ import { useMemo, memo, useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Percent, CreditCard } from "lucide-react";
-import { EnhancedDataTable } from "@/components/shared";
+import { EnhancedDataTable, ServerSidePagination } from "@/components/shared";
 import { ColumnDef } from "@tanstack/react-table";
 import { useAuthStore } from "@/store/authStore";
 import { ROLES } from "@/lib/constants";
@@ -72,6 +72,14 @@ export type AllReservationsTableProps = {
   onUpdateConcession?: (reservation: Reservation) => void;
   statusFilter: string;
   onStatusFilterChange: (value: string) => void;
+  // ✅ Server-side pagination props
+  currentPage?: number;
+  totalPages?: number;
+  totalCount?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+  enableServerSidePagination?: boolean;
 };
 
 // Memoized status badge component
@@ -153,6 +161,14 @@ const AllReservationsTableComponent = ({
   onUpdateConcession,
   statusFilter,
   onStatusFilterChange,
+  // ✅ Server-side pagination props
+  currentPage,
+  totalPages,
+  totalCount,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
+  enableServerSidePagination = false,
 }: AllReservationsTableProps) => {
   const { user } = useAuthStore();
 
@@ -451,7 +467,8 @@ const AllReservationsTableComponent = ({
 
   return (
     <>
-      <EnhancedDataTable
+      <div className="w-full max-w-full mt-6">
+        <EnhancedDataTable
         key={`all-reservations-${refreshKey}`}
         data={reservations}
         columns={reservationColumns}
@@ -473,8 +490,30 @@ const AllReservationsTableComponent = ({
             onChange: onStatusFilterChange,
           },
         ]}
-        className="w-full max-w-full mt-6"
+        className="w-full"
+        // ✅ Disable client-side pagination when server-side pagination is enabled
+        enableClientSidePagination={!enableServerSidePagination}
       />
+      
+      {/* ✅ Server-side pagination controls */}
+      {enableServerSidePagination &&
+        currentPage !== undefined &&
+        totalPages !== undefined &&
+        totalCount !== undefined &&
+        pageSize !== undefined &&
+        onPageChange &&
+        onPageSizeChange && (
+          <ServerSidePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            onPageChange={onPageChange}
+            onPageSizeChange={onPageSizeChange}
+            isLoading={isLoading}
+          />
+        )}
+      </div>
 
       {/* Payment Processor Dialog */}
       {paymentData && (
@@ -497,36 +536,38 @@ const AllReservationsTableComponent = ({
                   incomeRecord: SchoolIncomeRead,
                   blobUrl: string
                 ) => {
-                  // CLOSE PAYMENT DIALOG IMMEDIATELY - CRITICAL for UI responsiveness
+                  // ✅ CRITICAL: Close payment modal immediately (no blocking)
                   setShowPaymentProcessor(false);
 
-                  // Set receipt data immediately
+                  // ✅ CRITICAL: Set receipt data immediately (needed for receipt modal)
                   setReceiptBlobUrl(blobUrl);
 
-                  // Force table refresh immediately
-                  setRefreshKey((prev) => prev + 1);
+                  // ✅ DEFER: Query invalidation (low priority, defer to next tick)
+                  setTimeout(() => {
+                    invalidateAndRefetch(schoolKeys.reservations.root());
+                    
+                    // ✅ DEFER: Refetch callback (low priority)
+                    if (onRefetch) {
+                      void onRefetch();
+                    }
+                    
+                    // ✅ DEFER: Force table refresh (low priority)
+                    setRefreshKey((prev) => prev + 1);
+                  }, 0);
 
-                  // Show receipt modal after ensuring payment dialog is fully closed
-                  requestAnimationFrame(() => {
-                    setTimeout(() => {
-                      setShowReceipt(true);
-                    }, 150);
-                  });
+                  // ✅ DEFER: Receipt modal (wait for payment modal to close completely)
+                  setTimeout(() => {
+                    setShowReceipt(true);
+                  }, 250);
 
-                  // Show toast immediately
-                  toast({
-                    title: "Payment Successful",
-                    description: "Application fee has been paid successfully",
-                    variant: "success",
-                  });
-
-                  // Invalidate and refetch using debounced utility (prevents UI freeze)
-                  invalidateAndRefetch(schoolKeys.reservations.root());
-
-                  // Call refetch callback if provided
-                        if (onRefetch) {
-                    void onRefetch();
-                        }
+                  // ✅ DEFER: Toast notification (low priority)
+                  setTimeout(() => {
+                    toast({
+                      title: "Payment Successful",
+                      description: "Application fee has been paid successfully",
+                      variant: "success",
+                    });
+                  }, 0);
                 }}
                 onPaymentFailed={(error: string) => {
                   toast({

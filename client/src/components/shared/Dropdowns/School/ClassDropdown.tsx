@@ -21,8 +21,8 @@ export interface SchoolClassDropdownProps {
  * SchoolClassDropdown - Reusable dropdown for selecting school classes
  * 
  * Features:
- * - Fetches classes from school API
- * - Loading and error states
+ * - ✅ OPTIMIZATION: On-demand fetching - only fetches when dropdown is opened
+ * - Loading and error states with loader in dropdown
  * - Consistent styling
  */
 export function SchoolClassDropdown({
@@ -36,7 +36,9 @@ export function SchoolClassDropdown({
   emptyValueLabel = "No class",
   id,
 }: SchoolClassDropdownProps) {
-  const { data, isLoading, error, refetch } = useSchoolClasses();
+  // ✅ OPTIMIZATION: Start with enabled: false - fetch only when dropdown opens
+  const [shouldFetch, setShouldFetch] = React.useState(false);
+  const { data, isLoading, error, refetch } = useSchoolClasses({ enabled: shouldFetch });
 
   const options = React.useMemo(() => {
     return data?.items || [];
@@ -47,6 +49,16 @@ export function SchoolClassDropdown({
       onChange?.(newValue === null ? null : Number(newValue));
     },
     [onChange]
+  );
+
+  // ✅ OPTIMIZATION: Trigger fetch when dropdown opens
+  const handleOpenChange = React.useCallback(
+    (open: boolean) => {
+      if (open && !shouldFetch) {
+        setShouldFetch(true);
+      }
+    },
+    [shouldFetch]
   );
 
   return (
@@ -69,6 +81,7 @@ export function SchoolClassDropdown({
       onRetry={() => refetch()}
       emptyValue={emptyValue}
       emptyValueLabel={emptyValueLabel}
+      onOpenChange={handleOpenChange}
     />
   );
 }

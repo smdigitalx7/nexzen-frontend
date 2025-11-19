@@ -36,7 +36,9 @@ export function CollegeCourseDropdown({
   emptyValue = false,
   emptyValueLabel = "No course",
 }: CollegeCourseDropdownProps) {
-  const { data, isLoading, error, refetch } = useCollegeCourses(groupId);
+  // ✅ OPTIMIZATION: Start with enabled: false - fetch only when dropdown opens
+  const [shouldFetch, setShouldFetch] = React.useState(false);
+  const { data, isLoading, error, refetch } = useCollegeCourses(groupId, { enabled: shouldFetch && groupId > 0 });
 
   const options = React.useMemo(() => {
     return data?.items || [];
@@ -54,6 +56,16 @@ export function CollegeCourseDropdown({
       onChange?.(newValue === null ? null : Number(newValue));
     },
     [onChange]
+  );
+
+  // ✅ OPTIMIZATION: Trigger fetch when dropdown opens (only if groupId is valid)
+  const handleOpenChange = React.useCallback(
+    (open: boolean) => {
+      if (open && !shouldFetch && groupId > 0) {
+        setShouldFetch(true);
+      }
+    },
+    [shouldFetch, groupId]
   );
 
   const isDisabled = disabled || groupId <= 0;
@@ -77,6 +89,7 @@ export function CollegeCourseDropdown({
       onRetry={() => refetch()}
       emptyValue={emptyValue}
       emptyValueLabel={emptyValueLabel}
+      onOpenChange={handleOpenChange}
     />
   );
 }

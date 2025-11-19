@@ -326,8 +326,8 @@ const Sidebar = () => {
 
   const handleLogout = async () => {
     try {
+      // logoutAsync() already handles query cache invalidation
       await logoutAsync();
-      queryClient.clear();
       setLocation("/");
     } catch (error) {
       console.error("Logout failed:", error);

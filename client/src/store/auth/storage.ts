@@ -1,4 +1,5 @@
 import type { AuthState } from "./authState";
+import type { StateStorage } from "zustand/middleware";
 
 /**
  * Storage configuration for authStore
@@ -36,7 +37,7 @@ export const createAuthStorageConfig = () => ({
                     academicYears: [],
                   },
                   version: 1,
-                }) as any;
+                });
               }
               return null;
             }
@@ -45,12 +46,12 @@ export const createAuthStorageConfig = () => ({
               const parsed = JSON.parse(userData);
               // Token is not stored in localStorage, we'll get it from sessionStorage in onRehydrateStorage
               // Just return the user data as-is
-              return JSON.stringify(parsed) as any;
+              return JSON.stringify(parsed);
             } catch {
-              return userData as any;
+              return userData;
             }
           },
-          setItem: (name: string, value: any) => {
+          setItem: (name: string, value: string) => {
             try {
               const valueStr =
                 typeof value === "string" ? value : JSON.stringify(value);
@@ -85,7 +86,7 @@ export const createAuthStorageConfig = () => ({
             sessionStorage.removeItem("access_token");
             sessionStorage.removeItem("token_expires");
           },
-        } as any)
+        } satisfies StateStorage)
       : undefined,
   partialize: (state: AuthState) => {
     // Persist user data - isAuthenticated will be recalculated during rehydration
@@ -101,7 +102,7 @@ export const createAuthStorageConfig = () => ({
     };
   },
   version: 1,
-  migrate: (persistedState: any, version: number) => {
+  migrate: (persistedState: unknown, version: number) => {
     // Handle migration from old version if needed
     if (version === 0) {
       return {

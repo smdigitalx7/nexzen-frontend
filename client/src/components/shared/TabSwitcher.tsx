@@ -24,6 +24,12 @@ interface TabSwitcherProps {
   contentClassName?: string;
   showBadges?: boolean;
   size?: "sm" | "md" | "lg";
+  /**
+   * ✅ OPTIMIZATION: If true, keeps all tabs mounted (for state preservation)
+   * If false, only active tab is mounted (prevents queries in inactive tabs)
+   * Default: false (on-demand rendering for better performance)
+   */
+  forceMount?: boolean;
 }
 
 export const TabSwitcher: React.FC<TabSwitcherProps> = ({
@@ -36,6 +42,7 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
   contentClassName = "",
   showBadges = true,
   size = "md",
+  forceMount = false, // ✅ OPTIMIZATION: Default to false - only mount active tab
 }) => {
   const handleTabChange = (value: string) => {
     onTabChange(value);
@@ -125,12 +132,14 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
           <TabsContent
             key={tab.value}
             value={tab.value}
-            forceMount
+            forceMount={forceMount} // ✅ OPTIMIZATION: Only mount active tab by default
             className={cn(
               "mt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
               contentClassName
             )}
-            style={{ display: activeTab === tab.value ? 'block' : 'none' }}
+            // ✅ OPTIMIZATION: If forceMount is false, Radix will handle conditional rendering
+            // If forceMount is true, use display:none to hide inactive tabs
+            style={forceMount ? { display: activeTab === tab.value ? 'block' : 'none' } : undefined}
           >
             {tab.content}
           </TabsContent>

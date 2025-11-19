@@ -97,6 +97,11 @@ export const schoolKeys = {
     examReport: (params?: Record<string, unknown>) => [...schoolKeys.studentMarks.root(), "exam-report", params ?? {}] as const,
     testReport: (params?: Record<string, unknown>) => [...schoolKeys.studentMarks.root(), "test-report", params ?? {}] as const,
   },
+  admissions: {
+    root: () => [...schoolKeys.root, "admissions"] as const,
+    list: (params?: Record<string, unknown>) => [...schoolKeys.admissions.root(), "list", params ?? {}] as const,
+    detail: (studentId: number) => [...schoolKeys.admissions.root(), "detail", studentId] as const,
+  },
 };
 
 

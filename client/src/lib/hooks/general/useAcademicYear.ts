@@ -4,10 +4,18 @@ import { AcademicYearCreate, AcademicYearUpdate } from '@/lib/types/general/acad
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 import { useGlobalRefetch } from "../common/useGlobalRefetch";
 
-export const useAcademicYears = () => {
+/**
+ * ✅ OPTIMIZATION: Made on-demand - academic years are fetched from auth store
+ * Only fetch when explicitly needed (e.g., admin academic year management)
+ */
+export const useAcademicYears = (options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: ['academic-years'],
     queryFn: () => AcademicYearService.listAcademicYears(),
+    enabled: options?.enabled !== false, // ✅ Allow enabling when tab is active
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true, // Refetch on mount if enabled and data is stale
   });
 };
 

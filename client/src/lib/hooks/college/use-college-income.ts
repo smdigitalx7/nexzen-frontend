@@ -4,10 +4,14 @@ import type { CollegeIncomeCreate, CollegeIncomeCreateReservation, CollegeIncome
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
-export function useCollegeIncomeList(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string }) {
+export function useCollegeIncomeList(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string }, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: collegeKeys.income.list(params),
     queryFn: () => CollegeIncomeService.list(params),
+    enabled: options?.enabled !== false, // ✅ OPTIMIZATION: Allow disabling for on-demand fetching
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true, // Refetch on mount if enabled and data is stale
   });
 }
 
@@ -54,10 +58,14 @@ export function useCreateCollegeIncomeByReservation() {
   }, "Income record created successfully");
 }
 
-export function useCollegeIncomeDashboard() {
+export function useCollegeIncomeDashboard(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [...collegeKeys.income.root(), "dashboard"],
     queryFn: () => CollegeIncomeService.dashboard(),
+    enabled: options?.enabled !== false, // ✅ OPTIMIZATION: Allow disabling for on-demand fetching
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true, // Refetch on mount if enabled and data is stale
   });
 }
 
@@ -76,10 +84,13 @@ export function useCollegeFinanceReport(params?: CollegeFinanceReportParams) {
   });
 }
 
-export function useCollegeIncomeSummary(params?: CollegeIncomeSummaryParams) {
+export function useCollegeIncomeSummary(params?: CollegeIncomeSummaryParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [...collegeKeys.income.root(), "summary", params],
     queryFn: () => CollegeIncomeService.getIncomeSummary(params),
-    enabled: true, // Always enabled since params are optional
+    enabled: options?.enabled !== false, // ✅ OPTIMIZATION: Allow disabling for on-demand fetching
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true, // Refetch on mount if enabled and data is stale
   });
 }

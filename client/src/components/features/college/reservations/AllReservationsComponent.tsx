@@ -3,7 +3,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Percent, CreditCard } from "lucide-react";
-import { EnhancedDataTable } from "@/components/shared";
+import { EnhancedDataTable, ServerSidePagination } from "@/components/shared";
 import { useAuthStore } from "@/store/authStore";
 import { ROLES } from "@/lib/constants";
 import { useCanDelete } from "@/lib/permissions";
@@ -76,6 +76,14 @@ interface AllReservationsComponentProps {
   onRefetch: () => void;
   statusFilter: string;
   onStatusFilterChange: (value: string) => void;
+  // ✅ Server-side pagination props
+  currentPage?: number;
+  totalPages?: number;
+  totalCount?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+  enableServerSidePagination?: boolean;
 }
 
 // Memoized status badge component
@@ -157,6 +165,14 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
   onRefetch,
   statusFilter,
   onStatusFilterChange,
+  // ✅ Server-side pagination props
+  currentPage,
+  totalPages,
+  totalCount,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
+  enableServerSidePagination = false,
 }) => {
   const { user } = useAuthStore();
 
@@ -464,30 +480,53 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
 
   return (
     <>
-      <EnhancedDataTable
-        key={`all-reservations-${refreshKey}`}
-        data={filteredReservations}
-        columns={columns}
-        title="All Reservations"
-        searchPlaceholder="Search by student name, reservation number, group, course, or father name..."
-        exportable={true}
-        loading={isLoading}
-        showActions={true}
-        actionButtons={actionButtons}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        customGlobalFilterFn={customSearchFunction}
-        filters={[
-          {
-            key: "status",
-            label: "Status",
-            options: statusFilterOptions,
-            value: statusFilter,
-            onChange: onStatusFilterChange,
-          },
-        ]}
-        className="w-full max-w-full mt-6"
-      />
+      <div className="w-full max-w-full mt-6">
+        <EnhancedDataTable
+          key={`all-reservations-${refreshKey}`}
+          data={filteredReservations}
+          columns={columns}
+          title="All Reservations"
+          searchPlaceholder="Search by student name, reservation number, group, course, or father name..."
+          exportable={true}
+          loading={isLoading}
+          showActions={true}
+          actionButtons={actionButtons}
+          actionButtonGroups={actionButtonGroups}
+          actionColumnHeader="Actions"
+          customGlobalFilterFn={customSearchFunction}
+          filters={[
+            {
+              key: "status",
+              label: "Status",
+              options: statusFilterOptions,
+              value: statusFilter,
+              onChange: onStatusFilterChange,
+            },
+          ]}
+          className="w-full"
+          // ✅ Disable client-side pagination when server-side pagination is enabled
+          enableClientSidePagination={!enableServerSidePagination}
+        />
+        
+        {/* ✅ Server-side pagination controls */}
+        {enableServerSidePagination &&
+          currentPage !== undefined &&
+          totalPages !== undefined &&
+          totalCount !== undefined &&
+          pageSize !== undefined &&
+          onPageChange &&
+          onPageSizeChange && (
+            <ServerSidePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalCount={totalCount}
+              onPageChange={onPageChange}
+              onPageSizeChange={onPageSizeChange}
+              isLoading={isLoading}
+            />
+          )}
+      </div>
 
       {/* Payment Processor Dialog */}
       {paymentData && (
@@ -509,36 +548,38 @@ const AllReservationsComponent: React.FC<AllReservationsComponentProps> = ({
                   incomeRecord: CollegeIncomeRead,
                   blobUrl: string
                 ) => {
-                  // CLOSE PAYMENT DIALOG IMMEDIATELY - CRITICAL for UI responsiveness
+                  // ✅ CRITICAL: Close payment modal immediately (no blocking)
                   setShowPaymentProcessor(false);
                   
-                  // Set receipt data immediately
+                  // ✅ CRITICAL: Set receipt data immediately (needed for receipt modal)
                   setReceiptBlobUrl(blobUrl);
 
-                  // Force table refresh immediately
-                  setRefreshKey((prev) => prev + 1);
+                  // ✅ DEFER: Query invalidation (low priority, defer to next tick)
+                  setTimeout(() => {
+                    invalidateAndRefetch(collegeKeys.reservations.root());
+                    
+                    // ✅ DEFER: Refetch callback (low priority)
+                    if (onRefetch) {
+                      void onRefetch();
+                    }
+                    
+                    // ✅ DEFER: Force table refresh (low priority)
+                    setRefreshKey((prev) => prev + 1);
+                  }, 0);
 
-                  // Show receipt modal after ensuring payment dialog is fully closed
-                  requestAnimationFrame(() => {
-                    setTimeout(() => {
-                      setShowReceipt(true);
-                    }, 150);
-                  });
+                  // ✅ DEFER: Receipt modal (wait for payment modal to close completely)
+                  setTimeout(() => {
+                    setShowReceipt(true);
+                  }, 250);
 
-                  // Show toast immediately
-                  toast({
-                    title: "Payment Successful",
-                    description: "Application fee has been paid successfully",
-                    variant: "success",
-                  });
-
-                  // Invalidate and refetch using debounced utility (prevents UI freeze)
-                  invalidateAndRefetch(collegeKeys.reservations.root());
-
-                  // Call refetch callback if provided
-                        if (onRefetch) {
-                    void onRefetch();
-                      }
+                  // ✅ DEFER: Toast notification (low priority)
+                  setTimeout(() => {
+                    toast({
+                      title: "Payment Successful",
+                      description: "Application fee has been paid successfully",
+                      variant: "success",
+                    });
+                  }, 0);
                 }}
                 onPaymentFailed={(error: string) => {
                   toast({

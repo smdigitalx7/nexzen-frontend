@@ -4,7 +4,7 @@ import type { CollegeGroupCreate, CollegeGroupList, CollegeGroupResponse, Colleg
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
-export function useCollegeGroups() {
+export function useCollegeGroups(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: collegeKeys.groups.list(),
     queryFn: async () => {
@@ -35,6 +35,12 @@ export function useCollegeGroups() {
         throw error;
       }
     },
+    enabled: options?.enabled === true, // ✅ OPTIMIZATION: Only fetch when explicitly enabled (on-demand)
+    staleTime: 5 * 60 * 1000, // 5 minutes - dropdowns don't change often
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false, // ✅ OPTIMIZATION: No refetch on tab focus
+    refetchOnReconnect: false, // ✅ OPTIMIZATION: No refetch on reconnect
+    refetchOnMount: false, // ✅ OPTIMIZATION: No auto-refetch on mount - fetch on demand only
   });
 }
 

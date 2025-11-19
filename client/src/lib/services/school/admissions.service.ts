@@ -1,12 +1,20 @@
 import { Api } from "@/lib/api";
-import { SchoolAdmissionListItem, SchoolAdmissionDetails } from "@/lib/types/school/admissions";
+import { SchoolAdmissionListItem, SchoolAdmissionDetails, SchoolAdmissionsPaginatedResponse } from "@/lib/types/school/admissions";
+
+export interface SchoolAdmissionsListParams {
+  page?: number;
+  page_size?: number;
+}
 
 export const SchoolAdmissionsService = {
   /**
-   * Get all admissions for UI display
+   * Get all admissions for UI display with pagination
    */
-  list() {
-    return Api.get<SchoolAdmissionListItem[]>("/school/admissions");
+  list(params?: SchoolAdmissionsListParams) {
+    return Api.get<SchoolAdmissionsPaginatedResponse>(
+      "/school/admissions",
+      params as Record<string, string | number | boolean | null | undefined> | undefined
+    );
   },
 
   /**

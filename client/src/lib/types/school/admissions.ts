@@ -11,6 +11,18 @@ export interface SchoolAdmissionListItem {
   payable_transport_fee: string;
 }
 
+// ✅ FIX: API may return either a direct array or a paginated object
+export type SchoolAdmissionsPaginatedResponse = 
+  | SchoolAdmissionListItem[] // Direct array response
+  | {
+      data?: SchoolAdmissionListItem[] | null;
+      admissions?: SchoolAdmissionListItem[] | null; // API may return 'admissions' instead of 'data'
+      total_pages: number;
+      current_page: number;
+      page_size?: number | null;
+      total_count?: number | null;
+    };
+
 export interface SchoolAdmissionDetails {
   student_id: number;
   branch_name: string;

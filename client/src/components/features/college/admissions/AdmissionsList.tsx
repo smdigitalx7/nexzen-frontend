@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { ReceiptPreviewModal } from "@/components/shared";
 import { handleCollegePayByAdmissionWithIncomeId } from "@/lib/api-college";
-import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
+import { EnhancedDataTable, ServerSidePagination } from "@/components/shared";
 import {
   useCollegeAdmissions,
   useCollegeAdmissionById,
@@ -55,6 +55,10 @@ const StatusBadge = memo(({ status }: { status: string }) => {
 StatusBadge.displayName = "StatusBadge";
 
 const AdmissionsList = () => {
+  // ✅ Server-side pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(
     null
   );
@@ -65,7 +69,8 @@ const AdmissionsList = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
-  const { data: admissions = [], isLoading } = useCollegeAdmissions();
+  const { data: admissionsResp, isLoading } = useCollegeAdmissions({ page: currentPage, page_size: pageSize });
+  const admissions = useMemo(() => admissionsResp?.data ?? [], [admissionsResp?.data]);
   const { data: selectedAdmission } = useCollegeAdmissionById(selectedStudentId);
 
   // Memoized handlers
@@ -295,25 +300,46 @@ const AdmissionsList = () => {
 
   return (
     <div className="space-y-6">
-      <EnhancedDataTable
-        data={admissions}
-        columns={columns}
-        title="Student Admissions"
-        searchKey="student_name"
-        searchPlaceholder="Search by name, admission number..."
-        loading={isLoading}
-        exportable={true}
-        onExport={handleExportAll}
-        showSearch={true}
-        enableDebounce={true}
-        debounceDelay={300}
-        highlightSearchResults={true}
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
-        className="w-full"
-      />
+      <div className="space-y-4">
+        <EnhancedDataTable
+          data={admissions}
+          columns={columns}
+          title="Student Admissions"
+          searchKey="student_name"
+          searchPlaceholder="Search by name, admission number..."
+          loading={isLoading}
+          exportable={true}
+          onExport={handleExportAll}
+          showSearch={true}
+          enableDebounce={true}
+          debounceDelay={300}
+          highlightSearchResults={true}
+          showActions={true}
+          actionButtonGroups={actionButtonGroups}
+          actionColumnHeader="Actions"
+          showActionLabels={true}
+          className="w-full"
+          enableClientSidePagination={false}
+        />
+        {/* ✅ Server-side pagination controls */}
+        {admissionsResp && (
+          <ServerSidePagination
+            currentPage={currentPage}
+            totalPages={admissionsResp.total_pages || 1}
+            totalCount={admissionsResp.total_count || admissions.length}
+            pageSize={pageSize}
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onPageSizeChange={(newPageSize) => {
+              setPageSize(newPageSize);
+              setCurrentPage(1);
+            }}
+            isLoading={isLoading}
+          />
+        )}
+      </div>
 
       {/* Admission Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>

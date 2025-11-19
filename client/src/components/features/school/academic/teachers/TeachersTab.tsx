@@ -25,21 +25,11 @@ import { TeacherAssignmentsTab } from "./TeacherAssignmentsTab";
 import { ClassTeacherTab } from "./ClassTeacherTab";
 
 export const TeachersTab = () => {
-  const { data: teachersList = [], error } = useTeachersByBranch();
-  const { data: allEmployees = [] } = useEmployeesByBranch();
+  // ✅ OPTIMIZATION: Only fetch assignments data - teachers/employees/classes/subjects fetched on-demand when dialog opens
+  // User requirement: Don't call Teachers, Classes APIs - only call when clicking dropdowns (add teacher subjects)
   const { data: hierarchicalAssignments = [], isLoading: assignmentsLoading } =
     useTeacherClassSubjectsHierarchical();
 
-  // Create a map of full employee details by employee_id for quick lookup
-  const teacherDetailsMap = useMemo(() => {
-    const map = new Map();
-    allEmployees.forEach((employee: any) => {
-      map.set(employee.employee_id, employee);
-    });
-    return map;
-  }, [allEmployees]);
-
-  const { data: classes = [] } = useSchoolClasses();
   const createMutation = useCreateTeacherClassSubject();
   const deleteMutation = useDeleteTeacherClassSubject();
 
@@ -54,13 +44,37 @@ export const TeachersTab = () => {
   const [isClassTeacher, setIsClassTeacher] = useState(false);
   const [isActive, setIsActive] = useState(true);
 
-  // Get sections based on selected class
+  // ✅ OPTIMIZATION: Track dropdown open states for on-demand fetching
+  const [teachersDropdownOpen, setTeachersDropdownOpen] = useState(false);
+  const [classesDropdownOpen, setClassesDropdownOpen] = useState(false);
+  const [subjectsDropdownOpen, setSubjectsDropdownOpen] = useState(false);
+
+  // ✅ OPTIMIZATION: Only fetch teachers/employees when their dropdown is opened
+  // User requirement: Don't call Teachers API - only call when clicking dropdowns
+  const { data: teachersList = [], error } = useTeachersByBranch(teachersDropdownOpen);
+  const { data: allEmployees = [] } = useEmployeesByBranch(teachersDropdownOpen);
+
+  // Create a map of full employee details by employee_id for quick lookup
+  const teacherDetailsMap = useMemo(() => {
+    const map = new Map();
+    allEmployees.forEach((employee: any) => {
+      map.set(employee.employee_id, employee);
+    });
+    return map;
+  }, [allEmployees]);
+
+  // ✅ OPTIMIZATION: Only fetch classes when classes dropdown is opened
+  // User requirement: Don't call Classes API - only call when clicking dropdowns
+  const { data: classes = [] } = useSchoolClasses({ enabled: classesDropdownOpen });
+
+  // Get sections based on selected class - only fetch when classes dropdown was opened AND class is selected
   const { data: sections = [] } = useSchoolSectionsByClass(
-    selectedClassId ? parseInt(selectedClassId) : null
+    classesDropdownOpen && selectedClassId ? parseInt(selectedClassId) : null
   );
 
-  // Get subjects based on selected class
-  const { data: subjects = [] } = useSchoolSubjects();
+  // ✅ OPTIMIZATION: Only fetch subjects when subjects dropdown is opened
+  // User requirement: Don't call Subjects API - only call when clicking dropdowns
+  const { data: subjects = [] } = useSchoolSubjects({ enabled: subjectsDropdownOpen });
 
   const [expandedTeachers, setExpandedTeachers] = useState<Set<number>>(
     new Set()
@@ -219,6 +233,9 @@ export const TeachersTab = () => {
             <Select
               value={selectedTeacherId}
               onValueChange={setSelectedTeacherId}
+              onOpenChange={(open) => {
+                setTeachersDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select teacher" />
@@ -244,6 +261,9 @@ export const TeachersTab = () => {
               onValueChange={(value) => {
                 setSelectedClassId(value);
                 setSelectedSectionId(""); // Reset section when class changes
+              }}
+              onOpenChange={(open) => {
+                setClassesDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
               }}
             >
               <SelectTrigger>
@@ -296,6 +316,9 @@ export const TeachersTab = () => {
             <Select
               value={selectedSubjectId}
               onValueChange={setSelectedSubjectId}
+              onOpenChange={(open) => {
+                setSubjectsDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select subject" />

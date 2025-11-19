@@ -4,10 +4,14 @@ import type { CollegeExpenditureCreate, CollegeExpenditureRead, CollegeExpenditu
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
-export function useCollegeExpenditureList(params?: { start_date?: string; end_date?: string }) {
+export function useCollegeExpenditureList(params?: { start_date?: string; end_date?: string }, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: collegeKeys.expenditure.list(params),
     queryFn: () => CollegeExpenditureService.list(params),
+    enabled: options?.enabled !== false, // ✅ OPTIMIZATION: Allow disabling for on-demand fetching
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true, // Refetch on mount if enabled and data is stale
   });
 }
 
@@ -53,10 +57,14 @@ export function useDeleteCollegeExpenditure() {
   }, "Expenditure record deleted successfully");
 }
 
-export function useCollegeExpenditureDashboard() {
+export function useCollegeExpenditureDashboard(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [...collegeKeys.expenditure.root(), "dashboard"],
     queryFn: () => CollegeExpenditureService.dashboard(),
+    enabled: options?.enabled !== false, // ✅ OPTIMIZATION: Allow disabling for on-demand fetching
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true, // Refetch on mount if enabled and data is stale
   });
 }
 

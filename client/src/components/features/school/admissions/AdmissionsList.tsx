@@ -26,7 +26,7 @@ import {
   exportSchoolAdmissionFormToPDF,
 } from "@/lib/utils/export/admissionsExport";
 import type { SchoolAdmissionDetails, SchoolAdmissionListItem } from "@/lib/types/school/admissions";
-import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
+import { EnhancedDataTable, ServerSidePagination } from "@/components/shared";
 import { Loader } from "@/components/ui/ProfessionalLoader";
 import { ReceiptPreviewModal } from "@/components/shared";
 import { handleSchoolPayByAdmissionWithIncomeId } from "@/lib/api-school";
@@ -404,6 +404,10 @@ const DialogHeader = memo(({
 DialogHeader.displayName = "DialogHeader";
 
 const AdmissionsListComponent = () => {
+  // ✅ Server-side pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(
     null
   );
@@ -413,7 +417,48 @@ const AdmissionsListComponent = () => {
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  const { data: admissions = [], isLoading } = useSchoolAdmissions();
+  const { data: admissionsResp, isLoading } = useSchoolAdmissions({ page: currentPage, page_size: pageSize });
+  // ✅ FIX: Handle multiple response formats:
+  // 1. Direct array: [{...}, {...}]
+  // 2. Object with 'admissions' property: {admissions: [...], total_pages: ...}
+  // 3. Object with 'data' property: {data: [...], total_pages: ...}
+  const admissions = useMemo(() => {
+    if (!admissionsResp) return [];
+    // Check if response is a direct array
+    if (Array.isArray(admissionsResp)) {
+      return admissionsResp;
+    }
+    // Check for 'admissions' property (API might return this)
+    if ('admissions' in admissionsResp && Array.isArray(admissionsResp.admissions)) {
+      return admissionsResp.admissions;
+    }
+    // Check for 'data' property
+    if ('data' in admissionsResp && Array.isArray(admissionsResp.data)) {
+      return admissionsResp.data;
+    }
+    return [];
+  }, [admissionsResp]);
+  
+  // ✅ FIX: Extract pagination metadata - handle both direct array and paginated object
+  const paginationMeta = useMemo(() => {
+    if (!admissionsResp) return { total_pages: 1, total_count: 0, current_page: 1, page_size: pageSize };
+    // If response is a direct array, calculate pagination from array length
+    if (Array.isArray(admissionsResp)) {
+      return {
+        total_pages: Math.ceil(admissionsResp.length / pageSize) || 1,
+        total_count: admissionsResp.length,
+        current_page: currentPage,
+        page_size: pageSize,
+      };
+    }
+    // If response is an object with pagination metadata
+    return {
+      total_pages: admissionsResp.total_pages ?? 1,
+      total_count: admissionsResp.total_count ?? admissions.length,
+      current_page: admissionsResp.current_page ?? currentPage,
+      page_size: admissionsResp.page_size ?? pageSize,
+    };
+  }, [admissionsResp, admissions.length, currentPage, pageSize]);
   const { data: selectedAdmission, isLoading: isLoadingAdmission } = useSchoolAdmissionById(selectedStudentId);
 
   // Memoized handlers
@@ -631,25 +676,46 @@ const AdmissionsListComponent = () => {
 
   return (
     <div className="space-y-6">
-      <EnhancedDataTable
-        data={admissions}
-        columns={columns}
-        title="Student Admissions"
-        searchKey="student_name"
-        searchPlaceholder="Search by name, admission number..."
-        loading={isLoading}
-        exportable={true}
-        onExport={handleExportAll}
-        showSearch={true}
-        enableDebounce={true}
-        debounceDelay={300}
-        highlightSearchResults={true}
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
-        className="w-full"
-      />
+      <div className="space-y-4">
+        <EnhancedDataTable
+          data={admissions}
+          columns={columns}
+          title="Student Admissions"
+          searchKey="student_name"
+          searchPlaceholder="Search by name, admission number..."
+          loading={isLoading}
+          exportable={true}
+          onExport={handleExportAll}
+          showSearch={true}
+          enableDebounce={true}
+          debounceDelay={300}
+          highlightSearchResults={true}
+          showActions={true}
+          actionButtonGroups={actionButtonGroups}
+          actionColumnHeader="Actions"
+          showActionLabels={true}
+          className="w-full"
+          enableClientSidePagination={false}
+        />
+        {/* ✅ Server-side pagination controls */}
+        {admissionsResp && (
+          <ServerSidePagination
+            currentPage={paginationMeta.current_page}
+            totalPages={paginationMeta.total_pages}
+            totalCount={paginationMeta.total_count}
+            pageSize={paginationMeta.page_size}
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onPageSizeChange={(newPageSize) => {
+              setPageSize(newPageSize);
+              setCurrentPage(1);
+            }}
+            isLoading={isLoading}
+          />
+        )}
+      </div>
 
       {/* Admission Details Dialog */}
       <Dialog 

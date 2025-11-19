@@ -4,10 +4,14 @@ import type { CollegeCourseCreate, CollegeCourseList, CollegeCourseResponse, Col
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "../common/use-mutation-with-toast";
 
-export function useCollegeCourses() {
+export function useCollegeCourses(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: collegeKeys.courses.list(),
     queryFn: () => CollegeCoursesService.list() as Promise<CollegeCourseResponse[]>,
+    enabled: options?.enabled !== false, // Default to true, but allow disabling
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true,
   });
 }
 

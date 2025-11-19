@@ -13,7 +13,28 @@ export interface SchoolStudentsListParams {
   page_size?: number;
 }
 
+/**
+ * School Students Service
+ * 
+ * Provides API methods for managing school students.
+ * All methods return promises that resolve to typed responses.
+ * 
+ * @example
+ * ```typescript
+ * // List students with pagination
+ * const students = await SchoolStudentsService.list({ page: 1, page_size: 50 });
+ * 
+ * // Get student by ID
+ * const student = await SchoolStudentsService.getById(123);
+ * ```
+ */
 export const SchoolStudentsService = {
+  /**
+   * List school students with pagination
+   * 
+   * @param params - Pagination parameters (page, page_size)
+   * @returns Promise resolving to paginated list of students
+   */
   list(params?: SchoolStudentsListParams) {
     return Api.get<SchoolStudentsPaginatedResponse>(
       `/school/students`,
@@ -23,20 +44,45 @@ export const SchoolStudentsService = {
     );
   },
 
+  /**
+   * Get a single student by ID
+   * 
+   * @param student_id - The student ID
+   * @returns Promise resolving to full student details
+   */
   getById(student_id: number) {
     return Api.get<SchoolStudentFullDetails>(`/school/students/${student_id}`);
   },
 
+  /**
+   * Get a student by admission number
+   * 
+   * @param admission_no - The admission number
+   * @returns Promise resolving to full student details
+   */
   getByAdmission(admission_no: string) {
     return Api.get<SchoolStudentFullDetails>(
       `/school/students/admission-no/${admission_no}`
     );
   },
 
+  /**
+   * Create a new student
+   * 
+   * @param payload - Student creation data
+   * @returns Promise resolving to created student details
+   */
   create(payload: SchoolStudentCreate) {
     return Api.post<SchoolStudentFullDetails>(`/school/students`, payload);
   },
 
+  /**
+   * Update an existing student
+   * 
+   * @param student_id - The student ID to update
+   * @param payload - Partial student data to update
+   * @returns Promise resolving to updated student details
+   */
   update(student_id: number, payload: SchoolStudentUpdate) {
     return Api.put<SchoolStudentFullDetails>(
       `/school/students/${student_id}`,
@@ -44,6 +90,12 @@ export const SchoolStudentsService = {
     );
   },
 
+  /**
+   * Delete a student
+   * 
+   * @param student_id - The student ID to delete
+   * @returns Promise resolving to void
+   */
   delete(student_id: number) {
     return Api.delete<void>(`/school/students/${student_id}`);
   },

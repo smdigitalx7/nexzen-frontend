@@ -31,11 +31,13 @@ LoadingIcon.displayName = "LoadingIcon";
 interface IncomeSummaryTableProps {
   onExportCSV?: () => void;
   onAddIncome?: () => void;
+  enabled?: boolean; // ✅ OPTIMIZATION: Allow parent to control when to fetch
 }
 
 export const IncomeSummaryTable = ({
   onExportCSV,
   onAddIncome,
+  enabled = true, // Default to enabled for backward compatibility
 }: IncomeSummaryTableProps) => {
   // View dialog state
   const [showViewDialog, setShowViewDialog] = useState(false);
@@ -46,19 +48,35 @@ export const IncomeSummaryTable = ({
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
   const [loadingReceiptId, setLoadingReceiptId] = useState<number | null>(null);
 
-  // Build query parameters
-  const queryParams: SchoolIncomeSummaryParams = {};
+  // ✅ OPTIMIZATION: Stabilize query params (empty object, but still memoize to prevent key changes)
+  const queryParams = useMemo<SchoolIncomeSummaryParams>(() => ({}), []);
+  
+  // ✅ OPTIMIZATION: Stabilize query key
+  const incomeQueryKey = useMemo(
+    () => ["school-income-summary", queryParams],
+    [queryParams]
+  );
 
-  // Fetch income summary data
+  // ✅ OPTIMIZATION: Only fetch when enabled (tab is active)
   const {
     data: incomeData,
     isLoading,
     error,
     refetch,
   } = useQuery({
-    queryKey: ["school-income-summary", queryParams],
+    queryKey: incomeQueryKey,
     queryFn: () => SchoolIncomeService.getIncomeSummary(queryParams),
+    enabled: enabled, // ✅ Only fetch when tab is active
+    refetchOnWindowFocus: false, // ✅ OPTIMIZATION: No refetch on tab focus
+    refetchOnReconnect: false, // ✅ OPTIMIZATION: No refetch on reconnect
+    refetchOnMount: true, // Only refetch on mount if enabled and data is stale
   });
+
+  // ✅ OPTIMIZATION: Stabilize query key
+  const receiptQueryKey = useMemo(
+    () => ["school-income-receipt-view", viewIncomeId],
+    [viewIncomeId]
+  );
 
   // Fetch income receipt for viewing
   const {
@@ -66,9 +84,12 @@ export const IncomeSummaryTable = ({
     isLoading: isViewLoading,
     error: viewError,
   } = useQuery({
-    queryKey: ["school-income-receipt-view", viewIncomeId],
+    queryKey: receiptQueryKey,
     queryFn: () => SchoolIncomeService.getIncomeReceipt(viewIncomeId!),
     enabled: !!viewIncomeId,
+    refetchOnWindowFocus: false, // ✅ OPTIMIZATION: No refetch on tab focus
+    refetchOnReconnect: false, // ✅ OPTIMIZATION: No refetch on reconnect
+    refetchOnMount: true, // Only refetch on mount if data is stale
   });
 
   // Handle view action

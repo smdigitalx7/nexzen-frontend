@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { SchoolStudentAttendanceService } from "@/lib/services/school/student-attendance.service";
 import type { SchoolBulkCreateAttendanceResult, SchoolBulkStudentAttendanceCreate, SchoolStudentAttendanceCreate, SchoolStudentAttendancePaginatedResponse, SchoolStudentAttendanceRead, SchoolStudentAttendanceUpdate } from "@/lib/types/school";
 import { schoolKeys } from "./query-keys";
@@ -72,11 +73,25 @@ export function useDeleteSchoolAttendance() {
   }, "Attendance deleted successfully");
 }
 
+/**
+ * ✅ OPTIMIZATION: Query key stabilized, supports enabled flag for tab gating
+ */
 export function useSchoolAttendanceAllStudents(params: { class_id: number; month: number; year: number; section_id?: number | null; } | null) {
+  // ✅ OPTIMIZATION: Stabilize query key
+  const queryKey = useMemo(
+    () => params ? [...schoolKeys.attendance.root(), "all-students", params] : [...schoolKeys.attendance.root(), "all-students", "nil"],
+    [params]
+  );
+
   return useQuery({
-    queryKey: params ? [...schoolKeys.attendance.root(), "all-students", params] : [...schoolKeys.attendance.root(), "all-students", "nil"],
+    queryKey,
     queryFn: () => SchoolStudentAttendanceService.getAllStudents(params!),
     enabled: !!params && typeof params.class_id === 'number' && params.class_id > 0 && typeof params.month === 'number' && typeof params.year === 'number',
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false, // ✅ OPTIMIZATION: No refetch on tab focus
+    refetchOnReconnect: false, // ✅ OPTIMIZATION: No refetch on reconnect
+    refetchOnMount: true, // Only refetch on mount if data is stale
   });
 }
 

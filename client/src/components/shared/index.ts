@@ -1,5 +1,6 @@
 // Shared Components
 export { EnhancedDataTable } from "./EnhancedDataTable";
+export { ServerSidePagination } from "./ServerSidePagination";
 export { FormDialog } from "./FormDialog";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { TabSwitcher } from "./TabSwitcher";

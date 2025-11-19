@@ -35,30 +35,43 @@ import { TeachersTab } from "@/components/features/college/academic/teachers/Tea
 import { AcademicOverviewCards } from "@/components/features/college/academic/AcademicOverviewCards";
 import { useGrades } from "@/lib/hooks/general/useGrades";
 import GradesTab from "@/components/features/general/grades/GradesTab";
-import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
+import { useTabNavigation, useTabEnabled } from "@/lib/hooks/use-tab-navigation";
 
 const AcademicManagement = () => {
   const { currentBranch } = useAuthStore();
   const { activeTab, setActiveTab } = useTabNavigation("classes");
 
-  // ✅ Always fetch data for cards (not lazy loaded)
-  // Cards need data immediately, so we fetch regardless of active tab
+  // ✅ OPTIMIZATION: Get enabled states for each tab - only fetch when tab is active
+  const classesTabEnabled = useTabEnabled("classes", "classes");
+  const groupsTabEnabled = useTabEnabled("groups", "classes");
+  const coursesTabEnabled = useTabEnabled("courses", "classes");
+  const subjectsTabEnabled = useTabEnabled("subjects", "classes");
+  const examsTabEnabled = useTabEnabled("exams", "classes");
+  const testsTabEnabled = useTabEnabled("tests", "classes");
+  const teachersTabEnabled = useTabEnabled("teachers", "classes");
+  const academicYearsTabEnabled = useTabEnabled("academic-years", "classes");
+  const gradesTabEnabled = useTabEnabled("grades", "classes");
+
+  // ✅ OPTIMIZATION: Minimal data fetching for cards only (lightweight counts)
+  // Cards need minimal data for stats, so we fetch lightweight counts
+  // Full data will be fetched by individual tabs when they become active
   const {
     data: backendClasses = [],
     isLoading: classesLoading,
     isError: classesError,
     error: classesErrObj,
   } = useCollegeClasses({
-    enabled: true, // Always enabled for cards
+    enabled: true, // Always enabled for cards (minimal data)
   });
 
+  // ✅ OPTIMIZATION: Only fetch full data when respective tabs are active
   const {
     data: backendSubjects = [],
     isLoading: subjectsLoading,
     isError: subjectsError,
     error: subjectsErrObj,
   } = useCollegeSubjects({
-    enabled: true, // Always enabled for cards
+    enabled: subjectsTabEnabled, // Only fetch when subjects tab is active
   });
 
   const {
@@ -67,17 +80,18 @@ const AcademicManagement = () => {
     isError: examsError,
     error: examsErrObj,
   } = useCollegeExams({
-    enabled: true, // Always enabled for cards
+    enabled: examsTabEnabled, // Only fetch when exams tab is active
   });
 
-  // Note: useCollegeTests, useCollegeGroups, useCollegeCourses from specific hooks (not dropdowns)
-  // These are always enabled since they're used in cards
+  // ✅ OPTIMIZATION: Only fetch when respective tabs are active
   const {
     data: testsData,
     isLoading: testsLoading,
     isError: testsError,
     error: testsErrObj,
-  } = useCollegeTests();
+  } = useCollegeTests({
+    enabled: testsTabEnabled, // Only fetch when tests tab is active
+  });
   const tests = (testsData ||
     []) as import("@/lib/types/college").CollegeTestRead[];
 
@@ -86,7 +100,9 @@ const AcademicManagement = () => {
     isLoading: groupsLoading,
     isError: groupsError,
     error: groupsErrObj,
-  } = useCollegeGroups();
+  } = useCollegeGroups({
+    enabled: groupsTabEnabled, // Only fetch when groups tab is active
+  });
   const groups = (groupsData ||
     []) as import("@/lib/types/college").CollegeGroupResponse[];
 
@@ -95,7 +111,9 @@ const AcademicManagement = () => {
     isLoading: coursesLoading,
     isError: coursesError,
     error: coursesErrObj,
-  } = useCollegeCourses();
+  } = useCollegeCourses({
+    enabled: coursesTabEnabled, // Only fetch when courses tab is active
+  });
   const courses = (coursesData ||
     []) as import("@/lib/types/college").CollegeCourseResponse[];
 
@@ -118,28 +136,28 @@ const AcademicManagement = () => {
     return d ? d < new Date(today.toDateString()) : false;
   }).length;
 
-  // Loading states
+  // ✅ OPTIMIZATION: Loading states - only show loading for cards (classes) and active tab
   const isLoading =
     classesLoading ||
-    subjectsLoading ||
-    examsLoading ||
-    testsLoading ||
-    groupsLoading ||
-    coursesLoading;
+    (subjectsTabEnabled && subjectsLoading) ||
+    (examsTabEnabled && examsLoading) ||
+    (testsTabEnabled && testsLoading) ||
+    (groupsTabEnabled && groupsLoading) ||
+    (coursesTabEnabled && coursesLoading);
   const hasError =
     classesError ||
-    subjectsError ||
-    examsError ||
-    testsError ||
-    groupsError ||
-    coursesError;
+    (subjectsTabEnabled && subjectsError) ||
+    (examsTabEnabled && examsError) ||
+    (testsTabEnabled && testsError) ||
+    (groupsTabEnabled && groupsError) ||
+    (coursesTabEnabled && coursesError);
   const errorMessage =
     (classesErrObj as any)?.message ||
-    (subjectsErrObj as any)?.message ||
-    (examsErrObj as any)?.message ||
-    (testsErrObj as any)?.message ||
-    (groupsErrObj as any)?.message ||
-    (coursesErrObj as any)?.message ||
+    (subjectsTabEnabled && (subjectsErrObj as any)?.message) ||
+    (examsTabEnabled && (examsErrObj as any)?.message) ||
+    (testsTabEnabled && (testsErrObj as any)?.message) ||
+    (groupsTabEnabled && (groupsErrObj as any)?.message) ||
+    (coursesTabEnabled && (coursesErrObj as any)?.message) ||
     undefined;
 
   // Local state for filters
@@ -147,13 +165,14 @@ const AcademicManagement = () => {
   const [selectedBranchType, setSelectedBranchType] = useState("all");
   const [gradesSearchTerm, setGradesSearchTerm] = useState("");
 
-  // Grades hooks (for both school and college)
+  // ✅ OPTIMIZATION: Grades hooks - only fetch when Grades tab is active
+  // User requirement: Grades API should NOT be called when Classes tab is active
   const {
     grades: gradesData = [],
     createGrade: createGradeMutation,
     updateGrade: updateGradeMutation,
     deleteGrade: deleteGradeMutation,
-  } = useGrades();
+  } = useGrades({ enabled: gradesTabEnabled }); // ✅ Only fetch when Grades tab is active
 
   const handleCreateGrade = (data: any) => {
     createGradeMutation.mutate(data);
@@ -281,11 +300,11 @@ const AcademicManagement = () => {
             content: (
               <ClassesTab
                 classesWithSubjects={backendClasses}
-                classesLoading={classesLoading}
+                classesLoading={classesTabEnabled ? classesLoading : false}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
-                hasError={classesError}
-                errorMessage={(classesErrObj as any)?.message}
+                hasError={classesTabEnabled ? classesError : false}
+                errorMessage={classesTabEnabled ? ((classesErrObj as any)?.message) : undefined}
               />
             ),
           },
@@ -295,12 +314,12 @@ const AcademicManagement = () => {
             icon: Layers,
             content: (
               <GroupsTab
-                groupsWithSubjects={groups}
-                groupsLoading={groupsLoading}
+                groupsWithSubjects={groupsTabEnabled ? groups : []}
+                groupsLoading={groupsTabEnabled ? groupsLoading : false}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
-                hasError={groupsError}
-                errorMessage={(groupsErrObj as any)?.message}
+                hasError={groupsTabEnabled ? groupsError : false}
+                errorMessage={groupsTabEnabled ? ((groupsErrObj as any)?.message) : undefined}
               />
             ),
           },
@@ -310,12 +329,12 @@ const AcademicManagement = () => {
             icon: BookOpen,
             content: (
               <CoursesTab
-                coursesWithSubjects={courses}
-                coursesLoading={coursesLoading}
+                coursesWithSubjects={coursesTabEnabled ? courses : []}
+                coursesLoading={coursesTabEnabled ? coursesLoading : false}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
-                hasError={coursesError}
-                errorMessage={(coursesErrObj as any)?.message}
+                hasError={coursesTabEnabled ? coursesError : false}
+                errorMessage={coursesTabEnabled ? ((coursesErrObj as any)?.message) : undefined}
               />
             ),
           },
@@ -331,8 +350,8 @@ const AcademicManagement = () => {
             icon: GraduationCap,
             content: (
               <SubjectsTab
-                backendSubjects={backendSubjects}
-                subjectsLoading={isLoading}
+                backendSubjects={subjectsTabEnabled ? backendSubjects : []}
+                subjectsLoading={subjectsTabEnabled ? subjectsLoading : false}
                 currentBranch={currentBranch}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
@@ -347,12 +366,12 @@ const AcademicManagement = () => {
             icon: Calendar,
             content: (
               <ExamsTab
-                exams={exams}
+                exams={examsTabEnabled ? exams : []}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
-                isLoading={examsLoading}
-                hasError={examsError}
-                errorMessage={(examsErrObj as any)?.message}
+                isLoading={examsTabEnabled ? examsLoading : false}
+                hasError={examsTabEnabled ? examsError : false}
+                errorMessage={examsTabEnabled ? ((examsErrObj as any)?.message) : undefined}
               />
             ),
           },
@@ -364,10 +383,10 @@ const AcademicManagement = () => {
               <TestTab
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
-                tests={tests}
-                isLoading={testsLoading}
-                hasError={testsError}
-                errorMessage={(testsErrObj as any)?.message}
+                tests={testsTabEnabled ? tests : []}
+                isLoading={testsTabEnabled ? testsLoading : false}
+                hasError={testsTabEnabled ? testsError : false}
+                errorMessage={testsTabEnabled ? ((testsErrObj as any)?.message) : undefined}
               />
             ),
           },

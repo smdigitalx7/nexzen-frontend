@@ -138,9 +138,14 @@ export const ClassesTab = memo(({
   const createClassMutation = useCreateSchoolClass();
   const updateClassMutation = useUpdateSchoolClass(selectedClass?.class_id || 0);
   
-  // Subject management hooks
-  const { data: allSubjects = [] } = useSchoolSubjects();
-  const { data: classWithSubjects } = useSchoolClassById(selectedClass?.class_id || null);
+  // ✅ OPTIMIZATION: Subject management hooks - only fetch when "Manage Subjects" dialog is open
+  // User requirement: Subjects API should NOT be called in Classes tab - only when clicking "View" or "Manage subjects"
+  const { data: allSubjects = [] } = useSchoolSubjects({ 
+    enabled: isManageSubjectsOpen || isViewDialogOpen // ✅ Only fetch when dialog is open
+  });
+  const { data: classWithSubjects } = useSchoolClassById(
+    (isManageSubjectsOpen || isViewDialogOpen) ? selectedClass?.class_id || null : null // ✅ Only fetch when dialog is open
+  );
   const createClassSubjectMutation = useCreateSchoolClassSubject();
   const deleteClassSubjectMutation = useDeleteSchoolClassSubject();
 

@@ -1,5 +1,7 @@
 import { useMutation, type UseMutationOptions } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import type { ApiErrorResponse } from '@/lib/types/api';
+import { isApiErrorResponse } from '@/lib/types/api';
 
 /**
  * Centralized mutation hook with automatic toast notifications
@@ -12,16 +14,24 @@ export function useMutationWithToast<TData = unknown, TError = unknown, TVariabl
 
   return useMutation<TData, TError, TVariables, TContext>({
     ...mutationOptions,
-    onSuccess: (data: TData, variables: TVariables, onMutateResult: TContext | undefined, context: any) => {
+    onSuccess: (data: TData, variables: TVariables, onMutateResult: TContext | undefined, context: TContext | undefined) => {
       // Call the provided onSuccess callback if it exists
       mutationOptions.onSuccess?.(data, variables, onMutateResult, context);
     },
-    onError: (error: TError, variables: TVariables, onMutateResult: TContext | undefined, context: any) => {
+    onError: (error: TError, variables: TVariables, onMutateResult: TContext | undefined, context: TContext | undefined) => {
+      // ✅ FIX: Properly type error handling
       // Extract error message from various possible structures
-      // Check both error.data (from our API layer) and error.response.data (from axios/fetch wrappers)
-      const errorData = (error as any)?.data || (error as any)?.response?.data;
-      const errorDetail = errorData?.detail;
-      const errorMsg = (error as any)?.message;
+      const errorObj = error as Error & { data?: unknown; response?: { data?: unknown }; message?: string };
+      const errorData = errorObj?.data || errorObj?.response?.data;
+      const errorMsg = errorObj?.message;
+      
+      // Check if errorData is an ApiErrorResponse
+      let errorDetail: ApiErrorResponse['detail'] | undefined;
+      if (isApiErrorResponse(errorData)) {
+        errorDetail = errorData.detail;
+      } else if (errorData && typeof errorData === 'object' && 'detail' in errorData) {
+        errorDetail = (errorData as { detail: unknown }).detail as ApiErrorResponse['detail'];
+      }
       let errorMessage: string;
       
       // Handle case where detail is an object with a message property
@@ -75,7 +85,7 @@ export function useMutationWithSuccessToast<TData = unknown, TError = unknown, T
 
   return useMutation<TData, TError, TVariables, TContext>({
     ...mutationOptions,
-    onSuccess: (data: TData, variables: TVariables, onMutateResult: TContext | undefined, context: any) => {
+    onSuccess: (data: TData, variables: TVariables, onMutateResult: TContext | undefined, context: TContext | undefined) => {
       // Show success toast immediately
       toast({
         title: 'Success',
@@ -90,12 +100,20 @@ export function useMutationWithSuccessToast<TData = unknown, TError = unknown, T
       // Individual mutations should use invalidateAndRefetch() or batchInvalidateAndRefetch()
       // for specific query keys instead of clearing all cache
     },
-    onError: (error: TError, variables: TVariables, onMutateResult: TContext | undefined, context: any) => {
+    onError: (error: TError, variables: TVariables, onMutateResult: TContext | undefined, context: TContext | undefined) => {
+      // ✅ FIX: Properly type error handling
       // Extract error message from various possible structures
-      // Check both error.data (from our API layer) and error.response.data (from axios/fetch wrappers)
-      const errorData = (error as any)?.data || (error as any)?.response?.data;
-      const errorDetail = errorData?.detail;
-      const errorMsg = (error as any)?.message;
+      const errorObj = error as Error & { data?: unknown; response?: { data?: unknown }; message?: string };
+      const errorData = errorObj?.data || errorObj?.response?.data;
+      const errorMsg = errorObj?.message;
+      
+      // Check if errorData is an ApiErrorResponse
+      let errorDetail: ApiErrorResponse['detail'] | undefined;
+      if (isApiErrorResponse(errorData)) {
+        errorDetail = errorData.detail;
+      } else if (errorData && typeof errorData === 'object' && 'detail' in errorData) {
+        errorDetail = (errorData as { detail: unknown }).detail as ApiErrorResponse['detail'];
+      }
       let errorMessage: string;
       
       // Handle case where detail is an object with a message property

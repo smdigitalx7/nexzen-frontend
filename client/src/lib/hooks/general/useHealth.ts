@@ -3,9 +3,12 @@ import { HealthService } from "@/lib/services/general/health.service";
 
 /**
  * Hook for health check operations
+ * 
+ * ✅ OPTIMIZATION: Made on-demand - no auto-refetch
+ * Health checks should only run when explicitly requested, not continuously
  */
 export const useHealth = () => {
-  // Liveness probe
+  // Liveness probe - on-demand only
   const {
     data: liveness,
     isLoading: isLoadingLiveness,
@@ -14,11 +17,14 @@ export const useHealth = () => {
   } = useQuery({
     queryKey: ["health", "liveness"],
     queryFn: () => HealthService.getLiveness(),
-    refetchInterval: 30000, // Refetch every 30 seconds
+    enabled: false, // ✅ OPTIMIZATION: On-demand only - no auto-fetch
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
     retry: 3,
   });
 
-  // Readiness probe
+  // Readiness probe - on-demand only
   const {
     data: readiness,
     isLoading: isLoadingReadiness,
@@ -27,7 +33,10 @@ export const useHealth = () => {
   } = useQuery({
     queryKey: ["health", "readiness"],
     queryFn: () => HealthService.getReadiness(),
-    refetchInterval: 30000, // Refetch every 30 seconds
+    enabled: false, // ✅ OPTIMIZATION: On-demand only - no auto-fetch
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
     retry: 3,
   });
 

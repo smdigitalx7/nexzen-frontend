@@ -55,6 +55,7 @@ export interface SchoolStudentsPaginatedResponse {
   total_pages: number;
   current_page: number;
   page_size?: number | null;
+  total_count?: number | null;
 }
 
 
