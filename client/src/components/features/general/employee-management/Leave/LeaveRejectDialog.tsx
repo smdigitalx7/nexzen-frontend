@@ -23,10 +23,9 @@ const LeaveRejectDialog = ({ open, onOpenChange, reason, onReasonChange, onRejec
     <FormDialog
       open={open}
       onOpenChange={(newOpen) => {
-        // Prevent closing while loading
-        if (!isLoading) {
-          onOpenChange(newOpen);
-        }
+        // ✅ FIX: Allow closing even while loading to prevent UI freeze
+        // The dialog will close optimistically, mutation runs in background
+        onOpenChange(newOpen);
       }}
       title="Reject Leave Request"
       description="Please provide a reason for rejecting this leave request."

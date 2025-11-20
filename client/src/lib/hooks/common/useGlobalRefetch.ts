@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { startTransition } from "react";
 import { queryClient } from "@/lib/query";
 import type { QueryKey } from "@tanstack/react-query";
 
@@ -102,6 +103,58 @@ export function invalidateQueries(queryKey: QueryKey) {
  */
 export function invalidateAndRefetch(queryKey: QueryKey) {
   invalidateQueries(queryKey);
+}
+
+/**
+ * ✅ PERMANENT FIX: Selective query invalidation with React Concurrent features
+ * Only invalidates specific queries, prevents UI freezing by:
+ * 1. Using startTransition to mark as non-urgent
+ * 2. Only invalidating exact matches or specific patterns
+ * 3. Deferring heavy operations
+ * 
+ * @param queryKey - The query key to invalidate
+ * @param options - Invalidation options
+ */
+export function invalidateQueriesSelective(
+  queryKey: QueryKey,
+  options?: {
+    exact?: boolean;
+    refetchType?: 'active' | 'inactive' | 'all' | 'none';
+    useTransition?: boolean;
+    delay?: number;
+  }
+) {
+  const { 
+    exact = true, // Default to exact match to prevent over-invalidation
+    refetchType = 'active', 
+    useTransition = true,
+    delay = 0
+  } = options || {};
+  
+  const invalidate = () => {
+    queryClient.invalidateQueries({
+      queryKey,
+      exact,
+      refetchType, // Only refetch active queries by default
+    });
+  };
+  
+  const execute = () => {
+    if (useTransition) {
+      // ✅ Use React's startTransition to mark as non-urgent (prevents UI blocking)
+      startTransition(() => {
+        invalidate();
+      });
+    } else {
+      invalidate();
+    }
+  };
+  
+  if (delay > 0) {
+    setTimeout(execute, delay);
+  } else {
+    execute();
+  }
 }
 
 /**

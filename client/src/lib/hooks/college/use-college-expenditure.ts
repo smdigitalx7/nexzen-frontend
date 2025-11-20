@@ -74,3 +74,16 @@ export function useCollegeExpenditureRecent(limit?: number) {
     queryFn: () => CollegeExpenditureService.recent(limit),
   });
 }
+
+export function useUpdateCollegeExpenditureStatus(expenditureId: number) {
+  const qc = useQueryClient();
+  return useMutationWithSuccessToast({
+    mutationFn: (status: "PENDING" | "APPROVED" | "REJECTED") => 
+      CollegeExpenditureService.updateStatus(expenditureId, status),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: collegeKeys.expenditure.detail(expenditureId) });
+      void qc.invalidateQueries({ queryKey: collegeKeys.expenditure.root() });
+      void qc.refetchQueries({ queryKey: collegeKeys.expenditure.root(), type: 'active' });
+    },
+  }, "Expenditure status updated successfully");
+}

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useLogin } from "@/lib/hooks/general/useAuth";
+import { useAuthStore } from "@/store/authStore";
 import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
@@ -16,8 +16,9 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const loginMutation = useLogin();
+  const { login } = useAuthStore();
   const { toast } = useToast();
 
   // Load remembered email on component mount
@@ -51,11 +52,12 @@ const Login = () => {
       return;
     }
 
+    setIsLoading(true);
+    setError("");
+
     try {
-      const result = await loginMutation.mutateAsync({
-        identifier: email,
-        password,
-      });
+      // Call login from auth store
+      await login(email, password);
 
       // Handle remember me functionality
       if (rememberMe) {
@@ -64,61 +66,41 @@ const Login = () => {
         localStorage.removeItem("rememberedEmail");
       }
 
-      // Redirect to appropriate page based on user role
-      setLocation(result.redirectPath);
+      // Show success toast (green color)
+      toast({
+        title: "Login successful",
+        description: "Welcome back!",
+        variant: "success",
+      });
+
+      // Small delay to ensure state is set before navigation
+      // This prevents bootstrapAuth from running and clearing the auth state
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Redirect to dashboard
+      setLocation("/");
     } catch (err: unknown) {
-      // Extract error message from API response
+      // Extract error message
       let errorMessage = "Login failed";
 
-      // Check if error has response data (axios error format)
-      if (err && typeof err === "object") {
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (err && typeof err === "object") {
         const errorObj = err as Record<string, unknown>;
-
-        // Check for axios response structure: err.response.data
-        const responseData =
-          ((errorObj.response as Record<string, unknown>)?.data as Record<
-            string,
-            unknown
-          >) || (errorObj.data as Record<string, unknown>);
-
-        if (responseData) {
-          // Handle validation error format: { detail: [{ msg: "...", ... }] }
-          if (responseData.detail && Array.isArray(responseData.detail)) {
-            const detailArray = responseData.detail as Array<
-              Record<string, unknown>
-            >;
-            // Extract all validation error messages
-            const messages = detailArray
-              .map((item) => {
-                const msg = item?.msg || item?.message;
-                return typeof msg === "string" ? msg : "";
-              })
-              .filter((msg) => msg.length > 0)
-              .join(", ");
-            errorMessage = messages || "Validation error";
-          }
-          // Handle simple error format: { detail: "Error message" }
-          else if (
-            responseData.detail &&
-            typeof responseData.detail === "string"
-          ) {
-            errorMessage = responseData.detail;
-          }
-          // Handle error message directly
-          else if (
-            responseData.message &&
-            typeof responseData.message === "string"
-          ) {
-            errorMessage = responseData.message;
-          }
-        }
-        // Fallback to error message if available
-        else if (errorObj.message && typeof errorObj.message === "string") {
+        if (errorObj.message && typeof errorObj.message === "string") {
           errorMessage = errorObj.message;
         }
       }
 
       setError(errorMessage);
+      
+      toast({
+        title: "Login failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -310,12 +292,10 @@ const Login = () => {
               <Button
                 type="submit"
                 className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl "
-                disabled={
-                  loginMutation.isPending || !email.trim() || !password.trim()
-                }
+                disabled={isLoading || !email.trim() || !password.trim()}
                 data-testid="button-login"
               >
-                {loginMutation.isPending ? (
+                {isLoading ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     Signing in...

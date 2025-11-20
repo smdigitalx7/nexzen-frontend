@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuthStore } from '@/store/authStore';
+import { useAuthHydration } from '@/hooks/useAuthHydration';
 
 /**
  * Route to title mapping
@@ -44,11 +45,25 @@ const routeTitleMap: Record<string, string> = {
  */
 export function useDocumentTitle() {
   const [location] = useLocation();
-  const { currentBranch, isAuthenticated } = useAuthStore();
+  const { currentBranch, isAuthenticated, isAuthInitializing, user } = useAuthStore();
+  const isHydrated = useAuthHydration();
 
   useEffect(() => {
-    // If not authenticated, show Login title
-    if (!isAuthenticated) {
+    // CRITICAL: Show "Loading..." ONLY during browser refresh/bootstrapAuth
+    // Conditions for loading:
+    // 1. Not hydrated yet (Zustand persist still loading)
+    // 2. Auth is initializing AND we have user data (refresh scenario)
+    // This prevents "Login | Velonex" flash during refresh
+    const isRefreshing = !isHydrated || (isAuthInitializing && user);
+    
+    if (isRefreshing) {
+      document.title = 'Velonex - Loading...';
+      return;
+    }
+
+    // If not authenticated and no user data, show Login title
+    // This is the actual login page (not during refresh)
+    if (!isAuthenticated && !user) {
       document.title = 'Login | Velonex';
       return;
     }
@@ -68,6 +83,6 @@ export function useDocumentTitle() {
     
     // Update document title
     document.title = fullTitle;
-  }, [location, currentBranch, isAuthenticated]);
+  }, [location, currentBranch, isAuthenticated, isAuthInitializing, user, isHydrated]);
 }
 

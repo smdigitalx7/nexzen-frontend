@@ -11,7 +11,6 @@ import type {
 } from '@/lib/types/general/employee-leave';
 import { useMutationWithSuccessToast } from '../common/use-mutation-with-toast';
 import { useGlobalRefetch } from '../common/useGlobalRefetch';
-import { invalidateAndRefetch } from '../common/useGlobalRefetch';
 import { useToast } from '@/hooks/use-toast';
 
 // Query keys
@@ -96,28 +95,87 @@ export const useUpdateEmployeeLeave = () => {
 };
 
 export const useApproveEmployeeLeave = () => {
+  const queryClient = useQueryClient();
+  
   return useMutationWithSuccessToast({
     mutationFn: (id: number) => EmployeeLeaveService.approve(id),
     onSuccess: () => {
-      // Defer invalidateAndRefetch to prevent UI freeze
-      // Use setTimeout to ensure it runs after the mutation completes and UI updates
-      setTimeout(() => {
-        invalidateAndRefetch(employeeLeaveKeys.all);
-      }, 0);
+      // ✅ COMPLETE REDESIGN: Prevent UI freezing by using refetchType: 'none' and manual refetch
+      // Problem: invalidateQueries with refetchType: 'active' triggers IMMEDIATE synchronous refetches
+      // Solution: Mark queries as stale WITHOUT refetching, then manually refetch with proper delays
+      
+      // Step 1: Mark queries as stale WITHOUT refetching (non-blocking)
+      // This allows React Query to know data is stale but doesn't trigger network requests
+      queryClient.invalidateQueries({
+        queryKey: [...employeeLeaveKeys.all, 'by-branch'],
+        exact: false,
+        refetchType: 'none', // ✅ CRITICAL: Don't refetch automatically
+      });
+      
+      // Step 2: Manually refetch table query with proper delay (deferred to next frame)
+      // Use requestAnimationFrame to defer to next frame, then setTimeout for additional delay
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          // Only refetch the table query (by-branch queries)
+          queryClient.refetchQueries({
+            queryKey: [...employeeLeaveKeys.all, 'by-branch'],
+            exact: false,
+            type: 'active', // Only refetch if active
+          });
+        }, 200); // Delay to allow dialog close animation
+      });
+      
+      // Step 3: Defer dashboard stats invalidation (much longer delay - less critical)
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          queryClient.invalidateQueries({
+            queryKey: employeeLeaveKeys.dashboard(),
+            exact: true,
+            refetchType: 'active', // Dashboard can refetch, but with delay
+          });
+        }, 1000); // Much longer delay - dashboard is not critical
+      });
     },
   }, "Leave request approved successfully");
 };
 
 export const useRejectEmployeeLeave = () => {
+  const queryClient = useQueryClient();
+  
   return useMutationWithSuccessToast({
     mutationFn: ({ id, data }: { id: number; data: EmployeeLeaveReject }) => 
       EmployeeLeaveService.reject(id, data),
     onSuccess: () => {
-      // Defer invalidateAndRefetch to prevent UI freeze
-      // Use setTimeout to ensure it runs after the mutation completes and UI updates
-      setTimeout(() => {
-        invalidateAndRefetch(employeeLeaveKeys.all);
-      }, 0);
+      // ✅ COMPLETE REDESIGN: Same fix as approve - prevent UI freezing
+      
+      // Step 1: Mark queries as stale WITHOUT refetching (non-blocking)
+      queryClient.invalidateQueries({
+        queryKey: [...employeeLeaveKeys.all, 'by-branch'],
+        exact: false,
+        refetchType: 'none', // ✅ CRITICAL: Don't refetch automatically
+      });
+      
+      // Step 2: Manually refetch table query with proper delay
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          queryClient.refetchQueries({
+            queryKey: [...employeeLeaveKeys.all, 'by-branch'],
+            exact: false,
+            type: 'active',
+          });
+        }, 200); // Delay to allow dialog close animation
+      });
+      
+      // Step 3: Defer dashboard stats invalidation (much longer delay)
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          queryClient.invalidateQueries({
+            queryKey: employeeLeaveKeys.dashboard(),
+            exact: true,
+            refetchType: 'active',
+          });
+        }, 1000); // Much longer delay - dashboard is not critical
+      });
     },
   }, "Leave request rejected");
 };

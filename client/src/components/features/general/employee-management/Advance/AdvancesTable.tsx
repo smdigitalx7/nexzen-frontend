@@ -6,6 +6,7 @@ import {
   createTextColumn,
   createDateColumn
 } from "@/lib/utils/factory/columnFactories";
+import { Coins } from "lucide-react";
 
 interface EmployeeAdvanceRead {
   advance_id: number;
@@ -72,6 +73,7 @@ const AdvancesTableComponent = ({
         const status = row.original.status;
         const getStatusColor = (status: string) => {
           switch (status) {
+            case "REQUESTED":
             case "PENDING":
               return "bg-yellow-100 text-yellow-800 border-yellow-200";
             case "ACTIVE":
@@ -135,6 +137,28 @@ const AdvancesTableComponent = ({
     }
   ], [onViewAdvance, onEditAdvance, canEditAdvance]);
 
+  // Action buttons for update amount paid
+  const actionButtons = useMemo(() => {
+    if (!onUpdateAmount) return [];
+    
+    return [
+      {
+        id: "update-amount-paid",
+        label: "Update Amount Paid",
+        icon: Coins,
+        variant: "default" as const,
+        onClick: (row: EmployeeAdvanceRead) => onUpdateAmount(row),
+        show: (row: EmployeeAdvanceRead) => {
+          // Show for ACTIVE or APPROVED status, but not REPAID
+          const status = row.status?.toUpperCase();
+          return (status === "ACTIVE" || status === "APPROVED") && 
+                 status !== "REPAID" &&
+                 (row.remaining_balance ?? row.advance_amount) > 0;
+        },
+      },
+    ];
+  }, [onUpdateAmount]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -155,6 +179,7 @@ const AdvancesTableComponent = ({
       addButtonText="Add Advance"
       showActions={true}
       actionButtonGroups={actionButtonGroups}
+      actionButtons={actionButtons}
       actionColumnHeader="Actions"
       showActionLabels={false}
     />

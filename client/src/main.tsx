@@ -50,7 +50,9 @@ if (
 const authState = useAuthStore.getState();
 
 // Check if user is authenticated
-if (!authState.token || !authState.user) {
+// Use accessToken directly (memory-only), fallback to token alias for backward compatibility
+const token = authState.accessToken || (authState as any).token;
+if (!token || !authState.user) {
 } else {
   // Check if token is expired
   if (authState.tokenExpireAt && Date.now() > authState.tokenExpireAt) {

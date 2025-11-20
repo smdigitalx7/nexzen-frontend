@@ -189,7 +189,7 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = memo(({
         id: `book-fee-${Date.now()}`,
         purpose: 'BOOK_FEE',
         amount: feeBalances.bookFee.outstanding,
-        paymentMethod: 'CASH' // Default to CASH
+        paymentMethod: paymentMethod // Use the selected payment method from the form
       };
       setPaymentItems((prev) => [...prev, bookFeeItem]);
       setShowPurposeModal(false);
@@ -319,10 +319,16 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = memo(({
     setIsSubmitting(true);
 
     try {
+      // Apply the selected payment method to all payment items
+      const updatedPaymentItems = paymentItems.map((item) => ({
+        ...item,
+        paymentMethod: paymentMethod, // Use the selected payment method from the form
+      }));
+
       const paymentData: MultiplePaymentData = {
         studentId: student.studentId,
         admissionNo: student.admissionNo,
-        details: paymentItems,
+        details: updatedPaymentItems,
         remarks: remarks.trim() || undefined,
         totalAmount,
       };

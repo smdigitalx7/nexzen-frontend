@@ -7,37 +7,38 @@ import { AuthTokenTimers } from "@/lib/api";
  * Handles proactive refresh, expiration checks, and visibility API
  */
 export function useTokenManagement() {
-  const { token, tokenExpireAt, user, logout, isAuthenticated } =
+  const { accessToken, tokenExpireAt, user, logout, isAuthenticated } =
     useAuthStore();
+  const token = accessToken; // Use accessToken instead of token alias
 
   // Restore authentication state on mount (after hydration)
   useEffect(() => {
-    // Check if we have token and user data but isAuthenticated is false
+    // CRITICAL: Access token is stored ONLY in memory, NOT in sessionStorage
+    // Check if we have accessToken and user data but isAuthenticated is false
     // This handles the case where rehydration hasn't set isAuthenticated yet
-    const sessionToken = sessionStorage.getItem("access_token");
-    const sessionExpires = sessionStorage.getItem("token_expires");
+    const store = useAuthStore.getState();
     const hasUser = user !== null;
+    const hasToken = store.accessToken !== null;
+    const hasExpiry = store.tokenExpireAt !== null;
 
-    if (sessionToken && sessionExpires && hasUser && !isAuthenticated) {
-      const expireAt = parseInt(sessionExpires);
+    if (hasToken && hasExpiry && hasUser && !isAuthenticated) {
+      const expireAt = store.tokenExpireAt;
       const now = Date.now();
 
       if (now < expireAt) {
         // Token is valid, restore authentication
         useAuthStore.setState((state) => {
-          state.token = sessionToken;
-          state.tokenExpireAt = expireAt;
           state.isAuthenticated = true;
         });
       } else {
         // Token expired - logout will trigger Router to redirect to login
         logout();
       }
-    } else if (!sessionToken && isAuthenticated) {
+    } else if (!hasToken && isAuthenticated) {
       // No token but marked as authenticated - fix this
       useAuthStore.setState((state) => {
         state.isAuthenticated = false;
-        state.token = null;
+        state.accessToken = null;
         state.tokenExpireAt = null;
       });
     }
@@ -45,13 +46,13 @@ export function useTokenManagement() {
 
   // Proactive refresh scheduling (consolidated - removed redundant periodic check)
   useEffect(() => {
-    if (token && tokenExpireAt) {
+    if (accessToken && tokenExpireAt) {
       AuthTokenTimers.scheduleProactiveRefresh();
     }
     return () => {
       AuthTokenTimers.clearProactiveRefresh();
     };
-  }, [token, tokenExpireAt]);
+  }, [accessToken, tokenExpireAt]);
 
   // Page Visibility API integration - pause refresh when tab is inactive
   useEffect(() => {

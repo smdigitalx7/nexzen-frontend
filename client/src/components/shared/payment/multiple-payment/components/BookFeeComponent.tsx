@@ -11,12 +11,13 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { PaymentValidator } from '../../validation/PaymentValidation';
+import {
+  PAYMENT_METHOD_OPTIONS,
+  calculateCardCharges,
+  calculateTotalWithCardCharges,
+  formatAmount,
+} from '../../utils/paymentUtils';
 import type { PurposeSpecificComponentProps, PaymentItem, PaymentMethod } from '../../types/PaymentTypes';
-
-const paymentMethodOptions: Array<{ value: PaymentMethod; label: string }> = [
-  { value: 'CASH', label: 'Cash' },
-  { value: 'ONLINE', label: 'Online' }
-];
 
 interface BookFeeComponentProps extends PurposeSpecificComponentProps {
   isOpen: boolean;
@@ -72,14 +73,6 @@ export const BookFeeComponent: React.FC<BookFeeComponentProps> = ({
     setErrors([]);
   };
 
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
-  };
 
   if (!isOpen || outstandingAmount <= 0) {
     return null;
@@ -153,24 +146,79 @@ export const BookFeeComponent: React.FC<BookFeeComponentProps> = ({
             <RadioGroup
               value={paymentMethod}
               onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}
-              className="grid grid-cols-2 gap-2"
+              className="grid grid-cols-3 gap-2"
             >
-              {paymentMethodOptions.map((option) => (
-                <label
-                  key={option.value}
-                  className={`flex items-center gap-2 p-2 border rounded cursor-pointer transition-colors text-sm ${
-                    paymentMethod === option.value
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
-                  }`}
-                >
-                  <RadioGroupItem value={option.value} id={option.value} />
-                  <span className={`font-medium ${paymentMethod === option.value ? 'text-blue-700' : 'text-gray-700'}`}>
-                    {option.label}
-                  </span>
-                </label>
-              ))}
+              {PAYMENT_METHOD_OPTIONS.map((option) => {
+                const isSelected = paymentMethod === option.value;
+                const colorClasses = {
+                  green: isSelected
+                    ? 'border-green-500 bg-green-50'
+                    : 'border-gray-200 hover:border-green-300 hover:bg-green-50/30',
+                  blue: isSelected
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/30',
+                  purple: isSelected
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50/30',
+                };
+                return (
+                  <label
+                    key={option.value}
+                    className={`flex flex-col items-center gap-1.5 p-2.5 border-2 rounded-lg cursor-pointer transition-all text-xs ${
+                      colorClasses[option.color as keyof typeof colorClasses]
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 w-full">
+                      <RadioGroupItem value={option.value} id={option.value} className="h-3 w-3" />
+                      <span className="text-lg">{option.icon}</span>
+                      <span
+                        className={`font-semibold flex-1 ${
+                          isSelected
+                            ? option.color === 'green'
+                              ? 'text-green-700'
+                              : option.color === 'blue'
+                                ? 'text-blue-700'
+                                : 'text-purple-700'
+                            : 'text-gray-700'
+                        }`}
+                      >
+                        {option.label}
+                      </span>
+                    </div>
+                  </label>
+                );
+              })}
             </RadioGroup>
+            
+            {/* Card Charges Display */}
+            {paymentMethod === 'CARD' && parseFloat(amount) > 0 && (
+              <div className="border border-purple-200 bg-purple-50/50 rounded-lg p-3 space-y-1.5 mt-2">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-xs font-semibold text-purple-800">Card Processing Charges</span>
+                </div>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Base Amount:</span>
+                    <span className="font-medium text-gray-900">{formatAmount(parseFloat(amount))}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Charges (1.2%):</span>
+                    <span className="font-medium text-purple-700">
+                      +{formatAmount(calculateCardCharges(parseFloat(amount)))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-1 border-t border-purple-200">
+                    <span className="font-semibold text-purple-900">Total:</span>
+                    <span className="font-bold text-purple-900">
+                      {formatAmount(calculateTotalWithCardCharges(parseFloat(amount)))}
+                    </span>
+                  </div>
+                  <p className="text-xs text-purple-600 mt-1 italic">
+                    Note: Charges shown for display only. Payment amount: {formatAmount(parseFloat(amount))}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Errors */}

@@ -18,34 +18,21 @@ export const createAuthStorageConfig = () => ({
       ? ({
           getItem: (name: string) => {
             // Get user data from localStorage
+            // CRITICAL: Access token is NOT stored here - it's stored ONLY in memory
             const userData = localStorage.getItem(name);
             if (!userData) {
-              // Even if no localStorage data, check if we have token in sessionStorage
-              // Return minimal state structure if token exists
-              const token =
-                typeof window !== "undefined"
-                  ? sessionStorage.getItem("access_token")
-                  : null;
-              if (token) {
-                return JSON.stringify({
-                  state: {
-                    user: null,
-                    isAuthenticated: false,
-                    branches: [],
-                    currentBranch: null,
-                    academicYear: null,
-                    academicYears: [],
-                  },
-                  version: 1,
-                });
-              }
               return null;
             }
 
             try {
               const parsed = JSON.parse(userData);
-              // Token is not stored in localStorage, we'll get it from sessionStorage in onRehydrateStorage
-              // Just return the user data as-is
+              // Ensure accessToken is not in persisted data
+              if (parsed.state) {
+                delete parsed.state.accessToken;
+                delete parsed.state.token; // Legacy
+                delete parsed.state.tokenExpireAt;
+                delete parsed.state.refreshToken;
+              }
               return JSON.stringify(parsed);
             } catch {
               return userData;
@@ -56,21 +43,11 @@ export const createAuthStorageConfig = () => ({
               const valueStr =
                 typeof value === "string" ? value : JSON.stringify(value);
               const parsed = JSON.parse(valueStr);
-              // Store token separately in sessionStorage
-              if (parsed.state?.token) {
-                sessionStorage.setItem(
-                  "access_token",
-                  parsed.state.token
-                );
-                if (parsed.state.tokenExpireAt) {
-                  sessionStorage.setItem(
-                    "token_expires",
-                    String(parsed.state.tokenExpireAt)
-                  );
-                }
-              }
-              // Remove token from localStorage data
-              delete parsed.state?.token;
+              // CRITICAL: Do NOT store accessToken in sessionStorage or localStorage
+              // Access token is stored ONLY in memory (Zustand store)
+              // Remove accessToken from persisted data if it exists
+              delete parsed.state?.accessToken;
+              delete parsed.state?.token; // Legacy
               delete parsed.state?.tokenExpireAt;
               delete parsed.state?.refreshToken;
 
@@ -83,20 +60,23 @@ export const createAuthStorageConfig = () => ({
           },
           removeItem: (name: string) => {
             localStorage.removeItem(name);
+            // Note: We don't store accessToken in sessionStorage anymore
+            // But clean up legacy data if it exists
             sessionStorage.removeItem("access_token");
             sessionStorage.removeItem("token_expires");
           },
         } satisfies StateStorage)
       : undefined,
   partialize: (state: AuthState) => {
-    // Persist user data - isAuthenticated will be recalculated during rehydration
-    // based on token + user existence, don't persist it directly
+    // CRITICAL: Only persist user info and branch data, NOT accessToken
+    // Access token is stored ONLY in memory (Zustand store) to reduce XSS risk
+    // Refresh token is in HttpOnly cookie (set by backend), JavaScript cannot read it
     return {
       user: state.user,
       // Don't persist isAuthenticated - it will be recalculated during rehydration
       academicYear: state.academicYear,
       academicYears: state.academicYears,
-      // Don't persist token, refreshToken - stored in sessionStorage separately
+      // Don't persist accessToken - stored ONLY in memory
       branches: state.branches,
       currentBranch: state.currentBranch,
     };
@@ -123,15 +103,14 @@ export const createAuthStorageConfig = () => ({
         return;
       }
 
-      // CRITICAL: Restore token synchronously during rehydration
+      // CRITICAL: Access token is NOT restored from storage - it's stored ONLY in memory
+      // On app startup, bootstrapAuth() will call /auth/refresh to get a new access token
+      // This ensures we always have a fresh, valid token
       if (state && typeof window !== "undefined") {
-        const token = sessionStorage.getItem("access_token");
-        const tokenExpires = sessionStorage.getItem("token_expires");
-
-        // Fallback: Check localStorage directly if user is not in state
-        // This handles edge cases where Zustand might not have loaded user yet
+        // Restore user data from localStorage (if available)
+        // Access token will be obtained via bootstrapAuth() calling /auth/refresh
         let userData = state.user;
-        if (!userData && token) {
+        if (!userData) {
           try {
             const localStorageData = localStorage.getItem("enhanced-auth-storage");
             if (localStorageData) {
@@ -152,83 +131,25 @@ export const createAuthStorageConfig = () => ({
           }
         }
 
-        if (process.env.NODE_ENV === "development") {
-          console.log("Rehydrating auth state:", {
-            hasToken: !!token,
-            hasTokenExpires: !!tokenExpires,
-            hasUser: !!userData,
-            userFromState: !!state.user,
-            userFromLocalStorage: !!userData && !state.user,
-            userEmail: userData?.email,
-          });
+        // Set user if we have it
+        if (userData) {
+          state.user = userData;
         }
 
-        // Check if we have both token and user data
-        if (token && tokenExpires && userData) {
-          const expireAt = parseInt(tokenExpires);
-          const now = Date.now();
-
-          // Validate token expiration
-          if (now >= expireAt) {
-            // Token expired - clear everything and logout
-            if (process.env.NODE_ENV === "development") {
-              console.log("Token expired during rehydration, logging out");
-            }
-            state.user = null;
-            state.branches = [];
-            state.currentBranch = null;
-            state.token = null;
-            state.tokenExpireAt = null;
-            state.isAuthenticated = false;
-            sessionStorage.removeItem("access_token");
-            sessionStorage.removeItem("token_expires");
-            return;
-          }
-
-          // Valid token + user = MUST be authenticated - set directly
-          state.user = userData; // Ensure user is set
-          state.token = token;
-          state.tokenExpireAt = expireAt;
-          state.isAuthenticated = true; // CRITICAL: Force authenticated
-          
-          if (process.env.NODE_ENV === "development") {
-            console.log("✅ Auth state restored from storage:", {
-              hasUser: !!state.user,
-              hasToken: !!state.token,
-              isAuthenticated: state.isAuthenticated,
-              tokenExpiresIn: Math.round((expireAt - now) / 1000 / 60) + " minutes",
-            });
-          }
-        } else if (!token && (state.user || userData)) {
-          // No token but have user - invalid state, clear everything
-          if (process.env.NODE_ENV === "development") {
-            console.warn("⚠️ User data found but no token, clearing user data");
-          }
-          state.user = null;
-          state.branches = [];
-          state.currentBranch = null;
-          state.token = null;
-          state.tokenExpireAt = null;
-          state.isAuthenticated = false;
-        } else if (token && !userData) {
-          // Token but no user - this might happen during initial load
-          // Don't clear token yet - wait for user data to be loaded
-          // The Router component will handle this case
-          if (process.env.NODE_ENV === "development") {
-            console.warn("⚠️ Token found but no user data - Router will handle retry");
-          }
-          state.token = token;
-          if (tokenExpires) {
-            const expireAt = parseInt(tokenExpires);
-            state.tokenExpireAt = expireAt;
-          }
-          // Don't set isAuthenticated yet - wait for user data
-          state.isAuthenticated = false;
-        } else {
-          // No token and no user - not authenticated
-          state.token = null;
-          state.tokenExpireAt = null;
-          state.isAuthenticated = false;
+        // Don't set isAuthenticated here - bootstrapAuth() will handle that
+        // after successfully calling /auth/refresh
+        state.isAuthenticated = false;
+        state.accessToken = null;
+        state.tokenExpireAt = null;
+        
+        // CRITICAL: Keep isAuthInitializing = true if we have user data
+        // This ensures AppRouter shows loader instead of login page during bootstrapAuth
+        // bootstrapAuth will set isAuthInitializing = false when it completes
+        // This prevents the login page flash on refresh
+        if (userData) {
+          // Keep isAuthInitializing = true so AppRouter shows loader, not login
+          // bootstrapAuth will complete and set it to false
+          state.isAuthInitializing = true;
         }
       }
     };

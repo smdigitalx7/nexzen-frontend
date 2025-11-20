@@ -4,7 +4,7 @@
  */
 
 export type PaymentPurpose = 'BOOK_FEE' | 'TUITION_FEE' | 'TRANSPORT_FEE' | 'OTHER';
-export type PaymentMethod = 'CASH' | 'ONLINE' | 'CHEQUE' | 'DD';
+export type PaymentMethod = 'CASH' | 'UPI' | 'CARD';
 
 export interface PaymentItem {
   id: string;

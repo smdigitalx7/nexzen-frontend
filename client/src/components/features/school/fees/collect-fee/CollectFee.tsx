@@ -12,6 +12,7 @@ import type {
   FeeBalance,
   MultiplePaymentData,
 } from "@/components/shared/payment/types/PaymentTypes";
+import { mapPaymentMethodForAPI } from "@/components/shared/payment/utils/paymentUtils";
 import { handleSchoolPayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/lib/api-school";
 import { useToast } from "@/hooks/use-toast";
 import { batchInvalidateAndRefetch } from "@/lib/hooks/common/useGlobalRefetch";
@@ -167,10 +168,7 @@ export const CollectFee = ({
           custom_purpose_name: detail.customPurposeName || undefined,
           term_number: detail.termNumber || undefined,
           paid_amount: detail.amount,
-          payment_method:
-            detail.paymentMethod === "CHEQUE"
-              ? "CASH"
-              : (detail.paymentMethod as "CASH" | "ONLINE"),
+          payment_method: mapPaymentMethodForAPI(detail.paymentMethod),
         })),
         remarks: paymentData.remarks || undefined,
       };

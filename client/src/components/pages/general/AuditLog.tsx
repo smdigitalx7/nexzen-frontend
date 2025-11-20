@@ -58,6 +58,9 @@ import {
 import { useUsersWithRolesAndBranches } from "@/lib/hooks/general/useUsers";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useToast } from "@/hooks/use-toast";
+import { useExcelExport } from "@/lib/utils/export/useExcelExport";
+import { ExportProgressDialog } from "@/components/shared/ExportProgressDialog";
+import { ProductionErrorBoundary } from "@/components/shared/ProductionErrorBoundary";
 
 // Summary Tab Component
 function SummaryTab() {
@@ -66,6 +69,7 @@ function SummaryTab() {
   const [userId, setUserId] = useState<number | null>(null);
 
   const { data: usersWithRoles = [], isLoading: usersLoading } = useUsersWithRolesAndBranches();
+  const { exportToExcel, isExporting, exportProgress } = useExcelExport();
   
   // Filter to only show users with ADMIN, ACCOUNTANT, or ACADEMIC roles
   const allowedRoles = ["ADMIN", "ACCOUNTANT", "ACADEMIC"];
@@ -85,6 +89,39 @@ function SummaryTab() {
   });
 
   const exportCSV = async () => {
+    // ✅ OPTIMIZED: Use Web Worker for export to prevent UI blocking
+    const headers = [
+      "User",
+      "Branch",
+      "Activity",
+      "Category",
+      "Count/Amount",
+      "Time Ago",
+      "Changed At",
+      "Changed Date",
+    ];
+
+    const rows = activitySummaries.map((r) => [
+      r.user_full_name || "N/A",
+      r.branch_name || "N/A",
+      r.activity_description,
+      r.category,
+      r.count_or_amount,
+      r.time_ago,
+      r.changed_at,
+      r.changed_date,
+    ]);
+
+    await exportToExcel({
+      headers,
+      rows,
+      sheetName: "Activity Summary",
+      fileName: `activity_summary_${new Date().toISOString().slice(0, 10)}.xlsx`,
+    });
+  };
+
+  // Legacy export function (kept for fallback, but not used)
+  const exportCSVLegacy = async () => {
     try {
       // Try to use ExcelJS for better Excel formatting
       const ExcelJS = (await import("exceljs")).default;
@@ -333,13 +370,31 @@ function SummaryTab() {
                   <RefreshCw className="h-4 w-4" />
                 )}
               </Button>
-              <Button variant="outline" className="gap-2" onClick={exportCSV}>
-                <Download className="h-4 w-4" />
+              <Button 
+                variant="outline" 
+                className="gap-2" 
+                onClick={exportCSV}
+                disabled={isExporting}
+              >
+                {isExporting ? (
+                  <Loader.Button size="xs" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                Export
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Export Progress Dialog */}
+      <ExportProgressDialog
+        open={isExporting}
+        progress={exportProgress?.progress || 0}
+        status={exportProgress?.status || 'processing'}
+        message={exportProgress?.message}
+      />
 
       <Card>
         <CardHeader>
@@ -441,6 +496,7 @@ function LogsTab() {
   const [refreshKey, setRefreshKey] = useState<number>(0);
 
   const { toast } = useToast();
+  const { exportToExcel, isExporting, exportProgress } = useExcelExport();
 
   const {
     data: readableLogs = [],
@@ -620,101 +676,28 @@ function LogsTab() {
   const exportCSV = async (logsToExport?: typeof readableLogs) => {
     const logs = logsToExport || readableLogs;
     
-    try {
-      // Try to use ExcelJS for better Excel formatting
-      const ExcelJS = (await import("exceljs")).default;
-      const workbook = new ExcelJS.Workbook();
-      workbook.creator = "Velocity ERP";
-      workbook.created = new Date();
-      workbook.modified = new Date();
+    // ✅ OPTIMIZED: Use Web Worker for export to prevent UI blocking
+    const headers = [
+      "Audit ID",
+      "Operation Type",
+      "Branch Name",
+      "Description",
+    ];
 
-      const worksheet = workbook.addWorksheet("Audit Logs");
+    const rows = logs.map((log) => [
+      log.audit_id,
+      log.operation_type,
+      log.branch_name,
+      log.description,
+    ]);
 
-      // Header row with styling
-      const headerRow = worksheet.addRow([
-        "Audit ID",
-        "Operation Type",
-        "Branch Name",
-        "Description",
-      ]);
-      headerRow.font = { bold: true, size: 12 };
-      headerRow.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FF2C3E50" },
-      };
-      headerRow.font = { bold: true, size: 12, color: { argb: "FFFFFFFF" } };
-      headerRow.alignment = { horizontal: "center", vertical: "middle" };
-      headerRow.height = 25;
-
-      // Data rows
-      logs.forEach((log) => {
-        const row = worksheet.addRow([
-          log.audit_id,
-          log.operation_type,
-          log.branch_name,
-          log.description,
-        ]);
-        row.alignment = { vertical: "middle" };
-      });
-
-      // Set column widths
-      worksheet.getColumn(1).width = 12; // Audit ID
-      worksheet.getColumn(2).width = 18; // Operation Type
-      worksheet.getColumn(3).width = 20; // Branch Name
-      worksheet.getColumn(4).width = 80; // Description
-
-      // Add borders to all cells
-      worksheet.eachRow((row) => {
-        row.eachCell((cell) => {
-          cell.border = {
-            top: { style: "thin" },
-            left: { style: "thin" },
-            bottom: { style: "thin" },
-            right: { style: "thin" },
-          };
-        });
-      });
-
-      // Generate Excel file
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
-      a.download = `audit_logs_${timestamp}.xlsx`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      // Fallback to CSV if ExcelJS is not available
-      console.warn("ExcelJS not available, falling back to CSV", error);
-      const rows = [
-        ["Audit ID", "Operation Type", "Branch", "Description"],
-        ...logs.map((log) => [
-          log.audit_id,
-          log.operation_type,
-          log.branch_name,
-          log.description,
-        ]),
-      ];
-      const csv = rows
-        .map((r) =>
-          r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")
-        )
-        .join("\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
-      a.download = `audit_logs_${timestamp}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
+    await exportToExcel({
+      headers,
+      rows,
+      sheetName: "Audit Logs",
+      fileName: `audit_logs_${timestamp}.xlsx`,
+    });
   };
 
   return (
@@ -789,8 +772,17 @@ function LogsTab() {
               </Button>
             </div>
             <div className="flex items-end gap-2">
-              <Button variant="outline" className="gap-2" onClick={() => exportCSV()}>
-                <Download className="h-4 w-4" />
+              <Button 
+                variant="outline" 
+                className="gap-2" 
+                onClick={() => exportCSV()}
+                disabled={isExporting}
+              >
+                {isExporting ? (
+                  <Loader.Button size="xs" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
                 Export
               </Button>
             </div>
@@ -979,6 +971,14 @@ function LogsTab() {
         )}
       </Card>
 
+      {/* Export Progress Dialog */}
+      <ExportProgressDialog
+        open={isExporting}
+        progress={exportProgress?.progress || 0}
+        status={exportProgress?.status || 'processing'}
+        message={exportProgress?.message}
+      />
+
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={showDeleteDialog}
@@ -1014,32 +1014,40 @@ function LogsTab() {
 // Main Component
 export default function AuditLog() {
   return (
-    <div className="space-y-6 p-6">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
-      >
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Audit Logs</h1>
-          <p className="text-muted-foreground">
-            View and manage audit log entries
-          </p>
-        </div>
-      </motion.div>
+    <ProductionErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error('AuditLog Error Boundary caught error:', error, errorInfo);
+      }}
+      showDetails={false}
+      enableRetry={true}
+    >
+      <div className="space-y-6 p-6">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between"
+        >
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Audit Logs</h1>
+            <p className="text-muted-foreground">
+              View and manage audit log entries
+            </p>
+          </div>
+        </motion.div>
 
-      <Tabs defaultValue="summary" className="w-full">
-        <TabsList>
-          <TabsTrigger value="summary">Summary</TabsTrigger>
-          <TabsTrigger value="logs">Logs</TabsTrigger>
-        </TabsList>
-        <TabsContent value="summary" className="mt-6">
-          <SummaryTab />
-        </TabsContent>
-        <TabsContent value="logs" className="mt-6">
-          <LogsTab />
-        </TabsContent>
-      </Tabs>
-    </div>
+        <Tabs defaultValue="summary" className="w-full">
+          <TabsList>
+            <TabsTrigger value="summary">Summary</TabsTrigger>
+            <TabsTrigger value="logs">Logs</TabsTrigger>
+          </TabsList>
+          <TabsContent value="summary" className="mt-6">
+            <SummaryTab />
+          </TabsContent>
+          <TabsContent value="logs" className="mt-6">
+            <LogsTab />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </ProductionErrorBoundary>
   );
 }

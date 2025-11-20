@@ -20,11 +20,13 @@ export function useAcademicDashboard(): UseDashboardDataReturn<AcademicDashboard
   const [data, setData] = useState<AcademicDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { token, isAuthenticated, user, currentBranch } = useAuthStore();
+  const { accessToken, isAuthenticated, user, currentBranch, isAuthInitializing, isLoggingOut } = useAuthStore();
+  const token = accessToken; // Use accessToken directly
 
   // Reset state when user changes or logs out
   useEffect(() => {
-    if (!isAuthenticated || !user) {
+    // CRITICAL: Also reset if auth is initializing or logout is in progress
+    if (!isAuthenticated || !user || isAuthInitializing || isLoggingOut) {
       setData(null);
       setError(null);
       setLoading(false);
@@ -33,18 +35,23 @@ export function useAcademicDashboard(): UseDashboardDataReturn<AcademicDashboard
       setData(null);
       setError(null);
     }
-  }, [isAuthenticated, user?.user_id, user?.role, currentBranch?.branch_id]);
+  }, [isAuthenticated, user?.user_id, user?.role, currentBranch?.branch_id, isAuthInitializing, isLoggingOut]);
 
   const fetchDashboard = useCallback(async () => {
     // CRITICAL: Read token directly from store at fetch time, not from closure
     // This ensures we always use the latest token, even during role switches
     const currentState = useAuthStore.getState();
-    const currentToken = currentState.token;
+    // Use accessToken directly (memory-only), fallback to token alias for backward compatibility
+    const currentToken = currentState.accessToken || (currentState as any).token;
     const currentIsAuthenticated = currentState.isAuthenticated;
     const currentUser = currentState.user;
     
-    // Don't fetch if not authenticated or no token
-    if (!currentIsAuthenticated || !currentToken || !currentUser) {
+    // CRITICAL: Don't fetch if:
+    // 1. Not authenticated or no token/user
+    // 2. Auth is initializing (bootstrapAuth running)
+    // 3. Logout is in progress (race condition protection)
+    if (!currentIsAuthenticated || !currentToken || !currentUser || 
+        currentState.isAuthInitializing || currentState.isLoggingOut) {
       setLoading(false);
       setData(null);
       setError(null);
@@ -74,10 +81,24 @@ export function useAcademicDashboard(): UseDashboardDataReturn<AcademicDashboard
       setData(null);
       setLoading(false);
     }
-  }, [token, isAuthenticated, user?.user_id, user?.role, currentBranch?.branch_id]);
+  }, [token, isAuthenticated, user?.user_id, user?.role, currentBranch?.branch_id, isAuthInitializing, isLoggingOut]);
 
   useEffect(() => {
-    fetchDashboard();
+    // CRITICAL: Add cleanup to prevent requests after unmount/logout
+    let isCancelled = false;
+    
+    const runFetch = async () => {
+      // Check if cancelled before fetching
+      if (isCancelled) return;
+      
+      await fetchDashboard();
+    };
+    
+    runFetch();
+    
+    return () => {
+      isCancelled = true;
+    };
   }, [fetchDashboard]);
 
   return {

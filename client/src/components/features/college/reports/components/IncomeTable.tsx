@@ -1,19 +1,35 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Printer } from "lucide-react";
+import { Printer, Plus } from "lucide-react";
 import { Loader } from "@/components/ui/ProfessionalLoader";
 import type {
   CollegeIncomeSummary,
   CollegeIncomeSummaryParams,
 } from "@/lib/types/college";
 import { useCollegeIncomeSummary } from "@/lib/hooks/college";
+import { useQuery } from "@tanstack/react-query";
 import { formatDate } from "@/lib/utils";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { createCurrencyColumn } from "@/lib/utils/factory/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 import { handleRegenerateReceipt } from "@/lib/api";
-import { ReceiptPreviewModal } from "@/components/shared";
+import {
+  ReceiptPreviewModal,
+  TabSwitcher,
+  OtherIncomeTable,
+} from "@/components/shared";
 import { toast } from "@/hooks/use-toast";
+import { useAuthStore } from "@/store/authStore";
+import { ROLES } from "@/lib/constants";
+import { AddOtherIncomeDialog } from "@/components/shared/AddOtherIncomeDialog";
+import {
+  createCollegeOtherIncome,
+  getCollegeOtherIncome,
+} from "@/lib/api-college-other-income";
+import { useQueryClient } from "@tanstack/react-query";
+import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
+import { Receipt } from "lucide-react";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 
 // ✅ FIX: Create a proper component wrapper for Loader.Button that accepts className
 // Moved outside component to prevent recreation on every render
@@ -35,18 +51,61 @@ export const IncomeTable = ({
   params = {},
   enabled = true, // Default to enabled for backward compatibility
 }: IncomeTableProps) => {
+  const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+
+  // Check if user is ADMIN or INSTITUTE_ADMIN
+  const canAddOtherIncome =
+    user?.role === ROLES.ADMIN || user?.role === ROLES.INSTITUTE_ADMIN;
+
   // Receipt modal state
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
   const [loadingReceiptId, setLoadingReceiptId] = useState<number | null>(null);
 
+  // Add Other Income dialog state
+  const [showAddOtherIncomeDialog, setShowAddOtherIncomeDialog] =
+    useState(false);
+
+  // Tab navigation for Income Summary and Other Income
+  // Use a different query parameter to avoid conflict with parent tabs
+  const { getQueryParam, setQueryParam } = useTabNavigation("income-summary");
+  const activeTab = getQueryParam("incomeTab") || "income-summary";
+  const setActiveTab = useCallback(
+    (tab: string) => {
+      setQueryParam("incomeTab", tab);
+    },
+    [setQueryParam]
+  );
+
   // ✅ OPTIMIZATION: Only fetch when enabled (tab is active)
   const {
     data: incomeResponse,
-    isLoading,
-    error,
+    isLoading: isLoadingIncome,
+    error: incomeError,
     refetch,
-  } = useCollegeIncomeSummary(params, { enabled });
+  } = useCollegeIncomeSummary(params, {
+    enabled: enabled && activeTab === "income-summary",
+  });
+
+  // Fetch other income records (only when other-income tab is active)
+  const otherIncomeQueryKey = useMemo(() => ["college-other-income"], []);
+
+  const {
+    data: otherIncomeData,
+    isLoading: isLoadingOtherIncome,
+    error: otherIncomeError,
+  } = useQuery({
+    queryKey: otherIncomeQueryKey,
+    queryFn: () => getCollegeOtherIncome(),
+    enabled: enabled && activeTab === "other-income",
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true,
+  });
+
+  const isLoading = isLoadingIncome;
+  const error = incomeError;
 
   const incomeData = incomeResponse?.items || [];
   const totalCount = incomeResponse?.total || 0;
@@ -171,6 +230,24 @@ export const IncomeTable = ({
     }
   }, [receiptBlobUrl]);
 
+  // Handle Add Other Income
+  const handleAddOtherIncome = useCallback(
+    async (data: {
+      name: string;
+      description?: string;
+      amount: number;
+      payment_method: "CASH" | "UPI" | "CARD";
+      income_date: string;
+    }) => {
+      await createCollegeOtherIncome(data);
+      // Invalidate income queries to refresh the table
+      queryClient.invalidateQueries({ queryKey: ["college-income-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["college-income"] });
+      queryClient.invalidateQueries({ queryKey: ["college-other-income"] });
+    },
+    [queryClient]
+  );
+
   // Action buttons for EnhancedDataTable (including print receipt)
   const actionButtons = useMemo(
     () => [
@@ -232,18 +309,70 @@ export const IncomeTable = ({
       transition={{ delay: 0.3 }}
       className="space-y-4"
     >
-      <EnhancedDataTable
-        data={incomeData}
-        columns={columns}
-        title="Income Records"
-        searchKey="receipt_no"
-        searchPlaceholder="Search by receipt no, student name, or identity no..."
-        exportable={true}
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionButtons={actionButtons}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
+      {/* Tab Switcher for Income Summary and Other Income */}
+      <TabSwitcher
+        tabs={[
+          {
+            value: "income-summary",
+            label: "Income Summary",
+            icon: IndianRupeeIcon,
+            badge: incomeResponse?.total || 0,
+            content: (
+              <>
+                {/* Empty State for Income Summary */}
+                {!isLoading &&
+                  !error &&
+                  (!incomeData || incomeData.length === 0) && (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">
+                        No income records found
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={() => refetch()}
+                        className="mt-2"
+                      >
+                        Refresh
+                      </Button>
+                    </div>
+                  )}
+
+                {/* Income Summary Table */}
+                {!isLoading && incomeData && incomeData.length > 0 && (
+                  <EnhancedDataTable
+                    data={incomeData}
+                    columns={columns}
+                    title="Income Records"
+                    searchKey="receipt_no"
+                    searchPlaceholder="Search by receipt no, student name, or identity no..."
+                    exportable={true}
+                    showActions={true}
+                    actionButtonGroups={actionButtonGroups}
+                    actionButtons={actionButtons}
+                    actionColumnHeader="Actions"
+                    showActionLabels={true}
+                  />
+                )}
+              </>
+            ),
+          },
+          {
+            value: "other-income",
+            label: "Other Income",
+            icon: Receipt,
+            badge: otherIncomeData?.total || 0,
+            content: (
+              <OtherIncomeTable
+                fetchOtherIncome={() => getCollegeOtherIncome()}
+                onAddOtherIncome={() => setShowAddOtherIncomeDialog(true)}
+                enabled={enabled && activeTab === "other-income"}
+                institutionType="college"
+              />
+            ),
+          },
+        ]}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
       />
 
       {/* Receipt Preview Modal */}
@@ -252,6 +381,16 @@ export const IncomeTable = ({
         onClose={handleCloseReceiptModal}
         blobUrl={receiptBlobUrl || null}
       />
+
+      {/* Add Other Income Dialog */}
+      {canAddOtherIncome && (
+        <AddOtherIncomeDialog
+          open={showAddOtherIncomeDialog}
+          onOpenChange={setShowAddOtherIncomeDialog}
+          onSubmit={handleAddOtherIncome}
+          institutionType="college"
+        />
+      )}
     </motion.div>
   );
 };

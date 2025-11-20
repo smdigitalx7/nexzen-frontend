@@ -2,7 +2,7 @@ import { FormDialog } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCanViewUIComponent } from "@/lib/permissions";
-import { Calendar, User, FileText, Clock, CheckCircle, XCircle, X } from "lucide-react";
+import { Calendar, User, FileText, Clock, CheckCircle, XCircle, X, Printer } from "lucide-react";
 
 interface AdvanceViewDialogProps {
   open: boolean;
@@ -11,9 +11,10 @@ interface AdvanceViewDialogProps {
   employee: any;
   onChangeStatus?: (id: number) => void;
   onUpdateAmount?: (id: number) => void;
+  onPrintVoucher?: (advance: any) => void;
 }
 
-export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee, onChangeStatus, onUpdateAmount }: AdvanceViewDialogProps) => {
+export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee, onChangeStatus, onUpdateAmount, onPrintVoucher }: AdvanceViewDialogProps) => {
   // Check permissions for change status and update amount buttons
   // Hooks must be called before any early returns
   const canChangeStatus = useCanViewUIComponent("employee_advances", "button", "advance-change-status");
@@ -149,8 +150,18 @@ export const AdvanceViewDialog = ({ open, onOpenChange, advance, employee, onCha
         )}
 
         {/* Action Buttons */}
-        {(onChangeStatus || onUpdateAmount) && (canChangeStatus || canUpdateAmount) && (
+        {(onChangeStatus || onUpdateAmount || onPrintVoucher) && (canChangeStatus || canUpdateAmount || onPrintVoucher) && (
           <div className="flex items-center justify-end gap-3 pt-2 border-t">
+            {onPrintVoucher && (
+              <Button
+                variant="outline"
+                onClick={() => onPrintVoucher(advance)}
+                className="flex items-center gap-2"
+              >
+                <Printer className="h-4 w-4" />
+                Print Voucher
+              </Button>
+            )}
             {onChangeStatus && canChangeStatus && (
               <Button
                 variant="outline"

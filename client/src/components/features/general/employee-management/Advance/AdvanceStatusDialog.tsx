@@ -44,6 +44,7 @@ const AdvanceStatusDialog = ({ open, onOpenChange, status, onStatusChange, reaso
               <SelectValue placeholder="Select status" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="REQUESTED">Requested</SelectItem>
               <SelectItem value="PENDING">Pending</SelectItem>
               <SelectItem value="ACTIVE">Active</SelectItem>
               <SelectItem value="APPROVED">Approved</SelectItem>

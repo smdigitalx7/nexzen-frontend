@@ -13,19 +13,49 @@ import { Login, NotFound, ProfilePage, SettingsPage, routes } from "./route-conf
  * Handles authentication state and route rendering
  */
 export function AppRouter() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isAuthInitializing, user } = useAuthStore();
   const isHydrated = useAuthHydration();
 
-  // If not hydrated yet, show nothing (will be replaced by LazyLoadingWrapper once hydrated)
-  if (!isHydrated) {
-    return null;
+  // CRITICAL: Show loading screen if:
+  // 1. Not hydrated yet (Zustand persist still loading)
+  // 2. Auth is initializing (bootstrapAuth running)
+  // 3. We have user data but bootstrapAuth is still running (prevents login flash on refresh)
+  // This ensures smooth experience: no login page flash, just loader until bootstrapAuth completes
+  const shouldShowLoader = !isHydrated || isAuthInitializing || (user && !isAuthenticated);
+  
+  if (shouldShowLoader) {
+    return (
+      <LazyLoadingWrapper>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Initializing...</p>
+          </div>
+        </div>
+      </LazyLoadingWrapper>
+    );
   }
 
-  // If not authenticated, show login page
-  if (!isAuthenticated) {
+  // If not authenticated and no user data, show login page
+  // Only show login if bootstrapAuth has completed and we have no user data
+  if (!isAuthenticated && !user) {
     return (
       <LazyLoadingWrapper>
         <Login />
+      </LazyLoadingWrapper>
+    );
+  }
+
+  // If we have user data but not authenticated, still show loader (bootstrapAuth might be completing)
+  if (!isAuthenticated && user) {
+    return (
+      <LazyLoadingWrapper>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Restoring session...</p>
+          </div>
+        </div>
       </LazyLoadingWrapper>
     );
   }

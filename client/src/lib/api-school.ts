@@ -31,7 +31,7 @@ export async function handlePayByAdmission(
         | "TRANSPORT_FEE"
         | "OTHER";
       paid_amount: number;
-      payment_method: "CASH" | "ONLINE";
+      payment_method: "CASH" | "UPI" | "CARD";
       term_number?: number; // Required for TUITION_FEE and TRANSPORT_FEE
       custom_purpose_name?: string; // Required for OTHER purpose
     }>;
@@ -39,7 +39,8 @@ export async function handlePayByAdmission(
   }
 ): Promise<string> {
   const state = useAuthStore.getState();
-  const token = state.token;
+  // Use accessToken directly (memory-only), fallback to token alias for backward compatibility
+  const token = state.accessToken || (state as any).token;
 
   if (!token) {
     throw new Error("Authentication token is required for payment processing");
@@ -125,7 +126,7 @@ export async function handleSchoolPayByAdmissionWithIncomeId(
         | "TRANSPORT_FEE"
         | "OTHER";
       paid_amount: number;
-      payment_method: "CASH" | "ONLINE";
+      payment_method: "CASH" | "UPI" | "CARD";
       term_number?: number; // Required for TUITION_FEE and TRANSPORT_FEE
       custom_purpose_name?: string; // Required for OTHER purpose
     }>;
@@ -133,7 +134,8 @@ export async function handleSchoolPayByAdmissionWithIncomeId(
   }
 ): Promise<{ income_id: number; blobUrl: string; paymentData: any }> {
   const state = useAuthStore.getState();
-  const token = state.token;
+  // Use accessToken directly (memory-only), fallback to token alias for backward compatibility
+  const token = state.accessToken || (state as any).token;
 
   if (!token) {
     throw new Error("Authentication token is required for payment processing");
@@ -231,14 +233,15 @@ export async function handlePayByReservation(
     details: Array<{
       purpose: "APPLICATION_FEE" | "OTHER";
       paid_amount: number;
-      payment_method: "CASH" | "ONLINE";
+      payment_method: "CASH" | "UPI" | "CARD";
       custom_purpose_name?: string; // Required for OTHER purpose
     }>;
     remarks?: string;
   }
 ): Promise<{ blobUrl: string; income_id: number; paymentData: any }> {
   const state = useAuthStore.getState();
-  const token = state.token;
+  // Use accessToken directly (memory-only), fallback to token alias for backward compatibility
+  const token = state.accessToken || (state as any).token;
 
   if (!token) {
     throw new Error("Authentication token is required for payment processing");
@@ -315,7 +318,8 @@ export async function handleSchoolRegenerateReceipt(
   incomeId: number
 ): Promise<string> {
   const state = useAuthStore.getState();
-  const token = state.token;
+  // Use accessToken directly (memory-only), fallback to token alias for backward compatibility
+  const token = state.accessToken || (state as any).token;
 
   if (!token) {
     throw new Error(
@@ -395,7 +399,8 @@ export async function handlePayAndPrint(
   payload: any
 ): Promise<string> {
   const state = useAuthStore.getState();
-  const token = state.token;
+  // Use accessToken directly (memory-only), fallback to token alias for backward compatibility
+  const token = state.accessToken || (state as any).token;
 
   if (!token) {
     throw new Error("Authentication token is required for payment processing");
@@ -463,7 +468,8 @@ export async function handleAdmissionPayment(
   payload: any
 ): Promise<{ income_id: number; blobUrl: string }> {
   const state = useAuthStore.getState();
-  const token = state.token;
+  // Use accessToken directly (memory-only), fallback to token alias for backward compatibility
+  const token = state.accessToken || (state as any).token;
 
   if (!token) {
     throw new Error("Authentication token is required for payment processing");

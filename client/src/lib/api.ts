@@ -6,6 +6,7 @@ import type {
   ApiValidationError,
 } from "@/lib/types/api";
 import { ApiError, isApiErrorResponse, isValidationErrorResponse } from "@/lib/types/api";
+import { registerAbortController } from "./api/request-cancellation";
 
 // For the simple API, we need to use /api/v1 since the proxy forwards /api to the external server
 // and the external server expects /v1 paths
@@ -341,8 +342,8 @@ async function tryRefreshToken(
       }
 
       // Update token and expiration from response
-      const expireAtMs = expireIso ? new Date(expireIso).getTime() : null;
-      useAuthStore.getState().setTokenAndExpiry(newToken, expireAtMs);
+      // setTokenAndExpiry accepts expiretime as ISO string (new signature)
+      useAuthStore.getState().setTokenAndExpiry(newToken, expireIso);
 
       // Reset consecutive failures on success
       refreshMetrics.successfulRefreshes++;
@@ -400,7 +401,33 @@ export async function api<T = unknown>({
   // React Query handles all caching and request deduplication
   
   const state = useAuthStore.getState();
-  let token = state.token;
+  
+  // CRITICAL: Don't make authenticated requests if:
+  // 1. Logout is in progress (race condition protection)
+  // 2. Auth is initializing (bootstrapAuth running)
+  if (!noAuth) {
+    if (state.isLoggingOut) {
+      throw new Error("Request cancelled: logout in progress");
+    }
+    if (state.isAuthInitializing) {
+      throw new Error("Request cancelled: auth initialization in progress");
+    }
+  }
+  
+  // Use accessToken directly (memory-only), fallback to token alias for backward compatibility
+  let token = state.accessToken || (state as any).token;
+
+  // Debug logging in development
+  if (process.env.NODE_ENV === "development" && !noAuth && !token) {
+    console.warn(`⚠️ API call to ${path}: No accessToken found in store`, {
+      hasAccessToken: !!state.accessToken,
+      hasTokenAlias: !!(state as any).token,
+      isAuthenticated: state.isAuthenticated,
+      hasUser: !!state.user,
+      isAuthInitializing: state.isAuthInitializing,
+      isLoggingOut: state.isLoggingOut,
+    });
+  }
 
   const url = `${API_BASE_URL}${path}${buildQuery(query)}`;
 
@@ -417,7 +444,8 @@ export async function api<T = unknown>({
         if (refreshed) {
           // Update token reference for this request
           const newState = useAuthStore.getState();
-          token = newState.token;
+          // Use accessToken directly (memory-only), fallback to token alias for backward compatibility
+          token = newState.accessToken || (newState as any).token;
         } else if (isExpired) {
           // Token expired and refresh failed - throw error
           throw new TokenExpiredError(
@@ -464,6 +492,10 @@ export async function api<T = unknown>({
 
   // Create AbortController for timeout
   const controller = new AbortController();
+  
+  // CRITICAL: Register controller for global cancellation (e.g., on logout)
+  const unregister = registerAbortController(controller);
+  
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
@@ -476,6 +508,7 @@ export async function api<T = unknown>({
     });
 
     clearTimeout(timeoutId);
+    unregister(); // Unregister on success
 
     // Handle 204 No Content and other empty responses - no body to parse
     if (res.status === 204 || res.status === 205) {
@@ -624,8 +657,14 @@ export async function api<T = unknown>({
     return data as T;
   } catch (error) {
     clearTimeout(timeoutId);
+    unregister(); // CRITICAL: Unregister controller on error
 
     if (error instanceof Error && error.name === "AbortError") {
+      // Check if this was a logout cancellation
+      const currentState = useAuthStore.getState();
+      if (currentState.isLoggingOut) {
+        throw new Error("Request cancelled: logout in progress");
+      }
       throw new Error(`Request timeout after ${timeout}ms`);
     }
 
@@ -684,6 +723,7 @@ export const Api = {
       method: "PATCH",
       path,
       body,
+      query: opts?.query,
       headers,
       timeout: opts?.timeout,
     }),
@@ -708,7 +748,8 @@ export const Api = {
     headers?: Record<string, string>
   ) => {
     const state = useAuthStore.getState();
-    const token = state.token;
+    // Use accessToken directly (memory-only), fallback to token alias for backward compatibility
+    const token = state.accessToken || (state as any).token;
     const url = `${API_BASE_URL}${path}`;
     const requestHeaders: Record<string, string> = {
       ...headers,
@@ -748,7 +789,8 @@ export const Api = {
     headers?: Record<string, string>
   ) => {
     const state = useAuthStore.getState();
-    const token = state.token;
+    // Use accessToken directly (memory-only), fallback to token alias for backward compatibility
+    const token = state.accessToken || (state as any).token;
     const url = `${API_BASE_URL}${path}`;
     const requestHeaders: Record<string, string> = {
       ...headers,
@@ -802,7 +844,8 @@ export async function handleRegenerateReceipt(
   institutionType: "school" | "college" = "school"
 ): Promise<string> {
   const state = useAuthStore.getState();
-  const token = state.token;
+  // Use accessToken directly (memory-only), fallback to token alias for backward compatibility
+  const token = state.accessToken || (state as any).token;
 
   if (!token) {
     throw new Error(

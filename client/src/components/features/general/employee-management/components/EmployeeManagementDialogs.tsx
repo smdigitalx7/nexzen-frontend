@@ -13,7 +13,9 @@ import AdvanceFormDialog from "../Advance/AdvanceFormDialog";
 import { AdvanceViewDialog } from "../Advance/AdvanceViewDialog";
 import AdvanceStatusDialog from "../Advance/AdvanceStatusDialog";
 import AdvanceAmountDialog from "../Advance/AdvanceAmountDialog";
+import { AdvanceVoucherPrintDialog } from "../Advance/AdvanceVoucherPrintDialog";
 import { useAuthStore } from "@/store/authStore";
+import { generateAdvanceVoucherPDF } from "@/lib/utils/export/advance-voucher-pdf";
 
 interface EmployeeManagementDialogsProps {
   // Employee dialogs
@@ -86,6 +88,10 @@ interface EmployeeManagementDialogsProps {
   setShowAdvanceStatusDialog: (show: boolean) => void;
   showAdvanceAmountDialog: boolean;
   setShowAdvanceAmountDialog: (show: boolean) => void;
+  showAdvanceVoucherDialog: boolean;
+  setShowAdvanceVoucherDialog: (show: boolean) => void;
+  advanceForVoucher: any;
+  setAdvanceForVoucher: (advance: any) => void;
   advanceToUpdate: any;
   setAdvanceToUpdate: (advance: any) => void;
   advanceStatus: string;
@@ -108,7 +114,7 @@ interface EmployeeManagementDialogsProps {
   handleDeleteLeave: (id: number) => Promise<void>;
   handleApproveLeave: (id: number) => Promise<void>;
   handleRejectLeave: (id: number, reason: string) => Promise<void>;
-  handleCreateAdvance: (data: any) => Promise<void>;
+  handleCreateAdvance: (data: any) => Promise<any>;
   handleUpdateAdvance: (id: number, data: any) => Promise<void>;
   handleUpdateAdvanceStatus: (id: number, status: string, reason?: string) => Promise<void>;
   handleUpdateAdvanceAmountPaid: (id: number, amount: number) => Promise<void>;
@@ -196,6 +202,10 @@ export const EmployeeManagementDialogs = ({
   setShowAdvanceStatusDialog,
   showAdvanceAmountDialog,
   setShowAdvanceAmountDialog,
+  showAdvanceVoucherDialog,
+  setShowAdvanceVoucherDialog,
+  advanceForVoucher,
+  setAdvanceForVoucher,
   advanceToUpdate,
   setAdvanceToUpdate,
   advanceStatus,
@@ -264,14 +274,24 @@ export const EmployeeManagementDialogs = ({
         leave={leaveToView}
         employee={leaveToView ? employees.find((e: any) => e.employee_id === leaveToView.employee_id) : null}
         onApprove={(id) => {
-          setLeaveToApprove({ ...leaveToView, leave_id: id });
+          // ✅ CRITICAL: Close view dialog immediately (critical for smooth transition)
           setShowLeaveViewDialog(false);
-          setShowLeaveApproveDialog(true);
+          
+          // ✅ DEFER: Set leave data and open approve dialog (non-critical, defer to next tick)
+          setTimeout(() => {
+            setLeaveToApprove({ ...leaveToView, leave_id: id });
+            setShowLeaveApproveDialog(true);
+          }, 0);
         }}
         onReject={(id) => {
-          setLeaveToReject({ ...leaveToView, leave_id: id });
+          // ✅ CRITICAL: Close view dialog immediately (critical for smooth transition)
           setShowLeaveViewDialog(false);
-          setShowLeaveRejectDialog(true);
+          
+          // ✅ DEFER: Set leave data and open reject dialog (non-critical, defer to next tick)
+          setTimeout(() => {
+            setLeaveToReject({ ...leaveToView, leave_id: id });
+            setShowLeaveRejectDialog(true);
+          }, 0);
         }}
       />
       
@@ -363,7 +383,18 @@ export const EmployeeManagementDialogs = ({
               request_reason: advanceFormData.request_reason
             });
           } else {
-            await handleCreateAdvance(advanceFormData);
+            try {
+              const createdAdvance = await handleCreateAdvance(advanceFormData);
+              
+              // Show voucher print dialog after successful creation
+              if (createdAdvance) {
+                setAdvanceForVoucher(createdAdvance);
+                setShowAdvanceVoucherDialog(true);
+              }
+            } catch (error) {
+              // Error handling is done in handleCreateAdvance
+              console.error("Error creating advance:", error);
+            }
           }
         }}
         isCreatePending={false}
@@ -378,15 +409,35 @@ export const EmployeeManagementDialogs = ({
         advance={advanceToView}
         employee={advanceToView ? employees.find((e: any) => e.employee_id === advanceToView.employee_id) : null}
         onChangeStatus={(id) => {
-          setAdvanceToUpdate(advanceToView);
-          setAdvanceStatus(advanceToView?.status || "");
+          // ✅ CRITICAL: Close view dialog immediately (critical for smooth transition)
           setShowAdvanceViewDialog(false);
-          setShowAdvanceStatusDialog(true);
+          
+          // ✅ DEFER: Set advance data and open status dialog (non-critical, defer to next tick)
+          setTimeout(() => {
+            setAdvanceToUpdate(advanceToView);
+            setAdvanceStatus(advanceToView?.status || "");
+            setShowAdvanceStatusDialog(true);
+          }, 0);
         }}
         onUpdateAmount={(id) => {
-          setAdvanceToUpdate(advanceToView);
+          // ✅ CRITICAL: Close view dialog immediately (critical for smooth transition)
           setShowAdvanceViewDialog(false);
-          setShowAdvanceAmountDialog(true);
+          
+          // ✅ DEFER: Set advance data and open amount dialog (non-critical, defer to next tick)
+          setTimeout(() => {
+            setAdvanceToUpdate(advanceToView);
+            setShowAdvanceAmountDialog(true);
+          }, 0);
+        }}
+        onPrintVoucher={(advance) => {
+          // ✅ CRITICAL: Close view dialog immediately (critical for smooth transition)
+          setShowAdvanceViewDialog(false);
+          
+          // ✅ DEFER: Set advance data and open voucher dialog (non-critical, defer to next tick)
+          setTimeout(() => {
+            setAdvanceForVoucher(advance);
+            setShowAdvanceVoucherDialog(true);
+          }, 0);
         }}
       />
       
@@ -410,9 +461,38 @@ export const EmployeeManagementDialogs = ({
       <AdvanceAmountDialog
         open={showAdvanceAmountDialog}
         onOpenChange={setShowAdvanceAmountDialog}
+        advance={advanceToUpdate}
         onUpdate={async (amount) => {
           if (advanceToUpdate) {
             await handleUpdateAdvanceAmountPaid(advanceToUpdate.advance_id, amount);
+          }
+        }}
+      />
+      
+      {/* Advance Voucher Print Dialog */}
+      <AdvanceVoucherPrintDialog
+        open={showAdvanceVoucherDialog}
+        onOpenChange={setShowAdvanceVoucherDialog}
+        advance={advanceForVoucher}
+        employeeName={
+          advanceForVoucher
+            ? employees.find((e: any) => e.employee_id === advanceForVoucher.employee_id)?.employee_name || 'Unknown Employee'
+            : ''
+        }
+        onPrint={() => {
+          if (advanceForVoucher) {
+            const { user, currentBranch } = useAuthStore.getState();
+            const selectedEmployee = employees.find((e: any) => e.employee_id === advanceForVoucher.employee_id);
+            
+            if (selectedEmployee && currentBranch && user) {
+              generateAdvanceVoucherPDF({
+                advance: advanceForVoucher,
+                employeeName: selectedEmployee.employee_name || 'Unknown Employee',
+                employeeSalary: selectedEmployee.salary || 0,
+                branchName: currentBranch.branch_name || 'Branch',
+                appliedByUserName: user.full_name || 'System User'
+              });
+            }
           }
         }}
       />

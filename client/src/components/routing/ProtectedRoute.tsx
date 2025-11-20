@@ -4,6 +4,7 @@ import { useAuthStore } from "@/store/authStore";
 import { ROLES, type UserRole } from "@/lib/constants/auth/roles";
 import { NotAuthorized } from "./NotAuthorized";
 import { RedirectToDashboard } from "./RedirectToDashboard";
+import { Loader } from "@/components/ui/ProfessionalLoader";
 
 type ProtectedRouteProps = {
   path: string;
@@ -27,6 +28,12 @@ export function ProtectedRoute({
 
   const Guard = () => {
     const [location] = useLocation();
+    const { isAuthInitializing } = useAuthStore();
+
+    // Show loading screen while auth is initializing (bootstrapAuth is running)
+    if (isAuthInitializing) {
+      return <Loader.Container message="Initializing..." />;
+    }
 
     if (!hasAccess) return <NotAuthorized />;
 

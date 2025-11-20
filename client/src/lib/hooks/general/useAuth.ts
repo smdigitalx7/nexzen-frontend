@@ -186,13 +186,23 @@ export function useLogin() {
       }
 
       // Step 9: Login user - pass token and refreshToken explicitly
-      // ✅ FIX: Types match, no need for `as any` casts
-      await login(
-        user, 
-        branchList, 
-        loginResponse.access_token,
-        undefined // refreshToken is in httpOnly cookie, not in response
-      );
+      // ✅ FIX: Use legacy login function for backward compatibility
+      // NOTE: This hook uses the old login signature. Consider migrating to the new login(identifier, password) function
+      const store = useAuthStore.getState();
+      if (store.loginLegacy && typeof store.loginLegacy === 'function') {
+        await store.loginLegacy(
+          user, 
+          branchList, 
+          loginResponse.access_token,
+          undefined // refreshToken is in httpOnly cookie, not in response
+        );
+      } else {
+        // Fallback: Use new login flow
+        const { setTokenAndExpiry, setUser } = useAuthStore.getState();
+        setTokenAndExpiry(loginResponse.access_token, loginResponse.expiretime);
+        setUser(loginResponse.user_info);
+        useAuthStore.setState({ isAuthenticated: true });
+      }
 
       // Step 9.5: CRITICAL - Invalidate queries after login to prevent stale data from previous role
       // This ensures dashboard and other data is fresh for the new role

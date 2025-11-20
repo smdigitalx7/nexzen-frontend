@@ -18,17 +18,50 @@ import { Separator } from "@/components/ui/separator";
 import { useAuthStore } from "@/store/authStore";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateUser, useUser } from "@/lib/hooks/general/useUsers";
+import { apiClient } from "@/lib/api/api";
 
 const ProfilePage = () => {
-  const { user, currentBranch } = useAuthStore();
+  const { user, currentBranch, accessToken } = useAuthStore();
   const { toast } = useToast();
   const updateUserMutation = useUpdateUser();
   const [isEditing, setIsEditing] = useState(false);
+  const [isTestingApi, setIsTestingApi] = useState(false);
   const [formData, setFormData] = useState({
     full_name: user?.full_name || "",
     email: user?.email || "",
     mobile_no: "",
   });
+
+  /**
+   * Example: Test protected API endpoint
+   * Demonstrates automatic token refresh on 401
+   */
+  const testProtectedEndpoint = async () => {
+    setIsTestingApi(true);
+    try {
+      // Call refresh endpoint as an example protected endpoint
+      // If access token is expired, interceptor will automatically:
+      // 1. Call /auth/refresh
+      // 2. Update token in store
+      // 3. Retry this request
+      // User won't see any disruption
+      const response = await apiClient.post("/auth/refresh");
+      
+      toast({
+        title: "API Call Successful",
+        description: "Token refresh worked! Access token was automatically refreshed if needed.",
+        variant: "default",
+      });
+    } catch (error: any) {
+      toast({
+        title: "API Call Failed",
+        description: error.message || "Failed to call protected endpoint",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTestingApi(false);
+    }
+  };
 
   // Fetch full user data to get mobile_no
   const userId = user?.user_id ? parseInt(user.user_id, 10) : null;
@@ -186,7 +219,35 @@ const ProfilePage = () => {
               View and manage your account information
             </p>
           </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={testProtectedEndpoint}
+              disabled={isTestingApi}
+              variant="outline"
+              className="text-sm"
+            >
+              {isTestingApi ? "Testing..." : "Test API (Auto Refresh)"}
+            </Button>
+          </div>
         </div>
+        
+        {/* Example: Demonstrate automatic token refresh */}
+        <Card className="border-blue-200 bg-blue-50/50">
+          <CardHeader>
+            <CardTitle className="text-sm">🔐 Authentication Demo</CardTitle>
+            <CardDescription className="text-xs">
+              This page demonstrates automatic token refresh. Click "Test API" above.
+              If your access token is expired, the interceptor will automatically:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Detect 401 response</li>
+                <li>Call /auth/refresh (uses HttpOnly cookie)</li>
+                <li>Update access token in memory</li>
+                <li>Retry the original request</li>
+                <li>You won't see any disruption!</li>
+              </ul>
+            </CardDescription>
+          </CardHeader>
+        </Card>
 
         {/* Profile Card */}
         <Card className="border-none shadow-lg">

@@ -14,9 +14,10 @@ import { useAuthStore, type AcademicYear } from "@/store/authStore";
 import { useAcademicYears } from "@/lib/hooks/general/useAcademicYear";
 
 const AcademicYearSwitcher = () => {
-  const { academicYear, academicYears, switchAcademicYear } = useAuthStore();
+  const { academicYear, academicYears, switchAcademicYear, isAuthenticated, isLoggingOut } = useAuthStore();
   // ✅ OPTIMIZATION: Enable query for switcher - it needs academic years to function
-  const { data: academicYearsData } = useAcademicYears({ enabled: true });
+  // CRITICAL: Disable query if logging out
+  const { data: academicYearsData } = useAcademicYears({ enabled: isAuthenticated && !isLoggingOut });
 
   const handleAcademicYearSwitch = (year: any) => {
     try {

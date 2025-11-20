@@ -29,6 +29,16 @@ export const SchoolExpenditureService = {
   getRecent(limit?: number) {
     return Api.get<SchoolRecentExpenditure[]>(`/school/expenditure/recent${limit ? `?limit=${limit}` : ''}`);
   },
+
+  // PATCH /api/v1/school/expenditure/{expenditure_id}/status
+  updateStatus(expenditure_id: number, status: "PENDING" | "APPROVED" | "REJECTED") {
+    return Api.patch<SchoolExpenditureRead>(
+      `/school/expenditure/${expenditure_id}/status`,
+      null,
+      undefined,
+      { query: { status } }
+    );
+  },
 };
 
 

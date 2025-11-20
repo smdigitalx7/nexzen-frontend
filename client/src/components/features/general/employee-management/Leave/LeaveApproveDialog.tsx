@@ -13,10 +13,9 @@ const LeaveApproveDialog = ({ open, onOpenChange, onApprove, isLoading = false }
     <ConfirmDialog
       open={open}
       onOpenChange={(newOpen) => {
-        // Prevent closing while loading
-        if (!isLoading) {
-          onOpenChange(newOpen);
-        }
+        // ✅ FIX: Allow closing even while loading to prevent UI freeze
+        // The dialog will close optimistically, mutation runs in background
+        onOpenChange(newOpen);
       }}
       title="Approve Leave Request"
       description="Are you sure you want to approve this leave request? This action cannot be undone."

@@ -20,7 +20,8 @@ const AcademicDashboard = lazy(
  * Dashboard Router - Shows appropriate dashboard based on user role
  */
 export function DashboardRouter() {
-  const { user, token, isAuthenticated } = useAuthStore();
+  const { user, accessToken, isAuthenticated } = useAuthStore();
+  const token = accessToken; // Use accessToken directly
   const [mounted, setMounted] = React.useState(false);
 
   // Wait for component to mount and state to stabilize

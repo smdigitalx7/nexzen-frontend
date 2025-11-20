@@ -256,6 +256,8 @@ export const useEmployeeManagement = (
   const [showAdvanceDeleteDialog, setShowAdvanceDeleteDialog] = useState(false);
   const [showAdvanceStatusDialog, setShowAdvanceStatusDialog] = useState(false);
   const [showAdvanceAmountDialog, setShowAdvanceAmountDialog] = useState(false);
+  const [showAdvanceVoucherDialog, setShowAdvanceVoucherDialog] = useState(false);
+  const [advanceForVoucher, setAdvanceForVoucher] = useState<AdvanceRead | null>(null);
   const [advanceToUpdate, setAdvanceToUpdate] = useState<AdvanceRead | null>(
     null
   );
@@ -494,8 +496,8 @@ export const useEmployeeManagement = (
       await createLeaveMutation.mutateAsync(data);
       setShowLeaveForm(false);
       
-      // Use debounced invalidateAndRefetch to prevent UI freeze
-      invalidateAndRefetch(employeeLeaveKeys.all);
+      // ✅ FIX: Note - invalidateEntity is already called in mutation hook's onSuccess
+      // No need to invalidate here to prevent double invalidation
     } catch (error) {
       console.error("Error creating leave:", error);
     }
@@ -525,33 +527,56 @@ export const useEmployeeManagement = (
   };
 
   const handleApproveLeave = async (id: number, notes?: string) => {
+    // ✅ CRITICAL FIX: Close dialog immediately (optimistic) before mutation starts
+    // This prevents UI freeze by allowing dialog to close while mutation runs in background
+    setShowLeaveApproveDialog(false);
+    
+    // ✅ DEFER: Clear leave data immediately (non-blocking)
+    setTimeout(() => {
+      setLeaveToApprove(null);
+    }, 0);
+    
     try {
-      await approveLeaveMutation.mutateAsync(id);
-      
-      // Close dialog immediately to prevent UI freeze
-      // Note: invalidateAndRefetch is already called in the mutation hook's onSuccess
-      setShowLeaveApproveDialog(false);
+      // Run mutation in background - don't await it to block UI
+      // The mutation's onSuccess will handle query invalidation with proper delay
+      approveLeaveMutation.mutate(id, {
+        onError: (error) => {
+          console.error("Error approving leave:", error);
+          // Dialog already closed, error toast will be shown by mutation hook
+        },
+      });
     } catch (error) {
       console.error("Error approving leave:", error);
-      // Ensure dialog is closed even on error
-      setShowLeaveApproveDialog(false);
+      // Error handling is done by mutation hook's onError
     }
   };
 
   const handleRejectLeave = async (id: number, reason: string) => {
+    // ✅ CRITICAL FIX: Close dialog immediately (optimistic) before mutation starts
+    // This prevents UI freeze by allowing dialog to close while mutation runs in background
+    setShowLeaveRejectDialog(false);
+    
+    // ✅ DEFER: Clear leave data and rejection reason immediately (non-blocking)
+    setTimeout(() => {
+      setLeaveToReject(null);
+      setRejectionReason('');
+    }, 0);
+    
     try {
-      await rejectLeaveMutation.mutateAsync({
+      // Run mutation in background - don't await it to block UI
+      // The mutation's onSuccess will handle query invalidation with proper delay
+      rejectLeaveMutation.mutate({
         id,
         data: { rejection_reason: reason },
+      }, {
+        onError: (error) => {
+          console.error("Error rejecting leave:", error);
+          // Dialog already closed, error toast will be shown by mutation hook
+        },
       });
-      
-      // Close dialog immediately to prevent UI freeze
-      // Note: invalidateAndRefetch is already called in the mutation hook's onSuccess
-      setShowLeaveRejectDialog(false);
     } catch (error) {
       console.error("Error rejecting leave:", error);
-      // Ensure dialog is closed even on error
-      setShowLeaveRejectDialog(false);
+      // Error handling is done by mutation hook's onError
     }
   };
 
@@ -562,13 +587,17 @@ export const useEmployeeManagement = (
 
   const handleCreateAdvance = async (data: AdvanceCreate) => {
     try {
-      await createAdvanceMutation.mutateAsync(data);
+      const createdAdvance = await createAdvanceMutation.mutateAsync(data);
       setShowAdvanceForm(false);
       
       // Use debounced invalidateAndRefetch to prevent UI freeze
       invalidateAndRefetch(advanceKeys.all);
+      
+      // Return created advance for PDF generation
+      return createdAdvance;
     } catch (error) {
       console.error("Error creating advance:", error);
+      throw error;
     }
   };
 
@@ -739,6 +768,10 @@ export const useEmployeeManagement = (
     setShowAdvanceStatusDialog,
     showAdvanceAmountDialog,
     setShowAdvanceAmountDialog,
+    showAdvanceVoucherDialog,
+    setShowAdvanceVoucherDialog,
+    advanceForVoucher,
+    setAdvanceForVoucher,
     advanceToUpdate,
     setAdvanceToUpdate,
     advanceStatus,

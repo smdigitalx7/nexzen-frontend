@@ -11,13 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -25,13 +18,15 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { PaymentValidator } from '../../validation/PaymentValidation';
+import {
+  PAYMENT_METHOD_OPTIONS,
+  calculateCardCharges,
+  calculateTotalWithCardCharges,
+  formatAmount,
+} from '../../utils/paymentUtils';
 import type { PurposeSpecificComponentProps, PaymentItem, PaymentMethod } from '../../types/PaymentTypes';
-
-const paymentMethodOptions: Array<{ value: PaymentMethod; label: string }> = [
-  { value: 'CASH', label: 'Cash' },
-  { value: 'ONLINE', label: 'Online' }
-];
 
 const commonPurposes = [
   'Library Fine',
@@ -123,14 +118,6 @@ export const OtherComponent: React.FC<OtherComponentProps> = ({
     onAdd(paymentItem);
   };
 
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
-  };
 
   const isFormValid = customPurposeName.trim() && amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0 && errors.length === 0;
 
@@ -239,21 +226,99 @@ export const OtherComponent: React.FC<OtherComponentProps> = ({
 
           {/* Payment Method */}
           <div className="space-y-2">
-            <Label htmlFor="payment-method" className="text-sm font-medium">
-              Payment Method *
+            <Label className="text-sm font-medium">
+              Payment Method <span className="text-red-500">*</span>
             </Label>
-            <Select value={paymentMethod} onValueChange={(value: PaymentMethod) => setPaymentMethod(value)}>
-              <SelectTrigger id="payment-method">
-                <SelectValue placeholder="Select payment method" />
-              </SelectTrigger>
-              <SelectContent>
-                {paymentMethodOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <RadioGroup
+              value={paymentMethod}
+              onValueChange={(value: PaymentMethod) => setPaymentMethod(value)}
+              className="grid grid-cols-3 gap-3"
+            >
+              {PAYMENT_METHOD_OPTIONS.map((option) => {
+                const isSelected = paymentMethod === option.value;
+                const colorClasses = {
+                  green: isSelected
+                    ? 'border-green-500 bg-green-50'
+                    : 'border-gray-200 hover:border-green-300 hover:bg-green-50/30',
+                  blue: isSelected
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/30',
+                  purple: isSelected
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50/30',
+                };
+                return (
+                  <label
+                    key={option.value}
+                    className={`flex flex-col items-center gap-2 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                      colorClasses[option.color as keyof typeof colorClasses]
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 w-full">
+                      <RadioGroupItem value={option.value} id={option.value} />
+                      <span className="text-2xl">{option.icon}</span>
+                      <span
+                        className={`font-semibold flex-1 ${
+                          isSelected
+                            ? option.color === 'green'
+                              ? 'text-green-700'
+                              : option.color === 'blue'
+                                ? 'text-blue-700'
+                                : 'text-purple-700'
+                            : 'text-gray-700'
+                        }`}
+                      >
+                        {option.label}
+                      </span>
+                    </div>
+                    <span
+                      className={`text-xs ${
+                        isSelected
+                          ? option.color === 'green'
+                            ? 'text-green-600'
+                            : option.color === 'blue'
+                              ? 'text-blue-600'
+                              : 'text-purple-600'
+                          : 'text-gray-500'
+                      }`}
+                    >
+                      {option.description}
+                    </span>
+                  </label>
+                );
+              })}
+            </RadioGroup>
+            
+            {/* Card Charges Display */}
+            {paymentMethod === 'CARD' && parseFloat(amount) > 0 && (
+              <div className="border border-purple-200 bg-purple-50/50 rounded-lg p-4 space-y-2 mt-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-semibold text-purple-800">Card Processing Charges</span>
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Base Amount:</span>
+                    <span className="font-medium text-gray-900">{formatAmount(parseFloat(amount))}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Processing Charges (1.2%):</span>
+                    <span className="font-medium text-purple-700">
+                      +{formatAmount(calculateCardCharges(parseFloat(amount)))}
+                    </span>
+                  </div>
+                  <div className="h-px bg-purple-200"></div>
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="font-semibold text-purple-900">Total Amount:</span>
+                    <span className="text-lg font-bold text-purple-900">
+                      {formatAmount(calculateTotalWithCardCharges(parseFloat(amount)))}
+                    </span>
+                  </div>
+                  <p className="text-xs text-purple-600 mt-2 italic">
+                    Note: Charges shown for display only. Payment amount: {formatAmount(parseFloat(amount))}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Error Messages */}

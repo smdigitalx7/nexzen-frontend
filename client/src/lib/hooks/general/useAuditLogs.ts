@@ -8,6 +8,7 @@ import type {
 } from "@/lib/types/general/audit-logs";
 import { useToast } from "@/hooks/use-toast";
 import { batchInvalidateAndRefetch } from "../common/useGlobalRefetch";
+import { useAuthStore } from "@/store/authStore";
 
 /**
  * Hook for getting activity summary from audit logs
@@ -15,9 +16,20 @@ import { batchInvalidateAndRefetch } from "../common/useGlobalRefetch";
  * @returns Query result with activity summaries
  */
 export const useActivitySummary = (params?: ActivitySummaryParams) => {
+  const { isAuthenticated, isLoggingOut } = useAuthStore();
+  
   return useQuery({
     queryKey: ["audit-logs", "activity-summary", params],
-    queryFn: () => AuditLogsService.getActivitySummary(params),
+    queryFn: async () => {
+      // CRITICAL: Double-check logout state INSIDE queryFn (safety net)
+      const currentState = useAuthStore.getState();
+      if (currentState.isLoggingOut || !currentState.isAuthenticated) {
+        throw new Error("Query cancelled: logout in progress");
+      }
+      return AuditLogsService.getActivitySummary(params);
+    },
+    // CRITICAL: Disable query if logging out or not authenticated
+    enabled: isAuthenticated && !isLoggingOut,
     staleTime: 0, // Always refetch when invalidated
   });
 };

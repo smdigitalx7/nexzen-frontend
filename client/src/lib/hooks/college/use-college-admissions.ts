@@ -1,14 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { CollegeAdmissionsService, CollegeAdmissionsListParams } from "@/lib/services/college/admissions.service";
 import { collegeKeys } from "./query-keys";
+import { useAuthStore } from "@/store/authStore";
 
 /**
  * Hook to fetch admissions list with pagination
  */
 export function useCollegeAdmissions(params?: CollegeAdmissionsListParams) {
+  const { isAuthenticated, isLoggingOut } = useAuthStore();
+  
   return useQuery({
     queryKey: collegeKeys.admissions.list(params),
     queryFn: () => CollegeAdmissionsService.list(params),
+    // CRITICAL: Disable query if logging out or not authenticated
+    enabled: isAuthenticated && !isLoggingOut,
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
   });

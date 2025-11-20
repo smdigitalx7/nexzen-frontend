@@ -41,6 +41,16 @@ export const CollegeExpenditureService = {
   delete(expenditure_id: number) {
     return Api.delete<void>(`/college/expenditure/${expenditure_id}`);
   },
+
+  // PATCH /api/v1/college/expenditure/{expenditure_id}/status
+  updateStatus(expenditure_id: number, status: "PENDING" | "APPROVED" | "REJECTED") {
+    return Api.patch<CollegeExpenditureRead>(
+      `/college/expenditure/${expenditure_id}/status`,
+      null,
+      undefined,
+      { query: { status } }
+    );
+  },
 };
 
 

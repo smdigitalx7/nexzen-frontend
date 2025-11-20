@@ -23,6 +23,8 @@ export interface SchoolExpenditureRead {
   payment_method?: string | null;
   purpose?: string | null;
   voucher_no?: string | null;
+  status?: "PENDING" | "APPROVED" | "REJECTED" | null;
+  approved_by?: number | null;
   created_at: string;
   updated_at?: string | null;
   created_by?: number | null;

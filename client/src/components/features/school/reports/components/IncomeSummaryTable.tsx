@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Printer } from "lucide-react";
+import { Printer, Plus, Receipt } from "lucide-react";
+import { IndianRupeeIcon } from "@/components/shared/IndianRupeeIcon";
 import { Loader } from "@/components/ui/ProfessionalLoader";
 import { SchoolIncomeService } from "@/lib/services/school";
 import type {
@@ -18,6 +19,12 @@ import { Badge } from "@/components/ui/badge";
 import { handleRegenerateReceipt } from "@/lib/api";
 import { ReceiptPreviewModal } from "@/components/shared";
 import { toast } from "@/hooks/use-toast";
+import { useAuthStore } from "@/store/authStore";
+import { ROLES } from "@/lib/constants";
+import { AddOtherIncomeDialog } from "@/components/shared/AddOtherIncomeDialog";
+import { createSchoolOtherIncome, getSchoolOtherIncome } from "@/lib/api-school-other-income";
+import { TabSwitcher, OtherIncomeTable } from "@/components/shared";
+import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 
 // ✅ FIX: Create a proper component wrapper for Loader.Button that accepts className
 // Moved outside component to prevent recreation on every render
@@ -39,6 +46,13 @@ export const IncomeSummaryTable = ({
   onAddIncome,
   enabled = true, // Default to enabled for backward compatibility
 }: IncomeSummaryTableProps) => {
+  const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+  
+  // Check if user is ADMIN or INSTITUTE_ADMIN
+  const canAddOtherIncome =
+    user?.role === ROLES.ADMIN || user?.role === ROLES.INSTITUTE_ADMIN;
+
   // View dialog state
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [viewIncomeId, setViewIncomeId] = useState<number | null>(null);
@@ -47,6 +61,9 @@ export const IncomeSummaryTable = ({
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
   const [loadingReceiptId, setLoadingReceiptId] = useState<number | null>(null);
+
+  // Add Other Income dialog state
+  const [showAddOtherIncomeDialog, setShowAddOtherIncomeDialog] = useState(false);
 
   // ✅ OPTIMIZATION: Stabilize query params (empty object, but still memoize to prevent key changes)
   const queryParams = useMemo<SchoolIncomeSummaryParams>(() => ({}), []);
@@ -57,20 +74,50 @@ export const IncomeSummaryTable = ({
     [queryParams]
   );
 
+  // Tab navigation for Income Summary and Other Income
+  // Use a different query parameter to avoid conflict with parent tabs
+  const { getQueryParam, setQueryParam } = useTabNavigation("income-summary");
+  const activeTab = getQueryParam("incomeTab") || "income-summary";
+  const setActiveTab = useCallback((tab: string) => {
+    setQueryParam("incomeTab", tab);
+  }, [setQueryParam]);
+
   // ✅ OPTIMIZATION: Only fetch when enabled (tab is active)
   const {
     data: incomeData,
-    isLoading,
-    error,
+    isLoading: isLoadingIncome,
+    error: incomeError,
     refetch,
   } = useQuery({
     queryKey: incomeQueryKey,
     queryFn: () => SchoolIncomeService.getIncomeSummary(queryParams),
-    enabled: enabled, // ✅ Only fetch when tab is active
+    enabled: enabled && activeTab === "income-summary", // ✅ Only fetch when income-summary tab is active
     refetchOnWindowFocus: false, // ✅ OPTIMIZATION: No refetch on tab focus
     refetchOnReconnect: false, // ✅ OPTIMIZATION: No refetch on reconnect
     refetchOnMount: true, // Only refetch on mount if enabled and data is stale
   });
+
+  // Fetch other income records (only when other-income tab is active)
+  const otherIncomeQueryKey = useMemo(
+    () => ["school-other-income"],
+    []
+  );
+
+  const {
+    data: otherIncomeData,
+    isLoading: isLoadingOtherIncome,
+    error: otherIncomeError,
+  } = useQuery({
+    queryKey: otherIncomeQueryKey,
+    queryFn: () => getSchoolOtherIncome(),
+    enabled: enabled && activeTab === "other-income", // ✅ Only fetch when other-income tab is active
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true,
+  });
+
+  const isLoading = isLoadingIncome;
+  const error = incomeError;
 
   // ✅ OPTIMIZATION: Stabilize query key
   const receiptQueryKey = useMemo(
@@ -152,6 +199,24 @@ export const IncomeSummaryTable = ({
       setReceiptBlobUrl(null);
     }
   }, [receiptBlobUrl]);
+
+  // Handle Add Other Income
+  const handleAddOtherIncome = useCallback(
+    async (data: {
+      name: string;
+      description?: string;
+      amount: number;
+      payment_method: "CASH" | "UPI" | "CARD";
+      income_date: string;
+    }) => {
+      await createSchoolOtherIncome(data);
+      // Invalidate income queries to refresh the table
+      queryClient.invalidateQueries({ queryKey: ["school-income-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["school-income"] });
+      queryClient.invalidateQueries({ queryKey: ["school-other-income"] });
+    },
+    [queryClient]
+  );
 
   // Define columns for EnhancedDataTable
   const columns: ColumnDef<SchoolIncomeSummary>[] = [
@@ -243,7 +308,7 @@ export const IncomeSummaryTable = ({
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
           <div className="flex items-center">
             <div className="text-red-600 text-sm">
-              ❌ Error loading income data: {error.message}
+              ❌ Error loading income data: {error?.message || "Unknown error"}
             </div>
             <Button
               variant="outline"
@@ -257,6 +322,16 @@ export const IncomeSummaryTable = ({
         </div>
       )}
 
+      {/* Tab Switcher for Income Summary and Other Income */}
+      <TabSwitcher
+        tabs={[
+          {
+            value: "income-summary",
+            label: "Income Summary",
+            icon: IndianRupeeIcon,
+            badge: incomeData?.total || 0,
+            content: (
+              <>
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center h-32">
@@ -265,7 +340,7 @@ export const IncomeSummaryTable = ({
         </div>
       )}
 
-      {/* Empty State */}
+                {/* Empty State for Income Summary */}
       {!isLoading &&
         !error &&
         (!incomeData?.items || incomeData.items.length === 0) && (
@@ -281,20 +356,44 @@ export const IncomeSummaryTable = ({
           </div>
         )}
 
-      {/* Data Table */}
+                {/* Income Summary Table */}
+                {!isLoading && incomeData && incomeData.items.length > 0 && (
       <EnhancedDataTable
-        data={incomeData?.items || []}
+                    data={incomeData.items}
         columns={columns}
         title="Income Summary"
         searchKey="receipt_no"
         searchPlaceholder="Search by receipt no, student name, or identity no..."
         exportable={true}
-        loading={isLoading}
+                    loading={false}
         showActions={true}
         actionButtonGroups={actionButtonGroups}
         actionButtons={actionButtons}
         actionColumnHeader="Actions"
         showActionLabels={true}
+                  />
+                )}
+              </>
+            ),
+          },
+          {
+            value: "other-income",
+            label: "Other Income",
+            icon: Receipt,
+            badge: otherIncomeData?.total || 0,
+            content: (
+              <OtherIncomeTable
+                fetchOtherIncome={() => getSchoolOtherIncome()}
+                onAddOtherIncome={() => setShowAddOtherIncomeDialog(true)}
+                enabled={enabled && activeTab === "other-income"}
+                institutionType="school"
+              />
+            ),
+          },
+        ]}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        forceMount={true}
       />
 
       {/* View Income Dialog */}
@@ -319,6 +418,16 @@ export const IncomeSummaryTable = ({
         onClose={handleCloseReceiptModal}
         blobUrl={receiptBlobUrl || null}
       />
+
+      {/* Add Other Income Dialog */}
+      {canAddOtherIncome && (
+        <AddOtherIncomeDialog
+          open={showAddOtherIncomeDialog}
+          onOpenChange={setShowAddOtherIncomeDialog}
+          onSubmit={handleAddOtherIncome}
+          institutionType="school"
+        />
+      )}
     </motion.div>
   );
 };

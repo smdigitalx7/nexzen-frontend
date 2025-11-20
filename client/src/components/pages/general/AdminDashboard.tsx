@@ -49,11 +49,12 @@ import { DashboardError } from "@/components/shared/dashboard/DashboardError";
 import { Badge } from "@/components/ui/badge";
 
 const AdminDashboard = () => {
-  const { user } = useAuthStore();
+  const { user, isAuthenticated, isLoggingOut } = useAuthStore();
   const { data: dashboardData, loading, error } = useAdminDashboard();
   const [, setLocation] = useLocation();
 
   // Fetch recent audit log activity summary (last 24 hours, maximum 5 records)
+  // CRITICAL: useActivitySummary hook already checks isAuthenticated && !isLoggingOut
   const { data: auditLogSummary = [] } = useActivitySummary({
     hours_back: 24,
     limit: 5,

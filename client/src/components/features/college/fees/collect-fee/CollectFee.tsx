@@ -12,6 +12,7 @@ import type {
   FeeBalance,
   MultiplePaymentData,
 } from "@/components/shared/payment/types/PaymentTypes";
+import { mapPaymentMethodForAPI } from "@/components/shared/payment/utils/paymentUtils";
 import { handleCollegePayByAdmissionWithIncomeId } from "@/lib/api-college";
 import { useToast } from "@/hooks/use-toast";
 import { batchInvalidateAndRefetch } from "@/lib/hooks/common/useGlobalRefetch";
@@ -202,7 +203,7 @@ export const CollectFee = ({
               | "OTHER"
               | "ADMISSION_FEE";
             paid_amount: number;
-            payment_method: "CASH" | "ONLINE";
+            payment_method: "CASH" | "UPI" | "CARD";
             term_number?: number;
             payment_month?: string;
             custom_purpose_name?: string;
@@ -218,7 +219,7 @@ export const CollectFee = ({
                 | "OTHER"
                 | "ADMISSION_FEE";
               paid_amount: number;
-              payment_method: "CASH" | "ONLINE";
+              payment_method: "CASH" | "UPI" | "CARD";
               term_number?: number;
               payment_month?: string;
               custom_purpose_name?: string;
@@ -230,11 +231,7 @@ export const CollectFee = ({
                 | "OTHER"
                 | "ADMISSION_FEE",
               paid_amount: detail.amount,
-              payment_method:
-                detail.paymentMethod === "CHEQUE" ||
-                detail.paymentMethod === "DD"
-                  ? "CASH"
-                  : detail.paymentMethod,
+              payment_method: mapPaymentMethodForAPI(detail.paymentMethod),
             };
 
             if (detail.purpose === "TUITION_FEE" && detail.termNumber) {

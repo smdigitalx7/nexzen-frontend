@@ -10,6 +10,7 @@ export { default as ViewDialog } from "./ViewDialog";
 export { SchoolSearchResultCard } from "./SchoolSearchResultCard";
 export { CollegeSearchResultCard } from "./CollegeSearchResultCard";
 export { MonthYearFilter } from "./MonthYearFilter";
+export { OtherIncomeTable } from "./OtherIncomeTable";
 
 // Dashboard Components
 export * from "./dashboard";

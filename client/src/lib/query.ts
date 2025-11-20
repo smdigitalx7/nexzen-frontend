@@ -10,6 +10,10 @@ import { QueryClient } from "@tanstack/react-query";
  * - refetchInterval: false - No background polling
  * 
  * Individual queries can override these defaults when needed.
+ * 
+ * NOTE: Queries should check isLoggingOut in their enabled option
+ * to prevent execution during logout. The cancelQueries() call in logout()
+ * will abort any in-flight queries.
  */
 export const queryClient = new QueryClient({
   defaultOptions: {

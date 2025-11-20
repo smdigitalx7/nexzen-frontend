@@ -172,6 +172,10 @@ export const EmployeeManagementTemplate = () => {
     setShowAdvanceStatusDialog,
     showAdvanceAmountDialog,
     setShowAdvanceAmountDialog,
+    showAdvanceVoucherDialog,
+    setShowAdvanceVoucherDialog,
+    advanceForVoucher,
+    setAdvanceForVoucher,
     advanceToUpdate,
     setAdvanceToUpdate,
     advanceStatus,
@@ -694,6 +698,10 @@ export const EmployeeManagementTemplate = () => {
         setShowAdvanceStatusDialog={setShowAdvanceStatusDialog}
         showAdvanceAmountDialog={showAdvanceAmountDialog}
         setShowAdvanceAmountDialog={setShowAdvanceAmountDialog}
+        showAdvanceVoucherDialog={showAdvanceVoucherDialog}
+        setShowAdvanceVoucherDialog={setShowAdvanceVoucherDialog}
+        advanceForVoucher={advanceForVoucher}
+        setAdvanceForVoucher={setAdvanceForVoucher}
         advanceToUpdate={advanceToUpdate}
         setAdvanceToUpdate={setAdvanceToUpdate}
         advanceStatus={advanceStatus}

@@ -17,6 +17,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { handlePayByReservation } from "@/lib/api-school";
 import type { SchoolIncomeRead } from "@/lib/types/school";
 import { cn } from "@/lib/utils";
+import {
+  PAYMENT_METHOD_OPTIONS,
+  calculateCardCharges,
+  calculateTotalWithCardCharges,
+  formatAmount,
+  mapPaymentMethodForAPI,
+} from "./utils/paymentUtils";
 
 export interface ReservationPaymentData {
   reservationId: number;
@@ -25,7 +32,7 @@ export interface ReservationPaymentData {
   className: string;
   reservationFee: number; // Only reservation fee, not tuition/transport
   totalAmount: number;
-  paymentMethod: "CASH" | "ONLINE";
+  paymentMethod: "CASH" | "UPI" | "CARD";
   purpose: string;
   note?: string;
 }
@@ -59,7 +66,7 @@ const ReservationPaymentProcessor: React.FC<
     null
   );
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
-    "CASH" | "ONLINE"
+    "CASH" | "UPI" | "CARD"
   >("CASH");
 
   const handleConfirmPayment = async () => {
@@ -73,7 +80,7 @@ const ReservationPaymentProcessor: React.FC<
           {
             purpose: "APPLICATION_FEE", // Reservation fee purpose
             paid_amount: amount,
-            payment_method: selectedPaymentMethod,
+            payment_method: mapPaymentMethodForAPI(selectedPaymentMethod),
           },
         ],
         remarks:
@@ -251,50 +258,106 @@ const ReservationPaymentProcessor: React.FC<
               </h3>
               <RadioGroup
                 value={selectedPaymentMethod}
-                onValueChange={(value: "CASH" | "ONLINE") =>
+                onValueChange={(value: "CASH" | "UPI" | "CARD") =>
                   setSelectedPaymentMethod(value)
                 }
-                className="grid grid-cols-2 gap-3"
+                className="grid grid-cols-3 gap-3"
               >
-                <label
-                  htmlFor="cash"
-                  className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    selectedPaymentMethod === "CASH"
+                {PAYMENT_METHOD_OPTIONS.map((option) => {
+                  const isSelected = selectedPaymentMethod === option.value;
+                  const colorClasses = {
+                    green: isSelected
+                      ? "border-green-500 bg-green-50"
+                      : "border-gray-200 hover:border-green-300 hover:bg-green-50/30",
+                    blue: isSelected
                       ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/30"
-                  }`}
-                >
-                  <RadioGroupItem value="CASH" id="cash" />
-                  <span
-                    className={`font-medium ${
-                      selectedPaymentMethod === "CASH"
-                        ? "text-blue-700"
-                        : "text-gray-700"
-                    }`}
-                  >
-                    Cash
-                  </span>
-                </label>
-                <label
-                  htmlFor="online"
-                  className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    selectedPaymentMethod === "ONLINE"
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/30"
-                  }`}
-                >
-                  <RadioGroupItem value="ONLINE" id="online" />
-                  <span
-                    className={`font-medium ${
-                      selectedPaymentMethod === "ONLINE"
-                        ? "text-blue-700"
-                        : "text-gray-700"
-                    }`}
-                  >
-                    Online
-                  </span>
-                </label>
+                      : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/30",
+                    purple: isSelected
+                      ? "border-purple-500 bg-purple-50"
+                      : "border-gray-200 hover:border-purple-300 hover:bg-purple-50/30",
+                  };
+                  return (
+                    <label
+                      key={option.value}
+                      htmlFor={option.value}
+                      className={`flex flex-col items-center gap-2 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                        colorClasses[option.color as keyof typeof colorClasses]
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 w-full">
+                        <RadioGroupItem value={option.value} id={option.value} />
+                        <span className="text-2xl">{option.icon}</span>
+                        <span
+                          className={`font-semibold flex-1 ${
+                            isSelected
+                              ? option.color === "green"
+                                ? "text-green-700"
+                                : option.color === "blue"
+                                  ? "text-blue-700"
+                                  : "text-purple-700"
+                              : "text-gray-700"
+                          }`}
+                        >
+                          {option.label}
+                        </span>
+                      </div>
+                      <span
+                        className={`text-xs ${
+                          isSelected
+                            ? option.color === "green"
+                              ? "text-green-600"
+                              : option.color === "blue"
+                                ? "text-blue-600"
+                                : "text-purple-600"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        {option.description}
+                      </span>
+                    </label>
+                  );
+                })}
               </RadioGroup>
+              
+              {/* Card Charges Display */}
+              {selectedPaymentMethod === "CARD" && reservationData.reservationFee > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="border border-purple-200 bg-purple-50/50 rounded-lg p-4 space-y-2 mt-3"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <CreditCard className="h-4 w-4 text-purple-600" />
+                    <span className="text-sm font-semibold text-purple-800">
+                      Card Processing Charges
+                    </span>
+                  </div>
+                  <div className="space-y-1.5 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Base Amount:</span>
+                      <span className="font-medium text-gray-900">
+                        {formatAmount(reservationData.reservationFee)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Processing Charges (1.2%):</span>
+                      <span className="font-medium text-purple-700">
+                        +{formatAmount(calculateCardCharges(reservationData.reservationFee))}
+                      </span>
+                    </div>
+                    <Separator className="bg-purple-200" />
+                    <div className="flex justify-between items-center pt-1">
+                      <span className="font-semibold text-purple-900">Total Amount:</span>
+                      <span className="text-lg font-bold text-purple-900">
+                        {formatAmount(calculateTotalWithCardCharges(reservationData.reservationFee))}
+                      </span>
+                    </div>
+                    <p className="text-xs text-purple-600 mt-2 italic">
+                      Note: Charges shown for display only. Payment amount: {formatAmount(reservationData.reservationFee)}
+                    </p>
+                  </div>
+                </motion.div>
+              )}
             </div>
           </div>
 

@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Eye, Edit, Trash2 } from "lucide-react";
-import { useUpdateSchoolExpenditure, useDeleteSchoolExpenditure, useSchoolExpenditure } from "@/lib/hooks/school";
+import { Eye, Edit, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { useUpdateSchoolExpenditure, useDeleteSchoolExpenditure, useSchoolExpenditure, useUpdateSchoolExpenditureStatus } from "@/lib/hooks/school";
 import { useCanEdit, useCanDelete } from "@/lib/permissions";
 import type { SchoolExpenditureRead } from "@/lib/types/school";
 import { FormDialog, ConfirmDialog } from "@/components/shared";
@@ -15,6 +15,11 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { EnhancedDataTable } from "@/components/shared/EnhancedDataTable";
 import { createTextColumn, createCurrencyColumn } from "@/lib/utils/factory/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/store/authStore";
+import { ROLES } from "@/lib/constants";
+import { toast } from "@/hooks/use-toast";
 
 interface ExpenditureTableProps {
   expenditureData: SchoolExpenditureRead[];
@@ -54,9 +59,14 @@ export const ExpenditureTable = ({
     remarks: "",
   });
 
+  const { user } = useAuthStore();
+  const canApproveExpenditure = user?.role === ROLES.ADMIN || user?.role === ROLES.INSTITUTE_ADMIN;
+  
   const deleteExpenditureMutation = useDeleteSchoolExpenditure();
   const [updateId, setUpdateId] = useState<number | null>(null);
   const updateExpenditureMutation = useUpdateSchoolExpenditure(updateId ?? 0);
+  const [statusUpdateId, setStatusUpdateId] = useState<number | null>(null);
+  const statusUpdateMutation = useUpdateSchoolExpenditureStatus(statusUpdateId ?? 0);
 
   const handleEdit = (expenditure: SchoolExpenditureRead) => {
     if (!expenditure || !expenditure.expenditure_id) {
@@ -121,6 +131,49 @@ export const ExpenditureTable = ({
     }
   };
 
+  // Handle approve/reject
+  const handleApprove = useCallback(async (expenditure: SchoolExpenditureRead) => {
+    if (!expenditure?.expenditure_id) return;
+    setStatusUpdateId(expenditure.expenditure_id);
+    try {
+      await statusUpdateMutation.mutateAsync("APPROVED");
+      toast({
+        title: "Success",
+        description: "Expenditure approved successfully.",
+        variant: "success",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to approve expenditure.",
+        variant: "destructive",
+      });
+    } finally {
+      setStatusUpdateId(null);
+    }
+  }, [statusUpdateMutation]);
+
+  const handleReject = useCallback(async (expenditure: SchoolExpenditureRead) => {
+    if (!expenditure?.expenditure_id) return;
+    setStatusUpdateId(expenditure.expenditure_id);
+    try {
+      await statusUpdateMutation.mutateAsync("REJECTED");
+      toast({
+        title: "Success",
+        description: "Expenditure rejected successfully.",
+        variant: "success",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject expenditure.",
+        variant: "destructive",
+      });
+    } finally {
+      setStatusUpdateId(null);
+    }
+  }, [statusUpdateMutation]);
+
   // Define columns for EnhancedDataTable
   const columns: ColumnDef<SchoolExpenditureRead>[] = [
     {
@@ -133,6 +186,23 @@ export const ExpenditureTable = ({
       header: "Amount",
       className: "text-red-600 font-bold",
     }),
+    {
+      id: 'status',
+      header: 'Status',
+      cell: ({ row }) => {
+        const status = row.original.status || "PENDING";
+        const statusColors: Record<string, string> = {
+          PENDING: "bg-yellow-100 text-yellow-700",
+          APPROVED: "bg-green-100 text-green-700",
+          REJECTED: "bg-red-100 text-red-700",
+        };
+        return (
+          <Badge className={statusColors[status] || "bg-gray-100 text-gray-700"}>
+            {status}
+          </Badge>
+        );
+      },
+    },
     {
       id: 'payment_method',
       header: 'Payment Method',
@@ -162,16 +232,51 @@ export const ExpenditureTable = ({
       onClick: (expenditure: SchoolExpenditureRead) => {
         handleEdit(expenditure);
       },
-      show: () => canEditExpenditure
+      show: (expenditure: SchoolExpenditureRead) => 
+        canEditExpenditure && expenditure.status !== "APPROVED" && expenditure.status !== "REJECTED"
     },
     {
       type: 'delete' as const,
       onClick: (expenditure: SchoolExpenditureRead) => {
         handleDelete(expenditure);
       },
-      show: () => canDeleteExpenditure
+      show: (expenditure: SchoolExpenditureRead) => 
+        canDeleteExpenditure && expenditure.status !== "APPROVED" && expenditure.status !== "REJECTED"
     }
   ], [canEditExpenditure, canDeleteExpenditure]);
+
+  // Action buttons for approve/reject (Admin and Institute Admin only)
+  const actionButtons = useMemo(() => {
+    if (!canApproveExpenditure) return [];
+    
+    return [
+      {
+        id: "approve-expenditure",
+        label: (expenditure: SchoolExpenditureRead) => 
+          statusUpdateId === expenditure.expenditure_id ? "Approving..." : "Approve",
+        icon: CheckCircle,
+        variant: "default" as const,
+        onClick: (expenditure: SchoolExpenditureRead) => handleApprove(expenditure),
+        show: (expenditure: SchoolExpenditureRead) => 
+          expenditure.status === "PENDING" || !expenditure.status,
+        disabled: (expenditure: SchoolExpenditureRead) =>
+          statusUpdateId === expenditure.expenditure_id,
+        className: "text-green-600 hover:text-green-700",
+      },
+      {
+        id: "reject-expenditure",
+        label: (expenditure: SchoolExpenditureRead) => 
+          statusUpdateId === expenditure.expenditure_id ? "Rejecting..." : "Reject",
+        icon: XCircle,
+        variant: "destructive" as const,
+        onClick: (expenditure: SchoolExpenditureRead) => handleReject(expenditure),
+        show: (expenditure: SchoolExpenditureRead) => 
+          expenditure.status === "PENDING" || !expenditure.status,
+        disabled: (expenditure: SchoolExpenditureRead) =>
+          statusUpdateId === expenditure.expenditure_id,
+      },
+    ];
+  }, [canApproveExpenditure, statusUpdateId, handleApprove, handleReject]);
 
   return (
     <motion.div
@@ -192,6 +297,7 @@ export const ExpenditureTable = ({
         addButtonText="Add Expenditure"
         showActions={true}
         actionButtonGroups={actionButtonGroups}
+        actionButtons={actionButtons}
         actionColumnHeader="Actions"
         showActionLabels={true}
       />

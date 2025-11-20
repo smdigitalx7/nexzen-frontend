@@ -28,12 +28,13 @@ import type {
   PaymentItem,
   PaymentMethod,
 } from "../../types/PaymentTypes";
+import {
+  PAYMENT_METHOD_OPTIONS,
+  calculateCardCharges,
+  calculateTotalWithCardCharges,
+  formatAmount as formatAmountUtil,
+} from "../../utils/paymentUtils";
 import { useCollegeExpectedTransportPaymentsByEnrollmentId } from "@/lib/hooks/college/use-college-transport-balances";
-
-const paymentMethodOptions: Array<{ value: PaymentMethod; label: string }> = [
-  { value: "CASH", label: "Cash" },
-  { value: "ONLINE", label: "Online" },
-];
 
 interface TransportFeeComponentProps extends PurposeSpecificComponentProps {
   isOpen: boolean;
@@ -1290,34 +1291,125 @@ export const TransportFeeComponent: React.FC<TransportFeeComponentProps> = ({
               <Label className="text-sm font-medium text-gray-700">
                 Payment Method <span className="text-red-500">*</span>
               </Label>
-              <div className="grid grid-cols-2 gap-3">
-                {paymentMethodOptions.map((option) => (
-                  <label
-                    key={option.value}
-                    className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      paymentMethod === option.value
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/30"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment-method"
-                      value={option.value}
-                      checked={paymentMethod === option.value}
-                      onChange={(e) =>
-                        setPaymentMethod(e.target.value as PaymentMethod)
-                      }
-                      className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span
-                      className={`font-medium ${paymentMethod === option.value ? "text-blue-700" : "text-gray-700"}`}
+              <div className="grid grid-cols-3 gap-3">
+                {PAYMENT_METHOD_OPTIONS.map((option) => {
+                  const isSelected = paymentMethod === option.value;
+                  const colorClasses = {
+                    green: isSelected
+                      ? "border-green-500 bg-green-50"
+                      : "border-gray-200 hover:border-green-300 hover:bg-green-50/30",
+                    blue: isSelected
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/30",
+                    purple: isSelected
+                      ? "border-purple-500 bg-purple-50"
+                      : "border-gray-200 hover:border-purple-300 hover:bg-purple-50/30",
+                  };
+                  return (
+                    <label
+                      key={option.value}
+                      className={`flex flex-col items-center gap-2 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                        colorClasses[option.color as keyof typeof colorClasses]
+                      }`}
                     >
-                      {option.label}
-                    </span>
-                  </label>
-                ))}
+                      <div className="flex items-center gap-2.5 w-full">
+                        <input
+                          type="radio"
+                          name="payment-method"
+                          value={option.value}
+                          checked={isSelected}
+                          onChange={(e) =>
+                            setPaymentMethod(e.target.value as PaymentMethod)
+                          }
+                          className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-2xl">{option.icon}</span>
+                        <span
+                          className={`font-semibold flex-1 ${
+                            isSelected
+                              ? option.color === "green"
+                                ? "text-green-700"
+                                : option.color === "blue"
+                                  ? "text-blue-700"
+                                  : "text-purple-700"
+                              : "text-gray-700"
+                          }`}
+                        >
+                          {option.label}
+                        </span>
+                      </div>
+                      <span
+                        className={`text-xs ${
+                          isSelected
+                            ? option.color === "green"
+                              ? "text-green-600"
+                              : option.color === "blue"
+                                ? "text-blue-600"
+                                : "text-purple-600"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        {option.description}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
+              
+              {/* Card Charges Display */}
+              {paymentMethod === "CARD" && (() => {
+                // Calculate total amount from selected terms/months
+                let totalAmount = 0;
+                if (isCollege && selectedExpectedMonths.length > 0) {
+                  totalAmount = selectedExpectedMonths.reduce((sum, month) => {
+                    const amount = parseFloat(expectedMonthAmounts[month] || "0");
+                    return sum + (isNaN(amount) ? 0 : amount);
+                  }, 0);
+                } else if (!isCollege && selectedTerms.length > 0) {
+                  totalAmount = selectedTerms.reduce((sum, term) => {
+                    const amount = parseFloat(termAmounts[term] || "0");
+                    return sum + (isNaN(amount) ? 0 : amount);
+                  }, 0);
+                }
+                
+                if (totalAmount > 0) {
+                  return (
+                    <div className="border border-purple-200 bg-purple-50/50 rounded-lg p-4 space-y-2 mt-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Truck className="h-4 w-4 text-purple-600" />
+                        <span className="text-sm font-semibold text-purple-800">
+                          Card Processing Charges
+                        </span>
+                      </div>
+                      <div className="space-y-1.5 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Base Amount:</span>
+                          <span className="font-medium text-gray-900">
+                            {formatAmountUtil(totalAmount)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Processing Charges (1.2%):</span>
+                          <span className="font-medium text-purple-700">
+                            +{formatAmountUtil(calculateCardCharges(totalAmount))}
+                          </span>
+                        </div>
+                        <div className="h-px bg-purple-200"></div>
+                        <div className="flex justify-between items-center pt-1">
+                          <span className="font-semibold text-purple-900">Total Amount:</span>
+                          <span className="text-lg font-bold text-purple-900">
+                            {formatAmountUtil(calculateTotalWithCardCharges(totalAmount))}
+                          </span>
+                        </div>
+                        <p className="text-xs text-purple-600 mt-2 italic">
+                          Note: Charges shown for display only. Payment amount: {formatAmountUtil(totalAmount)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             {/* Warning Message */}

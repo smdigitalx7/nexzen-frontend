@@ -161,6 +161,19 @@ export function useDeleteSchoolExpenditure() {
   }, "Expenditure record deleted successfully");
 }
 
+export function useUpdateSchoolExpenditureStatus(expenditureId: number) {
+  const qc = useQueryClient();
+  return useMutationWithSuccessToast({
+    mutationFn: (status: "PENDING" | "APPROVED" | "REJECTED") => 
+      SchoolExpenditureService.updateStatus(expenditureId, status),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: schoolKeys.expenditure.detail(expenditureId) });
+      void qc.invalidateQueries({ queryKey: schoolKeys.expenditure.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.expenditure.root(), type: 'active' });
+    },
+  }, "Expenditure status updated successfully");
+}
+
 export function useSchoolFinanceReport(params?: SchoolFinanceReportParams) {
   return useQuery({
     queryKey: [...schoolKeys.income.root(), "finance-report", params],
