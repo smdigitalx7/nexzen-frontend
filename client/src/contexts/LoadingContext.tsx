@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useReducer, useCallback, ReactNode } from 'react';
-import { LoadingStates } from '@/components/ui/loading';
+﻿import React, { createContext, useContext, useReducer, useCallback, ReactNode } from 'react';
+import { Loader } from '@/common/components/ui/ProfessionalLoader';
 
 // Loading state types
 export interface LoadingItem {
@@ -204,13 +204,7 @@ const LoadingOverlay: React.FC = () => {
   // Priority: Global loading > most recent fullScreen item > most recent overlay item
   // Only show ONE loader at a time to prevent duplicates
   if (state.globalLoading) {
-    return (
-      <div className="fixed inset-0 z-50 pointer-events-none">
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <LoadingStates.Page message={state.globalMessage} />
-        </div>
-      </div>
-    );
+    return <Loader.Page message={state.globalMessage} />;
   }
 
   // Find the most recent fullScreen item
@@ -220,13 +214,7 @@ const LoadingOverlay: React.FC = () => {
     const mostRecent = fullScreenItems.reduce((latest, current) => 
       current.timestamp > latest.timestamp ? current : latest
     );
-    return (
-      <div className="fixed inset-0 z-50 pointer-events-none">
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <LoadingStates.Page message={mostRecent.message} />
-        </div>
-      </div>
-    );
+    return <Loader.Page message={mostRecent.message} />;
   }
 
   // Find the most recent overlay item
@@ -236,13 +224,7 @@ const LoadingOverlay: React.FC = () => {
     const mostRecent = overlayItems.reduce((latest, current) => 
       current.timestamp > latest.timestamp ? current : latest
     );
-    return (
-      <div className="fixed inset-0 z-50 pointer-events-none">
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <LoadingStates.Data message={mostRecent.message} />
-        </div>
-      </div>
-    );
+    return <Loader.Data message={mostRecent.message} />;
   }
 
   return null;

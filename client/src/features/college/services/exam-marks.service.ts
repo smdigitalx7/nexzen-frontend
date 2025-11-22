@@ -1,0 +1,39 @@
+﻿import { Api } from "@/core/api";
+import { CollegeCreateExamMarkBulk, CollegeExamMarkBulkCreateResult, CollegeExamMarkCreate, CollegeExamMarkFullReadResponse, CollegeExamGroupAndClassResponse, CollegeExamMarkUpdate, CollegeExamMarksListParams, CollegeCreateExamMarksMultipleSubjects, CollegeExamMarksMultipleSubjectsResult } from "@/features/college/types";
+
+export const CollegeExamMarksService = {
+  // GET /api/v1/college/exam-marks
+  list(params?: CollegeExamMarksListParams) {
+    return Api.get<CollegeExamGroupAndClassResponse[]>(`/college/exam-marks`, params as Record<string, string | number | boolean | null | undefined> | undefined);
+  },
+
+  // GET /api/v1/college/exam-marks/{mark_id}
+  getById(mark_id: number) {
+    return Api.get<CollegeExamMarkFullReadResponse>(`/college/exam-marks/${mark_id}`);
+  },
+
+  // POST /api/v1/college/exam-marks
+  create(payload: CollegeExamMarkCreate) {
+    return Api.post<CollegeExamMarkFullReadResponse>(`/college/exam-marks`, payload);
+  },
+
+  // PUT /api/v1/college/exam-marks/{mark_id}
+  update(mark_id: number, payload: CollegeExamMarkUpdate) {
+    return Api.put<CollegeExamMarkFullReadResponse>(`/college/exam-marks/${mark_id}`, payload);
+  },
+
+  // DELETE /api/v1/college/exam-marks/{mark_id}
+  delete(mark_id: number) {
+    return Api.delete<void>(`/college/exam-marks/${mark_id}`);
+  },
+
+  // POST /api/v1/college/exam-marks/bulk-create
+  bulkCreate(payload: CollegeCreateExamMarkBulk) {
+    return Api.post<CollegeExamMarkBulkCreateResult>(`/college/exam-marks/bulk-create`, payload);
+  },
+
+  // POST /api/v1/college/exam-marks/multiple-subjects
+  createMultipleSubjects(payload: CollegeCreateExamMarksMultipleSubjects) {
+    return Api.post<CollegeExamMarksMultipleSubjectsResult>(`/college/exam-marks/multiple-subjects`, payload);
+  },
+};

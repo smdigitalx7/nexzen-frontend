@@ -2,7 +2,7 @@
 // This file provides a centralized export for all enhanced stores
 
 import { setupCacheCleanup, stopCacheCleanup } from './cacheStore';
-import { useAuthStore } from './authStore';
+import { useAuthStore } from '@/core/auth/authStore';
 import { useNavigationStore } from './navigationStore';
 import { useCacheStore } from './cacheStore';
 import { useUIStore } from './uiStore';
@@ -17,7 +17,7 @@ export {
   type Branch,
   type AcademicYear,
   type AuthError,
-} from './authStore';
+} from '@/core/auth/authStore';
 
 // Navigation Store
 export {
