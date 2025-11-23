@@ -8,6 +8,8 @@
     "build": "vite build",
     "build:analyze": "cross-env ANALYZE=true vite build",
     "build:prod": "NODE_ENV=production vite build",
+    "build:akshara": "node setup-akshara-assets.js && vite build",
+    "setup:akshara": "node setup-akshara-assets.js",
     "preview": "vite preview",
     "check": "tsc",
     "vercel-build": "vite build",
