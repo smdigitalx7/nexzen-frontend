@@ -88,6 +88,15 @@ export const brandConfig = {
    */
   keywords: import.meta.env.VITE_BRAND_KEYWORDS || 
     'educational management, school management, college management, ERP, student management, fee management, attendance tracking',
+
+  /**
+   * Login page logo configuration
+   * true = show two logos (school + college with divider)
+   * false = show single logo (just school logo)
+   * Environment variable: VITE_BRAND_LOGIN_SHOW_TWO_LOGOS
+   * Default: true (if not set or set to 'true')
+   */
+  loginShowTwoLogos: import.meta.env.VITE_BRAND_LOGIN_SHOW_TWO_LOGOS !== 'false',
 } as const;
 
 /**
@@ -171,6 +180,11 @@ export const brand = {
    * Get meta keywords
    */
   getKeywords: () => brandConfig.keywords,
+
+  /**
+   * Check if login page should show two logos
+   */
+  shouldShowTwoLogos: () => brandConfig.loginShowTwoLogos,
 };
 
 export default brandConfig;

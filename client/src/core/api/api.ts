@@ -25,13 +25,15 @@ const ENV_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefine
 // If VITE_API_BASE_URL includes /api/v1, remove it (we'll add it back in baseURL)
 // If it's a full URL like "http://localhost:7000/api/v1", extract "http://localhost:7000"
 // If it's a path like "/api/v1", use empty string (relative path)
+// If it's a path like "/api", use empty string (relative path, we'll add /api/v1)
 let API_BASE_URL: string;
 if (ENV_API_BASE_URL.includes("http")) {
   // Full URL - remove trailing /api/v1 or /api if present
   API_BASE_URL = ENV_API_BASE_URL.replace(/\/api\/v1\/?$/, "").replace(/\/api\/?$/, "");
 } else {
-  // Path-only - if it starts with /api/v1, use empty string (relative)
-  API_BASE_URL = ENV_API_BASE_URL.startsWith("/api/v1") ? "" : ENV_API_BASE_URL;
+  // Path-only - if it starts with /api/v1 or /api, use empty string (relative)
+  // We'll add /api/v1 in the baseURL configuration
+  API_BASE_URL = (ENV_API_BASE_URL.startsWith("/api/v1") || ENV_API_BASE_URL === "/api") ? "" : ENV_API_BASE_URL;
 }
 
 /**
@@ -280,9 +282,16 @@ apiClient.interceptors.response.use(
 );
 
 /**
- * Export helper to get base URL
+ * Export helper to get base URL with /api/v1 included
  */
 export function getApiBaseUrl(): string {
-  return API_BASE_URL;
+  // Return the full base URL including /api/v1
+  if (API_BASE_URL.includes("http")) {
+    // Full URL - ensure it includes /api/v1
+    return API_BASE_URL.includes("/api/v1") ? API_BASE_URL : `${API_BASE_URL}/api/v1`;
+  } else {
+    // Path or empty - always return /api/v1
+    return "/api/v1";
+  }
 }
 

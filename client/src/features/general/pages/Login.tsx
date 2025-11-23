@@ -10,7 +10,7 @@ import { Checkbox } from "@/common/components/ui/checkbox";
 import { useAuthStore } from "@/core/auth/authStore";
 import { useToast } from "@/common/hooks/use-toast";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
-import { assets, brand } from "@/lib/config";
+import { assets, brand, brandConfig } from "@/lib/config";
 
 const Login = () => {
   const [, setLocation] = useLocation();
@@ -172,32 +172,50 @@ const Login = () => {
         <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-sm dark:bg-gray-900/80 overflow-hidden">
           <CardHeader className="space-y-2 text-center pb-6">
             {/* Logos inside card */}
-            <div className="flex justify-center items-center gap-4 ">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2, duration: 0.3 }}
-              >
-                <img
-                  src={assets.logo('school')}
-                  alt="Velonex Logo"
-                  className="h-28 w-auto object-contain opacity-100"
-                />
-              </motion.div>
+            {brand.shouldShowTwoLogos() ? (
+              // Two logos layout (Velonex default)
+              <div className="flex justify-center items-center gap-4 ">
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2, duration: 0.3 }}
+                >
+                  <img
+                    src={assets.logo('school')}
+                    alt="School Logo"
+                    className="h-28 w-auto object-contain opacity-100"
+                  />
+                </motion.div>
 
-              <div className="h-8 w-px bg-gray-400/80"></div>
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2, duration: 0.3 }}
-              >
-                <img
-                  src={assets.logo('college')}
-                  alt="Velocity Logo"
-                  className="h-28 w-auto object-contain opacity-100"
-                />
-              </motion.div>
-            </div>
+                <div className="h-8 w-px bg-gray-400/80"></div>
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2, duration: 0.3 }}
+                >
+                  <img
+                    src={assets.logo('college')}
+                    alt="College Logo"
+                    className="h-28 w-auto object-contain opacity-100"
+                  />
+                </motion.div>
+              </div>
+            ) : (
+              // Single logo layout (Akshara)
+              <div className="flex justify-center items-center">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2, duration: 0.3 }}
+                >
+                  <img
+                    src={assets.logo('school')}
+                    alt={`${brand.getName()} Logo`}
+                    className="h-32 w-auto object-contain opacity-100"
+                  />
+                </motion.div>
+              </div>
+            )}
 
             <div className="space-y-1 mt-2">
               <div className="flex justify-center ">
@@ -321,21 +339,34 @@ const Login = () => {
             Empowering Education Through Technology
           </p> */}
           <p className="text-xs text-white/70">
-            {brand.getFooterText().split('{website}').map((part, index, array) => (
-              <span key={index}>
-                {part}
-                {index < array.length - 1 && (
-                  <a
-                    href={brand.getWebsite()}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-white/90 transition-colors duration-200 underline-none"
-                  >
-                    {brand.getWebsiteName()}
-                  </a>
-                )}
-              </span>
-            ))}
+            {(() => {
+              const footerTemplate = brandConfig.footerText;
+              const parts = footerTemplate.split('{website}');
+              const currentYear = new Date().getFullYear();
+              const processedParts = parts.map((part, index) => {
+                let processed = part
+                  .replace(/{year}/g, currentYear.toString())
+                  .replace(/{brand}/g, brand.getName());
+                
+                if (index < parts.length - 1) {
+                  return (
+                    <span key={index}>
+                      {processed}
+                      <a
+                        href={brand.getWebsite()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-white/90 transition-colors duration-200 underline"
+                      >
+                        {brand.getWebsiteName()}
+                      </a>
+                    </span>
+                  );
+                }
+                return <span key={index}>{processed}</span>;
+              });
+              return processedParts;
+            })()}
           </p>
         </motion.div>
       </motion.div>

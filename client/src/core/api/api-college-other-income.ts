@@ -1,7 +1,13 @@
 ﻿import { useAuthStore } from "@/core/auth/authStore";
 import { getApiBaseUrl } from "./api";
 
-const API_BASE_URL: string = getApiBaseUrl() as string;
+// Ensure API_BASE_URL includes /api/v1 prefix
+const baseUrl = getApiBaseUrl();
+const API_BASE_URL: string = baseUrl && baseUrl.includes("/api/v1") 
+  ? baseUrl 
+  : baseUrl 
+    ? `${baseUrl}/api/v1`
+    : "/api/v1";
 
 interface ErrorResponse {
   detail?: string;
