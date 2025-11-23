@@ -85,91 +85,14 @@ export default defineConfig({
           }
           return `assets/[name]-[hash].${ext}`;
         },
-        // Manual chunking strategy to split large dependencies
-        // NOTE: React and React-DOM are NOT split out - they stay in the main bundle
-        // to avoid "Cannot read properties of undefined" errors
-        manualChunks: (id) => {
-          // DO NOT split React/ReactDOM - keep them in main bundle
-          // This prevents "Cannot read properties of undefined (reading 'useLayoutEffect')" errors
-          if (
-            id.includes("node_modules/react") ||
-            id.includes("node_modules/react-dom") ||
-            id.includes("node_modules/scheduler")
-          ) {
-            return undefined; // Keep in main bundle
-          }
-
-          // Radix UI components (many packages, group together)
-          if (id.includes("node_modules/@radix-ui")) {
-            return "radix-ui";
-          }
-
-          // TanStack libraries (React Query, Table, Virtual)
-          if (id.includes("node_modules/@tanstack")) {
-            return "tanstack";
-          }
-
-          // Large charting library
-          if (id.includes("node_modules/recharts")) {
-            return "recharts";
-          }
-
-          // PDF generation library
-          if (id.includes("node_modules/jspdf")) {
-            return "jspdf";
-          }
-
-          // Excel generation library
-          if (id.includes("node_modules/exceljs")) {
-            return "exceljs";
-          }
-
-          // Animation library
-          if (id.includes("node_modules/framer-motion")) {
-            return "framer-motion";
-          }
-
-          // Icon library (can be large)
-          if (id.includes("node_modules/lucide-react")) {
-            return "lucide-icons";
-          }
-
-          // Date utilities
-          if (id.includes("node_modules/date-fns")) {
-            return "date-fns";
-          }
-
-          // Form handling
-          if (
-            id.includes("node_modules/react-hook-form") ||
-            id.includes("node_modules/zod")
-          ) {
-            return "forms";
-          }
-
-          // Routing
-          if (id.includes("node_modules/wouter")) {
-            return "router";
-          }
-
-          // State management
-          if (id.includes("node_modules/zustand")) {
-            return "zustand";
-          }
-
-          // Other vendor libraries
-          if (id.includes("node_modules")) {
-            return "vendor";
-          }
-        },
+        // Let Vite automatically handle code splitting based on dependencies
+        // This ensures proper module loading order and avoids initialization issues
       },
       preserveEntrySignatures: false,
     },
 
     modulePreload: {
       polyfill: true,
-      // Ensure entry point is preloaded before other chunks
-      // This ensures React (in main bundle) loads before Radix UI chunks
     },
 
     terserOptions: {
