@@ -10,6 +10,7 @@ import { Checkbox } from "@/common/components/ui/checkbox";
 import { useAuthStore } from "@/core/auth/authStore";
 import { useToast } from "@/common/hooks/use-toast";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
+import { assets, brand } from "@/lib/config";
 
 const Login = () => {
   const [, setLocation] = useLocation();
@@ -109,23 +110,23 @@ const Login = () => {
     toast({
       title: "Forgot Password",
       description:
-        "Please contact support at contact@smdigitalx.com or call +91 8184919998",
+        `Please contact support at ${brand.getContactEmail()} or call ${brand.getContactPhoneDisplay()}`,
     });
   };
 
   const handlePhoneClick = () => {
-    window.open("tel:+918184919998", "_self");
+    window.open(`tel:${brand.getContactPhone()}`, "_self");
   };
 
   const handleEmailClick = () => {
-    window.open("mailto:contact@smdigitalx.com", "_self");
+    window.open(`mailto:${brand.getContactEmail()}`, "_self");
   };
 
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4 relative"
       style={{
-        backgroundImage: `url('/assets/institiute-bgg.jpg')`,
+        backgroundImage: `url('${assets.background('login')}')`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
@@ -178,7 +179,7 @@ const Login = () => {
                 transition={{ delay: 0.2, duration: 0.3 }}
               >
                 <img
-                  src="/assets/nexzen-logo.png"
+                  src={assets.logo('school')}
                   alt="Velonex Logo"
                   className="h-28 w-auto object-contain opacity-100"
                 />
@@ -191,7 +192,7 @@ const Login = () => {
                 transition={{ delay: 0.2, duration: 0.3 }}
               >
                 <img
-                  src="/assets/Velocity-logo.png"
+                  src={assets.logo('college')}
                   alt="Velocity Logo"
                   className="h-28 w-auto object-contain opacity-100"
                 />
@@ -201,7 +202,7 @@ const Login = () => {
             <div className="space-y-1 mt-2">
               <div className="flex justify-center ">
                 <img
-                  src="/assets/Velonex-headname1.png"
+                  src={assets.logo('brand')}
                   alt="Velonex"
                   className="h-10 w-auto object-contain"
                 />
@@ -320,15 +321,21 @@ const Login = () => {
             Empowering Education Through Technology
           </p> */}
           <p className="text-xs text-white/70">
-            © 2025 Velonex - Made with 🤍 by{" "}
-            <a
-              href="https://www.smdigitalx.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-white/90 transition-colors duration-200 underline-none"
-            >
-              SMDigitalX
-            </a>
+            {brand.getFooterText().split('{website}').map((part, index, array) => (
+              <span key={index}>
+                {part}
+                {index < array.length - 1 && (
+                  <a
+                    href={brand.getWebsite()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white/90 transition-colors duration-200 underline-none"
+                  >
+                    {brand.getWebsiteName()}
+                  </a>
+                )}
+              </span>
+            ))}
           </p>
         </motion.div>
       </motion.div>
@@ -344,7 +351,7 @@ const Login = () => {
             className="flex items-center gap-1 rounded text-xs justify-end"
           >
             <Phone className="h-3 w-3 text-gray-400" />
-            <span className="font-medium text-gray-400">8184919998</span>
+            <span className="font-medium text-gray-400">{brand.getContactPhoneDisplay()}</span>
           </button>
           <button
             onClick={handleEmailClick}
@@ -352,7 +359,7 @@ const Login = () => {
           >
             <Mail className="h-3 w-3 text-gray-400" />
             <span className="font-medium text-gray-400">
-              contact@smdigitalx.com
+              {brand.getContactEmail()}
             </span>
           </button>
         </div>

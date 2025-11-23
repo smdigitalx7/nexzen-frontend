@@ -7,6 +7,7 @@ import {
 import {
   CollegeAdmissionDetails,
 } from "@/features/college/types/admissions";
+import { assets, brand } from "@/lib/config";
 
 /**
  * Export all admissions to Excel with professional formatting
@@ -327,7 +328,7 @@ export async function exportSchoolAdmissionFormToPDF(
   // Try to load logo
   let logoDataUrl: string | null = null;
   try {
-    const response = await fetch("/assets/nexzen-logo.png");
+    const response = await fetch(assets.logo('school'));
     const blob = await response.blob();
     logoDataUrl = await new Promise<string>((resolve) => {
       const reader = new FileReader();
@@ -356,7 +357,7 @@ export async function exportSchoolAdmissionFormToPDF(
   doc.setFontSize(headerFontSize);
   doc.setFont("helvetica", "bold");
   doc.text(
-    String(admission.branch_name || "VELONEX SCHOOL"),
+    String(admission.branch_name || brand.getDefaultSchoolName()),
     pageWidth / 2,
     headerYPos,
     { align: "center" }
@@ -669,7 +670,7 @@ export async function exportCollegeAdmissionFormToPDF(
   // Try to load logo
   let logoDataUrl: string | null = null;
   try {
-    const response = await fetch("/assets/nexzen-logo.png");
+    const response = await fetch(assets.logo('college'));
     const blob = await response.blob();
     logoDataUrl = await new Promise<string>((resolve) => {
       const reader = new FileReader();
@@ -698,7 +699,7 @@ export async function exportCollegeAdmissionFormToPDF(
   doc.setFontSize(headerFontSize);
   doc.setFont("helvetica", "bold");
   doc.text(
-    String(admission.branch_name || "VELONEX COLLEGE"),
+    String(admission.branch_name || brand.getDefaultCollegeName()),
     pageWidth / 2,
     headerYPos,
     { align: "center" }

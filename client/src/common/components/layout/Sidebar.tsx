@@ -31,6 +31,7 @@ import { useAuthStore } from "@/core/auth/authStore";
 import { useNavigationStore } from "@/store/navigationStore";
 import { ROLES } from "@/common/constants";
 import { useQueryClient } from "@tanstack/react-query";
+import { getLogoByBranchType, getLogoAltByBranchType, brand } from "@/lib/config";
 
 interface NavigationItem {
   title: string;
@@ -428,22 +429,14 @@ const Sidebar = () => {
             >
               <div className="w-12 h-12 ">
                 <img
-                  src={
-                    currentBranch?.branch_type === "SCHOOL"
-                      ? "/assets/nexzen-logo.png"
-                      : "/assets/Velocity-logo.png"
-                  }
-                  alt={
-                    currentBranch?.branch_type === "SCHOOL"
-                      ? "Velonex Logo"
-                      : "Velocity Logo"
-                  }
+                  src={getLogoByBranchType(currentBranch?.branch_type)}
+                  alt={getLogoAltByBranchType(currentBranch?.branch_type)}
                   className="w-full h-full object-contain"
                 />
               </div>
               <div className="flex flex-col">
                 <span className="font-bold max-w-[100px] text-lg  bg-clip-text text-gray-800/90 leading-tight">
-                  {currentBranch?.branch_name || "Velonex"}
+                  {currentBranch?.branch_name || brand.getName()}
                 </span>
                 {/* <span className="text-xs text-slate-500 font-medium capitalize">
                   {currentBranch?.branch_type || "Education"}

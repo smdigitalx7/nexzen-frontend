@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/common/components/ui/badge";
 import { useAuthStore } from "@/core/auth/authStore";
 import { getEquivalentUrl } from "@/common/utils/navigation";
+import { getLogoByBranchType, getLogoAltByBranchType } from "@/lib/config";
 
 const BranchSwitcher = () => {
   const { currentBranch, branches, switchBranch, isBranchSwitching } =
@@ -75,16 +76,8 @@ const BranchSwitcher = () => {
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
               <img
-                src={
-                  currentBranch?.branch_type === "SCHOOL"
-                    ? "/assets/nexzen-logo.png"
-                    : "/assets/Velocity-logo.png"
-                }
-                alt={
-                  currentBranch?.branch_type === "SCHOOL"
-                    ? "Velonex Logo"
-                    : "Velocity Logo"
-                }
+                src={getLogoByBranchType(currentBranch?.branch_type)}
+                alt={getLogoAltByBranchType(currentBranch?.branch_type)}
                 className="w-full h-full object-contain"
               />
             </div>
@@ -126,16 +119,8 @@ const BranchSwitcher = () => {
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 flex items-center justify-center overflow-hidden">
                     <img
-                      src={
-                        branch.branch_type === "SCHOOL"
-                          ? "/assets/nexzen-logo.png"
-                          : "/assets/Velocity-logo.png"
-                      }
-                      alt={
-                        branch.branch_type === "SCHOOL"
-                          ? "Velonex Logo"
-                          : "Velocity Logo"
-                      }
+                      src={getLogoByBranchType(branch.branch_type)}
+                      alt={getLogoAltByBranchType(branch.branch_type)}
                       className="w-full h-full object-contain"
                     />
                   </div>
