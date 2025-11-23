@@ -74,8 +74,6 @@ export default defineConfig({
 
     rollupOptions: {
       output: {
-        // Let Vite automatically handle code splitting based on dependencies
-        // This ensures proper module loading order and avoids initialization issues
         entryFileNames: "js/[name]-[hash].js",
         chunkFileNames: "js/[name]-[hash].js",
         assetFileNames: (assetInfo) => {
@@ -85,8 +83,74 @@ export default defineConfig({
           }
           return `assets/[name]-[hash].${ext}`;
         },
+        // Manual chunking strategy to split large dependencies
+        manualChunks: (id) => {
+          // React core libraries
+          if (id.includes("node_modules/react") || id.includes("node_modules/react-dom") || id.includes("node_modules/scheduler")) {
+            return "react-vendor";
+          }
+
+          // Radix UI components (many packages, group together)
+          if (id.includes("node_modules/@radix-ui")) {
+            return "radix-ui";
+          }
+
+          // TanStack libraries (React Query, Table, Virtual)
+          if (id.includes("node_modules/@tanstack")) {
+            return "tanstack";
+          }
+
+          // Large charting library
+          if (id.includes("node_modules/recharts")) {
+            return "recharts";
+          }
+
+          // PDF generation library
+          if (id.includes("node_modules/jspdf")) {
+            return "jspdf";
+          }
+
+          // Excel generation library
+          if (id.includes("node_modules/exceljs")) {
+            return "exceljs";
+          }
+
+          // Animation library
+          if (id.includes("node_modules/framer-motion")) {
+            return "framer-motion";
+          }
+
+          // Icon library (can be large)
+          if (id.includes("node_modules/lucide-react")) {
+            return "lucide-icons";
+          }
+
+          // Date utilities
+          if (id.includes("node_modules/date-fns")) {
+            return "date-fns";
+          }
+
+          // Form handling
+          if (id.includes("node_modules/react-hook-form") || id.includes("node_modules/zod")) {
+            return "forms";
+          }
+
+          // Routing
+          if (id.includes("node_modules/wouter")) {
+            return "router";
+          }
+
+          // State management
+          if (id.includes("node_modules/zustand")) {
+            return "zustand";
+          }
+
+          // Other vendor libraries
+          if (id.includes("node_modules")) {
+            return "vendor";
+          }
+        },
       },
-      // Let Vite handle entry signatures automatically for proper dependency resolution
       preserveEntrySignatures: false,
     },
 
