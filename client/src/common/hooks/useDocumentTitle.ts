@@ -2,6 +2,7 @@
 import { useLocation } from 'wouter';
 import { useAuthStore } from '@/core/auth/authStore';
 import { useAuthHydration } from '@/common/hooks/useAuthHydration';
+import { brand } from '@/lib/config';
 
 /**
  * Route to title mapping
@@ -56,20 +57,23 @@ export function useDocumentTitle() {
     // This prevents "Login | Velonex" flash during refresh
     const isRefreshing = !isHydrated || (isAuthInitializing && user);
     
+    const brandName = brand.getName();
+    const appTitle = brand.getAppTitle();
+    
     if (isRefreshing) {
-      document.title = 'Velonex - Loading...';
+      document.title = `${brandName} - Loading...`;
       return;
     }
 
     // If not authenticated and no user data, show Login title
     // This is the actual login page (not during refresh)
     if (!isAuthenticated && !user) {
-      document.title = 'Login | Velonex';
+      document.title = `Login | ${brandName}`;
       return;
     }
 
     // Get page title from route
-    const pageTitle = routeTitleMap[location] || 'Velonex';
+    const pageTitle = routeTitleMap[location] || brandName;
     
     // Get branch name if available
     const branchName = currentBranch?.branch_name 
@@ -77,9 +81,9 @@ export function useDocumentTitle() {
       : '';
     
     // Construct full title
-    const fullTitle = pageTitle === 'Velonex' 
-      ? `Velonex${branchName} - Educational Institute Management`
-      : `${pageTitle}${branchName} | Velonex`;
+    const fullTitle = pageTitle === brandName 
+      ? `${brandName}${branchName} - Educational Institute Management`
+      : `${pageTitle}${branchName} | ${brandName}`;
     
     // Update document title
     document.title = fullTitle;

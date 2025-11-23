@@ -1,6 +1,7 @@
 ﻿import { useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuthStore } from '@/core/auth/authStore';
+import { brand } from '@/lib/config';
 
 /**
  * Route to meta description mapping
@@ -44,9 +45,12 @@ export function SEOHead() {
   const { currentBranch, user } = useAuthStore();
 
   useEffect(() => {
+    const brandName = brand.getName();
+    const brandDescription = brand.getDescription();
+    const brandKeywords = brand.getKeywords();
+    
     // Get page-specific description
-    const description = routeDescriptionMap[location] || 
-      'Velonex - Comprehensive educational institute management system with multi-tenant support, role-based access, and analytics dashboards.';
+    const description = routeDescriptionMap[location] || brandDescription;
     
     // Get branch name
     const branchName = currentBranch?.branch_name || 'Educational Institute';
@@ -65,8 +69,8 @@ export function SEOHead() {
 
     // Basic SEO meta tags
     updateMetaTag('description', description);
-    updateMetaTag('keywords', `Velonex, ${branchType.toLowerCase()}, educational management, school management, college management, ERP, student management, fee management, attendance tracking`);
-    updateMetaTag('author', 'Velonex');
+    updateMetaTag('keywords', `${brandName}, ${branchType.toLowerCase()}, ${brandKeywords}`);
+    updateMetaTag('author', brandName);
     updateMetaTag('robots', 'index, follow');
     updateMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1');
     
@@ -74,7 +78,7 @@ export function SEOHead() {
     updateMetaTag('og:title', document.title, 'property');
     updateMetaTag('og:description', description, 'property');
     updateMetaTag('og:type', 'website', 'property');
-    updateMetaTag('og:site_name', 'Velonex', 'property');
+    updateMetaTag('og:site_name', brandName, 'property');
     updateMetaTag('og:locale', 'en_US', 'property');
     
     // Twitter Card meta tags
@@ -83,8 +87,8 @@ export function SEOHead() {
     updateMetaTag('twitter:description', description);
     
     // Additional meta tags
-    updateMetaTag('application-name', 'Velonex');
-    updateMetaTag('apple-mobile-web-app-title', 'Velonex');
+    updateMetaTag('application-name', brandName);
+    updateMetaTag('apple-mobile-web-app-title', brandName);
     updateMetaTag('theme-color', '#3b82f6'); // Blue theme color
     
     // Canonical URL

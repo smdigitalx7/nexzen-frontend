@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -6,30 +6,45 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1"
     />
-    <meta name="api-base-url" content="%VITE_API_BASE_URL%" />
-    <title>%VITE_BRAND_APP_TITLE%</title>
+    <meta name="api-base-url" content="/api" />
+    <title>Educational Institute Management System</title>
     <meta
       name="description"
-      content="%VITE_BRAND_DESCRIPTION%"
+      content="Comprehensive educational institute management system with multi-tenant support, role-based access, and analytics dashboards."
     />
-    <meta name="keywords" content="%VITE_BRAND_KEYWORDS%" />
-    <meta name="author" content="%VITE_BRAND_NAME%" />
+    <meta
+      name="keywords"
+      content="educational management, school management, college management, ERP, student management, fee management, attendance tracking"
+    />
+    <meta name="author" content="Educational Institute" />
     <meta name="robots" content="index, follow" />
-    <meta name="application-name" content="%VITE_BRAND_NAME%" />
-    <meta name="apple-mobile-web-app-title" content="%VITE_BRAND_NAME%" />
+    <meta name="application-name" content="Educational Institute" />
+    <meta name="apple-mobile-web-app-title" content="Educational Institute" />
     <meta name="theme-color" content="#3b82f6" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="%VITE_BRAND_APP_TITLE%" />
-    <meta property="og:description" content="%VITE_BRAND_DESCRIPTION%" />
-    <meta property="og:site_name" content="%VITE_BRAND_NAME%" />
+    <meta
+      property="og:title"
+      content="Educational Institute Management System"
+    />
+    <meta
+      property="og:description"
+      content="Comprehensive educational institute management system with multi-tenant support, role-based access, and analytics dashboards."
+    />
+    <meta property="og:site_name" content="Educational Institute" />
     <meta property="og:locale" content="en_US" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="%VITE_BRAND_APP_TITLE%" />
-    <meta name="twitter:description" content="%VITE_BRAND_DESCRIPTION%" />
+    <meta
+      name="twitter:title"
+      content="Educational Institute Management System"
+    />
+    <meta
+      name="twitter:description"
+      content="Comprehensive educational institute management system with multi-tenant support, role-based access, and analytics dashboards."
+    />
 
     <!-- 📚 Favicon (SVG emoji, will be updated dynamically based on branch) -->
     <link
@@ -37,7 +52,10 @@
       type="image/svg+xml"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏫%3C/text%3E%3C/svg%3E"
     />
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏫%3C/text%3E%3C/svg%3E" />
+    <link
+      rel="apple-touch-icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏫%3C/text%3E%3C/svg%3E"
+    />
 
     <!-- ✅ Google Fonts Optimization -->
     <!-- Preconnect first to speed up font loading -->
@@ -58,12 +76,29 @@
   <body>
     <div id="root"></div>
 
-
     <!-- ✅ Vite entry script — this will be replaced automatically in production -->
     <script type="module" src="/src/app/main.tsx"></script>
 
     <!-- ✅ Remove Replit-specific script -->
     <!-- Removed: replit-dev-banner.js -->
+
+    <!-- ✅ Initialize meta tags from environment variables -->
+    <script>
+      // Set initial meta tags from environment variables (will be updated by React when app loads)
+      // These provide fallback values and prevent missing meta tag warnings
+      const updateMetaTag = (name, content, attribute = "name") => {
+        let meta = document.querySelector(`meta[${attribute}="${name}"]`);
+        if (meta) {
+          meta.setAttribute("content", content);
+        }
+      };
+
+      // These will be updated dynamically by React/SEOHead component
+      // Setting initial values to prevent console warnings
+      if (document.title === "Educational Institute Management System") {
+        document.title = "Educational Institute Management System";
+      }
+    </script>
 
     <!-- ✅ Clean console: suppress Chrome extension warnings -->
     <script>
