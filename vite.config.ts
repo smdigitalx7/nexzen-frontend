@@ -38,6 +38,8 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "client", "src"),
     },
+    // Ensure React is deduplicated across all chunks
+    dedupe: ["react", "react-dom"],
   },
 
   optimizeDeps: {
@@ -84,10 +86,17 @@ export default defineConfig({
           return `assets/[name]-[hash].${ext}`;
         },
         // Manual chunking strategy to split large dependencies
+        // NOTE: React and React-DOM are NOT split out - they stay in the main bundle
+        // to avoid "Cannot read properties of undefined" errors
         manualChunks: (id) => {
-          // React core libraries
-          if (id.includes("node_modules/react") || id.includes("node_modules/react-dom") || id.includes("node_modules/scheduler")) {
-            return "react-vendor";
+          // DO NOT split React/ReactDOM - keep them in main bundle
+          // This prevents "Cannot read properties of undefined (reading 'useLayoutEffect')" errors
+          if (
+            id.includes("node_modules/react") ||
+            id.includes("node_modules/react-dom") ||
+            id.includes("node_modules/scheduler")
+          ) {
+            return undefined; // Keep in main bundle
           }
 
           // Radix UI components (many packages, group together)
@@ -131,7 +140,10 @@ export default defineConfig({
           }
 
           // Form handling
-          if (id.includes("node_modules/react-hook-form") || id.includes("node_modules/zod")) {
+          if (
+            id.includes("node_modules/react-hook-form") ||
+            id.includes("node_modules/zod")
+          ) {
             return "forms";
           }
 
@@ -154,7 +166,7 @@ export default defineConfig({
       preserveEntrySignatures: false,
     },
 
-    modulePreload: { 
+    modulePreload: {
       polyfill: true,
       // Ensure entry point is preloaded before other chunks
       // This ensures React (in main bundle) loads before Radix UI chunks
