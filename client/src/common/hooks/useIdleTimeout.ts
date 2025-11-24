@@ -1,10 +1,10 @@
 ﻿/**
  * Idle Session Timeout Hook
- * 
+ *
  * WHAT: Automatically logs out the user after 5 minutes of inactivity
  * WHY: Extra security and compliance - ensures users don't leave sessions open
  * HOW: Listens to user activity events (mouse, keyboard, scroll, touch) and resets timer
- * 
+ *
  * IMPORTANT: This is frontend-only and independent from JWT expiry
  * The refreshToken cookie might still exist, but UX-wise we log the user out
  */
@@ -19,7 +19,8 @@ const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
  * Automatically logs out user after 5 minutes of inactivity
  */
 export function useIdleTimeout() {
-  const { logout, isAuthenticated, isLoggingOut, isTokenRefreshing } = useAuthStore();
+  const { logout, isAuthenticated, isLoggingOut, isTokenRefreshing } =
+    useAuthStore();
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
 
@@ -50,14 +51,20 @@ export function useIdleTimeout() {
       idleTimerRef.current = setTimeout(() => {
         // CRITICAL: Check state again before logging out (race condition protection)
         const currentState = useAuthStore.getState();
-        
+
         // Don't logout if:
         // 1. Already logging out (prevent double logout)
         // 2. Token is refreshing (user might be active, just waiting for refresh)
         // 3. Not authenticated anymore (already logged out)
-        if (currentState.isLoggingOut || currentState.isTokenRefreshing || !currentState.isAuthenticated) {
+        if (
+          currentState.isLoggingOut ||
+          currentState.isTokenRefreshing ||
+          !currentState.isAuthenticated
+        ) {
           if (process.env.NODE_ENV === "development") {
-            console.log("Idle timeout: Skipping logout - already logging out, refreshing, or not authenticated");
+            console.log(
+              "Idle timeout: Skipping logout - already logging out, refreshing, or not authenticated"
+            );
           }
           return;
         }
@@ -73,7 +80,10 @@ export function useIdleTimeout() {
           .then(() => {
             // Ensure redirect happens even if logout doesn't redirect
             // This is a safety net - logout() should already redirect
-            if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+            if (
+              typeof window !== "undefined" &&
+              window.location.pathname !== "/login"
+            ) {
               // Force redirect to login page
               window.location.href = "/login";
             }
@@ -99,9 +109,12 @@ export function useIdleTimeout() {
       "keypress",
     ];
 
+    // ✅ FIX: Store stable handler reference for proper cleanup
+    const handler = resetIdleTimer;
+
     // Add event listeners
     activityEvents.forEach((event) => {
-      window.addEventListener(event, resetIdleTimer, { passive: true });
+      window.addEventListener(event, handler, { passive: true });
     });
 
     // Initialize timer
@@ -109,9 +122,9 @@ export function useIdleTimeout() {
 
     // Cleanup function
     return () => {
-      // Remove event listeners
+      // ✅ FIX: Remove event listeners with same reference
       activityEvents.forEach((event) => {
-        window.removeEventListener(event, resetIdleTimer);
+        window.removeEventListener(event, handler);
       });
 
       // Clear timer
@@ -122,4 +135,3 @@ export function useIdleTimeout() {
     };
   }, [isAuthenticated, isLoggingOut, isTokenRefreshing, logout]);
 }
-

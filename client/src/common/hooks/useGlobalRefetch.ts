@@ -80,7 +80,7 @@ export type EntityType = keyof typeof ENTITY_QUERY_MAP;
 /**
  * Global Refetch Hook
  * Provides centralized query invalidation for entities
- * 
+ *
  * Note: React Query handles refetching automatically - no debouncing needed
  */
 
@@ -111,7 +111,7 @@ export function invalidateAndRefetch(queryKey: QueryKey) {
  * 1. Using startTransition to mark as non-urgent
  * 2. Only invalidating exact matches or specific patterns
  * 3. Deferring heavy operations
- * 
+ *
  * @param queryKey - The query key to invalidate
  * @param options - Invalidation options
  */
@@ -119,18 +119,18 @@ export function invalidateQueriesSelective(
   queryKey: QueryKey,
   options?: {
     exact?: boolean;
-    refetchType?: 'active' | 'inactive' | 'all' | 'none';
+    refetchType?: "active" | "inactive" | "all" | "none";
     useTransition?: boolean;
     delay?: number;
   }
 ) {
-  const { 
+  const {
     exact = true, // Default to exact match to prevent over-invalidation
-    refetchType = 'active', 
+    refetchType = "active",
     useTransition = true,
-    delay = 0
+    delay = 0,
   } = options || {};
-  
+
   const invalidate = () => {
     queryClient.invalidateQueries({
       queryKey,
@@ -138,7 +138,7 @@ export function invalidateQueriesSelective(
       refetchType, // Only refetch active queries by default
     });
   };
-  
+
   const execute = () => {
     if (useTransition) {
       // ✅ Use React's startTransition to mark as non-urgent (prevents UI blocking)
@@ -149,7 +149,7 @@ export function invalidateQueriesSelective(
       invalidate();
     }
   };
-  
+
   if (delay > 0) {
     setTimeout(execute, delay);
   } else {
@@ -160,7 +160,7 @@ export function invalidateQueriesSelective(
 /**
  * Batch invalidate multiple query keys
  * React Query handles refetching automatically
- * 
+ *
  * ✅ FIX: Explicitly set exact: false to ensure prefix matching works correctly
  */
 export function batchInvalidateQueries(queryKeys: QueryKey[]) {
@@ -178,17 +178,17 @@ export function batchInvalidateQueries(queryKeys: QueryKey[]) {
 export function batchInvalidateQueriesSelective(
   queryKeys: QueryKey[],
   options?: {
-    refetchType?: 'active' | 'inactive' | 'all' | 'none';
+    refetchType?: "active" | "inactive" | "all" | "none";
     useTransition?: boolean;
     delay?: number;
   }
 ) {
   const {
-    refetchType = 'none', // ✅ Default to 'none' to prevent immediate refetch
+    refetchType = "none", // ✅ Default to 'none' to prevent immediate refetch
     useTransition = true,
-    delay = 0
+    delay = 0,
   } = options || {};
-  
+
   const invalidate = () => {
     queryKeys.forEach((key) => {
       queryClient.invalidateQueries({
@@ -198,7 +198,7 @@ export function batchInvalidateQueriesSelective(
       });
     });
   };
-  
+
   const execute = () => {
     if (useTransition) {
       startTransition(() => {
@@ -208,25 +208,39 @@ export function batchInvalidateQueriesSelective(
       invalidate();
     }
   };
-  
+
   if (delay > 0) {
     setTimeout(execute, delay);
   } else {
     execute();
   }
-  
-  // Manually refetch with staggered delays
+
+  // ✅ FIX: Manually refetch with staggered delays (with cleanup tracking)
+  const rafIds: number[] = [];
+  const timeoutIds: NodeJS.Timeout[] = [];
+
   queryKeys.forEach((key, index) => {
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        queryClient.refetchQueries({
-          queryKey: key,
-          exact: false,
-          type: 'active',
-        });
-      }, 200 + (index * 50)); // Stagger refetches by 50ms each
+    const rafId = requestAnimationFrame(() => {
+      const timeoutId = setTimeout(
+        () => {
+          queryClient.refetchQueries({
+            queryKey: key,
+            exact: false,
+            type: "active",
+          });
+        },
+        200 + index * 50
+      ); // Stagger refetches by 50ms each
+      timeoutIds.push(timeoutId);
     });
+    rafIds.push(rafId);
   });
+
+  // ✅ FIX: Return cleanup function to cancel pending operations
+  return () => {
+    rafIds.forEach((id) => cancelAnimationFrame(id));
+    timeoutIds.forEach((id) => clearTimeout(id));
+  };
 }
 
 /**
@@ -235,7 +249,7 @@ export function batchInvalidateQueriesSelective(
 export function batchInvalidateAndRefetch(queryKeys: QueryKey[]) {
   // ✅ FIX: Use selective invalidation to prevent UI freezing
   batchInvalidateQueriesSelective(queryKeys, {
-    refetchType: 'none',
+    refetchType: "none",
     delay: 0,
   });
 }

@@ -1951,10 +1951,10 @@ export default function ReservationNew() {
       <ReceiptPreviewModal
         isOpen={showReceipt && !!receiptBlobUrl}
         onClose={() => {
-          // ✅ CRITICAL: Close modal state IMMEDIATELY - synchronous, no blocking
+          // ✅ CRITICAL FIX: Close modal state IMMEDIATELY - synchronous, no blocking
           setShowReceipt(false);
           
-          // ✅ CRITICAL: Clean up blob URL immediately (synchronous, lightweight)
+          // ✅ CRITICAL FIX: Clean up blob URL immediately (synchronous, lightweight)
           if (receiptBlobUrl) {
             try {
               URL.revokeObjectURL(receiptBlobUrl);
@@ -1965,44 +1965,18 @@ export default function ReservationNew() {
           }
           setPaymentIncomeRecord(null);
           
-          // ✅ DEFER: All heavy operations using requestIdleCallback for truly non-blocking execution
-          // This ensures UI remains responsive even during data refresh
-          const scheduleRefresh = () => {
-            if ('requestIdleCallback' in window) {
-              requestIdleCallback(
-                () => {
-                  // Invalidate queries (non-blocking, debounced internally)
-                  invalidateAndRefetch(collegeKeys.reservations.root());
-                  
-                  // Call refetch callback if provided (non-blocking)
-                  if (refetchReservations) {
-                    // Use setTimeout to ensure it's truly async and doesn't block
-                    setTimeout(() => {
-                      void refetchReservations();
-                    }, 0);
-                  }
-                },
-                { timeout: 1000 } // Fallback if browser is busy
-              );
-            } else {
-              // Fallback for browsers without requestIdleCallback
-              requestAnimationFrame(() => {
-                setTimeout(() => {
-                  invalidateAndRefetch(collegeKeys.reservations.root());
-                  if (refetchReservations) {
-                    setTimeout(() => {
-                      void refetchReservations();
-                    }, 0);
-                  }
-                }, 300); // Longer delay for fallback
-              });
+          // ✅ CRITICAL FIX: Simplified async operations - single setTimeout instead of nested callbacks
+          // Removed nested requestAnimationFrame/setTimeout/requestIdleCallback cascade
+          // This prevents UI freezing by avoiding multiple layers of async delays
+          setTimeout(() => {
+            // Invalidate queries (non-blocking, debounced internally)
+            invalidateAndRefetch(collegeKeys.reservations.root());
+            
+            // Call refetch callback if provided (non-blocking)
+            if (refetchReservations) {
+              void refetchReservations();
             }
-          };
-
-          // Schedule refresh after modal animation completes
-          requestAnimationFrame(() => {
-            setTimeout(scheduleRefresh, 200);
-          });
+          }, 300); // Single delay of 300ms - allows modal close animation to complete without blocking UI
         }}
         blobUrl={receiptBlobUrl}
       />

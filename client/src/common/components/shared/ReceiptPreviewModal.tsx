@@ -21,6 +21,11 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   const [mounted, setMounted] = useState(false);
   const originalOverflowRef = useRef<string>("");
   const isClosingRef = useRef(false);
+  const escapeHandlerRef = useRef<((e: KeyboardEvent) => void) | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  // ✅ FIX: Store timeout refs for cleanup
+  const closingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Ensure component is mounted (for portal)
   useEffect(() => {
@@ -35,39 +40,71 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
     }
     isClosingRef.current = true;
 
-    // IMMEDIATELY restore body overflow - CRITICAL for UI responsiveness
+    // ✅ CRITICAL FIX: Restore body overflow IMMEDIATELY - synchronous, no delay
     // This must happen synchronously before any other operations
     const originalValue = originalOverflowRef.current || "";
     document.body.style.overflow = originalValue;
-    
-    // Reset state immediately
+
+    // ✅ CRITICAL FIX: Clear iframe src immediately to prevent background processing
+    // This prevents the iframe from continuing to render PDF after modal closes
+    if (iframeRef.current) {
+      iframeRef.current.src = "";
+      iframeRef.current = null;
+    }
+
+    // ✅ CRITICAL FIX: Reset state immediately - synchronous
     setIsLoading(false);
     setHasError(false);
-    
-    // Call onClose immediately - must be synchronous, not async
-    // Use requestAnimationFrame to ensure DOM updates complete first
-    requestAnimationFrame(() => {
-      onClose();
-      // Reset closing flag after a brief delay to allow modal to fully unmount
-      setTimeout(() => {
-        isClosingRef.current = false;
-      }, 100);
-    });
-  }, [onClose]);
+
+    // ✅ CRITICAL FIX: Remove Escape key listener immediately - synchronous
+    if (escapeHandlerRef.current) {
+      document.removeEventListener("keydown", escapeHandlerRef.current);
+      escapeHandlerRef.current = null;
+    }
+
+    // ✅ CRITICAL FIX: Call onClose IMMEDIATELY - no requestAnimationFrame delay
+    // This ensures parent component gets the close event immediately
+    onClose();
+
+    // ✅ FIX: Reset closing flag after a brief delay (with cleanup tracking)
+    if (closingTimeoutRef.current) {
+      clearTimeout(closingTimeoutRef.current);
+    }
+    closingTimeoutRef.current = setTimeout(() => {
+      isClosingRef.current = false;
+      closingTimeoutRef.current = null;
+    }, 100);
+  }, [onClose, blobUrl]);
 
   useEffect(() => {
     if (isOpen && blobUrl) {
       setIsLoading(true);
       setHasError(false);
 
-      // Reduced delay to ensure modal shows faster
-      setTimeout(() => {
+      // ✅ FIX: Reduced delay to ensure modal shows faster (with cleanup tracking)
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+      loadingTimeoutRef.current = setTimeout(() => {
         setIsLoading(false);
+        loadingTimeoutRef.current = null;
       }, 200);
     } else if (isOpen && !blobUrl) {
       setHasError(true);
       setIsLoading(false);
     }
+
+    // ✅ FIX: Cleanup timeouts on unmount
+    return () => {
+      if (closingTimeoutRef.current) {
+        clearTimeout(closingTimeoutRef.current);
+        closingTimeoutRef.current = null;
+      }
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+    };
   }, [isOpen, blobUrl]);
 
   // Prevent body scroll when modal is open - with proper cleanup
@@ -87,7 +124,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
       originalOverflowRef.current = "";
     }
     return () => {
-      // Always restore on unmount - critical cleanup
+      // ✅ FIX: Always restore on unmount - critical cleanup
       // Use synchronous operation to ensure it happens immediately
       const originalValue = originalOverflowRef.current || "";
       if (originalValue) {
@@ -100,20 +137,51 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
     };
   }, [isOpen]);
 
-  // Handle Escape key
+  // ✅ FIX: Additional safety net - restore body overflow on beforeunload
   useEffect(() => {
+    const handleBeforeUnload = () => {
+      document.body.style.overflow = originalOverflowRef.current || "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      // Restore on unmount as well
+      document.body.style.overflow = originalOverflowRef.current || "";
+    };
+  }, []);
+
+  // ✅ FIX: Handle Escape key with stable handler reference
+  useEffect(() => {
+    if (!isOpen) return;
+
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
+      if (e.key === "Escape") {
         handleConfirmClose();
       }
     };
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-    }
+
+    escapeHandlerRef.current = handleEscape;
+    document.addEventListener("keydown", handleEscape);
+
     return () => {
-      document.removeEventListener("keydown", handleEscape);
+      if (escapeHandlerRef.current) {
+        document.removeEventListener("keydown", escapeHandlerRef.current);
+        escapeHandlerRef.current = null;
+      }
     };
   }, [isOpen, handleConfirmClose]);
+
+  // ✅ FIX: Cleanup iframe on unmount
+  useEffect(() => {
+    return () => {
+      if (iframeRef.current) {
+        iframeRef.current.src = "";
+        iframeRef.current = null;
+      }
+    };
+  }, []);
 
   const handlePrint = () => {
     if (blobUrl) {
@@ -300,6 +368,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
         {blobUrl ? (
           <div className="w-full h-full">
             <iframe
+              ref={iframeRef}
               key={blobUrl} // Force remount when blobUrl changes
               src={blobUrl}
               className="w-full h-full border-0"

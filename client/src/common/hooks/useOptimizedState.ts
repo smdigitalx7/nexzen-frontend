@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from "react";
 
 interface UseOptimizedStateProps<T> {
   initialValue: T;
@@ -28,59 +28,86 @@ export const useOptimizedState = <T>({
     if (a === b) return true;
     if (a == null || b == null) return false;
     if (typeof a !== typeof b) return false;
-    
-    if (typeof a === 'object') {
+
+    if (typeof a === "object") {
       const keysA = Object.keys(a);
       const keysB = Object.keys(b);
-      
+
       if (keysA.length !== keysB.length) return false;
-      
+
       for (const key of keysA) {
         if (!keysB.includes(key)) return false;
-        if (!deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])) return false;
+        if (
+          !deepEqual(
+            (a as Record<string, unknown>)[key],
+            (b as Record<string, unknown>)[key]
+          )
+        )
+          return false;
       }
-      
+
       return true;
     }
-    
+
     return false;
   }, []);
 
-  const optimizedSetState = useCallback((newState: T | ((prev: T) => T)) => {
-    const updateState = (value: T) => {
-      const isEqual = deepCompare ? deepEqual(state, value) : state === value;
-      
-      if (!isEqual) {
-        previousStateRef.current = state;
-        setState(value);
-        setHasChanged(true);
-      }
-    };
+  const optimizedSetState = useCallback(
+    (newState: T | ((prev: T) => T)) => {
+      const updateState = (value: T) => {
+        const isEqual = deepCompare ? deepEqual(state, value) : state === value;
 
-    if (debounceMs > 0) {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-      
-      debounceTimeoutRef.current = setTimeout(() => {
-        const value = typeof newState === 'function' 
-          ? (newState as (prev: T) => T)(state) 
-          : newState;
+        if (!isEqual) {
+          previousStateRef.current = state;
+          setState(value);
+          setHasChanged(true);
+        }
+      };
+
+      if (debounceMs > 0) {
+        if (debounceTimeoutRef.current) {
+          clearTimeout(debounceTimeoutRef.current);
+        }
+
+        debounceTimeoutRef.current = setTimeout(() => {
+          const value =
+            typeof newState === "function"
+              ? (newState as (prev: T) => T)(state)
+              : newState;
+          updateState(value);
+        }, debounceMs);
+      } else {
+        const value =
+          typeof newState === "function"
+            ? (newState as (prev: T) => T)(state)
+            : newState;
         updateState(value);
-      }, debounceMs);
-    } else {
-      const value = typeof newState === 'function' 
-        ? (newState as (prev: T) => T)(state) 
-        : newState;
-      updateState(value);
-    }
-  }, [state, deepCompare, deepEqual, debounceMs]);
+      }
+    },
+    [state, deepCompare, deepEqual, debounceMs]
+  );
 
   const resetState = useCallback(() => {
     setState(initialValue);
     setHasChanged(false);
     previousStateRef.current = null;
+
+    // ✅ FIX: Clear timeout on reset
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = null;
+    }
   }, [initialValue]);
+
+  // ✅ FIX: Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+        debounceTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const previousState = previousStateRef.current;
 

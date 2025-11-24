@@ -4,9 +4,7 @@ import {
   SchoolAdmissionListItem,
   SchoolAdmissionDetails,
 } from "@/features/school/types/admissions";
-import {
-  CollegeAdmissionDetails,
-} from "@/features/college/types/admissions";
+import { CollegeAdmissionDetails } from "@/features/college/types/admissions";
 import { assets, brand } from "@/lib/config";
 
 /**
@@ -46,53 +44,94 @@ export async function exportAdmissionsToExcel(
   headerRow.alignment = { vertical: "middle", horizontal: "center" };
   headerRow.height = 25;
 
-  // Add data rows
-  admissions.forEach((admission) => {
-    const row = worksheet.addRow({
-      student_id: admission.student_id,
-      admission_no: admission.admission_no,
-      admission_date: admission.admission_date,
-      student_name: admission.student_name,
-      class_name: admission.class_name,
-      admission_fee_paid: admission.admission_fee_paid,
-      payable_tuition_fee: admission.payable_tuition_fee,
-      payable_transport_fee: admission.payable_transport_fee,
-    });
+  // ✅ FIX: Add data rows in chunks to prevent UI blocking
+  const CHUNK_SIZE = 50;
+  const processAdmissionChunk = async (startIndex: number) => {
+    const endIndex = Math.min(startIndex + CHUNK_SIZE, admissions.length);
 
-    // Style data rows
-    row.alignment = { vertical: "middle", horizontal: "left" };
-    row.height = 20;
+    for (let i = startIndex; i < endIndex; i++) {
+      const admission = admissions[i];
+      const row = worksheet.addRow({
+        student_id: admission.student_id,
+        admission_no: admission.admission_no,
+        admission_date: admission.admission_date,
+        student_name: admission.student_name,
+        class_name: admission.class_name,
+        admission_fee_paid: admission.admission_fee_paid,
+        payable_tuition_fee: admission.payable_tuition_fee,
+        payable_transport_fee: admission.payable_transport_fee,
+      });
 
-    // Conditional formatting for admission fee status
-    const statusCell = row.getCell("admission_fee_paid");
-    if (admission.admission_fee_paid === "PAID") {
-      statusCell.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFD4EDDA" }, // Light green
-      };
-      statusCell.font = { color: { argb: "FF155724" }, bold: true };
-    } else if (admission.admission_fee_paid === "PENDING") {
-      statusCell.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFFFF3CD" }, // Light yellow
-      };
-      statusCell.font = { color: { argb: "FF856404" }, bold: true };
+      // Style data rows
+      row.alignment = { vertical: "middle", horizontal: "left" };
+      row.height = 20;
+
+      // Conditional formatting for admission fee status
+      const statusCell = row.getCell("admission_fee_paid");
+      if (admission.admission_fee_paid === "PAID") {
+        statusCell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFD4EDDA" }, // Light green
+        };
+        statusCell.font = { color: { argb: "FF155724" }, bold: true };
+      } else if (admission.admission_fee_paid === "PENDING") {
+        statusCell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFFFF3CD" }, // Light yellow
+        };
+        statusCell.font = { color: { argb: "FF856404" }, bold: true };
+      }
     }
-  });
 
-  // Add borders to all cells
-  worksheet.eachRow((row, rowNumber) => {
-    row.eachCell((cell) => {
-      cell.border = {
-        top: { style: "thin" },
-        left: { style: "thin" },
-        bottom: { style: "thin" },
-        right: { style: "thin" },
-      };
-    });
-  });
+    // Yield to browser if more chunks remain
+    if (endIndex < admissions.length) {
+      await new Promise<void>((resolve) => {
+        if ("requestIdleCallback" in window) {
+          requestIdleCallback(() => resolve(), { timeout: 50 });
+        } else {
+          setTimeout(() => resolve(), 0);
+        }
+      });
+      await processAdmissionChunk(endIndex);
+    }
+  };
+
+  await processAdmissionChunk(0);
+
+  // ✅ FIX: Add borders to all cells in chunks
+  const processBorderChunk = async (startRow: number) => {
+    const endRow = Math.min(startRow + CHUNK_SIZE, worksheet.rowCount);
+
+    for (let rowNumber = startRow; rowNumber <= endRow; rowNumber++) {
+      const row = worksheet.getRow(rowNumber);
+      if (row) {
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
+          };
+        });
+      }
+    }
+
+    // Yield to browser if more chunks remain
+    if (endRow < worksheet.rowCount) {
+      await new Promise<void>((resolve) => {
+        if ("requestIdleCallback" in window) {
+          requestIdleCallback(() => resolve(), { timeout: 50 });
+        } else {
+          setTimeout(() => resolve(), 0);
+        }
+      });
+      await processBorderChunk(endRow + 1);
+    }
+  };
+
+  await processBorderChunk(1);
 
   // Add summary row
   const lastRow = worksheet.lastRow;
@@ -284,18 +323,40 @@ export async function exportSingleAdmissionToExcel(
     `₹${admission.payable_transport_fee || 0}`,
   ]);
 
-  // Style all label cells (column A)
-  worksheet.eachRow((row, rowNumber) => {
-    if (rowNumber > 1) {
-      const labelCell = row.getCell(1);
-      labelCell.font = { bold: true };
-      labelCell.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFF3F4F6" },
-      };
+  // ✅ FIX: Style all label cells (column A) in chunks to prevent UI blocking
+  const CHUNK_SIZE = 50;
+  const processLabelChunk = async (startRow: number) => {
+    const endRow = Math.min(startRow + CHUNK_SIZE, worksheet.rowCount);
+
+    for (let rowNumber = startRow; rowNumber <= endRow; rowNumber++) {
+      if (rowNumber > 1) {
+        const row = worksheet.getRow(rowNumber);
+        if (row) {
+          const labelCell = row.getCell(1);
+          labelCell.font = { bold: true };
+          labelCell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFF3F4F6" },
+          };
+        }
+      }
     }
-  });
+
+    // Yield to browser if more chunks remain
+    if (endRow < worksheet.rowCount) {
+      await new Promise<void>((resolve) => {
+        if ("requestIdleCallback" in window) {
+          requestIdleCallback(() => resolve(), { timeout: 50 });
+        } else {
+          setTimeout(() => resolve(), 0);
+        }
+      });
+      await processLabelChunk(endRow + 1);
+    }
+  };
+
+  await processLabelChunk(1);
 
   // Generate and download
   const buffer = await workbook.xlsx.writeBuffer();
@@ -328,7 +389,7 @@ export async function exportSchoolAdmissionFormToPDF(
   // Try to load logo
   let logoDataUrl: string | null = null;
   try {
-    const response = await fetch(assets.logo('school'));
+    const response = await fetch(assets.logo("school"));
     const blob = await response.blob();
     logoDataUrl = await new Promise<string>((resolve) => {
       const reader = new FileReader();
@@ -345,13 +406,20 @@ export async function exportSchoolAdmissionFormToPDF(
   // Set header text position for vertical alignment
   const headerYPos = yPos + 2;
   const headerFontSize = 20;
-  
+
   // Left-align logo if present - align vertically with header text
   if (logoDataUrl) {
     const logoWidth = 25;
     const logoHeight = 25;
-    const logoYPos = headerYPos - (logoHeight / 2);
-    doc.addImage(logoDataUrl, "PNG", margin + 2, logoYPos, logoWidth, logoHeight);
+    const logoYPos = headerYPos - logoHeight / 2;
+    doc.addImage(
+      logoDataUrl,
+      "PNG",
+      margin + 2,
+      logoYPos,
+      logoWidth,
+      logoHeight
+    );
   }
 
   doc.setFontSize(headerFontSize);
@@ -368,7 +436,7 @@ export async function exportSchoolAdmissionFormToPDF(
   doc.text("STUDENT ADMISSION FORM", pageWidth / 2, headerYPos + 6, {
     align: "center",
   });
-  
+
   yPos = headerYPos + 18;
   doc.line(margin, yPos, pageWidth - margin, yPos);
   yPos += 7;
@@ -376,9 +444,21 @@ export async function exportSchoolAdmissionFormToPDF(
   // Admission Info (Compact)
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.text(`Admission No: ${String(admission.admission_no || "")}`, margin, yPos);
-  doc.text(`Date: ${String(admission.admission_date || "")}`, pageWidth / 2, yPos);
-  doc.text(`A.Y: ${String(admission.academic_year || "")}`, pageWidth - margin - 30, yPos);
+  doc.text(
+    `Admission No: ${String(admission.admission_no || "")}`,
+    margin,
+    yPos
+  );
+  doc.text(
+    `Date: ${String(admission.admission_date || "")}`,
+    pageWidth / 2,
+    yPos
+  );
+  doc.text(
+    `A.Y: ${String(admission.academic_year || "")}`,
+    pageWidth - margin - 30,
+    yPos
+  );
   yPos += 8;
 
   // Two-column layout for clean design
@@ -431,23 +511,39 @@ export async function exportSchoolAdmissionFormToPDF(
   doc.setFont("helvetica", "bold");
   doc.text("Name:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(String(admission.father_or_guardian_name || ""), col1 + labelWidth, yPos);
+  doc.text(
+    String(admission.father_or_guardian_name || ""),
+    col1 + labelWidth,
+    yPos
+  );
 
   doc.setFont("helvetica", "bold");
   doc.text("Occupation:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(String(admission.father_or_guardian_occupation || ""), col2 + labelWidth, yPos);
+  doc.text(
+    String(admission.father_or_guardian_occupation || ""),
+    col2 + labelWidth,
+    yPos
+  );
   yPos += lineHeight;
 
   doc.setFont("helvetica", "bold");
   doc.text("Aadhar:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(String(admission.father_or_guardian_aadhar_no || ""), col1 + labelWidth, yPos);
+  doc.text(
+    String(admission.father_or_guardian_aadhar_no || ""),
+    col1 + labelWidth,
+    yPos
+  );
 
   doc.setFont("helvetica", "bold");
   doc.text("Mobile:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(String(admission.father_or_guardian_mobile || ""), col2 + labelWidth, yPos);
+  doc.text(
+    String(admission.father_or_guardian_mobile || ""),
+    col2 + labelWidth,
+    yPos
+  );
   yPos += 8;
 
   // MOTHER/GUARDIAN
@@ -462,23 +558,39 @@ export async function exportSchoolAdmissionFormToPDF(
   doc.setFont("helvetica", "bold");
   doc.text("Name:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(String(admission.mother_or_guardian_name || ""), col1 + labelWidth, yPos);
+  doc.text(
+    String(admission.mother_or_guardian_name || ""),
+    col1 + labelWidth,
+    yPos
+  );
 
   doc.setFont("helvetica", "bold");
   doc.text("Occupation:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(String(admission.mother_or_guardian_occupation || ""), col2 + labelWidth, yPos);
+  doc.text(
+    String(admission.mother_or_guardian_occupation || ""),
+    col2 + labelWidth,
+    yPos
+  );
   yPos += lineHeight;
 
   doc.setFont("helvetica", "bold");
   doc.text("Aadhar:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(String(admission.mother_or_guardian_aadhar_no || ""), col1 + labelWidth, yPos);
+  doc.text(
+    String(admission.mother_or_guardian_aadhar_no || ""),
+    col1 + labelWidth,
+    yPos
+  );
 
   doc.setFont("helvetica", "bold");
   doc.text("Mobile:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(String(admission.mother_or_guardian_mobile || ""), col2 + labelWidth, yPos);
+  doc.text(
+    String(admission.mother_or_guardian_mobile || ""),
+    col2 + labelWidth,
+    yPos
+  );
   yPos += 8;
 
   // ADDRESS
@@ -493,13 +605,19 @@ export async function exportSchoolAdmissionFormToPDF(
   doc.setFont("helvetica", "bold");
   doc.text("Present:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  const presentLines = doc.splitTextToSize(String(admission.present_address || ""), 75);
+  const presentLines = doc.splitTextToSize(
+    String(admission.present_address || ""),
+    75
+  );
   doc.text(presentLines, col1 + labelWidth, yPos);
 
   doc.setFont("helvetica", "bold");
   doc.text("Permanent:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  const permanentLines = doc.splitTextToSize(String(admission.permanent_address || ""), 75);
+  const permanentLines = doc.splitTextToSize(
+    String(admission.permanent_address || ""),
+    75
+  );
   doc.text(permanentLines, col2 + labelWidth, yPos);
   yPos += Math.max(presentLines.length, permanentLines.length) * 4.5 + 6;
 
@@ -546,7 +664,13 @@ export async function exportSchoolAdmissionFormToPDF(
       String(admission.payable_tuition_fee || "").split(" ")[0],
       "Pending",
     ],
-    ["Book Fee", String(admission.book_fee || ""), "-", String(admission.book_fee || ""), "Pending"],
+    [
+      "Book Fee",
+      String(admission.book_fee || ""),
+      "-",
+      String(admission.book_fee || ""),
+      "Pending",
+    ],
   ];
 
   if (admission.transport_required === "YES") {
@@ -670,7 +794,7 @@ export async function exportCollegeAdmissionFormToPDF(
   // Try to load logo
   let logoDataUrl: string | null = null;
   try {
-    const response = await fetch(assets.logo('college'));
+    const response = await fetch(assets.logo("college"));
     const blob = await response.blob();
     logoDataUrl = await new Promise<string>((resolve) => {
       const reader = new FileReader();
@@ -687,13 +811,20 @@ export async function exportCollegeAdmissionFormToPDF(
   // Set header text position for vertical alignment
   const headerYPos = yPos + 2;
   const headerFontSize = 20;
-  
+
   // Left-align logo if present - align vertically with header text
   if (logoDataUrl) {
     const logoWidth = 25;
     const logoHeight = 25;
-    const logoYPos = headerYPos - (logoHeight / 2);
-    doc.addImage(logoDataUrl, "PNG", margin + 2, logoYPos, logoWidth, logoHeight);
+    const logoYPos = headerYPos - logoHeight / 2;
+    doc.addImage(
+      logoDataUrl,
+      "PNG",
+      margin + 2,
+      logoYPos,
+      logoWidth,
+      logoHeight
+    );
   }
 
   doc.setFontSize(headerFontSize);
@@ -710,7 +841,7 @@ export async function exportCollegeAdmissionFormToPDF(
   doc.text("STUDENT ADMISSION FORM", pageWidth / 2, headerYPos + 6, {
     align: "center",
   });
-  
+
   yPos = headerYPos + 18;
   doc.line(margin, yPos, pageWidth - margin, yPos);
   yPos += 7;
@@ -720,7 +851,11 @@ export async function exportCollegeAdmissionFormToPDF(
   doc.setFont("helvetica", "bold");
   doc.text(`Admission No: ${admission.admission_no || "N/A"}`, margin, yPos);
   doc.text(`Date: ${admission.admission_date || "N/A"}`, pageWidth / 2, yPos);
-  doc.text(`A.Y: ${admission.academic_year || "N/A"}`, pageWidth - margin - 30, yPos);
+  doc.text(
+    `A.Y: ${admission.academic_year || "N/A"}`,
+    pageWidth - margin - 30,
+    yPos
+  );
   yPos += 6;
 
   // Two-column layout for compact design
@@ -746,9 +881,10 @@ export async function exportCollegeAdmissionFormToPDF(
   doc.setFont("helvetica", "bold");
   doc.text("Group/Course:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  const groupCourse = admission.group_name && admission.course_name
-    ? `${admission.group_name} - ${admission.course_name}`
-    : admission.group_name || admission.course_name || "N/A";
+  const groupCourse =
+    admission.group_name && admission.course_name
+      ? `${admission.group_name} - ${admission.course_name}`
+      : admission.group_name || admission.course_name || "N/A";
   doc.text(groupCourse, col2 + 25, yPos);
   yPos += lineHeight;
 
@@ -786,7 +922,11 @@ export async function exportCollegeAdmissionFormToPDF(
   doc.setFont("helvetica", "bold");
   doc.text("Aadhar:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(admission.father_or_guardian_aadhar_no || "N/A", col1 + labelWidth, yPos);
+  doc.text(
+    admission.father_or_guardian_aadhar_no || "N/A",
+    col1 + labelWidth,
+    yPos
+  );
 
   doc.setFont("helvetica", "bold");
   doc.text("Mobile:", col2, yPos);
@@ -817,7 +957,11 @@ export async function exportCollegeAdmissionFormToPDF(
   doc.setFont("helvetica", "bold");
   doc.text("Aadhar:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(admission.mother_or_guardian_aadhar_no || "N/A", col1 + labelWidth, yPos);
+  doc.text(
+    admission.mother_or_guardian_aadhar_no || "N/A",
+    col1 + labelWidth,
+    yPos
+  );
 
   doc.setFont("helvetica", "bold");
   doc.text("Mobile:", col2, yPos);
@@ -837,13 +981,19 @@ export async function exportCollegeAdmissionFormToPDF(
   doc.setFont("helvetica", "bold");
   doc.text("Present:", col1, yPos);
   doc.setFont("helvetica", "normal");
-  const presentLines = doc.splitTextToSize(admission.present_address || "N/A", 75);
+  const presentLines = doc.splitTextToSize(
+    admission.present_address || "N/A",
+    75
+  );
   doc.text(presentLines, col1 + labelWidth, yPos);
 
   doc.setFont("helvetica", "bold");
   doc.text("Permanent:", col2, yPos);
   doc.setFont("helvetica", "normal");
-  const permanentLines = doc.splitTextToSize(admission.permanent_address || "N/A", 75);
+  const permanentLines = doc.splitTextToSize(
+    admission.permanent_address || "N/A",
+    75
+  );
   doc.text(permanentLines, col2 + 25, yPos);
   yPos += Math.max(presentLines.length, permanentLines.length) * 4 + 4;
 
@@ -879,10 +1029,10 @@ export async function exportCollegeAdmissionFormToPDF(
   const tuitionFee = String(admission.total_tuition_fee || 0);
   const bookFee = String(admission.book_fee || 0);
   const tuitionConcession = String(admission.tuition_concession || 0);
-  const payableTuitionFee = admission.payable_tuition_fee 
-    ? String(admission.payable_tuition_fee).split(" ")[0] 
+  const payableTuitionFee = admission.payable_tuition_fee
+    ? String(admission.payable_tuition_fee).split(" ")[0]
     : "0";
-  
+
   const fees = [
     [
       "Admission Fee",
@@ -894,7 +1044,9 @@ export async function exportCollegeAdmissionFormToPDF(
     [
       "Tuition Fee",
       tuitionFee,
-      tuitionConcession !== "0" && tuitionConcession !== "0.00" ? tuitionConcession : "-",
+      tuitionConcession !== "0" && tuitionConcession !== "0.00"
+        ? tuitionConcession
+        : "-",
       payableTuitionFee,
       "Pending",
     ],
@@ -903,11 +1055,14 @@ export async function exportCollegeAdmissionFormToPDF(
 
   if (admission.transport_required === "YES") {
     const transportFee = String(admission.transport_fee || 0);
-    const transportConcession = admission.transport_concession && admission.transport_concession !== "0" && admission.transport_concession !== "0.00" 
-      ? String(admission.transport_concession) 
-      : "-";
-    const payableTransportFee = admission.payable_transport_fee 
-      ? String(admission.payable_transport_fee).split(" ")[0] 
+    const transportConcession =
+      admission.transport_concession &&
+      admission.transport_concession !== "0" &&
+      admission.transport_concession !== "0.00"
+        ? String(admission.transport_concession)
+        : "-";
+    const payableTransportFee = admission.payable_transport_fee
+      ? String(admission.payable_transport_fee).split(" ")[0]
       : "0";
     fees.push([
       "Transport Fee",

@@ -1,5 +1,6 @@
 ﻿import { queryClient } from "@/core/query";
 import type { QueryKey } from "@tanstack/react-query";
+import { startTransition } from "react";
 
 /**
  * Refetch Listener
@@ -40,18 +41,28 @@ class RefetchListener {
    */
   invalidateEntity(entity: string) {
     const keys = this.subscriptions.get(entity);
-    if (keys) {
-      keys.forEach((key) => {
-        try {
-          const queryKey = JSON.parse(key) as QueryKey;
+    if (!keys || keys.size === 0) return;
+
+    // ✅ FIX: Parse all keys first (batch operation to prevent UI blocking)
+    const parsedKeys: QueryKey[] = [];
+    keys.forEach((key) => {
+      try {
+        parsedKeys.push(JSON.parse(key) as QueryKey);
+      } catch (error) {
+        console.error(
+          `Failed to parse query key for entity ${entity}:`,
+          key,
+          error
+        );
+      }
+    });
+
+    // ✅ FIX: Batch invalidate with startTransition (non-blocking)
+    if (parsedKeys.length > 0) {
+      startTransition(() => {
+        parsedKeys.forEach((queryKey) => {
           void queryClient.invalidateQueries({ queryKey });
-        } catch (error) {
-          console.error(
-            `Failed to parse query key for entity ${entity}:`,
-            key,
-            error
-          );
-        }
+        });
       });
     }
   }
@@ -100,4 +111,3 @@ class RefetchListener {
 
 // Export singleton instance
 export const refetchListener = new RefetchListener();
-
