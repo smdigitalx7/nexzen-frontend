@@ -1,7 +1,6 @@
 ﻿import { useMemo, useState, useEffect, memo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  useSchoolReservationsList,
   useDeleteSchoolReservation,
   useSchoolReservationsDashboard,
   useCreateSchoolReservation,
@@ -17,24 +16,6 @@ import {
   useTabNavigation,
   useTabEnabled,
 } from "@/common/hooks/use-tab-navigation";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/common/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/common/components/ui/alert-dialog";
 import ReservationForm from "./ReservationForm";
 import SchoolReservationEdit from "./SchoolReservationEdit";
 import AllReservationsTable from "./AllReservationsTable";
@@ -54,7 +35,12 @@ import {
 import {
   ConcessionUpdateDialog,
   ReceiptPreviewModal,
+  ReservationDeleteDialog,
+  ReservationEditDialog,
+  ReservationViewDialog,
+  ReservationPaymentDialog,
 } from "@/common/components/shared";
+import { ProductionErrorBoundary } from "@/common/components/shared/ProductionErrorBoundary";
 import type {
   SchoolIncomeRead,
   SchoolReservationRead,
@@ -573,6 +559,7 @@ const ReservationManagementComponent = () => {
   const [paymentIncomeRecord, setPaymentIncomeRecord] =
     useState<SchoolIncomeRead | null>(null);
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
+  const [receiptNo, setReceiptNo] = useState<string | null>(null);
 
   // Concession related state
   const [showConcessionDialog, setShowConcessionDialog] = useState(false);
@@ -691,36 +678,35 @@ const ReservationManagementComponent = () => {
     refetchOnMount: true, // Only refetch on mount if data is stale
   });
 
-  // Memoized reservations data processing
+  // ✅ OPTIMIZED: Memoized reservations data processing with proper dependencies
   const allReservations = useMemo(() => {
     if (!reservationsData?.reservations) return [];
-
     if (!Array.isArray(reservationsData.reservations)) return [];
 
+    // ✅ OPTIMIZATION: Use map with stable reference
     return reservationsData.reservations.map((r: any) => ({
       id: String(r.reservation_id),
-      no: r.reservation_no || r.reservationNo || "", // Add reservation number
-      reservation_id: r.reservation_id, // Keep the original reservation_id as number
+      no: r.reservation_no || r.reservationNo || "",
+      reservation_id: r.reservation_id,
       studentName: r.student_name,
       classAdmission: r.class_name || r.admit_into || "",
       status: r.status || "PENDING",
       date: r.reservation_date || "",
       totalFee: Number(r.tuition_fee || 0) + Number(r.transport_fee || 0),
-      income_id: r.income_id || r.incomeId, // Support both field names
-      concession_lock: r.concession_lock || false, // Add concession_lock
-      tuition_fee: r.tuition_fee || 0, // Add tuition_fee
-      transport_fee: r.transport_fee || 0, // Add transport_fee
-      book_fee: r.book_fee || 0, // Add book_fee
-      application_fee: r.application_fee || 0, // Add application_fee
-      tuition_concession: r.tuition_concession || 0, // Add tuition_concession
-      transport_concession: r.transport_concession || 0, // Add transport_concession
-      remarks: r.remarks || "", // Add remarks
-      // Additional fields for enrollment and income tracking
+      income_id: r.income_id || r.incomeId,
+      concession_lock: r.concession_lock || false,
+      tuition_fee: r.tuition_fee || 0,
+      transport_fee: r.transport_fee || 0,
+      book_fee: r.book_fee || 0,
+      application_fee: r.application_fee || 0,
+      tuition_concession: r.tuition_concession || 0,
+      transport_concession: r.transport_concession || 0,
+      remarks: r.remarks || "",
       application_income_id: r.application_income_id || null,
       admission_income_id: r.admission_income_id || null,
       is_enrolled: r.is_enrolled || false,
     }));
-  }, [reservationsData]);
+  }, [reservationsData?.reservations]);
 
   // Form state using initial state - set reservation_date to today when component mounts
   const [form, setForm] = useState(() => ({
@@ -965,8 +951,9 @@ const ReservationManagementComponent = () => {
     [refetchReservations]
   );
 
-  // Memoized route mapping
+  // ✅ OPTIMIZED: Memoized route mapping with stable reference
   const mappedRoutes = useMemo(() => {
+    if (!Array.isArray(routeNames) || routeNames.length === 0) return [];
     return routeNames.map(
       (route: {
         bus_route_id: number;
@@ -1035,7 +1022,9 @@ const ReservationManagementComponent = () => {
         pickup_point: form.transport_required ? form.pickup_point || "" : "",
         transport_fee: form.transport_required ? Number(transportFee || 0) : 0,
         status: "PENDING" as const,
-        request_type: (form.request_type || "WALK_IN") as "WALK_IN" | "REFERRAL",
+        request_type: (form.request_type || "WALK_IN") as
+          | "WALK_IN"
+          | "REFERRAL",
         referred_by: form.referred_by ? Number(form.referred_by) : 0,
         referred_by_name: form.referred_by_name || "",
         remarks: form.remarks || "",
@@ -1047,10 +1036,6 @@ const ReservationManagementComponent = () => {
         // Use mutation hook which handles cache invalidation automatically
         const res: SchoolReservationRead =
           await createReservationMutation.mutateAsync(payload);
-
-        if (import.meta.env.DEV) {
-          console.log("Reservation creation response:", res);
-        }
 
         // Use backend reservation_id to display receipt number
         const reservationId = res?.reservation_id || res?.reservation_no || "";
@@ -1410,7 +1395,9 @@ const ReservationManagementComponent = () => {
           ? Number(editTransportFee || 0)
           : 0,
         status: editForm.status || "PENDING",
-        request_type: (editForm.request_type || "WALK_IN") as "WALK_IN" | "REFERRAL",
+        request_type: (editForm.request_type || "WALK_IN") as
+          | "WALK_IN"
+          | "REFERRAL",
         referred_by: editForm.referred_by ? Number(editForm.referred_by) : 0,
         referred_by_name: editForm.referred_by_name || "",
         remarks: editForm.remarks || "",
@@ -1514,229 +1501,187 @@ const ReservationManagementComponent = () => {
             setReceiptBlobUrl(null);
           }
           setPaymentIncomeRecord(null);
+          setReceiptNo(null);
 
-          // ✅ CRITICAL FIX: Simplified async operations - single setTimeout instead of nested callbacks
-          // Removed nested requestAnimationFrame/setTimeout/requestIdleCallback cascade
-          // This prevents UI freezing by avoiding multiple layers of async delays
-          setTimeout(() => {
-            // Invalidate queries (non-blocking, debounced internally)
-            invalidateAndRefetch(schoolKeys.reservations.root());
-            
-            // Call refetch callback if provided (non-blocking)
-            if (refetchReservations) {
-              void refetchReservations();
-            }
-          }, 300); // Single delay of 300ms - allows modal close animation to complete without blocking UI
+          // ✅ CRITICAL FIX: Defer query invalidation to prevent UI blocking
+          // Use requestIdleCallback if available, otherwise use setTimeout with longer delay
+          if (typeof requestIdleCallback !== "undefined") {
+            requestIdleCallback(
+              () => {
+                // Invalidate queries (non-blocking, debounced internally)
+                invalidateAndRefetch(schoolKeys.reservations.root());
+
+                // Call refetch callback if provided (non-blocking)
+                if (refetchReservations) {
+                  void refetchReservations();
+                }
+              },
+              { timeout: 1000 }
+            );
+          } else {
+            // Fallback for browsers without requestIdleCallback
+            setTimeout(() => {
+              // Invalidate queries (non-blocking, debounced internally)
+              invalidateAndRefetch(schoolKeys.reservations.root());
+
+              // Call refetch callback if provided (non-blocking)
+              if (refetchReservations) {
+                void refetchReservations();
+              }
+            }, 500); // Longer delay to ensure modal is fully closed
+          }
         }}
         blobUrl={receiptBlobUrl}
+        receiptNo={receiptNo}
       />
 
       {/* View Reservation Dialog */}
-      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
-            <DialogTitle>Reservation Details</DialogTitle>
-            <DialogDescription>Reservation information</DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
-            {!viewReservation ? (
-              <div className="p-4 text-sm">Loading...</div>
-            ) : (
-              <ViewDialogContent
-                viewReservation={viewReservation}
-                routeNames={routeNames}
-                distanceSlabs={distanceSlabs}
-                classes={classes}
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ReservationViewDialog
+        isOpen={showViewDialog}
+        onClose={() => setShowViewDialog(false)}
+        isLoading={!viewReservation}
+      >
+        {viewReservation && (
+          <ViewDialogContent
+            viewReservation={viewReservation}
+            routeNames={routeNames}
+            distanceSlabs={distanceSlabs}
+            classes={classes}
+          />
+        )}
+      </ReservationViewDialog>
 
       {/* Edit Reservation Dialog */}
-      <Dialog
-        open={showEditDialog}
-        onOpenChange={(open) => {
-          setShowEditDialog(open);
-          if (!open) {
-            // Reset state when dialog closes
-            setEditForm(null);
-            setSelectedReservation(null);
-            setEditSelectedClassId(null);
-          }
+      <ReservationEditDialog
+        isOpen={showEditDialog}
+        onClose={() => {
+          setShowEditDialog(false);
+          // Reset state when dialog closes
+          setEditForm(null);
+          setSelectedReservation(null);
+          setEditSelectedClassId(null);
         }}
+        onSave={submitEdit}
+        disabled={!editForm}
+        isSaving={false}
       >
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
-            <DialogTitle>Edit Reservation</DialogTitle>
-            <DialogDescription>
-              Update reservation information
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
-            {editForm ? (
-              <SchoolReservationEdit
-                form={editForm}
-                setForm={setEditForm}
-                classFee={editClassFee}
-                transportFee={editTransportFee}
-                routes={routeNames.map(
-                  (route: {
-                    bus_route_id: number;
-                    route_no?: string;
-                    route_name: string;
-                  }) => ({
-                    id: route.bus_route_id?.toString?.() || "",
-                    name: `${route.route_no || "Route"} - ${route.route_name}`,
-                    fee: 0,
-                  })
-                )}
-                classes={classes}
-                distanceSlabs={distanceSlabs || []}
-                onClassChange={handleEditClassChange}
-                onDistanceSlabChange={handleEditDistanceSlabChange}
-                onSave={async () => {
-                  await submitEdit();
-                }}
-              />
-            ) : (
-              <div className="p-4">Loading...</div>
+        {editForm ? (
+          <SchoolReservationEdit
+            form={editForm}
+            setForm={setEditForm}
+            classFee={editClassFee}
+            transportFee={editTransportFee}
+            routes={routeNames.map(
+              (route: {
+                bus_route_id: number;
+                route_no?: string;
+                route_name: string;
+              }) => ({
+                id: route.bus_route_id?.toString?.() || "",
+                name: `${route.route_no || "Route"} - ${route.route_name}`,
+                fee: 0,
+              })
             )}
-          </div>
-          <DialogFooter className="px-6 py-4 flex-shrink-0 bg-background border-t border-gray-200">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowEditDialog(false)}
-            >
-              Close
-            </Button>
-            <Button type="button" onClick={submitEdit} disabled={!editForm}>
-              Update Reservation
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            classes={classes}
+            distanceSlabs={distanceSlabs || []}
+            onClassChange={handleEditClassChange}
+            onDistanceSlabChange={handleEditDistanceSlabChange}
+            onSave={async () => {
+              await submitEdit();
+            }}
+          />
+        ) : (
+          <div className="p-4">Loading...</div>
+        )}
+      </ReservationEditDialog>
 
       {/* Delete Reservation Confirmation */}
-      <AlertDialog
-        open={showDeleteDialog}
-        onOpenChange={(open) => {
-          if (!open) {
-            setReservationToDelete(null);
-          }
-          setShowDeleteDialog(open);
+      <ReservationDeleteDialog
+        isOpen={showDeleteDialog}
+        onClose={() => {
+          setShowDeleteDialog(false);
+          setReservationToDelete(null);
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Reservation</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete reservation{" "}
-              {reservationToDelete?.reservation_id}? This action cannot be
-              undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
-              onClick={async () => {
-                if (
-                  !reservationToDelete?.reservation_id ||
-                  deleteReservation.isPending
-                )
-                  return;
+        reservationId={reservationToDelete?.reservation_id}
+        reservationNo={reservationToDelete?.reservation_no}
+        onConfirm={async () => {
+          if (
+            !reservationToDelete?.reservation_id ||
+            deleteReservation.isPending
+          )
+            return;
 
-                try {
-                  await deleteReservation.mutateAsync(
-                    reservationToDelete.reservation_id
-                  );
+          await deleteReservation.mutateAsync(
+            reservationToDelete.reservation_id
+          );
 
-                  // Mutation hook already handles invalidation and refetch, but we ensure refetch callback is called
-                  void refetchReservations();
+          // Mutation hook already handles invalidation and refetch, but we ensure refetch callback is called
+          void refetchReservations();
 
-                  // Toast handled by mutation hook
-                  setShowDeleteDialog(false);
-                  setReservationToDelete(null);
-                } catch (e: any) {
-                  console.error("Failed to delete reservation:", e);
-                  // Error toasts handled by mutation hook
-                }
-              }}
-              disabled={deleteReservation.isPending}
-            >
-              {deleteReservation.isPending ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          // Toast handled by mutation hook
+          setReservationToDelete(null);
+        }}
+        isDeleting={deleteReservation.isPending}
+      />
 
       {/* Payment Processor Dialog */}
       {paymentData && (
-        <Dialog
-          open={showPaymentProcessor}
-          onOpenChange={setShowPaymentProcessor}
+        <ReservationPaymentDialog
+          isOpen={showPaymentProcessor}
+          onClose={() => setShowPaymentProcessor(false)}
+          reservationNo={paymentData.reservationNo}
         >
-          <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0">
-            <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
-              <DialogTitle>Complete Payment</DialogTitle>
-              <DialogDescription>
-                Process payment for reservation {paymentData.reservationNo}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
-              <ReservationPaymentProcessor
-                reservationData={paymentData}
-                onPaymentComplete={(
-                  incomeRecord: SchoolIncomeRead,
-                  blobUrl: string
-                ) => {
-                  // ✅ CRITICAL: Close payment modal immediately (no blocking)
-                  setShowPaymentProcessor(false);
+          <ReservationPaymentProcessor
+            reservationData={paymentData}
+            onPaymentComplete={(
+              incomeRecord: SchoolIncomeRead,
+              blobUrl: string,
+              receiptNo?: string | null
+            ) => {
+              // ✅ CRITICAL: Close payment modal immediately (no blocking)
+              setShowPaymentProcessor(false);
 
-                  // ✅ CRITICAL: Set receipt data immediately (needed for receipt modal)
-                  setPaymentIncomeRecord(incomeRecord);
-                  setReceiptBlobUrl(blobUrl);
+              // ✅ CRITICAL: Set receipt data immediately (needed for receipt modal)
+              setPaymentIncomeRecord(incomeRecord);
+              setReceiptBlobUrl(blobUrl);
+              setReceiptNo(receiptNo || incomeRecord.receipt_no || null);
 
-                  // ✅ DEFER: Clear payment data (not critical, defer to next tick)
-                  setTimeout(() => {
-                    setPaymentData(null);
-                  }, 0);
+              // ✅ DEFER: Clear payment data (not critical, defer to next tick)
+              setTimeout(() => {
+                setPaymentData(null);
+              }, 0);
 
-                  // ✅ DEFER: Query invalidation (low priority, defer to next tick)
-                  setTimeout(() => {
-                    invalidateAndRefetch(schoolKeys.reservations.root());
+              // ✅ DEFER: Query invalidation (low priority, defer to next tick)
+              setTimeout(() => {
+                invalidateAndRefetch(schoolKeys.reservations.root());
 
-                    // ✅ DEFER: Refetch callback (low priority)
-                    if (refetchReservations) {
-                      void refetchReservations();
-                    }
-                  }, 0);
+                // ✅ DEFER: Refetch callback (low priority)
+                if (refetchReservations) {
+                  void refetchReservations();
+                }
+              }, 0);
 
-                  // ✅ DEFER: Receipt modal (wait for payment modal to close completely)
-                  // Radix UI Dialog has ~200ms close animation, wait for it to complete
-                  setTimeout(() => {
-                    setShowReceipt(true);
-                  }, 250);
-                }}
-                onPaymentFailed={(error: string) => {
-                  toast({
-                    title: "Payment Failed",
-                    description:
-                      error || "Could not process payment. Please try again.",
-                    variant: "destructive",
-                  });
-                  setShowPaymentProcessor(false);
-                }}
-                onPaymentCancel={() => {
-                  setShowPaymentProcessor(false);
-                  setPaymentData(null);
-                }}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
+              // ✅ DEFER: Receipt modal (wait for payment modal to close completely)
+              // Radix UI Dialog has ~200ms close animation, wait for it to complete
+              setTimeout(() => {
+                setShowReceipt(true);
+              }, 250);
+            }}
+            onPaymentFailed={(error: string) => {
+              toast({
+                title: "Payment Failed",
+                description:
+                  error || "Could not process payment. Please try again.",
+                variant: "destructive",
+              });
+              setShowPaymentProcessor(false);
+            }}
+            onPaymentCancel={() => {
+              setShowPaymentProcessor(false);
+              setPaymentData(null);
+            }}
+          />
+        </ReservationPaymentDialog>
       )}
       {/* Concession Update Dialog */}
       <ConcessionUpdateDialog
@@ -1752,5 +1697,20 @@ const ReservationManagementComponent = () => {
   );
 };
 
-export const ReservationManagement = ReservationManagementComponent;
-export default ReservationManagementComponent;
+// Memoized component wrapper with error boundary
+const ReservationManagementWithErrorBoundary = memo(() => {
+  return (
+    <ProductionErrorBoundary
+      showDetails={import.meta.env.DEV}
+      enableRetry={true}
+      enableReport={true}
+    >
+      <ReservationManagementComponent />
+    </ProductionErrorBoundary>
+  );
+});
+
+ReservationManagementWithErrorBoundary.displayName = "ReservationManagement";
+
+export const ReservationManagement = ReservationManagementWithErrorBoundary;
+export default ReservationManagementWithErrorBoundary;

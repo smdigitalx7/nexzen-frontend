@@ -77,10 +77,10 @@ const StatusBadge = memo(({ status }: { status: string }) => (
       status === "Pending"
         ? "default"
         : status === "Cancelled"
-        ? "destructive"
-        : status === "Confirmed"
-        ? "secondary"
-        : "outline"
+          ? "destructive"
+          : status === "Confirmed"
+            ? "secondary"
+            : "outline"
     }
     className={
       status === "Confirmed" || status === "CONFIRMED"
@@ -95,40 +95,32 @@ const StatusBadge = memo(({ status }: { status: string }) => (
 StatusBadge.displayName = "StatusBadge";
 
 // Memoized action buttons component
-const ActionButtons = memo(({ 
-  reservation, 
-  onView, 
-  onEdit, 
-  onDelete, 
-  onUpdateConcession, 
-  onRegenerateReceipt, 
-  regeneratingReceipts 
-}: { 
-  reservation: Reservation;
-  onView: (reservation: Reservation) => void;
-  onEdit: (reservation: Reservation) => void;
-  onDelete: (reservation: Reservation) => void;
-  onUpdateConcession?: (reservation: Reservation) => void;
-  onRegenerateReceipt: (reservation: Reservation) => void;
-  regeneratingReceipts: Set<number>;
-}) => (
-  <div className="flex items-center gap-2">
-    <Button
-      size="sm"
-      variant="outline"
-      onClick={() => onView(reservation)}
-    >
-      View
-    </Button>
-    <Button
-      size="sm"
-      variant="outline"
-      onClick={() => onEdit(reservation)}
-    >
-      Edit
-    </Button>
-    {reservation.income_id &&
-      Number(reservation.income_id) > 0 && (
+const ActionButtons = memo(
+  ({
+    reservation,
+    onView,
+    onEdit,
+    onDelete,
+    onUpdateConcession,
+    onRegenerateReceipt,
+    regeneratingReceipts,
+  }: {
+    reservation: Reservation;
+    onView: (reservation: Reservation) => void;
+    onEdit: (reservation: Reservation) => void;
+    onDelete: (reservation: Reservation) => void;
+    onUpdateConcession?: (reservation: Reservation) => void;
+    onRegenerateReceipt: (reservation: Reservation) => void;
+    regeneratingReceipts: Set<number>;
+  }) => (
+    <div className="flex items-center gap-2">
+      <Button size="sm" variant="outline" onClick={() => onView(reservation)}>
+        View
+      </Button>
+      <Button size="sm" variant="outline" onClick={() => onEdit(reservation)}>
+        Edit
+      </Button>
+      {reservation.income_id && Number(reservation.income_id) > 0 && (
         <Button
           type="button"
           size="sm"
@@ -138,9 +130,7 @@ const ActionButtons = memo(({
             e.stopPropagation();
             onRegenerateReceipt(reservation);
           }}
-          disabled={regeneratingReceipts.has(
-            reservation.income_id
-          )}
+          disabled={regeneratingReceipts.has(reservation.income_id)}
         >
           {regeneratingReceipts.has(reservation.income_id) ? (
             <>
@@ -152,219 +142,224 @@ const ActionButtons = memo(({
           )}
         </Button>
       )}
-    {onUpdateConcession && (
+      {onUpdateConcession && (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onUpdateConcession(reservation);
+          }}
+          disabled={reservation.concession_lock}
+        >
+          {reservation.concession_lock ? "Locked" : "Concession"}
+        </Button>
+      )}
       <Button
-        type="button"
         size="sm"
-        variant="outline"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onUpdateConcession(reservation);
-        }}
-        disabled={reservation.concession_lock}
+        variant="destructive"
+        onClick={() => onDelete(reservation)}
       >
-        {reservation.concession_lock ? "Locked" : "Concession"}
+        Delete
       </Button>
-    )}
-    <Button
-      size="sm"
-      variant="destructive"
-      onClick={() => onDelete(reservation)}
-    >
-      Delete
-    </Button>
-  </div>
-));
+    </div>
+  )
+);
 
 ActionButtons.displayName = "ActionButtons";
 
 // Memoized table row component
-const ReservationRow = memo(({ 
-  reservation, 
-  onView, 
-  onEdit, 
-  onDelete, 
-  onUpdateConcession, 
-  onRegenerateReceipt, 
-  regeneratingReceipts 
-}: { 
-  reservation: Reservation;
-  onView: (reservation: Reservation) => void;
-  onEdit: (reservation: Reservation) => void;
-  onDelete: (reservation: Reservation) => void;
-  onUpdateConcession?: (reservation: Reservation) => void;
-  onRegenerateReceipt: (reservation: Reservation) => void;
-  regeneratingReceipts: Set<number>;
-}) => (
-  <TableRow key={reservation.id}>
-    <TableCell className="font-medium">{reservation.no}</TableCell>
-    <TableCell>{reservation.studentName}</TableCell>
-    <TableCell>
-      <StatusBadge status={reservation.status} />
-    </TableCell>
-    <TableCell>{reservation.date}</TableCell>
-    <TableCell>
-      <ActionButtons
-        reservation={reservation}
-        onView={onView}
-        onEdit={onEdit}
-        onDelete={onDelete}
-        onUpdateConcession={onUpdateConcession}
-        onRegenerateReceipt={onRegenerateReceipt}
-        regeneratingReceipts={regeneratingReceipts}
-      />
-    </TableCell>
-  </TableRow>
-));
+const ReservationRow = memo(
+  ({
+    reservation,
+    onView,
+    onEdit,
+    onDelete,
+    onUpdateConcession,
+    onRegenerateReceipt,
+    regeneratingReceipts,
+  }: {
+    reservation: Reservation;
+    onView: (reservation: Reservation) => void;
+    onEdit: (reservation: Reservation) => void;
+    onDelete: (reservation: Reservation) => void;
+    onUpdateConcession?: (reservation: Reservation) => void;
+    onRegenerateReceipt: (reservation: Reservation) => void;
+    regeneratingReceipts: Set<number>;
+  }) => (
+    <TableRow key={reservation.id}>
+      <TableCell className="font-medium">{reservation.no}</TableCell>
+      <TableCell>{reservation.studentName}</TableCell>
+      <TableCell>
+        <StatusBadge status={reservation.status} />
+      </TableCell>
+      <TableCell>{reservation.date}</TableCell>
+      <TableCell>
+        <ActionButtons
+          reservation={reservation}
+          onView={onView}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onUpdateConcession={onUpdateConcession}
+          onRegenerateReceipt={onRegenerateReceipt}
+          regeneratingReceipts={regeneratingReceipts}
+        />
+      </TableCell>
+    </TableRow>
+  )
+);
 
 ReservationRow.displayName = "ReservationRow";
 
 // Memoized pagination component
-const PaginationControls = memo(({ 
-  filteredReservations, 
-  currentPage, 
-  totalPages, 
-  startIndex, 
-  endIndex, 
-  itemsPerPage, 
-  onPageChange, 
-  onItemsPerPageChange 
-}: { 
-  filteredReservations: Reservation[];
-  currentPage: number;
-  totalPages: number;
-  startIndex: number;
-  endIndex: number;
-  itemsPerPage: number;
-  onPageChange: (page: number) => void;
-  onItemsPerPageChange: (itemsPerPage: number) => void;
-}) => {
-  if (filteredReservations.length === 0) return null;
+const PaginationControls = memo(
+  ({
+    filteredReservations,
+    currentPage,
+    totalPages,
+    startIndex,
+    endIndex,
+    itemsPerPage,
+    onPageChange,
+    onItemsPerPageChange,
+  }: {
+    filteredReservations: Reservation[];
+    currentPage: number;
+    totalPages: number;
+    startIndex: number;
+    endIndex: number;
+    itemsPerPage: number;
+    onPageChange: (page: number) => void;
+    onItemsPerPageChange: (itemsPerPage: number) => void;
+  }) => {
+    if (filteredReservations.length === 0) return null;
 
-  return (
-    <div className="flex items-center justify-between px-2 py-4">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span>
-          Showing {startIndex + 1} to{" "}
-          {Math.min(endIndex, filteredReservations.length)} of{" "}
-          {filteredReservations.length} reservations
-        </span>
+    return (
+      <div className="flex items-center justify-between px-2 py-4">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>
+            Showing {startIndex + 1} to{" "}
+            {Math.min(endIndex, filteredReservations.length)} of{" "}
+            {filteredReservations.length} reservations
+          </span>
+          <div className="flex items-center gap-2">
+            <span>Rows per page:</span>
+            <Select
+              value={itemsPerPage.toString()}
+              onValueChange={(value) => {
+                onItemsPerPageChange(Number(value));
+                onPageChange(1);
+              }}
+            >
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <div className="flex items-center gap-2">
-          <span>Rows per page:</span>
-          <Select
-            value={itemsPerPage.toString()}
-            onValueChange={(value) => {
-              onItemsPerPageChange(Number(value));
-              onPageChange(1);
-            }}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
+            disabled={currentPage === 1}
           >
-            <SelectTrigger className="w-20">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="5">5</SelectItem>
-              <SelectItem value="10">10</SelectItem>
-              <SelectItem value="20">20</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-            </SelectContent>
-          </Select>
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+
+          <div className="flex items-center gap-1">
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (currentPage <= 3) {
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = currentPage - 2 + i;
+              }
+
+              return (
+                <Button
+                  key={pageNum}
+                  variant={currentPage === pageNum ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => onPageChange(pageNum)}
+                  className="w-8 h-8 p-0"
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       </div>
-
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
-          disabled={currentPage === 1}
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Previous
-        </Button>
-
-        <div className="flex items-center gap-1">
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            let pageNum;
-            if (totalPages <= 5) {
-              pageNum = i + 1;
-            } else if (currentPage <= 3) {
-              pageNum = i + 1;
-            } else if (currentPage >= totalPages - 2) {
-              pageNum = totalPages - 4 + i;
-            } else {
-              pageNum = currentPage - 2 + i;
-            }
-
-            return (
-              <Button
-                key={pageNum}
-                variant={currentPage === pageNum ? "default" : "outline"}
-                size="sm"
-                onClick={() => onPageChange(pageNum)}
-                className="w-8 h-8 p-0"
-              >
-                {pageNum}
-              </Button>
-            );
-          })}
-        </div>
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            onPageChange(Math.min(currentPage + 1, totalPages))
-          }
-          disabled={currentPage === totalPages}
-        >
-          Next
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
-});
+    );
+  }
+);
 
 PaginationControls.displayName = "PaginationControls";
 
 // Memoized search and filter component
-const SearchAndFilter = memo(({ 
-  searchTerm, 
-  onSearchChange, 
-  statusFilter, 
-  onStatusFilterChange 
-}: { 
-  searchTerm: string;
-  onSearchChange: (value: string) => void;
-  statusFilter: string;
-  onStatusFilterChange: (value: string) => void;
-}) => (
-  <div className="flex items-center gap-4">
-    <div className="relative w-64">
-      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-      <Input
-        placeholder="Search reservations..."
-        value={searchTerm}
-        onChange={(e) => onSearchChange(e.target.value)}
-        className="pl-10"
-      />
+const SearchAndFilter = memo(
+  ({
+    searchTerm,
+    onSearchChange,
+    statusFilter,
+    onStatusFilterChange,
+  }: {
+    searchTerm: string;
+    onSearchChange: (value: string) => void;
+    statusFilter: string;
+    onStatusFilterChange: (value: string) => void;
+  }) => (
+    <div className="flex items-center gap-4">
+      <div className="relative w-64">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search reservations..."
+          value={searchTerm}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+      <div className="w-48">
+        <Select value={statusFilter} onValueChange={onStatusFilterChange}>
+          <SelectTrigger aria-label="Filter by status">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="confirmed">Confirmed</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
-    <div className="w-48">
-      <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-        <SelectTrigger aria-label="Filter by status">
-          <SelectValue placeholder="Filter by status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All</SelectItem>
-          <SelectItem value="pending">Pending</SelectItem>
-          <SelectItem value="confirmed">Confirmed</SelectItem>
-          <SelectItem value="cancelled">Cancelled</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  </div>
-));
+  )
+);
 
 SearchAndFilter.displayName = "SearchAndFilter";
 
@@ -435,60 +430,57 @@ const ReservationsTableComponent = ({
   }, [statusFilter, searchTerm]);
 
   // Memoized handlers
-  const handleRegenerateReceipt = useCallback(async (reservation: Reservation) => {
-    if (!reservation.income_id) {
-      toast({
-        title: "Receipt Not Available",
-        description:
-          "This reservation does not have an associated income record for receipt generation.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleRegenerateReceipt = useCallback(
+    async (reservation: Reservation) => {
+      if (!reservation.income_id) {
+        toast({
+          title: "Receipt Not Available",
+          description:
+            "This reservation does not have an associated income record for receipt generation.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    setRegeneratingReceipts((prev) =>
-      new Set(prev).add(reservation.income_id!)
-    );
+      setRegeneratingReceipts((prev) =>
+        new Set(prev).add(reservation.income_id!)
+      );
 
-    try {
-      if (import.meta.env.DEV) {
-        console.log(
-          "🔄 Starting receipt regeneration for income ID:",
-          reservation.income_id
+      try {
+        const blobUrl = await regenerateReceiptAPI(
+          reservation.income_id,
+          "school"
         );
+
+        setReceiptBlobUrl(blobUrl);
+        setShowReceiptModal(true);
+
+        toast({
+          title: "Receipt Generated",
+          description: "Receipt has been generated and is ready for viewing.",
+          variant: "success",
+        });
+      } catch (error) {
+        console.error("Receipt regeneration failed:", error);
+
+        toast({
+          title: "Receipt Generation Failed",
+          description:
+            error instanceof Error
+              ? error.message
+              : "An unexpected error occurred.",
+          variant: "destructive",
+        });
+      } finally {
+        setRegeneratingReceipts((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(reservation.income_id!);
+          return newSet;
+        });
       }
-      const blobUrl = await regenerateReceiptAPI(reservation.income_id, 'school');
-      if (import.meta.env.DEV) {
-        console.log("✅ Receipt blob URL received:", blobUrl);
-      }
-
-      setReceiptBlobUrl(blobUrl);
-      setShowReceiptModal(true);
-
-      toast({
-        title: "Receipt Generated",
-        description: "Receipt has been generated and is ready for viewing.",
-        variant: "success",
-      });
-    } catch (error) {
-      console.error("Receipt regeneration failed:", error);
-
-      toast({
-        title: "Receipt Generation Failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "An unexpected error occurred.",
-        variant: "destructive",
-      });
-    } finally {
-      setRegeneratingReceipts((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(reservation.income_id!);
-        return newSet;
-      });
-    }
-  }, []);
+    },
+    []
+  );
 
   const handleCloseReceiptModal = useCallback(() => {
     setShowReceiptModal(false);

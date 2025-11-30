@@ -54,10 +54,11 @@ export const useAttendance = (id: number) => {
   });
 };
 
-export const useAttendanceDashboard = () => {
+export const useAttendanceDashboard = (enabled: boolean = true) => {
   return useQuery({
     queryKey: employeeAttendanceKeys.dashboard(),
     queryFn: () => EmployeeAttendanceService.getDashboard(),
+    enabled, // ✅ FIX: Only fetch when enabled (tab is active)
   });
 };
 

@@ -1005,24 +1005,32 @@ export default function ReservationForm({
                   <RadioGroup
                     value={form.request_type}
                     onValueChange={(value) => {
-                      setForm({ 
-                        ...form, 
+                      setForm({
+                        ...form,
                         request_type: value,
                         // Clear referred_by and referred_by_name when switching to WALK_IN
-                        ...(value === "WALK_IN" ? { referred_by: 0, referred_by_name: "" } : {})
+                        ...(value === "WALK_IN"
+                          ? { referred_by: 0, referred_by_name: "" }
+                          : {}),
                       });
                     }}
                     className="flex gap-6 mt-2"
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="WALK_IN" id="walk_in" />
-                      <Label htmlFor="walk_in" className="font-normal cursor-pointer">
+                      <Label
+                        htmlFor="walk_in"
+                        className="font-normal cursor-pointer"
+                      >
                         WALK_IN
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="REFERRAL" id="referral" />
-                      <Label htmlFor="referral" className="font-normal cursor-pointer">
+                      <Label
+                        htmlFor="referral"
+                        className="font-normal cursor-pointer"
+                      >
                         REFERRAL
                       </Label>
                     </div>
@@ -1033,22 +1041,23 @@ export default function ReservationForm({
                   <EmployeeSelect
                     value={form.referred_by.toString()}
                     onValueChange={(value) => {
-                      if (import.meta.env.DEV) {
-                        console.log("EmployeeSelect value changed:", value);
-                      }
-                      setForm({ 
-                        ...form, 
+                      setForm({
+                        ...form,
                         referred_by: Number(value),
                         // Clear referred_by_name when selecting an employee
-                        referred_by_name: value ? "" : form.referred_by_name
+                        referred_by_name: value ? "" : form.referred_by_name,
                       });
                     }}
                     placeholder="Select referring employee..."
                   />
                 </div>
-                {(form.request_type === "REFERRAL" || form.referred_by === 0 || !form.referred_by) && (
+                {(form.request_type === "REFERRAL" ||
+                  form.referred_by === 0 ||
+                  !form.referred_by) && (
                   <div>
-                    <Label htmlFor="referred_by_name">Referred By Name (Other)</Label>
+                    <Label htmlFor="referred_by_name">
+                      Referred By Name (Other)
+                    </Label>
                     <Input
                       id="referred_by_name"
                       value={form.referred_by_name}

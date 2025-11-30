@@ -17,9 +17,6 @@ export function useCollegeExams(options?: { enabled?: boolean }) {
         return await CollegeExamsService.list();
       } catch (error: unknown) {
         // Handle 404 errors by returning empty array
-        if (import.meta.env.DEV) {
-          console.log("Exams API error:", error);
-        }
         // Api class attaches status property to Error objects
         if (error instanceof Error) {
           const apiError = error as Error & { status?: number; data?: { detail?: string } };

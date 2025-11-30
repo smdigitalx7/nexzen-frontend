@@ -52,7 +52,13 @@ const retryingRequests = new WeakSet<InternalAxiosRequestConfig>();
  * Call the refresh endpoint to get a new access token
  * Uses HttpOnly cookie (refreshToken) automatically via withCredentials
  */
-async function callRefreshEndpoint(): Promise<{ access_token: string; expiretime: string; user_info: any }> {
+interface RefreshResponse {
+  access_token: string;
+  expiretime: string;
+  user_info: unknown; // User info structure varies, handled by authStore
+}
+
+async function callRefreshEndpoint(): Promise<RefreshResponse> {
   // Use apiClient which already has the correct baseURL configured
   const response = await apiClient.post("/auth/refresh", {}, {
     withCredentials: true, // CRITICAL: Send cookies (refreshToken)
@@ -180,9 +186,7 @@ apiClient.interceptors.request.use(
     // CRITICAL: Don't send authenticated requests during initialization
     // Wait for bootstrapAuth to complete
     if (state.isAuthInitializing && config.headers?.Authorization) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn(`⚠️ apiClient request to ${config.url}: Blocked during auth initialization`);
-      }
+      // Request blocked during auth initialization
       return Promise.reject(new Error("Cancelled: auth initialization in progress"));
     }
     
@@ -194,17 +198,7 @@ apiClient.interceptors.request.use(
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     } else {
-      // Debug logging in development
-      if (process.env.NODE_ENV === "development") {
-        console.warn(`⚠️ apiClient request to ${config.url}: No accessToken found in store`, {
-          hasAccessToken: !!state.accessToken,
-          hasTokenAlias: !!(state as any).token,
-          isAuthenticated: state.isAuthenticated,
-          hasUser: !!state.user,
-          isAuthInitializing: state.isAuthInitializing,
-          isLoggingOut: state.isLoggingOut,
-        });
-      }
+      // Note: Token validation happens in auth store
     }
     
     return config;

@@ -2,7 +2,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { startTransition } from "react";
 import { useAuthStore } from "@/core/auth/authStore";
-import { useTabNavigation, useTabEnabled } from "@/common/hooks/use-tab-navigation";
+import {
+  useTabNavigation,
+  useTabEnabled,
+} from "@/common/hooks/use-tab-navigation";
 import { toast } from "@/common/hooks/use-toast";
 import { invalidateQueriesSelective } from "@/common/hooks/useGlobalRefetch";
 import {
@@ -46,7 +49,11 @@ import {
   useUpdateAdvanceAmountPaid,
   advanceKeys,
 } from "@/features/general/hooks/useAdvances";
-import { EmployeeRead as LibEmployeeRead, EmployeeCreate, EmployeeUpdate } from "@/features/general/types/employees";
+import {
+  EmployeeRead as LibEmployeeRead,
+  EmployeeCreate,
+  EmployeeUpdate,
+} from "@/features/general/types/employees";
 import {
   EmployeeAttendanceCreate,
   EmployeeAttendanceUpdate,
@@ -56,7 +63,13 @@ import {
   EmployeeLeaveUpdate,
   EmployeeLeaveReject,
 } from "@/features/general/types/employee-leave";
-import { AdvanceCreate, AdvanceUpdate, AdvanceStatusUpdate, AdvanceAmountPaidUpdate, AdvanceRead as LibAdvanceRead } from "@/features/general/types/advances";
+import {
+  AdvanceCreate,
+  AdvanceUpdate,
+  AdvanceStatusUpdate,
+  AdvanceAmountPaidUpdate,
+  AdvanceRead as LibAdvanceRead,
+} from "@/features/general/types/advances";
 
 // Types
 // Use the canonical EmployeeRead from lib/types which matches the API response
@@ -112,7 +125,10 @@ export const useEmployeeManagement = (
 
   // Get enabled states for conditional data fetching (avoids hook order issues)
   // Employees needed for multiple tabs (employees, attendance, leaves, advances)
-  const employeesEnabled = useTabEnabled(["employees", "attendance", "leaves", "advances"], "employees");
+  const employeesEnabled = useTabEnabled(
+    ["employees", "attendance", "leaves", "advances"],
+    "employees"
+  );
   const attendanceEnabled = useTabEnabled("attendance", "employees");
   const leavesEnabled = useTabEnabled("leaves", "employees");
   const advancesEnabled = useTabEnabled("advances", "employees");
@@ -122,8 +138,12 @@ export const useEmployeeManagement = (
   const [attendancePage, setAttendancePage] = useState(1);
   const [leavesPage, setLeavesPage] = useState(1);
   const [advancesPage, setAdvancesPage] = useState(1);
-  const [attendanceMonth, setAttendanceMonth] = useState<number>(now.getMonth() + 1);
-  const [attendanceYear, setAttendanceYear] = useState<number>(now.getFullYear());
+  const [attendanceMonth, setAttendanceMonth] = useState<number>(
+    now.getMonth() + 1
+  );
+  const [attendanceYear, setAttendanceYear] = useState<number>(
+    now.getFullYear()
+  );
   const [leaveMonth, setLeaveMonth] = useState<number>(now.getMonth() + 1);
   const [leaveYear, setLeaveYear] = useState<number>(now.getFullYear());
   const pageSize = 20;
@@ -131,14 +151,22 @@ export const useEmployeeManagement = (
   // Data hooks - API calls are made per tab, not based on sidebar navigation
   // Only fetch data when the respective tab is active to prevent unnecessary requests and UI freezes
   // Note: Employees are needed for dialogs across multiple tabs, so enabled when any relevant tab is active
-  const { data: employees = [], isLoading, error } = useEmployeesByBranch(employeesEnabled);
-  
+  const {
+    data: employees = [],
+    isLoading,
+    error,
+  } = useEmployeesByBranch(employeesEnabled);
+
   // Only fetch attendance when attendance tab is active
   const { data: attendanceData, isLoading: attendanceLoading } =
     useAttendanceByBranch(attendanceMonth, attendanceYear, attendanceEnabled);
-  
+
   // Only fetch leaves when leaves tab is active
-  const { data: leavesData, isLoading: leavesLoading, refetch: refetchLeaves } = useEmployeeLeavesByBranch(
+  const {
+    data: leavesData,
+    isLoading: leavesLoading,
+    refetch: refetchLeaves,
+  } = useEmployeeLeavesByBranch(
     leaveMonth,
     leaveYear,
     pageSize,
@@ -150,16 +178,17 @@ export const useEmployeeManagement = (
   // Extract data from response objects
   const attendance = attendanceData?.data || [];
   const leaves = leavesData?.data || [];
-  
+
   // Only fetch advances when advances tab is active
-  const { data: advancesData, isLoading: advancesLoading } = useAdvancesByBranch(
-    pageSize,
-    1, // advancesPage - TODO: implement pagination if needed
-    undefined, // month
-    undefined, // year
-    undefined, // status
-    advancesEnabled // Only fetch when advances tab is active
-  );
+  const { data: advancesData, isLoading: advancesLoading } =
+    useAdvancesByBranch(
+      pageSize,
+      1, // advancesPage - pagination can be added when needed
+      undefined, // month
+      undefined, // year
+      undefined, // status
+      advancesEnabled // Only fetch when advances tab is active
+    );
   const advances = advancesData?.data || [];
 
   // Mutation hooks
@@ -200,8 +229,10 @@ export const useEmployeeManagement = (
 
   // Attendance form state
   const [showAttendanceForm, setShowAttendanceForm] = useState(false);
-  const [showAttendanceBulkCreateDialog, setShowAttendanceBulkCreateDialog] = useState(false);
-  const [isBulkCreatingAttendance, setIsBulkCreatingAttendance] = useState(false);
+  const [showAttendanceBulkCreateDialog, setShowAttendanceBulkCreateDialog] =
+    useState(false);
+  const [isBulkCreatingAttendance, setIsBulkCreatingAttendance] =
+    useState(false);
   const [showAttendanceViewDialog, setShowAttendanceViewDialog] =
     useState(false);
   const [attendanceToView, setAttendanceToView] =
@@ -257,8 +288,10 @@ export const useEmployeeManagement = (
   const [showAdvanceDeleteDialog, setShowAdvanceDeleteDialog] = useState(false);
   const [showAdvanceStatusDialog, setShowAdvanceStatusDialog] = useState(false);
   const [showAdvanceAmountDialog, setShowAdvanceAmountDialog] = useState(false);
-  const [showAdvanceVoucherDialog, setShowAdvanceVoucherDialog] = useState(false);
-  const [advanceForVoucher, setAdvanceForVoucher] = useState<AdvanceRead | null>(null);
+  const [showAdvanceVoucherDialog, setShowAdvanceVoucherDialog] =
+    useState(false);
+  const [advanceForVoucher, setAdvanceForVoucher] =
+    useState<AdvanceRead | null>(null);
   const [advanceToUpdate, setAdvanceToUpdate] = useState<AdvanceRead | null>(
     null
   );
@@ -280,20 +313,18 @@ export const useEmployeeManagement = (
   }, [attendance]);
 
   const enrichedAttendance = useMemo(() => {
-    return flattenedAttendance.map(
-      (attendanceRecord: any) => {
-        const employee = employees.find(
-          (emp) => emp.employee_id === attendanceRecord.employee_id
-        );
-        return {
-          ...attendanceRecord,
-          employee_name:
-            employee?.employee_name ||
-            attendanceRecord.employee_name ||
-            `Employee ${attendanceRecord.employee_id}`,
-        } as EmployeeAttendanceRead;
-      }
-    );
+    return flattenedAttendance.map((attendanceRecord: any) => {
+      const employee = employees.find(
+        (emp) => emp.employee_id === attendanceRecord.employee_id
+      );
+      return {
+        ...attendanceRecord,
+        employee_name:
+          employee?.employee_name ||
+          attendanceRecord.employee_name ||
+          `Employee ${attendanceRecord.employee_id}`,
+      } as EmployeeAttendanceRead;
+    });
   }, [flattenedAttendance, employees]);
 
   // ✅ FIX: Memoize computed values
@@ -302,10 +333,14 @@ export const useEmployeeManagement = (
   const activeEmployees = useMemo(() => {
     return employees.filter((emp) => emp.status === "ACTIVE").length;
   }, [employees]);
-  const totalAttendance = useMemo(() => flattenedAttendance.length, [flattenedAttendance.length]);
+  const totalAttendance = useMemo(
+    () => flattenedAttendance.length,
+    [flattenedAttendance.length]
+  );
   const presentToday = 0; // Not applicable with monthly aggregates
   const pendingLeaves = useMemo(() => {
-    return leaves.filter((leave: any) => leave.leave_status === "PENDING").length;
+    return leaves.filter((leave: any) => leave.leave_status === "PENDING")
+      .length;
   }, [leaves]);
   const totalAdvances = useMemo(() => {
     return Array.isArray(advances) ? advances.length : 0;
@@ -339,20 +374,20 @@ export const useEmployeeManagement = (
     try {
       await createEmployeeMutation.mutateAsync(data);
       setShowEmployeeForm(false);
-      
+
       // ✅ FIX: Use selective invalidation to prevent UI freeze
       invalidateQueriesSelective(employeeKeys.all, {
-        refetchType: 'none',
+        refetchType: "none",
         delay: 0,
       });
-      
+
       // Manually refetch with delay
       requestAnimationFrame(() => {
         setTimeout(() => {
           queryClient.refetchQueries({
             queryKey: employeeKeys.all,
             exact: false,
-            type: 'active',
+            type: "active",
           });
         }, 200);
       });
@@ -366,20 +401,20 @@ export const useEmployeeManagement = (
       await updateEmployeeMutation.mutateAsync({ id, payload: data });
       setShowEmployeeForm(false);
       setIsEditingEmployee(false);
-      
+
       // ✅ FIX: Use selective invalidation to prevent UI freeze
       invalidateQueriesSelective(employeeKeys.all, {
-        refetchType: 'none',
+        refetchType: "none",
         delay: 0,
       });
-      
+
       // Manually refetch with delay
       requestAnimationFrame(() => {
         setTimeout(() => {
           queryClient.refetchQueries({
             queryKey: employeeKeys.all,
             exact: false,
-            type: 'active',
+            type: "active",
           });
         }, 200);
       });
@@ -392,20 +427,20 @@ export const useEmployeeManagement = (
     try {
       await deleteEmployeeMutation.mutateAsync(id);
       setShowDeleteEmployeeDialog(false);
-      
+
       // ✅ FIX: Use selective invalidation to prevent UI freeze
       invalidateQueriesSelective(employeeKeys.all, {
-        refetchType: 'none',
+        refetchType: "none",
         delay: 0,
       });
-      
+
       // Manually refetch with delay
       requestAnimationFrame(() => {
         setTimeout(() => {
           queryClient.refetchQueries({
             queryKey: employeeKeys.all,
             exact: false,
-            type: 'active',
+            type: "active",
           });
         }, 200);
       });
@@ -417,20 +452,20 @@ export const useEmployeeManagement = (
   const handleUpdateEmployeeStatus = async (id: number, status: string) => {
     try {
       await updateStatusMutation.mutateAsync({ id, status });
-      
+
       // ✅ FIX: Use selective invalidation to prevent UI freeze
       invalidateQueriesSelective(employeeKeys.all, {
-        refetchType: 'none',
+        refetchType: "none",
         delay: 0,
       });
-      
+
       // Manually refetch with delay
       requestAnimationFrame(() => {
         setTimeout(() => {
           queryClient.refetchQueries({
             queryKey: employeeKeys.all,
             exact: false,
-            type: 'active',
+            type: "active",
           });
         }, 200);
       });
@@ -439,28 +474,33 @@ export const useEmployeeManagement = (
     }
   };
 
-  const handleCreateAttendance = async (data: { employee_id: number; total_working_days: number; month: number; year: number }) => {
+  const handleCreateAttendance = async (data: {
+    employee_id: number;
+    total_working_days: number;
+    month: number;
+    year: number;
+  }) => {
     try {
       await EmployeeAttendanceService.create(data);
       setShowAttendanceForm(false);
-      
+
       // ✅ FIX: Use selective invalidation to prevent UI freeze
       invalidateQueriesSelective(employeeAttendanceKeys.all, {
-        refetchType: 'none',
+        refetchType: "none",
         delay: 0,
       });
-      
+
       // Manually refetch with delay
       requestAnimationFrame(() => {
         setTimeout(() => {
           queryClient.refetchQueries({
             queryKey: employeeAttendanceKeys.all,
             exact: false,
-            type: 'active',
+            type: "active",
           });
         }, 200);
       });
-      
+
       toast({
         title: "Attendance Created",
         description: "Attendance record has been created successfully.",
@@ -470,46 +510,55 @@ export const useEmployeeManagement = (
       console.error("Error creating attendance:", error);
       toast({
         title: "Error",
-        description: error?.message || "Failed to create attendance record. Please try again.",
+        description:
+          error?.message ||
+          "Failed to create attendance record. Please try again.",
         variant: "destructive",
       });
       throw error;
     }
   };
 
-  const handleBulkCreateAttendance = async (data: { total_working_days: number; month: number; year: number }) => {
+  const handleBulkCreateAttendance = async (data: {
+    total_working_days: number;
+    month: number;
+    year: number;
+  }) => {
     setIsBulkCreatingAttendance(true);
     try {
       await EmployeeAttendanceService.createBulk(data);
       setShowAttendanceBulkCreateDialog(false);
-      
+
       // ✅ FIX: Use selective invalidation to prevent UI freeze
       invalidateQueriesSelective(employeeAttendanceKeys.all, {
-        refetchType: 'none',
+        refetchType: "none",
         delay: 0,
       });
-      
+
       // Manually refetch with delay
       requestAnimationFrame(() => {
         setTimeout(() => {
           queryClient.refetchQueries({
             queryKey: employeeAttendanceKeys.all,
             exact: false,
-            type: 'active',
+            type: "active",
           });
         }, 200);
       });
-      
+
       toast({
         title: "Bulk Attendance Created",
-        description: "Attendance records have been created successfully for all active employees.",
+        description:
+          "Attendance records have been created successfully for all active employees.",
         variant: "success",
       });
     } catch (error: any) {
       console.error("Error creating bulk attendance:", error);
       toast({
         title: "Error",
-        description: error?.message || "Failed to create bulk attendance records. Please try again.",
+        description:
+          error?.message ||
+          "Failed to create bulk attendance records. Please try again.",
         variant: "destructive",
       });
       throw error;
@@ -531,20 +580,20 @@ export const useEmployeeManagement = (
       });
       setShowAttendanceForm(false);
       setIsEditingAttendance(false);
-      
+
       // ✅ FIX: Use selective invalidation to prevent UI freeze
       invalidateQueriesSelective(employeeAttendanceKeys.all, {
-        refetchType: 'none',
+        refetchType: "none",
         delay: 0,
       });
-      
+
       // Manually refetch with delay
       requestAnimationFrame(() => {
         setTimeout(() => {
           queryClient.refetchQueries({
             queryKey: employeeAttendanceKeys.all,
             exact: false,
-            type: 'active',
+            type: "active",
           });
         }, 200);
       });
@@ -553,39 +602,46 @@ export const useEmployeeManagement = (
     }
   };
 
-  const handleUpdateAttendanceBulk = async (data: { total_working_days: number; month: number; year: number }) => {
+  const handleUpdateAttendanceBulk = async (data: {
+    total_working_days: number;
+    month: number;
+    year: number;
+  }) => {
     try {
       await EmployeeAttendanceService.updateBulk(data);
       setShowAttendanceForm(false);
       setIsEditingAttendance(false);
-      
+
       // ✅ FIX: Use selective invalidation to prevent UI freeze
       invalidateQueriesSelective(employeeAttendanceKeys.all, {
-        refetchType: 'none',
+        refetchType: "none",
         delay: 0,
       });
-      
+
       // Manually refetch with delay
       requestAnimationFrame(() => {
         setTimeout(() => {
           queryClient.refetchQueries({
             queryKey: employeeAttendanceKeys.all,
             exact: false,
-            type: 'active',
+            type: "active",
           });
         }, 200);
       });
-      
+
       toast({
         title: "Attendance Updated",
-        description: "Attendance records have been updated successfully for all employees in the branch.",
+        description:
+          "Attendance records have been updated successfully for all employees in the branch.",
         variant: "success",
       });
     } catch (error: any) {
       console.error("Error updating attendance:", error);
       toast({
         title: "Error",
-        description: error?.message || "Failed to update attendance records. Please try again.",
+        description:
+          error?.message ||
+          "Failed to update attendance records. Please try again.",
         variant: "destructive",
       });
       throw error;
@@ -596,20 +652,20 @@ export const useEmployeeManagement = (
     try {
       await deleteAttendanceMutation.mutateAsync(id);
       setShowAttendanceDeleteDialog(false);
-      
+
       // ✅ FIX: Use selective invalidation to prevent UI freeze
       invalidateQueriesSelective(employeeAttendanceKeys.all, {
-        refetchType: 'none',
+        refetchType: "none",
         delay: 0,
       });
-      
+
       // Manually refetch with delay
       requestAnimationFrame(() => {
         setTimeout(() => {
           queryClient.refetchQueries({
             queryKey: employeeAttendanceKeys.all,
             exact: false,
-            type: 'active',
+            type: "active",
           });
         }, 200);
       });
@@ -627,7 +683,7 @@ export const useEmployeeManagement = (
     try {
       await createLeaveMutation.mutateAsync(data);
       setShowLeaveForm(false);
-      
+
       // ✅ FIX: Note - invalidateEntity is already called in mutation hook's onSuccess
       // No need to invalidate here to prevent double invalidation
     } catch (error) {
@@ -640,7 +696,7 @@ export const useEmployeeManagement = (
       await updateLeaveMutation.mutateAsync({ id, data });
       setShowLeaveForm(false);
       setIsEditingLeave(false);
-      
+
       // Note: invalidateEntity is already called in the mutation hook's onSuccess
     } catch (error) {
       console.error("Error updating leave:", error);
@@ -651,7 +707,7 @@ export const useEmployeeManagement = (
     try {
       await deleteLeaveMutation.mutateAsync(id);
       setShowLeaveDeleteDialog(false);
-      
+
       // Note: invalidateEntity is already called in the mutation hook's onSuccess
     } catch (error) {
       console.error("Error deleting leave:", error);
@@ -659,15 +715,48 @@ export const useEmployeeManagement = (
   };
 
   const handleApproveLeave = async (id: number, notes?: string) => {
+    // ✅ CRITICAL FIX: Force remove aria-hidden from focused elements immediately
+    const allElements = document.querySelectorAll('[aria-hidden="true"]');
+    allElements.forEach((el) => {
+      if (el.contains(document.activeElement)) {
+        el.removeAttribute('aria-hidden');
+      }
+    });
+    
+    // ✅ CRITICAL FIX: Restore body overflow IMMEDIATELY (synchronous)
+    // Radix UI AlertDialog locks body overflow, but may not restore it properly on optimistic close
+    const originalOverflow = document.body.style.overflow || '';
+    document.body.style.overflow = originalOverflow || '';
+    document.body.style.pointerEvents = '';
+
     // ✅ CRITICAL FIX: Close dialog immediately (optimistic) before mutation starts
     // This prevents UI freeze by allowing dialog to close while mutation runs in background
     setShowLeaveApproveDialog(false);
-    
-    // ✅ DEFER: Clear leave data immediately (non-blocking)
-    setTimeout(() => {
-      setLeaveToApprove(null);
-    }, 0);
-    
+
+    // ✅ CRITICAL FIX: Clear leave data immediately (synchronous, not deferred)
+    setLeaveToApprove(null);
+
+    // ✅ CRITICAL: Use requestAnimationFrame to ensure DOM updates happen immediately
+    requestAnimationFrame(() => {
+      // Force remove aria-hidden from root
+      const root = document.getElementById('root');
+      if (root && root.getAttribute('aria-hidden') === 'true') {
+        root.removeAttribute('aria-hidden');
+      }
+      
+      // Remove aria-hidden from any dialog containers
+      const dialogs = document.querySelectorAll('[role="dialog"], [role="alertdialog"]');
+      dialogs.forEach((dialog) => {
+        if (dialog.getAttribute('aria-hidden') === 'true') {
+          dialog.removeAttribute('aria-hidden');
+        }
+      });
+      
+      // Ensure body is fully unlocked
+      document.body.style.overflow = originalOverflow || '';
+      document.body.style.pointerEvents = '';
+    });
+
     try {
       // Run mutation in background - don't await it to block UI
       // The mutation's onSuccess will handle query invalidation with proper delay
@@ -684,28 +773,64 @@ export const useEmployeeManagement = (
   };
 
   const handleRejectLeave = async (id: number, reason: string) => {
+    // ✅ CRITICAL FIX: Force remove aria-hidden from focused elements immediately
+    const allElements = document.querySelectorAll('[aria-hidden="true"]');
+    allElements.forEach((el) => {
+      if (el.contains(document.activeElement)) {
+        el.removeAttribute('aria-hidden');
+      }
+    });
+    
+    // ✅ CRITICAL FIX: Restore body overflow IMMEDIATELY (synchronous)
+    // Radix UI AlertDialog locks body overflow, but may not restore it properly on optimistic close
+    const originalOverflow = document.body.style.overflow || '';
+    document.body.style.overflow = originalOverflow || '';
+    document.body.style.pointerEvents = '';
+
     // ✅ CRITICAL FIX: Close dialog immediately (optimistic) before mutation starts
     // This prevents UI freeze by allowing dialog to close while mutation runs in background
     setShowLeaveRejectDialog(false);
-    
-    // ✅ DEFER: Clear leave data and rejection reason immediately (non-blocking)
-    setTimeout(() => {
-      setLeaveToReject(null);
-      setRejectionReason('');
-    }, 0);
-    
+
+    // ✅ CRITICAL FIX: Clear leave data and rejection reason immediately (synchronous, not deferred)
+    setLeaveToReject(null);
+    setRejectionReason("");
+
+    // ✅ CRITICAL: Use requestAnimationFrame to ensure DOM updates happen immediately
+    requestAnimationFrame(() => {
+      // Force remove aria-hidden from root
+      const root = document.getElementById('root');
+      if (root && root.getAttribute('aria-hidden') === 'true') {
+        root.removeAttribute('aria-hidden');
+      }
+      
+      // Remove aria-hidden from any dialog containers
+      const dialogs = document.querySelectorAll('[role="dialog"], [role="alertdialog"]');
+      dialogs.forEach((dialog) => {
+        if (dialog.getAttribute('aria-hidden') === 'true') {
+          dialog.removeAttribute('aria-hidden');
+        }
+      });
+      
+      // Ensure body is fully unlocked
+      document.body.style.overflow = originalOverflow || '';
+      document.body.style.pointerEvents = '';
+    });
+
     try {
       // Run mutation in background - don't await it to block UI
       // The mutation's onSuccess will handle query invalidation with proper delay
-      rejectLeaveMutation.mutate({
-        id,
-        data: { rejection_reason: reason },
-      }, {
-        onError: (error) => {
-          console.error("Error rejecting leave:", error);
-          // Dialog already closed, error toast will be shown by mutation hook
+      rejectLeaveMutation.mutate(
+        {
+          id,
+          data: { rejection_reason: reason },
         },
-      });
+        {
+          onError: (error) => {
+            console.error("Error rejecting leave:", error);
+            // Dialog already closed, error toast will be shown by mutation hook
+          },
+        }
+      );
     } catch (error) {
       console.error("Error rejecting leave:", error);
       // Error handling is done by mutation hook's onError
@@ -721,24 +846,24 @@ export const useEmployeeManagement = (
     try {
       const createdAdvance = await createAdvanceMutation.mutateAsync(data);
       setShowAdvanceForm(false);
-      
+
       // ✅ FIX: Use selective invalidation to prevent UI freeze
       invalidateQueriesSelective(advanceKeys.all, {
-        refetchType: 'none',
+        refetchType: "none",
         delay: 0,
       });
-      
+
       // Manually refetch with delay
       requestAnimationFrame(() => {
         setTimeout(() => {
           queryClient.refetchQueries({
             queryKey: advanceKeys.all,
             exact: false,
-            type: 'active',
+            type: "active",
           });
         }, 200);
       });
-      
+
       // Return created advance for PDF generation
       return createdAdvance;
     } catch (error) {
@@ -752,20 +877,20 @@ export const useEmployeeManagement = (
       await updateAdvanceMutation.mutateAsync({ id, payload: data });
       setShowAdvanceForm(false);
       setIsEditingAdvance(false);
-      
+
       // ✅ FIX: Use selective invalidation to prevent UI freeze
       invalidateQueriesSelective(advanceKeys.all, {
-        refetchType: 'none',
+        refetchType: "none",
         delay: 0,
       });
-      
+
       // Manually refetch with delay
       requestAnimationFrame(() => {
         setTimeout(() => {
           queryClient.refetchQueries({
             queryKey: advanceKeys.all,
             exact: false,
-            type: 'active',
+            type: "active",
           });
         }, 200);
       });
@@ -774,30 +899,34 @@ export const useEmployeeManagement = (
     }
   };
 
-  const handleUpdateAdvanceStatus = async (id: number, status: string, reason?: string) => {
+  const handleUpdateAdvanceStatus = async (
+    id: number,
+    status: string,
+    reason?: string
+  ) => {
     try {
-      const payload: AdvanceStatusUpdate = { 
+      const payload: AdvanceStatusUpdate = {
         status,
-        ...(reason && { reason })
+        ...(reason && { reason }),
       };
       await updateAdvanceStatusMutation.mutateAsync({ id, payload });
       setShowAdvanceStatusDialog(false);
       setAdvanceStatus("");
       setAdvanceStatusReason("");
-      
+
       // ✅ FIX: Use selective invalidation to prevent UI freeze
       invalidateQueriesSelective(advanceKeys.all, {
-        refetchType: 'none',
+        refetchType: "none",
         delay: 0,
       });
-      
+
       // Manually refetch with delay
       requestAnimationFrame(() => {
         setTimeout(() => {
           queryClient.refetchQueries({
             queryKey: advanceKeys.all,
             exact: false,
-            type: 'active',
+            type: "active",
           });
         }, 200);
       });
@@ -814,20 +943,20 @@ export const useEmployeeManagement = (
         payload,
       });
       setShowAdvanceAmountDialog(false);
-      
+
       // ✅ FIX: Use selective invalidation to prevent UI freeze
       invalidateQueriesSelective(advanceKeys.all, {
-        refetchType: 'none',
+        refetchType: "none",
         delay: 0,
       });
-      
+
       // Manually refetch with delay
       requestAnimationFrame(() => {
         setTimeout(() => {
           queryClient.refetchQueries({
             queryKey: advanceKeys.all,
             exact: false,
-            type: 'active',
+            type: "active",
           });
         }, 200);
       });
@@ -994,7 +1123,7 @@ export const useEmployeeManagement = (
     // User context
     user,
     currentBranch,
-    
+
     // Mutation loading states
     createEmployeePending: createEmployeeMutation.isPending,
     updateEmployeePending: updateEmployeeMutation.isPending,

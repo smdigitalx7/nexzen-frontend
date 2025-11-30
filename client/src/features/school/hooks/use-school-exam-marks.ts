@@ -1,6 +1,6 @@
 ﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolExamMarksService } from "@/features/school/services/exam-marks.service";
-import type { CreateExamMarkBulk, ExamMarkBulkCreateResult, ExamMarkFullReadResponse, ExamMarksQuery, ExamGroupAndSubjectResponse, ExamMarkCreate, ExamMarkUpdate, CreateExamMarksMultipleSubjects, ExamMarksMultipleSubjectsResult } from "@/features/school/types";
+import type { CreateExamMarkBulk, ExamMarkBulkCreateResult, ExamMarkFullReadResponse, ExamMarksQuery, ExamGroupAndSubjectResponse, ExamMarkCreate, ExamMarkUpdate, CreateExamMarksMultipleSubjects, ExamMarksMultipleSubjectsResult, CreateBulkMultipleStudentsRequest, BulkMultipleStudentsResponse } from "@/features/school/types";
 import { schoolKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-toast";
 
@@ -80,6 +80,17 @@ export function useCreateSchoolExamMarksMultipleSubjects() {
       void qc.refetchQueries({ queryKey: schoolKeys.examMarks.root(), type: 'active' });
     },
   }, "Exam marks created successfully");
+}
+
+export function useBulkCreateMultipleStudentsExamMarks() {
+  const qc = useQueryClient();
+  return useMutationWithSuccessToast({
+    mutationFn: (payload: CreateBulkMultipleStudentsRequest) => SchoolExamMarksService.bulkMultipleStudents(payload),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: schoolKeys.examMarks.root() });
+      void qc.refetchQueries({ queryKey: schoolKeys.examMarks.root(), type: 'active' });
+    },
+  }, "Bulk exam marks created successfully");
 }
 
 

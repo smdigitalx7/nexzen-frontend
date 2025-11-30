@@ -1,12 +1,11 @@
-﻿import { useMemo, useState, useEffect } from "react";
-import React from "react";
+﻿import { useMemo, useState, useEffect, memo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   useDeleteCollegeReservation,
   useCollegeReservationDashboard,
   useCreateCollegeReservation,
+  collegeKeys,
 } from "@/features/college/hooks";
-import { collegeKeys } from "@/features/college/hooks";
 import { invalidateAndRefetch } from "@/common/hooks/useGlobalRefetch";
 
 import { motion } from "framer-motion";
@@ -23,34 +22,30 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/common/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/common/components/ui/alert-dialog";
 import { useAuthStore } from "@/core/auth/authStore";
 import { Printer } from "lucide-react";
 import ReservationForm from "../reservations/ReservationForm";
-import ReservationsTable from "../reservations/ReservationsTable";
 import { TransportService } from "@/features/general/services";
 import { toast } from "@/common/hooks/use-toast";
 import {
   CollegeReservationsService,
   CollegeDropdownsService,
 } from "@/features/college/services";
-import type { 
-  CollegeReservationView, 
-  CollegeReservationRead, 
+import { ProductionErrorBoundary } from "@/common/components/shared/ProductionErrorBoundary";
+import {
+  ReservationDeleteDialog,
+  ReservationEditDialog,
+  ReservationViewDialog,
+  ReservationPaymentDialog,
+} from "@/common/components/shared/reservations";
+import type {
+  CollegeReservationView,
+  CollegeReservationRead,
   CollegeReservationMinimalRead,
   CollegeReservationSibling,
-  CollegeReservationCreate
+  CollegeReservationCreate,
 } from "@/features/college/types/reservations";
-import { Plus, List, BarChart3, Save } from "lucide-react";
+import { Plus, List, BarChart3 } from "lucide-react";
 
 // Form state type matching the form structure
 type CollegeReservationFormState = {
@@ -113,7 +108,7 @@ import CollegeReservationPaymentProcessor from "@/common/components/shared/payme
 import type { CollegeIncomeRead } from "@/features/college/types/income";
 import { Building2, University } from "lucide-react";
 
-export default function ReservationNew() {
+function ReservationManagementComponent() {
   const { academicYear, currentBranch } = useAuthStore();
 
   // Initialize mutation hooks
@@ -221,14 +216,20 @@ export default function ReservationNew() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelRemarks, setCancelRemarks] = useState("");
-  const [selectedReservation, setSelectedReservation] = useState<CollegeReservationRead | CollegeReservationMinimalRead | null>(null);
+  const [selectedReservation, setSelectedReservation] = useState<
+    CollegeReservationRead | CollegeReservationMinimalRead | null
+  >(null);
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [viewReservation, setViewReservation] =
     useState<CollegeReservationView | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editForm, setEditForm] = useState<CollegeReservationFormState | null>(null);
+  const [editForm, setEditForm] = useState<CollegeReservationFormState | null>(
+    null
+  );
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [reservationToDelete, setReservationToDelete] = useState<CollegeReservationRead | CollegeReservationMinimalRead | null>(null);
+  const [reservationToDelete, setReservationToDelete] = useState<
+    CollegeReservationRead | CollegeReservationMinimalRead | null
+  >(null);
   const [loadingReservation, setLoadingReservation] = useState<number | null>(
     null
   );
@@ -248,6 +249,7 @@ export default function ReservationNew() {
   const [paymentIncomeRecord, setPaymentIncomeRecord] =
     useState<CollegeIncomeRead | null>(null);
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
+  const [receiptNo, setReceiptNo] = useState<string | null>(null);
 
   // ✅ FIX: Cleanup blob URL on unmount to prevent memory leaks
   useEffect(() => {
@@ -262,7 +264,7 @@ export default function ReservationNew() {
   // This fixes UI freeze by limiting data fetched per request
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50); // Fetch 50 reservations at a time (prevents loading 1000+ at once)
-  
+
   // ✅ Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -305,40 +307,43 @@ export default function ReservationNew() {
   // Delete reservation hook
   const deleteReservation = useDeleteCollegeReservation();
 
-  // Process reservations data
+  // ✅ OPTIMIZED: Process reservations data with proper dependencies
   const allReservations = useMemo(() => {
     if (!reservationsData?.reservations) return [];
-
     if (!Array.isArray(reservationsData.reservations)) return [];
 
-    return reservationsData.reservations.map((r: CollegeReservationMinimalRead) => ({
-      reservation_id: r.reservation_id,
-      reservation_no: r.reservation_no,
-      reservation_date: r.reservation_date,
-      student_name: r.student_name,
-      gender: r.gender,
-      father_name: r.father_or_guardian_name,
-      father_mobile: r.father_or_guardian_mobile,
-      group_id: 0, // Not available in MinimalRead, will be fetched when needed
-      course_id: 0, // Not available in MinimalRead, will be fetched when needed
-      group_name: r.group_name,
-      course_name: r.course_name,
-      status: r.status || "PENDING",
-      remarks: r.remarks,
-      created_at: new Date().toISOString(), // Not available in MinimalRead, using current date as fallback
-      application_income_id: r.application_income_id,
-    }));
-  }, [reservationsData]);
+    return reservationsData.reservations.map(
+      (r: CollegeReservationMinimalRead) => ({
+        reservation_id: r.reservation_id,
+        reservation_no: r.reservation_no,
+        reservation_date: r.reservation_date,
+        student_name: r.student_name,
+        gender: r.gender,
+        father_name: r.father_or_guardian_name,
+        father_mobile: r.father_or_guardian_mobile,
+        group_id: 0,
+        course_id: 0,
+        group_name: r.group_name,
+        course_name: r.course_name,
+        status: r.status || "PENDING",
+        remarks: r.remarks,
+        created_at: new Date().toISOString(),
+        application_income_id: r.application_income_id,
+      })
+    );
+  }, [reservationsData?.reservations]);
 
-  // Map reservations for StatusUpdateTable
+  // ✅ OPTIMIZED: Map reservations for StatusUpdateTable with stable reference
   const statusTableReservations = useMemo(() => {
+    if (!Array.isArray(allReservations) || allReservations.length === 0)
+      return [];
     return allReservations.map((r) => ({
       id: String(r.reservation_id),
       no: r.reservation_no || String(r.reservation_id),
       reservation_id: r.reservation_id,
       studentName: r.student_name,
       status: r.status || "PENDING",
-      remarks: r.remarks || "", // Add remarks
+      remarks: r.remarks || "",
     }));
   }, [allReservations]);
 
@@ -458,294 +463,319 @@ export default function ReservationNew() {
   // Transport fee is not used for college reservations
   const transportFee = 0;
 
-  // Class, group and course change handlers
-  const handleClassChange = (classId: number) => {
+  // ✅ OPTIMIZED: Memoized class, group and course change handlers
+  const handleClassChange = useCallback((classId: number) => {
     setForm((prev) => ({
       ...prev,
       preferredClassId: classId.toString(),
     }));
-  };
+  }, []);
 
-  const handleGroupChange = (groupId: number) => {
-    setSelectedGroupId(groupId);
-    // Reset course selection when group changes
-    setForm((prev) => ({
-      ...prev,
-      preferredGroupId: groupId.toString(),
-      group:
-        groupsData?.items?.find((g) => g.group_id === groupId)?.group_name ||
-        "",
-      course: "N/A", // Reset course when group changes
-    }));
-  };
-
-  const handleCourseChange = (courseId: number) => {
-    const selectedCourse = coursesData?.items?.find(
-      (c) => c.course_id === courseId
-    );
-    if (selectedCourse) {
+  const handleGroupChange = useCallback(
+    (groupId: number) => {
+      setSelectedGroupId(groupId);
       setForm((prev) => ({
         ...prev,
-        course: courseId.toString(), // Store course ID for fee calculation
-        courseName: selectedCourse.course_name, // Store course name for display
+        preferredGroupId: groupId.toString(),
+        group:
+          groupsData?.items?.find((g) => g.group_id === groupId)?.group_name ||
+          "",
+        course: "N/A",
       }));
-    }
-  };
+    },
+    [groupsData?.items]
+  );
 
-  const handleUpdateConcession = async (reservation: CollegeReservationRead | CollegeReservationMinimalRead) => {
-    try {
-      // Fetch the full reservation details for the dialog
-      const fullReservationData = await CollegeReservationsService.getById(
-        reservation.reservation_id
+  const handleCourseChange = useCallback(
+    (courseId: number) => {
+      const selectedCourse = coursesData?.items?.find(
+        (c) => c.course_id === courseId
       );
-      setSelectedReservationForConcession(fullReservationData);
-      setShowConcessionDialog(true);
-    } catch (error) {
-      console.error("Failed to load reservation for concession update:", error);
-      toast({
-        title: "Failed to Load Reservation",
-        description: "Could not load reservation details. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
+      if (selectedCourse) {
+        setForm((prev) => ({
+          ...prev,
+          course: courseId.toString(),
+          courseName: selectedCourse.course_name,
+        }));
+      }
+    },
+    [coursesData?.items]
+  );
 
-  const handleConcessionUpdate = async (
-    reservationId: number,
-    tuitionConcession: number,
-    transportConcession: number,
-    remarks: string
-  ) => {
-    try {
-      // Note: Backend only accepts tuition_concession and remarks
-      // transport_concession is not supported by the backend API endpoint
-      await CollegeReservationsService.updateConcessions(reservationId, {
-        tuition_concession: tuitionConcession,
-        remarks: remarks || null,
-      });
-
-      // Invalidate and refetch using debounced utility (prevents UI freeze)
-      // Note: invalidateAndRefetch handles API cache clearing internally
-      invalidateAndRefetch(collegeKeys.reservations.root());
-
-      // Step 4: Call refetchReservations to ensure immediate API call
-      void refetchReservations();
-
-      // Fetch fresh reservation data immediately after update
-      // This ensures if user reopens the dialog, it has the latest data with updated concession_lock status
+  // ✅ OPTIMIZED: Memoized concession handlers
+  const handleUpdateConcession = useCallback(
+    async (
+      reservation: CollegeReservationRead | CollegeReservationMinimalRead
+    ) => {
       try {
-        const updatedReservation =
-          await CollegeReservationsService.getById(reservationId);
-        // Update the state with fresh data so if dialog reopens, it shows updated values
-        setSelectedReservationForConcession(updatedReservation);
-      } catch (fetchError) {
-        console.error("Failed to fetch updated reservation:", fetchError);
-        // If fetch fails, just clear the state - next open will fetch fresh
-        setSelectedReservationForConcession(null);
-      }
-
-      toast({
-        title: "Concession Updated",
-        description: "Concession amounts have been updated successfully.",
-        variant: "success",
-      });
-    } catch (error: any) {
-      console.error("Failed to update concession:", error);
-      toast({
-        title: "Update Failed",
-        description:
-          error?.response?.data?.detail ||
-          error?.message ||
-          "Failed to update concession.",
-        variant: "destructive",
-      });
-      throw error; // Re-throw to let the dialog handle it
-    }
-  };
-
-  const handleSave = async (withPayment: boolean) => {
-    // Validate required fields
-    if (!form.studentName?.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Student name is required",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!form.preferredClassId || form.preferredClassId === "0") {
-      toast({
-        title: "Validation Error",
-        description: "Please select a class",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!form.preferredGroupId || form.preferredGroupId === "0") {
-      toast({
-        title: "Validation Error",
-        description: "Please select a group",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!form.course || form.course === "0") {
-      toast({
-        title: "Validation Error",
-        description: "Please select a course",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate application fee is required and greater than 0
-    if (!form.reservationFee || Number(form.reservationFee || 0) <= 0) {
-      toast({
-        title: "Validation Error",
-        description: "Application fee is required and must be greater than 0",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const payload = {
-      student_name: form.studentName,
-      aadhar_no: form.studentAadhar || null,
-      gender: (form.gender || "OTHER").toUpperCase() as
-        | "MALE"
-        | "FEMALE"
-        | "OTHER",
-      dob: form.dob || null, // Date string in YYYY-MM-DD format
-      father_or_guardian_name: form.fatherName || null,
-      father_or_guardian_aadhar_no: form.fatherAadhar || null,
-      father_or_guardian_mobile: form.fatherMobile || null,
-      father_or_guardian_occupation: form.fatherOccupation || null,
-      mother_or_guardian_name: form.motherName || null,
-      mother_or_guardian_aadhar_no: form.motherAadhar || null,
-      mother_or_guardian_mobile: form.motherMobile || null,
-      mother_or_guardian_occupation: form.motherOccupation || null,
-      siblings: (form.siblings || []).map((s): CollegeReservationSibling => ({
-        name: s.name || null,
-        class_name: s.class_name || null,
-        where: s.where || null,
-        gender: (s.gender || "OTHER").toUpperCase() as "MALE" | "FEMALE" | "OTHER" || null,
-      })),
-      previous_class: form.lastClass || null,
-      previous_school_details: form.previousSchool || null,
-      present_address: form.presentAddress || null,
-      permanent_address: form.permanentAddress || null,
-      application_fee: Number(form.reservationFee || 0),
-      preferred_class_id: Number(form.preferredClassId || 0),
-      preferred_group_id: Number(form.preferredGroupId || 0),
-      group_name: form.group || "N/A", // Required field - provide default
-      preferred_course_id: Number(form.course || 0),
-      course_name: form.courseName || "N/A", // Required field - provide default
-      group_fee: Number(groupFee || 0),
-      course_fee: Number(courseFee || 0),
-      book_fee: form.bookFeeRequired ? Number(form.bookFee || 0) : 0,
-      total_tuition_fee: Number(groupFee + courseFee || 0),
-      transport_required: form.transport === "Yes",
-      preferred_transport_id:
-        form.transport === "Yes" && form.busRoute
-          ? Number(form.busRoute)
-          : null,
-      pickup_point: form.transport === "Yes" ? form.pickupPoint || null : null,
-      book_fee_required: form.bookFeeRequired || false,
-      course_required: form.courseRequired || false,
-      status: "PENDING" as "PENDING" | "CONFIRMED" | "CANCELLED",
-      request_type: (form.requestType || "WALK_IN") as "WALK_IN" | "REFERRAL",
-      referred_by: form.referredBy ? Number(form.referredBy) : null, // Use null instead of 0
-      referred_by_name: form.referredByName || null,
-      remarks: form.remarks || null,
-    };
-
-    try {
-      // Use mutation hook which handles cache invalidation automatically
-      const res: any = await createReservationMutation.mutateAsync(payload);
-
-      if (import.meta.env.DEV) {
-        console.log("Reservation creation response:", res);
-      }
-
-      // Use backend reservation_id to display receipt number
-      const reservationId = res?.reservation_id || res?.reservation_no || "";
-      setReservationNo(String(reservationId));
-
-      // Capture form data for payment before clearing form
-      const formDataForPayment = {
-        studentName: form.studentName,
-        group: form.group,
-        courseName: form.courseName,
-        reservationFee: form.reservationFee,
-      };
-
-      // CLEAR FORM IMMEDIATELY - CRITICAL for UI responsiveness
-      // This must happen synchronously before any async operations
-      // Set reservation_date to today when clearing (matching school behavior)
-      setForm({
-        ...initialFormState,
-        reservationDate: new Date().toISOString().split("T")[0],
-      });
-      setSelectedGroupId(null);
-
-      // Show success toast message
-      toast({
-        title: "Reservation Created Successfully",
-        description: `Successfully created reservation with id ${reservationId}`,
-        variant: "success",
-      });
-
-      // Run data refresh in background - don't block UI
-      // Use setTimeout to ensure form clears first, then refresh data
-      setTimeout(() => {
-        const refreshData = async () => {
-          try {
-            // Mutation hook already handles invalidation, but we ensure refetch callback is called
-            await refetchReservations();
-          } catch (error) {
-            console.error(
-              "Error refreshing data after reservation creation:",
-              error
-            );
-          }
-        };
-
-        refreshData().catch(console.error);
-      }, 100);
-
-      if (withPayment) {
-        // Prepare payment data for the payment processor using captured form data
-        const paymentData: ReservationPaymentData = {
-          reservationId: res.reservation_id,
-          reservationNo: res.reservation_no || String(res.reservation_id),
-          studentName: formDataForPayment.studentName,
-          className: `${formDataForPayment.group}${formDataForPayment.courseName ? ` - ${formDataForPayment.courseName}` : ""}`,
-          reservationFee: Number(formDataForPayment.reservationFee || 0),
-          totalAmount: Number(formDataForPayment.reservationFee || 0),
-          paymentMethod: "CASH", // Default payment method
-          purpose: "Reservation Fee Payment",
-          note: `Payment for reservation ${res.reservation_id}`,
-        };
-
-        // Open payment dialog after a brief delay to ensure form dialog is fully closed
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            setPaymentData(paymentData);
-            setShowPaymentProcessor(true);
-          }, 150);
+        const fullReservationData = await CollegeReservationsService.getById(
+          reservation.reservation_id
+        );
+        setSelectedReservationForConcession(fullReservationData);
+        setShowConcessionDialog(true);
+      } catch (error) {
+        console.error(
+          "Failed to load reservation for concession update:",
+          error
+        );
+        toast({
+          title: "Failed to Load Reservation",
+          description: "Could not load reservation details. Please try again.",
+          variant: "destructive",
         });
       }
-    } catch (e: any) {
-      console.error("Failed to create reservation:", e);
-      // Error toast is handled by mutation hook
-      // Don't clear form on error - keep all field data
-    }
-  };
+    },
+    []
+  );
 
-  const buildPayloadFromForm = (f: CollegeReservationFormState): CollegeReservationCreate => {
+  const handleConcessionUpdate = useCallback(
+    async (
+      reservationId: number,
+      tuitionConcession: number,
+      transportConcession: number,
+      remarks: string
+    ) => {
+      try {
+        // Note: Backend only accepts tuition_concession and remarks
+        // transport_concession is not supported by the backend API endpoint
+        await CollegeReservationsService.updateConcessions(reservationId, {
+          tuition_concession: tuitionConcession,
+          remarks: remarks || null,
+        });
+
+        // Invalidate and refetch using debounced utility (prevents UI freeze)
+        // Note: invalidateAndRefetch handles API cache clearing internally
+        invalidateAndRefetch(collegeKeys.reservations.root());
+
+        // Step 4: Call refetchReservations to ensure immediate API call
+        void refetchReservations();
+
+        // Fetch fresh reservation data immediately after update
+        // This ensures if user reopens the dialog, it has the latest data with updated concession_lock status
+        try {
+          const updatedReservation =
+            await CollegeReservationsService.getById(reservationId);
+          // Update the state with fresh data so if dialog reopens, it shows updated values
+          setSelectedReservationForConcession(updatedReservation);
+        } catch (fetchError) {
+          console.error("Failed to fetch updated reservation:", fetchError);
+          // If fetch fails, just clear the state - next open will fetch fresh
+          setSelectedReservationForConcession(null);
+        }
+
+        toast({
+          title: "Concession Updated",
+          description: "Concession amounts have been updated successfully.",
+          variant: "success",
+        });
+      } catch (error: any) {
+        console.error("Failed to update concession:", error);
+        toast({
+          title: "Update Failed",
+          description:
+            error?.response?.data?.detail ||
+            error?.message ||
+            "Failed to update concession.",
+          variant: "destructive",
+        });
+        throw error;
+      }
+    },
+    [refetchReservations]
+  );
+
+  // ✅ OPTIMIZED: Memoized save handler
+  const handleSave = useCallback(
+    async (withPayment: boolean) => {
+      // Validate required fields
+      if (!form.studentName?.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Student name is required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!form.preferredClassId || form.preferredClassId === "0") {
+        toast({
+          title: "Validation Error",
+          description: "Please select a class",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!form.preferredGroupId || form.preferredGroupId === "0") {
+        toast({
+          title: "Validation Error",
+          description: "Please select a group",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!form.course || form.course === "0") {
+        toast({
+          title: "Validation Error",
+          description: "Please select a course",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate application fee is required and greater than 0
+      if (!form.reservationFee || Number(form.reservationFee || 0) <= 0) {
+        toast({
+          title: "Validation Error",
+          description: "Application fee is required and must be greater than 0",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const payload = {
+        student_name: form.studentName,
+        aadhar_no: form.studentAadhar || null,
+        gender: (form.gender || "OTHER").toUpperCase() as
+          | "MALE"
+          | "FEMALE"
+          | "OTHER",
+        dob: form.dob || null, // Date string in YYYY-MM-DD format
+        father_or_guardian_name: form.fatherName || null,
+        father_or_guardian_aadhar_no: form.fatherAadhar || null,
+        father_or_guardian_mobile: form.fatherMobile || null,
+        father_or_guardian_occupation: form.fatherOccupation || null,
+        mother_or_guardian_name: form.motherName || null,
+        mother_or_guardian_aadhar_no: form.motherAadhar || null,
+        mother_or_guardian_mobile: form.motherMobile || null,
+        mother_or_guardian_occupation: form.motherOccupation || null,
+        siblings: (form.siblings || []).map(
+          (s): CollegeReservationSibling => ({
+            name: s.name || null,
+            class_name: s.class_name || null,
+            where: s.where || null,
+            gender:
+              ((s.gender || "OTHER").toUpperCase() as
+                | "MALE"
+                | "FEMALE"
+                | "OTHER") || null,
+          })
+        ),
+        previous_class: form.lastClass || null,
+        previous_school_details: form.previousSchool || null,
+        present_address: form.presentAddress || null,
+        permanent_address: form.permanentAddress || null,
+        application_fee: Number(form.reservationFee || 0),
+        preferred_class_id: Number(form.preferredClassId || 0),
+        preferred_group_id: Number(form.preferredGroupId || 0),
+        group_name: form.group || "N/A", // Required field - provide default
+        preferred_course_id: Number(form.course || 0),
+        course_name: form.courseName || "N/A", // Required field - provide default
+        group_fee: Number(groupFee || 0),
+        course_fee: Number(courseFee || 0),
+        book_fee: form.bookFeeRequired ? Number(form.bookFee || 0) : 0,
+        total_tuition_fee: Number(groupFee + courseFee || 0),
+        transport_required: form.transport === "Yes",
+        preferred_transport_id:
+          form.transport === "Yes" && form.busRoute
+            ? Number(form.busRoute)
+            : null,
+        pickup_point:
+          form.transport === "Yes" ? form.pickupPoint || null : null,
+        book_fee_required: form.bookFeeRequired || false,
+        course_required: form.courseRequired || false,
+        status: "PENDING" as "PENDING" | "CONFIRMED" | "CANCELLED",
+        request_type: (form.requestType || "WALK_IN") as "WALK_IN" | "REFERRAL",
+        referred_by: form.referredBy ? Number(form.referredBy) : null, // Use null instead of 0
+        referred_by_name: form.referredByName || null,
+        remarks: form.remarks || null,
+      };
+
+      try {
+        // Use mutation hook which handles cache invalidation automatically
+        const res = await createReservationMutation.mutateAsync(payload);
+
+        // Use backend reservation_id to display receipt number
+        const reservationId = res?.reservation_id || res?.reservation_no || "";
+        setReservationNo(String(reservationId));
+
+        // Capture form data for payment before clearing form
+        const formDataForPayment = {
+          studentName: form.studentName,
+          group: form.group,
+          courseName: form.courseName,
+          reservationFee: form.reservationFee,
+        };
+
+        // CLEAR FORM IMMEDIATELY - CRITICAL for UI responsiveness
+        // This must happen synchronously before any async operations
+        // Set reservation_date to today when clearing (matching school behavior)
+        setForm({
+          ...initialFormState,
+          reservationDate: new Date().toISOString().split("T")[0],
+        });
+        setSelectedGroupId(null);
+
+        // Show success toast message
+        toast({
+          title: "Reservation Created Successfully",
+          description: `Successfully created reservation with id ${reservationId}`,
+          variant: "success",
+        });
+
+        // Run data refresh in background - don't block UI
+        // Use setTimeout to ensure form clears first, then refresh data
+        setTimeout(() => {
+          const refreshData = async () => {
+            try {
+              // Mutation hook already handles invalidation, but we ensure refetch callback is called
+              await refetchReservations();
+            } catch (error) {
+              console.error(
+                "Error refreshing data after reservation creation:",
+                error
+              );
+            }
+          };
+
+          refreshData().catch(console.error);
+        }, 100);
+
+        if (withPayment) {
+          // Prepare payment data for the payment processor using captured form data
+          const paymentData: ReservationPaymentData = {
+            reservationId: res.reservation_id,
+            reservationNo: res.reservation_no || String(res.reservation_id),
+            studentName: formDataForPayment.studentName,
+            className: `${formDataForPayment.group}${formDataForPayment.courseName ? ` - ${formDataForPayment.courseName}` : ""}`,
+            reservationFee: Number(formDataForPayment.reservationFee || 0),
+            totalAmount: Number(formDataForPayment.reservationFee || 0),
+            paymentMethod: "CASH", // Default payment method
+            purpose: "Reservation Fee Payment",
+            note: `Payment for reservation ${res.reservation_id}`,
+          };
+
+          // Open payment dialog after a brief delay to ensure form dialog is fully closed
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              setPaymentData(paymentData);
+              setShowPaymentProcessor(true);
+            }, 150);
+          });
+        }
+      } catch (e: any) {
+        console.error("Failed to create reservation:", e);
+        // Error toast is handled by mutation hook
+        // Don't clear form on error - keep all field data
+      }
+    },
+    [form, groupFee, courseFee, createReservationMutation, refetchReservations]
+  );
+
+  const buildPayloadFromForm = (
+    f: CollegeReservationFormState
+  ): CollegeReservationCreate => {
     return {
       student_name: f.studentName,
       aadhar_no: f.studentAadhar || null,
@@ -762,12 +792,18 @@ export default function ReservationNew() {
       mother_or_guardian_aadhar_no: f.motherAadhar || null,
       mother_or_guardian_mobile: f.motherMobile || null,
       mother_or_guardian_occupation: f.motherOccupation || null,
-      siblings: (f.siblings || []).map((s): CollegeReservationSibling => ({
-        name: s.name || null,
-        class_name: s.class_name || null,
-        where: s.where || null,
-        gender: (s.gender || "OTHER").toUpperCase() as "MALE" | "FEMALE" | "OTHER" || null,
-      })),
+      siblings: (f.siblings || []).map(
+        (s): CollegeReservationSibling => ({
+          name: s.name || null,
+          class_name: s.class_name || null,
+          where: s.where || null,
+          gender:
+            ((s.gender || "OTHER").toUpperCase() as
+              | "MALE"
+              | "FEMALE"
+              | "OTHER") || null,
+        })
+      ),
       previous_class: f.lastClass || null,
       previous_school_details: f.previousSchool || null,
       present_address: f.presentAddress || null,
@@ -796,68 +832,154 @@ export default function ReservationNew() {
     };
   };
 
-  const mapApiToForm = (r: CollegeReservationRead | CollegeReservationView): CollegeReservationFormState => {
+  const mapApiToForm = (
+    r: CollegeReservationRead | CollegeReservationView
+  ): CollegeReservationFormState => {
     // Handle different property names between Read and View types
-    const isView = 'father_or_guardian_name' in r && typeof (r as CollegeReservationView).father_or_guardian_name === 'string';
-    const siblings = isView ? (r as CollegeReservationView).siblings : (r as CollegeReservationRead).siblings || [];
-    
+    const isView =
+      "father_or_guardian_name" in r &&
+      typeof (r as CollegeReservationView).father_or_guardian_name === "string";
+    const siblings = isView
+      ? (r as CollegeReservationView).siblings
+      : (r as CollegeReservationRead).siblings || [];
+
     return {
       studentName: r.student_name || "",
-      studentAadhar: isView ? "" : (r as CollegeReservationRead).aadhar_no || "",
-      fatherName: isView ? (r as CollegeReservationView).father_or_guardian_name || "" : (r as CollegeReservationRead).father_or_guardian_name || "",
-      fatherAadhar: isView ? (r as CollegeReservationView).father_or_guardian_aadhar_no || "" : (r as CollegeReservationRead).father_or_guardian_aadhar_no || "",
-      motherName: isView ? (r as CollegeReservationView).mother_or_guardian_name || "" : (r as CollegeReservationRead).mother_or_guardian_name || "",
-      motherAadhar: isView ? (r as CollegeReservationView).mother_or_guardian_aadhar_no || "" : (r as CollegeReservationRead).mother_or_guardian_aadhar_no || "",
-      fatherOccupation: isView ? (r as CollegeReservationView).father_or_guardian_occupation || "" : (r as CollegeReservationRead).father_or_guardian_occupation || "",
-      motherOccupation: isView ? (r as CollegeReservationView).mother_or_guardian_occupation || "" : (r as CollegeReservationRead).mother_or_guardian_occupation || "",
+      studentAadhar: isView
+        ? ""
+        : (r as CollegeReservationRead).aadhar_no || "",
+      fatherName: isView
+        ? (r as CollegeReservationView).father_or_guardian_name || ""
+        : (r as CollegeReservationRead).father_or_guardian_name || "",
+      fatherAadhar: isView
+        ? (r as CollegeReservationView).father_or_guardian_aadhar_no || ""
+        : (r as CollegeReservationRead).father_or_guardian_aadhar_no || "",
+      motherName: isView
+        ? (r as CollegeReservationView).mother_or_guardian_name || ""
+        : (r as CollegeReservationRead).mother_or_guardian_name || "",
+      motherAadhar: isView
+        ? (r as CollegeReservationView).mother_or_guardian_aadhar_no || ""
+        : (r as CollegeReservationRead).mother_or_guardian_aadhar_no || "",
+      fatherOccupation: isView
+        ? (r as CollegeReservationView).father_or_guardian_occupation || ""
+        : (r as CollegeReservationRead).father_or_guardian_occupation || "",
+      motherOccupation: isView
+        ? (r as CollegeReservationView).mother_or_guardian_occupation || ""
+        : (r as CollegeReservationRead).mother_or_guardian_occupation || "",
       gender: (r.gender || "").toString(),
-      dob: isView 
-        ? ((r as CollegeReservationView).dob || "") 
+      dob: isView
+        ? (r as CollegeReservationView).dob || ""
         : (() => {
             const dobValue = (r as CollegeReservationRead).dob;
             if (!dobValue) return "";
-            if (typeof dobValue === 'string') return dobValue;
-            return new Date(dobValue as string | number | Date).toISOString().split('T')[0];
+            if (typeof dobValue === "string") return dobValue;
+            return new Date(dobValue as string | number | Date)
+              .toISOString()
+              .split("T")[0];
           })(),
-      previousSchool: isView ? "" : (r as CollegeReservationRead).previous_school_details || "",
+      previousSchool: isView
+        ? ""
+        : (r as CollegeReservationRead).previous_school_details || "",
       village: "",
-      lastClass: isView ? "" : (r as CollegeReservationRead).previous_class || "",
-      presentAddress: isView ? (r as CollegeReservationView).present_address || "" : (r as CollegeReservationRead).present_address || "",
-      permanentAddress: isView ? (r as CollegeReservationView).permanent_address || "" : (r as CollegeReservationRead).permanent_address || "",
-      fatherMobile: isView ? (r as CollegeReservationView).father_or_guardian_mobile || "" : (r as CollegeReservationRead).father_or_guardian_mobile || "",
-      motherMobile: isView ? (r as CollegeReservationView).mother_or_guardian_mobile || "" : (r as CollegeReservationRead).mother_or_guardian_mobile || "",
+      lastClass: isView
+        ? ""
+        : (r as CollegeReservationRead).previous_class || "",
+      presentAddress: isView
+        ? (r as CollegeReservationView).present_address || ""
+        : (r as CollegeReservationRead).present_address || "",
+      permanentAddress: isView
+        ? (r as CollegeReservationView).permanent_address || ""
+        : (r as CollegeReservationRead).permanent_address || "",
+      fatherMobile: isView
+        ? (r as CollegeReservationView).father_or_guardian_mobile || ""
+        : (r as CollegeReservationRead).father_or_guardian_mobile || "",
+      motherMobile: isView
+        ? (r as CollegeReservationView).mother_or_guardian_mobile || ""
+        : (r as CollegeReservationRead).mother_or_guardian_mobile || "",
       classAdmission: r.group_name
         ? `${r.group_name}${r.course_name ? ` - ${r.course_name}` : ""}`
         : "",
       group: r.group_name || "",
-      course: isView ? "N/A" : (r as CollegeReservationRead).preferred_course_id ? String((r as CollegeReservationRead).preferred_course_id) : "N/A",
+      course: isView
+        ? "N/A"
+        : (r as CollegeReservationRead).preferred_course_id
+          ? String((r as CollegeReservationRead).preferred_course_id)
+          : "N/A",
       courseName: r.course_name || "N/A",
-      transport: isView ? "" : (r as CollegeReservationRead).preferred_transport_id ? "Yes" : "No",
-      busRoute: isView ? "" : (r as CollegeReservationRead).preferred_transport_id ? String((r as CollegeReservationRead).preferred_transport_id) : "",
-      pickupPoint: isView ? "" : (r as CollegeReservationRead).pickup_point || "",
+      transport: isView
+        ? ""
+        : (r as CollegeReservationRead).preferred_transport_id
+          ? "Yes"
+          : "No",
+      busRoute: isView
+        ? ""
+        : (r as CollegeReservationRead).preferred_transport_id
+          ? String((r as CollegeReservationRead).preferred_transport_id)
+          : "",
+      pickupPoint: isView
+        ? ""
+        : (r as CollegeReservationRead).pickup_point || "",
       applicationFee: "",
-      reservationFee: isView ? (r as CollegeReservationView).application_fee || "" : (r as CollegeReservationRead).application_fee != null ? String((r as CollegeReservationRead).application_fee) : "",
+      reservationFee: isView
+        ? (r as CollegeReservationView).application_fee || ""
+        : (r as CollegeReservationRead).application_fee != null
+          ? String((r as CollegeReservationRead).application_fee)
+          : "",
       remarks: isView ? "" : (r as CollegeReservationRead).remarks || "",
-      preferredClassId: isView ? "0" : (r as CollegeReservationRead).preferred_class_id != null ? String((r as CollegeReservationRead).preferred_class_id) : "0",
-      preferredGroupId: isView ? "0" : (r as CollegeReservationRead).preferred_group_id != null ? String((r as CollegeReservationRead).preferred_group_id) : "0",
-      bookFee: isView ? (r as CollegeReservationView).book_fee || "0" : (r as CollegeReservationRead).book_fee != null ? String((r as CollegeReservationRead).book_fee) : "0",
-      tuitionConcession: isView ? (r as CollegeReservationView).tuition_concession || "0" : (r as CollegeReservationRead).tuition_concession != null ? String((r as CollegeReservationRead).tuition_concession) : "0",
-      transportConcession: isView ? (r as CollegeReservationView).transport_concession || "0" : (r as CollegeReservationRead).transport_concession != null ? String((r as CollegeReservationRead).transport_concession) : "0",
-      bookFeeRequired: isView ? false : (r as CollegeReservationRead).book_fee_required || false,
-      courseRequired: isView ? false : (r as CollegeReservationRead).course_required || false,
-      requestType: isView ? "WALK_IN" : ((r as CollegeReservationRead).request_type || "WALK_IN"),
-      referredBy: isView ? "" : (r as CollegeReservationRead).referred_by != null ? String((r as CollegeReservationRead).referred_by) : "",
-      referredByName: isView ? "" : ((r as CollegeReservationRead).referred_by_name || ""),
-      reservationDate: isView 
-        ? ((r as CollegeReservationView).reservation_date || "") 
+      preferredClassId: isView
+        ? "0"
+        : (r as CollegeReservationRead).preferred_class_id != null
+          ? String((r as CollegeReservationRead).preferred_class_id)
+          : "0",
+      preferredGroupId: isView
+        ? "0"
+        : (r as CollegeReservationRead).preferred_group_id != null
+          ? String((r as CollegeReservationRead).preferred_group_id)
+          : "0",
+      bookFee: isView
+        ? (r as CollegeReservationView).book_fee || "0"
+        : (r as CollegeReservationRead).book_fee != null
+          ? String((r as CollegeReservationRead).book_fee)
+          : "0",
+      tuitionConcession: isView
+        ? (r as CollegeReservationView).tuition_concession || "0"
+        : (r as CollegeReservationRead).tuition_concession != null
+          ? String((r as CollegeReservationRead).tuition_concession)
+          : "0",
+      transportConcession: isView
+        ? (r as CollegeReservationView).transport_concession || "0"
+        : (r as CollegeReservationRead).transport_concession != null
+          ? String((r as CollegeReservationRead).transport_concession)
+          : "0",
+      bookFeeRequired: isView
+        ? false
+        : (r as CollegeReservationRead).book_fee_required || false,
+      courseRequired: isView
+        ? false
+        : (r as CollegeReservationRead).course_required || false,
+      requestType: isView
+        ? "WALK_IN"
+        : (r as CollegeReservationRead).request_type || "WALK_IN",
+      referredBy: isView
+        ? ""
+        : (r as CollegeReservationRead).referred_by != null
+          ? String((r as CollegeReservationRead).referred_by)
+          : "",
+      referredByName: isView
+        ? ""
+        : (r as CollegeReservationRead).referred_by_name || "",
+      reservationDate: isView
+        ? (r as CollegeReservationView).reservation_date || ""
         : (() => {
             const dateValue = (r as CollegeReservationRead).reservation_date;
             if (!dateValue) return "";
-            if (typeof dateValue === 'string') return dateValue;
-            return new Date(dateValue as string | number | Date).toISOString().split('T')[0];
+            if (typeof dateValue === "string") return dateValue;
+            return new Date(dateValue as string | number | Date)
+              .toISOString()
+              .split("T")[0];
           })(),
       siblingsJson: JSON.stringify(siblings),
-      siblings: siblings.map(s => ({
+      siblings: siblings.map((s) => ({
         name: s.name || "",
         class_name: s.class_name || "",
         where: s.where || "",
@@ -866,110 +988,118 @@ export default function ReservationNew() {
     };
   };
 
-  const handleView = async (r: CollegeReservationRead | CollegeReservationMinimalRead) => {
-    if (!r?.reservation_id || isNaN(Number(r.reservation_id))) {
-      toast({
-        title: "Invalid Reservation",
-        description: "The reservation ID is invalid. Please try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (loadingReservation === Number(r.reservation_id)) {
-      return; // Already loading this reservation
-    }
-
-    setLoadingReservation(Number(r.reservation_id));
-    try {
-      const data = await CollegeReservationsService.getViewById(
-        Number(r.reservation_id)
-      );
-      setViewReservation(data);
-      setShowViewDialog(true);
-    } catch (e: any) {
-      console.error("Error loading reservation:", e);
-      if (e?.response?.status === 404) {
+  // ✅ OPTIMIZED: Memoized view handler
+  const handleView = useCallback(
+    async (r: CollegeReservationRead | CollegeReservationMinimalRead) => {
+      if (!r?.reservation_id || isNaN(Number(r.reservation_id))) {
         toast({
-          title: "Reservation Not Found",
-          description:
-            "The reservation may have been deleted or you may not have permission to view it.",
+          title: "Invalid Reservation",
+          description: "The reservation ID is invalid. Please try again.",
           variant: "destructive",
         });
-      } else if (e?.response?.status === 500) {
-        toast({
-          title: "Server Error",
-          description:
-            "A server error occurred while loading reservation. Please try again later.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Failed to Load Reservation",
-          description:
-            e?.message ||
-            "Could not load reservation details. Please try again.",
-          variant: "destructive",
-        });
+        return;
       }
-    } finally {
-      setLoadingReservation(null);
-    }
-  };
 
-  const handleEdit = async (r: CollegeReservationRead | CollegeReservationMinimalRead) => {
-    if (!r?.reservation_id || isNaN(Number(r.reservation_id))) {
-      toast({
-        title: "Invalid Reservation",
-        description: "The reservation ID is invalid. Please try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (loadingReservation === Number(r.reservation_id)) {
-      return; // Already loading this reservation
-    }
-
-    setLoadingReservation(Number(r.reservation_id));
-    try {
-      const data: CollegeReservationRead = await CollegeReservationsService.getById(
-        Number(r.reservation_id)
-      );
-      setEditForm(mapApiToForm(data));
-      setSelectedReservation(data);
-      setShowEditDialog(true);
-    } catch (e: any) {
-      console.error("Error loading reservation for edit:", e);
-      if (e?.response?.status === 404) {
-        toast({
-          title: "Reservation Not Found",
-          description:
-            "The reservation may have been deleted or you may not have permission to edit it.",
-          variant: "destructive",
-        });
-      } else if (e?.response?.status === 500) {
-        toast({
-          title: "Server Error",
-          description:
-            "A server error occurred while loading reservation. Please try again later.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Failed to Load Reservation",
-          description:
-            e?.message ||
-            "Could not load reservation for editing. Please try again.",
-          variant: "destructive",
-        });
+      if (loadingReservation === Number(r.reservation_id)) {
+        return; // Already loading this reservation
       }
-    } finally {
-      setLoadingReservation(null);
-    }
-  };
 
-  const submitEdit = async () => {
+      setLoadingReservation(Number(r.reservation_id));
+      try {
+        const data = await CollegeReservationsService.getViewById(
+          Number(r.reservation_id)
+        );
+        setViewReservation(data);
+        setShowViewDialog(true);
+      } catch (e: any) {
+        console.error("Error loading reservation:", e);
+        if (e?.response?.status === 404) {
+          toast({
+            title: "Reservation Not Found",
+            description:
+              "The reservation may have been deleted or you may not have permission to view it.",
+            variant: "destructive",
+          });
+        } else if (e?.response?.status === 500) {
+          toast({
+            title: "Server Error",
+            description:
+              "A server error occurred while loading reservation. Please try again later.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Failed to Load Reservation",
+            description:
+              e?.message ||
+              "Could not load reservation details. Please try again.",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        setLoadingReservation(null);
+      }
+    },
+    []
+  );
+
+  // ✅ OPTIMIZED: Memoized edit handler
+  const handleEdit = useCallback(
+    async (r: CollegeReservationRead | CollegeReservationMinimalRead) => {
+      if (!r?.reservation_id || isNaN(Number(r.reservation_id))) {
+        toast({
+          title: "Invalid Reservation",
+          description: "The reservation ID is invalid. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (loadingReservation === Number(r.reservation_id)) {
+        return; // Already loading this reservation
+      }
+
+      setLoadingReservation(Number(r.reservation_id));
+      try {
+        const data: CollegeReservationRead =
+          await CollegeReservationsService.getById(Number(r.reservation_id));
+        setEditForm(mapApiToForm(data));
+        setSelectedReservation(data);
+        setShowEditDialog(true);
+      } catch (e: any) {
+        console.error("Error loading reservation for edit:", e);
+        if (e?.response?.status === 404) {
+          toast({
+            title: "Reservation Not Found",
+            description:
+              "The reservation may have been deleted or you may not have permission to edit it.",
+            variant: "destructive",
+          });
+        } else if (e?.response?.status === 500) {
+          toast({
+            title: "Server Error",
+            description:
+              "A server error occurred while loading reservation. Please try again later.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Failed to Load Reservation",
+            description:
+              e?.message ||
+              "Could not load reservation for editing. Please try again.",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        setLoadingReservation(null);
+      }
+    },
+    []
+  );
+
+  // ✅ OPTIMIZED: Memoized submit edit handler
+  const submitEdit = useCallback(async () => {
     if (!selectedReservation?.reservation_id || !editForm) return;
     try {
       const payload = buildPayloadFromForm(editForm);
@@ -992,7 +1122,7 @@ export default function ReservationNew() {
         description: "Reservation details have been updated successfully.",
         variant: "success",
       });
-      
+
       // Reset state before closing dialog
       setEditForm(null);
       setSelectedReservation(null);
@@ -1008,13 +1138,15 @@ export default function ReservationNew() {
         variant: "destructive",
       });
     }
-  };
+  }, [selectedReservation, editForm, refetchReservations]);
 
   const handlePrint = () => {
     window.print();
   };
 
-  const handleCancelReservation = (reservation: CollegeReservationRead | CollegeReservationMinimalRead) => {
+  const handleCancelReservation = (
+    reservation: CollegeReservationRead | CollegeReservationMinimalRead
+  ) => {
     setSelectedReservation(reservation);
     setShowCancelDialog(true);
   };
@@ -1056,7 +1188,9 @@ export default function ReservationNew() {
     }
   };
 
-  const handleConvertToAdmission = (reservation: CollegeReservationRead | CollegeReservationMinimalRead) => {
+  const handleConvertToAdmission = (
+    reservation: CollegeReservationRead | CollegeReservationMinimalRead
+  ) => {
     // Navigate to admissions page with reservation data
     window.location.href = `/admissions/new?reservation=${reservation.reservation_id}`;
   };
@@ -1206,7 +1340,9 @@ export default function ReservationNew() {
                     book_fee_required: form.bookFeeRequired || false,
                     course_required: form.courseRequired || false,
                     status: "PENDING",
-                    request_type: (form.requestType || "WALK_IN") as "WALK_IN" | "REFERRAL",
+                    request_type: (form.requestType || "WALK_IN") as
+                      | "WALK_IN"
+                      | "REFERRAL",
                     referred_by: Number(form.referredBy || 0),
                     referred_by_name: form.referredByName || null,
                     remarks: form.remarks,
@@ -1245,7 +1381,9 @@ export default function ReservationNew() {
                       busRoute: next.preferred_transport_id.toString(),
                       pickupPoint: next.pickup_point,
                       requestType: next.request_type || "WALK_IN",
-                      referredBy: next.referred_by ? next.referred_by.toString() : "",
+                      referredBy: next.referred_by
+                        ? next.referred_by.toString()
+                        : "",
                       referredByName: next.referred_by_name || "",
                       remarks: next.remarks,
                       reservationDate: next.reservation_date,
@@ -1316,7 +1454,9 @@ export default function ReservationNew() {
                 reservations={allReservations}
                 onView={handleView}
                 onEdit={handleEdit}
-                onDelete={(r: CollegeReservationRead | CollegeReservationMinimalRead) => {
+                onDelete={(
+                  r: CollegeReservationRead | CollegeReservationMinimalRead
+                ) => {
                   setReservationToDelete(r);
                   setShowDeleteDialog(true);
                 }}
@@ -1333,7 +1473,7 @@ export default function ReservationNew() {
                 onPageChange={(page) => {
                   setCurrentPage(page);
                   // Scroll to top when page changes
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
                 onPageSizeChange={(newPageSize) => {
                   setPageSize(newPageSize);
@@ -1446,415 +1586,398 @@ export default function ReservationNew() {
       {/* Receipt Preview Modal - Shows PDF receipt after payment */}
 
       {/* View Reservation Dialog */}
-      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
-        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Reservation Details</DialogTitle>
-            <DialogDescription>Reservation information</DialogDescription>
-          </DialogHeader>
-          {!viewReservation ? (
-            <div className="p-4 text-sm">Loading...</div>
-          ) : (
-            <div className="space-y-6 text-sm flex-1 overflow-y-auto scrollbar-hide pr-1">
+      <ReservationViewDialog
+        isOpen={showViewDialog}
+        onClose={() => setShowViewDialog(false)}
+        isLoading={!viewReservation}
+        loadingText="Loading reservation details..."
+      >
+        {viewReservation && (
+          <div className="space-y-6 text-sm">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <strong>Reservation No:</strong>{" "}
+                {viewReservation.reservation_no || "-"}
+              </div>
+              <div>
+                <strong>Branch:</strong> {viewReservation.branch_name || "-"}
+              </div>
+              <div>
+                <strong>Academic Year:</strong>{" "}
+                {viewReservation.academic_year || "-"}
+              </div>
+              <div>
+                <strong>Date:</strong> {viewReservation.reservation_date || "-"}
+              </div>
+              <div>
+                <strong>Status:</strong> {viewReservation.status || "-"}
+              </div>
+              <div>
+                <strong>Referred By:</strong>{" "}
+                {viewReservation.referred_by_name || "-"}
+              </div>
+              <div>
+                <strong>Created At:</strong>{" "}
+                {viewReservation.created_at
+                  ? new Date(viewReservation.created_at).toLocaleString()
+                  : "-"}
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <div className="font-medium mb-2">Student Details</div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <strong>Reservation No:</strong>{" "}
-                  {viewReservation.reservation_no || "-"}
+                  <strong>Name:</strong> {viewReservation.student_name || "-"}
                 </div>
                 <div>
-                  <strong>Branch:</strong> {viewReservation.branch_name || "-"}
+                  <strong>Gender:</strong> {viewReservation.gender || "-"}
                 </div>
                 <div>
-                  <strong>Academic Year:</strong>{" "}
-                  {viewReservation.academic_year || "-"}
-                </div>
-                <div>
-                  <strong>Date:</strong>{" "}
-                  {viewReservation.reservation_date || "-"}
-                </div>
-                <div>
-                  <strong>Status:</strong> {viewReservation.status || "-"}
-                </div>
-                <div>
-                  <strong>Referred By:</strong>{" "}
-                  {viewReservation.referred_by_name || "-"}
-                </div>
-                <div>
-                  <strong>Created At:</strong>{" "}
-                  {viewReservation.created_at
-                    ? new Date(viewReservation.created_at).toLocaleString()
+                  <strong>DOB:</strong>{" "}
+                  {viewReservation.dob
+                    ? new Date(viewReservation.dob).toLocaleDateString()
                     : "-"}
                 </div>
+                <div>
+                  <strong>Group:</strong> {viewReservation.group_name || "-"}
+                </div>
+                <div>
+                  <strong>Course:</strong> {viewReservation.course_name || "-"}
+                </div>
               </div>
+            </div>
 
+            <div className="border-t pt-4">
+              <div className="font-medium mb-2">Father/Guardian Details</div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <strong>Name:</strong>{" "}
+                  {viewReservation.father_or_guardian_name || "-"}
+                </div>
+                <div>
+                  <strong>Aadhar No:</strong>{" "}
+                  {viewReservation.father_or_guardian_aadhar_no || "-"}
+                </div>
+                <div>
+                  <strong>Mobile:</strong>{" "}
+                  {viewReservation.father_or_guardian_mobile || "-"}
+                </div>
+                <div>
+                  <strong>Occupation:</strong>{" "}
+                  {viewReservation.father_or_guardian_occupation || "-"}
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <div className="font-medium mb-2">Mother/Guardian Details</div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <strong>Name:</strong>{" "}
+                  {viewReservation.mother_or_guardian_name || "-"}
+                </div>
+                <div>
+                  <strong>Aadhar No:</strong>{" "}
+                  {viewReservation.mother_or_guardian_aadhar_no || "-"}
+                </div>
+                <div>
+                  <strong>Mobile:</strong>{" "}
+                  {viewReservation.mother_or_guardian_mobile || "-"}
+                </div>
+                <div>
+                  <strong>Occupation:</strong>{" "}
+                  {viewReservation.mother_or_guardian_occupation || "-"}
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <div className="font-medium mb-2">Contact Details</div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <strong>Present Address:</strong>{" "}
+                  {viewReservation.present_address || "-"}
+                </div>
+                <div>
+                  <strong>Permanent Address:</strong>{" "}
+                  {viewReservation.permanent_address || "-"}
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <div className="font-medium mb-2">Fees</div>
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <span>Application Fee:</span>
+                  <span>₹{viewReservation.application_fee || "0"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Application Fee Paid:</span>
+                  <span>{viewReservation.application_fee_paid || "-"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Book Fee:</span>
+                  <span>₹{viewReservation.book_fee || "0"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Group Fee:</span>
+                  <span>₹{viewReservation.group_fee || "0"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Course Fee:</span>
+                  <span>₹{viewReservation.course_fee || "0"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Total Tuition Fee:</span>
+                  <span>₹{viewReservation.total_tuition_fee || "0"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Tuition Concession:</span>
+                  <span>₹{viewReservation.tuition_concession || "0"}</span>
+                </div>
+                <div className="flex justify-between font-semibold">
+                  <span>Payable Tuition Fee:</span>
+                  <span className="text-green-600">
+                    ₹{viewReservation.payable_tuition_fee || "0"}
+                  </span>
+                </div>
+                {viewReservation.transport_required === "Yes" && (
+                  <>
+                    <div className="flex justify-between">
+                      <span>Transport Fee:</span>
+                      <span>₹{viewReservation.transport_fee || "0"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Transport Concession:</span>
+                      <span>
+                        ₹{viewReservation.transport_concession || "0"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between font-semibold">
+                      <span>Payable Transport Fee:</span>
+                      <span className="text-green-600">
+                        ₹{viewReservation.payable_transport_fee || "0"}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {viewReservation.transport_required === "Yes" && (
               <div className="border-t pt-4">
-                <div className="font-medium mb-2">Student Details</div>
+                <div className="font-medium mb-2">Transport Information</div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <strong>Name:</strong> {viewReservation.student_name || "-"}
+                    <strong>Transport Required:</strong>{" "}
+                    {viewReservation.transport_required}
                   </div>
                   <div>
-                    <strong>Gender:</strong> {viewReservation.gender || "-"}
+                    <strong>Route:</strong> {viewReservation.route_ || "-"}
                   </div>
                   <div>
-                    <strong>DOB:</strong>{" "}
-                    {viewReservation.dob
-                      ? new Date(viewReservation.dob).toLocaleDateString()
-                      : "-"}
-                  </div>
-                  <div>
-                    <strong>Group:</strong> {viewReservation.group_name || "-"}
-                  </div>
-                  <div>
-                    <strong>Course:</strong>{" "}
-                    {viewReservation.course_name || "-"}
+                    <strong>Slab:</strong> {viewReservation.slab || "-"}
                   </div>
                 </div>
               </div>
+            )}
 
-              <div className="border-t pt-4">
-                <div className="font-medium mb-2">Father/Guardian Details</div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <strong>Name:</strong>{" "}
-                    {viewReservation.father_or_guardian_name || "-"}
-                  </div>
-                  <div>
-                    <strong>Aadhar No:</strong>{" "}
-                    {viewReservation.father_or_guardian_aadhar_no || "-"}
-                  </div>
-                  <div>
-                    <strong>Mobile:</strong>{" "}
-                    {viewReservation.father_or_guardian_mobile || "-"}
-                  </div>
-                  <div>
-                    <strong>Occupation:</strong>{" "}
-                    {viewReservation.father_or_guardian_occupation || "-"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <div className="font-medium mb-2">Mother/Guardian Details</div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <strong>Name:</strong>{" "}
-                    {viewReservation.mother_or_guardian_name || "-"}
-                  </div>
-                  <div>
-                    <strong>Aadhar No:</strong>{" "}
-                    {viewReservation.mother_or_guardian_aadhar_no || "-"}
-                  </div>
-                  <div>
-                    <strong>Mobile:</strong>{" "}
-                    {viewReservation.mother_or_guardian_mobile || "-"}
-                  </div>
-                  <div>
-                    <strong>Occupation:</strong>{" "}
-                    {viewReservation.mother_or_guardian_occupation || "-"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <div className="font-medium mb-2">Contact Details</div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <strong>Present Address:</strong>{" "}
-                    {viewReservation.present_address || "-"}
-                  </div>
-                  <div>
-                    <strong>Permanent Address:</strong>{" "}
-                    {viewReservation.permanent_address || "-"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <div className="font-medium mb-2">Fees</div>
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span>Application Fee:</span>
-                    <span>₹{viewReservation.application_fee || "0"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Application Fee Paid:</span>
-                    <span>{viewReservation.application_fee_paid || "-"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Book Fee:</span>
-                    <span>₹{viewReservation.book_fee || "0"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Group Fee:</span>
-                    <span>₹{viewReservation.group_fee || "0"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Course Fee:</span>
-                    <span>₹{viewReservation.course_fee || "0"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Total Tuition Fee:</span>
-                    <span>₹{viewReservation.total_tuition_fee || "0"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Tuition Concession:</span>
-                    <span>₹{viewReservation.tuition_concession || "0"}</span>
-                  </div>
-                  <div className="flex justify-between font-semibold">
-                    <span>Payable Tuition Fee:</span>
-                    <span className="text-green-600">
-                      ₹{viewReservation.payable_tuition_fee || "0"}
-                    </span>
-                  </div>
-                  {viewReservation.transport_required === "Yes" && (
-                    <>
-                      <div className="flex justify-between">
-                        <span>Transport Fee:</span>
-                        <span>₹{viewReservation.transport_fee || "0"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Transport Concession:</span>
-                        <span>
-                          ₹{viewReservation.transport_concession || "0"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between font-semibold">
-                        <span>Payable Transport Fee:</span>
-                        <span className="text-green-600">
-                          ₹{viewReservation.payable_transport_fee || "0"}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {viewReservation.transport_required === "Yes" && (
+            {viewReservation.siblings &&
+              viewReservation.siblings.length > 0 && (
                 <div className="border-t pt-4">
-                  <div className="font-medium mb-2">Transport Information</div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <strong>Transport Required:</strong>{" "}
-                      {viewReservation.transport_required}
-                    </div>
-                    <div>
-                      <strong>Route:</strong> {viewReservation.route_ || "-"}
-                    </div>
-                    <div>
-                      <strong>Slab:</strong> {viewReservation.slab || "-"}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {viewReservation.siblings &&
-                viewReservation.siblings.length > 0 && (
-                  <div className="border-t pt-4">
-                    <div className="font-medium mb-2">Siblings Information</div>
-                    <div className="space-y-3">
-                      {viewReservation.siblings.map((sibling, index) => (
-                        <div
-                          key={index}
-                          className="border rounded p-3 bg-gray-50"
-                        >
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div>
-                              <strong>Name:</strong> {sibling.name || "-"}
-                            </div>
-                            <div>
-                              <strong>Class:</strong>{" "}
-                              {sibling.class_name || "-"}
-                            </div>
-                            <div>
-                              <strong>Where:</strong> {sibling.where || "-"}
-                            </div>
-                            <div>
-                              <strong>Gender:</strong> {sibling.gender || "-"}
-                            </div>
+                  <div className="font-medium mb-2">Siblings Information</div>
+                  <div className="space-y-3">
+                    {viewReservation.siblings.map((sibling, index) => (
+                      <div
+                        key={index}
+                        className="border rounded p-3 bg-gray-50"
+                      >
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <strong>Name:</strong> {sibling.name || "-"}
+                          </div>
+                          <div>
+                            <strong>Class:</strong> {sibling.class_name || "-"}
+                          </div>
+                          <div>
+                            <strong>Where:</strong> {sibling.where || "-"}
+                          </div>
+                          <div>
+                            <strong>Gender:</strong> {sibling.gender || "-"}
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Reservation Dialog */}
-      <Dialog
-        open={showEditDialog}
-        onOpenChange={(open) => {
-          setShowEditDialog(open);
-          if (!open) {
-            // Reset state when dialog closes
-            setEditForm(null);
-            setSelectedReservation(null);
-          }
-        }}
-      >
-        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
-          {editForm ? (
-            <div className="flex-1 overflow-y-auto scrollbar-hide pr-1">
-              {(groupsLoading || coursesLoading || isLoadingDistanceSlabs) && (
-                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-blue-700">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
-                    <span className="text-sm">
-                      Loading groups, courses, and distance slabs...
-                    </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
-              <ReservationForm
-                form={{
-                  student_name: editForm.studentName,
-                  aadhar_no: editForm.studentAadhar,
-                  gender: editForm.gender,
-                  dob: editForm.dob,
-                  father_or_guardian_name: editForm.fatherName,
-                  father_or_guardian_aadhar_no: editForm.fatherAadhar,
-                  father_or_guardian_mobile: editForm.fatherMobile,
-                  father_or_guardian_occupation: editForm.fatherOccupation,
-                  mother_or_guardian_name: editForm.motherName,
-                  mother_or_guardian_aadhar_no: editForm.motherAadhar,
-                  mother_or_guardian_mobile: editForm.motherMobile,
-                  mother_or_guardian_occupation: editForm.motherOccupation,
-                  siblings: editForm.siblings || [],
-                  previous_class: editForm.lastClass,
-                  previous_school_details: editForm.previousSchool,
-                  present_address: editForm.presentAddress,
-                  permanent_address: editForm.permanentAddress,
-                  application_fee: Number(editForm.reservationFee || 0),
-                  preferred_class_id: Number(editForm.preferredClassId || 0),
-                  preferred_group_id: Number(editForm.preferredGroupId || 0),
-                  group_name: editForm.group,
-                  preferred_course_id: Number(editForm.course || 0),
-                  course_name: editForm.courseName,
-                  group_fee: groupFee,
-                  course_fee: courseFee,
-                  book_fee: editForm.bookFeeRequired
-                    ? Number(editForm.bookFee || 0)
+          </div>
+        )}
+      </ReservationViewDialog>
+
+      {/* Edit Reservation Dialog */}
+      <ReservationEditDialog
+        isOpen={showEditDialog}
+        onClose={() => {
+          setShowEditDialog(false);
+          // Reset state when dialog closes
+          setEditForm(null);
+          setSelectedReservation(null);
+        }}
+        onSave={submitEdit}
+        disabled={!editForm}
+        isSaving={false}
+      >
+        {editForm && (
+          <div className="space-y-4">
+            {(groupsLoading || coursesLoading || isLoadingDistanceSlabs) && (
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2 text-blue-700">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
+                  <span className="text-sm">
+                    Loading groups, courses, and distance slabs...
+                  </span>
+                </div>
+              </div>
+            )}
+            <ReservationForm
+              form={{
+                student_name: editForm.studentName,
+                aadhar_no: editForm.studentAadhar,
+                gender: editForm.gender,
+                dob: editForm.dob,
+                father_or_guardian_name: editForm.fatherName,
+                father_or_guardian_aadhar_no: editForm.fatherAadhar,
+                father_or_guardian_mobile: editForm.fatherMobile,
+                father_or_guardian_occupation: editForm.fatherOccupation,
+                mother_or_guardian_name: editForm.motherName,
+                mother_or_guardian_aadhar_no: editForm.motherAadhar,
+                mother_or_guardian_mobile: editForm.motherMobile,
+                mother_or_guardian_occupation: editForm.motherOccupation,
+                siblings: editForm.siblings || [],
+                previous_class: editForm.lastClass,
+                previous_school_details: editForm.previousSchool,
+                present_address: editForm.presentAddress,
+                permanent_address: editForm.permanentAddress,
+                application_fee: Number(editForm.reservationFee || 0),
+                preferred_class_id: Number(editForm.preferredClassId || 0),
+                preferred_group_id: Number(editForm.preferredGroupId || 0),
+                group_name: editForm.group,
+                preferred_course_id: Number(editForm.course || 0),
+                course_name: editForm.courseName,
+                group_fee: groupFee,
+                course_fee: courseFee,
+                book_fee: editForm.bookFeeRequired
+                  ? Number(editForm.bookFee || 0)
+                  : 0,
+                total_tuition_fee: groupFee + courseFee,
+                transport_required: editForm.transport === "Yes",
+                preferred_transport_id:
+                  editForm.transport === "Yes" && editForm.busRoute
+                    ? Number(editForm.busRoute)
                     : 0,
-                  total_tuition_fee: groupFee + courseFee,
-                  transport_required: editForm.transport === "Yes",
-                  preferred_transport_id:
-                    editForm.transport === "Yes" && editForm.busRoute
-                      ? Number(editForm.busRoute)
-                      : 0,
-                  pickup_point: editForm.pickupPoint || "",
-                  book_fee_required: editForm.bookFeeRequired || false,
-                  course_required: editForm.courseRequired || false,
-                  status: "PENDING",
-                  request_type: (editForm.requestType || "WALK_IN") as "WALK_IN" | "REFERRAL",
-                  referred_by: Number(editForm.referredBy || 0),
-                  referred_by_name: editForm.referredByName || null,
-                  remarks: editForm.remarks,
-                  reservation_date:
-                    editForm.reservationDate ||
-                    new Date().toISOString().split("T")[0],
-                }}
-                setForm={(next) => {
-                  setEditForm({
-                    ...editForm,
-                    studentName: next.student_name,
-                    studentAadhar: next.aadhar_no,
-                    gender: next.gender,
-                    dob: next.dob,
-                    fatherName: next.father_or_guardian_name,
-                    fatherAadhar: next.father_or_guardian_aadhar_no,
-                    fatherMobile: next.father_or_guardian_mobile,
-                    fatherOccupation: next.father_or_guardian_occupation,
-                    motherName: next.mother_or_guardian_name,
-                    motherAadhar: next.mother_or_guardian_aadhar_no,
-                    motherMobile: next.mother_or_guardian_mobile,
-                    motherOccupation: next.mother_or_guardian_occupation,
-                    siblings: next.siblings,
-                    lastClass: next.previous_class,
-                    previousSchool: next.previous_school_details,
-                    presentAddress: next.present_address,
-                    permanentAddress: next.permanent_address,
-                    reservationFee: next.application_fee.toString(),
-                    preferredClassId: next.preferred_class_id.toString(),
-                    preferredGroupId: next.preferred_group_id.toString(),
-                    group: next.group_name,
-                    course: next.preferred_course_id.toString(),
-                    courseName: next.course_name,
-                    bookFee: next.book_fee.toString(),
-                    transport: next.transport_required ? "Yes" : "No",
-                    busRoute: next.preferred_transport_id.toString(),
-                    pickupPoint: next.pickup_point,
-                    requestType: next.request_type || "WALK_IN",
-                    referredBy: next.referred_by ? next.referred_by.toString() : "",
-                    referredByName: next.referred_by_name || "",
-                    remarks: next.remarks,
-                    reservationDate: next.reservation_date,
-                    bookFeeRequired: next.book_fee_required,
-                    courseRequired: next.course_required,
-                  });
-                }}
-                groupFee={groupFee}
-                courseFee={courseFee}
-                routes={routeNames.map(
-                  (route: {
-                    bus_route_id: number;
-                    route_no?: string;
-                    route_name: string;
-                  }) => ({
-                    id: route.bus_route_id,
-                    name: `${route.route_no || "Route"} - ${route.route_name}`,
-                    fee: 0, // Route fee will be calculated based on distance slab
-                  })
-                )}
-                groups={
-                  groupsData?.items?.map((g) => ({
-                    group_id: g.group_id,
-                    group_name: g.group_name,
-                    fee: g.group_fee,
-                    book_fee: g.book_fee,
-                  })) || []
-                }
-                courses={
-                  coursesData?.items?.map((c) => ({
-                    course_id: c.course_id,
-                    course_name: c.course_name,
-                    fee: c.course_fee,
-                  })) || []
-                }
-                classes={
-                  classesData?.items?.map((c) => ({
-                    class_id: c.class_id,
-                    class_name: c.class_name,
-                  })) || []
-                }
-                onClassChange={handleClassChange}
-                onGroupChange={handleGroupChange}
-                onCourseChange={handleCourseChange}
-                onSave={async () => {
-                  await submitEdit();
-                }}
-                isEdit={true}
-              />
-            </div>
-          ) : (
-            <div className="p-4">Loading...</div>
-          )}
-          <DialogFooter className="mt-2 bg-background border-t py-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowEditDialog(false)}
-            >
-              Close
-            </Button>
-            <Button type="button" onClick={submitEdit} disabled={!editForm}>
-              Update Reservation
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                pickup_point: editForm.pickupPoint || "",
+                book_fee_required: editForm.bookFeeRequired || false,
+                course_required: editForm.courseRequired || false,
+                status: "PENDING",
+                request_type: (editForm.requestType || "WALK_IN") as
+                  | "WALK_IN"
+                  | "REFERRAL",
+                referred_by: Number(editForm.referredBy || 0),
+                referred_by_name: editForm.referredByName || null,
+                remarks: editForm.remarks,
+                reservation_date:
+                  editForm.reservationDate ||
+                  new Date().toISOString().split("T")[0],
+              }}
+              setForm={(next) => {
+                setEditForm({
+                  ...editForm,
+                  studentName: next.student_name,
+                  studentAadhar: next.aadhar_no,
+                  gender: next.gender,
+                  dob: next.dob,
+                  fatherName: next.father_or_guardian_name,
+                  fatherAadhar: next.father_or_guardian_aadhar_no,
+                  fatherMobile: next.father_or_guardian_mobile,
+                  fatherOccupation: next.father_or_guardian_occupation,
+                  motherName: next.mother_or_guardian_name,
+                  motherAadhar: next.mother_or_guardian_aadhar_no,
+                  motherMobile: next.mother_or_guardian_mobile,
+                  motherOccupation: next.mother_or_guardian_occupation,
+                  siblings: next.siblings,
+                  lastClass: next.previous_class,
+                  previousSchool: next.previous_school_details,
+                  presentAddress: next.present_address,
+                  permanentAddress: next.permanent_address,
+                  reservationFee: next.application_fee.toString(),
+                  preferredClassId: next.preferred_class_id.toString(),
+                  preferredGroupId: next.preferred_group_id.toString(),
+                  group: next.group_name,
+                  course: next.preferred_course_id.toString(),
+                  courseName: next.course_name,
+                  bookFee: next.book_fee.toString(),
+                  transport: next.transport_required ? "Yes" : "No",
+                  busRoute: next.preferred_transport_id.toString(),
+                  pickupPoint: next.pickup_point,
+                  requestType: next.request_type || "WALK_IN",
+                  referredBy: next.referred_by
+                    ? next.referred_by.toString()
+                    : "",
+                  referredByName: next.referred_by_name || "",
+                  remarks: next.remarks,
+                  reservationDate: next.reservation_date,
+                  bookFeeRequired: next.book_fee_required,
+                  courseRequired: next.course_required,
+                });
+              }}
+              groupFee={groupFee}
+              courseFee={courseFee}
+              routes={routeNames.map(
+                (route: {
+                  bus_route_id: number;
+                  route_no?: string;
+                  route_name: string;
+                }) => ({
+                  id: route.bus_route_id,
+                  name: `${route.route_no || "Route"} - ${route.route_name}`,
+                  fee: 0, // Route fee will be calculated based on distance slab
+                })
+              )}
+              groups={
+                groupsData?.items?.map((g) => ({
+                  group_id: g.group_id,
+                  group_name: g.group_name,
+                  fee: g.group_fee,
+                  book_fee: g.book_fee,
+                })) || []
+              }
+              courses={
+                coursesData?.items?.map((c) => ({
+                  course_id: c.course_id,
+                  course_name: c.course_name,
+                  fee: c.course_fee,
+                })) || []
+              }
+              classes={
+                classesData?.items?.map((c) => ({
+                  class_id: c.class_id,
+                  class_name: c.class_name,
+                })) || []
+              }
+              onClassChange={handleClassChange}
+              onGroupChange={handleGroupChange}
+              onCourseChange={handleCourseChange}
+              onSave={async () => {
+                await submitEdit();
+              }}
+              isEdit={true}
+            />
+          </div>
+        )}
+      </ReservationEditDialog>
 
       {/* Cancel Reservation Dialog */}
       <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
@@ -1892,50 +2015,24 @@ export default function ReservationNew() {
       </Dialog>
 
       {/* Delete Reservation Confirmation */}
-      <AlertDialog
-        open={showDeleteDialog}
-        onOpenChange={(open) => {
-          if (!open) {
-            setReservationToDelete(null);
-          }
-          setShowDeleteDialog(open);
+      <ReservationDeleteDialog
+        isOpen={showDeleteDialog}
+        onClose={() => {
+          setShowDeleteDialog(false);
+          setReservationToDelete(null);
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Reservation</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete reservation{" "}
-              {reservationToDelete?.reservation_id}? This action cannot be
-              undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
-              onClick={async () => {
-                if (!reservationToDelete?.reservation_id) return;
-                try {
-                  await deleteReservation.mutateAsync(
-                    Number(reservationToDelete.reservation_id)
-                  );
-                  // Toast handled by mutation hook
-                } catch (e: any) {
-                  console.error("Failed to delete reservation:", e);
-                  // Error toasts handled by mutation hook
-                } finally {
-                  setShowDeleteDialog(false);
-                  setReservationToDelete(null);
-                }
-              }}
-              disabled={deleteReservation.isPending}
-            >
-              {deleteReservation.isPending ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        reservationId={reservationToDelete?.reservation_id}
+        reservationNo={reservationToDelete?.reservation_no}
+        onConfirm={async () => {
+          if (!reservationToDelete?.reservation_id) return;
+          await deleteReservation.mutateAsync(
+            Number(reservationToDelete.reservation_id)
+          );
+          // Toast handled by mutation hook
+          setReservationToDelete(null);
+        }}
+        isDeleting={deleteReservation.isPending}
+      />
       {/* Concession Update Dialog */}
       <ConcessionUpdateDialog
         isOpen={showConcessionDialog}
@@ -1953,7 +2050,7 @@ export default function ReservationNew() {
         onClose={() => {
           // ✅ CRITICAL FIX: Close modal state IMMEDIATELY - synchronous, no blocking
           setShowReceipt(false);
-          
+
           // ✅ CRITICAL FIX: Clean up blob URL immediately (synchronous, lightweight)
           if (receiptBlobUrl) {
             try {
@@ -1964,89 +2061,116 @@ export default function ReservationNew() {
             setReceiptBlobUrl(null);
           }
           setPaymentIncomeRecord(null);
-          
-          // ✅ CRITICAL FIX: Simplified async operations - single setTimeout instead of nested callbacks
-          // Removed nested requestAnimationFrame/setTimeout/requestIdleCallback cascade
-          // This prevents UI freezing by avoiding multiple layers of async delays
-          setTimeout(() => {
-            // Invalidate queries (non-blocking, debounced internally)
-            invalidateAndRefetch(collegeKeys.reservations.root());
-            
-            // Call refetch callback if provided (non-blocking)
-            if (refetchReservations) {
-              void refetchReservations();
-            }
-          }, 300); // Single delay of 300ms - allows modal close animation to complete without blocking UI
+          setReceiptNo(null);
+
+          // ✅ CRITICAL FIX: Defer query invalidation to prevent UI blocking
+          // Use requestIdleCallback if available, otherwise use setTimeout with longer delay
+          if (typeof requestIdleCallback !== "undefined") {
+            requestIdleCallback(
+              () => {
+                // Invalidate queries (non-blocking, debounced internally)
+                invalidateAndRefetch(collegeKeys.reservations.root());
+
+                // Call refetch callback if provided (non-blocking)
+                if (refetchReservations) {
+                  void refetchReservations();
+                }
+              },
+              { timeout: 1000 }
+            );
+          } else {
+            // Fallback for browsers without requestIdleCallback
+            setTimeout(() => {
+              // Invalidate queries (non-blocking, debounced internally)
+              invalidateAndRefetch(collegeKeys.reservations.root());
+
+              // Call refetch callback if provided (non-blocking)
+              if (refetchReservations) {
+                void refetchReservations();
+              }
+            }, 500); // Longer delay to ensure modal is fully closed
+          }
         }}
         blobUrl={receiptBlobUrl}
+        receiptNo={receiptNo}
       />
 
       {/* Payment Processor Dialog */}
       {paymentData && (
-        <Dialog
-          open={showPaymentProcessor}
-          onOpenChange={setShowPaymentProcessor}
+        <ReservationPaymentDialog
+          isOpen={showPaymentProcessor}
+          onClose={() => setShowPaymentProcessor(false)}
+          reservationNo={paymentData.reservationNo}
         >
-          <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0">
-            <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
-              <DialogTitle>Complete Payment</DialogTitle>
-              <DialogDescription>
-                Process payment for reservation {paymentData.reservationNo}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">
-              <CollegeReservationPaymentProcessor
-                reservationData={paymentData}
-                onPaymentComplete={(
-                  incomeRecord: CollegeIncomeRead,
-                  blobUrl: string
-                ) => {
-                  // ✅ CRITICAL: Close payment modal immediately (no blocking)
-                  setShowPaymentProcessor(false);
-                  
-                  // ✅ CRITICAL: Set receipt data immediately (needed for receipt modal)
-                  setPaymentIncomeRecord(incomeRecord);
-                  setReceiptBlobUrl(blobUrl);
+          <CollegeReservationPaymentProcessor
+            reservationData={paymentData}
+            onPaymentComplete={(
+              incomeRecord: CollegeIncomeRead,
+              blobUrl: string,
+              receiptNo?: string | null
+            ) => {
+              // ✅ CRITICAL: Close payment modal immediately (no blocking)
+              setShowPaymentProcessor(false);
 
-                  // ✅ DEFER: Clear payment data (not critical, defer to next tick)
-                  setTimeout(() => {
-                    setPaymentData(null);
-                  }, 0);
+              // ✅ CRITICAL: Set receipt data immediately (needed for receipt modal)
+              setPaymentIncomeRecord(incomeRecord);
+              setReceiptBlobUrl(blobUrl);
+              setReceiptNo(receiptNo || incomeRecord.receipt_no || null);
 
-                  // ✅ DEFER: Query invalidation (low priority, defer to next tick)
-                  setTimeout(() => {
-                    invalidateAndRefetch(collegeKeys.reservations.root());
-                    
-                    // ✅ DEFER: Refetch callback (low priority)
-                    if (refetchReservations) {
-                      void refetchReservations();
-                    }
-                  }, 0);
+              // ✅ DEFER: Clear payment data (not critical, defer to next tick)
+              setTimeout(() => {
+                setPaymentData(null);
+              }, 0);
 
-                  // ✅ DEFER: Receipt modal (wait for payment modal to close completely)
-                  // Radix UI Dialog has ~200ms close animation, wait for it to complete
-                  setTimeout(() => {
-                    setShowReceipt(true);
-                  }, 250);
-                }}
-                onPaymentFailed={(error: string) => {
-                  toast({
-                    title: "Payment Failed",
-                    description:
-                      error || "Could not process payment. Please try again.",
-                    variant: "destructive",
-                  });
-                  setShowPaymentProcessor(false);
-                }}
-                onPaymentCancel={() => {
-                  setShowPaymentProcessor(false);
-                  setPaymentData(null);
-                }}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
+              // ✅ DEFER: Query invalidation (low priority, defer to next tick)
+              setTimeout(() => {
+                invalidateAndRefetch(collegeKeys.reservations.root());
+
+                // ✅ DEFER: Refetch callback (low priority)
+                if (refetchReservations) {
+                  void refetchReservations();
+                }
+              }, 0);
+
+              // ✅ DEFER: Receipt modal (wait for payment modal to close completely)
+              // Radix UI Dialog has ~200ms close animation, wait for it to complete
+              setTimeout(() => {
+                setShowReceipt(true);
+              }, 250);
+            }}
+            onPaymentFailed={(error: string) => {
+              toast({
+                title: "Payment Failed",
+                description:
+                  error || "Could not process payment. Please try again.",
+                variant: "destructive",
+              });
+              setShowPaymentProcessor(false);
+            }}
+            onPaymentCancel={() => {
+              setShowPaymentProcessor(false);
+              setPaymentData(null);
+            }}
+          />
+        </ReservationPaymentDialog>
       )}
     </div>
   );
 }
+
+// Memoized component wrapper with error boundary
+const ReservationManagementWithErrorBoundary = memo(() => {
+  return (
+    <ProductionErrorBoundary
+      showDetails={import.meta.env.DEV}
+      enableRetry={true}
+      enableReport={true}
+    >
+      <ReservationManagementComponent />
+    </ProductionErrorBoundary>
+  );
+});
+
+ReservationManagementWithErrorBoundary.displayName = "ReservationManagement";
+
+export default ReservationManagementWithErrorBoundary;

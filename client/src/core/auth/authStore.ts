@@ -152,9 +152,7 @@ export const useAuthStore = create<AuthState>()(
             const axiosError = error as AxiosError;
             const currentState = get();
             
-            if (process.env.NODE_ENV === "development") {
-              console.log("Bootstrap auth failed:", axiosError.response?.status || axiosError.message);
-            }
+            // Bootstrap auth failed - handled below
 
             // Only clear auth state if user is not already authenticated
             // This prevents clearing auth state after a successful login
@@ -186,26 +184,10 @@ export const useAuthStore = create<AuthState>()(
 
           try {
             // Call login endpoint - withCredentials: true is set in apiClient
-            if (process.env.NODE_ENV === "development") {
-              console.log("🔐 Calling login API with:", { identifier });
-            }
-            
             const response = await apiClient.post("/auth/login", {
               identifier,
               password,
             });
-
-            if (process.env.NODE_ENV === "development") {
-              console.log("🔐 Login API response:", {
-                hasAccessToken: !!response.data?.access_token,
-                hasUserInfo: !!response.data?.user_info,
-                branchesType: typeof response.data?.user_info?.branches,
-                branchesIsArray: Array.isArray(response.data?.user_info?.branches),
-                branchesLength: Array.isArray(response.data?.user_info?.branches) 
-                  ? response.data.user_info.branches.length 
-                  : "N/A",
-              });
-            }
 
             if (!response.data?.access_token || !response.data?.user_info) {
               throw new Error("Invalid login response: missing access_token or user_info");
@@ -309,18 +291,6 @@ export const useAuthStore = create<AuthState>()(
               state.isAuthenticated = true;
               state.isLoading = false;
             });
-
-            // Debug logging in development
-            if (process.env.NODE_ENV === "development") {
-              const finalState = get();
-              console.log("✅ Login successful - Auth state:", {
-                isAuthenticated: finalState.isAuthenticated,
-                hasAccessToken: !!finalState.accessToken,
-                hasUser: !!finalState.user,
-                accessTokenLength: finalState.accessToken?.length || 0,
-                userEmail: finalState.user?.email,
-              });
-            }
           } catch (error) {
             const axiosError = error as AxiosError;
             let errorMessage = "Login failed";

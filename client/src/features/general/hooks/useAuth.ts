@@ -174,16 +174,7 @@ export function useLogin() {
         current_branch_id: currentBranchId,
       };
 
-      // Debug logging (only in development)
-      if (import.meta.env.DEV) {
-        console.log("🔐 Login Debug:", {
-          roleFromBranch,
-          normalizedRole: normalizedRole,
-          userRole: user.role,
-          branches: branchesFromResponse,
-          currentBranch: currentBranch,
-        });
-      }
+      // Role normalization completed
 
       // Step 9: Login user - pass token and refreshToken explicitly
       // ✅ FIX: Use legacy login function for backward compatibility

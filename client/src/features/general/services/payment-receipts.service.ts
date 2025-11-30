@@ -39,7 +39,6 @@ export class PaymentReceiptsService {
    * Generate and download a payment receipt
    */
   static generateReceipt(paymentData: PaymentReceiptData): Promise<PaymentReceiptResponse> {
-    console.log("API: Calling /payment-receipts/generate endpoint");
     return Api.post<PaymentReceiptResponse>(`${this.baseUrl}/generate`, paymentData);
   }
 
@@ -47,7 +46,6 @@ export class PaymentReceiptsService {
    * Download receipt by ID
    */
   static downloadReceipt(receiptId: string): Promise<Blob> {
-    console.log(`API: Calling /payment-receipts/${receiptId}/download endpoint`);
     return Api.get<Blob>(`${this.baseUrl}/${receiptId}/download`, {
       responseType: 'blob'
     });
@@ -57,7 +55,6 @@ export class PaymentReceiptsService {
    * Get receipt by transaction ID
    */
   static getReceiptByTransactionId(transactionId: string): Promise<PaymentReceiptData> {
-    console.log(`API: Calling /payment-receipts/transaction/${transactionId} endpoint`);
     return Api.get<PaymentReceiptData>(`${this.baseUrl}/transaction/${transactionId}`);
   }
 
@@ -69,7 +66,6 @@ export class PaymentReceiptsService {
     pageSize?: number;
     academicYear?: string;
   }): Promise<PaymentReceiptListResponse> {
-    console.log(`API: Calling /payment-receipts/student/${studentId} endpoint`);
     const query = params ? Object.fromEntries(
       Object.entries(params).filter(([_, value]) => value !== undefined)
     ) as Record<string, string | number | boolean | undefined | null> : undefined;
@@ -89,7 +85,6 @@ export class PaymentReceiptsService {
     startDate?: string;
     endDate?: string;
   }): Promise<PaymentReceiptListResponse> {
-    console.log("API: Calling /payment-receipts endpoint");
     const query = params ? Object.fromEntries(
       Object.entries(params).filter(([_, value]) => value !== undefined)
     ) as Record<string, string | number | boolean | undefined | null> : undefined;
@@ -100,7 +95,6 @@ export class PaymentReceiptsService {
    * Send receipt via email
    */
   static sendReceiptEmail(receiptId: string, email: string): Promise<{ success: boolean; message: string }> {
-    console.log(`API: Calling /payment-receipts/${receiptId}/send-email endpoint`);
     return Api.post<{ success: boolean; message: string }>(`${this.baseUrl}/${receiptId}/send-email`, { email });
   }
 
@@ -117,7 +111,6 @@ export class PaymentReceiptsService {
     paymentMethodBreakdown: Record<string, number>;
     monthlyBreakdown: Array<{ month: string; amount: number; count: number }>;
   }> {
-    console.log("API: Calling /payment-receipts/stats endpoint");
     const query = params ? Object.fromEntries(
       Object.entries(params).filter(([_, value]) => value !== undefined)
     ) as Record<string, string | number | boolean | undefined | null> : undefined;

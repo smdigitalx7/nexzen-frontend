@@ -397,7 +397,7 @@ export async function exportSchoolAdmissionFormToPDF(
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.log("Logo not loaded, continuing without logo");
+    // Logo not loaded, continuing without logo
   }
 
   // Header with Logo and School Name
@@ -802,7 +802,7 @@ export async function exportCollegeAdmissionFormToPDF(
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.log("Logo not loaded, continuing without logo");
+    // Logo not loaded, continuing without logo
   }
 
   // Header with Logo and College Name

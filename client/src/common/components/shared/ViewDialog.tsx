@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/common/components/ui/dialog';
 import { Button } from '@/common/components/ui/button';
 import { Badge } from '@/common/components/ui/badge';
@@ -243,6 +244,11 @@ const ViewDialog: React.FC<ViewDialogProps> = ({
               )}
             </div>
           </DialogTitle>
+          {subtitle ? (
+            <DialogDescription>{subtitle}</DialogDescription>
+          ) : (
+            <DialogDescription className="sr-only">View dialog for {title}</DialogDescription>
+          )}
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4">

@@ -114,3 +114,45 @@ export interface ExamMarksQuery {
   exam_id: number; // Required
   section_id?: number;
 }
+
+// Bulk multiple students types
+export interface BulkMultipleStudentsSubject {
+  subject_id: number;
+  marks_obtained: number;
+  remarks?: string;
+  subject_name: string;
+}
+
+export interface BulkMultipleStudentsStudent {
+  enrollment_id: number;
+  student_name: string;
+  subjects: BulkMultipleStudentsSubject[];
+}
+
+export interface CreateBulkMultipleStudentsRequest {
+  exam_id: number;
+  students: BulkMultipleStudentsStudent[];
+  exam_name: string;
+}
+
+export interface BulkMultipleStudentsStudentResult {
+  enrollment_id: number;
+  student_name: string;
+  success: boolean;
+  message: string;
+  created_count: number;
+  skipped_count: number;
+  total_requested: number;
+  errors?: Record<string, unknown>[];
+}
+
+export interface BulkMultipleStudentsResponse {
+  success: boolean;
+  message: string;
+  exam_id: number;
+  exam_name: string;
+  total_created: number;
+  total_skipped: number;
+  total_students: number;
+  student_results: BulkMultipleStudentsStudentResult[];
+}

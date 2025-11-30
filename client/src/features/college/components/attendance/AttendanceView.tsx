@@ -3,7 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { CardContent, Card } from '@/common/components/ui/card';
 import { Button } from '@/common/components/ui/button';
 import { EnhancedDataTable } from '@/common/components/shared/EnhancedDataTable';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/common/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/common/components/ui/dialog';
 import { Label } from '@/common/components/ui/label';
 import { Input } from '@/common/components/ui/input';
 import { MonthYearFilter } from '@/common/components/shared';
@@ -228,6 +228,7 @@ export default function AttendanceView() {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Attendance Details</DialogTitle>
+          <DialogDescription className="sr-only">View detailed attendance information for the selected student</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
           {viewQuery.isLoading ? (

@@ -49,35 +49,7 @@ const Sidebar = () => {
   const { sidebarOpen, setActiveModule, toggleSidebar } = useNavigationStore();
   const queryClient = useQueryClient();
 
-  // Debug logging (only in development)
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log("📋 Sidebar Debug:", {
-        user: user ? { role: user.role, id: user.user_id } : null,
-        currentBranch: currentBranch
-          ? {
-              id: currentBranch.branch_id,
-              type: currentBranch.branch_type,
-              name: currentBranch.branch_name,
-            }
-          : null,
-        userRole: user?.role,
-        roleConstants: {
-          ADMIN: ROLES.ADMIN,
-          INSTITUTE_ADMIN: ROLES.INSTITUTE_ADMIN,
-          ACCOUNTANT: ROLES.ACCOUNTANT,
-          ACADEMIC: ROLES.ACADEMIC,
-        },
-        roleMatch: {
-          isAdmin: user?.role === ROLES.ADMIN,
-          isInstituteAdmin: user?.role === ROLES.INSTITUTE_ADMIN,
-          isExactMatch: user?.role === "INSTITUTE_ADMIN",
-          roleType: typeof user?.role,
-          roleValue: user?.role,
-        },
-      });
-    }
-  }, [user, currentBranch]);
+  // Sidebar renders based on user role and current branch
 
   // Get General/Public modules based on role (memoized for performance)
   const generalModules = useMemo((): NavigationItem[] => {
@@ -92,24 +64,6 @@ const Sidebar = () => {
       userRoleUpper === "INSTITUTE_ADMIN" ||
       userRoleUpper === "INSTITUTEADMIN";
 
-    if (import.meta.env.DEV) {
-      console.log("🔍 General Modules Check:", {
-        userRole: user.role,
-        userRoleUpper,
-        ROLES_ADMIN: ROLES.ADMIN,
-        ROLES_INSTITUTE_ADMIN: ROLES.INSTITUTE_ADMIN,
-        isAdminRole,
-        isInstituteAdminRole,
-        willShowGeneral: isAdminRole || isInstituteAdminRole,
-        comparison: {
-          exactMatch: user.role === ROLES.INSTITUTE_ADMIN,
-          upperMatch: userRoleUpper === ROLES.INSTITUTE_ADMIN,
-          includesMatch:
-            String(user.role).includes("INSTITUTE_ADMIN") ||
-            String(user.role).includes("ADMIN"),
-        },
-      });
-    }
 
     // Build General modules based on role
     const modules: NavigationItem[] = [];
@@ -270,17 +224,6 @@ const Sidebar = () => {
       return [];
     }
 
-    console.log("🔍 Schema Modules Filter - Before:", {
-      userRole: user.role,
-      userRoleType: typeof user.role,
-      userRoleValue: JSON.stringify(user.role),
-      totalModules: allModules.length,
-      allModuleRoles: allModules.map((m) => ({
-        title: m.title,
-        allowedRoles: m.allowedRoles,
-        includesUserRole: m.allowedRoles?.includes(user.role),
-      })),
-    });
 
     // Normalize user role for comparison
     const userRoleUpper = String(user.role).toUpperCase().trim();
@@ -295,28 +238,9 @@ const Sidebar = () => {
         ) ?? false;
       const hasAccess = exactMatch || normalizedMatch;
 
-      if (!hasAccess) {
-        console.log(`❌ ${module.title}:`, {
-          userRole: user.role,
-          userRoleUpper,
-          allowedRoles: module.allowedRoles,
-          exactMatch,
-          normalizedMatch,
-        });
-      }
       return hasAccess;
     });
 
-    console.log("🔍 Schema Modules Filter - After:", {
-      userRole: user.role,
-      totalModules: allModules.length,
-      filteredModules: filteredModules.length,
-      moduleTitles: filteredModules.map((m) => m.title),
-      filteredModuleDetails: filteredModules.map((m) => ({
-        title: m.title,
-        allowedRoles: m.allowedRoles,
-      })),
-    });
 
     return filteredModules;
   }, [user?.role, currentBranch]);

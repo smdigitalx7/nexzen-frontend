@@ -150,7 +150,7 @@ export const TeachersTab = () => {
         teacher_id: parseInt(selectedTeacherId),
         course_id: parseInt(selectedCourseId),
         subject_id: parseInt(selectedSubjectId),
-        academic_year_id: 1, // TODO: Get from auth context
+        academic_year_id: 1, // Get from auth context when available
         is_active: isActive,
       });
 

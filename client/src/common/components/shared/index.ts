@@ -17,3 +17,6 @@ export * from "./dashboard";
 
 // Payment Components
 export * from "./payment";
+
+// Reservation Components
+export * from "./reservations";

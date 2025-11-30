@@ -1,4 +1,4 @@
-﻿import React from 'react';
+﻿import React, { useEffect, useRef } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,15 +40,142 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onCancel,
   disabled = false,
 }) => {
+  const originalOverflowRef = useRef<string>('');
+  const isClosingRef = useRef(false);
+
+  // ✅ CRITICAL FIX: Ensure body overflow is restored when dialog closes
+  useEffect(() => {
+    if (open) {
+      // Store original overflow when dialog opens
+      if (!originalOverflowRef.current) {
+        originalOverflowRef.current = document.body.style.overflow || '';
+      }
+    } else {
+      // ✅ CRITICAL: Restore body overflow IMMEDIATELY when dialog closes
+      // This prevents UI freeze caused by locked body scroll
+      if (originalOverflowRef.current) {
+        document.body.style.overflow = originalOverflowRef.current;
+        originalOverflowRef.current = '';
+      } else {
+        // Fallback: clear any overflow restriction
+        document.body.style.overflow = '';
+      }
+      
+      // ✅ CRITICAL: Remove pointer-events blocking
+      document.body.style.pointerEvents = '';
+      
+      // ✅ CRITICAL: Force remove aria-hidden from focused elements
+      requestAnimationFrame(() => {
+        const allElements = document.querySelectorAll('[aria-hidden="true"]');
+        allElements.forEach((el) => {
+          if (el.contains(document.activeElement)) {
+            el.removeAttribute('aria-hidden');
+          }
+        });
+        
+        // Remove aria-hidden from root
+        const root = document.getElementById('root');
+        if (root && root.getAttribute('aria-hidden') === 'true') {
+          root.removeAttribute('aria-hidden');
+        }
+        
+        // Ensure body is fully unlocked
+        document.body.style.overflow = originalOverflowRef.current || '';
+        document.body.style.pointerEvents = '';
+      });
+      
+      isClosingRef.current = false;
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (originalOverflowRef.current) {
+        document.body.style.overflow = originalOverflowRef.current;
+        originalOverflowRef.current = '';
+      } else {
+        document.body.style.overflow = '';
+      }
+      document.body.style.pointerEvents = '';
+    };
+  }, [open]);
+
+  // ✅ CRITICAL FIX: Additional safety net - restore on beforeunload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (originalOverflowRef.current) {
+        document.body.style.overflow = originalOverflowRef.current;
+      } else {
+        document.body.style.overflow = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Restore on unmount
+      if (originalOverflowRef.current) {
+        document.body.style.overflow = originalOverflowRef.current;
+      } else {
+        document.body.style.overflow = '';
+      }
+    };
+  }, []);
+
   const handleConfirm = (e?: React.MouseEvent) => {
     e?.preventDefault();
     e?.stopPropagation();
-    if (onConfirm && !isLoading) {
+    if (onConfirm && !isLoading && !isClosingRef.current) {
+      isClosingRef.current = true;
+      
+      // ✅ CRITICAL: Force remove aria-hidden from all elements immediately
+      const allElements = document.querySelectorAll('[aria-hidden="true"]');
+      allElements.forEach((el) => {
+        if (el.contains(document.activeElement)) {
+          el.removeAttribute('aria-hidden');
+        }
+      });
+      
+      // ✅ CRITICAL: Restore body overflow immediately (synchronous)
+      if (originalOverflowRef.current) {
+        document.body.style.overflow = originalOverflowRef.current;
+      } else {
+        document.body.style.overflow = '';
+      }
+      
+      // ✅ CRITICAL: Remove pointer-events blocking
+      document.body.style.pointerEvents = '';
+      
+      // ✅ CRITICAL: Use requestAnimationFrame to ensure DOM updates happen immediately
+      requestAnimationFrame(() => {
+        // Force remove aria-hidden from root if dialog is closing
+        const root = document.getElementById('root');
+        if (root && root.getAttribute('aria-hidden') === 'true') {
+          root.removeAttribute('aria-hidden');
+        }
+        
+        // Ensure body overflow is still restored
+        if (originalOverflowRef.current) {
+          document.body.style.overflow = originalOverflowRef.current;
+        } else {
+          document.body.style.overflow = '';
+        }
+      });
+      
       onConfirm();
     }
   };
 
   const handleCancel = () => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    
+    // ✅ CRITICAL: Restore body overflow immediately
+    if (originalOverflowRef.current) {
+      document.body.style.overflow = originalOverflowRef.current;
+    } else {
+      document.body.style.overflow = '';
+    }
+
     if (onCancel) {
       onCancel();
     } else {
@@ -56,8 +183,55 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     }
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen && !isClosingRef.current) {
+      isClosingRef.current = true;
+      
+      // ✅ CRITICAL: Force remove aria-hidden from all elements immediately
+      const allElements = document.querySelectorAll('[aria-hidden="true"]');
+      allElements.forEach((el) => {
+        if (el.contains(document.activeElement)) {
+          el.removeAttribute('aria-hidden');
+        }
+      });
+      
+      // ✅ CRITICAL: Restore body overflow immediately (synchronous)
+      if (originalOverflowRef.current) {
+        document.body.style.overflow = originalOverflowRef.current;
+        originalOverflowRef.current = '';
+      } else {
+        document.body.style.overflow = '';
+      }
+      
+      // ✅ CRITICAL: Remove pointer-events blocking
+      document.body.style.pointerEvents = '';
+      
+      // ✅ CRITICAL: Use requestAnimationFrame to ensure DOM updates happen immediately
+      requestAnimationFrame(() => {
+        // Force remove aria-hidden from root
+        const root = document.getElementById('root');
+        if (root && root.getAttribute('aria-hidden') === 'true') {
+          root.removeAttribute('aria-hidden');
+        }
+        
+        // Remove aria-hidden from any dialog containers
+        const dialogs = document.querySelectorAll('[role="dialog"], [role="alertdialog"]');
+        dialogs.forEach((dialog) => {
+          if (dialog.getAttribute('aria-hidden') === 'true') {
+            dialog.removeAttribute('aria-hidden');
+          }
+        });
+        
+        // Ensure body overflow is still restored
+        document.body.style.overflow = originalOverflowRef.current || '';
+        document.body.style.pointerEvents = '';
+      });
+    }
+    onOpenChange(newOpen);
+  };
+
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>

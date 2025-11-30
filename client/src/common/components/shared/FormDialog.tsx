@@ -100,8 +100,10 @@ export const FormDialog: React.FC<FormDialogProps> = ({
       >
         <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
           <DialogTitle>{title}</DialogTitle>
-          {description && (
+          {description ? (
             <DialogDescription>{description}</DialogDescription>
+          ) : (
+            <DialogDescription className="sr-only">Form dialog for {title}</DialogDescription>
           )}
         </DialogHeader>
         

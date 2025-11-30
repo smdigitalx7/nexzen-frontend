@@ -61,18 +61,10 @@ export function useIdleTimeout() {
           currentState.isTokenRefreshing ||
           !currentState.isAuthenticated
         ) {
-          if (process.env.NODE_ENV === "development") {
-            console.log(
-              "Idle timeout: Skipping logout - already logging out, refreshing, or not authenticated"
-            );
-          }
           return;
         }
 
         // 5 minutes of inactivity - log out user completely
-        if (process.env.NODE_ENV === "development") {
-          console.log("Idle timeout: Logging out user due to inactivity");
-        }
 
         // CRITICAL: Force complete logout and redirect to login page
         // Pass "idle_timeout" reason to show appropriate message

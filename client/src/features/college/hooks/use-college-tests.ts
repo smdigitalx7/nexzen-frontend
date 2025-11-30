@@ -12,9 +12,6 @@ export function useCollegeTests(options?: { enabled?: boolean }) {
         return await CollegeTestsService.list();
       } catch (error: unknown) {
         // Handle 404 errors by returning empty array
-        if (import.meta.env.DEV) {
-          console.log('Tests API error:', error);
-        }
         const errorObj = error as { message?: string; status?: number };
         if (errorObj?.message?.includes('404') || 
             errorObj?.message?.includes('Tests not found') ||

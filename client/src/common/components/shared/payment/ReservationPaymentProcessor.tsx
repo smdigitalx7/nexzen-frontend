@@ -10,7 +10,12 @@ import {
 } from "lucide-react";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
 import { Button } from "@/common/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/common/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/common/components/ui/card";
 import { Badge } from "@/common/components/ui/badge";
 import { Separator } from "@/common/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/common/components/ui/radio-group";
@@ -41,7 +46,8 @@ export interface ReservationPaymentProcessorProps {
   reservationData: ReservationPaymentData;
   onPaymentComplete?: (
     incomeRecord: SchoolIncomeRead,
-    receiptBlobUrl: string
+    receiptBlobUrl: string,
+    receiptNo?: string | null
   ) => void;
   onPaymentFailed?: (error: string) => void;
   onPaymentCancel?: () => void;
@@ -88,17 +94,11 @@ const ReservationPaymentProcessor: React.FC<
           `Payment for reservation ${reservationData.reservationNo}`,
       };
 
-      console.log("🔄 Processing reservation payment...");
-
       // Call the updated API that returns a PDF receipt as blob and gets income_id from JSON response
       const { blobUrl, income_id, paymentData } = await handlePayByReservation(
         reservationData.reservationNo,
         payload as any
       );
-
-      console.log("✅ Payment processed successfully, receipt generated");
-      console.log("🆔 Actual income_id from backend:", income_id);
-      console.log("📦 Full payment data:", paymentData);
 
       // Create income record for UI display using the actual income_id from backend
       const incomeRecord = {
@@ -122,12 +122,14 @@ const ReservationPaymentProcessor: React.FC<
       // Don't show receipt in this component - let parent handle it
       setReceiptBlobUrl(blobUrl);
 
-      // Pass both income record and receipt blob URL to parent
-      onPaymentComplete?.(incomeRecord as any, blobUrl);
+      // Extract receipt number from payment data
+      const receiptNo = paymentData.data?.context?.receipt_no || 
+                       paymentData.context?.receipt_no || 
+                       incomeRecord.receipt_no || 
+                       null;
 
-      console.log(
-        "✅ Payment flow completed successfully - Receipt URL passed to parent"
-      );
+      // Pass income record, blob URL, and receipt number to parent
+      onPaymentComplete?.(incomeRecord as any, blobUrl, receiptNo);
     } catch (err: any) {
       console.error("❌ Payment failed:", err);
       setCurrentStep("failed");
@@ -285,7 +287,10 @@ const ReservationPaymentProcessor: React.FC<
                       }`}
                     >
                       <div className="flex items-center gap-2.5 w-full">
-                        <RadioGroupItem value={option.value} id={option.value} />
+                        <RadioGroupItem
+                          value={option.value}
+                          id={option.value}
+                        />
                         <span className="text-2xl">{option.icon}</span>
                         <span
                           className={`font-semibold flex-1 ${
@@ -318,46 +323,59 @@ const ReservationPaymentProcessor: React.FC<
                   );
                 })}
               </RadioGroup>
-              
+
               {/* Card Charges Display */}
-              {selectedPaymentMethod === "CARD" && reservationData.reservationFee > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="border border-purple-200 bg-purple-50/50 rounded-lg p-4 space-y-2 mt-3"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <CreditCard className="h-4 w-4 text-purple-600" />
-                    <span className="text-sm font-semibold text-purple-800">
-                      Card Processing Charges
-                    </span>
-                  </div>
-                  <div className="space-y-1.5 text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Base Amount:</span>
-                      <span className="font-medium text-gray-900">
+              {selectedPaymentMethod === "CARD" &&
+                reservationData.reservationFee > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="border border-purple-200 bg-purple-50/50 rounded-lg p-4 space-y-2 mt-3"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <CreditCard className="h-4 w-4 text-purple-600" />
+                      <span className="text-sm font-semibold text-purple-800">
+                        Card Processing Charges
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Base Amount:</span>
+                        <span className="font-medium text-gray-900">
+                          {formatAmount(reservationData.reservationFee)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">
+                          Processing Charges (1.2%):
+                        </span>
+                        <span className="font-medium text-purple-700">
+                          +
+                          {formatAmount(
+                            calculateCardCharges(reservationData.reservationFee)
+                          )}
+                        </span>
+                      </div>
+                      <Separator className="bg-purple-200" />
+                      <div className="flex justify-between items-center pt-1">
+                        <span className="font-semibold text-purple-900">
+                          Total Amount:
+                        </span>
+                        <span className="text-lg font-bold text-purple-900">
+                          {formatAmount(
+                            calculateTotalWithCardCharges(
+                              reservationData.reservationFee
+                            )
+                          )}
+                        </span>
+                      </div>
+                      <p className="text-xs text-purple-600 mt-2 italic">
+                        Note: Charges shown for display only. Payment amount:{" "}
                         {formatAmount(reservationData.reservationFee)}
-                      </span>
+                      </p>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Processing Charges (1.2%):</span>
-                      <span className="font-medium text-purple-700">
-                        +{formatAmount(calculateCardCharges(reservationData.reservationFee))}
-                      </span>
-                    </div>
-                    <Separator className="bg-purple-200" />
-                    <div className="flex justify-between items-center pt-1">
-                      <span className="font-semibold text-purple-900">Total Amount:</span>
-                      <span className="text-lg font-bold text-purple-900">
-                        {formatAmount(calculateTotalWithCardCharges(reservationData.reservationFee))}
-                      </span>
-                    </div>
-                    <p className="text-xs text-purple-600 mt-2 italic">
-                      Note: Charges shown for display only. Payment amount: {formatAmount(reservationData.reservationFee)}
-                    </p>
-                  </div>
-                </motion.div>
-              )}
+                  </motion.div>
+                )}
             </div>
           </div>
 

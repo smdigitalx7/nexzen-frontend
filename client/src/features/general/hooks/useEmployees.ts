@@ -74,10 +74,11 @@ export const useEmployee = (id: number) => {
   });
 };
 
-export const useEmployeeDashboard = () => {
+export const useEmployeeDashboard = (enabled: boolean = true) => {
   return useQuery({
     queryKey: employeeKeys.dashboard(),
     queryFn: () => EmployeesService.getDashboard(),
+    enabled, // ✅ FIX: Only fetch when enabled (tab is active)
   });
 };
 

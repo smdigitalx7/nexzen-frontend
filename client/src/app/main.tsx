@@ -30,17 +30,6 @@ if (
   apiClientBaseUrl = apiBaseUrl;
 }
 
-// Debug: Check auth store state
-const authState = useAuthStore.getState();
-
-// Check if user is authenticated
-// Use accessToken directly (memory-only), fallback to token alias for backward compatibility
-const token = authState.accessToken || (authState as any).token;
-if (!token || !authState.user) {
-} else {
-  // Check if token is expired
-  if (authState.tokenExpireAt && Date.now() > authState.tokenExpireAt) {
-  }
-}
+// Auth state is managed by authStore and initialized in App component
 
 createRoot(document.getElementById("root")!).render(<App />);

@@ -117,7 +117,6 @@ export const initializeStores = () => {
   setupCacheCleanup();
 
   // Setup any other store initializations here
-  console.log('Enhanced stores initialized');
 };
 
 // Store cleanup
@@ -132,5 +131,5 @@ export const cleanupStores = () => {
   useUIStore.getState().clearToasts();
   useUIStore.getState().hideAllModals();
 
-  console.log('Enhanced stores cleaned up');
+  // Stores cleaned up
 };

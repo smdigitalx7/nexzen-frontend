@@ -66,7 +66,7 @@ export const SchoolReportsTemplate = () => {
 
   // Handlers
   const handleExportReport = () => {
-    // TODO: Implement export functionality
+    // Export functionality - to be implemented when backend endpoint is available
     if (import.meta.env.DEV) {
       console.log("Exporting report...");
     }

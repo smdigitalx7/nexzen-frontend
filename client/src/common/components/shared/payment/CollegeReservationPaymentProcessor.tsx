@@ -10,7 +10,12 @@ import {
 } from "lucide-react";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
 import { Button } from "@/common/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/common/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/common/components/ui/card";
 import { Badge } from "@/common/components/ui/badge";
 import { Separator } from "@/common/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/common/components/ui/radio-group";
@@ -30,7 +35,8 @@ export interface CollegeReservationPaymentProcessorProps {
   reservationData: ReservationPaymentData;
   onPaymentComplete?: (
     incomeRecord: CollegeIncomeRead,
-    receiptBlobUrl: string
+    receiptBlobUrl: string,
+    receiptNo?: string | null
   ) => void;
   onPaymentFailed?: (error: string) => void;
   onPaymentCancel?: () => void;
@@ -77,17 +83,12 @@ const CollegeReservationPaymentProcessor: React.FC<
           `Payment for reservation ${reservationData.reservationNo}`,
       };
 
-      console.log("🔄 Processing college reservation payment...");
-
       // Call the college payment API
-      const { blobUrl, income_id, paymentData } = await handleCollegePayByReservation(
-        reservationData.reservationNo,
-        payload
-      );
-
-      console.log("✅ Payment processed successfully, receipt generated");
-      console.log("🆔 Actual income_id from backend:", income_id);
-      console.log("📦 Full payment data:", paymentData);
+      const { blobUrl, income_id, paymentData } =
+        await handleCollegePayByReservation(
+          reservationData.reservationNo,
+          payload
+        );
 
       // Create income record for UI display using the actual income_id from backend
       const incomeRecord: CollegeIncomeRead = {
@@ -108,12 +109,14 @@ const CollegeReservationPaymentProcessor: React.FC<
       // Pass the receipt blob URL to parent component to display
       setReceiptBlobUrl(blobUrl);
 
-      // Pass both income record and receipt blob URL to parent
-      onPaymentComplete?.(incomeRecord, blobUrl);
+      // Extract receipt number from payment data
+      const receiptNo = paymentData.data?.context?.receipt_no || 
+                       paymentData.context?.receipt_no || 
+                       incomeRecord.receipt_no || 
+                       null;
 
-      console.log(
-        "✅ Payment flow completed successfully - Receipt URL passed to parent"
-      );
+      // Pass income record, blob URL, and receipt number to parent
+      onPaymentComplete?.(incomeRecord, blobUrl, receiptNo);
     } catch (err: any) {
       console.error("❌ Payment failed:", err);
       setCurrentStep("failed");
@@ -216,12 +219,18 @@ const CollegeReservationPaymentProcessor: React.FC<
                 </h3>
                 <div className="bg-muted/50 rounded-lg p-4 border">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Application Fee</span>
+                    <span className="text-sm text-muted-foreground">
+                      Application Fee
+                    </span>
                     <span className="text-2xl font-bold">
-                      ₹{reservationData.reservationFee.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
+                      ₹
+                      {reservationData.reservationFee.toLocaleString(
+                        undefined,
+                        {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        }
+                      )}
                     </span>
                   </div>
                 </div>
@@ -257,11 +266,16 @@ const CollegeReservationPaymentProcessor: React.FC<
                         key={option.value}
                         htmlFor={option.value}
                         className={`flex flex-col items-center gap-2 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                          colorClasses[option.color as keyof typeof colorClasses]
+                          colorClasses[
+                            option.color as keyof typeof colorClasses
+                          ]
                         }`}
                       >
                         <div className="flex items-center gap-2.5 w-full">
-                          <RadioGroupItem value={option.value} id={option.value} />
+                          <RadioGroupItem
+                            value={option.value}
+                            id={option.value}
+                          />
                           <span className="text-2xl">{option.icon}</span>
                           <span
                             className={`font-semibold flex-1 ${
@@ -294,46 +308,61 @@ const CollegeReservationPaymentProcessor: React.FC<
                     );
                   })}
                 </RadioGroup>
-                
+
                 {/* Card Charges Display */}
-                {selectedPaymentMethod === "CARD" && reservationData.reservationFee > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="border border-purple-200 bg-purple-50/50 rounded-lg p-4 space-y-2 mt-3"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <CreditCard className="h-4 w-4 text-purple-600" />
-                      <span className="text-sm font-semibold text-purple-800">
-                        Card Processing Charges
-                      </span>
-                    </div>
-                    <div className="space-y-1.5 text-sm">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Base Amount:</span>
-                        <span className="font-medium text-gray-900">
+                {selectedPaymentMethod === "CARD" &&
+                  reservationData.reservationFee > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="border border-purple-200 bg-purple-50/50 rounded-lg p-4 space-y-2 mt-3"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <CreditCard className="h-4 w-4 text-purple-600" />
+                        <span className="text-sm font-semibold text-purple-800">
+                          Card Processing Charges
+                        </span>
+                      </div>
+                      <div className="space-y-1.5 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Base Amount:</span>
+                          <span className="font-medium text-gray-900">
+                            {formatAmount(reservationData.reservationFee)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">
+                            Processing Charges (1.2%):
+                          </span>
+                          <span className="font-medium text-purple-700">
+                            +
+                            {formatAmount(
+                              calculateCardCharges(
+                                reservationData.reservationFee
+                              )
+                            )}
+                          </span>
+                        </div>
+                        <Separator className="bg-purple-200" />
+                        <div className="flex justify-between items-center pt-1">
+                          <span className="font-semibold text-purple-900">
+                            Total Amount:
+                          </span>
+                          <span className="text-lg font-bold text-purple-900">
+                            {formatAmount(
+                              calculateTotalWithCardCharges(
+                                reservationData.reservationFee
+                              )
+                            )}
+                          </span>
+                        </div>
+                        <p className="text-xs text-purple-600 mt-2 italic">
+                          Note: Charges shown for display only. Payment amount:{" "}
                           {formatAmount(reservationData.reservationFee)}
-                        </span>
+                        </p>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Processing Charges (1.2%):</span>
-                        <span className="font-medium text-purple-700">
-                          +{formatAmount(calculateCardCharges(reservationData.reservationFee))}
-                        </span>
-                      </div>
-                      <Separator className="bg-purple-200" />
-                      <div className="flex justify-between items-center pt-1">
-                        <span className="font-semibold text-purple-900">Total Amount:</span>
-                        <span className="text-lg font-bold text-purple-900">
-                          {formatAmount(calculateTotalWithCardCharges(reservationData.reservationFee))}
-                        </span>
-                      </div>
-                      <p className="text-xs text-purple-600 mt-2 italic">
-                        Note: Charges shown for display only. Payment amount: {formatAmount(reservationData.reservationFee)}
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
+                    </motion.div>
+                  )}
               </div>
 
               <div className="flex gap-2 pt-4">
@@ -347,7 +376,8 @@ const CollegeReservationPaymentProcessor: React.FC<
                   {reservationData.reservationFee.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
-                  })})
+                  })}
+                  )
                 </Button>
                 {onPaymentCancel && (
                   <Button
@@ -393,7 +423,9 @@ const CollegeReservationPaymentProcessor: React.FC<
                 {incomeRecord.receipt_no && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Receipt No:</span>
-                    <span className="font-medium">{incomeRecord.receipt_no}</span>
+                    <span className="font-medium">
+                      {incomeRecord.receipt_no}
+                    </span>
                   </div>
                 )}
                 <div className="flex justify-between">
@@ -443,4 +475,3 @@ const CollegeReservationPaymentProcessor: React.FC<
 };
 
 export default CollegeReservationPaymentProcessor;
-

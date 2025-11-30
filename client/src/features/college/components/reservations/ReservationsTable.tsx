@@ -10,7 +10,7 @@ import { Badge } from "@/common/components/ui/badge";
 import { Button } from "@/common/components/ui/button";
 import { Input } from "@/common/components/ui/input";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import {
   Select,
   SelectContent,
@@ -19,7 +19,10 @@ import {
   SelectValue,
 } from "@/common/components/ui/select";
 import { toast } from "@/common/hooks/use-toast";
-import { CollegeReservationsService, CollegeIncomeService } from "@/features/college/services";
+import {
+  CollegeReservationsService,
+  CollegeIncomeService,
+} from "@/features/college/services";
 import {
   ReceiptPreviewModal,
   ConcessionUpdateDialog,
@@ -96,11 +99,15 @@ export default function ReservationsTable({
   // ✅ Use server-side pagination if enabled, otherwise use client-side
   const [clientCurrentPage, setClientCurrentPage] = useState<number>(1);
   const [clientItemsPerPage, setClientItemsPerPage] = useState<number>(10);
-  
+
   // Determine which pagination to use
-  const currentPage = enableServerSidePagination ? (serverCurrentPage ?? 1) : clientCurrentPage;
-  const itemsPerPage = enableServerSidePagination ? (serverPageSize ?? 10) : clientItemsPerPage;
-  const setCurrentPage = enableServerSidePagination 
+  const currentPage = enableServerSidePagination
+    ? (serverCurrentPage ?? 1)
+    : clientCurrentPage;
+  const itemsPerPage = enableServerSidePagination
+    ? (serverPageSize ?? 10)
+    : clientItemsPerPage;
+  const setCurrentPage = enableServerSidePagination
     ? (onServerPageChange ?? (() => {}))
     : setClientCurrentPage;
   const setItemsPerPage = enableServerSidePagination
@@ -138,13 +145,13 @@ export default function ReservationsTable({
   }, [reservations, statusFilter, searchTerm]);
 
   // ✅ Pagination logic - Use server-side if enabled, otherwise client-side
-  const totalPages = enableServerSidePagination 
+  const totalPages = enableServerSidePagination
     ? (serverTotalPages ?? 1)
     : Math.ceil(filteredReservations.length / itemsPerPage);
   const totalCount = enableServerSidePagination
     ? (serverTotalCount ?? 0)
     : filteredReservations.length;
-  
+
   // For server-side pagination, use all reservations (already paginated by server)
   // For client-side pagination, slice the filtered results
   const paginatedReservations = enableServerSidePagination
@@ -153,7 +160,7 @@ export default function ReservationsTable({
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
       );
-  
+
   const startIndex = enableServerSidePagination
     ? (currentPage - 1) * itemsPerPage + 1
     : (currentPage - 1) * itemsPerPage + 1;
@@ -182,19 +189,10 @@ export default function ReservationsTable({
     );
 
     try {
-      if (import.meta.env.DEV) {
-        console.log(
-          "🔄 Starting receipt regeneration for income ID:",
-          reservation.income_id
-        );
-      }
       const blob = await CollegeIncomeService.regenerateReceipt(
         reservation.income_id
       );
       const blobUrl = URL.createObjectURL(blob);
-      if (import.meta.env.DEV) {
-        console.log("✅ Receipt blob URL received:", blobUrl);
-      }
 
       setReceiptBlobUrl(blobUrl);
       setShowReceiptModal(true);
@@ -224,13 +222,14 @@ export default function ReservationsTable({
     }
   };
 
-  const handleCloseReceiptModal = () => {
+  // ✅ OPTIMIZED: Memoized close handler with proper cleanup
+  const handleCloseReceiptModal = useCallback(() => {
     setShowReceiptModal(false);
     if (receiptBlobUrl) {
       URL.revokeObjectURL(receiptBlobUrl);
       setReceiptBlobUrl(null);
     }
-  };
+  }, [receiptBlobUrl]);
 
   return (
     <div className="space-y-4">
@@ -310,10 +309,10 @@ export default function ReservationsTable({
                       reservation.status === "PENDING"
                         ? "default"
                         : reservation.status === "CANCELLED"
-                        ? "destructive"
-                        : reservation.status === "CONFIRMED"
-                        ? "secondary"
-                        : "outline"
+                          ? "destructive"
+                          : reservation.status === "CONFIRMED"
+                            ? "secondary"
+                            : "outline"
                     }
                     className={
                       reservation.status === "CONFIRMED"

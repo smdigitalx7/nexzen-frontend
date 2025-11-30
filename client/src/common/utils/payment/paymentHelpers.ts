@@ -218,7 +218,6 @@ function PaymentComponent() {
         }],
         remarks: 'Payment for application fee'
       });
-      console.log('Income ID:', income_id, 'Payment Data:', paymentData);
       setReceiptBlobUrl(blobUrl);
       setShowReceiptModal(true);
     } catch (error) {

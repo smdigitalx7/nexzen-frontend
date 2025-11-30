@@ -1,7 +1,7 @@
 ﻿import { useMemo, useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/common/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/common/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/common/components/ui/dialog";
 import { Badge } from "@/common/components/ui/badge";
 import { User } from "lucide-react";
 import { useCollegeStudentTransportPaymentSummary, useCollegeStudentTransportPaymentSummaryByEnrollmentId } from "@/features/college/hooks";
@@ -361,6 +361,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
           <DialogHeader>
             <DialogTitle>Transport Payment Summary</DialogTitle>
+            <DialogDescription className="sr-only">View detailed transport payment summary information</DialogDescription>
           </DialogHeader>
           {isLoadingDetails ? (
             <div className="p-8 text-center text-muted-foreground">Loading payment details...</div>

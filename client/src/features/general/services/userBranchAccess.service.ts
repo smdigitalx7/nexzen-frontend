@@ -18,7 +18,6 @@ export const UserBranchAccessService = {
    * @returns Promise<UserBranchAccessRead[]> - List of all user branch accesses
    */
   list(): Promise<UserBranchAccessRead[]> {
-    console.log("API: Calling /user-branch-accesses/ endpoint");
     return Api.get<UserBranchAccessRead[]>("/user-branch-accesses");
   },
 
@@ -28,7 +27,6 @@ export const UserBranchAccessService = {
    * @returns Promise<UserBranchAccessRead> - User branch access details
    */
   getById(id: number): Promise<UserBranchAccessRead> {
-    console.log(`API: Calling /user-branch-accesses/${id}/ endpoint`);
     return Api.get<UserBranchAccessRead>(`/user-branch-accesses/${id}/`);
   },
 
@@ -38,7 +36,6 @@ export const UserBranchAccessService = {
    * @returns Promise<UserBranchAccessRead> - Created user branch access details
    */
   create(payload: UserBranchAccessCreate): Promise<UserBranchAccessRead> {
-    console.log("API: Creating new user branch access");
     return Api.post<UserBranchAccessRead>("/user-branch-accesses", payload);
   },
 
@@ -49,7 +46,6 @@ export const UserBranchAccessService = {
    * @returns Promise<UserBranchAccessRead> - Updated user branch access details
    */
   revoke(id: number, payload: UserBranchRevoke): Promise<UserBranchAccessRead> {
-    console.log(`API: Revoking user branch access ${id}`);
     return Api.put<UserBranchAccessRead>(`/user-branch-accesses/revoke/${id}`, payload);
   },
 };

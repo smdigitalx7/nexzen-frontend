@@ -21,7 +21,6 @@ export const UsersService = {
    * @returns Promise<UserDashboardStats> - Dashboard statistics
    */
   getDashboard(): Promise<UserDashboardStats> {
-    console.log("API: Calling /users/dashboard endpoint");
     return Api.get<UserDashboardStats>("/users/dashboard");
   },
 
@@ -30,7 +29,6 @@ export const UsersService = {
    * @returns Promise<UserRead[]> - List of all users
    */
   list(): Promise<UserRead[]> {
-    console.log("API: Calling /users/ endpoint");
     return Api.get<UserRead[]>("/users");
   },
 
@@ -39,7 +37,6 @@ export const UsersService = {
    * @returns Promise<UserWithRolesAndBranches[]> - List of all users with detailed role and branch information
    */
   listWithRolesAndBranches(): Promise<UserWithRolesAndBranches[]> {
-    console.log("API: Calling /users/roles-and-branches endpoint");
     return Api.get<UserWithRolesAndBranches[]>("/users/roles-and-branches");
   },
 
@@ -49,7 +46,6 @@ export const UsersService = {
    * @returns Promise<UserWithAccesses> - User details with accesses
    */
   getById(id: number): Promise<UserWithAccesses> {
-    console.log(`API: Calling /users/${id} endpoint`);
     return Api.get<UserWithAccesses>(`/users/${id}`);
   },
 
@@ -59,7 +55,6 @@ export const UsersService = {
    * @returns Promise<UserRead> - Created user details
    */
   create(payload: UserCreate): Promise<UserRead> {
-    console.log("API: Creating new user");
     return Api.post<UserRead>("/users", payload);
   },
 
@@ -70,7 +65,6 @@ export const UsersService = {
    * @returns Promise<UserRead> - Updated user details
    */
   update(id: number, payload: UserUpdate): Promise<UserRead> {
-    console.log(`API: Updating user ${id}`);
     return Api.put<UserRead>(`/users/${id}`, payload);
   },
 
@@ -80,7 +74,6 @@ export const UsersService = {
    * @returns Promise<UserRead> - Deleted user details
    */
   remove(id: number): Promise<UserRead> {
-    console.log(`API: Deleting user ${id}`);
     return Api.delete<UserRead>(`/users/${id}`);
   },
 
@@ -90,7 +83,6 @@ export const UsersService = {
    * @returns Promise<any> - Created access response
    */
   createAccess(payload: { user_id: number; branch_id: number; role_id: number; is_default?: boolean; access_notes?: string; is_active?: boolean }): Promise<any> {
-    console.log(`API: Creating access for user ${payload.user_id} at branch ${payload.branch_id} with role ${payload.role_id}`);
     return Api.post(`/user-branch-accesses`, payload);
   },
 
@@ -101,7 +93,6 @@ export const UsersService = {
    * @returns Promise<any> - Revoke response
    */
   revokeAccess(accessId: number, payload: { user_id: number; access_notes?: string }): Promise<any> {
-    console.log(`API: Revoking access ${accessId} for user ${payload.user_id}`);
     return Api.put(`/user-branch-accesses/revoke/${accessId}`, payload);
   },
 };

@@ -56,10 +56,11 @@ export const useEmployeeLeaveById = (id: number) => {
   });
 };
 
-export const useLeaveDashboard = () => {
+export const useLeaveDashboard = (enabled: boolean = true) => {
   return useQuery({
     queryKey: employeeLeaveKeys.dashboard(),
     queryFn: () => EmployeeLeaveService.getDashboard(),
+    enabled, // ✅ FIX: Only fetch when enabled (tab is active)
   });
 };
 
@@ -112,29 +113,54 @@ export const useApproveEmployeeLeave = () => {
         refetchType: 'none', // ✅ CRITICAL: Don't refetch automatically
       });
       
-      // Step 2: Manually refetch table query with proper delay (deferred to next frame)
-      // Use requestAnimationFrame to defer to next frame, then setTimeout for additional delay
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          // Only refetch the table query (by-branch queries)
-          queryClient.refetchQueries({
-            queryKey: [...employeeLeaveKeys.all, 'by-branch'],
-            exact: false,
-            type: 'active', // Only refetch if active
-          });
-        }, 200); // Delay to allow dialog close animation
-      });
+      // Step 2: Manually refetch table query with proper delay (non-blocking)
+      // Use requestIdleCallback if available, otherwise use requestAnimationFrame + setTimeout
+      if (typeof requestIdleCallback !== "undefined") {
+        requestIdleCallback(
+          () => {
+            queryClient.refetchQueries({
+              queryKey: [...employeeLeaveKeys.all, 'by-branch'],
+              exact: false,
+              type: 'active',
+            });
+          },
+          { timeout: 1000 } // Ensure it runs even if browser is busy
+        );
+      } else {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            queryClient.refetchQueries({
+              queryKey: [...employeeLeaveKeys.all, 'by-branch'],
+              exact: false,
+              type: 'active',
+            });
+          }, 500); // Longer delay for fallback
+        });
+      }
       
       // Step 3: Defer dashboard stats invalidation (much longer delay - less critical)
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          queryClient.invalidateQueries({
-            queryKey: employeeLeaveKeys.dashboard(),
-            exact: true,
-            refetchType: 'active', // Dashboard can refetch, but with delay
-          });
-        }, 1000); // Much longer delay - dashboard is not critical
-      });
+      if (typeof requestIdleCallback !== "undefined") {
+        requestIdleCallback(
+          () => {
+            queryClient.invalidateQueries({
+              queryKey: employeeLeaveKeys.dashboard(),
+              exact: true,
+              refetchType: 'active',
+            });
+          },
+          { timeout: 2000 } // Even longer delay for dashboard
+        );
+      } else {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            queryClient.invalidateQueries({
+              queryKey: employeeLeaveKeys.dashboard(),
+              exact: true,
+              refetchType: 'active',
+            });
+          }, 1500);
+        });
+      }
     },
   }, "Leave request approved successfully");
 };
@@ -155,27 +181,53 @@ export const useRejectEmployeeLeave = () => {
         refetchType: 'none', // ✅ CRITICAL: Don't refetch automatically
       });
       
-      // Step 2: Manually refetch table query with proper delay
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          queryClient.refetchQueries({
-            queryKey: [...employeeLeaveKeys.all, 'by-branch'],
-            exact: false,
-            type: 'active',
-          });
-        }, 200); // Delay to allow dialog close animation
-      });
+      // Step 2: Manually refetch table query with proper delay (non-blocking)
+      if (typeof requestIdleCallback !== "undefined") {
+        requestIdleCallback(
+          () => {
+            queryClient.refetchQueries({
+              queryKey: [...employeeLeaveKeys.all, 'by-branch'],
+              exact: false,
+              type: 'active',
+            });
+          },
+          { timeout: 1000 }
+        );
+      } else {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            queryClient.refetchQueries({
+              queryKey: [...employeeLeaveKeys.all, 'by-branch'],
+              exact: false,
+              type: 'active',
+            });
+          }, 500);
+        });
+      }
       
       // Step 3: Defer dashboard stats invalidation (much longer delay)
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          queryClient.invalidateQueries({
-            queryKey: employeeLeaveKeys.dashboard(),
-            exact: true,
-            refetchType: 'active',
-          });
-        }, 1000); // Much longer delay - dashboard is not critical
-      });
+      if (typeof requestIdleCallback !== "undefined") {
+        requestIdleCallback(
+          () => {
+            queryClient.invalidateQueries({
+              queryKey: employeeLeaveKeys.dashboard(),
+              exact: true,
+              refetchType: 'active',
+            });
+          },
+          { timeout: 2000 }
+        );
+      } else {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            queryClient.invalidateQueries({
+              queryKey: employeeLeaveKeys.dashboard(),
+              exact: true,
+              refetchType: 'active',
+            });
+          }, 1500);
+        });
+      }
     },
   }, "Leave request rejected");
 };

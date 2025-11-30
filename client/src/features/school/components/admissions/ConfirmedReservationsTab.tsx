@@ -1169,18 +1169,43 @@ const ConfirmedReservationsTabComponent = () => {
   }, [createdAdmissionNo, admissionFee, refetch, queryClient]);
 
   const handleCloseReceiptModal = useCallback(() => {
+    // ✅ CRITICAL FIX: Close modal state immediately
     setShowReceiptModal(false);
-    // Clean up blob URL after a delay to ensure modal has time to use it
-    setTimeout(() => {
-      if (receiptBlobUrl) {
+    
+    // ✅ CRITICAL FIX: Clean up blob URL immediately (synchronous)
+    if (receiptBlobUrl) {
+      try {
         URL.revokeObjectURL(receiptBlobUrl);
+      } catch (e) {
+        // Ignore errors during cleanup
       }
       setReceiptBlobUrl("");
-      setCreatedAdmissionNo("");
-      setAdmissionFee(0);
-      setSelectedReservation(null);
-    }, 100);
-  }, [receiptBlobUrl]);
+    }
+    
+    // ✅ CRITICAL FIX: Clear other state immediately
+    setCreatedAdmissionNo("");
+    setAdmissionFee(0);
+    setSelectedReservation(null);
+    
+    // ✅ CRITICAL FIX: Defer query invalidation to prevent UI blocking
+    if (typeof requestIdleCallback !== "undefined") {
+      requestIdleCallback(
+        () => {
+          // Refetch reservations after modal closes
+          if (refetch) {
+            void refetch();
+          }
+        },
+        { timeout: 1000 }
+      );
+    } else {
+      setTimeout(() => {
+        if (refetch) {
+          void refetch();
+        }
+      }, 500);
+    }
+  }, [receiptBlobUrl, refetch]);
 
   // Column definitions for the enhanced table
   const columns: ColumnDef<SchoolReservationListItem>[] = useMemo(

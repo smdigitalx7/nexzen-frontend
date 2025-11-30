@@ -5,7 +5,7 @@ import { Label } from "@/common/components/ui/label";
 import { useSchoolClasses, useSchoolTransportBalancesList, useSchoolTransportBalance } from "@/features/school/hooks";
 import { SchoolClassDropdown } from "@/common/components/shared/Dropdowns";
 import type { SchoolTransportFeeBalanceListRead, SchoolTransportFeeBalanceFullRead } from "@/features/school/types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/common/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/common/components/ui/dialog";
 import StudentFeeBalancesTable from "../tution-fee-balance/StudentFeeBalancesTable";
 
 type StudentRow = React.ComponentProps<typeof StudentFeeBalancesTable>["studentBalances"][number];
@@ -109,6 +109,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
           <DialogHeader>
             <DialogTitle>Transport Fee Balance Details</DialogTitle>
+            <DialogDescription className="sr-only">View detailed transport fee balance information for the selected student</DialogDescription>
           </DialogHeader>
           {!selectedBalanceId ? (
             <div className="p-2 text-sm text-muted-foreground">No balance selected.</div>

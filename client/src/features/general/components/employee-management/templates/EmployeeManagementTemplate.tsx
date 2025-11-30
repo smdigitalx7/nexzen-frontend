@@ -38,15 +38,6 @@ import { LeaveStatsCards } from "../Leave/LeaveStatsCards";
 import { AdvanceStatsCards } from "../Advance/AdvanceStatsCards";
 
 export const EmployeeManagementTemplate = () => {
-  // Dashboard stats hooks
-  const { data: dashboardStats, isLoading: dashboardLoading } = useEmployeeDashboard();
-  const { data: attendanceDashboardStats, isLoading: attendanceDashboardLoading } = useAttendanceDashboard();
-  const { data: leaveDashboardStats, isLoading: leaveDashboardLoading } = useLeaveDashboard();
-  const { data: advanceDashboardStats, isLoading: advanceDashboardLoading } = useAdvanceDashboard();
-  
-  // ✅ FIX: Aggregate loading states from all parallel dashboard queries
-  const isDashboardLoading = dashboardLoading || attendanceDashboardLoading || leaveDashboardLoading || advanceDashboardLoading;
-  
   const {
     // Data
     employees,
@@ -228,6 +219,30 @@ export const EmployeeManagementTemplate = () => {
     qualification: emp.qualification || null,
     experience_years: emp.experience_years || null,
   })), [employees]);
+
+  // ✅ CRITICAL FIX: Only fetch dashboard stats for the active tab
+  // This prevents all 4 dashboard APIs from being called at once
+  const { data: dashboardStats, isLoading: dashboardLoading } = useEmployeeDashboard(
+    activeTab === "employees" // Only fetch when employees tab is active
+  );
+  const { data: attendanceDashboardStats, isLoading: attendanceDashboardLoading } = useAttendanceDashboard(
+    activeTab === "attendance" // Only fetch when attendance tab is active
+  );
+  const { data: leaveDashboardStats, isLoading: leaveDashboardLoading } = useLeaveDashboard(
+    activeTab === "leaves" // Only fetch when leaves tab is active
+  );
+  const { data: advanceDashboardStats, isLoading: advanceDashboardLoading } = useAdvanceDashboard(
+    activeTab === "advances" // Only fetch when advances tab is active
+  );
+
+  // ✅ FIX: Get loading state for the currently active tab only
+  const isDashboardLoading = useMemo(() => {
+    if (activeTab === "employees") return dashboardLoading;
+    if (activeTab === "attendance") return attendanceDashboardLoading;
+    if (activeTab === "leaves") return leaveDashboardLoading;
+    if (activeTab === "advances") return advanceDashboardLoading;
+    return false;
+  }, [activeTab, dashboardLoading, attendanceDashboardLoading, leaveDashboardLoading, advanceDashboardLoading]);
 
   const handleAddEmployee = () => {
     // Initialize with default form values using LibEmployeeRead (API type)

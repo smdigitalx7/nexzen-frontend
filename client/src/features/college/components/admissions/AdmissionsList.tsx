@@ -212,13 +212,35 @@ const AdmissionsList = () => {
   }, [selectedAdmission, selectedStudentId]);
 
   const handleCloseReceiptModal = useCallback(() => {
+    // ✅ CRITICAL FIX: Close modal state immediately
     setShowReceiptModal(false);
-    setReceiptBlobUrl(null);
-    // ✅ FIX: Batch invalidate queries to prevent UI freeze
-    if (selectedStudentId) {
-      batchInvalidateAndRefetch([["college", "admissions", selectedStudentId]]);
+    
+    // ✅ CRITICAL FIX: Clean up blob URL immediately (synchronous)
+    if (receiptBlobUrl) {
+      try {
+        URL.revokeObjectURL(receiptBlobUrl);
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+      setReceiptBlobUrl(null);
     }
-  }, [selectedStudentId]);
+
+    // ✅ CRITICAL FIX: Defer query invalidation to prevent UI blocking
+    if (selectedStudentId) {
+      if (typeof requestIdleCallback !== "undefined") {
+        requestIdleCallback(
+          () => {
+            batchInvalidateAndRefetch([["college", "admissions", selectedStudentId]]);
+          },
+          { timeout: 1000 }
+        );
+      } else {
+        setTimeout(() => {
+          batchInvalidateAndRefetch([["college", "admissions", selectedStudentId]]);
+        }, 500);
+      }
+    }
+  }, [selectedStudentId, receiptBlobUrl]);
 
   // Memoized action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => [

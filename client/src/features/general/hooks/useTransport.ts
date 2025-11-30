@@ -118,11 +118,9 @@ export const useRemoveDriverFromRoute = () => {
   
   return useMutationWithSuccessToast({
     mutationFn: (id: number) => {
-      console.log("Calling removeDriverFromRoute with id:", id);
       return TransportService.removeDriverFromRoute(id);
     },
     onSuccess: (data, variables) => {
-      console.log("Remove driver success, data:", data, "variables:", variables);
       invalidateEntity("transport");
       // Invalidate the specific route query to refresh the dialog
       queryClient.invalidateQueries({ queryKey: transportKeys.route(variables) });

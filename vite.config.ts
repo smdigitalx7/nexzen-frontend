@@ -122,7 +122,7 @@ export default defineConfig(({ mode }) => {
       fs: { strict: true, deny: ["/.*"] },
       proxy: {
         "/api": {
-          target: "https://erpapi.velonex.in",
+          target: process.env.VITE_API_PROXY_TARGET || "https://erpapi.velonex.in",
           changeOrigin: true,
           secure: true,
           rewrite: (path) => path,

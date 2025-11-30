@@ -51,10 +51,11 @@ export const useAdvance = (id: number) => {
   });
 };
 
-export const useAdvanceDashboard = () => {
+export const useAdvanceDashboard = (enabled: boolean = true) => {
   return useQuery({
     queryKey: advanceKeys.dashboard(),
     queryFn: () => AdvancesService.getDashboard(),
+    enabled, // ✅ FIX: Only fetch when enabled (tab is active)
   });
 };
 

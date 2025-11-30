@@ -87,22 +87,6 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = memo(({
         prevModalState.current.receiptBlobUrl !== receiptBlobUrl;
 
       if (stateChanged) {
-        console.log("🔍 MultiplePaymentForm modal state changed:", {
-          showReceiptModal,
-          receiptBlobUrl: !!receiptBlobUrl,
-          timestamp: new Date().toISOString(),
-        });
-
-        // Track when modal state changes to false
-        if (!showReceiptModal && receiptBlobUrl) {
-          console.log("⚠️ MODAL STATE LOST! Blob URL exists but modal is false");
-        }
-
-        // Log when both conditions are met
-        if (showReceiptModal && receiptBlobUrl) {
-          console.log("🎯 Both conditions met - modal should render!");
-        }
-
         prevModalState.current = { showReceiptModal, receiptBlobUrl };
       }
     }
@@ -113,7 +97,6 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = memo(({
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      console.log("🔍 MultiplePaymentForm unmounting");
     };
   }, []);
 
@@ -286,7 +269,6 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = memo(({
   };
 
   const handleCloseReceiptModal = () => {
-    console.log("📄 Closing receipt modal");
     setShowReceiptModal(false);
 
     // Show success toast and set payment completed ONLY after receipt modal is closed
@@ -300,7 +282,6 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = memo(({
 
     // Redirect to receipt after modal closes
     if (receiptBlobUrl) {
-      console.log("📄 Redirecting to receipt:", receiptBlobUrl);
       // Open receipt in new tab
       window.open(receiptBlobUrl, "_blank");
     }
@@ -311,7 +292,6 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = memo(({
     }
 
     // Close the parent form after receipt modal is closed
-    console.log("📄 Closing parent form after receipt modal closed");
     onCancel();
   };
 
@@ -516,11 +496,6 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = memo(({
   // Only update if state is actually out of sync to prevent render loops
   useEffect(() => {
     if (receiptBlobUrl && !showReceiptModal && isMountedRef.current) {
-      if (import.meta.env.DEV) {
-        console.log(
-          "🔧 Force showing modal - blob URL exists but modal not showing"
-        );
-      }
 
       setShowReceiptModal(true);
       setModalRenderKey((prev) => prev + 1);

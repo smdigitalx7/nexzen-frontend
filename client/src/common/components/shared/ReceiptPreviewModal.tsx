@@ -1,19 +1,39 @@
-﻿import React, { useEffect, useState, useCallback, useRef } from "react";
+﻿import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/common/components/ui/button";
-import { Printer, X, Download, AlertCircle, ExternalLink } from "lucide-react";
+import {
+  Printer,
+  X,
+  Download,
+  AlertCircle,
+  ExternalLink,
+  FileText,
+} from "lucide-react";
 import { toast } from "@/common/hooks/use-toast";
+import { cn } from "@/common/utils";
 
 interface ReceiptPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   blobUrl: string | null;
+  receiptNo?: string | null; // Receipt number from backend
+  receiptTitle?: string; // Custom title (defaults to "Receipt Preview")
+  className?: string;
 }
 
 export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   isOpen,
   onClose,
   blobUrl,
+  receiptNo,
+  receiptTitle = "Receipt Preview",
+  className,
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -23,9 +43,16 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   const isClosingRef = useRef(false);
   const escapeHandlerRef = useRef<((e: KeyboardEvent) => void) | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  // ✅ FIX: Store timeout refs for cleanup
   const closingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Generate filename from receipt number or fallback
+  const downloadFilename = useMemo(() => {
+    if (receiptNo) {
+      return `Receipt_${receiptNo}.pdf`;
+    }
+    return `receipt-${Date.now()}.pdf`;
+  }, [receiptNo]);
 
   // Ensure component is mounted (for portal)
   useEffect(() => {
@@ -41,15 +68,18 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
     isClosingRef.current = true;
 
     // ✅ CRITICAL FIX: Restore body overflow IMMEDIATELY - synchronous, no delay
-    // This must happen synchronously before any other operations
     const originalValue = originalOverflowRef.current || "";
     document.body.style.overflow = originalValue;
+    originalOverflowRef.current = "";
 
     // ✅ CRITICAL FIX: Clear iframe src immediately to prevent background processing
-    // This prevents the iframe from continuing to render PDF after modal closes
     if (iframeRef.current) {
-      iframeRef.current.src = "";
-      iframeRef.current = null;
+      try {
+        iframeRef.current.src = "about:blank";
+        iframeRef.current = null;
+      } catch {
+        // Ignore errors during cleanup
+      }
     }
 
     // ✅ CRITICAL FIX: Reset state immediately - synchronous
@@ -62,9 +92,10 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
       escapeHandlerRef.current = null;
     }
 
-    // ✅ CRITICAL FIX: Call onClose IMMEDIATELY - no requestAnimationFrame delay
-    // This ensures parent component gets the close event immediately
-    onClose();
+    // ✅ CRITICAL FIX: Call onClose in requestAnimationFrame (ensures DOM updates)
+    requestAnimationFrame(() => {
+      onClose();
+    });
 
     // ✅ FIX: Reset closing flag after a brief delay (with cleanup tracking)
     if (closingTimeoutRef.current) {
@@ -74,7 +105,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
       isClosingRef.current = false;
       closingTimeoutRef.current = null;
     }, 100);
-  }, [onClose, blobUrl]);
+  }, [onClose]);
 
   useEffect(() => {
     if (isOpen && blobUrl) {
@@ -117,21 +148,17 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
       document.body.style.overflow = "hidden";
     } else {
       // IMMEDIATELY restore original overflow value when modal closes
-      // This is critical to prevent UI freeze
       const originalValue = originalOverflowRef.current || "";
       document.body.style.overflow = originalValue;
-      // Clear the ref after restoring
       originalOverflowRef.current = "";
     }
     return () => {
       // ✅ FIX: Always restore on unmount - critical cleanup
-      // Use synchronous operation to ensure it happens immediately
       const originalValue = originalOverflowRef.current || "";
       if (originalValue) {
         document.body.style.overflow = originalValue;
         originalOverflowRef.current = "";
       } else {
-        // Fallback: if ref is empty, just clear any overflow restriction
         document.body.style.overflow = "";
       }
     };
@@ -147,7 +174,6 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      // Restore on unmount as well
       document.body.style.overflow = originalOverflowRef.current || "";
     };
   }, []);
@@ -177,15 +203,14 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   useEffect(() => {
     return () => {
       if (iframeRef.current) {
-        iframeRef.current.src = "";
+        iframeRef.current.src = "about:blank";
         iframeRef.current = null;
       }
     };
   }, []);
 
-  const handlePrint = () => {
+  const handlePrint = useCallback(() => {
     if (blobUrl) {
-      // Create a new window for printing
       const printWindow = window.open(blobUrl, "_blank");
       if (printWindow) {
         printWindow.onload = () => {
@@ -212,9 +237,9 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
         variant: "destructive",
       });
     }
-  };
+  }, [blobUrl]);
 
-  const handleDownload = async () => {
+  const handleDownload = useCallback(async () => {
     if (!blobUrl) {
       toast({
         title: "Download Failed",
@@ -233,10 +258,10 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
         throw new Error("PDF not ready");
       }
 
-      // Create and trigger download
+      // Create and trigger download with proper filename
       const link = document.createElement("a");
       link.href = blobUrl;
-      link.download = `receipt-${Date.now()}.pdf`;
+      link.download = downloadFilename; // Use receipt number if available
       link.style.display = "none";
       document.body.appendChild(link);
       link.click();
@@ -244,12 +269,14 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
       // Wait a moment to ensure download starts
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      document.body.removeChild(link);
+      link.remove();
 
       // Show success notification
       toast({
         title: "Download Complete",
-        description: "Receipt PDF has been downloaded successfully.",
+        description: receiptNo
+          ? `Receipt (${receiptNo}) has been downloaded successfully.`
+          : "Receipt has been downloaded successfully.",
         variant: "success",
       });
     } catch (error) {
@@ -262,9 +289,9 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
     } finally {
       setIsDownloading(false);
     }
-  };
+  }, [blobUrl, downloadFilename, receiptNo]);
 
-  const handleOpenInNewTab = () => {
+  const handleOpenInNewTab = useCallback(() => {
     if (blobUrl) {
       window.open(blobUrl, "_blank");
       toast({
@@ -273,7 +300,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
         variant: "info",
       });
     }
-  };
+  }, [blobUrl]);
 
   if (!isOpen || !mounted) {
     return null;
@@ -281,7 +308,10 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[10000] bg-background flex flex-col"
+      className={cn(
+        "fixed inset-0 z-[10000] bg-background flex flex-col",
+        className
+      )}
       role="dialog"
       aria-modal="true"
       aria-labelledby="receipt-preview-title"
@@ -292,14 +322,36 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
           handleConfirmClose();
         }
       }}
+      onKeyDown={(e) => {
+        // Close on Escape key (backup to the global handler)
+        if (e.key === "Escape") {
+          handleConfirmClose();
+        }
+      }}
       style={{ pointerEvents: "auto" }}
+      tabIndex={-1}
     >
-      {/* Header Bar */}
+      {/* Header Bar - Redesigned */}
       <div className="flex items-center justify-between p-4 border-b bg-background shadow-sm">
         <div className="flex items-center gap-4">
-          <h2 id="receipt-preview-title" className="text-xl font-semibold">
-            Receipt Preview
-          </h2>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <FileText className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h2 id="receipt-preview-title" className="text-xl font-semibold">
+                {receiptTitle}
+              </h2>
+              {receiptNo && (
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Receipt No:{" "}
+                  <span className="font-medium text-foreground">
+                    {receiptNo}
+                  </span>
+                </p>
+              )}
+            </div>
+          </div>
           <div id="receipt-preview-description" className="sr-only">
             Payment receipt preview with options to print, download, open in new
             tab, or close
@@ -311,15 +363,17 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
             variant="outline"
             size="sm"
             disabled={!blobUrl}
+            title="Open in new tab"
           >
             <ExternalLink className="h-4 w-4 mr-2" />
-            Open in New Tab
+            Open
           </Button>
           <Button
             onClick={() => void handleDownload()}
             variant="default"
             size="sm"
             disabled={!blobUrl || isDownloading}
+            title="Download receipt"
           >
             {isDownloading ? (
               <>
@@ -338,11 +392,17 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
             variant="default"
             size="sm"
             disabled={!blobUrl}
+            title="Print receipt"
           >
             <Printer className="h-4 w-4 mr-2" />
             Print
           </Button>
-          <Button onClick={handleConfirmClose} variant="outline" size="sm">
+          <Button
+            onClick={handleConfirmClose}
+            variant="outline"
+            size="sm"
+            title="Close"
+          >
             <X className="h-4 w-4 mr-2" />
             Close
           </Button>
@@ -369,10 +429,12 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
           <div className="w-full h-full">
             <iframe
               ref={iframeRef}
-              key={blobUrl} // Force remount when blobUrl changes
+              key={blobUrl}
               src={blobUrl}
               className="w-full h-full border-0"
-              title="Receipt Preview"
+              title={
+                receiptNo ? `Receipt Preview - ${receiptNo}` : "Receipt Preview"
+              }
               onLoad={() => {
                 setIsLoading(false);
               }}

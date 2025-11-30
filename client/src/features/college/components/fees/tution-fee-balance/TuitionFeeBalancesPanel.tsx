@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState, memo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/common/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/common/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/common/components/ui/dialog";
 import { useCollegeTuitionBalancesList, useCollegeTuitionBalanceByAdmission } from "@/features/college/hooks";
 import { useCollegeClasses, useCollegeGroups } from "@/features/college/hooks/use-college-dropdowns";
 import type { CollegeTuitionFeeBalanceRead, CollegeTuitionFeeBalanceFullRead } from "@/features/college/types";
@@ -30,6 +30,7 @@ const DetailsDialog = memo(({
     <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
       <DialogHeader>
         <DialogTitle>Tuition Fee Balance Details</DialogTitle>
+        <DialogDescription className="sr-only">View detailed tuition fee balance information for the selected student</DialogDescription>
       </DialogHeader>
       {!selectedAdmissionNo ? (
         <div className="p-2 text-sm text-muted-foreground">No balance selected.</div>

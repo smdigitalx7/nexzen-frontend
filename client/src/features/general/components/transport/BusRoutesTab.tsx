@@ -302,10 +302,8 @@ const BusRoutesTab = ({
       setViewRouteId(routeId);
     }
     
-    console.log("Removing driver from route:", routeId);
     removeDriverMutation.mutate(routeId, {
       onSuccess: (updatedRoute) => {
-        console.log("Driver removed successfully, updated route:", updatedRoute);
         // Update the fallback data with the response from API
         if (updatedRoute) {
           setViewRouteDataFallback(updatedRoute);

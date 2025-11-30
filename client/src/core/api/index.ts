@@ -417,17 +417,7 @@ export async function api<T = unknown>({
   // Use accessToken directly (memory-only), fallback to token alias for backward compatibility
   let token = state.accessToken || (state as any).token;
 
-  // Debug logging in development
-  if (process.env.NODE_ENV === "development" && !noAuth && !token) {
-    console.warn(`⚠️ API call to ${path}: No accessToken found in store`, {
-      hasAccessToken: !!state.accessToken,
-      hasTokenAlias: !!(state as any).token,
-      isAuthenticated: state.isAuthenticated,
-      hasUser: !!state.user,
-      isAuthInitializing: state.isAuthInitializing,
-      isLoggingOut: state.isLoggingOut,
-    });
-  }
+  // Note: Token validation happens in auth store
 
   const url = `${API_BASE_URL}${path}${buildQuery(query)}`;
 
@@ -461,13 +451,7 @@ export async function api<T = unknown>({
         ) {
           throw error;
         }
-        // Network errors - log but continue
-        if (process.env.NODE_ENV === "development") {
-          console.warn(
-            "Token refresh network error, continuing with current token:",
-            error
-          );
-        }
+        // Network errors - continue with current token
       }
     }
   }
@@ -484,10 +468,6 @@ export async function api<T = unknown>({
 
   if (!noAuth && token) {
     requestHeaders["Authorization"] = `Bearer ${token}`;
-  } else if (!noAuth && !token) {
-    console.warn(
-      `⚠️ No token available for authenticated request to ${path}`
-    );
   }
 
   // Create AbortController for timeout

@@ -1,10 +1,12 @@
 ﻿import { useState, useMemo, useEffect, memo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, Table2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/common/components/ui/button";
 import { Card, CardContent } from "@/common/components/ui/card";
 import { Alert, AlertDescription } from "@/common/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/common/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +32,7 @@ import {
 } from "@/common/components/ui/select";
 import { EnhancedDataTable } from "@/common/components/shared";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
+import CompleteMarksEntry from "./CompleteMarksEntry";
 import {
   SchoolClassDropdown,
   SchoolSectionDropdown,
@@ -49,6 +52,7 @@ import {
   useSchoolExams,
 } from "@/features/school/hooks/use-school-dropdowns";
 import { useGrades } from "@/features/general/hooks/useGrades";
+import { schoolKeys } from "@/features/school/hooks/query-keys";
 import type {
   ExamMarkWithDetails,
   ExamMarksQuery,
@@ -119,6 +123,9 @@ const ExamMarksManagementComponent = ({
   const setSelectedGrade = propSetSelectedGrade ?? setLocalSelectedGrade;
   const selectedExam = propSelectedExam ?? localSelectedExam;
   const setSelectedExam = propSetSelectedExam ?? setLocalSelectedExam;
+
+  // Tab state for switching between View Marks and Complete Marks
+  const [activeViewTab, setActiveViewTab] = useState<"view" | "complete">("view");
 
   // Dialog states
   const [showExamMarkDialog, setShowExamMarkDialog] = useState(false);
@@ -204,6 +211,7 @@ const ExamMarksManagementComponent = ({
     error: examMarksError,
   } = useSchoolExamMarksList(examMarksQuery);
 
+  const queryClient = useQueryClient();
   const createExamMarkMutation = useCreateSchoolExamMark();
   const updateExamMarkMutation = useUpdateSchoolExamMark(
     editingExamMark?.mark_id || 0
@@ -539,57 +547,88 @@ const ExamMarksManagementComponent = ({
               </div>
             </div>
 
-            {/* Data Table */}
-            <div className="space-y-4">
-              {/* Filter Selection Alerts */}
-              {!selectedClass && (
-                <Alert>
-                  <AlertDescription>
-                    Please select a class, subject, and exam from the dropdowns above to view exam marks.
-                  </AlertDescription>
-                </Alert>
-              )}
-              {selectedClass && !selectedSubject && (
-                <Alert>
-                  <AlertDescription>
-                    Please select a subject from the dropdown above to view exam marks.
-                  </AlertDescription>
-                </Alert>
-              )}
-              {selectedClass && selectedSubject && !selectedExam && (
-                <Alert>
-                  <AlertDescription>
-                    Please select an exam from the dropdown above to view exam marks for the selected class and subject.
-                  </AlertDescription>
-                </Alert>
-              )}
+            {/* Tabs for View Marks and Complete Marks */}
+            <Tabs value={activeViewTab} onValueChange={(value) => setActiveViewTab(value as "view" | "complete")} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 max-w-md">
+                <TabsTrigger value="view" className="gap-2">
+                  <GraduationCap className="h-4 w-4" />
+                  View Marks
+                </TabsTrigger>
+                <TabsTrigger value="complete" className="gap-2">
+                  <Table2 className="h-4 w-4" />
+                  Complete Marks
+                </TabsTrigger>
+              </TabsList>
 
-              {/* Enhanced Data Table - Always shown */}
-              <EnhancedDataTable
-                data={examMarks}
-                title="Exam Marks"
-                searchKey={
-                  [
-                    "student_name",
-                    "roll_number",
-                    "class_name",
-                    "section_name",
-                    "exam_name",
-                    "subject_name",
-                  ] as any
-                }
-                searchPlaceholder="Search students..."
-                columns={examMarkColumns}
-                onAdd={() => setShowExamMarkDialog(true)}
-                addButtonText="Add Exam Mark"
-                exportable={true}
-                showActions={true}
-                actionButtonGroups={actionButtonGroups}
-                actionColumnHeader="Actions"
-                showActionLabels={true}
-                loading={examMarksLoading}
-              />
-            </div>
+              <TabsContent value="view" className="mt-4 space-y-4">
+                {/* Filter Selection Alerts */}
+                {!selectedClass && (
+                  <Alert>
+                    <AlertDescription>
+                      Please select a class, subject, and exam from the dropdowns above to view exam marks.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {selectedClass && !selectedSubject && (
+                  <Alert>
+                    <AlertDescription>
+                      Please select a subject from the dropdown above to view exam marks.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {selectedClass && selectedSubject && !selectedExam && (
+                  <Alert>
+                    <AlertDescription>
+                      Please select an exam from the dropdown above to view exam marks for the selected class and subject.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Enhanced Data Table - View Marks */}
+                <EnhancedDataTable
+                  data={examMarks}
+                  title="Exam Marks"
+                  searchKey={
+                    [
+                      "student_name",
+                      "roll_number",
+                      "class_name",
+                      "section_name",
+                      "exam_name",
+                      "subject_name",
+                    ] as any
+                  }
+                  searchPlaceholder="Search students..."
+                  columns={examMarkColumns}
+                  onAdd={() => setShowExamMarkDialog(true)}
+                  addButtonText="Add Exam Mark"
+                  exportable={true}
+                  showActions={true}
+                  actionButtonGroups={actionButtonGroups}
+                  actionColumnHeader="Actions"
+                  showActionLabels={true}
+                  loading={examMarksLoading}
+                />
+              </TabsContent>
+
+              <TabsContent value="complete" className="mt-4">
+                <CompleteMarksEntry
+                  selectedClass={selectedClass}
+                  selectedSection={selectedSection}
+                  onClose={() => {}}
+                  onMarksSaved={() => {
+                    // Invalidate and refetch exam marks after bulk save
+                    void queryClient.invalidateQueries({ queryKey: schoolKeys.examMarks.root() });
+                    void queryClient.refetchQueries({ 
+                      queryKey: schoolKeys.examMarks.root(), 
+                      type: 'active' 
+                    });
+                    // Switch back to view tab to see the updated marks
+                    setActiveViewTab("view");
+                  }}
+                />
+              </TabsContent>
+            </Tabs>
 
             {/* View Exam Mark Dialog */}
             <Dialog

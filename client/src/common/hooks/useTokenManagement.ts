@@ -81,9 +81,6 @@ export function useTokenManagement() {
 
       // Only check if token is already expired (proactive refresh should handle before expiry)
       if (now >= tokenExpireAt) {
-        if (process.env.NODE_ENV === "development") {
-          console.log("Token expired, logging out...");
-        }
         logout();
         // Use soft navigation instead of hard redirect
         // Note: This will be handled by the Router component which checks isAuthenticated
