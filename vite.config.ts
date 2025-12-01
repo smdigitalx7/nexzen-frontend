@@ -5,12 +5,22 @@ import { visualizer } from "rollup-plugin-visualizer";
 import viteCompression from "vite-plugin-compression";
 
 export default defineConfig(({ mode }) => {
+  // Build date in format v1.1.DDMM (version 1.1, day.month concatenated)
+  const date = new Date();
+  const day = date.getDate().toString().padStart(2, "0");
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const buildDate = `v1.1.${day}${month}`;
+
   return {
     // Base public path when served in production
     // Set VITE_BASE_PATH environment variable if deploying to a subdirectory
     // e.g., VITE_BASE_PATH=/app/ for deployment at https://example.com/app/
     // Defaults to '/' for root deployment
     base: process.env.VITE_BASE_PATH || "/",
+
+    define: {
+      __BUILD_DATE__: JSON.stringify(buildDate),
+    },
 
     plugins: [
       react({
@@ -122,7 +132,8 @@ export default defineConfig(({ mode }) => {
       fs: { strict: true, deny: ["/.*"] },
       proxy: {
         "/api": {
-          target: process.env.VITE_API_PROXY_TARGET || "https://erpapi.velonex.in",
+          target:
+            process.env.VITE_API_PROXY_TARGET || "https://erpapi.velonex.in",
           changeOrigin: true,
           secure: true,
           rewrite: (path) => path,

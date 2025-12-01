@@ -59,7 +59,7 @@ const Footer = () => {
         <div className="flex items-center justify-between">
           {/* Left: Version */}
           <div className="flex items-center gap-4">
-            <span className="text-xs text-slate-500">Version 1.0.0</span>
+            <span className="text-xs text-slate-500">{__BUILD_DATE__}</span>
           </div>
 
           {/* Right: Help & Resources */}

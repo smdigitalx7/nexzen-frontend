@@ -31,7 +31,11 @@ import { useAuthStore } from "@/core/auth/authStore";
 import { useNavigationStore } from "@/store/navigationStore";
 import { ROLES } from "@/common/constants";
 import { useQueryClient } from "@tanstack/react-query";
-import { getLogoByBranchType, getLogoAltByBranchType, brand } from "@/lib/config";
+import {
+  getLogoByBranchType,
+  getLogoAltByBranchType,
+  brand,
+} from "@/lib/config";
 
 interface NavigationItem {
   title: string;
@@ -63,7 +67,6 @@ const Sidebar = () => {
       userRoleUpper === ROLES.INSTITUTE_ADMIN ||
       userRoleUpper === "INSTITUTE_ADMIN" ||
       userRoleUpper === "INSTITUTEADMIN";
-
 
     // Build General modules based on role
     const modules: NavigationItem[] = [];
@@ -224,7 +227,6 @@ const Sidebar = () => {
       return [];
     }
 
-
     // Normalize user role for comparison
     const userRoleUpper = String(user.role).toUpperCase().trim();
 
@@ -240,7 +242,6 @@ const Sidebar = () => {
 
       return hasAccess;
     });
-
 
     return filteredModules;
   }, [user?.role, currentBranch]);
@@ -334,7 +335,7 @@ const Sidebar = () => {
       animate={{
         x: 0,
         opacity: 1,
-        width: sidebarOpen ? 280 : 72,
+        width: sidebarOpen ? 250 : 72,
       }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
       className={cn(
@@ -491,112 +492,116 @@ const Sidebar = () => {
               <LogOut className="h-4 w-4 text-red-600 hover:text-red-900 transition-colors" />
             </Button>
             {/* Version, Report Issue, Admin Guide, and Documents - Stacked layout */}
-            <div className="flex flex-col gap-1 text-[10px] text-slate-400">
-              {/* First line: Version | Report Issue */}
-              <div className="flex items-center gap-2">
-                <span>v1.0.0</span>
-                <span className="text-slate-300">|</span>
-                <button
-                  onClick={() =>
-                    window.open(
-                      "https://www.jotform.com/form/253145100074039",
-                      "_blank"
-                    )
+            {sidebarOpen && (
+              <div className="flex flex-col gap-1 text-[10px] text-slate-400">
+                {/* First line: Version | Report Issue */}
+                <div className="flex items-center gap-2">
+                  <span>{__BUILD_DATE__}</span>
+                  <span className="text-slate-300">|</span>
+                  <button
+                    onClick={() =>
+                      window.open(
+                        "https://www.jotform.com/form/253145100074039",
+                        "_blank"
+                      )
+                    }
+                    className="hover:text-slate-600 transition-colors cursor-pointer flex items-center gap-1"
+                    title="Report an Issue"
+                  >
+                    <Bug className="h-3 w-3" />
+                    Report Issue
+                  </button>
+                </div>
+
+                {/* Second line: Role-based Guide | Documents (for admin) */}
+                {(() => {
+                  const userRoleUpper = String(user?.role || "")
+                    .toUpperCase()
+                    .trim();
+                  const isAdminRole =
+                    userRoleUpper === ROLES.ADMIN ||
+                    userRoleUpper === "ADMIN" ||
+                    userRoleUpper === ROLES.INSTITUTE_ADMIN ||
+                    userRoleUpper === "INSTITUTE_ADMIN";
+                  const isAccountantRole =
+                    userRoleUpper === ROLES.ACCOUNTANT ||
+                    userRoleUpper === "ACCOUNTANT";
+                  const isAcademicRole =
+                    userRoleUpper === ROLES.ACADEMIC ||
+                    userRoleUpper === "ACADEMIC";
+
+                  // Admin users: Admin Guide | Documents
+                  if (isAdminRole) {
+                    const adminGuideUrl =
+                      "https://docs.google.com/document/d/1oNreLcS2plkfPVn7zQXsT98zdOhmPoBk/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
+                    const documentsUrl =
+                      "https://drive.google.com/drive/folders/10gsq1_6Nt4fTMbrEO0AobIaQmMHD1dWS?usp=drive_link";
+
+                    return (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => window.open(adminGuideUrl, "_blank")}
+                          className="hover:text-slate-600 transition-colors cursor-pointer"
+                          title="Admin Guide"
+                        >
+                          Admin Guide
+                        </button>
+                        <span className="text-slate-300">|</span>
+                        <button
+                          onClick={() => window.open(documentsUrl, "_blank")}
+                          className="hover:text-slate-600 transition-colors cursor-pointer"
+                          title="Documents"
+                        >
+                          Documents
+                        </button>
+                      </div>
+                    );
                   }
-                  className="hover:text-slate-600 transition-colors cursor-pointer flex items-center gap-1"
-                  title="Report an Issue"
-                >
-                  <Bug className="h-3 w-3" />
-                  Report Issue
-                </button>
+
+                  // Accountant users: Accountant Guide
+                  if (isAccountantRole) {
+                    const accountantGuideUrl =
+                      "https://docs.google.com/document/d/19XfkbLisVi5zql9Fuuv5_R4KijLGOow1/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
+
+                    return (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() =>
+                            window.open(accountantGuideUrl, "_blank")
+                          }
+                          className="hover:text-slate-600 transition-colors cursor-pointer"
+                          title="Accountant Guide"
+                        >
+                          Accountant Guide
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  // Academic users: Academic Guide
+                  if (isAcademicRole) {
+                    const academicGuideUrl =
+                      "https://docs.google.com/document/d/1Lm2nX3UAVcJ42QVW2XONCoXUNuKHy5iv/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
+
+                    return (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() =>
+                            window.open(academicGuideUrl, "_blank")
+                          }
+                          className="hover:text-slate-600 transition-colors cursor-pointer"
+                          title="Academic Guide"
+                        >
+                          Academic Guide
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return null;
+                })()}
               </div>
-
-              {/* Second line: Role-based Guide | Documents (for admin) */}
-              {(() => {
-                const userRoleUpper = String(user?.role || "")
-                  .toUpperCase()
-                  .trim();
-                const isAdminRole =
-                  userRoleUpper === ROLES.ADMIN ||
-                  userRoleUpper === "ADMIN" ||
-                  userRoleUpper === ROLES.INSTITUTE_ADMIN ||
-                  userRoleUpper === "INSTITUTE_ADMIN";
-                const isAccountantRole =
-                  userRoleUpper === ROLES.ACCOUNTANT ||
-                  userRoleUpper === "ACCOUNTANT";
-                const isAcademicRole =
-                  userRoleUpper === ROLES.ACADEMIC ||
-                  userRoleUpper === "ACADEMIC";
-
-                // Admin users: Admin Guide | Documents
-                if (isAdminRole) {
-                  const adminGuideUrl =
-                    "https://docs.google.com/document/d/1oNreLcS2plkfPVn7zQXsT98zdOhmPoBk/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
-                  const documentsUrl =
-                    "https://drive.google.com/drive/folders/10gsq1_6Nt4fTMbrEO0AobIaQmMHD1dWS?usp=drive_link";
-
-                  return (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => window.open(adminGuideUrl, "_blank")}
-                        className="hover:text-slate-600 transition-colors cursor-pointer"
-                        title="Admin Guide"
-                      >
-                        Admin Guide
-                      </button>
-                      <span className="text-slate-300">|</span>
-                      <button
-                        onClick={() => window.open(documentsUrl, "_blank")}
-                        className="hover:text-slate-600 transition-colors cursor-pointer"
-                        title="Documents"
-                      >
-                        Documents
-                      </button>
-                    </div>
-                  );
-                }
-
-                // Accountant users: Accountant Guide
-                if (isAccountantRole) {
-                  const accountantGuideUrl =
-                    "https://docs.google.com/document/d/19XfkbLisVi5zql9Fuuv5_R4KijLGOow1/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
-
-                  return (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() =>
-                          window.open(accountantGuideUrl, "_blank")
-                        }
-                        className="hover:text-slate-600 transition-colors cursor-pointer"
-                        title="Accountant Guide"
-                      >
-                        Accountant Guide
-                      </button>
-                    </div>
-                  );
-                }
-
-                // Academic users: Academic Guide
-                if (isAcademicRole) {
-                  const academicGuideUrl =
-                    "https://docs.google.com/document/d/1Lm2nX3UAVcJ42QVW2XONCoXUNuKHy5iv/edit?usp=drive_link&ouid=107178451042095511759&rtpof=true&sd=true";
-
-                  return (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => window.open(academicGuideUrl, "_blank")}
-                        className="hover:text-slate-600 transition-colors cursor-pointer"
-                        title="Academic Guide"
-                      >
-                        Academic Guide
-                      </button>
-                    </div>
-                  );
-                }
-
-                return null;
-              })()}
-            </div>
+            )}
           </div>
         </div>
       </div>

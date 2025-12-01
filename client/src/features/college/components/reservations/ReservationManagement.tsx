@@ -202,7 +202,7 @@ function ReservationManagementComponent() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Enable groups dropdown when form tab is active
-  React.useEffect(() => {
+  useEffect(() => {
     if (activeTab === "new") {
       setDropdownsOpened((prev) => ({
         ...prev,
@@ -418,7 +418,7 @@ function ReservationManagementComponent() {
   }));
 
   // Enable groups when a class is selected
-  React.useEffect(() => {
+  useEffect(() => {
     if (form.preferredClassId && Number(form.preferredClassId) > 0) {
       setDropdownsOpened((prev) => ({
         ...prev,

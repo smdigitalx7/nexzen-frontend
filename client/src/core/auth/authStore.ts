@@ -95,10 +95,66 @@ export const useAuthStore = create<AuthState>()(
          * Bootstrap auth on app startup
          * Calls POST /api/v1/auth/refresh to restore session from refreshToken cookie
          * Only clears auth state if user is not already authenticated
+         * CRITICAL: Skips restoration if logout was just initiated (prevents session restore after idle timeout)
          */
         bootstrapAuth: async () => {
           const currentState = get();
           
+          // CRITICAL: Check if logout is in progress - don't bootstrap during logout
+          if (currentState.isLoggingOut) {
+            set((state) => {
+              state.isAuthInitializing = false;
+              state.isAuthenticated = false;
+            });
+            if (process.env.NODE_ENV === "development") {
+              console.log("Skipping bootstrapAuth: logout is in progress");
+            }
+            return;
+          }
+
+          // CRITICAL: Check if logout was just initiated (BEFORE any API calls)
+          // Check both localStorage and sessionStorage for the flag
+          // If logout happened within last 5 minutes, skip bootstrap
+          if (typeof window !== "undefined") {
+            const logoutTimestamp = localStorage.getItem("__logout_initiated__") || 
+                                   (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("__logout_initiated__") : null);
+            
+            if (logoutTimestamp) {
+              const logoutTime = parseInt(logoutTimestamp, 10);
+              const timeSinceLogout = Date.now() - logoutTime;
+              const FIVE_MINUTES = 5 * 60 * 1000;
+              
+              // If logout happened within last 5 minutes, skip bootstrap
+              if (timeSinceLogout < FIVE_MINUTES) {
+                // Clear the flags
+                localStorage.removeItem("__logout_initiated__");
+                if (typeof sessionStorage !== "undefined") {
+                  sessionStorage.removeItem("__logout_initiated__");
+                }
+                
+                // Skip bootstrap - don't restore session after logout
+                set((state) => {
+                  state.isAuthInitializing = false;
+                  state.isAuthenticated = false;
+                  state.accessToken = null;
+                  state.tokenExpireAt = null;
+                  state.user = null;
+                });
+                
+                if (process.env.NODE_ENV === "development") {
+                  console.log(`Skipping bootstrapAuth: logout was initiated ${Math.round(timeSinceLogout / 1000)}s ago`);
+                }
+                return;
+              } else {
+                // Logout was more than 5 minutes ago, clear the flag
+                localStorage.removeItem("__logout_initiated__");
+                if (typeof sessionStorage !== "undefined") {
+                  sessionStorage.removeItem("__logout_initiated__");
+                }
+              }
+            }
+          }
+
           // Skip bootstrap if already authenticated (user just logged in)
           if (currentState.isAuthenticated && currentState.user && currentState.accessToken) {
             set((state) => {
@@ -286,6 +342,18 @@ export const useAuthStore = create<AuthState>()(
               }
             }
 
+            // CRITICAL: Clear logout flag on successful login
+            // This allows bootstrapAuth to work normally after login
+            if (typeof window !== "undefined") {
+              localStorage.removeItem("__logout_initiated__");
+              if (typeof sessionStorage !== "undefined") {
+                sessionStorage.removeItem("__logout_initiated__");
+              }
+              if (process.env.NODE_ENV === "development") {
+                console.log("Logout flag cleared after successful login");
+              }
+            }
+
             // Set authenticated
             set((state) => {
               state.isAuthenticated = true;
@@ -354,49 +422,48 @@ export const useAuthStore = create<AuthState>()(
           // HARD KILL-SWITCH: Step 3 - Cancel all active fetch requests
           cancelAllRequests();
 
-          // Step 4: Perform logout API request (if backend requires it)
-          // This happens AFTER cancellation to ensure no other requests interfere
+          // Step 4: Set flag to prevent bootstrapAuth from restoring session after logout
+          // CRITICAL: Use localStorage with timestamp - persists across page reloads
+          // This must be set BEFORE calling logout API and BEFORE any redirect
+          if (typeof window !== "undefined") {
+            const logoutTimestamp = Date.now().toString();
+            localStorage.setItem("__logout_initiated__", logoutTimestamp);
+            // Also set in sessionStorage as backup
+            if (typeof sessionStorage !== "undefined") {
+              sessionStorage.setItem("__logout_initiated__", logoutTimestamp);
+            }
+            if (process.env.NODE_ENV === "development") {
+              console.log("Logout flag set with timestamp:", logoutTimestamp);
+            }
+          }
+
+          // Step 5: Perform logout API request DIRECTLY
+          // CRITICAL: Wait for logout API to complete before clearing state
+          // This ensures the refresh token is invalidated on the backend
           let logoutMessage = "You have been logged out successfully.";
           try {
-            const response = await apiClient.post<{ message?: string }>("/auth/logout");
+            // Call logout API directly - this invalidates the refresh token on backend
+            const response = await apiClient.post<{ message?: string }>("/auth/logout", {}, {
+              withCredentials: true, // Ensure cookies are sent
+            });
             if (response?.data?.message) {
               logoutMessage = response.data.message;
             }
-          } catch (error) {
-            // Continue with client-side cleanup even if backend logout fails
             if (process.env.NODE_ENV === "development") {
-              console.log("Backend logout endpoint not available or failed, continuing with client-side cleanup");
+              console.log("Logout API call completed successfully - refresh token invalidated");
             }
+          } catch (error) {
+            // Log error but continue with client-side cleanup
+            const axiosError = error as AxiosError;
+            if (process.env.NODE_ENV === "development") {
+              console.warn("Backend logout endpoint failed:", axiosError.message);
+              console.log("Continuing with client-side cleanup - flag will prevent session restore");
+            }
+            // Continue with cleanup even if backend logout fails
+            // The localStorage flag will prevent bootstrapAuth from restoring session
           }
 
-          // Step 5: Show toast BEFORE clearing state (so Toaster component is still mounted)
-          // CRITICAL: Show toast while components are still mounted so it's visible
-          if (typeof window !== "undefined") {
-            try {
-              // Show appropriate toast message based on logout reason
-              if (reason === "idle_timeout") {
-                toast({
-                  title: "Session expired",
-                  description: "You have been logged out due to inactivity. Please log in again.",
-                  variant: "warning",
-                });
-              } else {
-                // Show toast immediately - Toaster is in ProductionApp which stays mounted
-                toast({
-                  title: "Logout successful",
-                  description: logoutMessage,
-                  variant: "success",
-                });
-              }
-              
-              // Wait a bit to ensure toast is rendered and visible
-              await new Promise(resolve => setTimeout(resolve, 200));
-            } catch (toastError) {
-              console.error("Failed to show logout toast:", toastError);
-            }
-          }
-
-          // Step 6: Clear all auth state (AFTER showing toast)
+          // Step 6: Clear all auth state (AFTER logout API call)
           set((state) => {
             state.isAuthenticated = false;
             state.accessToken = null;
@@ -409,12 +476,37 @@ export const useAuthStore = create<AuthState>()(
             // Keep isLoggingOut = true until redirect completes
           });
 
-          // Step 7: Redirect after delay (LAST step)
-          // Give enough time for toast to be visible (Toaster stays mounted in ProductionApp)
+          // Step 7: Show toast (non-blocking, won't delay redirect)
           if (typeof window !== "undefined") {
+            try {
+              // Show appropriate toast message based on logout reason
+              if (reason === "idle_timeout") {
+                toast({
+                  title: "Session expired",
+                  description: "You have been logged out due to inactivity. Please log in again.",
+                  variant: "warning",
+                });
+              } else {
+                toast({
+                  title: "Logout successful",
+                  description: logoutMessage,
+                  variant: "success",
+                });
+              }
+            } catch (toastError) {
+              console.error("Failed to show logout toast:", toastError);
+            }
+          }
+
+          // Step 8: Hard redirect to login page IMMEDIATELY (LAST step)
+          // CRITICAL: Redirect immediately after logout API completes
+          // Use replace() instead of href to prevent back button issues
+          // This ensures a fresh page load - bootstrapAuth will check the logout flag
+          if (typeof window !== "undefined") {
+            // Use setTimeout with 0ms to ensure state updates are flushed, then redirect
             setTimeout(() => {
-              window.location.href = "/login";
-            }, 3000); // 3000ms delay to ensure toast is visible
+              window.location.replace("/login");
+            }, 0);
           }
         },
 

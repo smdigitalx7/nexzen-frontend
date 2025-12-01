@@ -30,6 +30,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       required = false,
       fullWidth = false,
       id,
+      value,
       ...props
     },
     ref
@@ -101,6 +102,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               }
             }}
             {...props}
+            value={value == null ? "" : value}
           />
 
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">

@@ -1,8 +1,7 @@
 ﻿import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@/common/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/common/components/ui/card';
-import { Badge } from '@/common/components/ui/badge';
+import { motion } from 'framer-motion';
 
 interface Props {
   children: ReactNode;
@@ -19,6 +18,7 @@ interface State {
   errorInfo: ErrorInfo | null;
   errorId: string;
   retryCount: number;
+  errorCode: string;
 }
 
 export class ProductionErrorBoundary extends Component<Props, State> {
@@ -33,14 +33,23 @@ export class ProductionErrorBoundary extends Component<Props, State> {
       errorInfo: null,
       errorId: '',
       retryCount: 0,
+      errorCode: this.generateErrorCode(),
     };
   }
 
+  private generateErrorCode(): string {
+    // Generate a random error code like "ERR-500" or "ERR-404"
+    const codes = ['500', '404', '503', '502', '504', '400', '403'];
+    return `ERR-${codes[Math.floor(Math.random() * codes.length)]}`;
+  }
+
   static getDerivedStateFromError(error: Error): Partial<State> {
+    const codes = ['500', '404', '503', '502', '504', '400', '403'];
     return {
       hasError: true,
       error,
       errorId: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      errorCode: `ERR-${codes[Math.floor(Math.random() * codes.length)]}`,
     };
   }
 
@@ -90,6 +99,7 @@ export class ProductionErrorBoundary extends Component<Props, State> {
         error: null,
         errorInfo: null,
         retryCount: prevState.retryCount + 1,
+        errorCode: this.generateErrorCode(),
       }));
     }
   };
@@ -105,6 +115,7 @@ export class ProductionErrorBoundary extends Component<Props, State> {
   private handleReportBug = () => {
     const errorDetails = {
       errorId: this.state.errorId,
+      errorCode: this.state.errorCode,
       message: this.state.error?.message,
       stack: this.state.error?.stack,
       componentStack: this.state.errorInfo?.componentStack,
@@ -136,107 +147,197 @@ export class ProductionErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
-      const { error, errorId, retryCount } = this.state;
+      const { error, errorId, retryCount, errorCode } = this.state;
       const canRetry = this.props.enableRetry && retryCount < this.maxRetries;
 
       return (
-        <div className="min-h-screen flex items-center justify-center bg-background p-4">
-          <Card className="w-full max-w-2xl">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-                <AlertTriangle className="h-6 w-6 text-destructive" />
-              </div>
-              <CardTitle className="text-2xl">Something went wrong</CardTitle>
-              <CardDescription>
-                We're sorry, but something unexpected happened. Our team has been notified.
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent className="space-y-6">
-              {/* Error ID */}
-              <div className="flex items-center justify-center">
-                <Badge variant="outline" className="font-mono text-xs">
-                  Error ID: {errorId}
-                </Badge>
-              </div>
+        <div className="fixed inset-0 z-[99999] overflow-hidden">
+          {/* Background with gradient and pattern */}
+          <div className="absolute inset-0 bg-gradient-to-br from-red-50 via-orange-50/30 to-amber-50/20 dark:from-slate-950 dark:via-red-950/20 dark:to-orange-950/10">
+            {/* Animated background pattern */}
+            <div className="absolute inset-0 opacity-20">
+              <div className="absolute inset-0" style={{
+                backgroundImage: `radial-gradient(circle at 2px 2px, rgba(239, 68, 68, 0.2) 1px, transparent 0)`,
+                backgroundSize: '50px 50px'
+              }} />
+            </div>
 
-              {/* Error Message */}
-              <div className="rounded-lg bg-muted p-4">
-                <h3 className="font-semibold text-sm mb-2">Error Details:</h3>
-                <p className="text-sm text-muted-foreground font-mono">
-                  {error?.message || 'An unknown error occurred'}
-                </p>
-              </div>
+            {/* Floating geometric shapes */}
+            <motion.div
+              animate={{
+                y: [0, -30, 0],
+                rotate: [0, 10, 0],
+                scale: [1, 1.1, 1],
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+              className="absolute top-20 left-10 w-40 h-40 bg-red-200/30 dark:bg-red-900/20 rounded-full blur-3xl"
+            />
+            <motion.div
+              animate={{
+                y: [0, 30, 0],
+                rotate: [0, -10, 0],
+                scale: [1, 1.2, 1],
+              }}
+              transition={{
+                duration: 10,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 1,
+              }}
+              className="absolute bottom-20 right-10 w-60 h-60 bg-orange-200/30 dark:bg-orange-900/20 rounded-full blur-3xl"
+            />
+            <motion.div
+              animate={{
+                x: [0, 20, 0],
+                y: [0, -20, 0],
+              }}
+              transition={{
+                duration: 6,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.5,
+              }}
+              className="absolute top-1/2 left-1/4 w-32 h-32 bg-amber-200/20 dark:bg-amber-900/10 rounded-lg blur-2xl"
+            />
+          </div>
 
-              {/* Retry Count */}
-              {retryCount > 0 && (
-                <div className="text-center text-sm text-muted-foreground">
-                  Retry attempt: {retryCount} of {this.maxRetries}
+          {/* Main Content - Full Page Layout */}
+          <div className="relative z-10 h-full flex flex-col items-center justify-center px-4 py-8">
+            <div className="max-w-5xl w-full text-center space-y-8">
+              {/* Large Error Code */}
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0, rotate: -180 }}
+                animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 100, damping: 10 }}
+                className="relative"
+              >
+                <div className="text-[12rem] md:text-[16rem] font-black text-red-500/20 dark:text-red-500/10 leading-none select-none">
+                  {errorCode.split('-')[1]}
                 </div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <motion.div
+                    animate={{
+                      scale: [1, 1.05, 1],
+                      opacity: [0.3, 0.5, 0.3],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                    className="text-6xl md:text-8xl font-black text-red-600 dark:text-red-400"
+                  >
+                    {errorCode}
+                  </motion.div>
+                </div>
+              </motion.div>
+
+              {/* Error Illustration */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="flex flex-col items-center space-y-6"
+              >
+                {/* Alert Icon */}
+                <motion.div
+                  animate={{
+                    rotate: [0, -10, 10, -10, 0],
+                  }}
+                  transition={{
+                    duration: 0.5,
+                    repeat: Infinity,
+                    repeatDelay: 2,
+                  }}
+                  className="relative"
+                >
+                  <div className="absolute inset-0 bg-red-500/20 rounded-full blur-2xl animate-pulse" />
+                  <div className="relative bg-gradient-to-br from-red-500 to-orange-500 p-6 rounded-full shadow-xl">
+                    <AlertTriangle className="w-12 h-12 text-white" />
+                  </div>
+                </motion.div>
+
+                {/* Title */}
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight"
+                >
+                  <span className="text-3xl md:text-4xl">⚠️</span> Something Went Wrong
+                </motion.h1>
+
+                {/* Description */}
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7 }}
+                  className="text-sm md:text-base text-slate-600 dark:text-slate-400 max-w-2xl mx-auto"
+                >
+                  <span className="text-lg">😔</span> We're sorry, but something unexpected happened. Our team has been notified and is working on a fix.
+                </motion.p>
+              </motion.div>
+
+              {/* Error Message - Only show one error message */}
+              {error?.message && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.9 }}
+                  className="max-w-2xl mx-auto p-4 bg-red-50/50 dark:bg-red-950/20 rounded-lg border border-red-200/50 dark:border-red-900/30"
+                >
+                  <p className="text-sm font-medium text-red-700 dark:text-red-400 break-words">
+                    <span className="mr-2">❌</span>
+                    {error.message}
+                  </p>
+                </motion.div>
               )}
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1 }}
+                className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4"
+              >
                 {canRetry && (
-                  <Button onClick={this.handleRetry} className="flex items-center gap-2">
-                    <RefreshCw className="h-4 w-4" />
+                  <Button
+                    onClick={this.handleRetry}
+                    size="default"
+                    className="px-6 py-2.5 text-sm bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-md group"
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
                     Try Again
                   </Button>
                 )}
                 
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={this.handleGoHome}
-                  className="flex items-center gap-2"
+                  size="default"
+                  className="px-6 py-2.5 text-sm border rounded-md group"
                 >
-                  <Home className="h-4 w-4" />
+                  <Home className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
                   Go Home
                 </Button>
                 
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={this.handleReload}
-                  className="flex items-center gap-2"
+                  size="default"
+                  className="px-6 py-2.5 text-sm border rounded-md group"
                 >
-                  <RefreshCw className="h-4 w-4" />
+                  <RefreshCw className="mr-2 h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
                   Reload Page
                 </Button>
-              </div>
+              </motion.div>
 
-              {/* Report Bug Button */}
-              {this.props.enableReport && (
-                <div className="text-center">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={this.handleReportBug}
-                    className="flex items-center gap-2 mx-auto"
-                  >
-                    <Bug className="h-4 w-4" />
-                    Report Bug
-                  </Button>
-                </div>
-              )}
-
-              {/* Development Details */}
-              {this.props.showDetails && process.env.NODE_ENV === 'development' && (
-                <details className="mt-6">
-                  <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
-                    Development Details
-                  </summary>
-                  <div className="mt-2 rounded-lg bg-muted p-4">
-                    <pre className="text-xs overflow-auto scrollbar-hide">
-                      {JSON.stringify({
-                        error: error?.message,
-                        stack: error?.stack,
-                        componentStack: this.state.errorInfo?.componentStack,
-                      }, null, 2)}
-                    </pre>
-                  </div>
-                </details>
-              )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       );
     }

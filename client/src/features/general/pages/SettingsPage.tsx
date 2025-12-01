@@ -125,7 +125,7 @@ const SettingsPage = () => {
             {/* Version in top right corner of About card */}
             <div className="absolute top-6 right-6 flex items-center gap-2 bg-muted/50 backdrop-blur-sm px-3 py-1.5 rounded-md border z-10">
               <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">v1.0.0</span>
+              <span className="text-sm font-medium text-muted-foreground">{__BUILD_DATE__}</span>
             </div>
             <CardContent className="space-y-6">
 

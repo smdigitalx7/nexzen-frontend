@@ -149,11 +149,13 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
     height: 100%;
+    width: 100%;
     overflow: hidden; /* Prevent body/html scrolling - only main container should scroll */
   }
 
   #root {
     height: 100%;
+    width: 100%;
     overflow: hidden;
   }
 }
@@ -323,5 +325,75 @@
   }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  /* Professional smooth scrollbar for main page layout - supports both vertical and horizontal */
+  .scrollbar-smooth {
+    scrollbar-width: thin; /* Firefox - thin scrollbar */
+    scrollbar-color: hsl(var(--muted-foreground) / 0.4) hsl(var(--muted) / 0.1); /* Firefox */
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Scrollbar dimensions - applies to both vertical and horizontal */
+  .scrollbar-smooth::-webkit-scrollbar {
+    width: 10px;  /* Vertical scrollbar width */
+    height: 10px; /* Horizontal scrollbar height - MUST be set for horizontal scrollbar to appear */
+  }
+  
+  /* Scrollbar track - applies to both directions */
+  .scrollbar-smooth::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.1);
+    border-radius: 10px;
+    margin: 4px;
+  }
+  
+  /* Scrollbar thumb - works for both vertical and horizontal */
+  .scrollbar-smooth::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.4);
+    border-radius: 10px;
+    border: 2px solid hsl(var(--muted) / 0.1);
+    transition: all 0.2s ease-in-out;
+    min-height: 20px; /* Minimum thumb size for vertical */
+    min-width: 20px;  /* Minimum thumb size for horizontal - CRITICAL for horizontal scrollbar */
+  }
+  
+  /* Scrollbar thumb hover - works for both directions */
+  .scrollbar-smooth::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.6);
+    border-color: hsl(var(--muted) / 0.2);
+  }
+  
+  /* Scrollbar thumb active - works for both directions */
+  .scrollbar-smooth::-webkit-scrollbar-thumb:active {
+    background: hsl(var(--muted-foreground) / 0.7);
+  }
+  
+  /* Global: Ensure horizontal scrollbar appears on all overflow-x containers */
+  .overflow-x-auto::-webkit-scrollbar,
+  .overflow-x-scroll::-webkit-scrollbar,
+  [style*="overflow-x: auto"]::-webkit-scrollbar,
+  [style*="overflow-x:scroll"]::-webkit-scrollbar {
+    height: 10px !important;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-track,
+  .overflow-x-scroll::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.1);
+    border-radius: 10px;
+    margin: 4px;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-thumb,
+  .overflow-x-scroll::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.4);
+    border-radius: 10px;
+    border: 2px solid hsl(var(--muted) / 0.1);
+    min-width: 20px;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-thumb:hover,
+  .overflow-x-scroll::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.6);
   }
 }

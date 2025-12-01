@@ -66,7 +66,9 @@ interface FilterOption {
 interface ActionButton<TData = unknown> {
   id: string;
   label: string | ((row: TData) => string);
-  icon: React.ComponentType<{ className?: string }> | ((row: TData) => React.ComponentType<{ className?: string }>);
+  icon:
+    | React.ComponentType<{ className?: string }>
+    | ((row: TData) => React.ComponentType<{ className?: string }>);
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string | ((row: TData) => string);
@@ -341,24 +343,36 @@ function EnhancedDataTableComponent<TData>({
           <div className="flex items-center">
             {allButtons.map((button, index) => {
               // Handle dynamic icon - can be a component or a function that returns a component
-              const Icon: React.ComponentType<{ className?: string }> = 
-                typeof button.icon === 'function' && button.icon.length > 0 
-                  ? (button.icon as (row: TData) => React.ComponentType<{ className?: string }>)(row.original)
-                  : (button.icon as React.ComponentType<{ className?: string }>);
-              
+              const Icon: React.ComponentType<{ className?: string }> =
+                typeof button.icon === "function" && button.icon.length > 0
+                  ? (
+                      button.icon as (
+                        row: TData
+                      ) => React.ComponentType<{ className?: string }>
+                    )(row.original)
+                  : (button.icon as React.ComponentType<{
+                      className?: string;
+                    }>);
+
               // Handle dynamic label - can be a string or a function that returns a string
-              const label = typeof button.label === 'function' 
-                ? (button.label as (row: TData) => string)(row.original)
-                : (button.label as string);
-              
+              const label =
+                typeof button.label === "function"
+                  ? (button.label as (row: TData) => string)(row.original)
+                  : (button.label as string);
+
               // Handle dynamic className - can be a string or a function that returns a string
-              const className = typeof button.className === 'function' 
-                ? (button.className as (row: TData) => string)(row.original)
-                : (button.className as string | undefined);
-              
-              const isDisabled = button.disabled ? button.disabled(row.original) : false;
-              const iconClassName = isDisabled ? "h-2 w-2 animate-spin" : "h-2 w-2";
-              
+              const className =
+                typeof button.className === "function"
+                  ? (button.className as (row: TData) => string)(row.original)
+                  : (button.className as string | undefined);
+
+              const isDisabled = button.disabled
+                ? button.disabled(row.original)
+                : false;
+              const iconClassName = isDisabled
+                ? "h-2 w-2 animate-spin"
+                : "h-2 w-2";
+
               return (
                 <Button
                   key={`${button.id}-${index}`}
@@ -378,9 +392,7 @@ function EnhancedDataTableComponent<TData>({
                 >
                   <Icon className={iconClassName} />
                   {showActionLabels && (
-                    <span className="ml-0.2 text-xs font-medium ">
-                      {label}
-                    </span>
+                    <span className="ml-0.2 text-xs font-medium ">{label}</span>
                   )}
                 </Button>
               );
@@ -453,10 +465,10 @@ function EnhancedDataTableComponent<TData>({
     // Apply additional filters
     filters.forEach((filter) => {
       if (filter.value && filter.value !== "all") {
-      result = result.filter((item) => {
-        const value = (item as Record<string, unknown>)[filter.key];
-        return value === filter.value;
-      });
+        result = result.filter((item) => {
+          const value = (item as Record<string, unknown>)[filter.key];
+          return value === filter.value;
+        });
       }
     });
 
@@ -471,7 +483,9 @@ function EnhancedDataTableComponent<TData>({
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     // ✅ Conditionally enable client-side pagination
-    ...(enableClientSidePagination && { getPaginationRowModel: getPaginationRowModel() }),
+    ...(enableClientSidePagination && {
+      getPaginationRowModel: getPaginationRowModel(),
+    }),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setRowSelection,
@@ -482,7 +496,9 @@ function EnhancedDataTableComponent<TData>({
         if (!value) return true;
         const searchValue = String(value).toLowerCase();
         if (searchKey) {
-          const cellValue = (row.original as Record<string, unknown>)[searchKey as string];
+          const cellValue = (row.original as Record<string, unknown>)[
+            searchKey as string
+          ];
           if (cellValue === null || cellValue === undefined) return false;
           const cellValueStr = String(cellValue).toLowerCase();
           return cellValueStr.includes(searchValue);
@@ -551,13 +567,17 @@ function EnhancedDataTableComponent<TData>({
 
       // Filter out action columns
       const exportableColumns = columns.filter((col) => {
-        const typedCol = col as ColumnDef<TData> & { accessorKey?: string; header?: unknown };
+        const typedCol = col as ColumnDef<TData> & {
+          accessorKey?: string;
+          header?: unknown;
+        };
         const hasAccessorKey = !!typedCol.accessorKey;
-        const headerStr = typeof typedCol.header === "string" 
-          ? typedCol.header 
-          : typeof typedCol.header === "function" 
-          ? col.id ?? "" 
-          : String(typedCol.header ?? "");
+        const headerStr =
+          typeof typedCol.header === "string"
+            ? typedCol.header
+            : typeof typedCol.header === "function"
+              ? (col.id ?? "")
+              : String(typedCol.header ?? "");
         const isActionColumn =
           col.id?.toLowerCase().includes("action") ||
           col.id?.toLowerCase().includes("actions") ||
@@ -608,7 +628,7 @@ function EnhancedDataTableComponent<TData>({
         minute: "2-digit",
         hour12: true,
       })}`;
-      
+
       const metadataRow = worksheet.addRow([
         `Generated: ${exportDate} | Total Records: ${memoizedFilteredData.length}`,
       ]);
@@ -739,8 +759,8 @@ function EnhancedDataTableComponent<TData>({
         dataRow.eachCell((cell, colNumber) => {
           const col = exportableColumns[colNumber - 1];
           const typedCol = col as ColumnDef<TData> & { accessorKey?: string };
-          const colKey = typedCol.accessorKey?.toLowerCase() || '';
-          
+          const colKey = typedCol.accessorKey?.toLowerCase() || "";
+
           cell.font = {
             size: 10,
             color: colors.text,
@@ -778,11 +798,15 @@ function EnhancedDataTableComponent<TData>({
                 ? "#,##0.00"
                 : "#,##0";
           }
-          
+
           // Conditional formatting for status/payment columns
-          const cellValue = String(cell.value || '').toUpperCase();
-          if (colKey.includes('status') || colKey.includes('payment')) {
-            if (cellValue.includes('CONFIRMED') || cellValue.includes('PAID') || cellValue === 'YES') {
+          const cellValue = String(cell.value || "").toUpperCase();
+          if (colKey.includes("status") || colKey.includes("payment")) {
+            if (
+              cellValue.includes("CONFIRMED") ||
+              cellValue.includes("PAID") ||
+              cellValue === "YES"
+            ) {
               cell.fill = {
                 type: "pattern",
                 pattern: "solid",
@@ -793,7 +817,11 @@ function EnhancedDataTableComponent<TData>({
                 color: { argb: "FF059669" }, // Green text
                 bold: true,
               };
-            } else if (cellValue.includes('PENDING') || cellValue.includes('UNPAID') || cellValue === 'NO') {
+            } else if (
+              cellValue.includes("PENDING") ||
+              cellValue.includes("UNPAID") ||
+              cellValue === "NO"
+            ) {
               cell.fill = {
                 type: "pattern",
                 pattern: "solid",
@@ -813,9 +841,15 @@ function EnhancedDataTableComponent<TData>({
       worksheet.columns.forEach((column, index) => {
         if (column && column.eachCell) {
           const col = exportableColumns[index];
-          const colKey = typeof col.accessorKey === 'string' ? col.accessorKey.toLowerCase() : '';
-          const colHeader = typeof col.header === 'string' ? col.header : String(col.header || '');
-          
+          const colKey =
+            typeof col.accessorKey === "string"
+              ? col.accessorKey.toLowerCase()
+              : "";
+          const colHeader =
+            typeof col.header === "string"
+              ? col.header
+              : String(col.header || "");
+
           let maxLength = 10;
           column.eachCell({ includeEmpty: false }, (cell) => {
             if (cell && cell.value) {
@@ -830,17 +864,21 @@ function EnhancedDataTableComponent<TData>({
 
           // Smart width calculation based on column type
           let optimalWidth = Math.max(maxLength + 2, 10);
-          
+
           // Adjust for specific column types
-          if (colKey.includes('status')) {
+          if (colKey.includes("status")) {
             optimalWidth = Math.min(Math.max(optimalWidth, 12), 18); // Status: 12-18
-          } else if (colKey.includes('date')) {
+          } else if (colKey.includes("date")) {
             optimalWidth = Math.min(Math.max(optimalWidth, 12), 18); // Date: 12-18
-          } else if (colKey.includes('no') || colKey.includes('id')) {
+          } else if (colKey.includes("no") || colKey.includes("id")) {
             optimalWidth = Math.min(Math.max(optimalWidth, 15), 25); // ID: 15-25
-          } else if (colKey.includes('name')) {
+          } else if (colKey.includes("name")) {
             optimalWidth = Math.min(Math.max(optimalWidth, 20), 35); // Name: 20-35
-          } else if (colKey.includes('amount') || colKey.includes('fee') || colKey.includes('payment')) {
+          } else if (
+            colKey.includes("amount") ||
+            colKey.includes("fee") ||
+            colKey.includes("payment")
+          ) {
             optimalWidth = Math.min(Math.max(optimalWidth, 15), 20); // Amount: 15-20
           } else {
             optimalWidth = Math.min(Math.max(optimalWidth, 10), 35); // Default: 10-35
@@ -1234,7 +1272,9 @@ function EnhancedDataTableComponent<TData>({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => { void handleExport(); }}
+              onClick={() => {
+                void handleExport();
+              }}
               disabled={isExporting}
               className=""
             >
@@ -1307,17 +1347,30 @@ function EnhancedDataTableComponent<TData>({
       )}
 
       {/* Table */}
-      <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+      <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
         <div
           ref={tableContainerRef}
           className={cn(
-            "overflow-x-auto scrollbar-hide",
-            shouldVirtualize && "overflow-y-auto max-h-[600px]"
+            "overflow-x-auto scrollbar-smooth w-full",
+            shouldVirtualize && "max-h-[600px]"
           )}
           role="region"
           aria-label="Data table"
+          style={{
+            overflowY: shouldVirtualize ? "auto" : "hidden",
+            ...(shouldVirtualize && {
+              scrollbarWidth: "thin",
+              scrollbarColor:
+                "hsl(var(--muted-foreground) / 0.4) hsl(var(--muted) / 0.1)",
+            }),
+          }}
         >
-          <Table className="w-full" role="table">
+          <Table
+            className="w-full"
+            role="table"
+            responsive={false}
+            style={{ minWidth: "max-content" }}
+          >
             <TableHeader className="bg-slate-50 dark:bg-slate-800">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow
@@ -1401,74 +1454,99 @@ function EnhancedDataTableComponent<TData>({
                   // Virtualized rendering
                   (() => {
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                    const virtualizer = rowVirtualizer as Virtualizer<HTMLDivElement, Element>;
+                    const virtualizer = rowVirtualizer as Virtualizer<
+                      HTMLDivElement,
+                      Element
+                    >;
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
-                    return virtualizer.getVirtualItems().map((virtualRow: { index: number; size: number; start: number }) => {
-                      const rowIndex = typeof virtualRow.index === 'number' ? virtualRow.index : Number(virtualRow.index ?? 0);
-                      if (isNaN(rowIndex) || rowIndex < 0 || rowIndex >= rows.length) return null;
-                      const row = rows[rowIndex];
-                      if (!row) return null;
-                      const size = typeof virtualRow.size === 'number' ? virtualRow.size : Number(virtualRow.size ?? 60);
-                      const start = typeof virtualRow.start === 'number' ? virtualRow.start : Number(virtualRow.start ?? 0);
-                      return (
-                        <motion.tr
-                          key={row.id}
-                          data-index={rowIndex}
-                          ref={(node) => {
-                            if (node) {
-                              // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-                              virtualizer.measureElement(node);
-                            }
-                          }}
-                        style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          width: "100%",
-                          height: `${virtualRow.size}px`,
-                          transform: `translateY(${virtualRow.start}px)`,
-                        }}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.1 }}
-                        className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 border-b border-slate-100 dark:border-slate-800 group"
-                        data-state={row.getIsSelected() && "selected"}
-                        data-testid={`row-${row.id}`}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell
-                            key={cell.id}
-                            className={cn(
-                              "py-4 text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-200",
-                              cell.column.getIndex() === 0
-                                ? "pl-6 pr-3"
-                                : "px-3"
-                            )}
-                          >
-                            <div
-                              className={cn(
-                                "max-w-[400px]",
-                                // Only truncate if the cell content is text-based
-                                (() => {
-                                  const value = cell.getValue();
-                                  return typeof value === "string" &&
-                                    value &&
-                                    value.length > 50
-                                    ? "truncate"
-                                    : "break-words";
-                                })()
-                              )}
+                    return virtualizer
+                      .getVirtualItems()
+                      .map(
+                        (virtualRow: {
+                          index: number;
+                          size: number;
+                          start: number;
+                        }) => {
+                          const rowIndex =
+                            typeof virtualRow.index === "number"
+                              ? virtualRow.index
+                              : Number(virtualRow.index ?? 0);
+                          if (
+                            isNaN(rowIndex) ||
+                            rowIndex < 0 ||
+                            rowIndex >= rows.length
+                          )
+                            return null;
+                          const row = rows[rowIndex];
+                          if (!row) return null;
+                          const size =
+                            typeof virtualRow.size === "number"
+                              ? virtualRow.size
+                              : Number(virtualRow.size ?? 60);
+                          const start =
+                            typeof virtualRow.start === "number"
+                              ? virtualRow.start
+                              : Number(virtualRow.start ?? 0);
+                          return (
+                            <motion.tr
+                              key={row.id}
+                              data-index={rowIndex}
+                              ref={(node) => {
+                                if (node) {
+                                  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+                                  virtualizer.measureElement(node);
+                                }
+                              }}
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: `${virtualRow.size}px`,
+                                transform: `translateY(${virtualRow.start}px)`,
+                              }}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ duration: 0.1 }}
+                              className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 border-b border-slate-100 dark:border-slate-800 group"
+                              data-state={row.getIsSelected() && "selected"}
+                              data-testid={`row-${row.id}`}
                             >
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext()
-                              )}
-                            </div>
-                          </TableCell>
-                        ))}
-                      </motion.tr>
+                              {row.getVisibleCells().map((cell) => (
+                                <TableCell
+                                  key={cell.id}
+                                  className={cn(
+                                    "py-4 text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-200",
+                                    cell.column.getIndex() === 0
+                                      ? "pl-6 pr-3"
+                                      : "px-3"
+                                  )}
+                                >
+                                  <div
+                                    className={cn(
+                                      "max-w-[400px]",
+                                      // Only truncate if the cell content is text-based
+                                      (() => {
+                                        const value = cell.getValue();
+                                        return typeof value === "string" &&
+                                          value &&
+                                          value.length > 50
+                                          ? "truncate"
+                                          : "break-words";
+                                      })()
+                                    )}
+                                  >
+                                    {flexRender(
+                                      cell.column.columnDef.cell,
+                                      cell.getContext()
+                                    )}
+                                  </div>
+                                </TableCell>
+                              ))}
+                            </motion.tr>
+                          );
+                        }
                       );
-                    });
                   })()
                 ) : (
                   // Non-virtualized rendering (for small lists)
@@ -1539,11 +1617,32 @@ function EnhancedDataTableComponent<TData>({
 
       {/* Pagination - Only show if client-side pagination is enabled */}
       {enableClientSidePagination && (
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-2">
-        <div className="flex items-center space-x-3">
-          <div className="text-sm font-medium text-slate-600 dark:text-slate-400">
-            {globalFilter ? (
-              <div className="flex items-center space-x-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-2">
+          <div className="flex items-center space-x-3">
+            <div className="text-sm font-medium text-slate-600 dark:text-slate-400">
+              {globalFilter ? (
+                <div className="flex items-center space-x-2">
+                  <span>
+                    Showing{" "}
+                    {table.getState().pagination.pageIndex *
+                      table.getState().pagination.pageSize +
+                      1}{" "}
+                    to{" "}
+                    {Math.min(
+                      (table.getState().pagination.pageIndex + 1) *
+                        table.getState().pagination.pageSize,
+                      table.getFilteredRowModel().rows.length
+                    )}{" "}
+                    of {table.getFilteredRowModel().rows.length} results
+                  </span>
+                  <div className="flex items-center space-x-1">
+                    <span className="text-slate-400">for</span>
+                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md text-xs font-semibold">
+                      &quot;{globalFilter}&quot;
+                    </span>
+                  </div>
+                </div>
+              ) : (
                 <span>
                   Showing{" "}
                   {table.getState().pagination.pageIndex *
@@ -1555,128 +1654,107 @@ function EnhancedDataTableComponent<TData>({
                       table.getState().pagination.pageSize,
                     table.getFilteredRowModel().rows.length
                   )}{" "}
-                  of {table.getFilteredRowModel().rows.length} results
+                  of {table.getFilteredRowModel().rows.length} entries
                 </span>
-                <div className="flex items-center space-x-1">
-                  <span className="text-slate-400">for</span>
-                  <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md text-xs font-semibold">
-                    &quot;{globalFilter}&quot;
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <span>
-                Showing{" "}
-                {table.getState().pagination.pageIndex *
-                  table.getState().pagination.pageSize +
-                  1}{" "}
-                to{" "}
-                {Math.min(
-                  (table.getState().pagination.pageIndex + 1) *
-                    table.getState().pagination.pageSize,
-                  table.getFilteredRowModel().rows.length
-                )}{" "}
-                of {table.getFilteredRowModel().rows.length} entries
-              </span>
-            )}
-          </div>
-          {globalFilter && (
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={clearSearch}
-                className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 underline transition-colors duration-200"
-              >
-                Clear search
-              </button>
-              {searchHistory.length > 0 && (
-                <button
-                  onClick={clearSearchHistory}
-                  className="text-xs text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors duration-200"
-                  title="Clear search history (Ctrl+Shift+H)"
-                >
-                  Clear history
-                </button>
               )}
             </div>
-          )}
-        </div>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            className="hover:bg-slate-200 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            data-testid="button-previous-page"
-          >
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Previous
-          </Button>
-          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-600">
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              Page {table.getState().pagination.pageIndex + 1} of{" "}
-              {table.getPageCount()}
-            </span>
+            {globalFilter && (
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={clearSearch}
+                  className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 underline transition-colors duration-200"
+                >
+                  Clear search
+                </button>
+                {searchHistory.length > 0 && (
+                  <button
+                    onClick={clearSearchHistory}
+                    className="text-xs text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors duration-200"
+                    title="Clear search history (Ctrl+Shift+H)"
+                  >
+                    Clear history
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className="hover:bg-slate-200 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            data-testid="button-next-page"
-          >
-            Next
-            <ChevronRight className="h-4 w-4 ml-2" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-              Show:
-            </span>
-            <Select
-              value={pagination.pageSize.toString()}
-              onValueChange={(value) => {
-                const newPageSize = Number(value);
-                setPagination((prev) => ({
-                  ...prev,
-                  pageSize: newPageSize,
-                  pageIndex: 0,
-                }));
-              }}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className="hover:bg-slate-200 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="button-previous-page"
             >
-              <SelectTrigger
-                className="w-20 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
-                data-testid="select-page-size"
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Previous
+            </Button>
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 rounded-md border border-slate-300 dark:border-slate-600">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Page {table.getState().pagination.pageIndex + 1} of{" "}
+                {table.getPageCount()}
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="hover:bg-slate-200 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="button-next-page"
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                Show:
+              </span>
+              <Select
+                value={pagination.pageSize.toString()}
+                onValueChange={(value) => {
+                  const newPageSize = Number(value);
+                  setPagination((prev) => ({
+                    ...prev,
+                    pageSize: newPageSize,
+                    pageIndex: 0,
+                  }));
+                }}
               >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600">
-                <SelectItem
-                  key="10"
-                  value="10"
-                  className="hover:bg-slate-100 dark:hover:bg-slate-700"
+                <SelectTrigger
+                  className="w-20 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
+                  data-testid="select-page-size"
                 >
-                  10
-                </SelectItem>
-                <SelectItem
-                  key="25"
-                  value="25"
-                  className="hover:bg-slate-100 dark:hover:bg-slate-700"
-                >
-                  25
-                </SelectItem>
-                <SelectItem
-                  key="50"
-                  value="50"
-                  className="hover:bg-slate-100 dark:hover:bg-slate-700"
-                >
-                  50
-                </SelectItem>
-              </SelectContent>
-            </Select>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600">
+                  <SelectItem
+                    key="10"
+                    value="10"
+                    className="hover:bg-slate-100 dark:hover:bg-slate-700"
+                  >
+                    10
+                  </SelectItem>
+                  <SelectItem
+                    key="25"
+                    value="25"
+                    className="hover:bg-slate-100 dark:hover:bg-slate-700"
+                  >
+                    25
+                  </SelectItem>
+                  <SelectItem
+                    key="50"
+                    value="50"
+                    className="hover:bg-slate-100 dark:hover:bg-slate-700"
+                  >
+                    50
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
-      </div>
       )}
     </motion.div>
   );

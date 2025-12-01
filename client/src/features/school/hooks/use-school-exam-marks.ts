@@ -15,6 +15,7 @@ export function useSchoolExamMarksList(params?: ExamMarksQuery) {
       params.subject_id > 0 &&
       typeof params?.exam_id === "number" && 
       params.exam_id > 0,
+    // section_id is optional, so we don't check it in enabled condition
   });
 }
 

@@ -1,12 +1,11 @@
 ﻿import { useState, useMemo, useEffect, memo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { GraduationCap, Table2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/common/components/ui/button";
 import { Card, CardContent } from "@/common/components/ui/card";
 import { Alert, AlertDescription } from "@/common/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/common/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -32,7 +31,6 @@ import {
 } from "@/common/components/ui/select";
 import { EnhancedDataTable } from "@/common/components/shared";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
-import CompleteMarksEntry from "./CompleteMarksEntry";
 import {
   SchoolClassDropdown,
   SchoolSectionDropdown,
@@ -64,8 +62,7 @@ import {
   createGradeColumn,
   createTestDateColumn,
 } from "@/common/utils/factory/columnFactories";
-import AddExamMarkForm from "./AddExamMarkForm";
-
+import AddMarksByClassDialog from "./AddMarksByClassDialog";
 
 interface ExamMarksManagementProps {
   onDataChange?: (data: ExamMarkWithDetails[]) => void;
@@ -107,11 +104,19 @@ const ExamMarksManagementComponent = ({
   setSelectedExam: propSetSelectedExam,
 }: ExamMarksManagementProps) => {
   // Use props if provided, otherwise use local state (for backward compatibility)
-  const [localSelectedClass, setLocalSelectedClass] = useState<number | null>(null);
-  const [localSelectedSection, setLocalSelectedSection] = useState<number | null>(null);
-  const [localSelectedSubject, setLocalSelectedSubject] = useState<number | null>(null);
+  const [localSelectedClass, setLocalSelectedClass] = useState<number | null>(
+    null
+  );
+  const [localSelectedSection, setLocalSelectedSection] = useState<
+    number | null
+  >(null);
+  const [localSelectedSubject, setLocalSelectedSubject] = useState<
+    number | null
+  >(null);
   const [localSelectedGrade, setLocalSelectedGrade] = useState("all");
-  const [localSelectedExam, setLocalSelectedExam] = useState<number | null>(null);
+  const [localSelectedExam, setLocalSelectedExam] = useState<number | null>(
+    null
+  );
 
   const selectedClass = propSelectedClass ?? localSelectedClass;
   const setSelectedClass = propSetSelectedClass ?? setLocalSelectedClass;
@@ -124,11 +129,8 @@ const ExamMarksManagementComponent = ({
   const selectedExam = propSelectedExam ?? localSelectedExam;
   const setSelectedExam = propSetSelectedExam ?? setLocalSelectedExam;
 
-  // Tab state for switching between View Marks and Complete Marks
-  const [activeViewTab, setActiveViewTab] = useState<"view" | "complete">("view");
-
   // Dialog states
-  const [showExamMarkDialog, setShowExamMarkDialog] = useState(false);
+  const [showAddMarksDialog, setShowAddMarksDialog] = useState(false);
   const [editingExamMark, setEditingExamMark] =
     useState<ExamMarkWithDetails | null>(null);
   const [showViewExamMarkDialog, setShowViewExamMarkDialog] = useState(false);
@@ -138,16 +140,13 @@ const ExamMarksManagementComponent = ({
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   // Memoized class ID for API calls
-  const classId = useMemo(
-    () => selectedClass || 0,
-    [selectedClass]
-  );
+  const classId = useMemo(() => selectedClass || 0, [selectedClass]);
 
   // Get sections, subjects, and exams data for lookup maps (for filtering by name)
   const { data: sectionsData } = useSchoolSections(classId);
   const { data: subjectsData } = useSchoolSubjects(classId);
   const { data: examsData } = useSchoolExams();
-  
+
   // Get grades from API endpoint
   const { grades } = useGrades();
 
@@ -189,22 +188,33 @@ const ExamMarksManagementComponent = ({
   const viewExamLoading = viewingExamMarkId ? viewQuery.isLoading : false;
   const viewExamError = viewingExamMarkId ? viewQuery.error : null;
 
-  // Exam marks hooks - require class_id, subject_id, and exam_id
+  // Exam marks hooks - require class_id, subject_id, section_id (optional), and exam_id
+  // All fields except section_id are required by API
   const examMarksQuery = useMemo(() => {
     if (!selectedClass || !selectedSubject || !selectedExam) {
       return undefined;
     }
 
-    // Require class_id, subject_id, and exam_id for API call
-    const query: ExamMarksQuery = {
+    // All required fields must be present
+    return {
       class_id: selectedClass,
-      subject_id: selectedSubject,
       exam_id: selectedExam,
+      subject_id: selectedSubject,
+      ...(selectedSection && { section_id: selectedSection }),
     };
+  }, [selectedClass, selectedSection, selectedExam, selectedSubject]);
 
-    return query;
-  }, [selectedClass, selectedSubject, selectedExam]);
+  // Check if all required filters are selected (class_id, subject_id, exam_id are required)
+  const hasRequiredFilters = Boolean(
+    selectedClass &&
+      selectedClass > 0 &&
+      selectedSubject &&
+      selectedSubject > 0 &&
+      selectedExam &&
+      selectedExam > 0
+  );
 
+  // Fetch marks - all required fields (class_id, subject_id, exam_id) must be present
   const {
     data: examMarksData,
     isLoading: examMarksLoading,
@@ -240,25 +250,40 @@ const ExamMarksManagementComponent = ({
   }, []);
 
   // Utility function to calculate grade from percentage using grades from API
-  const calculateGrade = useCallback((percentage: number): string => {
-    // Find the grade where percentage falls within min_percentage and max_percentage
-    // Grades are ordered by max_percentage descending, so we check from highest to lowest
-    for (const grade of grades) {
-      if (percentage >= grade.min_percentage && percentage <= grade.max_percentage) {
-        return grade.grade;
+  const calculateGrade = useCallback(
+    (percentage: number): string => {
+      // Find the grade where percentage falls within min_percentage and max_percentage
+      // Grades are ordered by max_percentage descending, so we check from highest to lowest
+      for (const grade of grades) {
+        if (
+          percentage >= grade.min_percentage &&
+          percentage <= grade.max_percentage
+        ) {
+          return grade.grade;
+        }
       }
-    }
-    // Default to "F" if no match found (shouldn't happen if grades are configured correctly)
-    return 'F';
-  }, [grades]);
+      // Default to "F" if no match found (shouldn't happen if grades are configured correctly)
+      return "F";
+    },
+    [grades]
+  );
 
-  const calculatePercentage = (marksObtained: number, maxMarks: number = 100): number => {
+  const calculatePercentage = (
+    marksObtained: number,
+    maxMarks: number = 100
+  ): number => {
     return Math.round((marksObtained / maxMarks) * 100 * 10) / 10; // Round to 1 decimal place
   };
 
   // Memoized form handling functions
   const handleExamMarkSubmit = useCallback(
-    (data: { enrollment_id: number; exam_id: number; subject_id: number; marks_obtained: number; remarks: string }) => {
+    (data: {
+      enrollment_id: number;
+      exam_id: number;
+      subject_id: number;
+      marks_obtained: number;
+      remarks: string;
+    }) => {
       // Use max_marks from editingExamMark if available, otherwise default to 100
       // Note: ExamOption from dropdown doesn't include max_marks, so we default to 100
       // The backend will use the exam's actual max_marks when calculating percentage
@@ -272,7 +297,8 @@ const ExamMarksManagementComponent = ({
           percentage: percentage,
           grade: grade,
           remarks: data.remarks,
-          conducted_at: editingExamMark.conducted_at ?? new Date().toISOString(),
+          conducted_at:
+            editingExamMark.conducted_at ?? new Date().toISOString(),
         });
       } else {
         createExamMarkMutation.mutate({
@@ -305,12 +331,6 @@ const ExamMarksManagementComponent = ({
   const handleViewExamMark = useCallback((markId: number) => {
     setViewingExamMarkId(markId);
     setShowViewExamMarkDialog(true);
-  }, []);
-
-  // Memoized dialog handlers
-  const closeExamMarkDialog = useCallback(() => {
-    setShowExamMarkDialog(false);
-    setEditingExamMark(null);
   }, []);
 
   const closeViewDialog = useCallback(() => {
@@ -359,16 +379,15 @@ const ExamMarksManagementComponent = ({
     if (selectedSection !== null) {
       const sectionName = sectionIdToName.get(selectedSection);
       if (sectionName) {
-        filtered = filtered.filter(
-          (mark) => mark.section_name === sectionName
-        );
+        filtered = filtered.filter((mark) => mark.section_name === sectionName);
       }
     }
 
     // Apply subject filter (client-side) - filter by subject_id
     if (selectedSubject !== null) {
       filtered = filtered.filter(
-        (mark) => mark.subject_id !== undefined && mark.subject_id === selectedSubject
+        (mark) =>
+          mark.subject_id !== undefined && mark.subject_id === selectedSubject
       );
     }
 
@@ -463,172 +482,160 @@ const ExamMarksManagementComponent = ({
             transition={{ delay: 0.2 }}
             className="space-y-6"
           >
-            {/* Unified Filter Controls */}
-            <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-              {/* Required Filters */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">
-                  Class: <span className="text-red-500">*</span>
-                </label>
-                <SchoolClassDropdown
-                  value={selectedClass}
-                  onChange={handleClassChange}
-                  placeholder="Select class"
-                  emptyValue
-                  emptyValueLabel="Select class"
-                  className="w-40"
-                />
-              </div>
+            {/* Unified Filter Controls with Add Button */}
+            <div className="space-y-4">
+              {/* Top Section: Filters and Add Button */}
+              <div className="flex flex-wrap gap-4 items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                {/* Left Side: Filters */}
+                <div className="flex flex-wrap gap-4 items-center flex-1">
+                  {/* Required Filters */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">
+                      Class: <span className="text-red-500">*</span>
+                    </label>
+                    <SchoolClassDropdown
+                      value={selectedClass}
+                      onChange={handleClassChange}
+                      placeholder="Select class"
+                      emptyValue
+                      emptyValueLabel="Select class"
+                      className="w-40"
+                    />
+                  </div>
 
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">
-                  Subject: <span className="text-red-500">*</span>
-                </label>
-                <SchoolSubjectDropdown
-                  classId={classId}
-                  value={selectedSubject}
-                  onChange={handleSubjectChange}
-                  placeholder={selectedClass ? "Select subject" : "Select class first"}
-                  emptyValue
-                  emptyValueLabel={selectedClass ? "Select subject" : "Select class first"}
-                  className="w-40"
-                  disabled={!selectedClass}
-                />
-              </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Section:</label>
+                    <SchoolSectionDropdown
+                      classId={classId}
+                      value={selectedSection}
+                      onChange={handleSectionChange}
+                      placeholder={
+                        selectedClass ? "Select section" : "Select class first"
+                      }
+                      emptyValue
+                      emptyValueLabel={
+                        selectedClass ? "Select section" : "Select class first"
+                      }
+                      className="w-40"
+                      disabled={!selectedClass}
+                    />
+                  </div>
 
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">
-                  Exam: <span className="text-red-500">*</span>
-                </label>
-                <SchoolExamDropdown
-                  value={selectedExam}
-                  onChange={handleExamChange}
-                  placeholder={selectedClass ? "Select exam" : "Select class first"}
-                  emptyValue
-                  emptyValueLabel={selectedClass ? "Select exam" : "Select class first"}
-                  className="w-40"
-                  disabled={!selectedClass}
-                />
-              </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">
+                      Exam: <span className="text-red-500">*</span>
+                    </label>
+                    <SchoolExamDropdown
+                      value={selectedExam}
+                      onChange={handleExamChange}
+                      placeholder={
+                        selectedClass ? "Select exam" : "Select class first"
+                      }
+                      emptyValue
+                      emptyValueLabel={
+                        selectedClass ? "Select exam" : "Select class first"
+                      }
+                      className="w-40"
+                      disabled={!selectedClass}
+                    />
+                  </div>
 
-              {/* Optional Filters */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-muted-foreground">Section:</label>
-                <SchoolSectionDropdown
-                  classId={classId}
-                  value={selectedSection}
-                  onChange={handleSectionChange}
-                  placeholder="All sections"
-                  emptyValue
-                  emptyValueLabel="All sections"
-                  className="w-40"
-                  disabled={!selectedClass}
-                />
-              </div>
+                  {/* Required Filters - Subject */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">
+                      Subject: <span className="text-red-500">*</span>
+                    </label>
+                    <SchoolSubjectDropdown
+                      classId={classId}
+                      value={selectedSubject}
+                      onChange={handleSubjectChange}
+                      placeholder={
+                        selectedClass ? "Select subject" : "Select class first"
+                      }
+                      emptyValue
+                      emptyValueLabel={
+                        selectedClass ? "Select subject" : "Select class first"
+                      }
+                      className="w-40"
+                      disabled={!selectedClass}
+                    />
+                  </div>
 
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-muted-foreground">Grade:</label>
-                <Select
-                  value={selectedGrade}
-                  onValueChange={handleGradeChange}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="All Grades" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Grades</SelectItem>
-                    {grades.map((grade) => (
-                      <SelectItem key={grade.grade} value={grade.grade}>
-                        {grade.grade}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Grade:
+                    </label>
+                    <Select
+                      value={selectedGrade}
+                      onValueChange={handleGradeChange}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue placeholder="All Grades" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Grades</SelectItem>
+                        {grades.map((grade) => (
+                          <SelectItem key={grade.grade} value={grade.grade}>
+                            {grade.grade}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Right Side: Add Marks Button */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => setShowAddMarksDialog(true)}
+                    className="gap-2 bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Marks by Class
+                  </Button>
+                </div>
               </div>
             </div>
 
-            {/* Tabs for View Marks and Complete Marks */}
-            <Tabs value={activeViewTab} onValueChange={(value) => setActiveViewTab(value as "view" | "complete")} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 max-w-md">
-                <TabsTrigger value="view" className="gap-2">
-                  <GraduationCap className="h-4 w-4" />
-                  View Marks
-                </TabsTrigger>
-                <TabsTrigger value="complete" className="gap-2">
-                  <Table2 className="h-4 w-4" />
-                  Complete Marks
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="view" className="mt-4 space-y-4">
-                {/* Filter Selection Alerts */}
-                {!selectedClass && (
-                  <Alert>
-                    <AlertDescription>
-                      Please select a class, subject, and exam from the dropdowns above to view exam marks.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {selectedClass && !selectedSubject && (
-                  <Alert>
-                    <AlertDescription>
-                      Please select a subject from the dropdown above to view exam marks.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {selectedClass && selectedSubject && !selectedExam && (
-                  <Alert>
-                    <AlertDescription>
-                      Please select an exam from the dropdown above to view exam marks for the selected class and subject.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {/* Enhanced Data Table - View Marks */}
-                <EnhancedDataTable
-                  data={examMarks}
-                  title="Exam Marks"
-                  searchKey={
-                    [
-                      "student_name",
-                      "roll_number",
-                      "class_name",
-                      "section_name",
-                      "exam_name",
-                      "subject_name",
-                    ] as any
-                  }
-                  searchPlaceholder="Search students..."
-                  columns={examMarkColumns}
-                  onAdd={() => setShowExamMarkDialog(true)}
-                  addButtonText="Add Exam Mark"
-                  exportable={true}
-                  showActions={true}
-                  actionButtonGroups={actionButtonGroups}
-                  actionColumnHeader="Actions"
-                  showActionLabels={true}
-                  loading={examMarksLoading}
-                />
-              </TabsContent>
-
-              <TabsContent value="complete" className="mt-4">
-                <CompleteMarksEntry
-                  selectedClass={selectedClass}
-                  selectedSection={selectedSection}
-                  onClose={() => {}}
-                  onMarksSaved={() => {
-                    // Invalidate and refetch exam marks after bulk save
-                    void queryClient.invalidateQueries({ queryKey: schoolKeys.examMarks.root() });
-                    void queryClient.refetchQueries({ 
-                      queryKey: schoolKeys.examMarks.root(), 
-                      type: 'active' 
-                    });
-                    // Switch back to view tab to see the updated marks
-                    setActiveViewTab("view");
-                  }}
-                />
-              </TabsContent>
-            </Tabs>
+            {/* Only show table if all required filters are selected */}
+            {!hasRequiredFilters ? (
+              <Alert className="mt-4">
+                <AlertDescription>
+                  {!selectedClass &&
+                    "Please select a class to view exam marks."}
+                  {selectedClass &&
+                    !selectedSubject &&
+                    "Please select a subject to view exam marks."}
+                  {selectedClass &&
+                    selectedSubject &&
+                    !selectedExam &&
+                    "Please select an exam to view exam marks."}
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <EnhancedDataTable
+                data={examMarks}
+                title="Exam Marks"
+                searchKey={
+                  [
+                    "student_name",
+                    "roll_number",
+                    "class_name",
+                    "section_name",
+                    "exam_name",
+                    "subject_name",
+                  ] as any
+                }
+                searchPlaceholder="Search students..."
+                columns={examMarkColumns}
+                exportable={true}
+                showActions={true}
+                actionButtonGroups={actionButtonGroups}
+                actionColumnHeader="Actions"
+                showActionLabels={true}
+                loading={examMarksLoading}
+              />
+            )}
 
             {/* View Exam Mark Dialog */}
             <Dialog
@@ -751,14 +758,20 @@ const ExamMarksManagementComponent = ({
               </AlertDialogContent>
             </AlertDialog>
 
-            {/* Add/Edit Exam Mark Form */}
-            <AddExamMarkForm
-              isOpen={showExamMarkDialog}
-              onClose={closeExamMarkDialog}
-              onSubmit={handleExamMarkSubmit}
-              editingExamMark={editingExamMark}
-              selectedClass={selectedClass}
-              selectedSection={selectedSection}
+            {/* Add Marks by Class Dialog */}
+            <AddMarksByClassDialog
+              isOpen={showAddMarksDialog}
+              onClose={() => setShowAddMarksDialog(false)}
+              onSuccess={() => {
+                // Invalidate and refetch exam marks after bulk save
+                void queryClient.invalidateQueries({
+                  queryKey: schoolKeys.examMarks.root(),
+                });
+                void queryClient.refetchQueries({
+                  queryKey: schoolKeys.examMarks.root(),
+                  type: "active",
+                });
+              }}
             />
           </motion.div>
         </div>

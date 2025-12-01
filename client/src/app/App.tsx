@@ -8,6 +8,9 @@ import { useDocumentTitle } from "@/common/hooks/useDocumentTitle";
 import { useFavicon } from "@/common/hooks/useFavicon";
 import { SEOHead } from "@/common/components/shared/SEOHead";
 import { useIdleTimeout } from "@/common/hooks/useIdleTimeout";
+import { useNetworkStatus } from "@/common/hooks/useNetworkStatus";
+import { NetworkErrorPage } from "@/common/components/shared/NetworkErrorPage";
+import { IdleTimeoutWarningDialog } from "@/common/components/shared/IdleTimeoutWarningDialog";
 
 /**
  * Main App component
@@ -46,7 +49,18 @@ function App() {
   useTokenManagement();
 
   // Handle idle timeout (5 minutes of inactivity = auto logout)
-  useIdleTimeout();
+  const {
+    showWarning,
+    secondsUntilLogout,
+    handleExtendSession,
+    handleTimeout,
+  } = useIdleTimeout();
+
+  // Monitor network status
+  const { isOnline, isNetworkError, retry } = useNetworkStatus();
+  // Show network error page if we detect a network error
+  // (Either browser says offline OR we detected actual connectivity issues)
+  const showNetworkError = isNetworkError || (!isOnline && typeof navigator !== "undefined" && !navigator.onLine);
 
   // Manage document title based on route
   useDocumentTitle();
@@ -68,7 +82,14 @@ function App() {
   return (
     <ProductionApp>
       <SEOHead />
-      <AppRouter />
+      <NetworkErrorPage isVisible={showNetworkError} onRetry={retry} />
+      <IdleTimeoutWarningDialog
+        isOpen={showWarning}
+        secondsRemaining={secondsUntilLogout}
+        onExtendSession={handleExtendSession}
+        onTimeout={handleTimeout}
+      />
+      {!showNetworkError && <AppRouter />}
     </ProductionApp>
   );
 }

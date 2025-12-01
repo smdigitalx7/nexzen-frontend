@@ -29,11 +29,11 @@ export function useSchoolEnrollmentsList(params?: SchoolEnrollmentFilterParams &
     queryKey,
     queryFn: () => EnrollmentsService.list(stableParams as any),
     enabled: isEnabled,
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 0, // Always consider data stale to refetch when params change
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false, // ✅ OPTIMIZATION: No refetch on tab focus
     refetchOnReconnect: false, // ✅ OPTIMIZATION: No refetch on reconnect
-    refetchOnMount: true, // Only refetch on mount if data is stale
+    refetchOnMount: true, // Always refetch on mount when query key changes
   });
 }
 

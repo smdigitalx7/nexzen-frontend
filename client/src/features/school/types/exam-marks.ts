@@ -112,7 +112,7 @@ export interface ExamMarksQuery {
   class_id: number; // Required
   subject_id: number; // Required
   exam_id: number; // Required
-  section_id?: number;
+  section_id?: number | null; // Optional - if provided, filter by section
 }
 
 // Bulk multiple students types
