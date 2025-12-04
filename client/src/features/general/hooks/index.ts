@@ -18,6 +18,7 @@ export * from "./use-payment-receipts";
 export * from "./useRoles";
 export * from "./useTransport";
 export * from "./useUsers";
+export * from "./use-logos";
 
 // Dashboard hooks
 export * from "./useAdminDashboard";

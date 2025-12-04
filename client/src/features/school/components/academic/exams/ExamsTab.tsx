@@ -1,7 +1,9 @@
 ﻿import { useState, useMemo } from "react";
-import { Award, Edit, Trash2 } from "lucide-react";
+import { Award, Edit, Trash2, Calendar } from "lucide-react";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
+import { Switch } from "@/common/components/ui/switch";
+import { Button } from "@/common/components/ui/button";
 import { FormDialog, ConfirmDialog } from "@/common/components/shared";
 import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
 import { useToast } from '@/common/hooks/use-toast';
@@ -15,6 +17,7 @@ import {
 import { useCreateSchoolExam, useDeleteSchoolExam, useUpdateSchoolExam } from "@/features/school/hooks";
 import type { SchoolExamCreate, SchoolExamRead, SchoolExamUpdate } from "@/features/school/types";
 import { useCanViewUIComponent } from "@/core/permissions";
+import { ExamScheduleDialog } from "./ExamScheduleDialog";
 
 interface ExamsTabProps {
   exams: SchoolExamRead[];
@@ -38,6 +41,7 @@ export const ExamsTab = ({
   const [isAddExamOpen, setIsAddExamOpen] = useState(false);
   const [isEditExamOpen, setIsEditExamOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [selectedExam, setSelectedExam] = useState<any>(null);
   const updateExam = useUpdateSchoolExam(selectedExam?.exam_id || 0);
   
@@ -51,7 +55,9 @@ export const ExamsTab = ({
     initialData: { 
       exam_name: "", 
       pass_marks: "",
-      max_marks: ""
+      max_marks: "",
+      weight_percentage: "",
+      is_active: true
     }
   });
   
@@ -65,7 +71,9 @@ export const ExamsTab = ({
     initialData: { 
       exam_name: "", 
       pass_marks: "",
-      max_marks: ""
+      max_marks: "",
+      weight_percentage: "",
+      is_active: true
     }
   });
 
@@ -81,12 +89,23 @@ export const ExamsTab = ({
       return;
     }
 
+    const weightPercentage = parseFloat(newExam.weight_percentage || "0");
+    if (!weightPercentage || weightPercentage < 0.01 || weightPercentage > 100) {
+      toast({
+        title: "Error",
+        description: "Weight percentage must be between 0.01 and 100",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const payload: SchoolExamCreate = {
         exam_name: newExam.exam_name.trim(),
-        exam_date: new Date().toISOString().split('T')[0],
+        weight_percentage: weightPercentage,
         pass_marks: parseInt(newExam.pass_marks || "35") || 35,
         max_marks: parseInt(newExam.max_marks || "100") || 100,
+        is_active: newExam.is_active ?? true,
       };
       await createExam.mutateAsync(payload);
       
@@ -120,11 +139,26 @@ export const ExamsTab = ({
       return;
     }
 
+    const weightPercentage = editExam.weight_percentage 
+      ? parseFloat(editExam.weight_percentage) 
+      : undefined;
+    
+    if (weightPercentage !== undefined && (weightPercentage < 0.01 || weightPercentage > 100)) {
+      toast({
+        title: "Error",
+        description: "Weight percentage must be between 0.01 and 100",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const updatePayload: SchoolExamUpdate = {
         exam_name: editExam.exam_name?.trim() || undefined,
+        weight_percentage: weightPercentage,
         pass_marks: passMarks,
         max_marks: maxMarks,
+        is_active: editExam.is_active !== undefined ? editExam.is_active : undefined,
       };
       await updateExam.mutateAsync(updatePayload);
       
@@ -156,7 +190,9 @@ export const ExamsTab = ({
     setEditExam({ 
       exam_name: exam.exam_name,
       pass_marks: exam.pass_marks?.toString() || "35",
-      max_marks: exam.max_marks?.toString() || "100"
+      max_marks: exam.max_marks?.toString() || "100",
+      weight_percentage: exam.weight_percentage?.toString() || "",
+      is_active: exam.is_active ?? true
     });
     setIsEditExamOpen(true);
   };
@@ -172,25 +208,50 @@ export const ExamsTab = ({
       icon: Award, 
       header: "Exam Name" 
     }),
-    createDateColumn<SchoolExamRead>("exam_date", { 
-      header: "Date", 
-      fallback: "Not set" 
-    }),
+    {
+      accessorKey: "weight_percentage",
+      header: "Weight %",
+      cell: ({ row }) => (
+        <span className="text-sm font-medium">{row.original.weight_percentage}%</span>
+      ),
+    },
     createBadgeColumn<SchoolExamRead>("pass_marks", { 
       header: "Pass Marks", 
       variant: "outline",
-      fallback: "35 marks"
+      fallback: "35"
     }),
     createBadgeColumn<SchoolExamRead>("max_marks", { 
       header: "Max Marks", 
       variant: "outline",
-      fallback: "100 marks"
-    })
+      fallback: "100"
+    }),
+    {
+      accessorKey: "is_active",
+      header: "Status",
+      cell: ({ row }) => {
+        const isActive = row.original.is_active;
+        return (
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+            isActive 
+              ? "bg-green-100 text-green-800" 
+              : "bg-gray-100 text-gray-800"
+          }`}>
+            {isActive ? "Active" : "Inactive"}
+          </span>
+        );
+      },
+    },
   ], []);
 
   // Permission checks
   const canAddExam = useCanViewUIComponent("exams", "button", "exam-add");
   const canDeleteExam = useCanViewUIComponent("exams", "button", "exam-delete");
+  const canManageSchedules = useCanViewUIComponent("exams", "button", "exam-schedule");
+
+  const handleScheduleClick = (exam: SchoolExamRead) => {
+    setSelectedExam(exam);
+    setIsScheduleDialogOpen(true);
+  };
 
   // Action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => {
@@ -201,6 +262,16 @@ export const ExamsTab = ({
       }
     ];
     
+    if (canManageSchedules) {
+      buttons.push({
+        type: 'custom' as const,
+        label: 'Manage Schedules',
+        icon: Calendar,
+        onClick: (row: SchoolExamRead) => handleScheduleClick(row),
+        variant: 'outline' as const,
+      });
+    }
+    
     if (canDeleteExam) {
       buttons.push({
         type: 'delete' as const,
@@ -209,7 +280,7 @@ export const ExamsTab = ({
     }
     
     return buttons;
-  }, [canDeleteExam]);
+  }, [canDeleteExam, canManageSchedules]);
 
   if (hasError) {
     return (
@@ -281,10 +352,35 @@ export const ExamsTab = ({
             <Label htmlFor="max_marks">Max Marks</Label>
             <Input
               id="max_marks"
+              type="number"
               value={newExam.max_marks}
               onChange={(e) => updateNewExamField('max_marks', e.target.value)}
               placeholder="Enter max marks"
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="weight_percentage">Weight Percentage *</Label>
+            <Input
+              id="weight_percentage"
+              type="number"
+              step="0.01"
+              min="0.01"
+              max="100"
+              value={newExam.weight_percentage}
+              onChange={(e) => updateNewExamField('weight_percentage', e.target.value)}
+              placeholder="e.g., 30.00"
+            />
+            <p className="text-xs text-muted-foreground">Must be between 0.01 and 100</p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="is_active"
+              checked={newExam.is_active ?? true}
+              onCheckedChange={(checked) => updateNewExamField('is_active', checked)}
+            />
+            <Label htmlFor="is_active" className="cursor-pointer">
+              Active
+            </Label>
           </div>
         </div>
       </FormDialog>
@@ -335,6 +431,30 @@ export const ExamsTab = ({
               placeholder="Enter max marks"
             />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit_weight_percentage">Weight Percentage</Label>
+            <Input
+              id="edit_weight_percentage"
+              type="number"
+              step="0.01"
+              min="0.01"
+              max="100"
+              value={editExam.weight_percentage}
+              onChange={(e) => updateEditExamField('weight_percentage', e.target.value)}
+              placeholder="e.g., 30.00"
+            />
+            <p className="text-xs text-muted-foreground">Must be between 0.01 and 100</p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="edit_is_active"
+              checked={editExam.is_active ?? true}
+              onCheckedChange={(checked) => updateEditExamField('is_active', checked)}
+            />
+            <Label htmlFor="edit_is_active" className="cursor-pointer">
+              Active
+            </Label>
+          </div>
         </div>
       </FormDialog>
 
@@ -352,6 +472,16 @@ export const ExamsTab = ({
         confirmText="Delete"
         variant="destructive"
       />
+
+      {/* Exam Schedule Dialog */}
+      {selectedExam && (
+        <ExamScheduleDialog
+          open={isScheduleDialogOpen}
+          onOpenChange={setIsScheduleDialogOpen}
+          examId={selectedExam.exam_id}
+          examName={selectedExam.exam_name}
+        />
+      )}
     </div>
   );
 };

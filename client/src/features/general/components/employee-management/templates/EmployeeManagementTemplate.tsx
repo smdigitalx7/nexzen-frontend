@@ -432,7 +432,7 @@ export const EmployeeManagementTemplate = () => {
         }))}
         advances={advances.map(adv => ({
           ...adv,
-          status: adv.status || 'PENDING',
+          status: adv.status || 'REQUESTED',
           // created_at is required in AdvanceRead but optional in EmployeeAdvanceRead
           // We keep it for compatibility but it won't be used by AdvancesTable
         } as EmployeeAdvanceRead & { created_at: string }))}

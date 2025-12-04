@@ -21,4 +21,5 @@ export * from "./transport.service";
 export * from "./unified-api.service";
 export * from "./userBranchAccess.service";
 export * from "./users.service";
+export * from "./logos.service";
 

@@ -24,13 +24,17 @@ export const PayrollsService = {
    * @param month - Filter by month (1-12, requires year)
    * @param year - Filter by year (2000-2100, requires month)
    * @param status - Filter by payroll status (PENDING|PAID|HOLD)
+   * @param page - Optional pagination - page number (starts from 1)
+   * @param page_size - Optional pagination - items per page (1-1000)
    * @returns Promise<PayrollListResponse> - Payroll list grouped by month
    */
-  listAll(month?: number, year?: number, status?: string): Promise<any> {
+  listAll(month?: number, year?: number, status?: string, page?: number, page_size?: number): Promise<any> {
     const params = new URLSearchParams();
     if (month) params.append('month', month.toString());
     if (year) params.append('year', year.toString());
     if (status) params.append('payroll_status', status);
+    if (page) params.append('page', page.toString());
+    if (page_size) params.append('page_size', page_size.toString());
     
     const url = `/payrolls?${params.toString()}`;
     return Api.get<any>(url);
@@ -41,13 +45,17 @@ export const PayrollsService = {
    * @param month - Filter by month (1-12, required)
    * @param year - Filter by year (2000-2100, required)
    * @param status - Filter by payroll status (PENDING|PAID|HOLD)
+   * @param page - Optional pagination - page number (starts from 1)
+   * @param page_size - Optional pagination - items per page (1-1000)
    * @returns Promise<PayrollListResponse> - Payroll list grouped by month (filtered by current branch)
    */
-  listByBranch(month: number, year: number, status?: string): Promise<PayrollListResponse> {
+  listByBranch(month: number, year: number, status?: string, page?: number, page_size?: number): Promise<PayrollListResponse> {
     const params = new URLSearchParams();
     params.append('month', month.toString());
     params.append('year', year.toString());
     if (status) params.append('payroll_status', status);
+    if (page) params.append('page', page.toString());
+    if (page_size) params.append('page_size', page_size.toString());
     
     return Api.get<PayrollListResponse>(`/payrolls/branch?${params.toString()}`);
   },

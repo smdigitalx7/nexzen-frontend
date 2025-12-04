@@ -80,6 +80,9 @@ import {
   createGradeColumn,
   createTestDateColumn,
 } from "@/common/utils/factory/columnFactories";
+import AddTestMarksByClassDialog from "./AddTestMarksByClassDialog";
+import { useQueryClient } from "@tanstack/react-query";
+import { schoolKeys } from "@/features/school/hooks/query-keys";
 
 // Utility function to calculate grade from percentage using grades from API
 // This will be used inside the component where grades are available
@@ -189,6 +192,7 @@ const TestMarksManagementComponent = ({
   );
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('single');
+  const [showAddTestMarksDialog, setShowAddTestMarksDialog] = useState(false);
 
   // Memoized class ID for API calls
   const classId = useMemo(
@@ -304,6 +308,7 @@ const TestMarksManagementComponent = ({
   );
   const deleteTestMarkMutation = useDeleteSchoolTestMark();
   const createMultipleSubjectsMutation = useCreateSchoolTestMarksMultipleSubjects();
+  const queryClient = useQueryClient();
 
   // Single subject form
   const testMarkForm = useForm({
@@ -1176,84 +1181,118 @@ const TestMarksManagementComponent = ({
             transition={{ delay: 0.2 }}
             className="space-y-6"
           >
-            {/* Unified Filter Controls */}
-            <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-              {/* Required Filters */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">
-                  Class: <span className="text-red-500">*</span>
-                </label>
-                <SchoolClassDropdown
-                  value={selectedClass}
-                  onChange={handleClassChange}
-                  placeholder="Select class"
-                  emptyValue
-                  emptyValueLabel="Select class"
-                  className="w-40"
-                />
-              </div>
+            {/* Unified Filter Controls with Add Button */}
+            <div className="space-y-4">
+              {/* Top Section: Filters and Add Button */}
+              <div className="flex flex-wrap gap-4 items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                {/* Left Side: Filters */}
+                <div className="flex flex-wrap gap-4 items-center flex-1">
+                  {/* Required Filters */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">
+                      Class: <span className="text-red-500">*</span>
+                    </label>
+                    <SchoolClassDropdown
+                      value={selectedClass}
+                      onChange={handleClassChange}
+                      placeholder="Select class"
+                      emptyValue
+                      emptyValueLabel="Select class"
+                      className="w-40"
+                    />
+                  </div>
 
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">
-                  Subject: <span className="text-red-500">*</span>
-                </label>
-                <SchoolSubjectDropdown
-                  classId={classId}
-                  value={selectedSubject}
-                  onChange={handleSubjectChange}
-                  placeholder={selectedClass ? "Select subject" : "Select class first"}
-                  emptyValue
-                  emptyValueLabel={selectedClass ? "Select subject" : "Select class first"}
-                  className="w-40"
-                  disabled={!selectedClass}
-                />
-              </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Section:</label>
+                    <SchoolSectionDropdown
+                      classId={classId}
+                      value={selectedSection}
+                      onChange={handleSectionChange}
+                      placeholder={
+                        selectedClass ? "Select section" : "Select class first"
+                      }
+                      emptyValue
+                      emptyValueLabel={
+                        selectedClass ? "Select section" : "Select class first"
+                      }
+                      className="w-40"
+                      disabled={!selectedClass}
+                    />
+                  </div>
 
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">
-                  Test: <span className="text-red-500">*</span>
-                </label>
-                <SchoolTestDropdown
-                  value={selectedTest}
-                  onChange={handleTestChange}
-                  placeholder={selectedClass ? "Select test" : "Select class first"}
-                  emptyValue
-                  emptyValueLabel={selectedClass ? "Select test" : "Select class first"}
-                  className="w-40"
-                  disabled={!selectedClass}
-                />
-              </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">
+                      Test: <span className="text-red-500">*</span>
+                    </label>
+                    <SchoolTestDropdown
+                      value={selectedTest}
+                      onChange={handleTestChange}
+                      placeholder={
+                        selectedClass ? "Select test" : "Select class first"
+                      }
+                      emptyValue
+                      emptyValueLabel={
+                        selectedClass ? "Select test" : "Select class first"
+                      }
+                      className="w-40"
+                      disabled={!selectedClass}
+                    />
+                  </div>
 
-              {/* Optional Filters */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-muted-foreground">Section:</label>
-                <SchoolSectionDropdown
-                  classId={classId}
-                  value={selectedSection}
-                  onChange={handleSectionChange}
-                  placeholder="All sections"
-                  emptyValue
-                  emptyValueLabel="All sections"
-                  className="w-40"
-                  disabled={!selectedClass}
-                />
-              </div>
+                  {/* Required Filters - Subject */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">
+                      Subject: <span className="text-red-500">*</span>
+                    </label>
+                    <SchoolSubjectDropdown
+                      classId={classId}
+                      value={selectedSubject}
+                      onChange={handleSubjectChange}
+                      placeholder={
+                        selectedClass ? "Select subject" : "Select class first"
+                      }
+                      emptyValue
+                      emptyValueLabel={
+                        selectedClass ? "Select subject" : "Select class first"
+                      }
+                      className="w-40"
+                      disabled={!selectedClass}
+                    />
+                  </div>
 
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-muted-foreground">Grade:</label>
-                <Select value={selectedGrade} onValueChange={handleGradeChange}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="All Grades" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Grades</SelectItem>
-                    {grades.map((grade) => (
-                      <SelectItem key={grade.grade} value={grade.grade}>
-                        {grade.grade}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Grade:
+                    </label>
+                    <Select
+                      value={selectedGrade}
+                      onValueChange={handleGradeChange}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue placeholder="All Grades" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Grades</SelectItem>
+                        {grades.map((grade) => (
+                          <SelectItem key={grade.grade} value={grade.grade}>
+                            {grade.grade}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Right Side: Add Marks Button */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => setShowAddTestMarksDialog(true)}
+                    className="gap-2 bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Marks by Class
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -1428,6 +1467,22 @@ const TestMarksManagementComponent = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add Test Marks by Class Dialog */}
+      <AddTestMarksByClassDialog
+        isOpen={showAddTestMarksDialog}
+        onClose={() => setShowAddTestMarksDialog(false)}
+        onSuccess={() => {
+          // Invalidate and refetch test marks after bulk save
+          void queryClient.invalidateQueries({
+            queryKey: schoolKeys.testMarks.root(),
+          });
+          void queryClient.refetchQueries({
+            queryKey: schoolKeys.testMarks.root(),
+            type: "active",
+          });
+        }}
+      />
     </div>
   );
 };

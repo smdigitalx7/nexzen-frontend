@@ -6,6 +6,8 @@ export interface CollegeIncomeListParams {
   purpose?: string;
   start_date?: string; // YYYY-MM-DD
   end_date?: string;   // YYYY-MM-DD
+  page?: number;       // Optional pagination
+  page_size?: number;  // Optional pagination
 }
 
 export const CollegeIncomeService = {

@@ -6,7 +6,8 @@ import type {
   EmployeeWithBranches,
   TeacherByBranch,
   EmployeeDashboardStats,
-  RecentEmployee
+  RecentEmployee,
+  EmployeeMinimal
 } from "@/features/general/types/employees";
 
 export const EmployeesService = {
@@ -25,6 +26,14 @@ export const EmployeesService = {
    */
   getRecent(limit: number = 5): Promise<RecentEmployee[]> {
     return Api.get<RecentEmployee[]>(`/employees/recent?limit=${limit}`);
+  },
+
+  /**
+   * Get minimal employee list (only employee_id and employee_name) for dropdowns
+   * Filtered by institute, only active employees
+   */
+  listMinimal(): Promise<EmployeeMinimal[]> {
+    return Api.get<EmployeeMinimal[]>("/employees/minimal");
   },
 
   /**

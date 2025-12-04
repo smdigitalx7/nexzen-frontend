@@ -2,7 +2,7 @@
 import type { SchoolExpenditureCreate, SchoolExpenditureRead, SchoolExpenditureUpdate, SchoolExpenditureDashboardStats, SchoolRecentExpenditure } from "@/features/school/types";
 
 export const SchoolExpenditureService = {
-  list(params?: { start_date?: string; end_date?: string }) {
+  list(params?: { start_date?: string; end_date?: string; page?: number; page_size?: number }) {
     return Api.get<SchoolExpenditureRead[]>(`/school/expenditure`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
 

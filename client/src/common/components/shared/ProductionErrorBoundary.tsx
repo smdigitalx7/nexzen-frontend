@@ -1,7 +1,6 @@
-﻿import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
-import { Button } from '@/common/components/ui/button';
-import { motion } from 'framer-motion';
+﻿import React, { Component, ErrorInfo, ReactNode } from "react";
+import { RefreshCw, Home } from "lucide-react";
+import { Button } from "@/common/components/ui/button";
 
 interface Props {
   children: ReactNode;
@@ -31,7 +30,7 @@ export class ProductionErrorBoundary extends Component<Props, State> {
       hasError: false,
       error: null,
       errorInfo: null,
-      errorId: '',
+      errorId: "",
       retryCount: 0,
       errorCode: this.generateErrorCode(),
     };
@@ -39,12 +38,12 @@ export class ProductionErrorBoundary extends Component<Props, State> {
 
   private generateErrorCode(): string {
     // Generate a random error code like "ERR-500" or "ERR-404"
-    const codes = ['500', '404', '503', '502', '504', '400', '403'];
+    const codes = ["500", "404", "503", "502", "504", "400", "403"];
     return `ERR-${codes[Math.floor(Math.random() * codes.length)]}`;
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
-    const codes = ['500', '404', '503', '502', '504', '400', '403'];
+    const codes = ["500", "404", "503", "502", "504", "400", "403"];
     return {
       hasError: true,
       error,
@@ -60,7 +59,7 @@ export class ProductionErrorBoundary extends Component<Props, State> {
     });
 
     // Log error details
-    console.error('Error Boundary caught an error:', error, errorInfo);
+    console.error("Error Boundary caught an error:", error, errorInfo);
 
     // Call custom error handler
     if (this.props.onError) {
@@ -85,16 +84,16 @@ export class ProductionErrorBoundary extends Component<Props, State> {
 
     // Send to error reporting service
     if (import.meta.env.DEV) {
-      console.log('Error report:', errorReport);
+      console.log("Error report:", errorReport);
     }
-    
+
     // In production, send to actual error reporting service
     // Example: Sentry.captureException(error, { extra: errorReport });
   };
 
   private handleRetry = () => {
     if (this.state.retryCount < this.maxRetries) {
-      this.setState(prevState => ({
+      this.setState((prevState) => ({
         hasError: false,
         error: null,
         errorInfo: null,
@@ -105,7 +104,7 @@ export class ProductionErrorBoundary extends Component<Props, State> {
   };
 
   private handleGoHome = () => {
-    window.location.href = '/';
+    window.location.href = "/";
   };
 
   private handleReload = () => {
@@ -122,15 +121,20 @@ export class ProductionErrorBoundary extends Component<Props, State> {
     };
 
     // Copy error details to clipboard
-    navigator.clipboard.writeText(JSON.stringify(errorDetails, null, 2))
+    navigator.clipboard
+      .writeText(JSON.stringify(errorDetails, null, 2))
       .then(() => {
-        alert('Error details copied to clipboard. Please share this with the development team.');
+        alert(
+          "Error details copied to clipboard. Please share this with the development team."
+        );
       })
       .catch(() => {
         if (import.meta.env.DEV) {
-          console.log('Error details:', errorDetails);
+          console.log("Error details:", errorDetails);
         }
-        alert('Please copy the error details from the console and share with the development team.');
+        alert(
+          "Please copy the error details from the console and share with the development team."
+        );
       });
   };
 
@@ -147,195 +151,147 @@ export class ProductionErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
-      const { error, errorId, retryCount, errorCode } = this.state;
+      const { error, retryCount, errorCode } = this.state;
       const canRetry = this.props.enableRetry && retryCount < this.maxRetries;
 
       return (
-        <div className="fixed inset-0 z-[99999] overflow-hidden">
-          {/* Background with gradient and pattern */}
-          <div className="absolute inset-0 bg-gradient-to-br from-red-50 via-orange-50/30 to-amber-50/20 dark:from-slate-950 dark:via-red-950/20 dark:to-orange-950/10">
-            {/* Animated background pattern */}
-            <div className="absolute inset-0 opacity-20">
-              <div className="absolute inset-0" style={{
-                backgroundImage: `radial-gradient(circle at 2px 2px, rgba(239, 68, 68, 0.2) 1px, transparent 0)`,
-                backgroundSize: '50px 50px'
-              }} />
-            </div>
-
-            {/* Floating geometric shapes */}
-            <motion.div
-              animate={{
-                y: [0, -30, 0],
-                rotate: [0, 10, 0],
-                scale: [1, 1.1, 1],
-              }}
-              transition={{
-                duration: 8,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              className="absolute top-20 left-10 w-40 h-40 bg-red-200/30 dark:bg-red-900/20 rounded-full blur-3xl"
-            />
-            <motion.div
-              animate={{
-                y: [0, 30, 0],
-                rotate: [0, -10, 0],
-                scale: [1, 1.2, 1],
-              }}
-              transition={{
-                duration: 10,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: 1,
-              }}
-              className="absolute bottom-20 right-10 w-60 h-60 bg-orange-200/30 dark:bg-orange-900/20 rounded-full blur-3xl"
-            />
-            <motion.div
-              animate={{
-                x: [0, 20, 0],
-                y: [0, -20, 0],
-              }}
-              transition={{
-                duration: 6,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: 0.5,
-              }}
-              className="absolute top-1/2 left-1/4 w-32 h-32 bg-amber-200/20 dark:bg-amber-900/10 rounded-lg blur-2xl"
-            />
-          </div>
-
-          {/* Main Content - Full Page Layout */}
-          <div className="relative z-10 h-full flex flex-col items-center justify-center px-4 py-8">
-            <div className="max-w-5xl w-full text-center space-y-8">
-              {/* Large Error Code */}
-              <motion.div
-                initial={{ scale: 0.5, opacity: 0, rotate: -180 }}
-                animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 100, damping: 10 }}
-                className="relative"
-              >
-                <div className="text-[12rem] md:text-[16rem] font-black text-red-500/20 dark:text-red-500/10 leading-none select-none">
-                  {errorCode.split('-')[1]}
+        <div className="fixed inset-0 z-[99999] overflow-y-auto bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex flex-col">
+          {/* Main Content - Side by Side Layout */}
+          <div className="flex-1 flex flex-col md:flex-row items-center justify-center px-3 sm:px-4 py-4 sm:py-6 md:py-8 gap-4 sm:gap-6 md:gap-8 lg:gap-12 min-h-0">
+            {/* Left Side - Error Code */}
+            <div className="flex-shrink-0 flex flex-col items-center justify-center space-y-4 sm:space-y-5 md:space-y-6 w-full md:w-auto">
+              <div className="relative w-full flex items-center justify-center">
+                <div className="text-[6rem] sm:text-[7rem] md:text-[8rem] lg:text-[10rem] xl:text-[12rem] 2xl:text-[14rem] font-black text-slate-200 dark:text-slate-800 leading-none select-none">
+                  {errorCode.split("-")[1]}
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <motion.div
-                    animate={{
-                      scale: [1, 1.05, 1],
-                      opacity: [0.3, 0.5, 0.3],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                    className="text-6xl md:text-8xl font-black text-red-600 dark:text-red-400"
-                  >
+                  <div className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-slate-700 dark:text-slate-300">
                     {errorCode}
-                  </motion.div>
-                </div>
-              </motion.div>
-
-              {/* Error Illustration */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="flex flex-col items-center space-y-6"
-              >
-                {/* Alert Icon */}
-                <motion.div
-                  animate={{
-                    rotate: [0, -10, 10, -10, 0],
-                  }}
-                  transition={{
-                    duration: 0.5,
-                    repeat: Infinity,
-                    repeatDelay: 2,
-                  }}
-                  className="relative"
-                >
-                  <div className="absolute inset-0 bg-red-500/20 rounded-full blur-2xl animate-pulse" />
-                  <div className="relative bg-gradient-to-br from-red-500 to-orange-500 p-6 rounded-full shadow-xl">
-                    <AlertTriangle className="w-12 h-12 text-white" />
                   </div>
-                </motion.div>
+                </div>
+              </div>
 
-                {/* Title */}
-                <motion.h1
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight"
-                >
-                  <span className="text-3xl md:text-4xl">⚠️</span> Something Went Wrong
-                </motion.h1>
-
-                {/* Description */}
-                <motion.p
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7 }}
-                  className="text-sm md:text-base text-slate-600 dark:text-slate-400 max-w-2xl mx-auto"
-                >
-                  <span className="text-lg">😔</span> We're sorry, but something unexpected happened. Our team has been notified and is working on a fix.
-                </motion.p>
-              </motion.div>
-
-              {/* Error Message - Only show one error message */}
+              {/* Error Message */}
               {error?.message && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.9 }}
-                  className="max-w-2xl mx-auto p-4 bg-red-50/50 dark:bg-red-950/20 rounded-lg border border-red-200/50 dark:border-red-900/30"
-                >
-                  <p className="text-sm font-medium text-red-700 dark:text-red-400 break-words">
-                    <span className="mr-2">❌</span>
+                <div className="w-full max-w-xs sm:max-w-sm md:max-w-md px-3 sm:px-4 py-2.5 sm:py-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-900/50 shadow-sm mx-auto">
+                  <p className="text-xs sm:text-sm font-medium text-red-700 dark:text-red-400 break-words text-center">
+                    <span className="mr-1.5 sm:mr-2 text-sm sm:text-base">
+                      ❌
+                    </span>
+                    <span className="font-semibold">Error:</span>{" "}
                     {error.message}
                   </p>
-                </motion.div>
+                </div>
               )}
+            </div>
+
+            {/* Right Side - Content */}
+            <div className="flex-1 max-w-2xl w-full space-y-4 sm:space-y-5 md:space-y-6 lg:space-y-8 text-center md:text-left">
+              {/* Error Icon with Emoji */}
+              <div className="flex flex-col space-y-3 sm:space-y-4">
+                <div className="text-5xl sm:text-6xl md:text-7xl">🚨</div>
+
+                {/* Title */}
+                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white tracking-tight px-2 sm:px-0">
+                  Oops! Something Went Wrong
+                </h1>
+
+                {/* Description */}
+                <p className="text-sm sm:text-base md:text-lg text-slate-600 dark:text-slate-400 leading-relaxed px-2 sm:px-0">
+                  <span className="text-lg sm:text-xl mr-1.5 sm:mr-2">😔</span>
+                  We're sorry, but something unexpected happened. Our team has
+                  been notified and is working on a fix.
+                </p>
+              </div>
 
               {/* Action Buttons */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1 }}
-                className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4"
-              >
+              <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 pt-2 sm:pt-2 w-full sm:w-auto sm:justify-start md:justify-start">
                 {canRetry && (
                   <Button
                     onClick={this.handleRetry}
                     size="default"
-                    className="px-6 py-2.5 text-sm bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-md group"
+                    className="w-full sm:w-auto px-5 sm:px-6 py-2.5 text-xs sm:text-sm bg-red-600 hover:bg-red-700 text-white shadow-md hover:shadow-lg transition-shadow duration-200 rounded-md"
                   >
-                    <RefreshCw className="mr-2 h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
+                    <RefreshCw className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     Try Again
                   </Button>
                 )}
-                
+
                 <Button
                   variant="outline"
                   onClick={this.handleGoHome}
                   size="default"
-                  className="px-6 py-2.5 text-sm border rounded-md group"
+                  className="w-full sm:w-auto px-5 sm:px-6 py-2.5 text-xs sm:text-sm border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-200 rounded-md"
                 >
-                  <Home className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
+                  <Home className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   Go Home
                 </Button>
-                
+
                 <Button
                   variant="outline"
                   onClick={this.handleReload}
                   size="default"
-                  className="px-6 py-2.5 text-sm border rounded-md group"
+                  className="w-full sm:w-auto px-5 sm:px-6 py-2.5 text-xs sm:text-sm border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-200 rounded-md"
                 >
-                  <RefreshCw className="mr-2 h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
+                  <RefreshCw className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   Reload Page
                 </Button>
-              </motion.div>
+              </div>
+            </div>
+          </div>
 
+          {/* Footer - Professional Design */}
+          <div className="w-full px-3 sm:px-4 md:px-6 pb-8 sm:pb-12 md:pb-16">
+            <div className="max-w-6xl mx-auto">
+              {/* Subtle Separator */}
+              <div className="relative mb-4 sm:mb-6 md:mb-8">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-slate-700 to-transparent"></div>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center gap-3 sm:gap-4 md:gap-6">
+                {/* Help Text */}
+                <div className="text-center mt-4 sm:mt-6 md:mt-8 px-2">
+                  <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-400 leading-relaxed">
+                    <span className="mr-1.5 sm:mr-2 text-sm sm:text-base md:text-lg">
+                      💡
+                    </span>
+                    If this problem persists, please contact support with error
+                    code{" "}
+                    <span className="font-mono font-semibold text-slate-700 dark:text-slate-300 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-xs sm:text-sm md:text-base break-all sm:break-normal">
+                      {errorCode}
+                    </span>
+                  </p>
+                </div>
+
+                {/* Contact Information */}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-400 w-full px-2">
+                  <a
+                    href="mailto:contact@smdigitalx.com"
+                    className="flex items-center gap-1.5 sm:gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors break-all sm:break-normal"
+                  >
+                    <span className="text-base sm:text-lg flex-shrink-0">
+                      📧
+                    </span>
+                    <span className="text-center sm:text-left">
+                      contact@smdigitalx.com
+                    </span>
+                  </a>
+
+                  <div className="hidden sm:block w-px h-4 sm:h-5 bg-slate-300 dark:bg-slate-700" />
+
+                  <a
+                    href="tel:+918184919998"
+                    className="flex items-center gap-1.5 sm:gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  >
+                    <span className="text-base sm:text-lg flex-shrink-0">
+                      📞
+                    </span>
+                    <span>+91 8184919998</span>
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -349,7 +305,7 @@ export class ProductionErrorBoundary extends Component<Props, State> {
 // HOC for easier usage
 export const withProductionErrorBoundary = <P extends object>(
   Component: React.ComponentType<P>,
-  options?: Omit<Props, 'children'>
+  options?: Omit<Props, "children">
 ) => {
   const WrappedComponent = (props: P) => (
     <ProductionErrorBoundary {...options}>

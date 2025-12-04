@@ -21,4 +21,5 @@ export * from "./roles";
 export type { DriverDetails, BusRouteRead, BusRouteCreate, BusRouteUpdate, TransportDashboardStats, RecentRoute } from "./transport";
 export * from "./userBranchAccess";
 export * from "./users";
+export * from "./logos";
 

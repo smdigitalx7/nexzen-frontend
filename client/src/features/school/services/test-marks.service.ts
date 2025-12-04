@@ -9,6 +9,8 @@ import type {
   TestMarkUpdate,
   CreateTestMarksMultipleSubjects,
   TestMarksMultipleSubjectsResult,
+  CreateBulkMultipleStudentsTestRequest,
+  BulkMultipleStudentsTestResponse,
 } from "@/features/school/types";
 
 export const SchoolTestMarksService = {
@@ -38,5 +40,9 @@ export const SchoolTestMarksService = {
 
   createMultipleSubjects(payload: CreateTestMarksMultipleSubjects) {
     return Api.post<TestMarksMultipleSubjectsResult>(`/school/test-marks/multiple-subjects`, payload);
+  },
+
+  bulkMultipleStudents(payload: CreateBulkMultipleStudentsTestRequest) {
+    return Api.post<BulkMultipleStudentsTestResponse>(`/school/test-marks/bulk-multiple-students`, payload);
   },
 };

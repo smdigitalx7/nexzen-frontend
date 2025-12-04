@@ -31,26 +31,20 @@ import { TabSwitcher } from "@/common/components/shared";
 import type { TabItem } from "@/common/components/shared/TabSwitcher";
 import { useAuthStore } from "@/core/auth/authStore";
 import MonthlyFeeConfigTab from "@/features/college/components/config/MonthlyFeeConfigTab";
+import LogoManagementTab from "@/features/general/components/configurations/LogoManagementTab";
 
 const SettingsPage = () => {
   const { currentBranch } = useAuthStore();
   const isCollege = currentBranch?.branch_type === "COLLEGE";
-  // Default to privacy for school, configuration for college
-  const [activeTab, setActiveTab] = useState(isCollege ? "configuration" : "privacy");
+  // Default to configuration for both school and college
+  const [activeTab, setActiveTab] = useState("configuration");
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
   const [isPrivacyPolicyDialogOpen, setIsPrivacyPolicyDialogOpen] = useState(false);
 
-  // Reset activeTab if it's "configuration" but user is on school
-  useEffect(() => {
-    if (!isCollege && activeTab === "configuration") {
-      setActiveTab("privacy");
-    }
-  }, [isCollege, activeTab]);
-
   const tabs: TabItem[] = useMemo(() => {
     const baseTabs: TabItem[] = [
-      // Configuration tab - only for college
-      ...(isCollege ? [{
+      // Configuration tab - available for both school and college
+      {
         value: "configuration",
         label: "Configuration",
         icon: SettingsIcon,
@@ -62,17 +56,27 @@ const SettingsPage = () => {
                 Configuration
               </CardTitle>
               <CardDescription>
-                Manage fee settings
+                Manage system configurations and settings
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <MonthlyFeeConfigTab />
+              <div className="space-y-6">
+                {/* Logo Management - Available for both School and College */}
+                <div>
+                  <LogoManagementTab />
+                </div>
+                
+                {/* Monthly Fee Config - Only for College */}
+                {isCollege && (
+                  <div>
+                    <MonthlyFeeConfigTab />
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         ),
-      }] : []),
+      },
       {
         value: "privacy",
         label: "Privacy",
@@ -258,7 +262,7 @@ const SettingsPage = () => {
           tabs={tabs}
           activeTab={activeTab}
           onTabChange={setActiveTab}
-          tabListClassName={`grid w-full ${isCollege ? 'grid-cols-3' : 'grid-cols-2'} lg:w-[600px]`}
+          tabListClassName="grid w-full grid-cols-3 lg:w-[600px]"
         />
       </motion.div>
 

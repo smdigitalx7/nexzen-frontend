@@ -33,12 +33,14 @@ export interface PayrollRead {
 
 export interface PayrollCreate {
   employee_id: number;
-  payroll_month: number; // 1-12
-  payroll_year: number; // 1900-2100
-  other_deductions: number;
-  advance_amount: number;
-  paid_amount: number;
-  payment_method: PaymentMethodEnum;
+  payroll_month: string; // YYYY-MM-DD format (e.g., "2025-01-01")
+  gross_pay: number;
+  previous_balance?: number;
+  lop?: number;
+  advance_deduction?: number;
+  other_deductions?: number;
+  paid_amount?: number;
+  payment_method?: PaymentMethodEnum;
   payment_notes?: string;
 }
 

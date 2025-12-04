@@ -112,4 +112,48 @@ export interface TestMarksQuery {
   subject_id: number; // Required
   test_id: number; // Required
   section_id?: number;
+  page?: number; // Optional pagination - page number (starts from 1)
+  page_size?: number; // Optional pagination - items per page (1-1000)
+}
+
+// Bulk multiple students types
+export interface BulkMultipleStudentsTestSubject {
+  subject_id: number;
+  marks_obtained: number;
+  remarks?: string;
+  subject_name: string;
+}
+
+export interface BulkMultipleStudentsTestStudent {
+  enrollment_id: number;
+  student_name: string;
+  subjects: BulkMultipleStudentsTestSubject[];
+}
+
+export interface CreateBulkMultipleStudentsTestRequest {
+  test_id: number;
+  students: BulkMultipleStudentsTestStudent[];
+  test_name: string;
+}
+
+export interface BulkMultipleStudentsTestStudentResult {
+  enrollment_id: number;
+  student_name: string;
+  success: boolean;
+  message: string;
+  created_count: number;
+  skipped_count: number;
+  total_requested: number;
+  errors?: Record<string, unknown>[];
+}
+
+export interface BulkMultipleStudentsTestResponse {
+  success: boolean;
+  message: string;
+  test_id: number;
+  test_name: string;
+  total_created: number;
+  total_skipped: number;
+  total_students: number;
+  student_results: BulkMultipleStudentsTestStudentResult[];
 }

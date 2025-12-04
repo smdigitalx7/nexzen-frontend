@@ -152,10 +152,19 @@ export const useEmployeeManagement = (
   // Only fetch data when the respective tab is active to prevent unnecessary requests and UI freezes
   // Note: Employees are needed for dialogs across multiple tabs, so enabled when any relevant tab is active
   const {
-    data: employees = [],
+    data: employeesData,
     isLoading,
     error,
   } = useEmployeesByBranch(employeesEnabled);
+
+  // ✅ FIX: Handle both direct array and wrapped response formats
+  const employees = useMemo(() => {
+    if (!employeesData) return [];
+    // Handle case where API returns { data: [...] } or direct array
+    return Array.isArray(employeesData) 
+      ? employeesData 
+      : (Array.isArray(employeesData?.data) ? employeesData.data : []);
+  }, [employeesData]);
 
   // Only fetch attendance when attendance tab is active
   const { data: attendanceData, isLoading: attendanceLoading } =
@@ -307,14 +316,20 @@ export const useEmployeeManagement = (
   // ✅ FIX: Memoize expensive data transformations
   // Flatten and enrich attendance data with employee names
   const flattenedAttendance = useMemo(() => {
-    return attendance.flatMap(
-      (monthGroup: any) => monthGroup.attendances || []
+    const attendanceArray = Array.isArray(attendance) ? attendance : [];
+    return attendanceArray.flatMap(
+      (monthGroup: any) => (Array.isArray(monthGroup?.attendances) ? monthGroup.attendances : [])
     );
   }, [attendance]);
 
+  // ✅ FIX: Ensure employees is always an array
+  const employeesArray = useMemo(() => {
+    return Array.isArray(employees) ? employees : [];
+  }, [employees]);
+
   const enrichedAttendance = useMemo(() => {
     return flattenedAttendance.map((attendanceRecord: any) => {
-      const employee = employees.find(
+      const employee = employeesArray.find(
         (emp) => emp.employee_id === attendanceRecord.employee_id
       );
       return {
@@ -325,30 +340,31 @@ export const useEmployeeManagement = (
           `Employee ${attendanceRecord.employee_id}`,
       } as EmployeeAttendanceRead;
     });
-  }, [flattenedAttendance, employees]);
+  }, [flattenedAttendance, employeesArray]);
 
   // ✅ FIX: Memoize computed values
+
   // Computed values
-  const totalEmployees = useMemo(() => employees.length, [employees.length]);
+  const totalEmployees = useMemo(() => employeesArray.length, [employeesArray]);
   const activeEmployees = useMemo(() => {
-    return employees.filter((emp) => emp.status === "ACTIVE").length;
-  }, [employees]);
+    return employeesArray.filter((emp) => emp.status === "ACTIVE").length;
+  }, [employeesArray]);
   const totalAttendance = useMemo(
     () => flattenedAttendance.length,
-    [flattenedAttendance.length]
+    [flattenedAttendance]
   );
   const presentToday = 0; // Not applicable with monthly aggregates
   const pendingLeaves = useMemo(() => {
-    return leaves.filter((leave: any) => leave.leave_status === "PENDING")
+    const leavesArray = Array.isArray(leaves) ? leaves : [];
+    return leavesArray.filter((leave: any) => leave.leave_status === "PENDING")
       .length;
   }, [leaves]);
   const totalAdvances = useMemo(() => {
     return Array.isArray(advances) ? advances.length : 0;
   }, [advances]);
   const pendingAdvances = useMemo(() => {
-    return Array.isArray(advances)
-      ? advances.filter((adv: any) => adv.status === "PENDING").length
-      : 0;
+    const advancesArray = Array.isArray(advances) ? advances : [];
+    return advancesArray.filter((adv: any) => adv.status === "REQUESTED").length;
   }, [advances]);
 
   // Pagination
@@ -967,7 +983,7 @@ export const useEmployeeManagement = (
 
   return {
     // Data
-    employees,
+    employees: employeesArray,
     attendance: enrichedAttendance,
     leaves: paginatedLeaves,
     advances: paginatedAdvances,

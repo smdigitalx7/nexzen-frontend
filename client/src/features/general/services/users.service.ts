@@ -26,10 +26,11 @@ export const UsersService = {
 
   /**
    * Get all users in the institute
+   * @param params - Optional pagination parameters
    * @returns Promise<UserRead[]> - List of all users
    */
-  list(): Promise<UserRead[]> {
-    return Api.get<UserRead[]>("/users");
+  list(params?: { page?: number; page_size?: number }): Promise<UserRead[]> {
+    return Api.get<UserRead[]>("/users", params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
 
   /**

@@ -18,9 +18,12 @@ interface EmployeeAdvancesListProps {
 
 const statusColor = (status: string) => {
   switch (status) {
-    case "PENDING": return "bg-yellow-100 text-yellow-800";
+    case "REQUESTED": return "bg-yellow-100 text-yellow-800";
     case "APPROVED": return "bg-green-100 text-green-800";
+    case "ACTIVE": return "bg-blue-100 text-blue-800";
     case "REJECTED": return "bg-red-100 text-red-800";
+    case "CANCELLED": return "bg-gray-100 text-gray-800";
+    case "REPAID": return "bg-green-100 text-green-800";
     default: return "bg-gray-100 text-gray-800";
   }
 };
@@ -40,7 +43,7 @@ const EmployeeAdvancesList = ({ advances, employees, onApprove, onEdit, onUpdate
               <div className="flex items-center gap-2">
                 <Badge className={statusColor(advance.status)}>{advance.status}</Badge>
                 <div className="flex items-center gap-1">
-                  {advance.status === "PENDING" && (
+                  {advance.status === "REQUESTED" && (
                     <>
                       <Button variant="ghost" size="sm" onClick={() => onApprove(advance)} className="text-green-600 hover:text-green-700" title="Approve">
                         <CheckCircle className="h-4 w-4" />

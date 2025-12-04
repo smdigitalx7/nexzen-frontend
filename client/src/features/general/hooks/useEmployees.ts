@@ -8,6 +8,7 @@ import type {
   TeacherByBranch,
   EmployeeDashboardStats,
   RecentEmployee,
+  EmployeeMinimal,
 } from "@/features/general/types/employees";
 import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-toast";
 import { useGlobalRefetch } from "@/common/hooks/useGlobalRefetch";
@@ -26,6 +27,7 @@ export const employeeKeys = {
   withBranches: () => [...employeeKeys.all, "with-branches"] as const,
   byBranch: () => [...employeeKeys.all, "by-branch"] as const,
   teachersByBranch: () => [...employeeKeys.all, "teachers-by-branch"] as const,
+  minimal: () => [...employeeKeys.all, "minimal"] as const,
 };
 
 // Hooks for fetching data
@@ -63,6 +65,21 @@ export const useTeachersByBranch = (enabled: boolean = true) => {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: false,
+  });
+};
+
+/**
+ * Hook to get minimal employee list (only employee_id and employee_name)
+ * Use this for dropdowns and lightweight employee selection
+ * Only returns active employees, filtered by institute
+ */
+export const useEmployeesMinimal = (enabled: boolean = true) => {
+  return useQuery({
+    queryKey: employeeKeys.minimal(),
+    queryFn: () => EmployeesService.listMinimal(),
+    enabled,
+    staleTime: 5 * 60 * 1000, // 5 minutes - dropdowns don't change often
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 };
 

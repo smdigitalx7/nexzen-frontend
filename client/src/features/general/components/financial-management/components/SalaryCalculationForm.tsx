@@ -252,12 +252,19 @@ export const SalaryCalculationForm = ({
       return;
     }
 
+    // Convert month and year to YYYY-MM-DD format (first day of the month)
+    const month = Number(formData.payroll_month);
+    const year = Number(formData.payroll_year);
+    const payrollMonthDate = `${year}-${String(month).padStart(2, '0')}-01`;
+
     const payrollData: PayrollCreate = {
       employee_id: Number(formData.employee_id),
-      payroll_month: Number(formData.payroll_month),
-      payroll_year: Number(formData.payroll_year),
+      payroll_month: payrollMonthDate, // API expects YYYY-MM-DD format
+      gross_pay: Number(formData.gross_pay) || 0,
+      previous_balance: Number(formData.previous_balance) || 0,
+      lop: Number(formData.lop) || 0,
+      advance_deduction: Number(formData.advance_deduction) || 0,
       other_deductions: Number(formData.other_deductions) || 0,
-      advance_amount: Number(formData.advance_deduction) || 0, // Use advance_deduction value
       paid_amount: Number(formData.paid_amount),
       payment_method: formData.payment_method,
       payment_notes: formData.payment_notes,

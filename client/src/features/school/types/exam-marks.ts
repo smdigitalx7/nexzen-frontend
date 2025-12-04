@@ -53,7 +53,7 @@ export interface ExamMarkMinimalRead {
 export interface ExamGroupAndSubjectResponse {
   exam_id: number;
   exam_name: string;
-  conducted_at: string;
+  conducted_at: string | null; // Can be null if no schedule exists for the academic year
   subject_id: number;
   subject_name: string;
   students: ExamMarkMinimalRead[] | null;
@@ -113,6 +113,8 @@ export interface ExamMarksQuery {
   subject_id: number; // Required
   exam_id: number; // Required
   section_id?: number | null; // Optional - if provided, filter by section
+  page?: number; // Optional pagination - page number (starts from 1)
+  page_size?: number; // Optional pagination - items per page (1-1000)
 }
 
 // Bulk multiple students types

@@ -36,12 +36,16 @@ export const EmployeeAttendanceService = {
    * Get all employee attendances with optional filters
    * @param month - Filter by month (1-12)
    * @param year - Filter by year
+   * @param page - Optional pagination - page number (starts from 1)
+   * @param page_size - Optional pagination - items per page (1-1000)
    * @returns Promise<AttendanceListResponse> - Paginated attendance list
    */
-  listAll(month?: number, year?: number): Promise<AttendanceListResponse> {
+  listAll(month?: number, year?: number, page?: number, page_size?: number): Promise<AttendanceListResponse> {
     const params = new URLSearchParams();
     if (month) params.append('month', month.toString());
     if (year) params.append('year', year.toString());
+    if (page) params.append('page', page.toString());
+    if (page_size) params.append('page_size', page_size.toString());
     
     const queryString = params.toString();
     const url = queryString ? `/employee-attendances/?${queryString}` : '/employee-attendances/';
@@ -53,12 +57,16 @@ export const EmployeeAttendanceService = {
    * Get all employee attendances by branch with required filters
    * @param month - Filter by month (1-12, required)
    * @param year - Filter by year (required)
+   * @param page - Optional pagination - page number (starts from 1)
+   * @param page_size - Optional pagination - items per page (1-1000)
    * @returns Promise<AttendanceListResponse> - Paginated attendance list
    */
-  listByBranch(month: number, year: number): Promise<AttendanceListResponse> {
+  listByBranch(month: number, year: number, page?: number, page_size?: number): Promise<AttendanceListResponse> {
     const params = new URLSearchParams();
     params.append('month', month.toString());
     params.append('year', year.toString());
+    if (page) params.append('page', page.toString());
+    if (page_size) params.append('page_size', page_size.toString());
     
     return Api.get<AttendanceListResponse>(`/employee-attendances/branch?${params.toString()}`);
   },

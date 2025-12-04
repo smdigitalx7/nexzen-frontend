@@ -16,19 +16,19 @@ import {
 import {
   SchoolClassDropdown,
   SchoolSectionDropdown,
-  SchoolExamDropdown,
+  SchoolTestDropdown,
 } from "@/common/components/shared/Dropdowns";
 import { useSchoolEnrollmentsList } from "@/features/school/hooks/use-school-enrollments";
 import {
   useSchoolSubjects,
-  useSchoolExams,
+  useSchoolTests,
 } from "@/features/school/hooks/use-school-dropdowns";
-import { useBulkCreateMultipleStudentsExamMarks } from "@/features/school/hooks/use-school-exam-marks";
+import { useBulkCreateMultipleStudentsTestMarks } from "@/features/school/hooks/use-school-test-marks";
 import type {
-  CreateBulkMultipleStudentsRequest,
-  BulkMultipleStudentsSubject,
-  BulkMultipleStudentsStudent,
-} from "@/features/school/types/exam-marks";
+  CreateBulkMultipleStudentsTestRequest,
+  BulkMultipleStudentsTestSubject,
+  BulkMultipleStudentsTestStudent,
+} from "@/features/school/types/test-marks";
 import type { SchoolEnrollmentRead } from "@/features/school/types/enrollments";
 
 interface StudentMarksData {
@@ -39,21 +39,21 @@ interface StudentMarksData {
   marks: Record<number, { marks_obtained: number; remarks: string }>;
 }
 
-interface AddMarksByClassDialogProps {
+interface AddTestMarksByClassDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-const AddMarksByClassDialog = ({
+const AddTestMarksByClassDialog = ({
   isOpen,
   onClose,
   onSuccess,
-}: AddMarksByClassDialogProps) => {
+}: AddTestMarksByClassDialogProps) => {
   const [selectedClass, setSelectedClass] = useState<number | null>(null);
   const [selectedSection, setSelectedSection] = useState<number | null>(null);
-  const [selectedExam, setSelectedExam] = useState<number | null>(null);
-  const [examName, setExamName] = useState<string>("");
+  const [selectedTest, setSelectedTest] = useState<number | null>(null);
+  const [testName, setTestName] = useState<string>("");
   const [marksData, setMarksData] = useState<Record<number, StudentMarksData>>(
     {}
   );
@@ -65,8 +65,8 @@ const AddMarksByClassDialog = ({
     if (!isOpen) {
       setSelectedClass(null);
       setSelectedSection(null);
-      setSelectedExam(null);
-      setExamName("");
+      setSelectedTest(null);
+      setTestName("");
       setMarksData({});
     }
   }, [isOpen]);
@@ -113,20 +113,20 @@ const AddMarksByClassDialog = ({
     enabled: Boolean(selectedClass),
   });
 
-  // Fetch exam name when exam is selected
-  const { data: examsData } = useSchoolExams({ enabled: true });
+  // Fetch test name when test is selected
+  const { data: testsData } = useSchoolTests({ enabled: true });
   useEffect(() => {
-    if (selectedExam && examsData?.items) {
-      const exam = examsData.items.find((e) => e.exam_id === selectedExam);
-      if (exam) {
-        setExamName(exam.exam_name);
+    if (selectedTest && testsData?.items) {
+      const test = testsData.items.find((t) => t.test_id === selectedTest);
+      if (test) {
+        setTestName(test.test_name);
       } else {
-        setExamName("");
+        setTestName("");
       }
     } else {
-      setExamName("");
+      setTestName("");
     }
-  }, [selectedExam, examsData]);
+  }, [selectedTest, testsData]);
 
   // Initialize marks data when students/subjects change
   useEffect(() => {
@@ -262,20 +262,20 @@ const AddMarksByClassDialog = ({
   );
 
   // Bulk create mutation
-  const bulkCreateMutation = useBulkCreateMultipleStudentsExamMarks();
+  const bulkCreateMutation = useBulkCreateMultipleStudentsTestMarks();
 
   // Handle save
   const handleSave = useCallback(() => {
     if (
-      !selectedExam ||
-      !examName ||
+      !selectedTest ||
+      !testName ||
       students.length === 0 ||
       subjects.length === 0
     ) {
       return;
     }
 
-    const studentsPayload: BulkMultipleStudentsStudent[] = students.map(
+    const studentsPayload: BulkMultipleStudentsTestStudent[] = students.map(
       (student) => {
         const studentData = marksData[student.enrollment_id];
         if (!studentData) {
@@ -286,7 +286,7 @@ const AddMarksByClassDialog = ({
           };
         }
 
-        const subjectsPayload: BulkMultipleStudentsSubject[] = subjects.map(
+        const subjectsPayload: BulkMultipleStudentsTestSubject[] = subjects.map(
           (subject) => {
             const markData = studentData.marks[subject.subject_id];
             return {
@@ -306,10 +306,10 @@ const AddMarksByClassDialog = ({
       }
     );
 
-    const payload: CreateBulkMultipleStudentsRequest = {
-      exam_id: selectedExam,
+    const payload: CreateBulkMultipleStudentsTestRequest = {
+      test_id: selectedTest,
       students: studentsPayload,
-      exam_name: examName,
+      test_name: testName,
     };
 
     bulkCreateMutation.mutate(payload, {
@@ -320,8 +320,8 @@ const AddMarksByClassDialog = ({
       },
     });
   }, [
-    selectedExam,
-    examName,
+    selectedTest,
+    testName,
     students,
     subjects,
     marksData,
@@ -332,7 +332,7 @@ const AddMarksByClassDialog = ({
 
   // Check if all required fields are selected (section is optional)
   const isReady = Boolean(
-    selectedClass && selectedExam && students.length > 0 && subjects.length > 0
+    selectedClass && selectedTest && students.length > 0 && subjects.length > 0
   );
 
   // Check if there are any marks entered
@@ -347,11 +347,11 @@ const AddMarksByClassDialog = ({
       <DialogContent className="max-w-7xl w-full flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle className="text-xl font-semibold">
-            Add Marks by Class
+            Add Test Marks by Class
           </DialogTitle>
           <DialogDescription className="sr-only">
-            Add exam marks for multiple students in a class by selecting class,
-            section, and exam.
+            Add test marks for multiple students in a class by selecting class,
+            section, and test.
           </DialogDescription>
         </DialogHeader>
 
@@ -390,14 +390,14 @@ const AddMarksByClassDialog = ({
 
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium whitespace-nowrap">
-                Exam: <span className="text-red-500">*</span>
+                Test: <span className="text-red-500">*</span>
               </label>
-              <SchoolExamDropdown
-                value={selectedExam}
-                onChange={setSelectedExam}
-                placeholder="Select exam"
+              <SchoolTestDropdown
+                value={selectedTest}
+                onChange={setSelectedTest}
+                placeholder="Select test"
                 emptyValue
-                emptyValueLabel="Select exam"
+                emptyValueLabel="Select test"
                 className="w-48"
               />
             </div>
@@ -439,18 +439,18 @@ const AddMarksByClassDialog = ({
             </div>
           )}
 
-          {selectedClass && !enrollmentsLoading && !selectedExam && (
+          {selectedClass && !enrollmentsLoading && !selectedTest && (
             <Alert className="mt-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Please select an exam to start entering marks.
+                Please select a test to start entering marks.
               </AlertDescription>
             </Alert>
           )}
 
           {selectedClass &&
             !enrollmentsLoading &&
-            selectedExam &&
+            selectedTest &&
             students.length === 0 && (
               <Alert className="mt-4">
                 <AlertCircle className="h-4 w-4" />
@@ -463,7 +463,7 @@ const AddMarksByClassDialog = ({
 
           {selectedClass &&
             !enrollmentsLoading &&
-            selectedExam &&
+            selectedTest &&
             subjects.length === 0 && (
               <Alert className="mt-4">
                 <AlertCircle className="h-4 w-4" />
@@ -573,4 +573,5 @@ const AddMarksByClassDialog = ({
   );
 };
 
-export default AddMarksByClassDialog;
+export default AddTestMarksByClassDialog;
+

@@ -1,3 +1,8 @@
+export interface EmployeeMinimal {
+  employee_id: number;
+  employee_name: string;
+}
+
 export interface EmployeeRead {
   employee_id: number;
   institute_id: number;

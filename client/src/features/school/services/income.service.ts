@@ -23,7 +23,7 @@ export const SchoolIncomeService = {
     return Api.get<SchoolRecentIncome[]>(`/school/income/recent${limit ? `?limit=${limit}` : ''}`);
   },
 
-  list(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string }) {
+  list(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string; page?: number; page_size?: number }) {
     return Api.get<SchoolIncomeRead[]>(`/school/income`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
   
