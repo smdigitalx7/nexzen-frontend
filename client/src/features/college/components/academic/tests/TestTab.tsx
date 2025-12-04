@@ -2,6 +2,7 @@
 import { FileText, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
+import { DatePicker } from "@/common/components/ui/date-picker";
 import { FormDialog, ConfirmDialog } from "@/common/components/shared";
 import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
 import { useToast } from '@/common/hooks/use-toast';
@@ -53,6 +54,7 @@ export const TestTab = ({
   } = useFormState({
     initialData: { 
       test_name: "", 
+      test_date: "",
       pass_marks: "",
       max_marks: ""
     }
@@ -67,6 +69,7 @@ export const TestTab = ({
   } = useFormState({
     initialData: { 
       test_name: "", 
+      test_date: "",
       pass_marks: "",
       max_marks: ""
     }
@@ -84,12 +87,84 @@ export const TestTab = ({
       return;
     }
 
+    // Validate test date
+    if (!newTest.test_date?.trim()) {
+      toast({
+        title: "Error",
+        description: "Test date is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate date format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(newTest.test_date)) {
+      toast({
+        title: "Error",
+        description: "Test date must be in YYYY-MM-DD format",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate max marks
+    const maxMarksStr = newTest.max_marks?.trim() || "";
+    if (!maxMarksStr) {
+      toast({
+        title: "Error",
+        description: "Max marks is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const maxMarks = parseInt(maxMarksStr, 10);
+    if (isNaN(maxMarks) || maxMarks <= 0) {
+      toast({
+        title: "Error",
+        description: "Max marks must be a positive number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate pass marks
+    const passMarksStr = newTest.pass_marks?.trim() || "";
+    if (!passMarksStr) {
+      toast({
+        title: "Error",
+        description: "Pass marks is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const passMarks = parseInt(passMarksStr, 10);
+    if (isNaN(passMarks) || passMarks < 0) {
+      toast({
+        title: "Error",
+        description: "Pass marks must be a non-negative number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passMarks > maxMarks) {
+      toast({
+        title: "Error",
+        description: "Pass marks cannot be greater than max marks",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const payload: CollegeTestCreate = {
         test_name: newTest.test_name.trim(),
-        test_date: new Date().toISOString().split('T')[0],
-        pass_marks: parseInt(newTest.pass_marks || "50") || 50,
-        max_marks: parseInt(newTest.max_marks || "50") || 50,
+        test_date: newTest.test_date.trim(),
+        pass_marks: passMarks,
+        max_marks: maxMarks,
       };
       await createTest.mutateAsync(payload);
       
@@ -98,6 +173,7 @@ export const TestTab = ({
       // Toast handled by mutation hook
     } catch (error) {
       // Error toast is handled by mutation hook
+      console.error("Error creating test:", error);
     }
   };
 
@@ -114,6 +190,7 @@ export const TestTab = ({
     try {
       const updatePayload: CollegeTestUpdate = {
         test_name: editTest.test_name?.trim() || undefined,
+        test_date: editTest.test_date?.trim() || undefined,
         pass_marks: editTest.pass_marks !== "" && editTest.pass_marks !== undefined ? Number(editTest.pass_marks) : undefined,
         max_marks: editTest.max_marks !== "" && editTest.max_marks !== undefined ? Number(editTest.max_marks) : undefined,
       };
@@ -146,6 +223,7 @@ export const TestTab = ({
     setSelectedTest(test);
     setEditTest({ 
       test_name: test.test_name,
+      test_date: test.test_date || "",
       pass_marks: test.pass_marks?.toString() || "50",
       max_marks: test.max_marks?.toString() || "50"
     });
@@ -226,6 +304,17 @@ export const TestTab = ({
               value={newTest.test_name}
               onChange={(e) => updateNewTestField('test_name', e.target.value)}
               placeholder="Enter test name"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="test_date">Test Date</Label>
+            <DatePicker
+              id="test_date"
+              value={newTest.test_date}
+              onChange={(value) => updateNewTestField('test_date', value)}
+              placeholder="Select test date"
+              required
             />
           </div>
           <div className="space-y-2">
@@ -233,9 +322,11 @@ export const TestTab = ({
             <Input
               id="max_marks"
               type="number"
+              min="1"
               value={newTest.max_marks}
               onChange={(e) => updateNewTestField('max_marks', e.target.value)}
               placeholder="Enter total marks"
+              required
             />
           </div>
           <div className="space-y-2">
@@ -243,9 +334,11 @@ export const TestTab = ({
             <Input
               id="pass_marks"
               type="number"
+              min="0"
               value={newTest.pass_marks}
               onChange={(e) => updateNewTestField('pass_marks', e.target.value)}
               placeholder="Enter pass marks"
+              required
             />
           </div>
         </div>
@@ -274,6 +367,15 @@ export const TestTab = ({
               value={editTest.test_name}
               onChange={(e) => updateEditTestField('test_name', e.target.value)}
               placeholder="Enter test name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit_test_date">Test Date</Label>
+            <DatePicker
+              id="edit_test_date"
+              value={editTest.test_date}
+              onChange={(value) => updateEditTestField('test_date', value)}
+              placeholder="Select test date"
             />
           </div>
           <div className="space-y-2">

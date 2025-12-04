@@ -2,6 +2,7 @@
 import { FileText, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
+import { DatePicker } from "@/common/components/ui/date-picker";
 import { FormDialog, ConfirmDialog } from "@/common/components/shared";
 import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
 import { useToast } from '@/common/hooks/use-toast';
@@ -29,6 +30,7 @@ export interface TestTabProps {
 // Initial form data
 const initialTestFormData = { 
   test_name: "", 
+  test_date: "",
   pass_marks: "",
   max_marks: ""
 };
@@ -87,13 +89,64 @@ const TestTabComponent = ({
       return false;
     }
 
-    const passMarks = parseInt(form.pass_marks || "50");
-    const maxMarks = parseInt(form.max_marks || "50");
-
-    if (passMarks < 0 || maxMarks < 0) {
+    // Validate test date
+    if (!form.test_date?.trim()) {
       toast({
         title: "Error",
-        description: "Marks cannot be negative",
+        description: "Test date is required",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Validate date format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(form.test_date)) {
+      toast({
+        title: "Error",
+        description: "Test date must be in YYYY-MM-DD format",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Validate max marks
+    const maxMarksStr = form.max_marks?.trim() || "";
+    if (!maxMarksStr) {
+      toast({
+        title: "Error",
+        description: "Max marks is required",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    const maxMarks = parseInt(maxMarksStr, 10);
+    if (isNaN(maxMarks) || maxMarks <= 0) {
+      toast({
+        title: "Error",
+        description: "Max marks must be a positive number",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Validate pass marks
+    const passMarksStr = form.pass_marks?.trim() || "";
+    if (!passMarksStr) {
+      toast({
+        title: "Error",
+        description: "Pass marks is required",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    const passMarks = parseInt(passMarksStr, 10);
+    if (isNaN(passMarks) || passMarks < 0) {
+      toast({
+        title: "Error",
+        description: "Pass marks must be a non-negative number",
         variant: "destructive",
       });
       return false;
@@ -116,12 +169,16 @@ const TestTabComponent = ({
     if (!validateTestForm(newTest)) return;
 
     try {
+      const passMarks = parseInt(newTest.pass_marks!.trim(), 10);
+      const maxMarks = parseInt(newTest.max_marks!.trim(), 10);
+
       const payload: SchoolTestCreate = {
         test_name: newTest.test_name!.trim(),
-        test_date: new Date().toISOString().split('T')[0],
-        pass_marks: parseInt(newTest.pass_marks || "50") || 50,
-        max_marks: parseInt(newTest.max_marks || "50") || 50,
+        test_date: newTest.test_date!.trim(),
+        pass_marks: passMarks,
+        max_marks: maxMarks,
       };
+      
       await createTest.mutateAsync(payload);
       
       resetNewTest();
@@ -129,6 +186,7 @@ const TestTabComponent = ({
       // Toast handled by mutation hook
     } catch (error) {
       // Error toast is handled by mutation hook
+      console.error("Error creating test:", error);
     }
   }, [newTest, validateTestForm, createTest, resetNewTest]);
 
@@ -138,6 +196,7 @@ const TestTabComponent = ({
     try {
       const updatePayload: SchoolTestUpdate = {
         test_name: editTest.test_name?.trim() || undefined,
+        test_date: editTest.test_date?.trim() || undefined,
         pass_marks: editTest.pass_marks !== "" && editTest.pass_marks !== undefined ? Number(editTest.pass_marks) : undefined,
         max_marks: editTest.max_marks !== "" && editTest.max_marks !== undefined ? Number(editTest.max_marks) : undefined,
       };
@@ -171,6 +230,7 @@ const TestTabComponent = ({
     setSelectedTest(test);
     setEditTest({ 
       test_name: test.test_name,
+      test_date: test.test_date || "",
       pass_marks: test.pass_marks?.toString() || "50",
       max_marks: test.max_marks?.toString() || "50"
     });
@@ -262,41 +322,42 @@ const TestTabComponent = ({
   }
 
   // Show empty state if no tests
-  if (!tests || tests.length === 0) {
-    return (
-      <div className="text-center p-8">
-        <div className="space-y-4">
-          <div className="text-muted-foreground">
-            <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-medium">No Tests Found</h3>
-            <p className="text-sm">Get started by creating your first test.</p>
-          </div>
-          <button
-            onClick={handleCreateFirstTest}
-            className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-          >
-            Create First Test
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const showEmptyState = !tests || tests.length === 0;
 
   return (
     <div className="space-y-4">
-      <EnhancedDataTable
-        data={tests}
-        columns={columns}
-        title="Tests"
-        searchKey="test_name"
-        exportable={true}
-        onAdd={() => setIsAddTestOpen(true)}
-        addButtonText="Add Test"
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
-      />
+      {showEmptyState ? (
+        <div className="text-center p-8">
+          <div className="space-y-4">
+            <div className="text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <h3 className="text-lg font-medium">No Tests Found</h3>
+              <p className="text-sm">Get started by creating your first test.</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleCreateFirstTest}
+              className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Create First Test
+            </button>
+          </div>
+        </div>
+      ) : (
+        <EnhancedDataTable
+          data={tests}
+          columns={columns}
+          title="Tests"
+          searchKey="test_name"
+          exportable={true}
+          onAdd={() => setIsAddTestOpen(true)}
+          addButtonText="Add Test"
+          showActions={true}
+          actionButtonGroups={actionButtonGroups}
+          actionColumnHeader="Actions"
+          showActionLabels={true}
+        />
+      )}
 
       {/* Add Test Dialog */}
       <FormDialog
@@ -318,6 +379,17 @@ const TestTabComponent = ({
               value={newTest.test_name}
               onChange={(e) => updateNewTestField('test_name', e.target.value)}
               placeholder="Enter test name"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="test_date">Test Date</Label>
+            <DatePicker
+              id="test_date"
+              value={newTest.test_date}
+              onChange={(value) => updateNewTestField('test_date', value)}
+              placeholder="Select test date"
+              required
             />
           </div>
           <div className="space-y-2">
@@ -325,18 +397,23 @@ const TestTabComponent = ({
             <Input
               id="max_marks"
               type="number"
+              min="1"
               value={newTest.max_marks}
               onChange={(e) => updateNewTestField('max_marks', e.target.value)}
               placeholder="Enter total marks"
+              required
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="pass_marks">Pass Marks</Label>
             <Input
               id="pass_marks"
+              type="number"
+              min="0"
               value={newTest.pass_marks}
               onChange={(e) => updateNewTestField('pass_marks', e.target.value)}
               placeholder="Enter pass marks"
+              required
             />
           </div>
         </div>
@@ -365,6 +442,15 @@ const TestTabComponent = ({
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="edit_test_date">Test Date</Label>
+            <DatePicker
+              id="edit_test_date"
+              value={editTest.test_date}
+              onChange={(value) => updateEditTestField('test_date', value)}
+              placeholder="Select test date"
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="edit_max_marks">Max Marks</Label>
             <Input
               id="edit_max_marks"
@@ -378,6 +464,8 @@ const TestTabComponent = ({
             <Label htmlFor="edit_pass_marks">Pass Marks</Label>
             <Input
               id="edit_pass_marks"
+              type="number"
+              min="0"
               value={editTest.pass_marks}
               onChange={(e) => updateEditTestField('pass_marks', e.target.value)}
               placeholder="Enter pass marks"

@@ -481,19 +481,44 @@ const TestMarksManagementComponent = ({
   // Process and filter data - flatten grouped response from backend
   const flattenedMarks = useMemo(() => {
     if (!testMarksData) return [] as TestMarkWithDetails[];
+    
+    // Ensure we have an array - handle different response structures
+    let dataArray: any[] = [];
+    if (Array.isArray(testMarksData)) {
+      dataArray = testMarksData;
+    } else if (testMarksData && typeof testMarksData === 'object') {
+      // Handle wrapped responses
+      if (Array.isArray(testMarksData.data)) {
+        dataArray = testMarksData.data;
+      } else if (Array.isArray(testMarksData.items)) {
+        dataArray = testMarksData.items;
+      } else if (Array.isArray(testMarksData.results)) {
+        dataArray = testMarksData.results;
+      } else {
+        // If it's an object but not an array, return empty
+        console.warn('testMarksData is not an array or array-wrapped object:', testMarksData);
+        return [] as TestMarkWithDetails[];
+      }
+    } else {
+      console.warn('testMarksData is not a valid type:', typeof testMarksData, testMarksData);
+      return [] as TestMarkWithDetails[];
+    }
+    
     const items: TestMarkWithDetails[] = [];
-    testMarksData.forEach((group) => {
-      if (group.students) {
-        group.students.forEach((student) => {
-          items.push({
-            ...student,
-            test_name: group.test_name,
-            subject_name: group.subject_name,
-            test_date: group.conducted_at,
-            test_id: group.test_id,
-            subject_id: group.subject_id,
+    dataArray.forEach((group) => {
+      if (group && group.students) {
+        if (Array.isArray(group.students)) {
+          group.students.forEach((student: any) => {
+            items.push({
+              ...student,
+              test_name: group.test_name,
+              subject_name: group.subject_name,
+              test_date: group.conducted_at,
+              test_id: group.test_id,
+              subject_id: group.subject_id,
+            });
           });
-        });
+        }
       }
     });
     return items;

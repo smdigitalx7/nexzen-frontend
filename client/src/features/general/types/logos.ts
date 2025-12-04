@@ -25,3 +25,5 @@ export interface LogoStatusResponse {
   has_right_logo: boolean;
 }
 
+
+

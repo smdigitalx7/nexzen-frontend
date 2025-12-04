@@ -33,21 +33,39 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
   // ✅ CRITICAL FIX: Global MutationObserver to fix aria-hidden violations
   // Radix UI sets aria-hidden on elements that contain focused descendants, which violates accessibility
   useEffect(() => {
-    const fixAriaHiddenViolations = () => {
-      // Find all elements with aria-hidden="true"
-      const allElements = document.querySelectorAll('[aria-hidden="true"]');
-      const activeElement = document.activeElement;
+    // Flag to prevent infinite recursion when we modify aria-hidden ourselves
+    let isFixingViolations = false;
 
-      allElements.forEach((el) => {
-        // If this element or any of its ancestors contains the active element, remove aria-hidden
-        if (el.contains(activeElement)) {
-          el.removeAttribute("aria-hidden");
-        }
-      });
+    const fixAriaHiddenViolations = () => {
+      // Prevent recursive calls
+      if (isFixingViolations) return;
+      isFixingViolations = true;
+
+      try {
+        // Find all elements with aria-hidden="true"
+        const allElements = document.querySelectorAll('[aria-hidden="true"]');
+        const activeElement = document.activeElement;
+
+        allElements.forEach((el) => {
+          // If this element or any of its ancestors contains the active element, remove aria-hidden
+          if (el.contains(activeElement)) {
+            el.removeAttribute("aria-hidden");
+          }
+        });
+      } finally {
+        // Use requestAnimationFrame to reset flag after DOM updates complete
+        requestAnimationFrame(() => {
+          isFixingViolations = false;
+        });
+      }
     };
 
     // ✅ CRITICAL: MutationObserver to watch for aria-hidden being set incorrectly
     const observer = new MutationObserver((mutations) => {
+      // Prevent recursive calls
+      if (isFixingViolations) return;
+
+      let shouldFix = false;
       mutations.forEach((mutation) => {
         if (
           mutation.type === "attributes" &&
@@ -59,6 +77,7 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
             if (target.contains(document.activeElement)) {
               // Remove aria-hidden immediately
               target.removeAttribute("aria-hidden");
+              shouldFix = true;
             }
           }
         }
@@ -71,6 +90,7 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
               if (element.getAttribute("aria-hidden") === "true") {
                 if (element.contains(document.activeElement)) {
                   element.removeAttribute("aria-hidden");
+                  shouldFix = true;
                 }
               }
               // Check descendants
@@ -80,6 +100,7 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
               descendants.forEach((desc) => {
                 if (desc.contains(document.activeElement)) {
                   desc.removeAttribute("aria-hidden");
+                  shouldFix = true;
                 }
               });
             }
@@ -87,8 +108,15 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
         }
       });
 
-      // Also run the fix function
-      fixAriaHiddenViolations();
+      // Only run fix function if we didn't already handle it in the mutation loop
+      // Use requestAnimationFrame to debounce and prevent stack overflow
+      if (shouldFix) {
+        requestAnimationFrame(() => {
+          if (!isFixingViolations) {
+            fixAriaHiddenViolations();
+          }
+        });
+      }
     });
 
     // Observe the entire document for aria-hidden changes
@@ -102,6 +130,7 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
     // ✅ CRITICAL FIX: Global body overflow safety mechanism
     // This ensures body overflow is always restored, preventing UI freezes
     let checkInterval: NodeJS.Timeout | null = null;
+    let focusChangeTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const checkAndRestoreBodyOverflow = () => {
       // Check if body is locked but no dialogs are open
@@ -131,7 +160,10 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
       }
 
       // ✅ CRITICAL: Remove aria-hidden from elements that have focused descendants
-      fixAriaHiddenViolations();
+      // Use requestAnimationFrame to debounce and prevent stack overflow
+      requestAnimationFrame(() => {
+        fixAriaHiddenViolations();
+      });
     };
 
     // Check every 100ms to catch stuck body overflow
@@ -146,17 +178,30 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     // ✅ CRITICAL: Also check on focus changes
+    // Debounce focus events to prevent excessive calls
     const handleFocusChange = () => {
-      fixAriaHiddenViolations();
+      // Clear any pending timeout
+      if (focusChangeTimeout) {
+        clearTimeout(focusChangeTimeout);
+      }
+      // Debounce focus changes to prevent stack overflow
+      focusChangeTimeout = setTimeout(() => {
+        requestAnimationFrame(() => {
+          fixAriaHiddenViolations();
+        });
+      }, 50); // 50ms debounce
     };
-    document.addEventListener("focusin", handleFocusChange);
-    document.addEventListener("focusout", handleFocusChange);
+    document.addEventListener("focusin", handleFocusChange, { passive: true });
+    document.addEventListener("focusout", handleFocusChange, { passive: true });
 
     // Cleanup
     return () => {
       observer.disconnect();
       if (checkInterval) {
         clearInterval(checkInterval);
+      }
+      if (focusChangeTimeout) {
+        clearTimeout(focusChangeTimeout);
       }
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       document.removeEventListener("focusin", handleFocusChange);
@@ -171,7 +216,8 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
       if (openDialogs.length === 0 && openAlerts.length === 0) {
         document.body.style.overflow = "";
       }
-      fixAriaHiddenViolations();
+      // Don't call fixAriaHiddenViolations in cleanup as it might trigger mutations
+      // The observer will be disconnected anyway
     };
   }, []);
 

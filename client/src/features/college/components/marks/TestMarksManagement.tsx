@@ -336,11 +336,33 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
   const flattenedMarks = useMemo(() => {
     if (!testMarksData) return [] as (CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; test_id?: number; subject_id?: number })[];
     
-    if (Array.isArray(testMarksData) && testMarksData.length > 0) {
+    // Ensure we have an array - handle different response structures
+    let dataArray: any[] = [];
+    if (Array.isArray(testMarksData)) {
+      dataArray = testMarksData;
+    } else if (testMarksData && typeof testMarksData === 'object') {
+      // Handle wrapped responses
+      if (Array.isArray(testMarksData.data)) {
+        dataArray = testMarksData.data;
+      } else if (Array.isArray(testMarksData.items)) {
+        dataArray = testMarksData.items;
+      } else if (Array.isArray(testMarksData.results)) {
+        dataArray = testMarksData.results;
+      } else {
+        // If it's an object but not an array, return empty
+        console.warn('testMarksData is not an array or array-wrapped object:', testMarksData);
+        return [] as (CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; test_id?: number; subject_id?: number })[];
+      }
+    } else {
+      console.warn('testMarksData is not a valid type:', typeof testMarksData, testMarksData);
+      return [] as (CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; test_id?: number; subject_id?: number })[];
+    }
+    
+    if (dataArray.length > 0) {
       const flattened: (CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; test_id?: number; subject_id?: number })[] = [];
       
       // Check if data has nested structure: tests -> subjects -> students
-      const firstItem = testMarksData[0];
+      const firstItem = dataArray[0];
       const hasNestedStructure = 
         firstItem &&
         typeof firstItem === 'object' &&
@@ -349,7 +371,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
 
       if (hasNestedStructure) {
         // Handle nested structure: tests -> subjects -> students
-        testMarksData.forEach((test: unknown) => {
+        dataArray.forEach((test: unknown) => {
           if (
             test &&
             typeof test === 'object' &&
@@ -414,7 +436,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
       }
 
       // Check if data has flat structure with subjects directly (old format)
-      const hasFlatSubjectStructure = testMarksData.some(
+      const hasFlatSubjectStructure = dataArray.some(
         (item) =>
           item &&
           typeof item === 'object' &&
@@ -425,7 +447,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
 
       if (hasFlatSubjectStructure) {
         // Flatten grouped data: iterate through groups and extract students
-        testMarksData.forEach((group: unknown) => {
+        dataArray.forEach((group: unknown) => {
           if (
             group &&
             typeof group === 'object' &&
