@@ -499,7 +499,7 @@ function LogsTab() {
   const { exportToExcel, isExporting, exportProgress } = useExcelExport();
 
   const {
-    data: readableLogs = [],
+    data: readableLogsData,
     isLoading,
     error,
     refetch,
@@ -509,6 +509,15 @@ function LogsTab() {
     limit,
     offset,
   });
+
+  // ✅ FIX: Ensure readableLogs is always an array
+  const readableLogs = useMemo(() => {
+    if (!readableLogsData) return [];
+    // Handle case where API returns { data: [...] } or direct array
+    return Array.isArray(readableLogsData)
+      ? readableLogsData
+      : (Array.isArray(readableLogsData?.data) ? readableLogsData.data : []);
+  }, [readableLogsData]);
 
   const deleteLogsMutation = useDeleteLogs();
   const deleteLogsByIdsMutation = useDeleteLogsByIds();
@@ -554,21 +563,22 @@ function LogsTab() {
   };
 
   const handleDelete = async () => {
-    // If audit IDs are selected, export selected logs first, then delete
+    // If audit IDs are selected, delete first, then export on success
     if (selectedAuditIds.length > 0) {
-      // Export selected logs before deletion
-      const selectedLogs = readableLogs.filter((log) =>
-        selectedAuditIds.includes(log.audit_id)
-      );
-      if (selectedLogs.length > 0) {
-        await exportCSV(selectedLogs);
-      }
-
       try {
         await deleteLogsByIdsMutation.mutateAsync({
           audit_ids: selectedAuditIds,
           confirm_deletion: true,
         });
+        
+        // ✅ Only export Excel after successful deletion
+        const selectedLogs = readableLogs.filter((log) =>
+          selectedAuditIds.includes(log.audit_id)
+        );
+        if (selectedLogs.length > 0) {
+          await exportCSV(selectedLogs);
+        }
+        
         setShowDeleteDialog(false);
         setSelectedAuditIds([]);
         // Reset offset if current page might be empty after deletion
@@ -581,13 +591,16 @@ function LogsTab() {
         setTimeout(async () => {
           await refetch();
         }, 100);
-      } catch (error) {
-        // Error handled by mutation hook
+      } catch (error: any) {
+        // Error message is shown by mutation hook's onError
+        // The error detail from API response will be displayed in the toast
+        console.error("Delete failed:", error);
+        // Don't close dialog on error so user can see the error message
       }
       return;
     }
 
-    // Otherwise, use date range deletion - export all visible logs first
+    // Otherwise, use date range deletion
     if (!startDate || !endDate) {
       toast({
         title: "Validation Error",
@@ -609,17 +622,18 @@ function LogsTab() {
       return;
     }
 
-    // Export all visible logs before deletion
-    if (readableLogs.length > 0) {
-      await exportCSV(readableLogs);
-    }
-
     try {
       await deleteLogsMutation.mutateAsync({
         start_date: startDate,
         end_date: endDate,
         confirm_deletion: true,
       });
+      
+      // ✅ Only export Excel after successful deletion
+      if (readableLogs.length > 0) {
+        await exportCSV(readableLogs);
+      }
+      
       setShowDeleteDialog(false);
       setSelectedAuditIds([]);
       // Reset offset after date range deletion
@@ -630,8 +644,11 @@ function LogsTab() {
       setTimeout(async () => {
         await refetch();
       }, 100);
-    } catch (error) {
-      // Error handled by mutation hook
+    } catch (error: any) {
+      // Error message is shown by mutation hook's onError
+      // The error detail from API response will be displayed in the toast
+      console.error("Delete failed:", error);
+      // Don't close dialog on error so user can see the error message
     }
   };
 

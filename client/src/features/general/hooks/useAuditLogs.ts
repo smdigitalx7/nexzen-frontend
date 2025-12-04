@@ -69,13 +69,18 @@ export const useDeleteLogs = () => {
       batchInvalidateAndRefetch([["audit-logs"]]);
     },
     onError: (error: any) => {
+      // Extract detailed error message from API response
+      const errorMessage = 
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to delete audit logs.";
+      
       toast({
         title: "Delete Failed",
-        description:
-          error?.response?.data?.detail ||
-          error?.message ||
-          "Failed to delete audit logs.",
+        description: errorMessage,
         variant: "destructive",
+        duration: 8000, // Show for 8 seconds to ensure user can read the full error message
       });
     },
   });
@@ -103,13 +108,18 @@ export const useDeleteLogsByIds = () => {
       batchInvalidateAndRefetch([["audit-logs"]]);
     },
     onError: (error: any) => {
+      // Extract detailed error message from API response
+      const errorMessage = 
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to delete audit logs.";
+      
       toast({
         title: "Delete Failed",
-        description:
-          error?.response?.data?.detail ||
-          error?.message ||
-          "Failed to delete audit logs.",
+        description: errorMessage,
         variant: "destructive",
+        duration: 8000, // Show for 8 seconds to ensure user can read the full error message
       });
     },
   });
