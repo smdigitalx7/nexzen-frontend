@@ -4,8 +4,8 @@ import { cn } from "@/common/utils";
 import { Button } from "@/common/components/ui/button";
 import { Input } from "@/common/components/ui/input";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
-import { EmployeesService } from "@/features/general/services/employees.service";
-import type { EmployeeRead } from "@/features/general/types/employees";
+import { useEmployeesMinimal } from "@/features/general/hooks/useEmployees";
+import type { EmployeeMinimal } from "@/features/general/types/employees";
 
 interface EmployeeSelectProps {
   value?: string;
@@ -23,53 +23,18 @@ export function EmployeeSelect({
   id,
 }: EmployeeSelectProps) {
   const [open, setOpen] = React.useState(false);
-  const [employees, setEmployees] = React.useState<EmployeeRead[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const dropdownRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
-  // Fetch employees directly without cache - fresh fetch every time
-  React.useEffect(() => {
-    let isMounted = true;
+  // ✅ FIX: Use minimal endpoint for better performance - only fetch when dropdown is open
+  const { data: employees = [], isLoading } = useEmployeesMinimal(open);
 
-    const fetchEmployees = async () => {
-      setIsLoading(true);
-      try {
-        const response = await EmployeesService.listByBranch();
-        if (isMounted) {
-          if (response && Array.isArray(response)) {
-            setEmployees(response);
-          } else if (response?.data && Array.isArray(response.data)) {
-            setEmployees(response.data);
-          } else {
-            setEmployees([]);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch employees:", error);
-        if (isMounted) {
-          setEmployees([]);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    if (open) {
-      fetchEmployees();
-    }
-
-    return () => {
-      isMounted = false;
-    };
-  }, [open]);
-
-  const selectedEmployee = employees.find(
-    (employee) => employee.employee_id.toString() === value
-  );
+  const selectedEmployee = React.useMemo(() => {
+    return employees.find(
+      (employee) => employee.employee_id.toString() === value
+    );
+  }, [employees, value]);
 
   const hasValidValue = value && value !== "" && value !== "0";
 
@@ -82,8 +47,7 @@ export function EmployeeSelect({
     return employees.filter(
       (emp) =>
         emp.employee_name?.toLowerCase().includes(query) ||
-        emp.employee_code?.toLowerCase().includes(query) ||
-        emp.designation?.toLowerCase().includes(query)
+        emp.employee_id.toString().includes(query)
     );
   }, [employees, searchQuery]);
 
@@ -135,7 +99,7 @@ export function EmployeeSelect({
           <div className="flex flex-col items-start">
             <span className="font-medium">{selectedEmployee.employee_name}</span>
             <span className="text-xs text-muted-foreground">
-              {selectedEmployee.designation || "N/A"} • {selectedEmployee.employee_code || "N/A"}
+              ID: {selectedEmployee.employee_id}
             </span>
           </div>
         ) : (
@@ -229,7 +193,7 @@ export function EmployeeSelect({
                       <div className="flex flex-col flex-1">
                         <span className="font-medium">{employee.employee_name}</span>
                         <span className="text-xs text-muted-foreground">
-                          {employee.designation || "N/A"} • {employee.employee_code || "N/A"}
+                          Employee ID: {employee.employee_id}
                         </span>
                       </div>
                     </button>

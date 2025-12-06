@@ -3,7 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/core/auth/authStore";
 import { useTabNavigation } from "@/common/hooks/use-tab-navigation";
 import { PayrollsService } from "@/features/general/services/payrolls.service";
-import { useEmployeesByBranch, employeeKeys } from "@/features/general/hooks/useEmployees";
+import {
+  useEmployeesByBranch,
+  employeeKeys,
+} from "@/features/general/hooks/useEmployees";
 import type {
   PayrollRead,
   PayrollCreate,
@@ -52,15 +55,13 @@ export const usePayrollsByBranch = (query?: PayrollQuery) => {
   const now = new Date();
   const month = query?.month ?? now.getMonth() + 1;
   const year = query?.year ?? now.getFullYear();
-  
+
   return useQuery({
-    queryKey: [...payrollKeys.byBranch(), { month, year, status: query?.status }],
-    queryFn: () =>
-      PayrollsService.listByBranch(
-        month,
-        year,
-        query?.status
-      ),
+    queryKey: [
+      ...payrollKeys.byBranch(),
+      { month, year, status: query?.status },
+    ],
+    queryFn: () => PayrollsService.listByBranch(month, year, query?.status),
   });
 };
 
@@ -93,7 +94,9 @@ export const usePayrollManagement = () => {
   // Initialize month/year to current values (required parameters)
   const now = new Date();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
+  const [selectedMonth, setSelectedMonth] = useState<number>(
+    now.getMonth() + 1
+  );
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   const [selectedStatus, setSelectedStatus] = useState<string | undefined>();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -101,18 +104,27 @@ export const usePayrollManagement = () => {
   const [showPayslipDialog, setShowPayslipDialog] = useState(false);
   const [selectedPayroll, setSelectedPayroll] =
     useState<PayrollWithEmployee | null>(null);
-  const [selectedPayrollId, setSelectedPayrollId] = useState<number | null>(null);
+  const [selectedPayrollId, setSelectedPayrollId] = useState<number | null>(
+    null
+  );
 
   // API Hooks - Fetch payrolls filtered by current branch with month/year
   const {
     data: payrollsResp,
     isLoading: payrollsLoading,
     error,
-  } = usePayrollsByBranch({ month: selectedMonth, year: selectedYear, status: selectedStatus });
+  } = usePayrollsByBranch({
+    month: selectedMonth,
+    year: selectedYear,
+    status: selectedStatus,
+  });
 
   // Employees are needed for payroll management, but with caching to prevent excessive refetches
-  const { data: employees = [], isLoading: employeesLoading } =
+  const { data: employeesData = [], isLoading: employeesLoading } =
     useEmployeesByBranch(true);
+
+  // ✅ FIX: Ensure employees is always an array to prevent "find is not a function" errors
+  const employees = Array.isArray(employeesData) ? employeesData : [];
 
   // Additional API hooks for enhanced features
   const { data: dashboardStats } = useQuery({
@@ -121,12 +133,12 @@ export const usePayrollManagement = () => {
   });
 
   // Detailed payroll query for view functionality
-  const { data: detailedPayroll, isLoading: detailedPayrollLoading } = useQuery({
-    queryKey: payrollKeys.detail(selectedPayrollId || 0),
-    queryFn: () => PayrollsService.getById(selectedPayrollId!),
-    enabled: !!selectedPayrollId,
-  });
-
+  const { data: detailedPayroll, isLoading: detailedPayrollLoading } =
+    useQuery<PayrollRead>({
+      queryKey: payrollKeys.detail(selectedPayrollId || 0),
+      queryFn: () => PayrollsService.getById(selectedPayrollId!),
+      enabled: !!selectedPayrollId,
+    });
 
   // Interface for API response structure (month groups)
   interface PayrollMonthGroup {
@@ -138,40 +150,56 @@ export const usePayrollManagement = () => {
   const currentPayrolls = useMemo(() => {
     // Flatten the nested structure: data -> monthGroups -> payrolls
     // Both listAll and listByBranch return the same structure: PayrollListResponse with data as PayrollMonthGroup[]
-    const flattenedPayrolls =
-      Array.isArray(payrollsResp?.data)
-        ? (payrollsResp.data as unknown as PayrollMonthGroup[]).flatMap(
-            (monthGroup: PayrollMonthGroup) => monthGroup.payrolls || []
-          )
-        : [];
+    // ✅ FIX: Preserve all fields from API response including employee_name, employee_type, etc.
+    const flattenedPayrolls = Array.isArray(payrollsResp?.data)
+      ? (payrollsResp.data as unknown as PayrollMonthGroup[]).flatMap(
+          (monthGroup: PayrollMonthGroup) => {
+            // ✅ FIX: Preserve ALL fields from API response - don't filter anything
+            return monthGroup.payrolls || [];
+          }
+        )
+      : [];
 
     // Enrich payroll data with employee names
-    const enrichedPayrolls = flattenedPayrolls.map((payrollRecord: PayrollRead) => {
-      const employee = employees.find(
-        (emp) => emp.employee_id === payrollRecord.employee_id
-      );
+    // ✅ FIX: API response already includes employee_name, so we should preserve it
+    const enrichedPayrolls = flattenedPayrolls.map(
+      (
+        payrollRecord: PayrollRead & {
+          employee_name?: string;
+          employee_type?: string;
+          payroll_month?: number | string;
+          payroll_year?: number;
+        }
+      ) => {
+        // ✅ FIX: The API response already includes employee_name, use it directly
+        // Cast to include employee_name which comes from API but isn't in PayrollRead type
+        const apiEmployeeName = payrollRecord.employee_name;
+        const apiEmployeeType = payrollRecord.employee_type;
 
-      // Better fallback logic for employee names - prioritize API response data
-      const payrollWithExtras = payrollRecord as PayrollRead & { employee_name?: string; employee_type?: string };
-      let employeeName = "Unknown Employee";
-      if (
-        payrollWithExtras.employee_name &&
-        payrollWithExtras.employee_name !== "Unknown Employee"
-      ) {
-        employeeName = payrollWithExtras.employee_name;
-      } else if (employee?.employee_name) {
-        employeeName = employee.employee_name;
-      } else {
-        employeeName = `Employee #${payrollRecord.employee_id}`;
+        const employee = employees.find(
+          (emp) => emp.employee_id === payrollRecord.employee_id
+        );
+
+        // ✅ FIX: Use employee_name from API response first, then fall back to employees array
+        const employeeName =
+          apiEmployeeName &&
+          apiEmployeeName.trim() !== "" &&
+          apiEmployeeName !== "Unknown Employee"
+            ? apiEmployeeName
+            : employee?.employee_name ||
+              `Employee #${payrollRecord.employee_id}`;
+
+        const employeeType =
+          apiEmployeeType || employee?.employee_type || "Unknown";
+
+        // ✅ FIX: Preserve ALL fields from the API response, explicitly set employee_name
+        return {
+          ...payrollRecord, // This includes all fields from API
+          employee_name: employeeName, // Explicitly set to ensure it's always present
+          employee_type: employeeType,
+        };
       }
-
-      return {
-        ...payrollRecord,
-        employee_name: employeeName,
-        employee_type:
-          employee?.employee_type || payrollWithExtras.employee_type || "Unknown",
-      };
-    });
+    );
 
     return enrichedPayrolls;
   }, [payrollsResp, employees]);
@@ -185,7 +213,7 @@ export const usePayrollManagement = () => {
   }, [payrollsLoading, employeesLoading]);
 
   const filteredPayrolls = useMemo(() => {
-    return currentPayrolls.filter((payroll: any) => {
+    return currentPayrolls.filter((payroll: PayrollWithEmployee) => {
       // Search filter
       const matchesSearch =
         !searchQuery ||
@@ -264,8 +292,9 @@ export const usePayrollManagement = () => {
   ]);
 
   // Transform payrolls to include employee information
+  // ✅ FIX: Preserve employee_name from API response, don't override it
   const payrollsWithEmployee = useMemo(() => {
-    return filteredPayrolls.map((payroll: any) => {
+    return filteredPayrolls.map((payroll: PayrollWithEmployee) => {
       const employee = currentEmployees.find(
         (emp) => emp.employee_id === payroll.employee_id
       );
@@ -274,9 +303,17 @@ export const usePayrollManagement = () => {
         : new Date();
       const year = date.getFullYear();
 
+      // ✅ FIX: Use employee_name from API if it exists, otherwise fall back to employees array
+      const employeeName =
+        payroll.employee_name &&
+        payroll.employee_name.trim() !== "" &&
+        payroll.employee_name !== "Unknown Employee"
+          ? payroll.employee_name
+          : employee?.employee_name || "Unknown Employee";
+
       return {
         ...payroll,
-        employee_name: employee?.employee_name || "Unknown Employee",
+        employee_name: employeeName, // Preserve API value or use fallback
         payroll_year: year,
       };
     });
@@ -286,24 +323,36 @@ export const usePayrollManagement = () => {
   const totalPayrolls = currentPayrolls.length;
   const totalAmount = useMemo(() => {
     return currentPayrolls.reduce(
-      (sum: number, payroll: any) => sum + (payroll.gross_pay || 0),
+      (sum: number, payroll: PayrollWithEmployee) =>
+        sum + (payroll.gross_pay || 0),
       0
     );
   }, [currentPayrolls]);
 
   const paidAmount = useMemo(() => {
     return currentPayrolls
-      .filter((payroll: any) => payroll.status === PayrollStatusEnum.PAID)
+      .filter(
+        (payroll: PayrollWithEmployee) =>
+          payroll.status === PayrollStatusEnum.PAID
+      )
       .reduce(
-        (sum: number, payroll: any) => sum + (payroll.paid_amount || 0),
+        (sum: number, payroll: PayrollWithEmployee) =>
+          sum + (payroll.paid_amount || 0),
         0
       );
   }, [currentPayrolls]);
 
   const pendingAmount = useMemo(() => {
     return currentPayrolls
-      .filter((payroll: any) => payroll.status === PayrollStatusEnum.PENDING)
-      .reduce((sum: number, payroll: any) => sum + (payroll.gross_pay || 0), 0);
+      .filter(
+        (payroll: PayrollWithEmployee) =>
+          payroll.status === PayrollStatusEnum.PENDING
+      )
+      .reduce(
+        (sum: number, payroll: PayrollWithEmployee) =>
+          sum + (payroll.gross_pay || 0),
+        0
+      );
   }, [currentPayrolls]);
 
   const queryClient = useQueryClient();
@@ -319,15 +368,18 @@ export const usePayrollManagement = () => {
           // Only invalidate payroll queries, not employee queries
           queryClient.invalidateQueries({ queryKey: payrollKeys.all });
           // Refetch only active queries without blocking
-          queryClient.refetchQueries({ 
-            queryKey: payrollKeys.byBranch(), 
-            type: 'active' 
-          }).catch(() => {
-            // Silently handle errors
-          });
+          queryClient
+            .refetchQueries({
+              queryKey: payrollKeys.byBranch(),
+              type: "active",
+            })
+            .catch(() => {
+              // Silently handle errors
+            });
         }, 100);
-        
-        setShowCreateDialog(false);
+
+        // ✅ FIX: Don't close dialog here - let the form component handle it
+        // setShowCreateDialog(false);
       },
     },
     "Payroll created successfully"
@@ -336,7 +388,7 @@ export const usePayrollManagement = () => {
   // Update payroll mutation with centralized toast handling
   const updatePayrollMutation = useMutationWithSuccessToast(
     {
-      mutationFn: ({ id, data }: { id: number; data: PayrollUpdate }) => 
+      mutationFn: ({ id, data }: { id: number; data: PayrollUpdate }) =>
         PayrollsService.update(id, data),
       onSuccess: () => {
         // Optimized cache invalidation - only invalidate what's needed
@@ -345,14 +397,16 @@ export const usePayrollManagement = () => {
           // Only invalidate payroll queries, not employee queries
           queryClient.invalidateQueries({ queryKey: payrollKeys.all });
           // Refetch only active queries without blocking
-          queryClient.refetchQueries({ 
-            queryKey: payrollKeys.byBranch(), 
-            type: 'active' 
-          }).catch(() => {
-            // Silently handle errors
-          });
+          queryClient
+            .refetchQueries({
+              queryKey: payrollKeys.byBranch(),
+              type: "active",
+            })
+            .catch(() => {
+              // Silently handle errors
+            });
         }, 100);
-        
+
         setShowUpdateDialog(false);
         setSelectedPayroll(null);
       },
@@ -362,15 +416,21 @@ export const usePayrollManagement = () => {
 
   // Handlers
   const handleCreatePayroll = async (data: PayrollCreate) => {
-    await createPayrollMutation.mutateAsync(data);
+    try {
+      const result = await createPayrollMutation.mutateAsync(data);
+      return result;
+    } catch (error) {
+      throw error;
+    }
   };
 
   const handleUpdatePayroll = async (id: number, data: PayrollUpdate) => {
     await updatePayrollMutation.mutateAsync({ id, data });
   };
 
-  const handleUpdateStatus = async (id: number, status: string) => {
-    console.warn("Update payroll status endpoint is not implemented in the backend");
+  const handleUpdateStatus = async (_id: number, _status: string) => {
+    // Update payroll status endpoint is not implemented in the backend
+    // This is a placeholder for future implementation
   };
 
   const handleViewPayslip = (payroll: PayrollWithEmployee) => {
@@ -388,16 +448,15 @@ export const usePayrollManagement = () => {
   const handleFormSubmit = async (data: PayrollCreate | PayrollUpdate) => {
     if (selectedPayroll) {
       // Update existing payroll
-      await handleUpdatePayroll(
+      return await handleUpdatePayroll(
         selectedPayroll.payroll_id,
         data as PayrollUpdate
       );
     } else {
       // Create new payroll
-      await handleCreatePayroll(data as PayrollCreate);
+      return await handleCreatePayroll(data as PayrollCreate);
     }
   };
-
 
   const getStatusColor = (status: string) => {
     switch (status) {

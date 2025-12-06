@@ -1,5 +1,14 @@
 ﻿import { Api } from "@/core/api";
-import type { PayrollRead, PayrollQuery, PayrollListResponse, PayrollDashboardStats, RecentPayroll, PayrollPreview, PayrollPreviewRequest, PayrollCreate, PayrollUpdate } from "@/features/general/types/payrolls";
+import type {
+  PayrollRead,
+  PayrollListResponse,
+  PayrollDashboardStats,
+  RecentPayroll,
+  PayrollPreview,
+  PayrollPreviewRequest,
+  PayrollCreate,
+  PayrollUpdate,
+} from "@/features/general/types/payrolls";
 
 export const PayrollsService = {
   /**
@@ -28,14 +37,20 @@ export const PayrollsService = {
    * @param page_size - Optional pagination - items per page (1-1000)
    * @returns Promise<PayrollListResponse> - Payroll list grouped by month
    */
-  listAll(month?: number, year?: number, status?: string, page?: number, page_size?: number): Promise<any> {
+  listAll(
+    month?: number,
+    year?: number,
+    status?: string,
+    page?: number,
+    page_size?: number
+  ): Promise<any> {
     const params = new URLSearchParams();
-    if (month) params.append('month', month.toString());
-    if (year) params.append('year', year.toString());
-    if (status) params.append('payroll_status', status);
-    if (page) params.append('page', page.toString());
-    if (page_size) params.append('page_size', page_size.toString());
-    
+    if (month) params.append("month", month.toString());
+    if (year) params.append("year", year.toString());
+    if (status) params.append("payroll_status", status);
+    if (page) params.append("page", page.toString());
+    if (page_size) params.append("page_size", page_size.toString());
+
     const url = `/payrolls?${params.toString()}`;
     return Api.get<any>(url);
   },
@@ -49,15 +64,23 @@ export const PayrollsService = {
    * @param page_size - Optional pagination - items per page (1-1000)
    * @returns Promise<PayrollListResponse> - Payroll list grouped by month (filtered by current branch)
    */
-  listByBranch(month: number, year: number, status?: string, page?: number, page_size?: number): Promise<PayrollListResponse> {
+  listByBranch(
+    month: number,
+    year: number,
+    status?: string,
+    page?: number,
+    page_size?: number
+  ): Promise<PayrollListResponse> {
     const params = new URLSearchParams();
-    params.append('month', month.toString());
-    params.append('year', year.toString());
-    if (status) params.append('payroll_status', status);
-    if (page) params.append('page', page.toString());
-    if (page_size) params.append('page_size', page_size.toString());
-    
-    return Api.get<PayrollListResponse>(`/payrolls/branch?${params.toString()}`);
+    params.append("month", month.toString());
+    params.append("year", year.toString());
+    if (status) params.append("payroll_status", status);
+    if (page) params.append("page", page.toString());
+    if (page_size) params.append("page_size", page_size.toString());
+
+    return Api.get<PayrollListResponse>(
+      `/payrolls/branch?${params.toString()}`
+    );
   },
 
   /**
@@ -94,13 +117,19 @@ export const PayrollsService = {
    * @param branchId - Optional branch ID filter
    * @returns Promise<PayrollListResponse> - Payrolls in date range
    */
-  getByDateRange(startDate: string, endDate: string, branchId?: number): Promise<PayrollListResponse> {
+  getByDateRange(
+    startDate: string,
+    endDate: string,
+    branchId?: number
+  ): Promise<PayrollListResponse> {
     const params = new URLSearchParams();
-    params.append('start_date', startDate);
-    params.append('end_date', endDate);
-    if (branchId) params.append('branch_id', branchId.toString());
-    
-    return Api.get<PayrollListResponse>(`/payrolls/date-range?${params.toString()}`);
+    params.append("start_date", startDate);
+    params.append("end_date", endDate);
+    if (branchId) params.append("branch_id", branchId.toString());
+
+    return Api.get<PayrollListResponse>(
+      `/payrolls/date-range?${params.toString()}`
+    );
   },
 
   /**
@@ -119,7 +148,9 @@ export const PayrollsService = {
    * @returns Promise<PayrollListResponse> - Employee payrolls
    */
   getEmployeePayrolls(employeeId: number): Promise<PayrollListResponse> {
-    return Api.get<PayrollListResponse>(`/payrolls/employee/${employeeId}/payrolls`);
+    return Api.get<PayrollListResponse>(
+      `/payrolls/employee/${employeeId}/payrolls`
+    );
   },
 
   /**
@@ -137,7 +168,18 @@ export const PayrollsService = {
    * @returns Promise<PayrollRead> - Created payroll details
    */
   create(payload: PayrollCreate): Promise<PayrollRead> {
-    return Api.post<PayrollRead>("/payrolls", payload);
+    // ✅ FIX: Ensure payload matches API expectations exactly
+    const apiPayload = {
+      employee_id: payload.employee_id,
+      payroll_month: payload.payroll_month,
+      payroll_year: payload.payroll_year,
+      other_deductions: payload.other_deductions || 0,
+      advance_amount: payload.advance_amount || 0,
+      paid_amount: payload.paid_amount,
+      payment_method: payload.payment_method,
+      payment_notes: payload.payment_notes,
+    };
+    return Api.post<PayrollRead>("/payrolls", apiPayload);
   },
 
   /**
@@ -150,5 +192,3 @@ export const PayrollsService = {
     return Api.put<PayrollRead>(`/payrolls/${id}`, payload);
   },
 };
-
-

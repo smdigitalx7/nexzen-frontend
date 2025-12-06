@@ -38,7 +38,7 @@ const TransportManagement = () => {
   const updateRouteMutation = useUpdateBusRoute();
 
   // ✅ FIX: Memoize expensive map operation to prevent re-computation on every render
-  const busRoutes = useMemo(() => routesData.map((r: BusRouteRead) => ({
+  const busRoutes = useMemo(() => (Array.isArray(routesData) ? routesData : []).map((r: BusRouteRead) => ({
     id: r.bus_route_id,
     route_number: r.route_no || "-",
     route_name: r.route_name || "-",
@@ -169,10 +169,10 @@ const TransportManagement = () => {
             value: "fees",
             label: "Distance Slabs",
             icon: IndianRupeeIcon,
-            badge: slabsData.length,
+            badge: Array.isArray(slabsData) ? slabsData.length : 0,
             content: (
               <DistanceSlabsTab
-                slabsData={slabsData}
+                slabsData={Array.isArray(slabsData) ? slabsData : []}
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}
                 onCreateSlab={(data) => createFeeMutation(data)}

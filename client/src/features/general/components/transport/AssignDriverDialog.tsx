@@ -23,8 +23,11 @@ const AssignDriverDialog = ({ isOpen, onClose, onAssign, isAssigning }: AssignDr
   const { data: employees = [], isLoading } = useEmployeesByBranch();
   const { toast } = useToast();
   
+  // ✅ FIX: Ensure employees is always an array to prevent "filter is not a function" errors
+  const safeEmployees = Array.isArray(employees) ? employees : [];
+  
   // Filter drivers from all employees
-  const drivers = employees.filter((employee: EmployeeRead) => 
+  const drivers = safeEmployees.filter((employee: EmployeeRead) => 
     employee.employee_type === "DRIVER" && employee.status === "ACTIVE"
   );
   

@@ -460,7 +460,9 @@ function EnhancedDataTableComponent<TData>({
   // ✅ FIX: Include refreshKey in memoization to force refresh when data updates
   // Also use data length and JSON stringify to detect actual data changes
   const memoizedFilteredData = useMemo(() => {
-    let result = data;
+    // ✅ FIX: Ensure data is always an array to prevent "filter is not a function" errors
+    const safeData = Array.isArray(data) ? data : [];
+    let result = safeData;
 
     // Apply additional filters
     filters.forEach((filter) => {
@@ -473,7 +475,7 @@ function EnhancedDataTableComponent<TData>({
     });
 
     return result;
-  }, [data, filters, refreshKey, data.length]); // ✅ Add refreshKey and data.length to detect changes
+  }, [data, filters, refreshKey, Array.isArray(data) ? data.length : 0]); // ✅ Add refreshKey and data.length to detect changes
 
   const table = useReactTable({
     data: memoizedFilteredData,

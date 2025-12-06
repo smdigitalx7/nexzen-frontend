@@ -129,7 +129,7 @@ export const EditPayrollForm = ({
     onSubmit(payrollData);
   };
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: string | number) => {
     updateField(field as keyof typeof formData, value);
   };
 

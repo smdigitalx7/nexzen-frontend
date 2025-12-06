@@ -1,7 +1,7 @@
 export enum PayrollStatusEnum {
   PENDING = "PENDING",
   PAID = "PAID",
-  HOLD = "HOLD"
+  HOLD = "HOLD",
 }
 
 export enum PaymentMethodEnum {
@@ -33,15 +33,17 @@ export interface PayrollRead {
 
 export interface PayrollCreate {
   employee_id: number;
-  payroll_month: string; // YYYY-MM-DD format (e.g., "2025-01-01")
-  gross_pay: number;
+  payroll_month: number; // Month as number (1-12)
+  payroll_year: number; // Year as number (e.g., 2024)
+  other_deductions?: number;
+  advance_amount?: number; // Note: API uses advance_amount, not advance_deduction
+  paid_amount: number;
+  payment_method: PaymentMethodEnum;
+  payment_notes: string;
+  // Optional fields that might be calculated by backend
+  gross_pay?: number;
   previous_balance?: number;
   lop?: number;
-  advance_deduction?: number;
-  other_deductions?: number;
-  paid_amount?: number;
-  payment_method?: PaymentMethodEnum;
-  payment_notes?: string;
 }
 
 export interface PayrollUpdate {
@@ -109,3 +111,11 @@ export interface PayrollPreviewRequest {
   year: number;
 }
 
+// Extended interface for detailed payroll view that includes employee information
+export interface DetailedPayrollRead
+  extends Omit<PayrollRead, "payroll_month"> {
+  employee_name: string;
+  employee_type: string;
+  payroll_month: number;
+  payroll_year: number;
+}

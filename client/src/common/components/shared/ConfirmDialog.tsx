@@ -230,12 +230,34 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     onOpenChange(newOpen);
   };
 
+  // ✅ FIX: Handle ReactNode descriptions that contain block elements (divs)
+  // AlertDialogDescription renders as <p> which cannot contain <div> elements
+  // Radix UI requires AlertDialogDescription for accessibility, so we always render it
+  const isStringDescription = typeof description === 'string';
+  
+  // Extract a simple text description for accessibility when description is a ReactNode
+  const getAccessibilityDescription = (): string => {
+    if (isStringDescription) {
+      return description;
+    }
+    // For ReactNode descriptions, provide a generic accessible description
+    // The full ReactNode will be shown visually below
+    return 'Please review the details below before confirming.';
+  };
+  
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
+          {/* ✅ FIX: Always include AlertDialogDescription for accessibility */}
+          <AlertDialogDescription className={isStringDescription ? '' : 'sr-only'}>
+            {getAccessibilityDescription()}
+          </AlertDialogDescription>
+          {/* Render the full ReactNode description separately for visual users when it's not a string */}
+          {!isStringDescription && (
+            <div className="text-sm text-muted-foreground mt-2">{description}</div>
+          )}
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={handleCancel} disabled={isLoading}>

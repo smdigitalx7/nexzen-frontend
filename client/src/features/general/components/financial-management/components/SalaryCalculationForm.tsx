@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Calculator,
   Save,
-  X,
   User,
   Calendar,
   CreditCard,
@@ -15,8 +14,12 @@ import {
 import { Button } from "@/common/components/ui/button";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/common/components/ui/card";
-import { Badge } from "@/common/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/common/components/ui/card";
 import { Separator } from "@/common/components/ui/separator";
 import { Alert, AlertDescription } from "@/common/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/common/components/ui/radio-group";
@@ -38,7 +41,6 @@ import {
 } from "@/common/components/ui/dialog";
 import type {
   PayrollCreate,
-  PayrollUpdate,
   PayrollPreview,
 } from "@/features/general/types/payrolls";
 import {
@@ -54,8 +56,8 @@ import { ConfirmDialog } from "@/common/components/shared/ConfirmDialog";
 interface SalaryCalculationFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: PayrollCreate) => void;
-  employees: any[];
+  onSubmit: (data: PayrollCreate) => Promise<void> | void;
+  employees: Array<{ employee_id: number; employee_name: string }>;
 }
 
 export const SalaryCalculationForm = ({
@@ -178,25 +180,35 @@ export const SalaryCalculationForm = ({
       updateField("lop", preview.lop);
       updateField("advance_deduction", preview.advance_deduction);
       updateField("other_deductions", preview.other_deductions);
-    } catch (error: any) {
-      console.error("Failed to get payroll preview:", error);
+    } catch (error: unknown) {
       // Extract error message
-      const errorData = error?.data || error?.response?.data;
-      const errorDetail = errorData?.detail;
       let errorMessage = "Failed to load payroll preview.";
 
-      if (
-        errorDetail &&
-        typeof errorDetail === "object" &&
-        "message" in errorDetail
-      ) {
-        errorMessage = errorDetail.message;
-      } else if (typeof errorDetail === "string") {
-        errorMessage = errorDetail;
-      } else if (errorData?.message) {
-        errorMessage = errorData.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
+      if (error && typeof error === "object") {
+        const errorObj = error as Record<string, unknown>;
+        const errorData =
+          errorObj.data || (errorObj.response as Record<string, unknown>)?.data;
+        const errorDetail = (errorData as Record<string, unknown>)?.detail;
+
+        if (
+          errorDetail &&
+          typeof errorDetail === "object" &&
+          "message" in errorDetail
+        ) {
+          errorMessage = String(errorDetail.message);
+        } else if (typeof errorDetail === "string") {
+          errorMessage = errorDetail;
+        } else if (
+          errorData &&
+          typeof errorData === "object" &&
+          "message" in errorData
+        ) {
+          errorMessage = String(errorData.message);
+        } else if (errorObj.message) {
+          errorMessage = String(errorObj.message);
+        }
+      } else if (typeof error === "string") {
+        errorMessage = error;
       }
 
       setPreviewError(
@@ -252,22 +264,23 @@ export const SalaryCalculationForm = ({
       return;
     }
 
-    // Convert month and year to YYYY-MM-DD format (first day of the month)
+    // ✅ FIX: API expects payroll_month as number (1-12) and payroll_year as separate number
     const month = Number(formData.payroll_month);
     const year = Number(formData.payroll_year);
-    const payrollMonthDate = `${year}-${String(month).padStart(2, '0')}-01`;
 
     const payrollData: PayrollCreate = {
       employee_id: Number(formData.employee_id),
-      payroll_month: payrollMonthDate, // API expects YYYY-MM-DD format
-      gross_pay: Number(formData.gross_pay) || 0,
-      previous_balance: Number(formData.previous_balance) || 0,
-      lop: Number(formData.lop) || 0,
-      advance_deduction: Number(formData.advance_deduction) || 0,
+      payroll_month: month, // API expects number 1-12
+      payroll_year: year, // API expects number (e.g., 2024)
       other_deductions: Number(formData.other_deductions) || 0,
+      advance_amount: Number(formData.advance_deduction) || 0, // ✅ FIX: API uses advance_amount, not advance_deduction
       paid_amount: Number(formData.paid_amount),
       payment_method: formData.payment_method,
       payment_notes: formData.payment_notes,
+      // Optional fields (might be calculated by backend from attendance)
+      gross_pay: Number(formData.gross_pay) || 0,
+      previous_balance: Number(formData.previous_balance) || 0,
+      lop: Number(formData.lop) || 0,
     };
 
     // Store payroll data and show confirmation dialog
@@ -276,25 +289,63 @@ export const SalaryCalculationForm = ({
   };
 
   const handleConfirmCreate = async () => {
-    if (pendingPayrollData) {
-      try {
-        await onSubmit(pendingPayrollData);
-        // Reset form state after successful submission
-        setShowConfirmDialog(false);
-        setPendingPayrollData(null);
-        setPreviewData(null);
-        setPreviewError(null);
-        setPaymentOption("full");
-        // Reset form using the resetForm function
-        resetForm();
-        // Close dialog after a short delay to allow state updates
-        setTimeout(() => {
-          onClose();
-        }, 100);
-      } catch (error) {
-        // Error handling is done by the mutation hook
-        console.error("Failed to create payroll:", error);
+    if (!pendingPayrollData) {
+      toast({
+        title: "Error",
+        description: "No payroll data to submit. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Don't close dialog yet - wait for the mutation to complete
+      await onSubmit(pendingPayrollData);
+
+      // Only close and reset after successful submission
+      setShowConfirmDialog(false);
+      setPendingPayrollData(null);
+      setPreviewData(null);
+      setPreviewError(null);
+      setPaymentOption("full");
+      // Reset form using the resetForm function
+      resetForm();
+      // Close dialog after a short delay to allow state updates
+      setTimeout(() => {
+        onClose();
+      }, 100);
+    } catch (error: unknown) {
+      // Error handling is done by the mutation hook (shows toast)
+      // Show additional error message if mutation hook didn't handle it
+      let errorMessage = "Failed to create payroll. Please try again.";
+
+      if (error && typeof error === "object") {
+        const errorObj = error as Record<string, unknown>;
+        const response = errorObj.response as
+          | Record<string, unknown>
+          | undefined;
+        const data = response?.data as Record<string, unknown> | undefined;
+        const detail = data?.detail as Record<string, unknown> | undefined;
+
+        if (detail?.message) {
+          errorMessage = String(detail.message);
+        } else if (data?.message) {
+          errorMessage = String(data.message);
+        } else if (errorObj.message) {
+          errorMessage = String(errorObj.message);
+        }
+      } else if (typeof error === "string") {
+        errorMessage = error;
       }
+
+      toast({
+        title: "Error Creating Payroll",
+        description: errorMessage,
+        variant: "destructive",
+      });
+
+      // Keep confirmation dialog open on error so user can retry
+      // Don't close the dialog - let the user see the error and try again
     }
   };
 
@@ -303,7 +354,7 @@ export const SalaryCalculationForm = ({
     setPendingPayrollData(null);
   };
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: string | number) => {
     updateField(field as keyof typeof formData, value);
   };
 
@@ -935,11 +986,15 @@ export const SalaryCalculationForm = ({
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Period:</span>
                   <span className="font-medium">
-                    {new Date(
-                      0,
-                      pendingPayrollData.payroll_month - 1
-                    ).toLocaleString("default", { month: "long" })}{" "}
-                    {pendingPayrollData.payroll_year}
+                    {(() => {
+                      // ✅ FIX: payroll_month is now a number (1-12) and payroll_year is separate
+                      const month = pendingPayrollData.payroll_month;
+                      const year = pendingPayrollData.payroll_year;
+                      return new Date(year, month - 1).toLocaleString(
+                        "default",
+                        { month: "long", year: "numeric" }
+                      );
+                    })()}
                   </span>
                 </div>
                 <div className="flex justify-between">
