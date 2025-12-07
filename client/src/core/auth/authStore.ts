@@ -540,35 +540,6 @@ export const useAuthStore = create<AuthState>()(
             throw new Error("Invalid user info: branches array is empty");
           }
 
-          // Extract role from first branch
-          const firstBranch = userInfo.branches[0];
-          if (!firstBranch) {
-            throw new Error("Invalid user info: first branch is missing");
-          }
-
-          if (!firstBranch.roles || !Array.isArray(firstBranch.roles)) {
-            throw new Error("Invalid user info: first branch roles is missing or not an array");
-          }
-
-          const roleFromBranch = extractPrimaryRole(firstBranch.roles);
-          if (!roleFromBranch) {
-            throw new Error("User role not found in first branch");
-          }
-
-          const normalizedRole = normalizeRole(roleFromBranch);
-          if (!normalizedRole) {
-            throw new Error(`Invalid user role: ${roleFromBranch}`);
-          }
-
-          // CRITICAL: Validate branches is an array before using array methods
-          if (!userInfo.branches || !Array.isArray(userInfo.branches)) {
-            throw new Error(`Invalid user_info: branches must be an array. Received: ${typeof userInfo.branches}`);
-          }
-
-          if (userInfo.branches.length === 0) {
-            throw new Error("Invalid user_info: branches array is empty");
-          }
-
           // Create branch list with validation
           const branchList = userInfo.branches.map((b, index) => {
             if (!b.branch_id || !b.branch_name) {
@@ -584,10 +555,42 @@ export const useAuthStore = create<AuthState>()(
             };
           });
 
-          // Set current branch (first branch)
-          const currentBranch = branchList[0];
+          // CRITICAL: Preserve stored currentBranch if it exists and is valid
+          // This prevents resetting to first branch on page refresh
+          const currentState = get();
+          let currentBranch: typeof branchList[0] | null = null;
+          
+          // Try to preserve the stored branch if it exists in the new branch list
+          if (currentState.currentBranch?.branch_id) {
+            const storedBranch = branchList.find(
+              (b) => b.branch_id === currentState.currentBranch?.branch_id
+            );
+            if (storedBranch) {
+              currentBranch = storedBranch;
+            }
+          }
+          
+          // Fallback to first branch if no stored branch found or preserved branch doesn't exist
           if (!currentBranch) {
-            throw new Error("Failed to set current branch");
+            currentBranch = branchList[0];
+            if (!currentBranch) {
+              throw new Error("Failed to set current branch");
+            }
+          }
+
+          // Extract role from the selected branch (preserved or first)
+          if (!currentBranch.roles || !Array.isArray(currentBranch.roles) || currentBranch.roles.length === 0) {
+            throw new Error("Invalid user info: selected branch roles is missing or not an array");
+          }
+
+          const roleFromBranch = extractPrimaryRole(currentBranch.roles);
+          if (!roleFromBranch) {
+            throw new Error("User role not found in selected branch");
+          }
+
+          const normalizedRole = normalizeRole(roleFromBranch);
+          if (!normalizedRole) {
+            throw new Error(`Invalid user role: ${roleFromBranch}`);
           }
 
           // Create user object
@@ -919,24 +922,15 @@ export const useAuthStore = create<AuthState>()(
 
               set({ isBranchSwitching: false });
               console.log(
-                "Branch switched successfully with new token and clients updated"
+                "Branch switched successfully with new token. Reloading page..."
               );
 
-              // ✅ FIX: Selective invalidation instead of clear() - prevents UI flicker
-              try {
-                // Only invalidate queries that depend on branch context
-                const branchDependentKeys = getBranchDependentQueryKeys();
-                batchInvalidateQueries(branchDependentKeys);
-                
-                // Refetch active queries in next frame (React Query handles deduplication)
-                requestAnimationFrame(() => {
-                  queryClient.refetchQueries({ type: 'active' });
-                });
-                
-                console.log("Branch-dependent queries invalidated and will refetch");
-              } catch (error) {
-                console.error("Error invalidating queries after branch switch:", error);
-              }
+              // ✅ CRITICAL: Perform complete browser refresh after branch switch
+              // This ensures all state is reset, all data is fresh, and new token is fully applied
+              // Reload after a short delay to allow state updates to persist
+              setTimeout(() => {
+                window.location.reload();
+              }, 100);
             } else {
               // Fallback to just updating the branch if no token response
               // Extract role from branch.roles if available
@@ -978,23 +972,13 @@ export const useAuthStore = create<AuthState>()(
                   isBranchSwitching: false,
                 });
               }
-              console.log("Branch switched locally (no token response)");
+              console.log("Branch switched locally (no token response). Reloading page...");
 
-              // ✅ FIX: Selective invalidation instead of clear() - prevents UI flicker
-              try {
-                // Only invalidate queries that depend on branch context
-                const branchDependentKeys = getBranchDependentQueryKeys();
-                batchInvalidateQueries(branchDependentKeys);
-                
-                // Refetch active queries in next frame (React Query handles deduplication)
-                requestAnimationFrame(() => {
-                  queryClient.refetchQueries({ type: 'active' });
-                });
-                
-                console.log("Branch-dependent queries invalidated and will refetch");
-              } catch (error) {
-                console.error("Error invalidating queries after branch switch:", error);
-              }
+              // ✅ CRITICAL: Perform complete browser refresh after branch switch
+              // Even without token response, reload to ensure clean state
+              setTimeout(() => {
+                window.location.reload();
+              }, 100);
             }
           } catch (error) {
             console.error("Failed to switch branch:", error);
@@ -1038,21 +1022,13 @@ export const useAuthStore = create<AuthState>()(
                 isBranchSwitching: false,
               });
             }
-            console.log("Branch switched locally (API call failed)");
+            console.log("Branch switched locally (API call failed). Reloading page...");
 
-            // ✅ FIX: Selective invalidation instead of clear() - prevents UI flicker
-            try {
-              // Only invalidate queries that depend on branch context
-              const branchDependentKeys = getBranchDependentQueryKeys();
-              batchInvalidateQueries(branchDependentKeys);
-              
-              // Refetch active queries (React Query handles deduplication)
-              queryClient.refetchQueries({ type: 'active' });
-              
-              console.log("Branch-dependent queries invalidated and refetched");
-            } catch (error) {
-              console.error("Error invalidating queries after branch switch:", error);
-            }
+            // ✅ CRITICAL: Perform complete browser refresh after branch switch
+            // Even if API call failed, reload to ensure clean state with locally switched branch
+            setTimeout(() => {
+              window.location.reload();
+            }, 100);
           }
         },
         switchAcademicYear: (year) => {
