@@ -52,7 +52,7 @@ const SecurityTab = () => {
     try {
       // Password change API endpoint - will be implemented when backend supports it
       const userId = user?.user_id ? Number.parseInt(user.user_id, 10) : null;
-      
+
       if (!userId) {
         throw new Error("User ID not found");
       }
@@ -81,10 +81,14 @@ const SecurityTab = () => {
       } catch (apiError: unknown) {
         // If endpoint doesn't exist (404) or not implemented (501), show helpful message
         const error = apiError as { response?: { status?: number } };
-        if (error?.response?.status === 404 || error?.response?.status === 501) {
+        if (
+          error?.response?.status === 404 ||
+          error?.response?.status === 501
+        ) {
           toast({
             title: "Feature Coming Soon",
-            description: "Password change functionality will be available soon. Please contact your administrator to reset your password.",
+            description:
+              "Password change functionality will be available soon. Please contact your administrator to reset your password.",
             variant: "info",
           });
         } else {
@@ -93,10 +97,16 @@ const SecurityTab = () => {
       }
     } catch (error: unknown) {
       console.error("Failed to change password:", error);
-      const err = error as { response?: { data?: { detail?: string } }; message?: string };
+      const err = error as {
+        response?: { data?: { detail?: string } };
+        message?: string;
+      };
       toast({
         title: "Error",
-        description: err?.response?.data?.detail || err?.message || "Failed to change password. Please try again.",
+        description:
+          err?.response?.data?.detail ||
+          err?.message ||
+          "Failed to change password. Please try again.",
         variant: "destructive",
       });
     } finally {
