@@ -1,13 +1,22 @@
-﻿import { useMemo } from "react";
+﻿import { useMemo, useState } from "react";
 
 import { formatCurrency } from "@/common/utils";
 import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
 import type { PayrollRead } from "@/features/general/types/payrolls";
+import { PayrollStatusEnum } from "@/features/general/types/payrolls";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createCurrencyColumn,
   createBadgeColumn,
 } from "@/common/utils/factory/columnFactories";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/common/components/ui/select";
+import { Badge } from "@/common/components/ui/badge";
 
 // Extended interface that includes employee information
 interface PayrollWithEmployee extends Omit<PayrollRead, "payroll_month"> {
@@ -22,6 +31,7 @@ interface EmployeePayrollTableProps {
   isLoading: boolean;
   onEditPayroll: (payroll: PayrollWithEmployee) => void;
   onViewPayslip: (payroll: PayrollWithEmployee) => void;
+  onUpdateStatus?: (id: number, status: string) => void;
   getStatusColor: (status: string) => string;
   getStatusText: (status: string) => string;
 }
@@ -31,9 +41,46 @@ export const EmployeePayrollTable = ({
   isLoading,
   onEditPayroll,
   onViewPayslip,
+  onUpdateStatus,
   getStatusColor: _getStatusColor,
   getStatusText: _getStatusText,
 }: EmployeePayrollTableProps) => {
+  const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
+
+  // Helper function to get allowed status transitions
+  const getAllowedStatuses = (currentStatus: string): PayrollStatusEnum[] => {
+    switch (currentStatus) {
+      case PayrollStatusEnum.PENDING:
+        return [PayrollStatusEnum.HOLD, PayrollStatusEnum.PAID];
+      case PayrollStatusEnum.HOLD:
+        return [PayrollStatusEnum.PAID];
+      case PayrollStatusEnum.PAID:
+        return []; // Cannot change status once paid
+      default:
+        return [];
+    }
+  };
+
+  const handleStatusChange = async (
+    payrollId: number,
+    newStatus: string,
+    currentStatus: string
+  ) => {
+    // Validate status transition
+    const allowedStatuses = getAllowedStatuses(currentStatus);
+    if (!allowedStatuses.includes(newStatus as PayrollStatusEnum)) {
+      return; // Invalid transition, don't update
+    }
+
+    if (onUpdateStatus) {
+      setUpdatingStatusId(payrollId);
+      try {
+        await onUpdateStatus(payrollId, newStatus);
+      } finally {
+        setUpdatingStatusId(null);
+      }
+    }
+  };
   // Define columns for the data table using column factories
   const columns: ColumnDef<PayrollWithEmployee>[] = useMemo(
     () => [
@@ -114,12 +161,78 @@ export const EmployeePayrollTable = ({
       createCurrencyColumn<PayrollWithEmployee>("net_pay", {
         header: "Net Pay",
       }),
-      createBadgeColumn<PayrollWithEmployee>("status", {
+      {
+        accessorKey: "status",
         header: "Status",
-        variant: "outline",
-      }),
+        cell: ({ row }) => {
+          const payroll = row.original;
+          const currentStatus = payroll.status;
+          const allowedStatuses = getAllowedStatuses(currentStatus);
+          const isUpdating = updatingStatusId === payroll.payroll_id;
+          const isPaid = currentStatus === PayrollStatusEnum.PAID;
+
+          // If status update handler is provided and not paid, show dropdown
+          if (onUpdateStatus && !isPaid && allowedStatuses.length > 0) {
+            return (
+              <Select
+                value={currentStatus}
+                onValueChange={(newStatus) =>
+                  handleStatusChange(
+                    payroll.payroll_id,
+                    newStatus,
+                    currentStatus
+                  )
+                }
+                disabled={isUpdating}
+              >
+                <SelectTrigger className="w-[140px] h-8">
+                  <SelectValue>
+                    <Badge
+                      variant={
+                        currentStatus === PayrollStatusEnum.PAID
+                          ? "default"
+                          : currentStatus === PayrollStatusEnum.PENDING
+                            ? "secondary"
+                            : "destructive"
+                      }
+                      className="text-xs"
+                    >
+                      {_getStatusText(currentStatus)}
+                    </Badge>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={currentStatus} disabled>
+                    {_getStatusText(currentStatus)} (Current)
+                  </SelectItem>
+                  {allowedStatuses.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {_getStatusText(status)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            );
+          }
+
+          // Otherwise, show badge only
+          return (
+            <Badge
+              variant={
+                currentStatus === PayrollStatusEnum.PAID
+                  ? "default"
+                  : currentStatus === PayrollStatusEnum.PENDING
+                    ? "secondary"
+                    : "destructive"
+              }
+            >
+              {_getStatusText(currentStatus)}
+            </Badge>
+          );
+        },
+      },
     ],
-    []
+    [onUpdateStatus, updatingStatusId, _getStatusText]
   );
 
   // Action button groups for EnhancedDataTable

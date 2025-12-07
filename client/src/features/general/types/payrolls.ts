@@ -53,6 +53,10 @@ export interface PayrollUpdate {
   payment_notes: string;
 }
 
+export interface PayrollStatusUpdate {
+  status: PayrollStatusEnum;
+}
+
 export interface PayrollQuery {
   limit?: number;
   pageSize?: number;

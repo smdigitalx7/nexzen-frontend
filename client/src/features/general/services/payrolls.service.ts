@@ -8,6 +8,7 @@ import type {
   PayrollPreviewRequest,
   PayrollCreate,
   PayrollUpdate,
+  PayrollStatusUpdate,
 } from "@/features/general/types/payrolls";
 
 export const PayrollsService = {
@@ -190,5 +191,18 @@ export const PayrollsService = {
    */
   update(id: number, payload: PayrollUpdate): Promise<PayrollRead> {
     return Api.put<PayrollRead>(`/payrolls/${id}`, payload);
+  },
+
+  /**
+   * Update payroll status only
+   * @param id - Payroll ID
+   * @param payload - Status update data
+   * @returns Promise<PayrollRead> - Updated payroll details with new status
+   */
+  updateStatus(
+    id: number,
+    payload: PayrollStatusUpdate
+  ): Promise<PayrollRead> {
+    return Api.patch<PayrollRead>(`/payrolls/${id}/status`, payload);
   },
 };

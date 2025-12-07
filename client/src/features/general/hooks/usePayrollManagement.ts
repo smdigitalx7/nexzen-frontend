@@ -14,6 +14,7 @@ import type {
   PayrollQuery,
   PayrollDashboardStats,
   RecentPayroll,
+  PayrollStatusUpdate,
 } from "@/features/general/types/payrolls";
 import { PayrollStatusEnum } from "@/features/general/types/payrolls";
 import { formatCurrency } from "@/common/utils";
@@ -360,7 +361,13 @@ export const usePayrollManagement = () => {
   // Create payroll mutation with centralized toast handling
   const createPayrollMutation = useMutationWithSuccessToast(
     {
-      mutationFn: (data: PayrollCreate) => PayrollsService.create(data),
+      mutationFn: (data: PayrollCreate) => {
+        // ✅ FIX: Log the API call for debugging (remove in production if needed)
+        if (import.meta.env.DEV) {
+          console.log("Creating payroll with data:", data);
+        }
+        return PayrollsService.create(data);
+      },
       onSuccess: () => {
         // Optimized cache invalidation - only invalidate what's needed
         // Use setTimeout to debounce and prevent UI freezing
@@ -378,8 +385,16 @@ export const usePayrollManagement = () => {
             });
         }, 100);
 
-        // ✅ FIX: Don't close dialog here - let the form component handle it
-        // setShowCreateDialog(false);
+        // ✅ FIX: Close create dialog after successful creation
+        setShowCreateDialog(false);
+        setSelectedPayroll(null);
+      },
+      onError: (error) => {
+        // ✅ FIX: Log error for debugging
+        if (import.meta.env.DEV) {
+          console.error("Payroll creation failed:", error);
+        }
+        // Error toast is handled by useMutationWithSuccessToast
       },
     },
     "Payroll created successfully"
@@ -414,6 +429,34 @@ export const usePayrollManagement = () => {
     "Payroll updated successfully"
   );
 
+  // Update payroll status mutation with centralized toast handling
+  const updateStatusMutation = useMutationWithSuccessToast(
+    {
+      mutationFn: ({
+        id,
+        data,
+      }: {
+        id: number;
+        data: PayrollStatusUpdate;
+      }) => PayrollsService.updateStatus(id, data),
+      onSuccess: () => {
+        // Optimized cache invalidation - only invalidate what's needed
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: payrollKeys.all });
+          queryClient
+            .refetchQueries({
+              queryKey: payrollKeys.byBranch(),
+              type: "active",
+            })
+            .catch(() => {
+              // Silently handle errors
+            });
+        }, 100);
+      },
+    },
+    "Payroll status updated successfully"
+  );
+
   // Handlers
   const handleCreatePayroll = async (data: PayrollCreate) => {
     try {
@@ -428,9 +471,16 @@ export const usePayrollManagement = () => {
     await updatePayrollMutation.mutateAsync({ id, data });
   };
 
-  const handleUpdateStatus = async (_id: number, _status: string) => {
-    // Update payroll status endpoint is not implemented in the backend
-    // This is a placeholder for future implementation
+  const handleUpdateStatus = async (id: number, status: string) => {
+    try {
+      await updateStatusMutation.mutateAsync({
+        id,
+        data: { status: status as PayrollStatusEnum },
+      });
+    } catch (error) {
+      // Error toast is handled by useMutationWithSuccessToast
+      throw error;
+    }
   };
 
   const handleViewPayslip = (payroll: PayrollWithEmployee) => {

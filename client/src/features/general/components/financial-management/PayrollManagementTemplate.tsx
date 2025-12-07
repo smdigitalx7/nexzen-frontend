@@ -25,6 +25,7 @@ import type { EmployeeRead } from "@/features/general/types/employees";
 import type {
   PayrollRead,
   DetailedPayrollRead,
+  PayrollCreate,
 } from "@/features/general/types/payrolls";
 
 // Extended interface that includes employee information
@@ -346,10 +347,11 @@ export const PayrollManagementTemplateComponent = () => {
     isLoading,
 
     // Handlers
-    handleUpdateStatus: _handleUpdateStatus,
+    handleUpdateStatus,
     handleViewPayslip,
     handleEditPayroll,
     handleFormSubmit,
+    handleCreatePayroll,
 
     // Utilities
     getStatusColor,
@@ -423,6 +425,7 @@ export const PayrollManagementTemplateComponent = () => {
               isLoading={isLoading}
               onEditPayroll={handleEditPayroll}
               onViewPayslip={handleViewPayslip}
+              onUpdateStatus={handleUpdateStatus}
               getStatusColor={getStatusColor}
               getStatusText={getStatusText}
             />
@@ -495,11 +498,9 @@ export const PayrollManagementTemplateComponent = () => {
           setSelectedPayroll(null);
         }}
         onSubmit={async (data) => {
-          // ✅ FIX: Ensure selectedPayroll is null before submitting (force create path)
-          if (selectedPayroll) {
-            setSelectedPayroll(null);
-          }
-          await handleFormSubmit(data);
+          // ✅ FIX: Directly call handleCreatePayroll for create operation (don't rely on selectedPayroll state)
+          // This ensures the create path is always taken, avoiding race conditions with state updates
+          await handleCreatePayroll(data);
         }}
         employees={employees}
       />

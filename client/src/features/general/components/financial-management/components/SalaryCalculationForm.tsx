@@ -75,6 +75,7 @@ export const SalaryCalculationForm = ({
   const [paymentOption, setPaymentOption] = useState<
     "full" | "half" | "custom"
   >("full");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initial form data
   const initialFormData = {
@@ -298,11 +299,14 @@ export const SalaryCalculationForm = ({
       return;
     }
 
+    // ✅ FIX: Set loading state to prevent multiple submissions
+    setIsSubmitting(true);
+
     try {
-      // Don't close dialog yet - wait for the mutation to complete
+      // ✅ FIX: Call onSubmit and wait for it to complete
       await onSubmit(pendingPayrollData);
 
-      // Only close and reset after successful submission
+      // ✅ FIX: Only close and reset after successful submission
       setShowConfirmDialog(false);
       setPendingPayrollData(null);
       setPreviewData(null);
@@ -310,7 +314,8 @@ export const SalaryCalculationForm = ({
       setPaymentOption("full");
       // Reset form using the resetForm function
       resetForm();
-      // Close dialog after a short delay to allow state updates
+      // ✅ FIX: Close main dialog after successful creation
+      // The mutation's onSuccess will handle cache invalidation
       setTimeout(() => {
         onClose();
       }, 100);
@@ -346,6 +351,9 @@ export const SalaryCalculationForm = ({
 
       // Keep confirmation dialog open on error so user can retry
       // Don't close the dialog - let the user see the error and try again
+    } finally {
+      // ✅ FIX: Always reset loading state
+      setIsSubmitting(false);
     }
   };
 
@@ -367,6 +375,7 @@ export const SalaryCalculationForm = ({
       setPaymentOption("full");
       setShowConfirmDialog(false);
       setPendingPayrollData(null);
+      setIsSubmitting(false);
       // Reset form using the resetForm function
       resetForm();
     }
@@ -377,7 +386,9 @@ export const SalaryCalculationForm = ({
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
-        if (!open) {
+        // ✅ FIX: Prevent dialog from closing when confirmation dialog is open or when submitting
+        // Only allow closing if not submitting and confirmation dialog is closed
+        if (!open && !showConfirmDialog && !isSubmitting) {
           onClose();
         }
       }}
@@ -965,7 +976,14 @@ export const SalaryCalculationForm = ({
       {/* Confirmation Dialog */}
       <ConfirmDialog
         open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
+        onOpenChange={(open) => {
+          // ✅ FIX: Only close when explicitly set to false, not when toasts appear
+          // This prevents the dialog from closing when toast notifications appear/disappear
+          if (!open && !isSubmitting) {
+            setShowConfirmDialog(false);
+            setPendingPayrollData(null);
+          }
+        }}
         title="Confirm Payroll Creation"
         description={
           pendingPayrollData ? (
@@ -1019,6 +1037,9 @@ export const SalaryCalculationForm = ({
         cancelText="Cancel"
         onConfirm={handleConfirmCreate}
         onCancel={handleCancelConfirm}
+        isLoading={isSubmitting}
+        loadingText="Creating payroll..."
+        disabled={isSubmitting}
       />
     </Dialog>
   );
