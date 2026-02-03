@@ -1,9 +1,11 @@
-﻿import { Api } from "@/core/api";
+import { Api } from "@/core/api";
 import { SchoolAdmissionListItem, SchoolAdmissionDetails, SchoolAdmissionsPaginatedResponse } from "@/features/school/types/admissions";
 
 export interface SchoolAdmissionsListParams {
   page?: number;
   page_size?: number;
+  // Optional filters (safe to pass; ignored if backend doesn't use it)
+  search?: string;
 }
 
 export const SchoolAdmissionsService = {

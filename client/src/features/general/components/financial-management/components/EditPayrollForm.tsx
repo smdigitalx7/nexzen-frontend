@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import { FormDialog } from "@/common/components/shared";
 import { Label } from "@/common/components/ui/label";
 import { Input } from "@/common/components/ui/input";
@@ -9,8 +9,8 @@ import { toast } from "@/common/hooks/use-toast";
 interface PayrollWithEmployee extends Omit<PayrollRead, "payroll_month"> {
   employee_name: string;
   employee_type?: string;
-  payroll_month: number; // Changed from string to number to match API
-  payroll_year: number;
+  payroll_month: number | string;
+  payroll_year?: number;
 }
 
 interface EditPayrollFormProps {

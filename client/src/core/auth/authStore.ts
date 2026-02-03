@@ -1,4 +1,4 @@
-﻿import { create } from "zustand";
+import { create } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { AuthService } from "@/features/general/services";
@@ -11,6 +11,7 @@ import { getTokenExpiration, decodeJWT, getRoleFromToken } from "@/common/utils/
 import { batchInvalidateQueries } from "@/common/hooks/useGlobalRefetch";
 import { getBranchDependentQueryKeys, getAcademicYearDependentQueryKeys } from "@/common/hooks/branch-dependent-keys";
 import { apiClient } from "@/core/api";
+import { cancelAllRequests } from "@/core/api/request-cancellation";
 import type { AxiosError } from "axios";
 import { toast } from "@/common/hooks/use-toast";
 
@@ -21,6 +22,7 @@ export type {
   AcademicYear,
   AuthError,
 } from "./types";
+import type { Branch } from "./types";
 import { MODULE_PERMISSIONS, ROLE_PERMISSIONS } from "./permissions";
 import type { AuthState } from "./authState";
 import { createAuthStorageConfig } from "./storage";
@@ -145,12 +147,6 @@ export const useAuthStore = create<AuthState>()(
                   console.log(`Skipping bootstrapAuth: logout was initiated ${Math.round(timeSinceLogout / 1000)}s ago`);
                 }
                 return;
-              } else {
-                // Logout was more than 5 minutes ago, clear the flag
-                localStorage.removeItem("__logout_initiated__");
-                if (typeof sessionStorage !== "undefined") {
-                  sessionStorage.removeItem("__logout_initiated__");
-                }
               }
             }
           }
@@ -484,7 +480,7 @@ export const useAuthStore = create<AuthState>()(
                 toast({
                   title: "Session expired",
                   description: "You have been logged out due to inactivity. Please log in again.",
-                  variant: "warning",
+                  variant: "destructive",
                 });
               } else {
                 toast({
@@ -503,10 +499,16 @@ export const useAuthStore = create<AuthState>()(
           // Use replace() instead of href to prevent back button issues
           // This ensures a fresh page load - bootstrapAuth will check the logout flag
           if (typeof window !== "undefined") {
-            // Use setTimeout with 0ms to ensure state updates are flushed, then redirect
+            // Use a short delay to ensure state updates are flushed
             setTimeout(() => {
-              window.location.replace("/login");
-            }, 0);
+              // Only redirect if we're not already on the login page
+              if (window.location.pathname !== "/login") {
+                window.location.replace("/login");
+              } else {
+                // If already on login page, just reload to ensure clean slate
+                window.location.reload();
+              }
+            }, 100);
           }
         },
 
@@ -623,8 +625,16 @@ export const useAuthStore = create<AuthState>()(
          * Set access token and expiry (in memory only)
          * expiretime can be ISO string or null
          */
-        setTokenAndExpiry: (accessToken: string | null, expiretime: string | null) => {
-          const expireAtMs = expiretime ? new Date(expiretime).getTime() : null;
+        setTokenAndExpiry: (
+          accessToken: string | null,
+          expiretime: string | number | null
+        ) => {
+          const expireAtMs =
+            typeof expiretime === "number"
+              ? expiretime
+              : expiretime
+                ? new Date(expiretime).getTime()
+                : null;
           set((state) => {
             state.accessToken = accessToken;
             state.tokenExpireAt = expireAtMs;
@@ -660,7 +670,12 @@ export const useAuthStore = create<AuthState>()(
         },
         // Legacy login function (kept for backward compatibility)
         // NOTE: This is the old signature. New code should use login(identifier, password)
-        loginLegacy: async (user, branches, token, refreshToken) => {
+        loginLegacy: async (
+          user: AuthState["user"],
+          branches: Branch[],
+          token: string | null,
+          refreshToken: string | undefined
+        ) => {
           set((state) => {
             state.isLoading = true;
             state.error = null;
@@ -792,9 +807,8 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: false,
               academicYear: null,
               academicYears: [],
-              token: null,
+              accessToken: null,
               tokenExpireAt: null,
-              refreshToken: null,
               branches: [],
               currentBranch: null,
               isLoading: false,
@@ -868,12 +882,9 @@ export const useAuthStore = create<AuthState>()(
               set({ currentBranch: branch });
 
               // Persist token
-              const expireAtMs = response?.expiretime
-                ? new Date(response.expiretime).getTime()
-                : null;
               useAuthStore
                 .getState()
-                .setTokenAndExpiry(response.access_token, expireAtMs);
+                .setTokenAndExpiry(response.access_token, response.expiretime);
 
               // Update user role if we extracted it from response
               const current = useAuthStore.getState();
@@ -1031,27 +1042,68 @@ export const useAuthStore = create<AuthState>()(
             }, 100);
           }
         },
-        switchAcademicYear: (year) => {
-          // CRITICAL: Keep authentication state when switching academic year
-          set({
-            academicYear: year.year_name,
-            isAuthenticated: true, // Preserve authentication
-          });
-
-          // ✅ FIX: Selective invalidation instead of clear() - prevents UI flicker
+        switchAcademicYear: async (year) => {
+          set({ isLoading: true });
           try {
-            // Only invalidate queries that depend on academic year context
-            const academicYearDependentKeys = getAcademicYearDependentQueryKeys();
-            batchInvalidateQueries(academicYearDependentKeys);
+            console.log("Switching to academic year:", year.year_name, "ID:", year.academic_year_id);
             
-            // Refetch active queries in next frame (React Query handles deduplication)
-            requestAnimationFrame(() => {
-              queryClient.refetchQueries({ type: 'active' });
-            });
+            // Call the backend API to switch academic year and get new token
+            const response = (await AuthService.switchAcademicYear(
+              year.academic_year_id
+            )) as any;
             
-            console.log("Academic year-dependent queries invalidated and will refetch");
+            console.log("Academic year switch response:", response);
+
+            if (response?.access_token) {
+              // Rotation of token
+              useAuthStore.getState().setTokenAndExpiry(response.access_token, response.expiretime);
+
+              set({
+                academicYear: year.year_name,
+                isAuthenticated: true,
+                isLoading: false,
+              });
+
+              // Update user info if returned in response
+              if (response.user_info) {
+                const current = useAuthStore.getState();
+                set({
+                  user: {
+                    ...current.user,
+                    ...response.user_info
+                  }
+                });
+              }
+
+              console.log("Academic year switched successfully with token rotation. Reloading page...");
+              
+              // ✅ CRITICAL: Perform complete browser refresh
+              setTimeout(() => {
+                window.location.reload();
+              }, 100);
+            } else {
+              // Fallback if no token in response
+              set({
+                academicYear: year.year_name,
+                isAuthenticated: true,
+                isLoading: false,
+              });
+              console.log("Academic year switched (no response token). Reloading page...");
+              setTimeout(() => {
+                window.location.reload();
+              }, 100);
+            }
           } catch (error) {
-            console.error("Error invalidating queries after academic year switch:", error);
+            console.error("Failed to switch academic year through API:", error);
+            // Even on error, update local state and reload to allow recovery
+            set({
+              academicYear: year.year_name,
+              isAuthenticated: true,
+              isLoading: false,
+            });
+            setTimeout(() => {
+              window.location.reload();
+            }, 100);
           }
         },
         setAcademicYears: (years) => {
@@ -1076,7 +1128,7 @@ export const useAuthStore = create<AuthState>()(
         
         // Legacy setTokenAndExpiry - kept for backward compatibility
         // NOTE: This version accepts expireAtMs (number), new version accepts expiretime (ISO string)
-        setTokenAndExpiryLegacy: (token, expireAtMs) => {
+        setTokenAndExpiryLegacy: (token: string | null, expireAtMs: number | null) => {
           set((state) => {
             state.accessToken = token;
             state.tokenExpireAt = expireAtMs;

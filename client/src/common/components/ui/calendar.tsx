@@ -56,31 +56,29 @@ function CustomCaption(
   };
 
   return (
-    <div className="flex justify-center pt-1 relative items-center mb-2">
-      <div className="flex justify-center gap-2 items-center">
-        <select
-          value={currentMonth}
-          onChange={handleMonthChange}
-          className="h-8 rounded-md border border-input bg-background px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer min-w-[120px]"
-        >
-          {months.map((month, index) => (
-            <option key={month} value={index}>
-              {month}
-            </option>
-          ))}
-        </select>
-        <select
-          value={currentYear}
-          onChange={handleYearChange}
-          className="h-8 rounded-md border border-input bg-background px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer min-w-[100px]"
-        >
-          {years.map((year) => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div className="flex justify-center pt-0 relative items-center mb-1.5 gap-2 px-1">
+      <select
+        value={currentMonth}
+        onChange={handleMonthChange}
+        className="h-7 rounded-md border border-input/50 bg-background pl-2 pr-6 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 cursor-pointer min-w-[100px] shadow-sm outline-none transition-all hover:border-primary/50 hover:bg-muted/30"
+      >
+        {months.map((month, index) => (
+          <option key={month} value={index}>
+            {month}
+          </option>
+        ))}
+      </select>
+      <select
+        value={currentYear}
+        onChange={handleYearChange}
+        className="h-7 rounded-md border border-input/50 bg-background pl-2 pr-6 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 cursor-pointer min-w-[80px] shadow-sm outline-none transition-all hover:border-primary/50 hover:bg-muted/30"
+      >
+        {years.map((year) => (
+          <option key={year} value={year}>
+            {year}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
@@ -108,36 +106,36 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       captionLayout={captionLayout || "buttons"}
-      className={cn("p-2", className)}
+      className={cn("p-1.5", className)}
       classNames={{
-        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-        month: "space-y-2",
-        caption: "flex justify-center pt-1 relative items-center mb-1",
+        months: "flex flex-col sm:flex-row space-y-2 sm:space-x-4 sm:space-y-0",
+        month: "space-y-1.5",
+        caption: "flex justify-center pt-0 relative items-center mb-0.5",
         caption_label:
           captionLayout === "dropdown" ? "sr-only" : "text-sm font-medium",
-        caption_dropdowns: "flex justify-center gap-2 items-center",
+        caption_dropdowns: "flex justify-center gap-1.5 items-center",
         dropdown:
-          "h-8 rounded-md border border-input bg-background px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer",
+          "h-7 rounded-md border border-input bg-background px-2 text-[11px] font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 cursor-pointer",
         dropdown_month:
-          "h-8 rounded-md border border-input bg-background px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer min-w-[120px]",
+          "h-7 rounded-md border border-input bg-background px-2 text-[11px] font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 cursor-pointer min-w-[100px]",
         dropdown_year:
-          "h-8 rounded-md border border-input bg-background px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer min-w-[100px]",
+          "h-7 rounded-md border border-input bg-background px-2 text-[11px] font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 cursor-pointer min-w-[80px]",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-background p-0 border-border/60 hover:border-primary/40 hover:bg-primary/5 hover:text-primary transition-all duration-200"
+          "h-6 w-6 bg-background p-0 border-border/60 hover:border-primary/40 hover:bg-primary/5 hover:text-primary transition-all duration-200"
         ),
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
         table: "w-full border-collapse space-y-0",
         head_row: "flex",
         head_cell:
-          "text-muted-foreground w-9 font-normal mb-1.5 text-[0.8rem] border-b border-1",
+          "text-muted-foreground w-8 font-normal mb-1 text-[0.7rem] border-b border-1",
         row: "flex w-full mt-0.5",
-        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+        cell: "h-8 w-8 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-8 w-8 p-0 font-normal text-xs rounded-md aria-selected:opacity-100 hover:bg-primary/10 hover:text-primary transition-all duration-200 focus:bg-primary/10 focus:text-primary focus:ring-1 focus:ring-primary/20 active:scale-95"
+          "h-7 w-7 p-0 font-normal text-xs rounded-md aria-selected:opacity-100 hover:bg-primary/10 hover:text-primary transition-all duration-200 focus:bg-primary/10 focus:text-primary focus:ring-1 focus:ring-primary/20 active:scale-95"
         ),
         day_range_end: "day-range-end",
         day_selected:

@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import {
   TrendingUp,
   CalendarDays,
@@ -76,7 +76,7 @@ export const SchoolIncomeStatsCards: React.FC<SchoolIncomeStatsCardsProps> = ({
     },
     {
       title: "Reservation Fee Income",
-      value: formatCurrency(stats.application_fee_income),
+      value: formatCurrency(stats.reservation_fee_income),
       icon: CreditCard,
       color: "teal" as const,
       description: "From reservation fees",

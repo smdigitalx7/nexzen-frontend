@@ -1,4 +1,5 @@
-﻿import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { SchoolAdmissionsService, SchoolAdmissionsListParams } from "@/features/school/services/admissions.service";
 import { schoolKeys } from "./query-keys";
 import { useAuthStore } from "@/core/auth/authStore";
@@ -7,11 +8,21 @@ import { useAuthStore } from "@/core/auth/authStore";
  * Hook to fetch admissions list with pagination
  */
 export function useSchoolAdmissions(params?: SchoolAdmissionsListParams) {
-  const { isAuthenticated, isLoggingOut } = useAuthStore();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isLoggingOut = useAuthStore((state) => state.isLoggingOut);
+
+  const stableParams = useMemo(
+    () => ({
+      page: params?.page,
+      page_size: params?.page_size,
+      search: params?.search,
+    }),
+    [params?.page, params?.page_size, params?.search]
+  );
   
   return useQuery({
-    queryKey: schoolKeys.admissions.list(params),
-    queryFn: () => SchoolAdmissionsService.list(params),
+    queryKey: schoolKeys.admissions.list(stableParams as Record<string, unknown> | undefined),
+    queryFn: () => SchoolAdmissionsService.list(stableParams),
     // CRITICAL: Disable query if logging out or not authenticated
     enabled: isAuthenticated && !isLoggingOut,
     staleTime: 30 * 1000, // 30 seconds

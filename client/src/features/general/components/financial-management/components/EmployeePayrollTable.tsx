@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { formatCurrency } from "@/common/utils";
 import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
@@ -22,8 +22,8 @@ import { Badge } from "@/common/components/ui/badge";
 interface PayrollWithEmployee extends Omit<PayrollRead, "payroll_month"> {
   employee_name: string;
   employee_type?: string;
-  payroll_month: number; // Changed from string to number to match API
-  payroll_year: number;
+  payroll_month: number | string; // API can return number or date string
+  payroll_year?: number;
 }
 
 interface EmployeePayrollTableProps {
@@ -166,7 +166,7 @@ export const EmployeePayrollTable = ({
         header: "Status",
         cell: ({ row }) => {
           const payroll = row.original;
-          const currentStatus = payroll.status;
+          const currentStatus = payroll.status as PayrollStatusEnum;
           const allowedStatuses = getAllowedStatuses(currentStatus);
           const isUpdating = updatingStatusId === payroll.payroll_id;
           const isPaid = currentStatus === PayrollStatusEnum.PAID;
@@ -188,12 +188,11 @@ export const EmployeePayrollTable = ({
                 <SelectTrigger className="w-[140px] h-8">
                   <SelectValue>
                     <Badge
+                      // In this branch we already know status is NOT PAID.
                       variant={
-                        currentStatus === PayrollStatusEnum.PAID
-                          ? "default"
-                          : currentStatus === PayrollStatusEnum.PENDING
-                            ? "secondary"
-                            : "destructive"
+                        currentStatus === PayrollStatusEnum.PENDING
+                          ? "secondary"
+                          : "destructive"
                       }
                       className="text-xs"
                     >

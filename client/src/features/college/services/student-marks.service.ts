@@ -1,4 +1,4 @@
-﻿import { Api } from "@/core/api";
+import { Api } from "@/core/api";
 import type {
   StudentMarksResponse,
   StudentPerformanceResponse,
@@ -36,7 +36,7 @@ export const CollegeStudentMarksService = {
   getExamMarksReport(params: ExamMarksReportQuery) {
     return Api.get<CollegeExamMarksReportData>(
       `/college/exam-marks-report`,
-      params as Record<string, string | number | boolean | null | undefined>
+      params as unknown as Record<string, string | number | boolean | null | undefined>
     );
   },
 
@@ -47,7 +47,7 @@ export const CollegeStudentMarksService = {
   getTestMarksReport(params: TestMarksReportQuery) {
     return Api.get<CollegeTestMarksReportData>(
       `/college/test-marks-report`,
-      params as Record<string, string | number | boolean | null | undefined>
+      params as unknown as Record<string, string | number | boolean | null | undefined>
     );
   },
 };

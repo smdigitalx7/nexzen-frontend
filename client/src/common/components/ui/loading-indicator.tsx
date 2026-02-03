@@ -1,7 +1,7 @@
-﻿import React from 'react';
+import React from 'react';
 import { cn } from '@/common/utils';
 import { Loader } from './ProfessionalLoader';
-import { useLoading } from '@/common/contexts/LoadingContext';
+import { useLoading } from '@/contexts/LoadingContext';
 
 interface LoadingIndicatorProps {
   id?: string;

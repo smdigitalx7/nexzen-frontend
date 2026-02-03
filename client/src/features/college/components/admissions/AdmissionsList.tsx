@@ -1,8 +1,9 @@
-﻿import React, { useState, useMemo, useCallback, memo } from "react";
+import React, { useState, useMemo, useCallback, memo, useEffect } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { batchInvalidateAndRefetch } from "@/common/hooks/useGlobalRefetch";
 import { Button } from "@/common/components/ui/button";
 import { Badge } from "@/common/components/ui/badge";
+import { Input } from "@/common/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -21,10 +22,11 @@ import {
   GraduationCap,
   CreditCard,
   AlertCircle,
+  Search,
 } from "lucide-react";
 import { ReceiptPreviewModal } from "@/common/components/shared";
 import { handleCollegePayByAdmissionWithIncomeId } from "@/core/api/api-college";
-import { EnhancedDataTable, ServerSidePagination } from "@/common/components/shared";
+import { EnhancedDataTableServer } from "@/common/components/shared";
 import {
   useCollegeAdmissions,
   useCollegeAdmissionById,
@@ -58,6 +60,17 @@ const AdmissionsList = () => {
   // ✅ Server-side pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
 
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(
     null
@@ -69,7 +82,11 @@ const AdmissionsList = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
-  const { data: admissionsResp, isLoading } = useCollegeAdmissions({ page: currentPage, page_size: pageSize });
+  const { data: admissionsResp, isLoading } = useCollegeAdmissions({
+    page: currentPage,
+    page_size: pageSize,
+    search: debouncedSearch || undefined,
+  });
   const admissions = useMemo(() => admissionsResp?.data ?? [], [admissionsResp?.data]);
   const { data: selectedAdmission } = useCollegeAdmissionById(selectedStudentId);
 
@@ -323,44 +340,56 @@ const AdmissionsList = () => {
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <EnhancedDataTable
+        <div className="flex items-center gap-2">
+          <div className="relative w-full max-w-md">
+            <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search admissions (server-side)…"
+              className="pl-9"
+            />
+          </div>
+          {search ? (
+            <Button variant="outline" size="sm" onClick={() => setSearch("")}>
+              Clear
+            </Button>
+          ) : null}
+        </div>
+        <EnhancedDataTableServer
           data={admissions}
           columns={columns}
           title="Student Admissions"
-          searchKey="student_name"
-          searchPlaceholder="Search by name, admission number..."
           loading={isLoading}
           exportable={true}
           onExport={handleExportAll}
-          showSearch={true}
-          enableDebounce={true}
-          debounceDelay={300}
+          showSearch={false}
           highlightSearchResults={true}
           showActions={true}
           actionButtonGroups={actionButtonGroups}
           actionColumnHeader="Actions"
           showActionLabels={true}
           className="w-full"
-          enableClientSidePagination={false}
+          serverPagination={
+            admissionsResp
+              ? {
+                  currentPage,
+                  totalPages: admissionsResp.total_pages || 1,
+                  totalCount: admissionsResp.total_count || admissions.length,
+                  pageSize,
+                  onPageChange: (page) => {
+                    setCurrentPage(page);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  },
+                  onPageSizeChange: (newPageSize) => {
+                    setPageSize(newPageSize);
+                    setCurrentPage(1);
+                  },
+                  isLoading,
+                }
+              : undefined
+          }
         />
-        {/* ✅ Server-side pagination controls */}
-        {admissionsResp && (
-          <ServerSidePagination
-            currentPage={currentPage}
-            totalPages={admissionsResp.total_pages || 1}
-            totalCount={admissionsResp.total_count || admissions.length}
-            pageSize={pageSize}
-            onPageChange={(page) => {
-              setCurrentPage(page);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            onPageSizeChange={(newPageSize) => {
-              setPageSize(newPageSize);
-              setCurrentPage(1);
-            }}
-            isLoading={isLoading}
-          />
-        )}
       </div>
 
       {/* Admission Details Dialog */}

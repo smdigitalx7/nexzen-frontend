@@ -1,9 +1,9 @@
 // Shared Components
 export { EnhancedDataTable } from "./EnhancedDataTable";
+export { EnhancedDataTableServer } from "./EnhancedDataTableServer";
 export { ServerSidePagination } from "./ServerSidePagination";
 export { FormDialog } from "./FormDialog";
 export { ConfirmDialog } from "./ConfirmDialog";
-export { IdleTimeoutWarningDialog } from "./IdleTimeoutWarningDialog";
 export { NetworkErrorPage } from "./NetworkErrorPage";
 export { TabSwitcher } from "./TabSwitcher";
 export { ReceiptPreviewModal } from "./ReceiptPreviewModal";

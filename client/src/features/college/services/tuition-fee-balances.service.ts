@@ -1,5 +1,5 @@
 ﻿import { Api } from "@/core/api";
-import { CollegeBookFeePaymentUpdate, CollegeTermPaymentUpdate, CollegeTuitionBalanceBulkCreate, CollegeTuitionBalanceBulkCreateResult, CollegeTuitionFeeBalanceCreate, CollegeTuitionFeeBalanceFullRead, CollegeTuitionFeeBalanceRead, CollegeTuitionPaginatedResponse, CollegeTuitionUnpaidTermsResponse, CollegeTuitionFeeBalanceDashboardStats } from "@/features/college/types";
+import { CollegeBookFeePaymentUpdate, CollegeTermPaymentUpdate, CollegeTuitionBalanceBulkCreate, CollegeTuitionBalanceBulkCreateResult, CollegeTuitionFeeBalanceCreate, CollegeTuitionFeeBalanceFullRead, CollegeTuitionFeeBalanceRead, CollegeTuitionPaginatedResponse, CollegeTuitionUnpaidTermsResponse, CollegeTuitionFeeBalanceDashboardStats, ConcessionUpdateRequest, ConcessionUpdateResponse } from "@/features/college/types";
 
 export interface CollegeTuitionBalancesListParams {
   class_id: number; // Required
@@ -17,7 +17,7 @@ export const CollegeTuitionBalancesService = {
   },
   // GET /api/v1/college/tuition-fee-balances
   list(params: CollegeTuitionBalancesListParams) {
-    return Api.get<CollegeTuitionPaginatedResponse>(`/college/tuition-fee-balances`, params as Record<string, string | number | boolean | null | undefined> | undefined);
+    return Api.get<CollegeTuitionPaginatedResponse>(`/college/tuition-fee-balances`, params as unknown as Record<string, string | number | boolean | null | undefined>);
   },
 
   // GET /api/v1/college/tuition-fee-balances/by-admission-no/{admission_no}
@@ -28,10 +28,7 @@ export const CollegeTuitionBalancesService = {
   // GET /api/v1/college/tuition-fee-balances/{enrollment_id}
   getById(enrollment_id: number, options?: { cache?: boolean }) {
     return Api.get<CollegeTuitionFeeBalanceFullRead>(
-      `/college/tuition-fee-balances/${enrollment_id}`,
-      undefined,
-      undefined,
-      options
+      `/college/tuition-fee-balances/${enrollment_id}`
     );
   },
 
@@ -58,5 +55,9 @@ export const CollegeTuitionBalancesService = {
   // PUT /api/v1/college/tuition-fee-balances/{enrollment_id}/book-payment
   updateBookPayment(enrollment_id: number, payload: CollegeBookFeePaymentUpdate) {
     return Api.put<CollegeTuitionFeeBalanceFullRead>(`/college/tuition-fee-balances/${enrollment_id}/book-payment`, payload);
+  },
+  // PUT /api/v1/college/tuition-fee-balances/{enrollment_id}/concession
+  updateConcession(enrollment_id: number, payload: ConcessionUpdateRequest) {
+    return Api.put<ConcessionUpdateResponse>(`/college/tuition-fee-balances/${enrollment_id}/concession`, payload);
   },
 };

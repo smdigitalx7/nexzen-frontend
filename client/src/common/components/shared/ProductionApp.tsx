@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/core/query";
 import { TooltipProvider } from "@/common/components/ui/tooltip";
@@ -27,199 +27,12 @@ interface ProductionAppProps {
 }
 
 export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
-  const { isBranchSwitching } = useAuthStore();
+  // ✅ PERF: Selector prevents whole app rerender on unrelated auth state changes
+  const isBranchSwitching = useAuthStore((s) => s.isBranchSwitching);
   const [isAcademicYearSwitching, setIsAcademicYearSwitching] = useState(false);
 
-  // ✅ CRITICAL FIX: Global MutationObserver to fix aria-hidden violations
-  // Radix UI sets aria-hidden on elements that contain focused descendants, which violates accessibility
-  useEffect(() => {
-    // Flag to prevent infinite recursion when we modify aria-hidden ourselves
-    let isFixingViolations = false;
-
-    const fixAriaHiddenViolations = () => {
-      // Prevent recursive calls
-      if (isFixingViolations) return;
-      isFixingViolations = true;
-
-      try {
-        // Find all elements with aria-hidden="true"
-        const allElements = document.querySelectorAll('[aria-hidden="true"]');
-        const activeElement = document.activeElement;
-
-        allElements.forEach((el) => {
-          // If this element or any of its ancestors contains the active element, remove aria-hidden
-          if (el.contains(activeElement)) {
-            el.removeAttribute("aria-hidden");
-          }
-        });
-      } finally {
-        // Use requestAnimationFrame to reset flag after DOM updates complete
-        requestAnimationFrame(() => {
-          isFixingViolations = false;
-        });
-      }
-    };
-
-    // ✅ CRITICAL: MutationObserver to watch for aria-hidden being set incorrectly
-    const observer = new MutationObserver((mutations) => {
-      // Prevent recursive calls
-      if (isFixingViolations) return;
-
-      let shouldFix = false;
-      mutations.forEach((mutation) => {
-        if (
-          mutation.type === "attributes" &&
-          mutation.attributeName === "aria-hidden"
-        ) {
-          const target = mutation.target as Element;
-          if (target.getAttribute("aria-hidden") === "true") {
-            // Check if this element contains the active element
-            if (target.contains(document.activeElement)) {
-              // Remove aria-hidden immediately
-              target.removeAttribute("aria-hidden");
-              shouldFix = true;
-            }
-          }
-        }
-
-        // Also check for new nodes with aria-hidden
-        if (mutation.type === "childList") {
-          mutation.addedNodes.forEach((node) => {
-            if (node.nodeType === Node.ELEMENT_NODE) {
-              const element = node as Element;
-              if (element.getAttribute("aria-hidden") === "true") {
-                if (element.contains(document.activeElement)) {
-                  element.removeAttribute("aria-hidden");
-                  shouldFix = true;
-                }
-              }
-              // Check descendants
-              const descendants = element.querySelectorAll(
-                '[aria-hidden="true"]'
-              );
-              descendants.forEach((desc) => {
-                if (desc.contains(document.activeElement)) {
-                  desc.removeAttribute("aria-hidden");
-                  shouldFix = true;
-                }
-              });
-            }
-          });
-        }
-      });
-
-      // Only run fix function if we didn't already handle it in the mutation loop
-      // Use requestAnimationFrame to debounce and prevent stack overflow
-      if (shouldFix) {
-        requestAnimationFrame(() => {
-          if (!isFixingViolations) {
-            fixAriaHiddenViolations();
-          }
-        });
-      }
-    });
-
-    // Observe the entire document for aria-hidden changes
-    observer.observe(document.body, {
-      attributes: true,
-      attributeFilter: ["aria-hidden"],
-      childList: true,
-      subtree: true,
-    });
-
-    // ✅ CRITICAL FIX: Global body overflow safety mechanism
-    // This ensures body overflow is always restored, preventing UI freezes
-    let checkInterval: NodeJS.Timeout | null = null;
-    let focusChangeTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    const checkAndRestoreBodyOverflow = () => {
-      // Check if body is locked but no dialogs are open
-      const currentOverflow = document.body.style.overflow;
-
-      // If body is locked (overflow: hidden), check if dialogs are actually open
-      if (currentOverflow === "hidden") {
-        // Check if there are any open dialogs/alerts
-        const openDialogs = document.querySelectorAll(
-          '[role="dialog"][data-state="open"]'
-        );
-        const openAlerts = document.querySelectorAll(
-          '[role="alertdialog"][data-state="open"]'
-        );
-
-        // If no dialogs are open but body is locked, restore it
-        if (openDialogs.length === 0 && openAlerts.length === 0) {
-          document.body.style.overflow = "";
-          document.body.style.pointerEvents = "";
-
-          // ✅ CRITICAL: Also remove aria-hidden from root if no dialogs are open
-          const root = document.getElementById("root");
-          if (root && root.getAttribute("aria-hidden") === "true") {
-            root.removeAttribute("aria-hidden");
-          }
-        }
-      }
-
-      // ✅ CRITICAL: Remove aria-hidden from elements that have focused descendants
-      // Use requestAnimationFrame to debounce and prevent stack overflow
-      requestAnimationFrame(() => {
-        fixAriaHiddenViolations();
-      });
-    };
-
-    // Check every 100ms to catch stuck body overflow
-    checkInterval = setInterval(checkAndRestoreBodyOverflow, 100);
-
-    // Also check on visibility change (when user switches tabs/windows)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        checkAndRestoreBodyOverflow();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    // ✅ CRITICAL: Also check on focus changes
-    // Debounce focus events to prevent excessive calls
-    const handleFocusChange = () => {
-      // Clear any pending timeout
-      if (focusChangeTimeout) {
-        clearTimeout(focusChangeTimeout);
-      }
-      // Debounce focus changes to prevent stack overflow
-      focusChangeTimeout = setTimeout(() => {
-        requestAnimationFrame(() => {
-          fixAriaHiddenViolations();
-        });
-      }, 50); // 50ms debounce
-    };
-    document.addEventListener("focusin", handleFocusChange, { passive: true });
-    document.addEventListener("focusout", handleFocusChange, { passive: true });
-
-    // Cleanup
-    return () => {
-      observer.disconnect();
-      if (checkInterval) {
-        clearInterval(checkInterval);
-      }
-      if (focusChangeTimeout) {
-        clearTimeout(focusChangeTimeout);
-      }
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      document.removeEventListener("focusin", handleFocusChange);
-      document.removeEventListener("focusout", handleFocusChange);
-      // Final safety check on unmount
-      const openDialogs = document.querySelectorAll(
-        '[role="dialog"][data-state="open"]'
-      );
-      const openAlerts = document.querySelectorAll(
-        '[role="alertdialog"][data-state="open"]'
-      );
-      if (openDialogs.length === 0 && openAlerts.length === 0) {
-        document.body.style.overflow = "";
-      }
-      // Don't call fixAriaHiddenViolations in cleanup as it might trigger mutations
-      // The observer will be disconnected anyway
-    };
-  }, []);
+  // MutationObserver and body overflow safety mechanism removed - caused infinite loops
+  // Accessibilty fixes should be handled by Radix primitives or targeted fixes, not global observers
 
   // Listen for academic year switch events
   useEffect(() => {
@@ -231,9 +44,9 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
       }, 500);
     };
 
-    window.addEventListener("academic-year-switched", handleAcademicYearSwitch);
+    globalThis.addEventListener("academic-year-switched", handleAcademicYearSwitch);
     return () => {
-      window.removeEventListener(
+      globalThis.removeEventListener(
         "academic-year-switched",
         handleAcademicYearSwitch
       );

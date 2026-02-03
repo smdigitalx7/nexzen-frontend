@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {  ClipboardList, Plus, Trash2 } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -334,27 +334,36 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
 
   // Process and filter data - flatten nested response structure: tests -> subjects -> students
   const flattenedMarks = useMemo(() => {
-    if (!testMarksData) return [] as (CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; test_id?: number; subject_id?: number })[];
+    if (!testMarksData) {
+      return [] as (CollegeTestMarkMinimalRead & {
+        test_name?: string;
+        subject_name?: string;
+        test_id?: number;
+        subject_id?: number;
+      })[];
+    }
     
     // Ensure we have an array - handle different response structures
     let dataArray: any[] = [];
-    if (Array.isArray(testMarksData)) {
-      dataArray = testMarksData;
-    } else if (testMarksData && typeof testMarksData === 'object') {
+    const raw: unknown = testMarksData;
+    if (Array.isArray(raw)) {
+      dataArray = raw;
+    } else if (raw && typeof raw === 'object') {
       // Handle wrapped responses
-      if (Array.isArray(testMarksData.data)) {
-        dataArray = testMarksData.data;
-      } else if (Array.isArray(testMarksData.items)) {
-        dataArray = testMarksData.items;
-      } else if (Array.isArray(testMarksData.results)) {
-        dataArray = testMarksData.results;
+      const wrapped = raw as any;
+      if (Array.isArray(wrapped.data)) {
+        dataArray = wrapped.data;
+      } else if (Array.isArray(wrapped.items)) {
+        dataArray = wrapped.items;
+      } else if (Array.isArray(wrapped.results)) {
+        dataArray = wrapped.results;
       } else {
         // If it's an object but not an array, return empty
-        console.warn('testMarksData is not an array or array-wrapped object:', testMarksData);
+        console.warn('testMarksData is not an array or array-wrapped object:', raw);
         return [] as (CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; test_id?: number; subject_id?: number })[];
       }
     } else {
-      console.warn('testMarksData is not a valid type:', typeof testMarksData, testMarksData);
+      console.warn('testMarksData is not a valid type:', typeof raw, raw);
       return [] as (CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; test_id?: number; subject_id?: number })[];
     }
     
@@ -717,9 +726,11 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
                           <FormLabel>Marks Obtained</FormLabel>
                             <FormControl>
                             <Input 
+                              id="test-mark-obtained"
                               type="number" 
                               placeholder="18" 
                               {...field}
+                              autoComplete="off"
                             />
                             </FormControl>
                             <FormMessage />
@@ -733,7 +744,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
                           <FormItem>
                             <FormLabel>Remarks (Optional)</FormLabel>
                             <FormControl>
-                            <Input placeholder="Additional comments..." {...field} />
+                            <Input id="test-mark-remarks" placeholder="Additional comments..." {...field} autoComplete="off" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -1142,58 +1153,62 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
             <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
               {/* Required Filters - Order: Class, Group, Test, Subject (as per mandatory parameters) */}
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Class:</label>
-                <CollegeClassDropdown
-                  value={selectedClass}
-                  onChange={setSelectedClass}
-                  placeholder="Select class"
-                  className="w-40"
-                  emptyValue
-                  emptyValueLabel="Select class"
-                />
-              </div>
+                    <label htmlFor="test-mgmt-class" className="text-sm font-medium">Class:</label>
+                    <CollegeClassDropdown
+                      id="test-mgmt-class"
+                      value={selectedClass}
+                      onChange={(value) => setSelectedClass(value)}
+                      placeholder="Select class"
+                      emptyValue
+                      emptyValueLabel="Select class"
+                      className="w-40"
+                    />
+                  </div>
 
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Group:</label>
-                <CollegeGroupDropdown
-                  classId={selectedClass || 0}
-                  value={selectedGroup}
-                  onChange={setSelectedGroup}
-                  placeholder={selectedClass ? "Select group" : "Select class first"}
-                  className="w-40"
-                  emptyValue
-                  emptyValueLabel={selectedClass ? "Select group" : "Select class first"}
-                  disabled={!selectedClass}
-                />
-              </div>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="test-mgmt-group" className="text-sm font-medium">Group:</label>
+                    <CollegeGroupDropdown
+                      id="test-mgmt-group"
+                      classId={selectedClass || 0}
+                      value={selectedGroup}
+                      onChange={(value) => setSelectedGroup(value)}
+                      disabled={!selectedClass}
+                      placeholder={selectedClass ? "Select group" : "Select class first"}
+                      emptyValue
+                      emptyValueLabel={selectedClass ? "Select group" : "Select class first"}
+                      className="w-40"
+                    />
+                  </div>
 
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Test:</label>
-                <CollegeTestDropdown
-                  value={selectedTest}
-                  onChange={setSelectedTest}
-                  placeholder={selectedClass ? "Select test" : "Select class first"}
-                  className="w-40"
-                  emptyValue
-                  emptyValueLabel={selectedClass ? "Select test" : "Select class first"}
-                  disabled={!selectedClass}
-                />
-              </div>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="test-mgmt-test" className="text-sm font-medium">Test:</label>
+                    <CollegeTestDropdown
+                      id="test-mgmt-test"
+                      value={selectedTest}
+                      onChange={(value) => setSelectedTest(value)}
+                      placeholder={selectedGroup ? "Select test" : "Select group first"}
+                      emptyValue
+                      emptyValueLabel={selectedGroup ? "Select test" : "Select group first"}
+                      className="w-40"
+                      disabled={!selectedGroup}
+                    />
+                  </div>
 
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Subject:</label>
-                <CollegeSubjectDropdown
-                  groupId={selectedGroup || 0}
-                  value={selectedSubject}
-                  onChange={setSelectedSubject}
-                  placeholder={selectedGroup ? "Select subject" : "Select group first"}
-                  className="w-40"
-                  emptyValue
-                  emptyValueLabel={selectedGroup ? "Select subject" : "Select group first"}
-                  disabled={!selectedGroup}
-                />
-              </div>
-            </div>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="test-mgmt-subject" className="text-sm font-medium">Subject:</label>
+                    <CollegeSubjectDropdown
+                      id="test-mgmt-subject"
+                      groupId={selectedGroup || 0}
+                      value={selectedSubject}
+                      onChange={(value) => setSelectedSubject(value)}
+                      placeholder={selectedGroup ? "Select subject" : "Select group first"}
+                      emptyValue
+                      emptyValueLabel={selectedGroup ? "Select subject" : "Select group first"}
+                      className="w-40"
+                      disabled={!selectedGroup}
+                    />
+                  </div>
+                </div>
 
             {/* Data Table */}
             <div className="space-y-4">

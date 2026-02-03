@@ -1,5 +1,5 @@
-﻿import { useState, useMemo, memo, useCallback } from 'react';
-import { Users, Save, X, Edit, Trash2 } from 'lucide-react';
+import { useState, useMemo, memo, useCallback, useEffect } from 'react';
+import { Users, Save, X, Edit, Trash2, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card';
 import { Button } from '@/common/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/common/components/ui/dialog';
@@ -7,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/common/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/common/components/ui/select';
 import { DatePicker } from '@/common/components/ui/date-picker';
-import { EnhancedDataTable, ServerSidePagination } from '@/common/components/shared';
+import { EnhancedDataTableServer } from '@/common/components/shared';
 import { Loader } from '@/common/components/ui/ProfessionalLoader';
 import { 
   createAvatarColumn, 
@@ -74,15 +74,15 @@ const PersonalInfoSection = memo(({ form }: { form: any }) => (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField control={form.control} name="student_name" render={({ field }) => (
           <FormItem>
-            <FormLabel>Student Name *</FormLabel>
-            <FormControl><Input placeholder="Enter student name" {...field} /></FormControl>
+            <FormLabel htmlFor="student-name">Student Name *</FormLabel>
+            <FormControl><Input id="student-name" placeholder="Enter student name" {...field} /></FormControl>
             <FormMessage />
           </FormItem>
         )} />
         <FormField control={form.control} name="aadhar_no" render={({ field }) => (
           <FormItem>
-            <FormLabel>Aadhar Number</FormLabel>
-            <FormControl><Input placeholder="12-digit Aadhar number" {...field} /></FormControl>
+            <FormLabel htmlFor="student-aadhar">Aadhar Number</FormLabel>
+            <FormControl><Input id="student-aadhar" placeholder="12-digit Aadhar number" {...field} /></FormControl>
             <FormMessage />
           </FormItem>
         )} />
@@ -102,9 +102,10 @@ const PersonalInfoSection = memo(({ form }: { form: any }) => (
         )} />
         <FormField control={form.control} name="dob" render={({ field }) => (
           <FormItem>
-            <FormLabel>Date of Birth</FormLabel>
+            <FormLabel htmlFor="student-dob">Date of Birth</FormLabel>
             <FormControl>
               <DatePicker
+                id="student-dob"
                 value={field.value || ""}
                 onChange={field.onChange}
                 placeholder="Select date of birth"
@@ -129,8 +130,8 @@ const ParentInfoSection = memo(({ form }: { form: any }) => (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField control={form.control} name="father_name" render={({ field }) => (
           <FormItem>
-            <FormLabel>Father Name</FormLabel>
-            <FormControl><Input placeholder="Enter father's name" {...field} /></FormControl>
+            <FormLabel htmlFor="father-name">Father Name</FormLabel>
+            <FormControl><Input id="father-name" placeholder="Enter father's name" {...field} /></FormControl>
             <FormMessage />
           </FormItem>
         )} />
@@ -281,13 +282,26 @@ const StudentsTabComponent = () => {
   // ✅ Server-side pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Reset pagination when search changes (server-side search)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
 
   // Hooks
-  const { currentBranch } = useAuthStore();
+  const currentBranch = useAuthStore((state) => state.currentBranch);
   // ✅ OPTIMIZATION: Only fetch when tab is active
-  const { data: studentsResp, isLoading, error } = useSchoolStudentsList({ 
+  const { data: studentsResp, isLoading, error, dataUpdatedAt } = useSchoolStudentsList({ 
     page: currentPage, 
     page_size: pageSize,
+    search: debouncedSearch || undefined,
     enabled: isTabActive, // ✅ Only fetch when relevant tab is active
   });
   const { data: viewStudentData, isLoading: isViewLoading } = useSchoolStudent(viewStudentId);
@@ -297,7 +311,7 @@ const StudentsTabComponent = () => {
   // Use dataUpdatedAt to ensure we detect when React Query refetches
   const students = useMemo(() => studentsResp?.data ?? [], [
     studentsResp?.data,
-    studentsResp?.dataUpdatedAt, // ✅ Add timestamp to detect refetches
+    dataUpdatedAt, // ✅ Add timestamp to detect refetches
   ]);
 
   // Form setup
@@ -387,11 +401,33 @@ const StudentsTabComponent = () => {
         <Card><CardContent className="py-8 text-center text-red-600">Error loading students</CardContent></Card>
       ) : (
         <div className="space-y-4">
-          <EnhancedDataTable
+          <div className="flex items-center gap-2">
+            <div className="relative w-full max-w-md">
+              <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+              <Input
+                id="students-list-search"
+                name="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search students (server-side)…"
+                className="pl-9"
+                autoComplete="off"
+              />
+            </div>
+            {search ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSearch("")}
+              >
+                Clear
+              </Button>
+            ) : null}
+          </div>
+          <EnhancedDataTableServer
             data={students}
             columns={columns}
             title="Students"
-            searchKey="student_name"
             exportable={true}
             selectable={true}
             showActions={true}
@@ -399,26 +435,27 @@ const StudentsTabComponent = () => {
             actionColumnHeader="Actions"
             showActionLabels={true}
             refreshKey={refreshKey}
-            enableClientSidePagination={false}
+            showSearch={false}
+            serverPagination={
+              studentsResp
+                ? {
+                    currentPage,
+                    totalPages: studentsResp.total_pages || 1,
+                    totalCount: studentsResp.total_count || students.length,
+                    pageSize,
+                    onPageChange: (page) => {
+                      setCurrentPage(page);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    },
+                    onPageSizeChange: (newPageSize) => {
+                      setPageSize(newPageSize);
+                      setCurrentPage(1);
+                    },
+                    isLoading,
+                  }
+                : undefined
+            }
           />
-          {/* ✅ Server-side pagination controls */}
-          {studentsResp && (
-            <ServerSidePagination
-              currentPage={currentPage}
-              totalPages={studentsResp.total_pages || 1}
-              totalCount={studentsResp.total_count || students.length}
-              pageSize={pageSize}
-              onPageChange={(page) => {
-                setCurrentPage(page);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              onPageSizeChange={(newPageSize) => {
-                setPageSize(newPageSize);
-                setCurrentPage(1);
-              }}
-              isLoading={isLoading}
-            />
-          )}
         </div>
       )}
 

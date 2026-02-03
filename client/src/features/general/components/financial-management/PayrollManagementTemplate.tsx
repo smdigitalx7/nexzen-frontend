@@ -1,4 +1,4 @@
-﻿import { motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { CreditCard, Plus, Download, Users, Eye } from "lucide-react";
 import { Badge } from "@/common/components/ui/badge";
 import { Button } from "@/common/components/ui/button";
@@ -32,8 +32,8 @@ import type {
 interface PayrollWithEmployee extends Omit<PayrollRead, "payroll_month"> {
   employee_name: string;
   employee_type?: string;
-  payroll_month: number;
-  payroll_year: number;
+  payroll_month: number | string;
+  payroll_year?: number;
 }
 
 // Memoized header component

@@ -1,4 +1,4 @@
-﻿import { useAuthStore } from "@/core/auth/authStore";
+import { useAuthStore } from "@/core/auth/authStore";
 import { useUIStore } from "@/store/uiStore";
 import type {
   ApiErrorResponse,
@@ -24,6 +24,11 @@ export interface ApiRequestOptions {
   query?: Record<string, string | number | boolean | undefined | null>;
   headers?: Record<string, string>;
   noAuth?: boolean;
+  /**
+   * Optional hint used by some service wrappers.
+   * The HTTP layer itself does not implement caching (React Query owns caching).
+   */
+  cache?: boolean;
   // internal flag to avoid infinite refresh loops
   _isRetry?: boolean;
   // Request timeout
@@ -133,8 +138,8 @@ const BACKOFF_CONFIG = {
 };
 
 function scheduleProactiveRefresh() {
-  const { token, tokenExpireAt } = useAuthStore.getState();
-  if (!token || !tokenExpireAt) return;
+  const { accessToken, tokenExpireAt } = useAuthStore.getState();
+  if (!accessToken || !tokenExpireAt) return;
   
   // Don't schedule refresh if tab is not visible
   if (!isTabVisible) {
@@ -157,7 +162,7 @@ function scheduleProactiveRefresh() {
     }
     
     try {
-      await tryRefreshToken(useAuthStore.getState().token);
+      await tryRefreshToken(useAuthStore.getState().accessToken);
       // reschedule after refresh
       scheduleProactiveRefresh();
     } catch {
@@ -539,7 +544,7 @@ export async function api<T = unknown>({
       if (access && expireIso) {
         useAuthStore
           .getState()
-          .setTokenAndExpiry(access, new Date(expireIso).getTime());
+          .setTokenAndExpiry(access, expireIso);
         scheduleProactiveRefresh();
       }
     }
@@ -652,6 +657,191 @@ export async function api<T = unknown>({
   }
 }
 
+function parseContentDispositionFilename(contentDisposition: string | null): string | null {
+  if (!contentDisposition) return null;
+  // Examples:
+  // - attachment; filename="receipt.pdf"
+  // - attachment; filename=receipt.pdf
+  // - attachment; filename*=UTF-8''receipt%20(1).pdf
+  const filenameStar = contentDisposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i)?.[1];
+  if (filenameStar) {
+    try {
+      return decodeURIComponent(filenameStar.replace(/(^")|("$)/g, ""));
+    } catch {
+      return filenameStar.replace(/(^")|("$)/g, "");
+    }
+  }
+
+  const filename = contentDisposition.match(/filename\s*=\s*("?)([^";]+)\1/i)?.[2];
+  return filename ? filename.trim() : null;
+}
+
+async function apiBlob({
+  method = "GET",
+  path,
+  body,
+  query,
+  headers = {},
+  noAuth = false,
+  _isRetry = false,
+  timeout = DEFAULT_TIMEOUT,
+}: ApiRequestOptions): Promise<{ blob: Blob; filename: string | null; contentType: string | null }> {
+  // Pure HTTP client - no caching logic
+  // React Query handles all caching and request deduplication
+
+  const state = useAuthStore.getState();
+
+  // CRITICAL: Don't make authenticated requests if:
+  // 1. Logout is in progress (race condition protection)
+  // 2. Auth is initializing (bootstrapAuth running)
+  if (!noAuth) {
+    if (state.isLoggingOut) {
+      throw new Error("Request cancelled: logout in progress");
+    }
+    if (state.isAuthInitializing) {
+      throw new Error("Request cancelled: auth initialization in progress");
+    }
+  }
+
+  // Use accessToken directly (memory-only), fallback to token alias for backward compatibility
+  let token = state.accessToken || (state as any).token;
+
+  const url = `${API_BASE_URL}${path}${buildQuery(query)}`;
+
+  // Check token expiry and refresh proactively if needed
+  if (token && !noAuth && state.tokenExpireAt) {
+    const now = Date.now();
+    const isExpired = now >= state.tokenExpireAt;
+    const expiresSoon = state.tokenExpireAt - now < 60_000; // 60 seconds before expiry
+
+    if (isExpired || expiresSoon) {
+      try {
+        const refreshed = await tryRefreshToken(token);
+        if (refreshed) {
+          const newState = useAuthStore.getState();
+          token = newState.accessToken || (newState as any).token;
+        } else if (isExpired) {
+          throw new TokenExpiredError(
+            "Token expired and refresh failed. Please log in again."
+          );
+        }
+      } catch (error) {
+        if (error instanceof TokenRefreshError || error instanceof TokenExpiredError) {
+          throw error;
+        }
+        // Network errors - continue with current token
+      }
+    }
+  }
+
+  const requestHeaders: Record<string, string> = {
+    ...headers,
+  };
+
+  // Only set JSON content-type when sending a JSON body
+  if (body !== undefined && !(body instanceof FormData)) {
+    requestHeaders["Content-Type"] = requestHeaders["Content-Type"] || "application/json";
+  }
+
+  if (method !== "GET" && !noAuth) {
+    CSRFProtection.addToHeaders(requestHeaders);
+  }
+
+  if (!noAuth && token) {
+    requestHeaders["Authorization"] = `Bearer ${token}`;
+  }
+
+  const controller = new AbortController();
+  const unregister = registerAbortController(controller);
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: requestHeaders,
+      body:
+        body === undefined
+          ? undefined
+          : body instanceof FormData
+            ? body
+            : JSON.stringify(body),
+      credentials: "include",
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+    unregister();
+
+    // Attempt refresh on 401 only (Unauthorized)
+    if (!noAuth && res.status === 401 && !_isRetry) {
+      try {
+        const refreshed = await tryRefreshToken(token);
+        if (refreshed) {
+          return await apiBlob({
+            method,
+            path,
+            body,
+            query,
+            headers,
+            noAuth,
+            _isRetry: true,
+            timeout,
+          });
+        }
+      } catch (refreshError) {
+        if (refreshError instanceof TokenRefreshError || refreshError instanceof TokenExpiredError) {
+          throw refreshError;
+        }
+      }
+    }
+
+    if (!res.ok) {
+      const contentType = res.headers.get("content-type") || "";
+      const isJson = contentType.includes("application/json");
+
+      let payload: unknown = null;
+      try {
+        payload = isJson ? await res.json() : await res.text();
+      } catch {
+        payload = null;
+      }
+
+      let message = res.statusText || "Request failed";
+      if (isJson && isApiErrorResponse(payload)) {
+        if (typeof payload.detail === "string") {
+          message = payload.detail;
+        } else if (payload.message) {
+          message = payload.message;
+        }
+      }
+
+      throw new ApiError(message, res.status, payload);
+    }
+
+    const contentType = res.headers.get("content-type");
+    const filename = parseContentDispositionFilename(res.headers.get("content-disposition"));
+    const blob = await res.blob();
+    const normalized =
+      contentType && (!blob.type || blob.type === "application/octet-stream")
+        ? new Blob([blob], { type: contentType })
+        : blob;
+    return { blob: normalized, filename, contentType };
+  } catch (error) {
+    clearTimeout(timeoutId);
+    unregister();
+
+    if (error instanceof Error && error.name === "AbortError") {
+      const currentState = useAuthStore.getState();
+      if (currentState.isLoggingOut) {
+        throw new Error("Request cancelled: logout in progress");
+      }
+      throw new Error(`Request timeout after ${timeout}ms`);
+    }
+
+    throw error;
+  }
+}
+
 export const Api = {
   get: <T>(
     path: string,
@@ -720,6 +910,46 @@ export const Api = {
       headers,
       timeout: opts?.timeout,
     }),
+
+  /**
+   * GET a binary response (e.g. PDF, XLSX) as Blob.
+   * Use this for downloads instead of trying to pass axios-like `responseType`.
+   */
+  getBlob: async (
+    path: string,
+    query?: ApiRequestOptions["query"],
+    headers?: Record<string, string>,
+    opts?: Partial<ApiRequestOptions>
+  ): Promise<Blob> => {
+    const { blob } = await apiBlob({
+      method: "GET",
+      path,
+      query,
+      headers,
+      timeout: opts?.timeout,
+      noAuth: opts?.noAuth,
+    });
+    return blob;
+  },
+
+  /**
+   * GET a binary response plus useful metadata from headers.
+   */
+  getBlobWithMeta: async (
+    path: string,
+    query?: ApiRequestOptions["query"],
+    headers?: Record<string, string>,
+    opts?: Partial<ApiRequestOptions>
+  ): Promise<{ blob: Blob; filename: string | null; contentType: string | null }> => {
+    return apiBlob({
+      method: "GET",
+      path,
+      query,
+      headers,
+      timeout: opts?.timeout,
+      noAuth: opts?.noAuth,
+    });
+  },
 
   // FormData helper (avoids JSON content-type)
   postForm: async <T>(
@@ -823,58 +1053,21 @@ export async function handleRegenerateReceipt(
   incomeId: number,
   institutionType: "school" | "college" = "school"
 ): Promise<string> {
-  const state = useAuthStore.getState();
-  // Use accessToken directly (memory-only), fallback to token alias for backward compatibility
-  const token = state.accessToken || (state as any).token;
-
-  if (!token) {
-    throw new Error(
-      "Authentication token is required for receipt regeneration"
-    );
-  }
-
-  const url = `${API_BASE_URL}/${institutionType}/income/${incomeId}/regenerate-receipt`;
-
   try {
-    // Call the API with blob response type to receive PDF binary data
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "include",
-    });
+    const pdfBlob = await Api.getBlob(
+      `/${institutionType}/income/${incomeId}/regenerate-receipt`
+    );
 
-    // Check if the request was successful
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage = `Receipt regeneration failed with status ${response.status}`;
-
-      try {
-        const errorData = JSON.parse(errorText);
-        errorMessage = errorData.detail || errorData.message || errorMessage;
-      } catch {
-        // If not JSON, use the text as error message
-        errorMessage = errorText || errorMessage;
-      }
-
-      throw new Error(errorMessage);
-    }
-
-    // Get the PDF as binary data (blob)
-    const pdfBlob = await response.blob();
-
-    // Verify we received a PDF
-    if (!pdfBlob.type.includes("pdf") && pdfBlob.size === 0) {
+    if (pdfBlob.size === 0) {
       throw new Error("Invalid PDF received from server");
     }
 
-    // Create a Blob URL for the PDF
-    const pdfBlobWithType = new Blob([pdfBlob], { type: "application/pdf" });
-    const blobUrl = URL.createObjectURL(pdfBlobWithType);
+    const ensurePdfType =
+      pdfBlob.type && pdfBlob.type.toLowerCase().includes("pdf")
+        ? pdfBlob
+        : new Blob([pdfBlob], { type: "application/pdf" });
 
-    // Return the blobUrl for the caller to handle (e.g., in modal)
-    return blobUrl;
+    return URL.createObjectURL(ensurePdfType);
   } catch (error) {
     // Re-throw with more context if it's a network error
     if (error instanceof TypeError && error.message.includes("fetch")) {
@@ -952,8 +1145,8 @@ export const AuthTokenTimers = {
     isTabVisible = visible;
     if (visible) {
       // Reschedule refresh when tab becomes visible
-      const { token, tokenExpireAt } = useAuthStore.getState();
-      if (token && tokenExpireAt) {
+      const { accessToken, tokenExpireAt } = useAuthStore.getState();
+      if (accessToken && tokenExpireAt) {
         scheduleProactiveRefresh();
       }
     } else {

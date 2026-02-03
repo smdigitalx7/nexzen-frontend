@@ -1,4 +1,4 @@
-﻿import { Api } from "@/core/api";
+import { Api } from "@/core/api";
 import { handleRegenerateReceipt } from "@/core/api";
 import { handleAdmissionPayment } from "@/core/api/api-school";
 import type {
@@ -36,7 +36,7 @@ export const SchoolReservationsService = {
     return Api.post<SchoolReservationRead>(`/school/reservations`, data);
   },
 
-  update(reservation_id: number, data: SchoolReservationUpdate) {
+  update(reservation_id: number, data: SchoolReservationUpdate | FormData) {
     return Api.put<SchoolReservationRead>(
       `/school/reservations/${reservation_id}`,
       data

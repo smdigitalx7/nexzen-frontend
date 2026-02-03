@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
 import { Badge } from "@/common/components/ui/badge";
@@ -9,7 +9,7 @@ import {
   createTextColumn
 } from "@/common/utils/factory/columnFactories";
 import DistanceSlabFormDialog from "./DistanceSlabFormDialog";
-import type { DistanceSlabRead, DistanceSlabCreate, DistanceSlabUpdate } from "@/features/general/types/transport";
+import type { DistanceSlabRead, DistanceSlabCreate, DistanceSlabUpdate } from "@/features/general/types/distance-slabs";
 import type { UseMutationResult } from "@tanstack/react-query";
 
 interface DistanceSlabsTabProps {

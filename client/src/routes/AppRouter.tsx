@@ -1,5 +1,5 @@
-﻿import React from "react";
-import { Switch, Route } from "wouter";
+import React from "react";
+import { Switch, Route, Redirect } from "wouter";
 import { useAuthStore } from "@/core/auth/authStore";
 import { useAuthHydration } from "@/common/hooks/useAuthHydration";
 import { LazyLoadingWrapper } from "@/common/components/shared/LazyLoadingWrapper";
@@ -14,7 +14,10 @@ import { Login, NotFound, ProfilePage, SettingsPage, routes } from "./route-conf
  * Handles authentication state and route rendering
  */
 export function AppRouter() {
-  const { isAuthenticated, isAuthInitializing, user } = useAuthStore();
+  // ✅ PERF: Use selectors so auth store updates don't rerender the whole router tree
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isAuthInitializing = useAuthStore((s) => s.isAuthInitializing);
+  const user = useAuthStore((s) => s.user);
   const isHydrated = useAuthHydration();
 
   // CRITICAL: Show loading screen if:
@@ -32,12 +35,13 @@ export function AppRouter() {
     );
   }
 
-  // If not authenticated and no user data, show login page
-  // Only show login if bootstrapAuth has completed and we have no user data
+  // If not authenticated and no user data, show login or forgot password page
   if (!isAuthenticated && !user) {
     return (
       <LazyLoadingWrapper>
-        <Login />
+        <Switch>
+          <Route component={Login} />
+        </Switch>
       </LazyLoadingWrapper>
     );
   }
@@ -56,6 +60,11 @@ export function AppRouter() {
     <AuthenticatedLayout>
       <LazyLoadingWrapper>
         <Switch>
+          {/* Redirect /login to / if authenticated */}
+          <Route path="/login">
+            <Redirect to="/" />
+          </Route>
+
           {/* Dashboard - Role-specific */}
           <Route path="/" component={DashboardRouter} />
           <Route path="/profile" component={ProfilePage} />

@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Bus, Route } from "lucide-react";
 import { IndianRupeeIcon } from "@/common/components/shared/IndianRupeeIcon";
@@ -30,8 +30,8 @@ const TransportManagement = () => {
     distanceSlabs: slabsData = [],
     isLoadingDistanceSlabs: feesLoading,
     distanceSlabsError: feesError,
-    createDistanceSlab: createFeeMutation,
-    updateDistanceSlab: updateFeeMutation,
+    createDistanceSlabMutation: createFeeMutation,
+    updateDistanceSlabMutation: updateFeeMutation,
   } = useDistanceSlabs();
   const deleteRouteMutation = useDeleteBusRoute();
   const createRouteMutation = useCreateBusRoute();
@@ -175,8 +175,8 @@ const TransportManagement = () => {
                 slabsData={Array.isArray(slabsData) ? slabsData : []}
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}
-                onCreateSlab={(data) => createFeeMutation(data)}
-                onUpdateSlab={(data) => updateFeeMutation(data)}
+                onCreateSlab={(data) => createFeeMutation.mutate(data)}
+                onUpdateSlab={(data) => updateFeeMutation.mutate(data)}
                 createFeeMutation={createFeeMutation}
                 updateFeeMutation={updateFeeMutation}
               />

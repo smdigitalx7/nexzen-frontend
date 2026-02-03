@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { CollegeStudentsService } from "@/features/college/services/students.service";
 import type {
@@ -16,17 +16,36 @@ import { COLLEGE_INVALIDATION_MAPS, resolveInvalidationKeys } from "@/common/hoo
 /**
  * ✅ OPTIMIZATION: Query key stabilized with useMemo, auto-refetch disabled
  */
-export function useCollegeStudentsList(params?: { page?: number; pageSize?: number }) {
+export function useCollegeStudentsList(params?: {
+  page?: number;
+  page_size?: number;
+  class_id?: number;
+  group_id?: number;
+  course_id?: number;
+  search?: string;
+  enabled?: boolean;
+}) {
   // ✅ OPTIMIZATION: Stabilize query key to prevent unnecessary refetches
-  const stableParams = useMemo(() => params, [params?.page, params?.pageSize]);
+  const stableParams = useMemo(
+    () => ({
+      page: params?.page,
+      page_size: params?.page_size,
+      class_id: params?.class_id,
+      group_id: params?.group_id,
+      course_id: params?.course_id,
+      search: params?.search,
+    }),
+    [params?.page, params?.page_size, params?.class_id, params?.group_id, params?.course_id, params?.search]
+  );
   const queryKey = useMemo(
-    () => collegeKeys.students.list(stableParams),
+    () => collegeKeys.students.list(stableParams as Record<string, unknown>),
     [stableParams]
   );
 
   return useQuery({
     queryKey,
-    queryFn: () => CollegeStudentsService.list(stableParams),
+    queryFn: () => CollegeStudentsService.list(stableParams as any),
+    enabled: params?.enabled !== false,
     staleTime: 30 * 1000, // 30 seconds - students change frequently
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false, // ✅ OPTIMIZATION: No refetch on tab focus

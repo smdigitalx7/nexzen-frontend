@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
   CreditCard,
@@ -102,13 +102,18 @@ const ReservationPaymentProcessor: React.FC<
 
       // Create income record for UI display using the actual income_id from backend
       const incomeRecord = {
-        income_id: income_id, // Actual income_id from backend (e.g., 236)
-        application_income_id: income_id, // Use the same income_id
+        // If backend returns PDF directly (no JSON context), income_id may be 0.
+        income_id: income_id,
+        application_income_id: income_id,
         reservation_id: reservationData.reservationId,
         purpose: "APPLICATION_FEE",
         amount:
-          paymentData.data?.context?.total_amount ||
+          paymentData?.data?.context?.total_amount ||
           reservationData.reservationFee,
+        receipt_no:
+          paymentData?.data?.context?.receipt_no ??
+          paymentData?.context?.receipt_no ??
+          null,
         income_date: new Date().toISOString().split("T")[0],
         payment_method: selectedPaymentMethod,
         note: reservationData.note,
@@ -123,10 +128,11 @@ const ReservationPaymentProcessor: React.FC<
       setReceiptBlobUrl(blobUrl);
 
       // Extract receipt number from payment data
-      const receiptNo = paymentData.data?.context?.receipt_no || 
-                       paymentData.context?.receipt_no || 
-                       incomeRecord.receipt_no || 
-                       null;
+      const receiptNo =
+        paymentData?.data?.context?.receipt_no ||
+        paymentData?.context?.receipt_no ||
+        incomeRecord.receipt_no ||
+        null;
 
       // Pass income record, blob URL, and receipt number to parent
       onPaymentComplete?.(incomeRecord as any, blobUrl, receiptNo);

@@ -4,4 +4,5 @@
 export * from './performance';
 export * from './bundleOptimizer';
 export * from './preloader';
-export * from './production-optimizations';
+// Avoid duplicate exports (e.g. withPerformanceMonitoring exists in multiple files)
+export { performanceUtils, withErrorBoundary, memoizationUtils } from './production-optimizations';

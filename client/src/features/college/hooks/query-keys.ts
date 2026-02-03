@@ -2,7 +2,7 @@ export const collegeKeys = {
   root: ["college"] as const,
   students: {
     root: () => [...collegeKeys.root, "students"] as const,
-    list: (params?: { page?: number; pageSize?: number }) =>
+    list: (params?: Record<string, unknown>) =>
       [...collegeKeys.students.root(), "list", params ?? {}] as const,
     detail: (studentId: number) => [...collegeKeys.students.root(), "detail", studentId] as const,
   },
@@ -115,6 +115,10 @@ export const collegeKeys = {
     root: () => [...collegeKeys.root, "admissions"] as const,
     list: (params?: Record<string, unknown>) => [...collegeKeys.admissions.root(), "list", params ?? {}] as const,
     detail: (studentId: number) => [...collegeKeys.admissions.root(), "detail", studentId] as const,
+  },
+  promotion: {
+    root: () => [...collegeKeys.root, "promotion"] as const,
+    eligibility: () => [...collegeKeys.promotion.root(), "eligibility"] as const,
   },
 };
 

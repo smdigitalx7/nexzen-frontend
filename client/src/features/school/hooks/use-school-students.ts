@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { SchoolStudentsService } from "@/features/school/services/students.service";
 import type { SchoolStudentCreate, SchoolStudentFullDetails, SchoolStudentRead, SchoolStudentUpdate, SchoolStudentsPaginatedResponse } from "@/features/school/types";
@@ -26,10 +26,22 @@ import { SCHOOL_INVALIDATION_MAPS, resolveInvalidationKeys } from "@/common/hook
 export function useSchoolStudentsList(params?: { 
   page?: number; 
   page_size?: number;
+  class_id?: number;
+  section_id?: number;
+  search?: string;
   enabled?: boolean; // ✅ OPTIMIZATION: Allow gating queries by tab/route
 }) {
   // ✅ OPTIMIZATION: Stabilize query key to prevent unnecessary refetches
-  const stableParams = useMemo(() => ({ page: params?.page, page_size: params?.page_size }), [params?.page, params?.page_size]);
+  const stableParams = useMemo(
+    () => ({
+      page: params?.page,
+      page_size: params?.page_size,
+      class_id: params?.class_id,
+      section_id: params?.section_id,
+      search: params?.search,
+    }),
+    [params?.page, params?.page_size, params?.class_id, params?.section_id, params?.search]
+  );
   const queryKey = useMemo(
     () => schoolKeys.students.list(stableParams as Record<string, unknown> | undefined),
     [stableParams]

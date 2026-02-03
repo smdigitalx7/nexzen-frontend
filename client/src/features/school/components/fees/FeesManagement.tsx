@@ -1,4 +1,4 @@
-﻿import { motion } from "framer-motion";
+import { motion } from "framer-motion";
 import React, { useMemo, memo, useCallback } from "react";
 import { CreditCard, Building2, Truck } from "lucide-react";
 import { IndianRupeeIcon } from "@/common/components/shared/IndianRupeeIcon";
@@ -10,14 +10,9 @@ import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeB
 import { SchoolTuitionFeeBalanceStatsCards } from "./tution-fee-balance/SchoolTuitionFeeBalanceStatsCards";
 import { SchoolTransportFeeBalanceStatsCards } from "./transport-fee-balance/SchoolTransportFeeBalanceStatsCards";
 import { CollectFee } from "./collect-fee/CollectFee";
+import type { StudentFeeDetails } from "./collect-fee/CollectFee";
 import { useAuthStore } from "@/core/auth/authStore";
 import { Badge } from "@/common/components/ui/badge";
-
-interface StudentFeeDetails {
-  student: any;
-  tuitionBalance: any;
-  transportBalance: any;
-}
 
 // Wrapper component to pass state to CollectFee
 const CollectFeeWithState = memo(({ 

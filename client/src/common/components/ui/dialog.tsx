@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
@@ -39,7 +39,7 @@ const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
 >(({ className, children, size = 'md', showCloseButton = true, style, ...props }, ref) => {
-  const contentRef = React.useRef<HTMLDivElement>(null);
+  const contentRef = React.useRef<HTMLDivElement | null>(null);
 
   // ✅ CRITICAL FIX: Prevent aria-hidden from being set on dialog when it contains focused elements
   React.useEffect(() => {
@@ -134,7 +134,9 @@ const DialogContent = React.forwardRef<
           if (typeof ref === "function") {
             ref(node);
           } else if (ref) {
-            ref.current = node;
+            (ref as React.MutableRefObject<
+              React.ElementRef<typeof DialogPrimitive.Content> | null
+            >).current = node;
           }
           contentRef.current = node;
         }}

@@ -15,6 +15,7 @@ export interface SchoolSubjectDropdownProps {
   className?: string;
   emptyValue?: boolean;
   emptyValueLabel?: string;
+  id?: string;
 }
 
 /**
@@ -35,6 +36,7 @@ export function SchoolSubjectDropdown({
   className,
   emptyValue = false,
   emptyValueLabel = "No subject",
+  id,
 }: SchoolSubjectDropdownProps) {
   // ✅ OPTIMIZATION: Start with enabled: false - fetch only when dropdown opens
   const [shouldFetch, setShouldFetch] = React.useState(false);
@@ -81,6 +83,7 @@ export function SchoolSubjectDropdown({
       required={required}
       placeholder={classId <= 0 ? "Select class first" : placeholder}
       className={className}
+      id={id}
       getValue={(option) => option.subject_id}
       getLabel={(option) => option.subject_name}
       noOptionsText="No subjects available"

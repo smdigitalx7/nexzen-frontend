@@ -46,4 +46,19 @@ export const EnrollmentsService = {
   assignSections(payload: AssignSectionsRequest): Promise<void> {
     return Api.put<void>(`/school/enrollments/assign-sections`, payload);
   },
+
+  // GET /api/v1/school/enrollments/promotion-eligibility
+  getPromotionEligibility(): Promise<import("../types/promotion").SchoolPromotionEligibilityResponse> {
+    return Api.get<import("../types/promotion").SchoolPromotionEligibilityResponse>(`/school/enrollments/promotion-eligibility`);
+  },
+
+  // POST /api/v1/school/enrollments/promote
+  promote(payload: import("../types/promotion").PromotionRequest): Promise<import("../types/promotion").PromotionResponse> {
+    return Api.post<import("../types/promotion").PromotionResponse>(`/school/enrollments/promote`, payload);
+  },
+
+  // POST /api/v1/school/enrollments/dropout
+  dropout(payload: import("../types/promotion").DropoutRequest): Promise<import("../types/promotion").DropoutResponse> {
+    return Api.post<import("../types/promotion").DropoutResponse>(`/school/enrollments/dropout`, payload);
+  },
 };

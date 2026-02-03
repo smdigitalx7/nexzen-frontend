@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Badge } from '@/common/components/ui/badge';
 import { ConfirmDialog } from '@/common/components/shared';
 import { EnhancedDataTable } from '@/common/components/shared';
@@ -327,7 +327,7 @@ const TransportTabComponent = () => {
   ], [handleView, handleEdit, handleDelete, canEditTransport, canDeleteTransport]);
 
   // Define columns
-  const columns: ColumnDef<any>[] = useMemo(() => [
+  const columns: ColumnDef<FlatTransportData>[] = useMemo(() => [
     {
       accessorKey: 'admission_no',
       header: 'Admission No',
@@ -385,7 +385,7 @@ const TransportTabComponent = () => {
       />
 
       {/* Enhanced Data Table */}
-      <EnhancedDataTable
+      <EnhancedDataTable<FlatTransportData>
         data={flatData}
         columns={columns}
         title="Transport Assignments"

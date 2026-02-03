@@ -7,7 +7,9 @@ import type {
   SchoolTuitionFeeBalanceFullRead, 
   SchoolTuitionFeeBalanceRead, 
   SchoolTuitionPaginatedResponse,
-  SchoolTuitionFeeBalanceDashboardStats
+  SchoolTuitionFeeBalanceDashboardStats,
+  ConcessionUpdateRequest,
+  ConcessionUpdateResponse
 } from "@/features/school/types";
 
 export const SchoolTuitionFeeBalancesService = {
@@ -34,6 +36,9 @@ export const SchoolTuitionFeeBalancesService = {
   },
   updateBookPayment(enrollment_id: number, payload: SchoolBookFeePaymentUpdate) {
     return Api.put<SchoolTuitionFeeBalanceFullRead>(`/school/tuition-fee-balances/${enrollment_id}/pay-book-fee`, payload);
+  },
+  updateConcession(enrollment_id: number, payload: ConcessionUpdateRequest) {
+    return Api.put<ConcessionUpdateResponse>(`/school/tuition-fee-balances/${enrollment_id}/concession`, payload);
   },
 
   getDashboard() {

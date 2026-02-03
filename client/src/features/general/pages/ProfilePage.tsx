@@ -20,7 +20,8 @@ import { useToast } from "@/common/hooks/use-toast";
 import { useUpdateUser, useUser } from "@/features/general/hooks/useUsers";
 
 const ProfilePage = () => {
-  const { user, currentBranch, accessToken } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
+  const currentBranch = useAuthStore((state) => state.currentBranch);
   const { toast } = useToast();
   const updateUserMutation = useUpdateUser();
   const [isEditing, setIsEditing] = useState(false);

@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect, useMemo, useCallback, startTransition } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback, startTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, useSearch } from "wouter";
 import { ArrowLeft } from "lucide-react";
@@ -30,9 +30,14 @@ import type {
 } from "@/features/college/types";
 import type { ExpectedTransportPaymentsResponse } from "@/features/college/types/transport-fee-balances";
 
-interface StudentFeeDetails {
+export interface StudentFeeDetails {
   enrollment: CollegeEnrollmentWithStudentDetails;
   tuitionBalance: CollegeTuitionFeeBalanceRead | null;
+  /**
+   * Legacy/compat: populated by `CollectFeeSearch` for UI breakdown.
+   * Prefer `transportExpectedPayments` / `transportSummary` when available.
+   */
+  transportBalance?: CollegeStudentTransportPaymentSummary | null;
   transportExpectedPayments?: ExpectedTransportPaymentsResponse;
   transportSummary?: CollegeStudentTransportPaymentSummary | null;
 }
@@ -137,6 +142,8 @@ export const CollectFee = ({
           tuitionBalance,
           transportExpectedPayments,
           transportSummary,
+          // Keep legacy alias populated for `CollectFeeSearch` compatibility.
+          transportBalance: transportSummary ?? null,
         };
 
         setSearchResults([studentDetails]);

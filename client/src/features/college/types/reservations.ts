@@ -98,6 +98,7 @@ export interface CollegeReservationRead {
   book_fee_required?: boolean | null;
   course_required?: boolean | null;
   status: ReservationStatusEnum;
+  request_type?: ReservationRequestTypeEnum | null;
   referred_by?: number | null;
   referred_by_name?: string | null;
   remarks?: string | null;

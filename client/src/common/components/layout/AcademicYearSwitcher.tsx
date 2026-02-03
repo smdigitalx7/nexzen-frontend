@@ -19,20 +19,18 @@ const AcademicYearSwitcher = () => {
   // CRITICAL: Disable query if logging out
   const { data: academicYearsData } = useAcademicYears({ enabled: isAuthenticated && !isLoggingOut });
 
-  const handleAcademicYearSwitch = (year: any) => {
+  const handleAcademicYearSwitch = async (year: any) => {
     try {
-      // Switch academic year (this will clear cache and refetch all queries)
-      switchAcademicYear(year);
+      // Switch academic year (this will call backend API, rotate token and reload page)
+      await switchAcademicYear(year);
       
-      // ✅ SMOOTH SWITCH: Cache has been cleared and queries refetched
       // Trigger custom event for components that need to react to academic year change
       window.dispatchEvent(new Event('academic-year-switched'));
       
-      console.log(`Academic year switched to ${year.year_name} - cache cleared and data refreshed`);
+      console.log(`Academic year switch initiated for ${year.year_name}`);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Failed to switch academic year:", error);
-      // Don't logout on error - academic year switch is non-critical
     }
   };
 
@@ -94,7 +92,6 @@ const AcademicYearSwitcher = () => {
             transition={{ duration: 0.2 }}
           >
             {academicYears
-              .filter((year) => year.is_active)
               .map((year) => (
                 <DropdownMenuItem
                   key={year.academic_year_id}

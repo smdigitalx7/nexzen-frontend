@@ -27,21 +27,8 @@ const SectionMappingTab = () => {
   const queryClient = useQueryClient();
 
   const { data: enrollments = [], isLoading, isError, error, refetch } = useSchoolEnrollmentsForSectionAssignment(selectedClassId);
-  const { data: sectionsData, refetch: refetchSections } = useSchoolSections(selectedClassId || 0);
+  const { data: sectionsData } = useSchoolSections(selectedClassId || 0);
   const assignSectionsMutation = useAssignSectionsToEnrollments();
-
-  const sections = sectionsData?.items || [];
-
-  // Refetch sections when class changes to ensure fresh data
-  useEffect(() => {
-    if (selectedClassId && selectedClassId > 0) {
-      // Invalidate and refetch sections dropdown when class changes
-      queryClient.invalidateQueries({ 
-        queryKey: ["school-dropdowns", "sections", selectedClassId] 
-      });
-      refetchSections();
-    }
-  }, [selectedClassId, queryClient, refetchSections]);
 
   // Toggle selection for a single enrollment
   const toggleEnrollment = (enrollmentId: number) => {
@@ -144,7 +131,9 @@ const SectionMappingTab = () => {
       
       // Also refetch sections dropdown to ensure it's up to date
       if (selectedClassId) {
-        await refetchSections();
+        queryClient.invalidateQueries({
+          queryKey: ["school-dropdowns", "sections", selectedClassId]
+        });
       }
     } catch (error) {
       // Error toast is handled by mutation hook
@@ -235,9 +224,11 @@ const SectionMappingTab = () => {
                   <TableRow>
                     <TableHead className="w-12">
                       <Checkbox
+                        id="select-all-students"
                         ref={selectAllCheckboxRef}
                         checked={isAllSelected}
                         onCheckedChange={toggleSelectAll}
+                        aria-label="Select all students"
                       />
                     </TableHead>
                     <TableHead>Alphabetical Order</TableHead>
@@ -255,8 +246,10 @@ const SectionMappingTab = () => {
                     >
                       <TableCell>
                         <Checkbox
+                          id={`select-student-${enrollment.enrollment_id}`}
                           checked={selectedEnrollments.has(enrollment.enrollment_id)}
                           onCheckedChange={() => toggleEnrollment(enrollment.enrollment_id)}
+                          aria-label={`Select ${enrollment.student_name}`}
                         />
                       </TableCell>
                       <TableCell className="font-medium">

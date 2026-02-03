@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -280,14 +280,14 @@ function SummaryTab() {
         <CardContent className="pt-6">
           <div className="grid gap-3 md:grid-cols-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">
+              <label htmlFor="summary-hours-back" className="text-sm font-medium mb-2 block">
                 Hours Back
               </label>
               <Select
                 value={hoursBack.toString()}
                 onValueChange={(value) => setHoursBack(Number(value))}
               >
-                <SelectTrigger>
+                <SelectTrigger id="summary-hours-back">
                   <SelectValue placeholder="Hours" />
                 </SelectTrigger>
                 <SelectContent>
@@ -302,12 +302,12 @@ function SummaryTab() {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Limit</label>
+              <label htmlFor="summary-limit" className="text-sm font-medium mb-2 block">Limit</label>
               <Select
                 value={limit.toString()}
                 onValueChange={(value) => setLimit(Number(value))}
               >
-                <SelectTrigger>
+                <SelectTrigger id="summary-limit">
                   <SelectValue placeholder="Limit" />
                 </SelectTrigger>
                 <SelectContent>
@@ -320,7 +320,7 @@ function SummaryTab() {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">
+              <label htmlFor="summary-user" className="text-sm font-medium mb-2 block">
                 User (Optional)
               </label>
               <Select
@@ -329,7 +329,7 @@ function SummaryTab() {
                   setUserId(value === "all" ? null : Number(value))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger id="summary-user">
                   <SelectValue placeholder="All users" />
                 </SelectTrigger>
                 <SelectContent>
@@ -513,10 +513,14 @@ function LogsTab() {
   // ✅ FIX: Ensure readableLogs is always an array
   const readableLogs = useMemo(() => {
     if (!readableLogsData) return [];
-    // Handle case where API returns { data: [...] } or direct array
-    return Array.isArray(readableLogsData)
-      ? readableLogsData
-      : (Array.isArray(readableLogsData?.data) ? readableLogsData.data : []);
+    const raw: unknown = readableLogsData;
+    // Handle case where API returns direct array
+    if (Array.isArray(raw)) return raw;
+    // Handle case where API returns { data: [...] }
+    if (raw && typeof raw === "object" && Array.isArray((raw as any).data)) {
+      return (raw as any).data as any[];
+    }
+    return [];
   }, [readableLogsData]);
 
   const deleteLogsMutation = useDeleteLogs();
@@ -908,7 +912,7 @@ function LogsTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {readableLogs.map((log) => (
+                  {readableLogs.map((log: any) => (
                     <TableRow key={log.audit_id}>
                       <TableCell>
                         <input

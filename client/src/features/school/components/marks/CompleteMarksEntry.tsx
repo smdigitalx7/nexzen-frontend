@@ -121,7 +121,7 @@ const CompleteMarksEntry = ({ selectedClass, selectedSection, onClose, onSaveRea
     setMarksData((prev) => {
       const newMarksData: Record<number, StudentMarksData> = { ...prev };
       
-      enrollmentsData.items.forEach((enrollment: SchoolEnrollmentWithStudentDetails) => {
+      enrollmentsData.items!.forEach((enrollment: SchoolEnrollmentWithStudentDetails) => {
         const existingData = prev[enrollment.enrollment_id];
         const marks: Record<number, { marks_obtained: number; remarks: string }> = 
           existingData?.marks ? { ...existingData.marks } : {};
@@ -158,7 +158,7 @@ const CompleteMarksEntry = ({ selectedClass, selectedSection, onClose, onSaveRea
   // Memoized students list
   const students = useMemo(() => {
     if (!enrollmentsData?.items) return [];
-    return enrollmentsData.items.sort((a, b) => 
+    return [...enrollmentsData.items].sort((a, b) => 
       a.roll_number.localeCompare(b.roll_number, undefined, { numeric: true, sensitivity: 'base' })
     );
   }, [enrollmentsData?.items]);
@@ -281,10 +281,11 @@ const CompleteMarksEntry = ({ selectedClass, selectedSection, onClose, onSaveRea
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <label className="text-sm font-medium">
+        <label htmlFor="complete-exam-select" className="text-sm font-medium">
           Exam: <span className="text-red-500">*</span>
         </label>
         <SchoolExamDropdown
+          id="complete-exam-select"
           value={selectedExam}
           onChange={setSelectedExam}
           placeholder="Select exam"
@@ -399,6 +400,8 @@ const CompleteMarksEntry = ({ selectedClass, selectedSection, onClose, onSaveRea
                           >
                             <div className="flex flex-col gap-1">
                               <Input
+                                id={`complete-mark-${student.enrollment_id}-${subject.subject_id}`}
+                                name={`complete-mark-${student.enrollment_id}-${subject.subject_id}`}
                                 type="number"
                                 min="0"
                                 step="0.01"
@@ -413,8 +416,12 @@ const CompleteMarksEntry = ({ selectedClass, selectedSection, onClose, onSaveRea
                                   )
                                 }
                                 className="h-7 text-xs"
+                                autoComplete="off"
+                                aria-label={`Marks for ${student.student_name} in ${subject.subject_name}`}
                               />
                               <Input
+                                id={`complete-remark-${student.enrollment_id}-${subject.subject_id}`}
+                                name={`complete-remark-${student.enrollment_id}-${subject.subject_id}`}
                                 type="text"
                                 placeholder="Remarks"
                                 value={markData.remarks || ""}
@@ -427,6 +434,8 @@ const CompleteMarksEntry = ({ selectedClass, selectedSection, onClose, onSaveRea
                                   )
                                 }
                                 className="h-7 text-xs"
+                                autoComplete="off"
+                                aria-label={`Remarks for ${student.student_name} in ${subject.subject_name}`}
                               />
                             </div>
                           </td>

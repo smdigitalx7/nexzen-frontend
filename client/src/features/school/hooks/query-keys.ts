@@ -102,6 +102,10 @@ export const schoolKeys = {
     list: (params?: Record<string, unknown>) => [...schoolKeys.admissions.root(), "list", params ?? {}] as const,
     detail: (studentId: number) => [...schoolKeys.admissions.root(), "detail", studentId] as const,
   },
+  promotion: {
+    root: () => [...schoolKeys.root, "promotion"] as const,
+    eligibility: () => [...schoolKeys.promotion.root(), "eligibility"] as const,
+  },
 };
 
 

@@ -34,7 +34,9 @@ export interface SchoolEnrollmentWithStudentDetails {
   admission_no: string;
   student_name: string;
   class_id: number;
+  class_name?: string;
   section_id: number;
+  section_name?: string;
   roll_number: string;
   enrollment_date?: string | null;
   promoted: boolean;
@@ -59,6 +61,12 @@ export interface SchoolEnrollmentFilterParams {
 }
 
 export interface SchoolEnrollmentsPaginatedResponse {
+  /**
+   * Some endpoints return a flat list under `items`.
+   * Others return grouped data under `enrollments`.
+   * Keep both optional to avoid type breakage across modules.
+   */
+  items?: SchoolEnrollmentWithStudentDetails[];
   enrollments?: SchoolEnrollmentWithClassSectionDetails[] | null;
   total_count: number;
   current_page: number;

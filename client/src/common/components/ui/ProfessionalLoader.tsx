@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { cn } from "@/common/utils";
 import { Loader2 } from "lucide-react";
 import { Skeleton } from "./skeleton";
@@ -244,8 +244,8 @@ export const Loader = {
   ),
 
   /** Button loader - Small inline spinner */
-  Button: ({ size = "sm" }: { size?: LoaderSize }) => (
-    <ProfessionalLoader size={size} variant="spinner" inline />
+  Button: ({ size = "sm", className }: { size?: LoaderSize; className?: string }) => (
+    <ProfessionalLoader size={size} variant="spinner" inline className={className} />
   ),
 
   /** Table skeleton loader */

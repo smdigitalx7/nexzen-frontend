@@ -213,7 +213,7 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
       {/* Class and Group Filters */}
       <div className="flex gap-4 items-end">
         <div className="flex-1">
-          <label className="text-sm font-medium mb-2 block">Class</label>
+          <label htmlFor="tuition-balance-class" className="text-sm font-medium mb-2 block">Class</label>
           <Select 
             value={balanceClass} 
             onValueChange={(value) => {
@@ -221,7 +221,7 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
               setBalanceGroup(""); // Reset group when class changes
             }}
           >
-            <SelectTrigger>
+            <SelectTrigger id="tuition-balance-class">
               <SelectValue placeholder="Select class" />
             </SelectTrigger>
             <SelectContent>
@@ -234,13 +234,13 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
           </Select>
         </div>
         <div className="flex-1">
-          <label className="text-sm font-medium mb-2 block">Group</label>
+          <label htmlFor="tuition-balance-group" className="text-sm font-medium mb-2 block">Group</label>
           <Select 
             value={balanceGroup} 
             onValueChange={setBalanceGroup}
             disabled={!balanceClass}
           >
-            <SelectTrigger>
+            <SelectTrigger id="tuition-balance-group">
               <SelectValue placeholder={balanceClass ? "Select group" : "Select class first"} />
             </SelectTrigger>
             <SelectContent>

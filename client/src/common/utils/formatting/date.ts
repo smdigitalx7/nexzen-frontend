@@ -16,8 +16,6 @@ export const formatDate = (dateString: string, options?: Intl.DateTimeFormatOpti
   };
   
   // Handle different date formats and validate the date
-  let date: Date;
-  
   if (!dateString || dateString === null || dateString === undefined) {
     return '-';
   }
@@ -28,7 +26,7 @@ export const formatDate = (dateString: string, options?: Intl.DateTimeFormatOpti
   }
   
   // Try to parse the date string
-  date = new Date(dateString);
+  const date = new Date(dateString);
   
   // Check if the date is valid
   if (isNaN(date.getTime())) {

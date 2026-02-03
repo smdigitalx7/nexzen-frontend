@@ -1,7 +1,7 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolTuitionFeeBalancesService } from "@/features/school/services/tuition-fee-balances.service";
 import { SchoolTransportFeeBalancesService } from "@/features/school/services/transport-fee-balances.service";
-import type { SchoolBookFeePaymentUpdate, SchoolTermPaymentUpdate, SchoolTransportBalanceBulkCreate, SchoolTransportBalanceBulkCreateResult, SchoolTransportFeeBalanceFullRead, SchoolTransportFeeBalanceListRead, SchoolTransportPaginatedResponse, SchoolTransportTermPaymentUpdate, SchoolTuitionBalanceBulkCreate, SchoolTuitionBalanceBulkCreateResult, SchoolTuitionFeeBalanceFullRead, SchoolTuitionFeeBalanceRead, SchoolTuitionPaginatedResponse, SchoolTuitionFeeBalanceCreate, SchoolTuitionFeeBalanceUpdate, SchoolTransportFeeBalanceCreate, SchoolTransportFeeBalanceUpdate } from "@/features/school/types";
+import type { SchoolBookFeePaymentUpdate, SchoolTermPaymentUpdate, SchoolTransportBalanceBulkCreate, SchoolTransportBalanceBulkCreateResult, SchoolTransportFeeBalanceFullRead, SchoolTransportFeeBalanceListRead, SchoolTransportPaginatedResponse, SchoolTransportTermPaymentUpdate, SchoolTuitionBalanceBulkCreate, SchoolTuitionBalanceBulkCreateResult, SchoolTuitionFeeBalanceFullRead, SchoolTuitionFeeBalanceRead, SchoolTuitionPaginatedResponse, SchoolTuitionFeeBalanceCreate, SchoolTuitionFeeBalanceUpdate, SchoolTransportFeeBalanceCreate, SchoolTransportFeeBalanceUpdate, ConcessionUpdateRequest } from "@/features/school/types";
 import { schoolKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-toast";
 import { batchInvalidateQueries } from "@/common/hooks/useGlobalRefetch";
@@ -11,7 +11,10 @@ import { SCHOOL_INVALIDATION_MAPS, resolveInvalidationKeys } from "@/common/hook
 export function useSchoolTuitionBalancesList(params?: { page?: number; page_size?: number; class_id?: number; section_id?: number }) {
   return useQuery({
     queryKey: schoolKeys.tuition.list(params as Record<string, unknown> | undefined),
-    queryFn: () => SchoolTuitionFeeBalancesService.list(params),
+    queryFn: () =>
+      SchoolTuitionFeeBalancesService.list(
+        params as { class_id: number; page?: number; page_size?: number; section_id?: number }
+      ),
     enabled: !!params?.class_id && params.class_id > 0,
   });
 }
@@ -99,7 +102,7 @@ export function useDeleteSchoolTuitionBalance() {
   return useMutationWithSuccessToast({
     mutationFn: (enrollmentId: number) => SchoolTuitionFeeBalancesService.delete(enrollmentId),
     // ✅ FIX: Use invalidation map to ensure all related queries are invalidated
-    onSuccess: () => {
+    onSuccess: (_data, enrollmentId) => {
       const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.update, enrollmentId);
       batchInvalidateQueries(keysToInvalidate);
     },
@@ -147,11 +150,24 @@ export function useUpdateSchoolBookFeePayment(enrollmentId: number) {
   }, "Book fee payment updated successfully");
 }
 
+export function useUpdateSchoolTuitionConcession(enrollmentId: number) {
+  return useMutationWithSuccessToast({
+    mutationFn: (payload: ConcessionUpdateRequest) => SchoolTuitionFeeBalancesService.updateConcession(enrollmentId, payload),
+    onSuccess: () => {
+      const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.update, enrollmentId);
+      batchInvalidateQueries(keysToInvalidate);
+    },
+  }, "Tuition concession updated successfully");
+}
+
 // Transport
 export function useSchoolTransportBalancesList(params?: { page?: number; page_size?: number; class_id?: number; section_id?: number }) {
   return useQuery({
     queryKey: schoolKeys.transport.list(params as Record<string, unknown> | undefined),
-    queryFn: () => SchoolTransportFeeBalancesService.list(params),
+    queryFn: () =>
+      SchoolTransportFeeBalancesService.list(
+        params as { class_id: number; page?: number; page_size?: number; section_id?: number }
+      ),
     enabled: !!params?.class_id && params.class_id > 0,
   });
 }
@@ -190,7 +206,7 @@ export function useDeleteSchoolTransportBalance() {
   return useMutationWithSuccessToast({
     mutationFn: (enrollmentId: number) => SchoolTransportFeeBalancesService.delete(enrollmentId),
     // ✅ FIX: Use invalidation map to ensure all related queries are invalidated
-    onSuccess: () => {
+    onSuccess: (_data, enrollmentId) => {
       const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.update, enrollmentId);
       batchInvalidateQueries(keysToInvalidate);
     },
@@ -221,6 +237,16 @@ export function useUpdateSchoolTransportTermPayment(enrollmentId: number) {
       batchInvalidateQueries(keysToInvalidate);
     },
   }, "Transport payment updated successfully");
+}
+
+export function useUpdateSchoolTransportConcession(enrollmentId: number) {
+  return useMutationWithSuccessToast({
+    mutationFn: (payload: ConcessionUpdateRequest) => SchoolTransportFeeBalancesService.updateConcession(enrollmentId, payload),
+    onSuccess: () => {
+      const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.update, enrollmentId);
+      batchInvalidateQueries(keysToInvalidate);
+    },
+  }, "Transport concession updated successfully");
 }
 
 

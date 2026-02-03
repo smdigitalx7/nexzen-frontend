@@ -1,4 +1,4 @@
-﻿import { useMemo } from "react";
+﻿import { useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { User } from "lucide-react";
 import { Badge } from "@/common/components/ui/badge";
@@ -10,6 +10,9 @@ import {
   createCurrencyColumn,
   createDateColumn,
 } from "@/common/utils/factory/columnFactories";
+import { ConcessionUpdateModal } from "@/common/components/shared/ConcessionUpdateModal";
+import { useUpdateCollegeTuitionConcession } from "@/features/college/hooks/use-college-tuition-balances";
+import { Wallet } from "lucide-react";
 
 interface StudentFeeBalance {
   id: number;
@@ -63,6 +66,19 @@ export const StudentFeeBalancesTable = ({
   title = "Student Fee Balances",
   loading = false,
 }: StudentFeeBalancesTableProps) => {
+  const [selectedStudent, setSelectedStudent] = useState<StudentFeeBalance | null>(null);
+  const [concessionModalOpen, setConcessionModalOpen] = useState(false);
+  const updateConcessionMutation = useUpdateCollegeTuitionConcession(selectedStudent?.id || 0);
+
+  const handleOpenConcession = useCallback((student: StudentFeeBalance) => {
+    setSelectedStudent(student);
+    setConcessionModalOpen(true);
+  }, []);
+
+  const handleUpdateConcession = async (amount: number) => {
+    if (!selectedStudent) return;
+    await updateConcessionMutation.mutateAsync({ concession_amount: amount });
+  };
 
   // Get unique classes for filter options
   const uniqueClasses = Array.from(new Set(studentBalances.map(s => s.class_name)));
@@ -124,8 +140,15 @@ export const StudentFeeBalancesTable = ({
     {
       type: 'view' as const,
       onClick: (row: StudentFeeBalance) => onViewStudent(row)
+    },
+    {
+      type: 'custom' as const,
+      label: 'Concession',
+      icon: Wallet,
+      variant: 'outline' as "outline",
+      onClick: handleOpenConcession
     }
-  ], [onViewStudent]);
+  ], [onViewStudent, handleOpenConcession]);
 
   // Prepare filter options for EnhancedDataTable
   const filterOptions = [
@@ -176,6 +199,14 @@ export const StudentFeeBalancesTable = ({
         showActionLabels={true}
         loading={loading}
         filters={filterOptions}
+      />
+
+      <ConcessionUpdateModal
+        isOpen={concessionModalOpen}
+        onClose={() => setConcessionModalOpen(false)}
+        onUpdate={handleUpdateConcession}
+        currentConcession={0}
+        studentName={selectedStudent?.student_name}
       />
     </motion.div>
   );

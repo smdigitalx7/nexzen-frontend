@@ -1,4 +1,3 @@
-﻿import ExcelJS from 'exceljs';
 import { jsPDF } from 'jspdf';
 import type { StudentPerformanceResponse as CollegeStudentPerformanceResponse } from '@/features/college/types/student-marks';
 import type { StudentPerformanceResponse as SchoolStudentPerformanceResponse } from '@/features/school/types/marks';
@@ -18,6 +17,8 @@ export const exportStudentPerformanceToExcel = async (
   }
 
   try {
+    const ExcelJSImport: any = await import('exceljs');
+    const ExcelJS = ExcelJSImport?.default ?? ExcelJSImport;
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'VELONEX ERP';
     workbook.created = new Date();
@@ -91,7 +92,7 @@ export const exportStudentPerformanceToExcel = async (
       fgColor: { argb: 'FF6B46C1' }
     };
     headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
-    headerRow.eachCell((cell) => {
+    headerRow.eachCell((cell: any) => {
       cell.border = {
         top: { style: 'thin' },
         left: { style: 'thin' },
@@ -114,7 +115,7 @@ export const exportStudentPerformanceToExcel = async (
 
       // Style data rows
       row.alignment = { horizontal: 'left', vertical: 'middle' };
-      row.eachCell((cell, colNumber) => {
+      row.eachCell((cell: any, colNumber: number) => {
         cell.border = {
           top: { style: 'thin' },
           left: { style: 'thin' },

@@ -1,4 +1,4 @@
-﻿import * as React from "react"
+import * as React from "react"
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/common/utils"
@@ -29,7 +29,7 @@ const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
 >(({ className, ...props }, ref) => {
-  const contentRef = React.useRef<HTMLDivElement>(null);
+  const contentRef = React.useRef<HTMLDivElement | null>(null);
 
   // ✅ CRITICAL FIX: Prevent aria-hidden from being set on dialog when it contains focused elements
   React.useEffect(() => {
@@ -104,7 +104,9 @@ const AlertDialogContent = React.forwardRef<
           if (typeof ref === "function") {
             ref(node);
           } else if (ref) {
-            ref.current = node;
+            (ref as React.MutableRefObject<
+              React.ElementRef<typeof AlertDialogPrimitive.Content> | null
+            >).current = node;
           }
           contentRef.current = node;
         }}

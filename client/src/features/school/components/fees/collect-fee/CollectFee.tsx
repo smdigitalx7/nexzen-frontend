@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect, useMemo, useCallback, startTransition } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback, startTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, useSearch } from "wouter";
 import { ArrowLeft } from "lucide-react";
@@ -23,7 +23,7 @@ import { SchoolTuitionFeeBalancesService } from "@/features/school/services/tuit
 import { SchoolTransportFeeBalancesService } from "@/features/school/services/transport-fee-balances.service";
 import type { SchoolEnrollmentWithStudentDetails } from "@/features/school/types/enrollments";
 
-interface StudentFeeDetails {
+export interface StudentFeeDetails {
   enrollment: SchoolEnrollmentWithStudentDetails;
   tuitionBalance: any;
   transportBalance: any;

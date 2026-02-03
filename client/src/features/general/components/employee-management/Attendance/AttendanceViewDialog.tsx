@@ -1,4 +1,4 @@
-﻿import { FormDialog } from "@/common/components/shared";
+import { FormDialog } from "@/common/components/shared";
 import { Badge } from "@/common/components/ui/badge";
 import { Calendar, User, Clock, CheckCircle, CalendarDays } from "lucide-react";
 
@@ -21,7 +21,7 @@ export const AttendanceViewDialog = ({ open, onOpenChange, attendance, employee 
         size="LARGE"
         showFooter={false}
       >
-        {/* Empty content to maintain React structure */}
+        <div />
       </FormDialog>
     );
   }

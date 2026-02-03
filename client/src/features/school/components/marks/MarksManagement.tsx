@@ -31,7 +31,7 @@ import { useAuthStore } from "@/core/auth/authStore";
 import { useFilteredTabs } from "@/core/permissions";
 
 const MarksManagementComponent = () => {
-  const { currentBranch } = useAuthStore();
+  const currentBranch = useAuthStore((state) => state.currentBranch);
   const { activeTab, setActiveTab } = useTabNavigation("exam-marks");
 
   // State management for marks data

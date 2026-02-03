@@ -1,8 +1,11 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/common/components/ui/select";
 import { Label } from "@/common/components/ui/label";
-import { useSchoolClasses, useSchoolTransportBalancesList, useSchoolTransportBalance } from "@/features/school/hooks";
+import { useSchoolClasses, useSchoolTransportBalancesList, useSchoolTransportBalance, useUpdateSchoolTransportConcession } from "@/features/school/hooks";
+import { ConcessionUpdateModal } from "@/common/components/shared/ConcessionUpdateModal";
+import { Wallet } from "lucide-react";
+import { Button } from "@/common/components/ui/button";
 import { SchoolClassDropdown } from "@/common/components/shared/Dropdowns";
 import type { SchoolTransportFeeBalanceListRead, SchoolTransportFeeBalanceFullRead } from "@/features/school/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/common/components/ui/dialog";
@@ -31,6 +34,14 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
   const [selectedBalanceId, setSelectedBalanceId] = useState<number | undefined>();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const { data: selectedBalance } = useSchoolTransportBalance(selectedBalanceId);
+  
+  const [concessionModalOpen, setConcessionModalOpen] = useState(false);
+  const updateConcessionMutation = useUpdateSchoolTransportConcession(selectedBalanceId || 0);
+
+  const handleUpdateConcession = async (amount: number) => {
+    if (!selectedBalanceId) return;
+    await updateConcessionMutation.mutateAsync({ concession_amount: amount });
+  };
 
   const rows = useMemo<StudentRow[]>(() => {
     return (transportResp?.data || []).map((t: SchoolTransportFeeBalanceListRead) => {
@@ -140,6 +151,17 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
                   <div><span className="text-muted-foreground">Total Fee:</span> <span className="font-medium text-lg">₹{selectedBalance.total_fee}</span></div>
                   <div><span className="text-muted-foreground">Overall Balance:</span> <span className="font-medium text-lg text-red-600">₹{selectedBalance.overall_balance_fee}</span></div>
                 </div>
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                    onClick={() => setConcessionModalOpen(true)}
+                  >
+                    <Wallet className="h-4 w-4" />
+                    Update Concession
+                  </Button>
+                </div>
               </div>
 
               {/* Term-wise Payment Details */}
@@ -182,6 +204,15 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
           )}
         </DialogContent>
       </Dialog>
+
+      <ConcessionUpdateModal
+        isOpen={concessionModalOpen}
+        onClose={() => setConcessionModalOpen(false)}
+        onUpdate={handleUpdateConcession}
+        currentConcession={selectedBalance?.concession_amount || 0}
+        studentName={selectedBalance?.student_name}
+        title="Update Transport Concession"
+      />
     </motion.div>
   );
 }

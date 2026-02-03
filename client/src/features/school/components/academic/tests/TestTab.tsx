@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, memo, useCallback } from "react";
+import { useState, useMemo, memo, useCallback } from "react";
 import { FileText, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
@@ -266,16 +266,14 @@ const TestTabComponent = ({
 
   // Memoized action button groups
   const actionButtonGroups = useMemo(() => {
-    const buttons = [
-      {
-        type: 'edit' as const,
-        onClick: handleEditClick
-      }
-    ];
+    const buttons: Array<{
+      type: "edit" | "delete";
+      onClick: (row: any) => void;
+    }> = [{ type: "edit", onClick: handleEditClick }];
     
     if (canDeleteTest) {
       buttons.push({
-        type: 'delete' as const,
+        type: "delete",
         onClick: handleDeleteClick
       });
     }

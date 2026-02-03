@@ -36,8 +36,12 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     ref
   ) => {
     const [showPassword, setShowPassword] = React.useState(false);
-
-    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Use React.useId for stable, unique IDs across renders
+    // This fixes accessibility issues (label mismatch) and prevents focus jumping
+    const uniqueId = React.useId();
+    const inputId = id || uniqueId;
+    
     const errorId = error ? `${inputId}-error` : undefined;
     const helperId = helperText ? `${inputId}-helper` : undefined;
 
@@ -101,6 +105,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                 e.currentTarget.blur();
               }
             }}
+            autoComplete={props.autoComplete || "off"}
             {...props}
             value={value == null ? "" : value}
           />

@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Award, Edit, Trash2, Calendar } from "lucide-react";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
@@ -255,16 +255,13 @@ export const ExamsTab = ({
 
   // Action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => {
-    const buttons = [
-      {
-        type: 'edit' as const,
-        onClick: (row: SchoolExamRead) => handleEditClick(row)
-      }
+    const buttons: Array<any> = [
+      { type: "edit", onClick: (row: SchoolExamRead) => handleEditClick(row) },
     ];
     
     if (canManageSchedules) {
       buttons.push({
-        type: 'custom' as const,
+        type: "custom",
         label: 'Manage Schedules',
         icon: Calendar,
         onClick: (row: SchoolExamRead) => handleScheduleClick(row),
@@ -274,7 +271,7 @@ export const ExamsTab = ({
     
     if (canDeleteExam) {
       buttons.push({
-        type: 'delete' as const,
+        type: "delete",
         onClick: (row: SchoolExamRead) => handleDeleteClick(row)
       });
     }

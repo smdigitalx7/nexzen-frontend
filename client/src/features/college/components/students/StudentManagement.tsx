@@ -9,6 +9,8 @@ import { useFilteredTabs, useDefaultTab } from "@/core/permissions";
 import { StudentsTab } from "./StudentsTab";
 import { EnrollmentsTab } from "./EnrollmentsTab";
 import { TransportTab } from "./TransportTab";
+import { PromotionDropoutTab } from "./PromotionDropoutTab";
+import { ArrowUpCircle } from "lucide-react";
 
 const StudentManagement = () => {
   const { currentBranch } = useAuthStore();
@@ -25,6 +27,12 @@ const StudentManagement = () => {
       label: "Transport",
       icon: MapPin,
       content: <TransportTab />,
+    },
+    {
+      value: "promotion-dropout",
+      label: "Promotion & Dropout",
+      icon: ArrowUpCircle,
+      content: <PromotionDropoutTab />,
     },
   ], []);
 
@@ -58,6 +66,12 @@ const StudentManagement = () => {
           title: "Transport Management",
           description:
             "Manage student transport assignments, routes and pickup points",
+        };
+      case "promotion-dropout":
+        return {
+          title: "Promotion & Dropout Management",
+          description:
+            "Manage student promotions to next academic level and handle dropout records",
         };
       default:
         return {

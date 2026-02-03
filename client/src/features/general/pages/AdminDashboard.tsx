@@ -1,4 +1,5 @@
-﻿import { useLocation } from "wouter";
+import { useLocation } from "wouter";
+import { useMemo } from "react";
 import {
   UserCheck,
   IndianRupee,
@@ -36,6 +37,25 @@ const AdminDashboard = () => {
   const { dashboardData, loading, error, auditLogSummary } =
     useAdminDashboardData();
   const [, setLocation] = useLocation();
+
+  const auditLogSummaryForUi = useMemo(() => {
+    const raw: any[] = Array.isArray(auditLogSummary) ? (auditLogSummary as any[]) : [];
+    return raw.map((a) => ({
+      ...a,
+      user_id: a?.user_id == null ? "" : String(a.user_id),
+    }));
+  }, [auditLogSummary]);
+
+  const incomeByCategoryForUi = useMemo(() => {
+    const raw: any[] =
+      (dashboardData as any)?.data?.charts?.income_by_category && Array.isArray((dashboardData as any).data.charts.income_by_category)
+        ? (dashboardData as any).data.charts.income_by_category
+        : [];
+    return raw.map((p) => ({
+      category: p?.category ?? "Unknown",
+      amount: String(p?.amount ?? "0"),
+    }));
+  }, [dashboardData]);
 
   const quickLinks = [
     {
@@ -159,8 +179,8 @@ const AdminDashboard = () => {
         <FinancialSummary data={dashboardData.data.financial} />
         <AcademicSummary data={dashboardData.data} />
         <EnrollmentStats data={dashboardData.data} />
-        <AuditLogSummary data={auditLogSummary} />
-        <IncomeChart data={dashboardData.data.charts.income_by_category} />
+        <AuditLogSummary data={auditLogSummaryForUi as any} />
+        <IncomeChart data={incomeByCategoryForUi as any} />
       </div>
     </DashboardContainer>
   );

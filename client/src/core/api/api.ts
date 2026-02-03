@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Axios Instance + Interceptors + Refresh Logic
  * 
  * This module provides a configured Axios instance with:
@@ -13,7 +13,7 @@
  * - All requests use `withCredentials: true` to send cookies
  */
 
-import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig, CancelTokenSource } from "axios";
+import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from "axios";
 import { useAuthStore } from "@/core/auth/authStore";
 import { queryClient } from "@/core/query";
 
@@ -56,6 +56,22 @@ interface RefreshResponse {
   access_token: string;
   expiretime: string;
   user_info: unknown; // User info structure varies, handled by authStore
+}
+
+function isAuthUserInfo(
+  value: unknown
+): value is {
+  full_name: string;
+  email: string;
+  branches: Array<{ branch_id: number; branch_name: string; roles: string[] }>;
+} {
+  if (!value || typeof value !== "object") return false;
+  const v = value as any;
+  return (
+    typeof v.full_name === "string" &&
+    typeof v.email === "string" &&
+    Array.isArray(v.branches)
+  );
 }
 
 async function callRefreshEndpoint(): Promise<RefreshResponse> {
@@ -112,14 +128,12 @@ async function refreshAccessToken(): Promise<string | null> {
       }
 
       // Update auth store with new token and expiry
-      const expireAtMs = response.expiretime 
-        ? new Date(response.expiretime).getTime() 
-        : null;
-      
-      useAuthStore.getState().setTokenAndExpiry(response.access_token, expireAtMs);
+      useAuthStore
+        .getState()
+        .setTokenAndExpiry(response.access_token, response.expiretime ?? null);
       
       // Update user info if provided
-      if (response.user_info) {
+      if (isAuthUserInfo(response.user_info)) {
         useAuthStore.getState().setUser(response.user_info);
       }
 

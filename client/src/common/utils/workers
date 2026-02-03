@@ -1,5 +1,4 @@
 // Web Worker for Excel export to prevent UI blocking
-import ExcelJS from 'exceljs';
 
 export interface ExportData {
   headers: string[];
@@ -25,6 +24,8 @@ self.onmessage = async (e: MessageEvent<ExportData>) => {
       message: 'Initializing export...',
     } as ExportProgress);
 
+    const ExcelJSImport: any = await import('exceljs');
+    const ExcelJS = ExcelJSImport?.default ?? ExcelJSImport;
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Velocity ERP';
     workbook.created = new Date();

@@ -359,10 +359,11 @@ const AddMarksByClassDialog = ({
           {/* Selection Controls */}
           <div className="flex flex-wrap gap-4 items-end py-4 border-b">
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium whitespace-nowrap">
+              <label htmlFor="class-select" className="text-sm font-medium whitespace-nowrap">
                 Class: <span className="text-red-500">*</span>
               </label>
               <SchoolClassDropdown
+                id="class-select"
                 value={selectedClass}
                 onChange={setSelectedClass}
                 placeholder="Select class"
@@ -373,10 +374,11 @@ const AddMarksByClassDialog = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium whitespace-nowrap">
+              <label htmlFor="section-select" className="text-sm font-medium whitespace-nowrap">
                 Section:
               </label>
               <SchoolSectionDropdown
+                id="section-select"
                 classId={selectedClass || 0}
                 value={selectedSection}
                 onChange={setSelectedSection}
@@ -389,10 +391,11 @@ const AddMarksByClassDialog = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium whitespace-nowrap">
+              <label htmlFor="exam-select" className="text-sm font-medium whitespace-nowrap">
                 Exam: <span className="text-red-500">*</span>
               </label>
               <SchoolExamDropdown
+                id="exam-select"
                 value={selectedExam}
                 onChange={setSelectedExam}
                 placeholder="Select exam"
@@ -543,6 +546,8 @@ const AddMarksByClassDialog = ({
                               }`}
                             >
                               <Input
+                                id={`marks-${student.enrollment_id}-${subject.subject_id}`}
+                                name={`marks-${student.enrollment_id}-${subject.subject_id}`}
                                 type="number"
                                 min="0"
                                 step="0.01"
@@ -557,6 +562,8 @@ const AddMarksByClassDialog = ({
                                   )
                                 }
                                 className="h-9 text-sm text-center w-[100px]"
+                                aria-label={`Marks for ${student.student_name} in ${subject.subject_name}`}
+                                autoComplete="off"
                               />
                             </div>
                           );

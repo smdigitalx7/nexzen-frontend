@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { startTransition } from "react";
 import { useAuthStore } from "@/core/auth/authStore";
@@ -160,10 +160,14 @@ export const useEmployeeManagement = (
   // ✅ FIX: Handle both direct array and wrapped response formats
   const employees = useMemo(() => {
     if (!employeesData) return [];
-    // Handle case where API returns { data: [...] } or direct array
-    return Array.isArray(employeesData) 
-      ? employeesData 
-      : (Array.isArray(employeesData?.data) ? employeesData.data : []);
+    const raw: unknown = employeesData;
+    // Handle case where API returns direct array
+    if (Array.isArray(raw)) return raw;
+    // Handle case where API returns { data: [...] }
+    if (raw && typeof raw === "object" && Array.isArray((raw as any).data)) {
+      return (raw as any).data as EmployeeRead[];
+    }
+    return [];
   }, [employeesData]);
 
   // Only fetch attendance when attendance tab is active

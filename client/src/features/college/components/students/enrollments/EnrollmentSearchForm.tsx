@@ -32,8 +32,9 @@ export const EnrollmentSearchForm = ({
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">Class</label>
+            <label htmlFor="enrollment-search-class" className="text-sm font-medium text-slate-700 mb-2 block">Class</label>
             <CollegeClassDropdown
+              id="enrollment-search-class"
               value={typeof query.class_id === 'number' ? query.class_id : null}
               onChange={(value) => onClassChange(value !== null ? value.toString() : '')}
               placeholder="Select class"
@@ -43,8 +44,9 @@ export const EnrollmentSearchForm = ({
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">Group</label>
+            <label htmlFor="enrollment-search-group" className="text-sm font-medium text-slate-700 mb-2 block">Group</label>
             <CollegeGroupDropdown
+              id="enrollment-search-group"
               classId={typeof query.class_id === 'number' ? query.class_id : undefined}
               value={typeof query.group_id === 'number' ? query.group_id : null}
               onChange={(value) => onGroupChange(value !== null ? value.toString() : '')}
@@ -56,8 +58,9 @@ export const EnrollmentSearchForm = ({
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">Course</label>
+            <label htmlFor="enrollment-search-course" className="text-sm font-medium text-slate-700 mb-2 block">Course</label>
             <CollegeCourseDropdown
+              id="enrollment-search-course"
               groupId={typeof query.group_id === 'number' ? query.group_id : 0}
               value={typeof query.course_id === 'number' ? query.course_id : null}
               onChange={(value) => onCourseChange(value !== null ? value.toString() : '')}
@@ -69,11 +72,13 @@ export const EnrollmentSearchForm = ({
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">Admission No (optional)</label>
+            <label htmlFor="enrollment-search-admission" className="text-sm font-medium text-slate-700 mb-2 block">Admission No (optional)</label>
             <Input
+              id="enrollment-search-admission"
               placeholder="Enter admission number"
               value={query.admission_no ?? ''}
               onChange={(e) => onAdmissionNoChange(e.target.value)}
+              autoComplete="off"
             />
           </div>
         </div>

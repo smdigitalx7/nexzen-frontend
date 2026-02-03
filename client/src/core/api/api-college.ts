@@ -1,4 +1,5 @@
-﻿import { useAuthStore } from "@/core/auth/authStore";
+import { useAuthStore } from "@/core/auth/authStore";
+import { Api } from "@/core/api";
 import { getApiBaseUrl } from "./api";
 
 // Ensure API_BASE_URL includes /api/v1 prefix
@@ -16,6 +17,8 @@ const API_BASE_URL: string = baseUrl && baseUrl.includes("/api/v1")
 // Type definitions for API responses
 interface PaymentResponseContext {
   income_id: number;
+  receipt_no?: string | null;
+  total_amount?: number;
 }
 
 interface PaymentResponseData {
@@ -346,58 +349,21 @@ export async function handleCollegePayByReservation(
 export async function handleCollegeRegenerateReceipt(
   incomeId: number
 ): Promise<string> {
-  const state = useAuthStore.getState();
-  // Use accessToken directly (memory-only), fallback to token alias for backward compatibility
-  const token = state.accessToken || (state as any).token;
-
-  if (!token) {
-    throw new Error(
-      "Authentication token is required for receipt regeneration"
-    );
-  }
-
-  const url = `${API_BASE_URL}/college/income/${incomeId}/regenerate-receipt`;
-
   try {
-    // Step 1: Call the API with blob response type to receive PDF binary data
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "include",
-    });
+    const pdfBlob = await Api.getBlob(
+      `/college/income/${incomeId}/regenerate-receipt`
+    );
 
-    // Step 2: Check if the request was successful
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage = `Receipt regeneration failed with status ${response.status}`;
-
-      try {
-        const errorData = JSON.parse(errorText) as ErrorResponse;
-        errorMessage = errorData.detail || errorData.message || errorMessage;
-      } catch {
-        // If not JSON, use the text as error message
-        errorMessage = errorText || errorMessage;
-      }
-
-      throw new Error(errorMessage);
-    }
-
-    // Step 3: Get the PDF as binary data (blob)
-    const pdfBlob = await response.blob();
-
-    // Verify we received a PDF
-    if (!pdfBlob.type.includes("pdf") && pdfBlob.size === 0) {
+    if (pdfBlob.size === 0) {
       throw new Error("Invalid PDF received from server");
     }
 
-    // Step 4: Create a Blob URL for the PDF
-    const pdfBlobWithType = new Blob([pdfBlob], { type: "application/pdf" });
-    const blobUrl = URL.createObjectURL(pdfBlobWithType);
+    const ensurePdfType =
+      pdfBlob.type && pdfBlob.type.toLowerCase().includes("pdf")
+        ? pdfBlob
+        : new Blob([pdfBlob], { type: "application/pdf" });
 
-    // Return the blobUrl for the caller to handle (e.g., in modal)
-    return blobUrl;
+    return URL.createObjectURL(ensurePdfType);
   } catch (error) {
     // Re-throw with more context if it's a network error
     if (error instanceof TypeError && error.message.includes("fetch")) {

@@ -713,9 +713,11 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
                             <FormLabel>Marks Obtained</FormLabel>
                                 <FormControl>
                               <Input 
+                                id="exam-mark-obtained"
                                 type="number" 
                                 placeholder="85" 
                                 {...field}
+                                autoComplete="off"
                               />
                             </FormControl>
                             <FormMessage />
@@ -729,7 +731,7 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
                           <FormItem>
                             <FormLabel>Remarks (Optional)</FormLabel>
                             <FormControl>
-                              <Input placeholder="Additional comments..." {...field} />
+                              <Input id="exam-mark-remarks" placeholder="Additional comments..." {...field} autoComplete="off" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -1130,59 +1132,63 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
           >
             {/* Unified Filter Controls */}
             <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-              {/* Required Filters - Order: Class, Group, Exam, Subject (as per mandatory parameters) */}
+              {/* Required Filters - Order: Class, Group, Exam, Subject (as per mandatory parameters)                  */}
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Class:</label>
-                <CollegeClassDropdown
-                  value={selectedClass}
-                  onChange={setSelectedClass}
-                  placeholder="Select class"
-                  className="w-40"
-                  emptyValue
-                  emptyValueLabel="Select class"
-                />
-              </div>
+                    <label htmlFor="exam-mgmt-class" className="text-sm font-medium">Class:</label>
+                    <CollegeClassDropdown
+                      id="exam-mgmt-class"
+                      value={selectedClass}
+                      onChange={(value) => setSelectedClass(value)}
+                      placeholder="Select class"
+                      emptyValue
+                      emptyValueLabel="Select class"
+                      className="w-40"
+                    />
+                  </div>
 
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Group:</label>
-                <CollegeGroupDropdown
-                  classId={selectedClass || 0}
-                  value={selectedGroup}
-                  onChange={setSelectedGroup}
-                  placeholder={selectedClass ? "Select group" : "Select class first"}
-                  className="w-40"
-                  emptyValue
-                  emptyValueLabel={selectedClass ? "Select group" : "Select class first"}
-                  disabled={!selectedClass}
-                />
-              </div>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="exam-mgmt-group" className="text-sm font-medium">Group:</label>
+                    <CollegeGroupDropdown
+                      id="exam-mgmt-group"
+                      classId={selectedClass || 0}
+                      value={selectedGroup}
+                      onChange={(value) => setSelectedGroup(value)}
+                      disabled={!selectedClass}
+                      placeholder={selectedClass ? "Select group" : "Select class first"}
+                      emptyValue
+                      emptyValueLabel={selectedClass ? "Select group" : "Select class first"}
+                      className="w-40"
+                    />
+                  </div>
 
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Exam:</label>
-                <CollegeExamDropdown
-                  value={selectedExam}
-                  onChange={setSelectedExam}
-                  placeholder={selectedClass ? "Select exam" : "Select class first"}
-                  className="w-40"
-                  emptyValue
-                  emptyValueLabel={selectedClass ? "Select exam" : "Select class first"}
-                  disabled={!selectedClass}
-                />
-              </div>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="exam-mgmt-exam" className="text-sm font-medium">Exam:</label>
+                    <CollegeExamDropdown
+                      id="exam-mgmt-exam"
+                      value={selectedExam}
+                      onChange={(value) => setSelectedExam(value)}
+                      placeholder={selectedGroup ? "Select exam" : "Select group first"}
+                      emptyValue
+                      emptyValueLabel={selectedGroup ? "Select exam" : "Select group first"}
+                      className="w-40"
+                      disabled={!selectedGroup}
+                    />
+                  </div>
 
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Subject:</label>
-                <CollegeSubjectDropdown
-                  groupId={selectedGroup || 0}
-                  value={selectedSubject}
-                  onChange={setSelectedSubject}
-                  placeholder={selectedGroup ? "Select subject" : "Select group first"}
-                  className="w-40"
-                  emptyValue
-                  emptyValueLabel={selectedGroup ? "Select subject" : "Select group first"}
-                  disabled={!selectedGroup}
-                />
-              </div>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="exam-mgmt-subject" className="text-sm font-medium">Subject:</label>
+                    <CollegeSubjectDropdown
+                      id="exam-mgmt-subject"
+                      groupId={selectedGroup || 0}
+                      value={selectedSubject}
+                      onChange={(value) => setSelectedSubject(value)}
+                      placeholder={selectedGroup ? "Select subject" : "Select group first"}
+                      emptyValue
+                      emptyValueLabel={selectedGroup ? "Select subject" : "Select group first"}
+                      className="w-40"
+                      disabled={!selectedGroup}
+                    />
+                  </div>
             </div>
 
             {/* Data Table */}

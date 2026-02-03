@@ -429,7 +429,7 @@ const UserManagement = () => {
   ], [handleEditUser, handleDeleteUser]);
 
   // Use dashboard stats if available, otherwise fallback to calculated stats
-  const displayStats = dashboardStats || {
+  const displayStats = useMemo(() => dashboardStats || {
     total_users: users.length,
     active_users: users.filter(u => u.is_active).length,
     inactive_users: users.filter(u => !u.is_active).length,
@@ -437,7 +437,7 @@ const UserManagement = () => {
     regular_users: users.filter(u => !u.is_institute_admin).length,
     users_created_this_month: 0,
     users_created_this_year: 0,
-  };
+  }, [dashboardStats, users]);
 
   return (
     <motion.div
@@ -557,7 +557,7 @@ const UserManagement = () => {
               <div>
                 <Label htmlFor="role">Role *</Label>
                 <Select value={selectedRole?.toString() || ""} onValueChange={(value) => setSelectedRole(parseInt(value))}>
-                  <SelectTrigger>
+                  <SelectTrigger id="role">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
@@ -576,7 +576,7 @@ const UserManagement = () => {
               <div>
                 <Label htmlFor="branch">Branch *</Label>
                 <Select value={selectedBranch?.toString() || ""} onValueChange={(value) => setSelectedBranch(parseInt(value))}>
-                  <SelectTrigger>
+                  <SelectTrigger id="branch">
                     <SelectValue placeholder="Select a branch" />
                   </SelectTrigger>
                   <SelectContent>

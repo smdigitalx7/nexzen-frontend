@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Optimized component demonstrating best practices for bundle optimization
  */
 
@@ -6,6 +6,7 @@ import React, { memo, Suspense, lazy, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/common/components/ui/card';
 import { Loader } from '@/common/components/ui/ProfessionalLoader';
 import { createOptimizedLazyComponent, optimizeImports } from '@/common/utils/performance/bundleOptimizer';
+import { Loader2 } from "lucide-react";
 
 // Lazy load heavy components with optimization
 const HeavyChart = createOptimizedLazyComponent(

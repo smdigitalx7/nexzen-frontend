@@ -66,6 +66,7 @@ export const GLOBAL_PERMISSIONS: Record<string, ResourcePermission> = {
         "enrollments": [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACCOUNTANT, ROLES.ACADEMIC],
         // Transport: ADMIN, INSTITUTE_ADMIN, ACCOUNTANT, ACADEMIC (but no edit/delete for ACCOUNTANT/ACADEMIC)
         "transport": [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACCOUNTANT, ROLES.ACADEMIC],
+        "promotion-dropout": [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACCOUNTANT, ROLES.ACADEMIC],
       },
       buttons: {
         // Transport tab specific buttons

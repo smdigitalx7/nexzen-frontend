@@ -1,4 +1,4 @@
-﻿import { LucideIcon, Users, UserCheck, TrendingDown, GraduationCap, BookOpen, CheckCircle } from 'lucide-react';
+import { Users, UserCheck, TrendingDown, GraduationCap, BookOpen, CheckCircle } from 'lucide-react';
 import { IndianRupeeIcon } from '@/common/components/shared/IndianRupeeIcon';
 import { StatsCardConfig } from '@/common/components/shared';
 
@@ -9,7 +9,7 @@ import { StatsCardConfig } from '@/common/components/shared';
 export const createStatCard = (
   title: string,
   value: string | number,
-  icon: LucideIcon,
+  icon: StatsCardConfig["icon"],
   options: Partial<StatsCardConfig> = {}
 ): StatsCardConfig => ({
   title,
@@ -24,7 +24,7 @@ export const createStatCard = (
 export const createTrendingStat = (
   title: string,
   value: string | number,
-  icon: LucideIcon,
+  icon: StatsCardConfig["icon"],
   trendValue: number,
   trendLabel: string,
   options: Partial<StatsCardConfig> = {}
@@ -46,7 +46,7 @@ export const createTrendingStat = (
 export const createProgressStat = (
   title: string,
   value: string | number,
-  icon: LucideIcon,
+  icon: StatsCardConfig["icon"],
   progressValue: number,
   description?: string,
   options: Partial<StatsCardConfig> = {}
@@ -66,7 +66,7 @@ export const createProgressStat = (
 export const createFinancialStat = (
   title: string,
   value: string | number,
-  icon: LucideIcon,
+  icon: StatsCardConfig["icon"],
   isPositive: boolean,
   options: Partial<StatsCardConfig> = {}
 ): StatsCardConfig => ({
@@ -82,7 +82,7 @@ export const createFinancialStat = (
 export const createStatusStat = (
   title: string,
   value: string | number,
-  icon: LucideIcon,
+  icon: StatsCardConfig["icon"],
   status: 'success' | 'warning' | 'error' | 'info',
   options: Partial<StatsCardConfig> = {}
 ): StatsCardConfig => {
@@ -148,7 +148,7 @@ export const createStatsFromArray = <T>(
   configs: Array<{
     key: keyof T;
     title: string;
-    icon: LucideIcon;
+    icon: StatsCardConfig["icon"];
     color?: StatsCardConfig['color'];
     formatter?: (value: any) => string | number;
   }>

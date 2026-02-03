@@ -275,7 +275,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
       {/* Filters */}
       <div className="flex gap-4 items-end">
         <div className="flex-1">
-          <label className="text-sm font-medium mb-2 block">Class</label>
+          <label htmlFor="transport-balance-class" className="text-sm font-medium mb-2 block">Class</label>
           <Select 
             value={balanceClass} 
             onValueChange={(value) => {
@@ -283,7 +283,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
               setBalanceGroup(""); // Reset group when class changes
             }}
           >
-            <SelectTrigger>
+            <SelectTrigger id="transport-balance-class">
               <SelectValue placeholder="Select class" />
             </SelectTrigger>
             <SelectContent>
@@ -296,13 +296,13 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
           </Select>
         </div>
         <div className="flex-1">
-          <label className="text-sm font-medium mb-2 block">Group</label>
+          <label htmlFor="transport-balance-group" className="text-sm font-medium mb-2 block">Group</label>
           <Select 
             value={balanceGroup} 
             onValueChange={setBalanceGroup}
             disabled={!balanceClass}
           >
-            <SelectTrigger>
+            <SelectTrigger id="transport-balance-group">
               <SelectValue placeholder={balanceClass ? "Select group" : "Select class first"} />
             </SelectTrigger>
             <SelectContent>
@@ -315,14 +315,14 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: Transp
           </Select>
         </div>
         <div className="flex-1">
-          <label className="text-sm font-medium mb-2 block">Payment Status</label>
+          <label htmlFor="transport-balance-status" className="text-sm font-medium mb-2 block">Payment Status</label>
           <Select 
             value={paymentStatus} 
             onValueChange={(value: string) => {
               setPaymentStatus(value === "all" ? "all" : value as PaymentStatus);
             }}
           >
-            <SelectTrigger>
+            <SelectTrigger id="transport-balance-status">
               <SelectValue placeholder="Filter by payment status" />
             </SelectTrigger>
             <SelectContent>

@@ -1,4 +1,4 @@
-﻿import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   CreditCard,
@@ -7,6 +7,7 @@ import {
   Users,
   BookOpen,
   Bus,
+  Loader2,
   Search,
 } from "lucide-react";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
@@ -21,14 +22,7 @@ import { CollegeEnrollmentsService, CollegeTuitionBalancesService, CollegeTransp
 import { CollegeClassDropdown, CollegeGroupDropdown } from "@/common/components/shared/Dropdowns";
 import { useToast } from "@/common/hooks/use-toast";
 import { useDebounce } from "@/common/hooks/useDebounce";
-import type { CollegeEnrollmentWithStudentDetails } from "@/features/college/types";
-import type { CollegeTuitionFeeBalanceRead } from "@/features/college/types/tuition-fee-balances";
-
-interface StudentFeeDetails {
-  enrollment: CollegeEnrollmentWithStudentDetails;
-  tuitionBalance: CollegeTuitionFeeBalanceRead | null;
-  transportBalance: any;
-}
+import type { StudentFeeDetails } from "./CollectFee";
 
 interface CollectFeeSearchProps {
   onStudentSelected: (studentDetails: StudentFeeDetails) => void;
@@ -243,15 +237,11 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
 
       if (studentDetails.transportBalance) {
         const transport = studentDetails.transportBalance;
-        total +=
-          Math.max(
-            0,
-            (transport.term1_amount || 0) - (transport.term1_paid || 0)
-          ) +
-          Math.max(
-            0,
-            (transport.term2_amount || 0) - (transport.term2_paid || 0)
-          );
+        const pending =
+          typeof transport.total_amount_pending === "string"
+            ? Number(transport.total_amount_pending)
+            : (transport.total_amount_pending ?? 0);
+        total += Number.isFinite(pending) ? Math.max(0, pending) : 0;
       }
 
       return total;
@@ -307,22 +297,18 @@ export const CollectFeeSearch = ({ onStartPayment, searchResults, setSearchResul
       const transport = studentDetails.transportBalance;
       if (!transport) return { total: 0, breakdown: [] };
 
-      const term1Outstanding = Math.max(
-        0,
-        (transport.term1_amount || 0) - (transport.term1_paid || 0)
-      );
-      const term2Outstanding = Math.max(
-        0,
-        (transport.term2_amount || 0) - (transport.term2_paid || 0)
-      );
+      const pending =
+        typeof transport.total_amount_pending === "string"
+          ? Number(transport.total_amount_pending)
+          : (transport.total_amount_pending ?? 0);
+      const pendingAmount = Number.isFinite(pending) ? Math.max(0, pending) : 0;
 
       const breakdown = [
-        { label: "Term 1", amount: term1Outstanding },
-        { label: "Term 2", amount: term2Outstanding },
+        { label: "Pending Transport", amount: pendingAmount },
       ].filter((item) => item.amount > 0);
 
       return {
-        total: term1Outstanding + term2Outstanding,
+        total: pendingAmount,
         breakdown,
       };
     },

@@ -175,11 +175,12 @@ export const TestMarksReport = () => {
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            <label htmlFor="test-report-class" className="text-sm font-medium text-gray-700 whitespace-nowrap">
               Class <span className="text-red-500">*</span>
             </label>
             <div className="flex-1">
               <SchoolClassDropdown
+                id="test-report-class"
                 value={classId}
                 onChange={(value) => {
                   setClassId(value);
@@ -193,11 +194,12 @@ export const TestMarksReport = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            <label htmlFor="test-report-test" className="text-sm font-medium text-gray-700 whitespace-nowrap">
               Test <span className="text-red-500">*</span>
             </label>
             <div className="flex-1">
               <SchoolTestDropdown
+                id="test-report-test"
                 value={testId}
                 onChange={setTestId}
                 disabled={!classId}
@@ -205,12 +207,13 @@ export const TestMarksReport = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            <label htmlFor="test-report-section" className="text-sm font-medium text-gray-700 whitespace-nowrap">
               Section <span className="text-xs text-gray-500">(Optional)</span>
             </label>
             <div className="flex-1">
               {classId ? (
                 <SchoolSectionDropdown
+                  id="test-report-section"
                   value={sectionId}
                   onChange={setSectionId}
                   classId={classId}
@@ -223,12 +226,13 @@ export const TestMarksReport = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            <label htmlFor="test-report-subject" className="text-sm font-medium text-gray-700 whitespace-nowrap">
               Subject <span className="text-xs text-gray-500">(Optional)</span>
             </label>
             <div className="flex-1">
               {classId ? (
                 <SchoolSubjectDropdown
+                  id="test-report-subject"
                   value={subjectId}
                   onChange={setSubjectId}
                   classId={classId}

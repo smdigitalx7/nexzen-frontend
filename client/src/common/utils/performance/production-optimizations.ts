@@ -126,18 +126,16 @@ export const memoizationUtils = {
     return true;
   },
 
-  // Stable reference for objects
-  stableReference: <T>(value: T, deps: any[]): T => {
-    const ref = useRef<T>(value);
-    const prevDeps = useRef<any[]>(deps);
-
-    if (!memoizationUtils.deepEqual(prevDeps.current, deps)) {
-      ref.current = value;
-      prevDeps.current = deps;
-    }
-
-    return ref.current;
-  },
+  /**
+   * Stable reference helper.
+   *
+   * IMPORTANT: This utility module must remain hook-free (no `useRef` here),
+   * because it is not a React component or custom hook.
+   *
+   * If stable references are needed, implement them inside components with `useMemo`
+   * or introduce a dedicated hook (e.g. `useStableReference`).
+   */
+  stableReference: <T>(value: T, _deps: any[]): T => value,
 };
 
 // Production-ready component optimizations

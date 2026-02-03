@@ -28,6 +28,7 @@ export interface AcademicYear {
   start_date: string;
   end_date: string;
   is_active: boolean;
+  status?: string;
   created_at: string;
   updated_at: string | null;
   created_by: number | null;

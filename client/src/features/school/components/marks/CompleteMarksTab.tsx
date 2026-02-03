@@ -119,7 +119,7 @@ const CompleteMarksTab = () => {
     }
 
     // Check if we already have data for all students - if so, don't overwrite
-    const hasAllStudents = enrollmentsData.items.every((enrollment) => 
+    const hasAllStudents = enrollmentsData.items!.every((enrollment) => 
       marksData[enrollment.enrollment_id]
     );
     if (hasAllStudents && Object.keys(marksData).length > 0) {
@@ -138,7 +138,7 @@ const CompleteMarksTab = () => {
     setMarksData((prev) => {
       const newMarksData: Record<number, StudentMarksData> = { ...prev };
       
-      enrollmentsData.items.forEach((enrollment: SchoolEnrollmentWithStudentDetails) => {
+      enrollmentsData.items!.forEach((enrollment: SchoolEnrollmentWithStudentDetails) => {
         const existingData = prev[enrollment.enrollment_id];
         const marks: Record<number, { marks_obtained: number; remarks: string }> = 
           existingData?.marks ? { ...existingData.marks } : {};
@@ -177,7 +177,7 @@ const CompleteMarksTab = () => {
   // Memoized students list
   const students = useMemo(() => {
     if (!enrollmentsData?.items) return [];
-    return enrollmentsData.items.sort((a, b) => 
+    return [...enrollmentsData.items].sort((a, b) => 
       a.roll_number.localeCompare(b.roll_number, undefined, { numeric: true, sensitivity: 'base' })
     );
   }, [enrollmentsData?.items]);
@@ -305,10 +305,11 @@ const CompleteMarksTab = () => {
             <CardContent>
               <div className="flex flex-wrap gap-4 items-center">
                 <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium">
+                  <label htmlFor="complete-marks-class" className="text-sm font-medium">
                     Class: <span className="text-red-500">*</span>
                   </label>
                   <SchoolClassDropdown
+                    id="complete-marks-class"
                     value={selectedClass}
                     onChange={setSelectedClass}
                     placeholder="Select class"
@@ -319,10 +320,11 @@ const CompleteMarksTab = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium">
+                  <label htmlFor="complete-marks-section" className="text-sm font-medium">
                     Section: <span className="text-red-500">*</span>
                   </label>
                   <SchoolSectionDropdown
+                    id="complete-marks-section"
                     classId={selectedClass || 0}
                     value={selectedSection}
                     onChange={setSelectedSection}
@@ -335,10 +337,11 @@ const CompleteMarksTab = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium">
+                  <label htmlFor="complete-marks-exam" className="text-sm font-medium">
                     Exam: <span className="text-red-500">*</span>
                   </label>
                   <SchoolExamDropdown
+                    id="complete-marks-exam"
                     value={selectedExam}
                     onChange={setSelectedExam}
                     placeholder="Select exam"
@@ -462,6 +465,8 @@ const CompleteMarksTab = () => {
                                   >
                                     <div className="flex flex-col gap-1">
                                       <Input
+                                        id={`mark-${student.enrollment_id}-${subject.subject_id}`}
+                                        name={`mark-${student.enrollment_id}-${subject.subject_id}`}
                                         type="number"
                                         min="0"
                                         step="0.01"
@@ -476,8 +481,12 @@ const CompleteMarksTab = () => {
                                           )
                                         }
                                         className="h-8 text-sm"
+                                        autoComplete="off"
+                                        aria-label={`Marks for ${student.student_name} in ${subject.subject_name}`}
                                       />
                                       <Input
+                                        id={`remark-${student.enrollment_id}-${subject.subject_id}`}
+                                        name={`remark-${student.enrollment_id}-${subject.subject_id}`}
                                         type="text"
                                         placeholder="Remarks (optional)"
                                         value={markData.remarks || ""}
@@ -490,6 +499,8 @@ const CompleteMarksTab = () => {
                                           )
                                         }
                                         className="h-8 text-xs"
+                                        autoComplete="off"
+                                        aria-label={`Remarks for ${student.student_name} in ${subject.subject_name}`}
                                       />
                                     </div>
                                   </td>

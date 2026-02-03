@@ -1,9 +1,14 @@
-﻿import { Api } from "@/core/api";
+import { Api } from "@/core/api";
 import { CollegeStudentCreate, CollegeStudentFullDetails, CollegeStudentUpdate, CollegeStudentsPaginatedResponse, CollegeFullStudentRead } from "@/features/college/types";
 
 export interface CollegeStudentsListParams {
   page?: number;
-  pageSize?: number;
+  page_size?: number;
+  // Optional filters (backend supports these)
+  class_id?: number;
+  group_id?: number;
+  course_id?: number;
+  search?: string;
 }
 
 export const CollegeStudentsService = {

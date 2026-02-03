@@ -1,4 +1,3 @@
-﻿import ExcelJS from "exceljs";
 import { jsPDF } from "jspdf";
 import {
   SchoolAdmissionListItem,
@@ -7,6 +6,12 @@ import {
 import { CollegeAdmissionDetails } from "@/features/college/types/admissions";
 import { assets, brand } from "@/lib/config";
 
+// IMPORTANT: ExcelJS is large — load it only when exporting.
+async function loadExcelJS(): Promise<any> {
+  const mod: any = await import("exceljs");
+  return mod?.default ?? mod;
+}
+
 /**
  * Export all admissions to Excel with professional formatting
  */
@@ -14,6 +19,7 @@ export async function exportAdmissionsToExcel(
   admissions: SchoolAdmissionListItem[],
   fileName: string = "School_Admissions"
 ) {
+  const ExcelJS = await loadExcelJS();
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Admissions");
 
@@ -107,7 +113,7 @@ export async function exportAdmissionsToExcel(
     for (let rowNumber = startRow; rowNumber <= endRow; rowNumber++) {
       const row = worksheet.getRow(rowNumber);
       if (row) {
-        row.eachCell((cell) => {
+        row.eachCell((cell: any) => {
           cell.border = {
             top: { style: "thin" },
             left: { style: "thin" },
@@ -174,6 +180,7 @@ export async function exportSingleAdmissionToExcel(
   admission: SchoolAdmissionDetails,
   fileName?: string
 ) {
+  const ExcelJS = await loadExcelJS();
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Admission Details");
 

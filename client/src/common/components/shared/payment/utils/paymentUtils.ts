@@ -5,6 +5,8 @@
 
 import type { PaymentMethod } from '../types/PaymentTypes';
 
+export type ApiPaymentMethod = "CASH" | "UPI" | "CARD";
+
 /**
  * Payment method options with icons and descriptions
  */
@@ -67,8 +69,10 @@ export function calculateTotalWithCardCharges(amount: number): number {
  * @param method - Frontend payment method
  * @returns Backend payment method (same as input)
  */
-export function mapPaymentMethodForAPI(method: PaymentMethod): PaymentMethod {
-  // Backend now accepts CASH, UPI, and CARD directly
+export function mapPaymentMethodForAPI(method: PaymentMethod): ApiPaymentMethod {
+  // Backend supports only CASH/UPI/CARD.
+  // If UI uses ONLINE, map it to UPI for API compatibility.
+  if (method === "ONLINE") return "UPI";
   return method;
 }
 

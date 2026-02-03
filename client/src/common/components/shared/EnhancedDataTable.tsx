@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect, memo, useCallback, useRef } from "react";
+import { useState, useMemo, useEffect, memo, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   ColumnDef,
@@ -43,11 +43,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/common/components/ui/select";
-import * as ExcelJS from "exceljs";
 
 import { cn } from "@/common/utils";
 
-interface FilterOption {
+export interface FilterOption {
   value: string;
   label: string;
 }
@@ -63,7 +62,7 @@ interface FilterOption {
  *   onClick: (row) => handleCustomAction(row)
  * }
  */
-interface ActionButton<TData = unknown> {
+export interface ActionButton<TData = unknown> {
   id: string;
   label: string | ((row: TData) => string);
   icon:
@@ -85,7 +84,7 @@ interface ActionButton<TData = unknown> {
  *   onClick: (row) => handleView(row)
  * }
  */
-interface ActionButtonGroup<TData = unknown> {
+export interface ActionButtonGroup<TData = unknown> {
   type: "view" | "edit" | "delete" | "custom";
   onClick: (row: TData) => void;
   show?: (row: TData) => boolean;
@@ -95,7 +94,7 @@ interface ActionButtonGroup<TData = unknown> {
   className?: string;
 }
 
-interface EnhancedDataTableProps<TData> {
+export interface EnhancedDataTableProps<TData> {
   data: TData[];
   columns: ColumnDef<TData>[];
   title?: string;
@@ -149,6 +148,8 @@ interface EnhancedDataTableProps<TData> {
   refreshKey?: number | string;
   // ✅ Server-side pagination support
   enableClientSidePagination?: boolean; // Default: true (for backward compatibility)
+  // ✅ Selection callback
+  onRowSelectionChange?: (selectedRows: TData[]) => void;
 }
 
 function EnhancedDataTableComponent<TData>({
@@ -180,11 +181,12 @@ function EnhancedDataTableComponent<TData>({
   customAddButton,
   refreshKey, // ✅ FIX: Add refreshKey to force refresh
   enableClientSidePagination = true, // ✅ Default to true for backward compatibility
+  onRowSelectionChange,
 }: EnhancedDataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
-  const [rowSelection, setRowSelection] = useState({});
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
@@ -294,8 +296,24 @@ function EnhancedDataTableComponent<TData>({
 
   // Reset to first page when data changes
   useEffect(() => {
-    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    setPagination((prev) => {
+      if (prev.pageIndex === 0) return prev;
+      return { ...prev, pageIndex: 0 };
+    });
   }, [data]);
+
+  // Handle row selection callback
+  useEffect(() => {
+    if (onRowSelectionChange) {
+      const selectedIndices = Object.keys(rowSelection).filter(
+        (key) => rowSelection[key]
+      );
+      const selectedRows = selectedIndices.map(
+        (index) => table.getRowModel().rowsById[index]?.original
+      ).filter(Boolean);
+      onRowSelectionChange(selectedRows);
+    }
+  }, [rowSelection, onRowSelectionChange]);
 
   // Generate action column if actions are enabled
   const generateActionColumn = useCallback((): ColumnDef<TData> | null => {
@@ -541,6 +559,10 @@ function EnhancedDataTableComponent<TData>({
   // Export functionality
   const performExport = useCallback(async () => {
     try {
+      // IMPORTANT: ExcelJS is large — load it only when exporting.
+      const ExcelJSImport: any = await import("exceljs");
+      const ExcelJS = ExcelJSImport?.default ?? ExcelJSImport;
+
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet(title || "Data Export");
 
@@ -569,10 +591,7 @@ function EnhancedDataTableComponent<TData>({
 
       // Filter out action columns
       const exportableColumns = columns.filter((col) => {
-        const typedCol = col as ColumnDef<TData> & {
-          accessorKey?: string;
-          header?: unknown;
-        };
+        const typedCol = col as any;
         const hasAccessorKey = !!typedCol.accessorKey;
         const headerStr =
           typeof typedCol.header === "string"
@@ -669,7 +688,7 @@ function EnhancedDataTableComponent<TData>({
       const headers = exportableColumns.map((col) => {
         if (typeof col.header === "string") return col.header;
         if (typeof col.header === "function") return col.id ?? "";
-        const typedCol = col as ColumnDef<TData> & { accessorKey?: string };
+        const typedCol = col as any;
         return typedCol.accessorKey ?? col.id ?? "";
       });
 
@@ -694,7 +713,7 @@ function EnhancedDataTableComponent<TData>({
       };
 
       // Apply professional header styling to each cell
-      headerRow.eachCell((cell) => {
+      headerRow.eachCell((cell: any) => {
         cell.border = {
           top: { style: "medium", color: colors.headerBorder },
           bottom: { style: "medium", color: colors.headerBorder },
@@ -711,7 +730,7 @@ function EnhancedDataTableComponent<TData>({
       // Add data rows with professional styling
       memoizedFilteredData.forEach((row, index) => {
         const rowData = exportableColumns.map((col) => {
-          const typedCol = col as ColumnDef<TData> & { accessorKey?: string };
+          const typedCol = col as any;
           const key = typedCol.accessorKey;
           if (key) {
             const value = (row as Record<string, unknown>)[key];
@@ -758,7 +777,7 @@ function EnhancedDataTableComponent<TData>({
         const rowFillColor = isEvenRow ? colors.white : colors.alternateRow;
 
         // Apply professional cell styling
-        dataRow.eachCell((cell, colNumber) => {
+        dataRow.eachCell((cell: any, colNumber: number) => {
           const col = exportableColumns[colNumber - 1];
           const typedCol = col as ColumnDef<TData> & { accessorKey?: string };
           const colKey = typedCol.accessorKey?.toLowerCase() || "";
@@ -840,20 +859,19 @@ function EnhancedDataTableComponent<TData>({
       });
 
       // Optimized column width calculation - More compact design
-      worksheet.columns.forEach((column, index) => {
+      worksheet.columns.forEach((column: any, index: number) => {
         if (column && column.eachCell) {
           const col = exportableColumns[index];
+          const accessorKey = (col as { accessorKey?: unknown }).accessorKey;
           const colKey =
-            typeof col.accessorKey === "string"
-              ? col.accessorKey.toLowerCase()
-              : "";
+            typeof accessorKey === "string" ? accessorKey.toLowerCase() : "";
           const colHeader =
             typeof col.header === "string"
               ? col.header
               : String(col.header || "");
 
           let maxLength = 10;
-          column.eachCell({ includeEmpty: false }, (cell) => {
+          column.eachCell({ includeEmpty: false }, (cell: any) => {
             if (cell && cell.value) {
               const cellValue = String(cell.value);
               const cellLength = cellValue.length;
@@ -1131,6 +1149,8 @@ function EnhancedDataTableComponent<TData>({
 
                   {/* Search Input */}
                   <input
+                    id="enhanced-table-search"
+                    name="search"
                     type="text"
                     placeholder={searchPlaceholder}
                     value={globalFilter ?? ""}
@@ -1144,6 +1164,7 @@ function EnhancedDataTableComponent<TData>({
                     aria-label="Search table data"
                     aria-describedby="search-results-count"
                     role="searchbox"
+                    autoComplete="off"
                   />
 
                   {/* Clear Button */}
@@ -1765,3 +1786,6 @@ function EnhancedDataTableComponent<TData>({
 export const EnhancedDataTable = memo(
   EnhancedDataTableComponent
 ) as typeof EnhancedDataTableComponent;
+
+// Explicit alias for clarity (client-side table behavior)
+export const EnhancedDataTableClient = EnhancedDataTable;

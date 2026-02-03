@@ -1,5 +1,5 @@
-﻿import { useState, useMemo } from 'react';
-import { Users, Save, X, Edit, Trash2 } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Users, Save, X, Edit, Trash2, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card';
 import { Button } from '@/common/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/common/components/ui/dialog';
@@ -7,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/common/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/common/components/ui/select';
 import { DatePicker } from '@/common/components/ui/date-picker';
-import { EnhancedDataTable, ServerSidePagination } from '@/common/components/shared';
+import { EnhancedDataTableServer } from '@/common/components/shared';
 import { Loader } from '@/common/components/ui/ProfessionalLoader';
 import { 
   createAvatarColumn,
@@ -46,9 +46,25 @@ export const StudentsTab = () => {
   // ✅ Server-side pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Reset pagination when search changes (server-side search)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
 
   const { currentBranch } = useAuthStore();
-  const { data: studentsResp, isLoading, error } = useCollegeStudentsList({ page: currentPage, pageSize: pageSize });
+  const { data: studentsResp, isLoading, error } = useCollegeStudentsList({
+    page: currentPage,
+    page_size: pageSize,
+    search: debouncedSearch || undefined,
+  });
   const students: CollegeStudentRead[] = studentsResp?.data ?? [];
   const deleteStudentMutation = useDeleteCollegeStudent();
   const [selectedStudent, setSelectedStudent] = useState<CollegeStudentFullDetails | null>(null);
@@ -151,11 +167,30 @@ export const StudentsTab = () => {
         <Card><CardContent className="py-8 text-center text-red-600">Error loading students</CardContent></Card>
       ) : (
         <div className="space-y-4">
-          <EnhancedDataTable
+          <div className="flex items-center gap-2">
+            <div className="relative w-full max-w-md">
+              <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search students (server-side)…"
+                className="pl-9"
+              />
+            </div>
+            {search ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSearch("")}
+              >
+                Clear
+              </Button>
+            ) : null}
+          </div>
+          <EnhancedDataTableServer
             data={students}
             columns={columns}
             title="Students"
-            searchKey="student_name"
             exportable={true}
             selectable={true}
             showActions={true}
@@ -163,26 +198,27 @@ export const StudentsTab = () => {
             actionColumnHeader="Actions"
             showActionLabels={true}
             refreshKey={refreshKey}
-            enableClientSidePagination={false}
+            showSearch={false}
+            serverPagination={
+              studentsResp
+                ? {
+                    currentPage,
+                    totalPages: studentsResp.total_pages || 1,
+                    totalCount: studentsResp.total_count || students.length,
+                    pageSize,
+                    onPageChange: (page) => {
+                      setCurrentPage(page);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    },
+                    onPageSizeChange: (newPageSize) => {
+                      setPageSize(newPageSize);
+                      setCurrentPage(1);
+                    },
+                    isLoading,
+                  }
+                : undefined
+            }
           />
-          {/* ✅ Server-side pagination controls */}
-          {studentsResp && (
-            <ServerSidePagination
-              currentPage={currentPage}
-              totalPages={studentsResp.total_pages || 1}
-              totalCount={studentsResp.total_count || students.length}
-              pageSize={pageSize}
-              onPageChange={(page) => {
-                setCurrentPage(page);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              onPageSizeChange={(newPageSize) => {
-                setPageSize(newPageSize);
-                setCurrentPage(1);
-              }}
-              isLoading={isLoading}
-            />
-          )}
         </div>
       )}
 

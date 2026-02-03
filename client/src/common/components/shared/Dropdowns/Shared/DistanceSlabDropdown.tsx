@@ -14,6 +14,7 @@ export interface DistanceSlabDropdownProps {
   placeholder?: string;
   className?: string;
   emptyValue?: boolean;
+  id?: string;
 }
 
 /**
@@ -32,6 +33,7 @@ export function DistanceSlabDropdown({
   placeholder = "Select distance slab",
   className,
   emptyValue = false,
+  id,
 }: DistanceSlabDropdownProps) {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["distance-slabs"],
@@ -81,6 +83,7 @@ export function DistanceSlabDropdown({
       required={required}
       placeholder={placeholder}
       className={className}
+      id={id}
       getValue={(option) => option.slab_id}
       getLabel={getLabel}
       renderOption={renderOption}

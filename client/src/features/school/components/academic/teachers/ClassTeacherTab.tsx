@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Badge } from "@/common/components/ui/badge";
 import { Trash2, Plus } from "lucide-react";
 import { Label } from "@/common/components/ui/label";
@@ -119,7 +119,7 @@ export const ClassTeacherTab = () => {
     try {
       await deleteClassTeacherMutation.mutateAsync({
         class_id: ct.class_id,
-        section_id: ct.section_id,
+        section_id: ct.section_id ?? undefined,
       });
     } catch (error: any) {
       // Error toast handled by mutation hook
@@ -156,7 +156,7 @@ export const ClassTeacherTab = () => {
 
   return (
     <React.Fragment>
-      <EnhancedDataTable
+      <EnhancedDataTable<ClassTeacherData>
         data={classTeachers as ClassTeacherData[]}
         columns={columns}
         title="Class Teacher Assignments"

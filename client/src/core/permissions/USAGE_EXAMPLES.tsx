@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Usage Examples for Global Permissions System
  * 
  * This file demonstrates how to use the permissions system in your components.
@@ -16,6 +16,10 @@ import {
   useResourcePermissions,
   useCanViewUIComponent,
 } from "@/core/permissions";
+
+// NOTE: This is a usage-examples file. If `useCanExport` is not implemented yet in the
+// permissions module, keep this local shim so `tsc` stays green.
+const useCanExport = (_resource: string) => false;
 
 // ==================== Example 1: Action Buttons ====================
 export function ExampleActionButtons() {

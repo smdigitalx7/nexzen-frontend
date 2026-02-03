@@ -14,6 +14,7 @@ export interface SchoolTeacherDropdownProps {
   placeholder?: string;
   className?: string;
   emptyValue?: boolean;
+  id?: string;
 }
 
 /**
@@ -32,6 +33,7 @@ export function SchoolTeacherDropdown({
   placeholder = "Select teacher",
   className,
   emptyValue = false,
+  id,
 }: SchoolTeacherDropdownProps) {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["teachers", "by-branch"],
@@ -62,6 +64,7 @@ export function SchoolTeacherDropdown({
       required={required}
       placeholder={placeholder}
       className={className}
+      id={id}
       getValue={(option) => option.employee_id}
       getLabel={(option) => option.employee_name}
       noOptionsText="No teachers available"

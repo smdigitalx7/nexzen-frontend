@@ -9,21 +9,21 @@ export interface DistanceSlabRead {
   slab_id: number;
   slab_name: string;
   min_distance: number;
-  max_distance?: number;
+  max_distance?: number | null;
   fee_amount: number;
 }
 
 export interface DistanceSlabCreate {
   slab_name: string;
   min_distance: number;
-  max_distance?: number;
+  max_distance?: number | null;
   fee_amount: number;
 }
 
 export interface DistanceSlabUpdate {
   slab_name?: string;
   min_distance?: number;
-  max_distance?: number;
+  max_distance?: number | null;
   fee_amount?: number;
 }
 

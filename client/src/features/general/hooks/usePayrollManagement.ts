@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/core/auth/authStore";
 import { useTabNavigation } from "@/common/hooks/use-tab-navigation";
@@ -24,8 +24,8 @@ import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-to
 interface PayrollWithEmployee extends Omit<PayrollRead, "payroll_month"> {
   employee_name: string;
   employee_type?: string;
-  payroll_month: number; // Changed from string to number to match API
-  payroll_year: number;
+  payroll_month: number | string; // API can return number or date string
+  payroll_year?: number;
 }
 
 // Query keys for payroll operations
@@ -269,9 +269,20 @@ export const usePayrollManagement = () => {
           }
         }
 
+        // Normalize month to a number before validation
+        if (typeof month === "string") {
+          const asNumber = Number(month);
+          if (Number.isFinite(asNumber)) {
+            month = asNumber;
+          }
+        }
+
         // Also fix month if it's invalid - some records might have wrong month data
-        if (!month || month < 1 || month > 12) {
+        const monthNumber = typeof month === "string" ? Number(month) : month;
+        if (!monthNumber || monthNumber < 1 || monthNumber > 12) {
           month = new Date().getMonth() + 1;
+        } else {
+          month = monthNumber;
         }
 
         matchesMonth = !selectedMonth || month === selectedMonth;

@@ -26,5 +26,6 @@ export * from "./use-college-tuition-balances";
 export * from "./use-student-transport-assignments";
 export * from "./use-teacher-course-subjects";
 export * from "./use-teacher-group-subjects";
+export * from "./use-college-promotion";
 export * from "./query-keys";
 

@@ -1,4 +1,4 @@
-﻿import { Api } from "@/core/api";
+import { Api } from "@/core/api";
 import { CollegeIncomeCreate, CollegeIncomeCreateReservation, CollegeIncomeRead, CollegeIncomeUpdate, CollegeIncomeDashboardStats, CollegeRecentIncome, CollegeIncomeReceipt, CollegeFinanceReport, CollegeFinanceReportParams, CollegeIncomeSummaryListResponse, CollegeIncomeSummaryParams } from "@/features/college/types";
 
 export interface CollegeIncomeListParams {
@@ -86,9 +86,7 @@ export const CollegeIncomeService = {
 
   // GET /api/v1/college/income/{income_id}/regenerate-receipt
   regenerateReceipt(income_id: number) {
-    return Api.get<Blob>(`/college/income/${income_id}/regenerate-receipt`, {
-      responseType: 'blob'
-    });
+    return Api.getBlob(`/college/income/${income_id}/regenerate-receipt`);
   },
 
   // GET /api/v1/college/income?reservation_id={reservation_id}

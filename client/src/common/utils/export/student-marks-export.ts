@@ -1,4 +1,3 @@
-﻿import ExcelJS from 'exceljs';
 import { jsPDF } from 'jspdf';
 import type { StudentMarksResponse as CollegeStudentMarksResponse } from '@/features/college/types/student-marks';
 import type { StudentMarksResponse as SchoolStudentMarksResponse } from '@/features/school/types/marks';
@@ -18,6 +17,8 @@ export const exportStudentMarksToExcel = async (
   }
 
   try {
+    const ExcelJSImport: any = await import('exceljs');
+    const ExcelJS = ExcelJSImport?.default ?? ExcelJSImport;
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'VELONEX ERP';
     workbook.created = new Date();
@@ -99,7 +100,7 @@ export const exportStudentMarksToExcel = async (
       fgColor: { argb: 'FF4472C4' }
     };
     headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
-    headerRow.eachCell((cell) => {
+    headerRow.eachCell((cell: any) => {
       cell.border = {
         top: { style: 'thin' },
         left: { style: 'thin' },
@@ -125,7 +126,7 @@ export const exportStudentMarksToExcel = async (
 
         // Style data rows
         row.alignment = { horizontal: 'left', vertical: 'middle' };
-        row.eachCell((cell, colNumber) => {
+        row.eachCell((cell: any, colNumber: number) => {
           cell.border = {
             top: { style: 'thin' },
             left: { style: 'thin' },
@@ -164,7 +165,7 @@ export const exportStudentMarksToExcel = async (
 
         // Style data rows
         row.alignment = { horizontal: 'left', vertical: 'middle' };
-        row.eachCell((cell, colNumber) => {
+        row.eachCell((cell: any, colNumber: number) => {
           cell.border = {
             top: { style: 'thin' },
             left: { style: 'thin' },
@@ -208,7 +209,7 @@ export const exportStudentMarksToExcel = async (
       fgColor: { argb: 'FF6B7280' }
     };
     summaryHeaderRow.alignment = { horizontal: 'center', vertical: 'middle' };
-    summaryHeaderRow.eachCell((cell) => {
+    summaryHeaderRow.eachCell((cell: any) => {
       cell.border = {
         top: { style: 'thin' },
         left: { style: 'thin' },
@@ -236,7 +237,7 @@ export const exportStudentMarksToExcel = async (
       ]);
 
       summaryRow.alignment = { horizontal: 'left', vertical: 'middle' };
-      summaryRow.eachCell((cell) => {
+      summaryRow.eachCell((cell: any) => {
         cell.border = {
           top: { style: 'thin' },
           left: { style: 'thin' },

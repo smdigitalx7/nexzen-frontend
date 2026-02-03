@@ -1,4 +1,8 @@
-import ExcelJS from "exceljs";
+// IMPORTANT: ExcelJS is large — load it only when exporting.
+async function loadExcelJS(): Promise<any> {
+  const mod: any = await import("exceljs");
+  return mod?.default ?? mod;
+}
 
 /**
  * Enhanced Excel export utility with professional and creative design
@@ -108,6 +112,7 @@ export async function exportToExcel(
   } = options;
 
   try {
+    const ExcelJS = await loadExcelJS();
     const workbook = new ExcelJS.Workbook();
     workbook.creator = companyName;
     workbook.created = new Date();
@@ -291,7 +296,7 @@ export async function exportToExcel(
     };
 
     // Style each header cell individually
-    headerRow.eachCell((cell, colNumber) => {
+    headerRow.eachCell((cell: any, colNumber: number) => {
       const column = columns[colNumber - 1];
 
       // Highlight important columns in header
@@ -360,7 +365,7 @@ export async function exportToExcel(
           : EXCEL_COLORS.alternateRow;
 
         // Style each data cell
-        dataRow.eachCell((cell, colNumber) => {
+        dataRow.eachCell((cell: any, colNumber: number) => {
           const column = columns[colNumber - 1];
 
           // Font styling

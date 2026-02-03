@@ -1,4 +1,4 @@
-﻿import { Api } from '@/core/api';
+import { Api } from '@/core/api';
 
 export interface PaymentReceiptData {
   id: string;
@@ -33,7 +33,8 @@ export interface PaymentReceiptListResponse {
 }
 
 export class PaymentReceiptsService {
-  private static baseUrl = '/api/payment-receipts';
+  // Api base already includes `/api/v1` via core Api client.
+  private static baseUrl = '/payment-receipts';
 
   /**
    * Generate and download a payment receipt
@@ -46,9 +47,7 @@ export class PaymentReceiptsService {
    * Download receipt by ID
    */
   static downloadReceipt(receiptId: string): Promise<Blob> {
-    return Api.get<Blob>(`${this.baseUrl}/${receiptId}/download`, {
-      responseType: 'blob'
-    });
+    return Api.getBlob(`${this.baseUrl}/${receiptId}/download`);
   }
 
   /**

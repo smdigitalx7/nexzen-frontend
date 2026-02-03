@@ -1,4 +1,4 @@
-﻿import { useMemo, memo } from "react";
+import { useMemo, memo } from "react";
 import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
 import { useCanViewUIComponent, useCanCreate } from "@/core/permissions";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -151,8 +151,7 @@ const AdvancesTableComponent = ({
         show: (row: EmployeeAdvanceRead) => {
           // Show for ACTIVE or APPROVED status, but not REPAID
           const status = row.status?.toUpperCase();
-          return (status === "ACTIVE" || status === "APPROVED") && 
-                 status !== "REPAID" &&
+          return (status === "ACTIVE" || status === "APPROVED") &&
                  (row.remaining_balance ?? row.advance_amount) > 0;
         },
       },

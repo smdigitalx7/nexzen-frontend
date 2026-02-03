@@ -1,5 +1,6 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeEnrollmentsService } from "@/features/college/services/enrollments.service";
+import type { CollegeEnrollmentsListParams } from "@/features/college/services/enrollments.service";
 import type {
   CollegeEnrollmentCreate,
   CollegeEnrollmentFilterParams,
@@ -11,8 +12,8 @@ import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-to
 
 export function useCollegeEnrollmentsList(params?: CollegeEnrollmentFilterParams) {
   return useQuery({
-    queryKey: collegeKeys.enrollments.list(params),
-    queryFn: () => CollegeEnrollmentsService.list(params),
+    queryKey: collegeKeys.enrollments.list(params as unknown as Record<string, unknown> | undefined),
+    queryFn: () => CollegeEnrollmentsService.list(params as unknown as CollegeEnrollmentsListParams),
     enabled: !!params && !!params.class_id && !!params.group_id,
   });
 }

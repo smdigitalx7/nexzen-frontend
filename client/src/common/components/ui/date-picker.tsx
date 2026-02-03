@@ -2,8 +2,6 @@
 import { format } from "date-fns";
 import {
   Calendar as CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { Calendar } from "@/common/components/ui/calendar";
 import { Button, buttonVariants } from "@/common/components/ui/button";
@@ -30,7 +28,7 @@ function DatePickerCaption(
   props: CaptionProps & { fromYear?: number; toYear?: number }
 ) {
   const { displayMonth, fromYear, toYear } = props;
-  const { goToMonth, previousMonth, nextMonth } = useNavigation();
+  const { goToMonth } = useNavigation();
 
   const months = [
     "January",
@@ -72,66 +70,31 @@ function DatePickerCaption(
     }
   };
 
-  const handlePreviousClick = () => {
-    if (previousMonth && goToMonth) {
-      goToMonth(previousMonth);
-    }
-  };
-
-  const handleNextClick = () => {
-    if (nextMonth && goToMonth) {
-      goToMonth(nextMonth);
-    }
-  };
 
   return (
-    <div className="flex justify-center pt-1 relative items-center mb-2">
-      <div className="flex justify-center gap-2 items-center">
-        <select
-          value={currentMonth}
-          onChange={handleMonthChange}
-          className="h-8 rounded-md border border-input bg-background px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer min-w-[120px]"
-        >
-          {months.map((month, index) => (
-            <option key={month} value={index}>
-              {month}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          onClick={handlePreviousClick}
-          className={cn(
-            buttonVariants({ variant: "outline" }),
-            "h-7 w-7 bg-background p-0 border-border/60 hover:border-primary/40 hover:bg-primary/5 hover:text-primary transition-all duration-200"
-          )}
-          aria-label="Previous month"
-        >
-          <ChevronLeft className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={handleNextClick}
-          className={cn(
-            buttonVariants({ variant: "outline" }),
-            "h-7 w-7 bg-background p-0 border-border/60 hover:border-primary/40 hover:bg-primary/5 hover:text-primary transition-all duration-200"
-          )}
-          aria-label="Next month"
-        >
-          <ChevronRight className="h-3.5 w-3.5" />
-        </button>
-        <select
-          value={currentYear}
-          onChange={handleYearChange}
-          className="h-8 rounded-md border border-input bg-background px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer min-w-[100px]"
-        >
-          {years.map((year) => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div className="flex items-center justify-center gap-2 px-1 py-1 mb-1">
+      <select
+        value={currentMonth}
+        onChange={handleMonthChange}
+        className="h-7 rounded-md border border-input/50 bg-background pl-2 pr-6 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 cursor-pointer min-w-[100px] shadow-sm outline-none transition-all hover:border-primary/50 hover:bg-muted/30"
+      >
+        {months.map((month, index) => (
+          <option key={month} value={index}>
+            {month}
+          </option>
+        ))}
+      </select>
+      <select
+        value={currentYear}
+        onChange={handleYearChange}
+        className="h-7 rounded-md border border-input/50 bg-background pl-2 pr-6 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 cursor-pointer min-w-[80px] shadow-sm outline-none transition-all hover:border-primary/50 hover:bg-muted/30"
+      >
+        {years.map((year) => (
+          <option key={year} value={year}>
+            {year}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-﻿import { useMutation, type UseMutationOptions } from '@tanstack/react-query';
+import { useMutation, type MutationFunctionContext, type UseMutationOptions } from '@tanstack/react-query';
 import { useToast } from '@/common/hooks/use-toast';
 import type { ApiErrorResponse } from '@/common/types/api';
 import { isApiErrorResponse } from '@/common/types/api';
@@ -14,11 +14,21 @@ export function useMutationWithToast<TData = unknown, TError = unknown, TVariabl
 
   return useMutation<TData, TError, TVariables, TContext>({
     ...mutationOptions,
-    onSuccess: (data: TData, variables: TVariables, onMutateResult: TContext | undefined, context: TContext | undefined) => {
+    onSuccess: (
+      data: TData,
+      variables: TVariables,
+      onMutateResult: TContext | undefined,
+      context: MutationFunctionContext
+    ) => {
       // Call the provided onSuccess callback if it exists
       mutationOptions.onSuccess?.(data, variables, onMutateResult, context);
     },
-    onError: (error: TError, variables: TVariables, onMutateResult: TContext | undefined, context: TContext | undefined) => {
+    onError: (
+      error: TError,
+      variables: TVariables,
+      onMutateResult: TContext | undefined,
+      context: MutationFunctionContext
+    ) => {
       // ✅ FIX: Properly type error handling
       // Extract error message from various possible structures
       const errorObj = error as Error & { data?: unknown; response?: { data?: unknown }; message?: string };
@@ -36,13 +46,18 @@ export function useMutationWithToast<TData = unknown, TError = unknown, TVariabl
       
       // Handle case where detail is an object with a message property
       if (errorDetail && typeof errorDetail === 'object') {
-        if ('message' in errorDetail && typeof errorDetail.message === 'string') {
-          errorMessage = errorDetail.message;
+        const detailObj = errorDetail as unknown as Record<string, unknown>;
+        if (typeof detailObj.message === 'string') {
+          errorMessage = detailObj.message;
           // Add additional context if available for "No records created" messages
           if (errorMessage.includes('No records created') || errorMessage.includes('already exist')) {
             // Add additional context if available
-            const skippedCount = errorDetail.skipped_enrollment_ids?.length || 0;
-            const totalRequested = errorDetail.total_requested || 0;
+            const skippedCount = Array.isArray((detailObj as any).skipped_enrollment_ids)
+              ? (detailObj as any).skipped_enrollment_ids.length
+              : 0;
+            const totalRequested = typeof (detailObj as any).total_requested === "number"
+              ? (detailObj as any).total_requested
+              : 0;
             if (skippedCount > 0 && totalRequested > 0) {
               errorMessage = `${errorMessage} (${skippedCount} out of ${totalRequested} enrollment${totalRequested !== 1 ? 's' : ''} already have attendance records for this month.)`;
             }
@@ -53,8 +68,13 @@ export function useMutationWithToast<TData = unknown, TError = unknown, TVariabl
         }
       } else if (typeof errorDetail === 'string') {
         errorMessage = errorDetail;
-      } else if (errorData?.message && typeof errorData.message === 'string') {
-        errorMessage = errorData.message;
+      } else if (
+        errorData &&
+        typeof errorData === "object" &&
+        "message" in errorData &&
+        typeof (errorData as any).message === "string"
+      ) {
+        errorMessage = (errorData as any).message;
       } else if (errorMsg && typeof errorMsg === 'string' && errorMsg !== '[object Object]') {
         // Use error.message only if it's a valid string and not the object string representation
         errorMessage = errorMsg;
@@ -85,7 +105,12 @@ export function useMutationWithSuccessToast<TData = unknown, TError = unknown, T
 
   return useMutation<TData, TError, TVariables, TContext>({
     ...mutationOptions,
-    onSuccess: (data: TData, variables: TVariables, onMutateResult: TContext | undefined, context: TContext | undefined) => {
+    onSuccess: (
+      data: TData,
+      variables: TVariables,
+      onMutateResult: TContext | undefined,
+      context: MutationFunctionContext
+    ) => {
       // Show success toast immediately
       toast({
         title: 'Success',
@@ -100,7 +125,12 @@ export function useMutationWithSuccessToast<TData = unknown, TError = unknown, T
       // Individual mutations should use invalidateAndRefetch() or batchInvalidateAndRefetch()
       // for specific query keys instead of clearing all cache
     },
-    onError: (error: TError, variables: TVariables, onMutateResult: TContext | undefined, context: TContext | undefined) => {
+    onError: (
+      error: TError,
+      variables: TVariables,
+      onMutateResult: TContext | undefined,
+      context: MutationFunctionContext
+    ) => {
       // ✅ FIX: Properly type error handling
       // Extract error message from various possible structures
       const errorObj = error as Error & { data?: unknown; response?: { data?: unknown }; message?: string };
@@ -118,13 +148,18 @@ export function useMutationWithSuccessToast<TData = unknown, TError = unknown, T
       
       // Handle case where detail is an object with a message property
       if (errorDetail && typeof errorDetail === 'object') {
-        if ('message' in errorDetail && typeof errorDetail.message === 'string') {
-          errorMessage = errorDetail.message;
+        const detailObj = errorDetail as unknown as Record<string, unknown>;
+        if (typeof detailObj.message === 'string') {
+          errorMessage = detailObj.message;
           // Add additional context if available for "No records created" messages
           if (errorMessage.includes('No records created') || errorMessage.includes('already exist')) {
             // Add additional context if available
-            const skippedCount = errorDetail.skipped_enrollment_ids?.length || 0;
-            const totalRequested = errorDetail.total_requested || 0;
+            const skippedCount = Array.isArray((detailObj as any).skipped_enrollment_ids)
+              ? (detailObj as any).skipped_enrollment_ids.length
+              : 0;
+            const totalRequested = typeof (detailObj as any).total_requested === "number"
+              ? (detailObj as any).total_requested
+              : 0;
             if (skippedCount > 0 && totalRequested > 0) {
               errorMessage = `${errorMessage} (${skippedCount} out of ${totalRequested} enrollment${totalRequested !== 1 ? 's' : ''} already have attendance records for this month.)`;
             }
@@ -135,8 +170,13 @@ export function useMutationWithSuccessToast<TData = unknown, TError = unknown, T
         }
       } else if (typeof errorDetail === 'string') {
         errorMessage = errorDetail;
-      } else if (errorData?.message && typeof errorData.message === 'string') {
-        errorMessage = errorData.message;
+      } else if (
+        errorData &&
+        typeof errorData === "object" &&
+        "message" in errorData &&
+        typeof (errorData as any).message === "string"
+      ) {
+        errorMessage = (errorData as any).message;
       } else if (errorMsg && typeof errorMsg === 'string' && errorMsg !== '[object Object]') {
         // Use error.message only if it's a valid string and not the object string representation
         errorMessage = errorMsg;

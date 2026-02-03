@@ -14,6 +14,7 @@ export interface SchoolTestDropdownProps {
   className?: string;
   emptyValue?: boolean;
   emptyValueLabel?: string;
+  id?: string;
 }
 
 /**
@@ -33,6 +34,7 @@ export function SchoolTestDropdown({
   className,
   emptyValue = false,
   emptyValueLabel = "No test",
+  id,
 }: SchoolTestDropdownProps) {
   // ✅ OPTIMIZATION: Start with enabled: false - fetch only when dropdown opens
   const [shouldFetch, setShouldFetch] = React.useState(false);
@@ -84,6 +86,7 @@ export function SchoolTestDropdown({
       required={required}
       placeholder={placeholder}
       className={className}
+      id={id}
       getValue={(option) => option.test_id}
       getLabel={(option) => option.test_name}
       renderOption={renderOption}

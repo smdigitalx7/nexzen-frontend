@@ -1,5 +1,5 @@
 import type { AuthState } from "./authState";
-import type { StateStorage } from "zustand/middleware";
+import type { PersistOptions, PersistStorage, StorageValue } from "zustand/middleware";
 
 /**
  * Storage configuration for authStore
@@ -11,51 +11,51 @@ import type { StateStorage } from "zustand/middleware";
  * - State migration
  * - State rehydration
  */
-export const createAuthStorageConfig = () => ({
+export const createAuthStorageConfig = (): PersistOptions<AuthState, Partial<AuthState>> => ({
   name: "enhanced-auth-storage",
   storage:
     typeof window !== "undefined"
       ? ({
-          getItem: (name: string) => {
-            // Get user data from localStorage
+          getItem: (name: string): StorageValue<Partial<AuthState>> | null => {
             // CRITICAL: Access token is NOT stored here - it's stored ONLY in memory
-            const userData = localStorage.getItem(name);
-            if (!userData) {
+            const raw = localStorage.getItem(name);
+            if (!raw) return null;
+
+            try {
+              const parsed = JSON.parse(raw) as StorageValue<Partial<AuthState>>;
+              if (parsed && typeof parsed === "object" && "state" in parsed) {
+                // Ensure sensitive fields are not restored
+                // (Even if a legacy value exists from older builds)
+                const state = (parsed as any).state as Partial<AuthState> | undefined;
+                if (state && typeof state === "object") {
+                  delete (state as any).accessToken;
+                  delete (state as any).token; // legacy alias
+                  delete (state as any).tokenExpireAt;
+                  delete (state as any).refreshToken;
+                }
+              }
+              return parsed;
+            } catch {
               return null;
             }
-
-            try {
-              const parsed = JSON.parse(userData);
-              // Ensure accessToken is not in persisted data
-              if (parsed.state) {
-                delete parsed.state.accessToken;
-                delete parsed.state.token; // Legacy
-                delete parsed.state.tokenExpireAt;
-                delete parsed.state.refreshToken;
-              }
-              return JSON.stringify(parsed);
-            } catch {
-              return userData;
-            }
           },
-          setItem: (name: string, value: string) => {
+          setItem: (name: string, value: StorageValue<Partial<AuthState>>) => {
+            // PersistStorage expects already-parsed value.
+            // We sanitize before writing.
             try {
-              const valueStr =
-                typeof value === "string" ? value : JSON.stringify(value);
-              const parsed = JSON.parse(valueStr);
-              // CRITICAL: Do NOT store accessToken in sessionStorage or localStorage
-              // Access token is stored ONLY in memory (Zustand store)
-              // Remove accessToken from persisted data if it exists
-              delete parsed.state?.accessToken;
-              delete parsed.state?.token; // Legacy
-              delete parsed.state?.tokenExpireAt;
-              delete parsed.state?.refreshToken;
+              const sanitized: StorageValue<Partial<AuthState>> = {
+                ...value,
+                state: { ...(value.state as any) },
+              };
+              // Strip sensitive fields
+              delete (sanitized.state as any).accessToken;
+              delete (sanitized.state as any).token;
+              delete (sanitized.state as any).tokenExpireAt;
+              delete (sanitized.state as any).refreshToken;
 
-              localStorage.setItem(name, JSON.stringify(parsed));
+              localStorage.setItem(name, JSON.stringify(sanitized));
             } catch {
-              const valueStr =
-                typeof value === "string" ? value : JSON.stringify(value);
-              localStorage.setItem(name, valueStr);
+              // If serialization fails, do not persist.
             }
           },
           removeItem: (name: string) => {
@@ -65,7 +65,7 @@ export const createAuthStorageConfig = () => ({
             sessionStorage.removeItem("access_token");
             sessionStorage.removeItem("token_expires");
           },
-        } satisfies StateStorage)
+        } satisfies PersistStorage<Partial<AuthState>>)
       : undefined,
   partialize: (state: AuthState) => {
     // CRITICAL: Only persist user info and branch data, NOT accessToken
@@ -85,14 +85,17 @@ export const createAuthStorageConfig = () => ({
   migrate: (persistedState: unknown, version: number) => {
     // Handle migration from old version if needed
     if (version === 0) {
-      return {
-        ...persistedState,
-        refreshToken: null,
-        error: null,
-        lastError: null,
-      };
+      if (persistedState && typeof persistedState === "object") {
+        return {
+          ...(persistedState as Record<string, unknown>),
+          refreshToken: null,
+          error: null,
+          lastError: null,
+        } as Partial<AuthState>;
+      }
+      return {} as Partial<AuthState>;
     }
-    return persistedState;
+    return (persistedState ?? {}) as Partial<AuthState>;
   },
   onRehydrateStorage: () => {
     return (state: AuthState | undefined, error?: unknown) => {
@@ -134,6 +137,13 @@ export const createAuthStorageConfig = () => ({
         // Set user if we have it
         if (userData) {
           state.user = userData;
+          
+          // CRITICAL: Clear logout flag on successful manual login (via setUser)
+          // This allows bootstrapAuth to work normally again
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("__logout_initiated__");
+            sessionStorage.removeItem("__logout_initiated__");
+          }
         }
 
         // Don't set isAuthenticated here - bootstrapAuth() will handle that

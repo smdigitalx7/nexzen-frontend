@@ -1,4 +1,4 @@
-﻿import { motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import { CreditCard, Truck } from "lucide-react";
 import { IndianRupeeIcon } from "@/common/components/shared/IndianRupeeIcon";
@@ -7,16 +7,10 @@ import type { TabItem } from "@/common/components/shared/TabSwitcher";
 import { useCollegeFeesManagement, useCollegeTuitionFeeBalancesDashboard } from "@/features/college/hooks";
 import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalancesPanel";
 import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeBalancesPanel";
-import { CollectFee } from "./collect-fee/CollectFee";
+import { CollectFee, type StudentFeeDetails } from "./collect-fee/CollectFee";
 import { CollegeTuitionFeeBalanceStatsCards } from "../tuition-fee-balances/CollegeTuitionFeeBalanceStatsCards";
 import { useAuthStore } from "@/core/auth/authStore";
 import { Badge } from "@/common/components/ui/badge";
-
-interface StudentFeeDetails {
-  student: any;
-  tuitionBalance: any;
-  transportBalance?: any;
-}
 
 export const FeesManagement = () => {
   const { currentBranch } = useAuthStore();

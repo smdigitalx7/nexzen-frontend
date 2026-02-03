@@ -41,7 +41,8 @@ import { StatsCard } from "@/common/components/shared/dashboard/StatsCard";
 import { DashboardGrid } from "@/common/components/shared/dashboard/DashboardGrid";
 
 const AcademicDashboard = () => {
-  const { user, currentBranch } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
+  const currentBranch = useAuthStore((state) => state.currentBranch);
   const [, setLocation] = useLocation();
   const branchPrefix =
     currentBranch?.branch_type === "SCHOOL" ? "/school" : "/college";

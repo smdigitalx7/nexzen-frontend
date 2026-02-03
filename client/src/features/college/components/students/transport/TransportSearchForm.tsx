@@ -29,10 +29,11 @@ export const TransportSearchForm = ({
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">
+            <label htmlFor="transport-search-class" className="text-sm font-medium text-slate-700 mb-2 block">
               Class
             </label>
             <CollegeClassDropdown
+              id="transport-search-class"
               value={classId}
               onChange={(value) => onClassChange(value !== null ? value.toString() : "")}
               placeholder="Select class"
@@ -42,10 +43,11 @@ export const TransportSearchForm = ({
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">
+            <label htmlFor="transport-search-group" className="text-sm font-medium text-slate-700 mb-2 block">
               Group
             </label>
             <CollegeGroupDropdown
+              id="transport-search-group"
               classId={hasClassId ? classId : undefined}
               value={groupId}
               onChange={(value) => onGroupChange(value !== null ? value.toString() : "")}
@@ -61,10 +63,11 @@ export const TransportSearchForm = ({
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">
+            <label htmlFor="transport-search-route" className="text-sm font-medium text-slate-700 mb-2 block">
               Bus Route
             </label>
             <BusRouteDropdown
+              id="transport-search-route"
               value={busRouteId}
               onChange={(value) => onBusRouteChange(value !== null ? value.toString() : "")}
               placeholder="Select bus route (optional)"

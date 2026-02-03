@@ -106,6 +106,7 @@ export default function AttendanceCreate() {
                   Class <span className="text-destructive">*</span>
                 </Label>
                 <SchoolClassDropdown
+                  id="class-select"
                   value={selectedClassId}
                   onChange={(value) => {
                     setSelectedClassId(value);
@@ -120,6 +121,7 @@ export default function AttendanceCreate() {
                   Section <span className="text-muted-foreground text-xs">(Optional)</span>
                 </Label>
                 <SchoolSectionDropdown
+                  id="section-select"
                   classId={selectedClassId || 0}
                   value={selectedSectionId}
                   onChange={(value) => setSelectedSectionId(value)}

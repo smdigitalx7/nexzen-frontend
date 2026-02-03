@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from "react";
+import React, { useEffect } from "react";
 import { useAuthStore } from "@/core/auth/authStore";
 import { componentPreloader } from "@/common/utils/performance/preloader";
 import ProductionApp from "@/common/components/shared/ProductionApp";
@@ -7,17 +7,17 @@ import { useTokenManagement } from "@/common/hooks/useTokenManagement";
 import { useDocumentTitle } from "@/common/hooks/useDocumentTitle";
 import { useFavicon } from "@/common/hooks/useFavicon";
 import { SEOHead } from "@/common/components/shared/SEOHead";
-import { useIdleTimeout } from "@/common/hooks/useIdleTimeout";
 import { useNetworkStatus } from "@/common/hooks/useNetworkStatus";
 import { NetworkErrorPage } from "@/common/components/shared/NetworkErrorPage";
-import { IdleTimeoutWarningDialog } from "@/common/components/shared/IdleTimeoutWarningDialog";
 
 /**
  * Main App component
  * Handles authentication bootstrap, token management, idle timeout, component preloading, document title, favicon, and SEO
  */
 function App() {
-  const { user, bootstrapAuth, isAuthInitializing, isAuthenticated } = useAuthStore();
+  // ✅ PERF: Use selectors to avoid rerendering App on unrelated auth store updates
+  const user = useAuthStore((s) => s.user);
+  const bootstrapAuth = useAuthStore((s) => s.bootstrapAuth);
   const hasBootstrappedRef = React.useRef(false);
 
   // Bootstrap authentication on app startup (only once on initial mount)
@@ -48,14 +48,6 @@ function App() {
   // Handle token management (refresh, expiration, visibility)
   useTokenManagement();
 
-  // Handle idle timeout (5 minutes of inactivity = auto logout)
-  const {
-    showWarning,
-    secondsUntilLogout,
-    handleExtendSession,
-    handleTimeout,
-  } = useIdleTimeout();
-
   // Monitor network status
   const { isOnline, isNetworkError, retry } = useNetworkStatus();
   // Show network error page if we detect a network error
@@ -83,12 +75,6 @@ function App() {
     <ProductionApp>
       <SEOHead />
       <NetworkErrorPage isVisible={showNetworkError} onRetry={retry} />
-      <IdleTimeoutWarningDialog
-        isOpen={showWarning}
-        secondsRemaining={secondsUntilLogout}
-        onExtendSession={handleExtendSession}
-        onTimeout={handleTimeout}
-      />
       {!showNetworkError && <AppRouter />}
     </ProductionApp>
   );

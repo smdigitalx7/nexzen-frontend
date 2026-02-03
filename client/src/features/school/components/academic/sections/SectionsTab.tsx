@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
@@ -150,16 +150,14 @@ const SectionsTabComponent = () => {
 
   // Memoized action button groups
   const actionButtonGroups = useMemo(() => {
-    const buttons = [
-      {
-        type: 'edit' as const,
-        onClick: handleEditClick
-      }
-    ];
+    const buttons: Array<{
+      type: "edit" | "delete";
+      onClick: (row: any) => void;
+    }> = [{ type: "edit", onClick: handleEditClick }];
     
     if (canDeleteSection) {
       buttons.push({
-        type: 'delete' as const,
+        type: "delete",
         onClick: handleDeleteClick
       });
     }
@@ -192,12 +190,12 @@ const SectionsTabComponent = () => {
       {/* Filter Controls */}
       <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium">Class:</label>
+          <label htmlFor="sections-class-select" className="text-sm font-medium">Class:</label>
           <Select
             value={selectedClassId ? selectedClassId.toString() : "all"}
             onValueChange={handleClassChange}
         >
-            <SelectTrigger className="w-40">
+            <SelectTrigger id="sections-class-select" className="w-40">
               <SelectValue placeholder="Select class" />
             </SelectTrigger>
             <SelectContent>

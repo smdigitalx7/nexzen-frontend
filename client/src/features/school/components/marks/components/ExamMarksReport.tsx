@@ -179,11 +179,12 @@ export const ExamMarksReport = () => {
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            <label htmlFor="exam-report-class" className="text-sm font-medium text-gray-700 whitespace-nowrap">
               Class <span className="text-red-500">*</span>
             </label>
             <div className="flex-1">
               <SchoolClassDropdown
+                id="exam-report-class"
                 value={classId}
                 onChange={(value) => {
                   setClassId(value);
@@ -197,11 +198,12 @@ export const ExamMarksReport = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            <label htmlFor="exam-report-exam" className="text-sm font-medium text-gray-700 whitespace-nowrap">
               Exam <span className="text-red-500">*</span>
             </label>
             <div className="flex-1">
               <SchoolExamDropdown
+                id="exam-report-exam"
                 value={examId}
                 onChange={setExamId}
                 disabled={!classId}
@@ -209,12 +211,13 @@ export const ExamMarksReport = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            <label htmlFor="exam-report-section" className="text-sm font-medium text-gray-700 whitespace-nowrap">
               Section <span className="text-xs text-gray-500">(Optional)</span>
             </label>
             <div className="flex-1">
               {classId ? (
                 <SchoolSectionDropdown
+                  id="exam-report-section"
                   value={sectionId}
                   onChange={setSectionId}
                   classId={classId}
@@ -227,12 +230,13 @@ export const ExamMarksReport = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            <label htmlFor="exam-report-subject" className="text-sm font-medium text-gray-700 whitespace-nowrap">
               Subject <span className="text-xs text-gray-500">(Optional)</span>
             </label>
             <div className="flex-1">
               {classId ? (
                 <SchoolSubjectDropdown
+                  id="exam-report-subject"
                   value={subjectId}
                   onChange={setSubjectId}
                   classId={classId}

@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, useEffect, memo, useCallback } from "react";
+import { useMemo, useState, useEffect, memo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   useDeleteCollegeReservation,
@@ -1344,7 +1344,7 @@ function ReservationManagementComponent() {
                       | "WALK_IN"
                       | "REFERRAL",
                     referred_by: Number(form.referredBy || 0),
-                    referred_by_name: form.referredByName || null,
+                    referred_by_name: form.referredByName || "",
                     remarks: form.remarks,
                     reservation_date:
                       form.reservationDate ||
@@ -1886,7 +1886,7 @@ function ReservationManagementComponent() {
                   | "WALK_IN"
                   | "REFERRAL",
                 referred_by: Number(editForm.referredBy || 0),
-                referred_by_name: editForm.referredByName || null,
+                referred_by_name: editForm.referredByName || "",
                 remarks: editForm.remarks,
                 reservation_date:
                   editForm.reservationDate ||

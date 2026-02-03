@@ -1,7 +1,8 @@
-﻿import React, { useState, useMemo, useCallback, memo } from "react";
+import React, { useState, useMemo, useCallback, memo, useEffect } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/common/components/ui/badge";
 import { Button } from "@/common/components/ui/button";
+import { Input } from "@/common/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,7 @@ import {
   FileText,
   GraduationCap,
   CreditCard,
+  Search,
 } from "lucide-react";
 import {
   useSchoolAdmissions,
@@ -26,7 +28,7 @@ import {
   exportSchoolAdmissionFormToPDF,
 } from "@/common/utils/export/admissionsExport";
 import type { SchoolAdmissionDetails, SchoolAdmissionListItem } from "@/features/school/types/admissions";
-import { EnhancedDataTable, ServerSidePagination } from "@/common/components/shared";
+import { EnhancedDataTableServer } from "@/common/components/shared";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
 import { ReceiptPreviewModal } from "@/common/components/shared";
 import { handleSchoolPayByAdmissionWithIncomeId } from "@/core/api/api-school";
@@ -407,6 +409,17 @@ const AdmissionsListComponent = () => {
   // ✅ Server-side pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
 
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(
     null
@@ -417,7 +430,11 @@ const AdmissionsListComponent = () => {
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  const { data: admissionsResp, isLoading } = useSchoolAdmissions({ page: currentPage, page_size: pageSize });
+  const { data: admissionsResp, isLoading } = useSchoolAdmissions({
+    page: currentPage,
+    page_size: pageSize,
+    search: debouncedSearch || undefined,
+  });
   // ✅ FIX: Handle multiple response formats:
   // 1. Direct array: [{...}, {...}]
   // 2. Object with 'admissions' property: {admissions: [...], total_pages: ...}
@@ -699,44 +716,59 @@ const AdmissionsListComponent = () => {
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <EnhancedDataTable
+        <div className="flex items-center gap-2">
+          <div className="relative w-full max-w-md">
+            <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            <Input
+              id="school-admissions-search"
+              name="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search admissions (server-side)…"
+              className="pl-9"
+              autoComplete="off"
+            />
+          </div>
+          {search ? (
+            <Button variant="outline" size="sm" onClick={() => setSearch("")}>
+              Clear
+            </Button>
+          ) : null}
+        </div>
+        <EnhancedDataTableServer
           data={admissions}
           columns={columns}
           title="Student Admissions"
-          searchKey="student_name"
-          searchPlaceholder="Search by name, admission number..."
           loading={isLoading}
           exportable={true}
           onExport={handleExportAll}
-          showSearch={true}
-          enableDebounce={true}
-          debounceDelay={300}
+          showSearch={false}
           highlightSearchResults={true}
           showActions={true}
           actionButtonGroups={actionButtonGroups}
           actionColumnHeader="Actions"
           showActionLabels={true}
           className="w-full"
-          enableClientSidePagination={false}
+          serverPagination={
+            admissionsResp
+              ? {
+                  currentPage: paginationMeta.current_page,
+                  totalPages: paginationMeta.total_pages,
+                  totalCount: paginationMeta.total_count,
+                  pageSize: paginationMeta.page_size,
+                  onPageChange: (page) => {
+                    setCurrentPage(page);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  },
+                  onPageSizeChange: (newPageSize) => {
+                    setPageSize(newPageSize);
+                    setCurrentPage(1);
+                  },
+                  isLoading,
+                }
+              : undefined
+          }
         />
-        {/* ✅ Server-side pagination controls */}
-        {admissionsResp && (
-          <ServerSidePagination
-            currentPage={paginationMeta.current_page}
-            totalPages={paginationMeta.total_pages}
-            totalCount={paginationMeta.total_count}
-            pageSize={paginationMeta.page_size}
-            onPageChange={(page) => {
-              setCurrentPage(page);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            onPageSizeChange={(newPageSize) => {
-              setPageSize(newPageSize);
-              setCurrentPage(1);
-            }}
-            isLoading={isLoading}
-          />
-        )}
       </div>
 
       {/* Admission Details Dialog */}

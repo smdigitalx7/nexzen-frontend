@@ -1,4 +1,4 @@
-﻿import { Input } from "@/common/components/ui/input";
+import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
 import { Textarea } from "@/common/components/ui/textarea";
 import {
@@ -1036,38 +1036,40 @@ export default function ReservationForm({
                     </div>
                   </RadioGroup>
                 </div>
-                <div>
-                  <Label htmlFor="referred_by">Referred By</Label>
-                  <EmployeeSelect
-                    value={form.referred_by.toString()}
-                    onValueChange={(value) => {
-                      setForm({
-                        ...form,
-                        referred_by: Number(value),
-                        // Clear referred_by_name when selecting an employee
-                        referred_by_name: value ? "" : form.referred_by_name,
-                      });
-                    }}
-                    placeholder="Select referring employee..."
-                  />
-                </div>
-                {(form.request_type === "REFERRAL" ||
-                  form.referred_by === 0 ||
-                  !form.referred_by) && (
-                  <div>
-                    <Label htmlFor="referred_by_name">
-                      Referred By Name (Other)
-                    </Label>
-                    <Input
-                      id="referred_by_name"
-                      value={form.referred_by_name}
-                      onChange={(e) =>
-                        setForm({ ...form, referred_by_name: e.target.value })
-                      }
-                      placeholder="Enter referrer name if not an employee"
-                    />
-                  </div>
-                )}
+                {form.request_type === "REFERRAL" ? (
+                  <>
+                    <div>
+                      <Label htmlFor="referred_by">Referred By</Label>
+                      <EmployeeSelect
+                        value={form.referred_by.toString()}
+                        onValueChange={(value) => {
+                          setForm({
+                            ...form,
+                            referred_by: Number(value),
+                            // Clear referred_by_name when selecting an employee
+                            referred_by_name: value ? "" : form.referred_by_name,
+                          });
+                        }}
+                        placeholder="Select referring employee..."
+                      />
+                    </div>
+                    {form.referred_by === 0 ? (
+                      <div>
+                        <Label htmlFor="referred_by_name">
+                          Referred By Name (Other)
+                        </Label>
+                        <Input
+                          id="referred_by_name"
+                          value={form.referred_by_name}
+                          onChange={(e) =>
+                            setForm({ ...form, referred_by_name: e.target.value })
+                          }
+                          placeholder="Enter referrer name if not an employee"
+                        />
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
                 <div>
                   <Label htmlFor="reservation_date">Reservation Date</Label>
                   <DatePicker

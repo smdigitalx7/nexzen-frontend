@@ -17,7 +17,18 @@ export * from "./tuition-fee-structure";
 export * from "./teacher-class-subjects";
 export * from "./student-transport-assignments";
 export * from "./marks";
-export * from "./exam-marks";
-export * from "./test-marks";
+// Avoid duplicate exports with `./marks` (which already exports core mark types).
+// Re-export only the extra bulk types that are defined in these files.
+export type {
+  BulkMultipleStudentsSubject,
+  BulkMultipleStudentsStudent,
+  CreateBulkMultipleStudentsRequest,
+  BulkMultipleStudentsResponse,
+} from "./exam-marks";
+export type {
+  CreateBulkMultipleStudentsTestRequest,
+  BulkMultipleStudentsTestResponse,
+} from "./test-marks";
 export * from "./transport";
 export * from "./full-student-view";
+export * from "./promotion";

@@ -71,12 +71,14 @@ FormField.displayName = "FormField";
 // Memoized select field component
 const SelectField = memo(
   ({
+    id,
     label,
     value,
     onValueChange,
     placeholder,
     children,
   }: {
+    id: string;
     label: string;
     value: string;
     onValueChange: (value: string) => void;
@@ -84,9 +86,9 @@ const SelectField = memo(
     children: React.ReactNode;
   }) => (
     <div>
-      <Label>{label}</Label>
+      <Label htmlFor={id}>{label}</Label>
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger>
+        <SelectTrigger id={id}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>{children}</SelectContent>
@@ -120,6 +122,7 @@ const StudentDetailsSection = memo(
           onChange={(value) => setForm({ ...form, aadhar_no: value })}
         />
         <SelectField
+          id="gender"
           label="Gender"
           value={genderValue}
           onValueChange={(value) => setForm({ ...form, gender: value })}
@@ -237,8 +240,9 @@ const AcademicDetailsSection = memo(
       <div className="font-medium mb-2">Academic Details</div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label>Preferred Class</Label>
+          <Label htmlFor="preferred_class_id">Preferred Class</Label>
           <SchoolClassDropdown
+            id="preferred_class_id"
             value={
               form.preferred_class_id
                 ? typeof form.preferred_class_id === "string"
@@ -385,6 +389,7 @@ const TransportSection = memo(
       <div className="font-medium mb-2">Transport</div>
       <div className="grid grid-cols-2 gap-4">
         <SelectField
+          id="transport_required"
           label="Transport Required"
           value={form.transport_required ? "true" : "false"}
           onValueChange={(value) =>
@@ -398,8 +403,9 @@ const TransportSection = memo(
         {form.transport_required && (
           <>
             <div>
-              <Label>Transport Route</Label>
+              <Label htmlFor="preferred_transport_id">Transport Route</Label>
               <BusRouteDropdown
+                id="preferred_transport_id"
                 value={
                   form.preferred_transport_id && form.preferred_transport_id !== "0"
                     ? typeof form.preferred_transport_id === "string"
@@ -417,8 +423,9 @@ const TransportSection = memo(
               />
             </div>
             <div>
-              <Label>Distance Slab</Label>
+              <Label htmlFor="preferred_distance_slab_id">Distance Slab</Label>
               <DistanceSlabDropdown
+                id="preferred_distance_slab_id"
                 value={
                   form.preferred_distance_slab_id &&
                   form.preferred_distance_slab_id !== "0"

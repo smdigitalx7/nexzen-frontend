@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useCallback, memo, useEffect } from "react";
+﻿ import { useState, useMemo, useCallback, memo, useEffect } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/common/components/ui/button";
 import { Input } from "@/common/components/ui/input";
@@ -146,49 +146,56 @@ const FormField = memo(
     rows?: number;
     options?: Array<{ value: string; label: string }>;
     isEditMode: boolean;
-  }) => (
-    <div>
-      <Label>{label}</Label>
-      {isEditMode ? (
-        type === "textarea" ? (
-          <Textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            rows={rows}
-            placeholder={placeholder}
-          />
-        ) : type === "select" ? (
-          <Select value={value} onValueChange={onChange}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {options?.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : type === "date" ? (
-          <DatePicker
-            value={value}
-            onChange={onChange}
-            placeholder={placeholder || "Select date"}
-          />
+  }) => {
+    const fieldId = useMemo(() => `field-${label.toLowerCase().replace(/\s+/g, "-")}`, [label]);
+
+    return (
+      <div>
+        <Label htmlFor={fieldId}>{label}</Label>
+        {isEditMode ? (
+          type === "textarea" ? (
+            <Textarea
+              id={fieldId}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              rows={rows}
+              placeholder={placeholder}
+            />
+          ) : type === "select" ? (
+            <Select value={value} onValueChange={onChange}>
+              <SelectTrigger id={fieldId}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {options?.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : type === "date" ? (
+            <DatePicker
+              id={fieldId}
+              value={value}
+              onChange={onChange}
+              placeholder={placeholder || "Select date"}
+            />
+          ) : (
+            <Input
+              id={fieldId}
+              type={type}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder={placeholder}
+            />
+          )
         ) : (
-          <Input
-            type={type}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-          />
-        )
-      ) : (
-        <p className="text-sm font-medium mt-1">{value || "-"}</p>
-      )}
-    </div>
-  )
+          <p className="text-sm font-medium mt-1">{value || "-"}</p>
+        )}
+      </div>
+    );
+  }
 );
 
 FormField.displayName = "FormField";
@@ -607,6 +614,8 @@ const AdmissionFeeSection = memo(
         <div className="flex items-center gap-4">
           <div className="flex-1">
             <Input
+              id="admission-fee-input"
+              name="admission_fee"
               type="number"
               value={admissionFee}
               onChange={(e) => onAdmissionFeeChange(Number(e.target.value))}
@@ -761,7 +770,6 @@ const ConfirmedReservationsTabComponent = () => {
   const [admissionFee, setAdmissionFee] = useState<number>(0);
   const [editForm, setEditForm] = useState<Reservation | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const {
     data: reservationsData,
@@ -784,33 +792,6 @@ const ConfirmedReservationsTabComponent = () => {
     if (!Array.isArray(reservationsData.reservations)) return [];
     return reservationsData.reservations;
   }, [reservationsData]);
-
-  // Watch for reservations data changes and force table re-render
-  // This hash tracks changes in enrollment status to ensure action buttons update
-  // OPTIMIZED: Use efficient hash for large arrays to prevent UI freeze
-  const reservationsHash = useMemo(() => {
-    if (allReservations.length === 0) return '';
-    
-    // For large arrays, use a more efficient hash to prevent UI freeze
-    if (allReservations.length > 50) {
-      // Only track changes in critical fields, use length as part of hash
-      const criticalFields = allReservations
-        .slice(0, 20) // Only check first 20 for performance
-        .map(r => `${r.reservation_id}:${r.is_enrolled ? '1' : '0'}:${r.application_income_id || 0}:${r.admission_income_id || 0}`);
-      return criticalFields.join('|') + `|${allReservations.length}`;
-    }
-    
-    // For small arrays, use simple join
-    return allReservations.map(r => 
-      `${r.reservation_id}-${r.is_enrolled}-${r.application_income_id}-${r.admission_income_id}`
-    ).join('|');
-  }, [allReservations]);
-  
-  useEffect(() => {
-    // When reservations data actually changes (especially is_enrolled status), force table re-render
-    // This ensures action buttons update when enrollment status changes
-    setRefreshKey((prev) => prev + 1);
-  }, [reservationsHash]);
 
   // Memoized handlers
   const handleEnrollStudent = useCallback(async (reservationId: number) => {
@@ -946,9 +927,6 @@ const ConfirmedReservationsTabComponent = () => {
       // Wait for React Query to update the cache and React to process state updates
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Force table refresh by updating refresh key (workaround for table library)
-      setRefreshKey((prev) => prev + 1);
-
       // Refresh reservation details
       const updatedReservation = await SchoolReservationsService.getById(
         selectedReservation.reservation_id
@@ -1050,10 +1028,6 @@ const ConfirmedReservationsTabComponent = () => {
       // Step 4: Wait for React Query to update the cache and React to process state updates
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Step 5: Force table refresh by updating refresh key
-      // This ensures the action button shows "Enrolled" badge immediately
-      setRefreshKey((prev) => prev + 1);
-
       toast({
         title: "Student Enrolled Successfully",
         description: `Student enrolled with admission number ${admissionNo}`,
@@ -1148,10 +1122,6 @@ const ConfirmedReservationsTabComponent = () => {
 
       // Step 4: Wait for React Query to update the cache and React to process state updates
       await new Promise(resolve => setTimeout(resolve, 300));
-
-      // Step 5: Force table refresh by updating refresh key
-      // This ensures the action button shows "Enrolled" badge after payment
-      setRefreshKey((prev) => prev + 1);
     } catch (error: any) {
       console.error("Payment failed:", error);
       // Close payment dialog even on error
@@ -1281,7 +1251,6 @@ const ConfirmedReservationsTabComponent = () => {
     <div className="space-y-6">
       {/* Enhanced Reservations Table */}
       <EnhancedDataTable
-        key={`confirmed-reservations-${refreshKey}`}
         data={allReservations}
         columns={columns}
         title="Confirmed Reservations"

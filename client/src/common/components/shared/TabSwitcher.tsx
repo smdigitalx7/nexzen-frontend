@@ -1,13 +1,12 @@
-﻿import React from "react";
+import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/common/components/ui/tabs";
 import { Badge } from "@/common/components/ui/badge";
-import { LucideIcon } from "lucide-react";
 import { cn } from "@/common/utils";
 
 export interface TabItem {
   value: string;
   label: string;
-  icon: LucideIcon;
+  icon: React.ComponentType<{ className?: string }>;
   badge?: number | string;
   badgeVariant?: "default" | "secondary" | "destructive" | "outline";
   content: React.ReactNode;
@@ -132,7 +131,7 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
           <TabsContent
             key={tab.value}
             value={tab.value}
-            forceMount={forceMount} // ✅ OPTIMIZATION: Only mount active tab by default
+            forceMount={forceMount ? true : undefined} // Radix type is `forceMount?: true`
             className={cn(
               "mt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
               contentClassName

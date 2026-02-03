@@ -22,5 +22,6 @@ export * from "./use-school-students";
 export * from "./use-school-subjects";
 export * from "./use-school-test-marks";
 export * from "./use-teacher-class-subjects";
+export * from "./use-school-promotion";
 export * from "./use-student-marks";
 export * from "./query-keys";

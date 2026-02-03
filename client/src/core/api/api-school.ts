@@ -1,4 +1,5 @@
-﻿import { useAuthStore } from "@/core/auth/authStore";
+import { useAuthStore } from "@/core/auth/authStore";
+import { Api } from "@/core/api";
 import { getApiBaseUrl } from "./api";
 
 // Ensure API_BASE_URL includes /api/v1 prefix
@@ -238,6 +239,7 @@ export async function handlePayByReservation(
   payload: {
     details: Array<{
       purpose: "APPLICATION_FEE" | "OTHER";
+      term_number?: number | null;
       paid_amount: number;
       payment_method: "CASH" | "UPI" | "CARD";
       custom_purpose_name?: string; // Required for OTHER purpose
@@ -256,13 +258,27 @@ export async function handlePayByReservation(
   const url = `${API_BASE_URL}/school/income/pay-fee-by-reservation/${reservationNo}`;
 
   try {
+    // Backend validation: term_number must be None/omitted for APPLICATION_FEE.
+    const normalizedPayload = {
+      ...payload,
+      details: payload.details.map((d) => ({
+        ...(d.purpose === "APPLICATION_FEE"
+          ? (() => {
+              // drop term_number entirely
+              const { term_number: _term_number, ...rest } = d;
+              return rest;
+            })()
+          : d),
+      })),
+    };
+
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(normalizedPayload),
       credentials: "include",
     });
 
@@ -284,19 +300,35 @@ export async function handlePayByReservation(
       throw new Error(errorMessage);
     }
 
-    // Parse JSON response to get income_id
-    const paymentData = await response.json();
+    // Backend can return either:
+    // - JSON with context (income_id) (then we regenerate receipt)
+    // - PDF directly (blob) (then we return it as-is)
+    const contentType = response.headers.get("content-type") || "";
 
-    const income_id = paymentData.data?.context?.income_id || paymentData.context?.income_id;
+    if (contentType.includes("application/json")) {
+      const paymentData = await response.json();
+      const income_id =
+        paymentData.data?.context?.income_id ?? paymentData.context?.income_id;
 
-    if (!income_id) {
-      throw new Error("Payment successful but income_id not found in response context");
+      if (!income_id) {
+        throw new Error("Payment successful but income_id not found in response context");
+      }
+
+      const blobUrl = await handleSchoolRegenerateReceipt(income_id);
+      return { blobUrl, income_id, paymentData };
     }
 
-    // Now call regenerate receipt endpoint to get PDF
-    const blobUrl = await handleSchoolRegenerateReceipt(income_id);
+    // Non-JSON: assume PDF/binary receipt
+    const pdfBlob = await response.blob();
+    if (pdfBlob.size === 0) {
+      throw new Error("Invalid PDF received from server");
+    }
+    const ensurePdfType =
+      pdfBlob.type && pdfBlob.type.toLowerCase().includes("pdf")
+        ? pdfBlob
+        : new Blob([pdfBlob], { type: "application/pdf" });
 
-    return { blobUrl, income_id, paymentData };
+    return { blobUrl: URL.createObjectURL(ensurePdfType), income_id: 0, paymentData: null };
   } catch (error) {
     console.error("❌ Payment processing failed:", error);
     if (error instanceof TypeError && error.message.includes("fetch")) {
@@ -323,58 +355,21 @@ export async function handlePayByReservation(
 export async function handleSchoolRegenerateReceipt(
   incomeId: number
 ): Promise<string> {
-  const state = useAuthStore.getState();
-  // Use accessToken directly (memory-only), fallback to token alias for backward compatibility
-  const token = state.accessToken || (state as any).token;
-
-  if (!token) {
-    throw new Error(
-      "Authentication token is required for receipt regeneration"
-    );
-  }
-
-  const url = `${API_BASE_URL}/school/income/${incomeId}/regenerate-receipt`;
-
   try {
-    // Step 1: Call the API with blob response type to receive PDF binary data
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "include",
-    });
+    const pdfBlob = await Api.getBlob(
+      `/school/income/${incomeId}/regenerate-receipt`
+    );
 
-    // Step 2: Check if the request was successful
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage = `Receipt regeneration failed with status ${response.status}`;
-
-      try {
-        const errorData = JSON.parse(errorText);
-        errorMessage = errorData.detail || errorData.message || errorMessage;
-      } catch {
-        // If not JSON, use the text as error message
-        errorMessage = errorText || errorMessage;
-      }
-
-      throw new Error(errorMessage);
-    }
-
-    // Step 3: Get the PDF as binary data (blob)
-    const pdfBlob = await response.blob();
-
-    // Verify we received a PDF
-    if (!pdfBlob.type.includes("pdf") && pdfBlob.size === 0) {
+    if (pdfBlob.size === 0) {
       throw new Error("Invalid PDF received from server");
     }
 
-    // Step 4: Create a Blob URL for the PDF
-    const pdfBlobWithType = new Blob([pdfBlob], { type: "application/pdf" });
-    const blobUrl = URL.createObjectURL(pdfBlobWithType);
+    const ensurePdfType =
+      pdfBlob.type && pdfBlob.type.toLowerCase().includes("pdf")
+        ? pdfBlob
+        : new Blob([pdfBlob], { type: "application/pdf" });
 
-    // Return the blobUrl for the caller to handle (e.g., in modal)
-    return blobUrl;
+    return URL.createObjectURL(ensurePdfType);
   } catch (error) {
     // Re-throw with more context if it's a network error
     if (error instanceof TypeError && error.message.includes("fetch")) {

@@ -1,4 +1,4 @@
-﻿import {
+import {
   Card,
   CardContent,
   CardDescription,
@@ -27,7 +27,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useMemo, useState, memo, useCallback } from "react";
+import { useMemo, useState, memo, useCallback, useEffect } from "react";
 import {
   Select,
   SelectContent,

@@ -1,4 +1,4 @@
-﻿import { useState, memo, useMemo, useCallback, useEffect } from "react";
+import { useState, memo, useMemo, useCallback, useEffect } from "react";
 import {
   BookOpen,
   Plus,
@@ -417,17 +417,15 @@ export const ClassesTab = memo(
 
     // Memoized action button groups
     const actionButtonGroups = useMemo(() => {
-      const buttons = [
-        {
-          type: "view" as const,
-          onClick: handleViewClick,
-        },
-      ];
+      const buttons: Array<{
+        type: "view" | "edit";
+        onClick: (row: any) => void;
+      }> = [{ type: "view", onClick: handleViewClick }];
 
       // Only add edit button if user has permission
       if (canEditClass) {
         buttons.push({
-          type: "edit" as const,
+          type: "edit",
           onClick: handleEditClick,
         });
       }

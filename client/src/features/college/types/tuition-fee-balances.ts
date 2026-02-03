@@ -174,3 +174,18 @@ export interface CollegeTuitionFeeBalanceDashboardStats {
   average_payment_completion: number;
 }
 
+export interface ConcessionUpdateRequest {
+  concession_amount: number;
+}
+
+export interface ConcessionUpdateResponse {
+  enrollment_id: number;
+  old_concession_amount: number;
+  new_concession_amount: number;
+  old_total_fee: number;
+  new_total_fee: number;
+  action_taken: string;
+  message: string;
+  success: boolean;
+}
+

@@ -1,4 +1,4 @@
-import AnnouncementsManagement from "@/features/general/components/announcements/AnnouncementsManagement";
+import AnnouncementsManagement from "@/features/general/components/Announcemnts/AnnouncementsManagement";
 
 const AnnouncementPage = () => {
   return <AnnouncementsManagement />;

@@ -23,6 +23,11 @@ export interface AuthState {
   // This reduces XSS risk - even if malicious script runs, it cannot access the token
   // Refresh token is in HttpOnly cookie (set by backend), JavaScript cannot read it
   accessToken: string | null; // Renamed from 'token' for clarity
+  /**
+   * Legacy alias for backward compatibility.
+   * IMPORTANT: This should always mirror `accessToken`.
+   */
+  token?: string | null;
   tokenExpireAt: number | null; // Timestamp in milliseconds
 
   // Branch management
@@ -66,7 +71,10 @@ export interface AuthState {
   /**
    * Set access token and expiry (in memory only)
    */
-  setTokenAndExpiry: (accessToken: string | null, expiretime: string | null) => void;
+  setTokenAndExpiry: (
+    accessToken: string | null,
+    expiretime: string | number | null
+  ) => void;
   
   /**
    * Set user info from backend response
@@ -87,9 +95,17 @@ export interface AuthState {
   setCurrentBranch: (branch: Branch | null) => void;
   
   // Legacy actions (kept for backward compatibility)
+  loginLegacy?: (
+    user: AuthUser | null,
+    branches: Branch[],
+    token: string | null,
+    refreshToken?: string
+  ) => Promise<void>;
+  logoutLegacy?: () => void;
+  setTokenAndExpiryLegacy?: (token: string | null, expireAtMs: number | null) => void;
   logoutAsync: () => Promise<void>;
   switchBranch: (branch: Branch) => Promise<void>;
-  switchAcademicYear: (year: AcademicYear) => void;
+  switchAcademicYear: (year: AcademicYear) => Promise<void>;
   setAcademicYears: (years: AcademicYear[]) => void;
   setLoading: (loading: boolean) => void;
   setAcademicYear: (year: string) => void;

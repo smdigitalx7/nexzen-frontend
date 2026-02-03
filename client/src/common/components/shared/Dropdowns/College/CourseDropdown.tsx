@@ -15,6 +15,7 @@ export interface CollegeCourseDropdownProps {
   className?: string;
   emptyValue?: boolean;
   emptyValueLabel?: string;
+  id?: string;
 }
 
 /**
@@ -35,6 +36,7 @@ export function CollegeCourseDropdown({
   className,
   emptyValue = false,
   emptyValueLabel = "No course",
+  id,
 }: CollegeCourseDropdownProps) {
   // ✅ OPTIMIZATION: Start with enabled: false - fetch only when dropdown opens
   const [shouldFetch, setShouldFetch] = React.useState(false);
@@ -81,6 +83,7 @@ export function CollegeCourseDropdown({
       required={required}
       placeholder={groupId <= 0 ? "Select group first" : placeholder}
       className={className}
+      id={id}
       getValue={(option) => option.course_id}
       getLabel={(option) => option.course_name}
       noOptionsText="No courses available"

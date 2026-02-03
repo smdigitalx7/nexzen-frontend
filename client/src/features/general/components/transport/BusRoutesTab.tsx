@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Plus, Bus, MapPin, Clock, Users, Eye, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
@@ -20,7 +20,8 @@ import type { UseMutationResult } from "@tanstack/react-query";
 
 interface BusRoutesTabProps {
   routesData: BusRouteRead[];
-  busRoutes: BusRouteRead[];
+  // Some screens pass a normalized UI shape; keep this flexible.
+  busRoutes: any[];
   isLoading: boolean;
   error: unknown;
   searchTerm: string;

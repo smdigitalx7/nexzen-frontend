@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Badge } from '@/common/components/ui/badge';
 import { ConfirmDialog, EnhancedDataTable } from '@/common/components/shared';
 import {
@@ -287,7 +287,7 @@ const TransportTabComponent = () => {
   }, [result.data]);
 
   // Define columns
-  const columns: ColumnDef<any>[] = useMemo(() => [
+  const columns: ColumnDef<FlatTransportData>[] = useMemo(() => [
     {
       accessorKey: 'admission_no',
       header: 'Admission No',

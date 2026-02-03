@@ -76,6 +76,8 @@ export interface CollegeTransportAssignment {
   route_name: string | null;
   route_no: string | null;
   vehicle_number: string | null;
+  slab_id?: number | null;
+  slab_name?: string | null;
   pickup_point: string | null;
   start_date: string | null;
   end_date: string | null;

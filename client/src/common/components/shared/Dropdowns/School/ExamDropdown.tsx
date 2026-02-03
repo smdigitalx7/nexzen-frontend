@@ -14,6 +14,7 @@ export interface SchoolExamDropdownProps {
   className?: string;
   emptyValue?: boolean;
   emptyValueLabel?: string;
+  id?: string;
 }
 
 /**
@@ -33,6 +34,7 @@ export function SchoolExamDropdown({
   className,
   emptyValue = false,
   emptyValueLabel = "No exam",
+  id,
 }: SchoolExamDropdownProps) {
   // ✅ OPTIMIZATION: Start with enabled: false - fetch only when dropdown opens
   const [shouldFetch, setShouldFetch] = React.useState(false);
@@ -84,6 +86,7 @@ export function SchoolExamDropdown({
       required={required}
       placeholder={placeholder}
       className={className}
+      id={id}
       getValue={(option) => option.exam_id}
       getLabel={(option) => option.exam_name}
       renderOption={renderOption}

@@ -1,4 +1,4 @@
-﻿import { Api } from "@/core/api";
+import { Api } from "@/core/api";
 import type { 
   SchoolTransportBalanceBulkCreate, 
   SchoolTransportBalanceBulkCreateResult, 
@@ -6,7 +6,9 @@ import type {
   SchoolTransportFeeBalanceListRead, 
   SchoolTransportPaginatedResponse, 
   SchoolTransportTermPaymentUpdate,
-  SchoolTransportFeeBalanceDashboardStats
+  SchoolTransportFeeBalanceDashboardStats,
+  TransportConcessionUpdateRequest,
+  TransportConcessionUpdateResponse
 } from "@/features/school/types";
 
 export const SchoolTransportFeeBalancesService = {
@@ -30,6 +32,9 @@ export const SchoolTransportFeeBalancesService = {
   },
   updateTermPayment(enrollment_id: number, payload: SchoolTransportTermPaymentUpdate) {
     return Api.put<SchoolTransportFeeBalanceFullRead>(`/school/transport-fee-balances/${enrollment_id}/pay-term`, payload);
+  },
+  updateConcession(enrollment_id: number, payload: TransportConcessionUpdateRequest) {
+    return Api.put<TransportConcessionUpdateResponse>(`/school/transport-fee-balances/${enrollment_id}/concession`, payload);
   },
 
   getDashboard() {

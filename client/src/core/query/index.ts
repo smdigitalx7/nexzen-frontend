@@ -20,7 +20,24 @@ export const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes - increased to reduce unnecessary refetches
       gcTime: 10 * 60 * 1000, // 10 minutes - increased to prevent premature garbage collection
-      retry: 2, // Reduced from 3 to prevent excessive retries
+      // ✅ OPTIMIZATION: Avoid retry storms on 4xx (422/400/etc)
+      // - Retry only on network/5xx-type failures
+      // - Never retry on 4xx since it usually means "bad request"/validation/permissions
+      retry: (failureCount, error) => {
+        const maybeStatus =
+          // Our API client throws ApiError with .status
+          (error as { status?: number } | null)?.status ??
+          // Common patterns (in case something else throws)
+          (error as { statusCode?: number } | null)?.statusCode ??
+          (error as { response?: { status?: number } } | null)?.response?.status;
+
+        if (typeof maybeStatus === "number" && maybeStatus >= 400 && maybeStatus < 500) {
+          return false;
+        }
+
+        // Keep a small retry budget for flaky networks / 5xx
+        return failureCount < 2;
+      },
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       // ✅ OPTIMIZATION: Disable all auto-refetch behaviors by default
       refetchOnWindowFocus: false, // No refetch on tab focus

@@ -1,4 +1,4 @@
-﻿import { Api } from "@/core/api";
+import { Api } from "@/core/api";
 import {
   CollegeAdmissionListItem,
   CollegeAdmissionDetails,
@@ -8,6 +8,8 @@ import {
 export interface CollegeAdmissionsListParams {
   page?: number;
   page_size?: number;
+  // Optional filters (safe to pass; ignored if backend doesn't use it)
+  search?: string;
 }
 
 export const CollegeAdmissionsService = {

@@ -1,4 +1,4 @@
-﻿import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { DistanceSlabsService } from "@/features/general/services/distance-slabs.service";
 import type {
   DistanceSlabRead,
@@ -65,6 +65,10 @@ export const useDistanceSlabs = () => {
     // Mutations
     createDistanceSlab: createDistanceSlabMutation.mutateAsync,
     updateDistanceSlab: updateDistanceSlabMutation.mutateAsync,
+
+    // Full mutation objects (needed by some UI components)
+    createDistanceSlabMutation,
+    updateDistanceSlabMutation,
     
     // Mutation states
     isCreatingDistanceSlab: createDistanceSlabMutation.isPending,

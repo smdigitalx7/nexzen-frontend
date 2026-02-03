@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect, memo, useCallback } from "react";
+import { useState, useMemo, useEffect, memo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -314,14 +314,14 @@ const ExamMarksManagementComponent = ({
       }
 
       setEditingExamMark(null);
-      setShowExamMarkDialog(false);
+      setShowAddMarksDialog(false);
     },
     [editingExamMark, updateExamMarkMutation, createExamMarkMutation]
   );
 
   const handleEditExamMark = useCallback((mark: ExamMarkWithDetails) => {
     setEditingExamMark(mark);
-    setShowExamMarkDialog(true);
+    setShowAddMarksDialog(true);
   }, []);
 
   const handleDeleteExamMark = useCallback((markId: number) => {
@@ -490,10 +490,11 @@ const ExamMarksManagementComponent = ({
                 <div className="flex flex-wrap gap-4 items-center flex-1">
                   {/* Required Filters */}
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">
+                    <label htmlFor="exam-mgmt-class" className="text-sm font-medium">
                       Class: <span className="text-red-500">*</span>
                     </label>
                     <SchoolClassDropdown
+                      id="exam-mgmt-class"
                       value={selectedClass}
                       onChange={handleClassChange}
                       placeholder="Select class"
@@ -504,8 +505,9 @@ const ExamMarksManagementComponent = ({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">Section:</label>
+                    <label htmlFor="exam-mgmt-section" className="text-sm font-medium">Section:</label>
                     <SchoolSectionDropdown
+                      id="exam-mgmt-section"
                       classId={classId}
                       value={selectedSection}
                       onChange={handleSectionChange}
@@ -522,10 +524,11 @@ const ExamMarksManagementComponent = ({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">
+                    <label htmlFor="exam-mgmt-exam" className="text-sm font-medium">
                       Exam: <span className="text-red-500">*</span>
                     </label>
                     <SchoolExamDropdown
+                      id="exam-mgmt-exam"
                       value={selectedExam}
                       onChange={handleExamChange}
                       placeholder={
@@ -542,10 +545,11 @@ const ExamMarksManagementComponent = ({
 
                   {/* Required Filters - Subject */}
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">
+                    <label htmlFor="exam-mgmt-subject" className="text-sm font-medium">
                       Subject: <span className="text-red-500">*</span>
                     </label>
                     <SchoolSubjectDropdown
+                      id="exam-mgmt-subject"
                       classId={classId}
                       value={selectedSubject}
                       onChange={handleSubjectChange}

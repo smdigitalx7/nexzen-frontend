@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect, memo, useCallback } from "react";
+import { useState, useMemo, useEffect, memo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ClipboardList, Eye, Edit, Trash2, Plus } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -484,23 +484,25 @@ const TestMarksManagementComponent = ({
     
     // Ensure we have an array - handle different response structures
     let dataArray: any[] = [];
-    if (Array.isArray(testMarksData)) {
-      dataArray = testMarksData;
-    } else if (testMarksData && typeof testMarksData === 'object') {
+    const raw: unknown = testMarksData;
+    if (Array.isArray(raw)) {
+      dataArray = raw;
+    } else if (raw && typeof raw === 'object') {
       // Handle wrapped responses
-      if (Array.isArray(testMarksData.data)) {
-        dataArray = testMarksData.data;
-      } else if (Array.isArray(testMarksData.items)) {
-        dataArray = testMarksData.items;
-      } else if (Array.isArray(testMarksData.results)) {
-        dataArray = testMarksData.results;
+      const wrapped = raw as any;
+      if (Array.isArray(wrapped.data)) {
+        dataArray = wrapped.data;
+      } else if (Array.isArray(wrapped.items)) {
+        dataArray = wrapped.items;
+      } else if (Array.isArray(wrapped.results)) {
+        dataArray = wrapped.results;
       } else {
         // If it's an object but not an array, return empty
-        console.warn('testMarksData is not an array or array-wrapped object:', testMarksData);
+        console.warn('testMarksData is not an array or array-wrapped object:', raw);
         return [] as TestMarkWithDetails[];
       }
     } else {
-      console.warn('testMarksData is not a valid type:', typeof testMarksData, testMarksData);
+      console.warn('testMarksData is not a valid type:', typeof raw, raw);
       return [] as TestMarkWithDetails[];
     }
     
@@ -1214,10 +1216,11 @@ const TestMarksManagementComponent = ({
                 <div className="flex flex-wrap gap-4 items-center flex-1">
                   {/* Required Filters */}
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">
+                    <label htmlFor="test-mgmt-class" className="text-sm font-medium">
                       Class: <span className="text-red-500">*</span>
                     </label>
                     <SchoolClassDropdown
+                      id="test-mgmt-class"
                       value={selectedClass}
                       onChange={handleClassChange}
                       placeholder="Select class"
@@ -1228,8 +1231,9 @@ const TestMarksManagementComponent = ({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">Section:</label>
+                    <label htmlFor="test-mgmt-section" className="text-sm font-medium">Section:</label>
                     <SchoolSectionDropdown
+                      id="test-mgmt-section"
                       classId={classId}
                       value={selectedSection}
                       onChange={handleSectionChange}
@@ -1246,10 +1250,11 @@ const TestMarksManagementComponent = ({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">
+                    <label htmlFor="test-mgmt-test" className="text-sm font-medium">
                       Test: <span className="text-red-500">*</span>
                     </label>
                     <SchoolTestDropdown
+                      id="test-mgmt-test"
                       value={selectedTest}
                       onChange={handleTestChange}
                       placeholder={
@@ -1266,10 +1271,11 @@ const TestMarksManagementComponent = ({
 
                   {/* Required Filters - Subject */}
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">
+                    <label htmlFor="test-mgmt-subject" className="text-sm font-medium">
                       Subject: <span className="text-red-500">*</span>
                     </label>
                     <SchoolSubjectDropdown
+                      id="test-mgmt-subject"
                       classId={classId}
                       value={selectedSubject}
                       onChange={handleSubjectChange}

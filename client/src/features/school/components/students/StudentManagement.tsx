@@ -9,10 +9,12 @@ import { useFilteredTabs, useDefaultTab } from "@/core/permissions";
 import { StudentsTab } from "./StudentsTab";
 import { EnrollmentsTab } from "./EnrollmentsTab";
 import { TransportTab } from "./TransportTab";
+import { PromotionDropoutTab } from "./PromotionDropoutTab";
 import SectionMappingTab from "./SectionMappingTab";
+import { ArrowUpCircle } from "lucide-react";
 
 const StudentManagement = () => {
-  const { currentBranch } = useAuthStore();
+  const currentBranch = useAuthStore((state) => state.currentBranch);
   
   const allTabs = useMemo(() => [
     {
@@ -33,6 +35,12 @@ const StudentManagement = () => {
       icon: MapPin,
       content: <TransportTab />,
     },
+    {
+      value: "promotion-dropout",
+      label: "Promotion & Dropout",
+      icon: ArrowUpCircle,
+      content: <PromotionDropoutTab />,
+    },
   ], []);
 
   // Filter tabs based on permissions
@@ -44,9 +52,14 @@ const StudentManagement = () => {
     useTabNavigation(defaultTab || "enrollments");
 
   // Auto-select first tab if current tab doesn't exist
+  // Optimized to only run when tabs change and ensure stability
   useEffect(() => {
-    const tabExists = tabs.some(tab => tab.value === activePageTab);
-    if (!tabExists && tabs.length > 0) {
+    if (tabs.length === 0) return;
+    
+    const tabValues = tabs.map(t => t.value);
+    const tabExists = tabValues.includes(activePageTab);
+    
+    if (!tabExists) {
       setActivePageTab(tabs[0].value);
     }
   }, [activePageTab, setActivePageTab, tabs]);
@@ -77,6 +90,12 @@ const StudentManagement = () => {
           title: "Section Mapping",
           description:
             "Map students to sections and manage section assignments",
+        };
+      case "promotion-dropout":
+        return {
+          title: "Promotion & Dropout Management",
+          description:
+            "Manage student promotions to next academic level and handle dropout records",
         };
       default:
         return {

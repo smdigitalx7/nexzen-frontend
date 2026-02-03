@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card';
 import { Button } from '@/common/components/ui/button';
@@ -99,7 +99,7 @@ export default function AttendanceView() {
     }
   };
 
-  const columns: ColumnDef<any>[] = [
+  const columns: ColumnDef<SchoolStudentAttendanceRead>[] = [
     { accessorKey: 'admission_no', header: 'Admission No' },
     { accessorKey: 'roll_number', header: 'Roll' },
     { accessorKey: 'student_name', header: 'Student' },
@@ -116,8 +116,9 @@ export default function AttendanceView() {
         <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 mb-4">
           {/* Required Filters */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">Class:</label>
+            <label htmlFor="attendance-view-class" className="text-sm font-medium">Class:</label>
             <SchoolClassDropdown
+              id="attendance-view-class"
               value={selectedClassId}
               onChange={(value: number | null) => {
                 setSelectedClassId(value);
@@ -146,8 +147,9 @@ export default function AttendanceView() {
 
           {/* Optional Filters */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-muted-foreground">Section:</label>
+            <label htmlFor="attendance-view-section" className="text-sm font-medium text-muted-foreground">Section:</label>
             <SchoolSectionDropdown
+              id="attendance-view-section"
               classId={selectedClassId || 0}
               value={selectedSectionId}
               onChange={(value: number | null) => setSelectedSectionId(value)}
@@ -183,7 +185,7 @@ export default function AttendanceView() {
         ) : allStudents.length === 0 ? (
           <div className="py-4 text-center text-slate-500">No Students Attendance to display</div>
         ) : (
-          <EnhancedDataTable 
+          <EnhancedDataTable<SchoolStudentAttendanceRead> 
             data={allStudents} 
             columns={columns}
             title="Attendance"
@@ -239,12 +241,12 @@ export default function AttendanceView() {
         </DialogHeader>
         <div className="space-y-2">
           <div>
-            <Label>Absent Days</Label>
-            <Input type="number" value={editAbsent} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditAbsent(e.target.value)} />
+            <Label htmlFor="attendance-edit-absent">Absent Days</Label>
+            <Input id="attendance-edit-absent" type="number" value={editAbsent} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditAbsent(e.target.value)} autoComplete="off" />
           </div>
           <div>
-            <Label>Remarks</Label>
-            <Input value={editRemarks} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditRemarks(e.target.value)} />
+            <Label htmlFor="attendance-edit-remarks">Remarks</Label>
+            <Input id="attendance-edit-remarks" value={editRemarks} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditRemarks(e.target.value)} autoComplete="off" />
           </div>
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>

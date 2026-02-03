@@ -73,6 +73,7 @@ export const ENTITY_QUERY_MAP = {
   advances: [["advances"]] as QueryKey[],
   leaves: [["employee-leaves"]] as QueryKey[],
   employeeAttendances: [["employee-attendances"]] as QueryKey[],
+  sms: [["sms"]] as QueryKey[],
 } as const;
 
 export type EntityType = keyof typeof ENTITY_QUERY_MAP;

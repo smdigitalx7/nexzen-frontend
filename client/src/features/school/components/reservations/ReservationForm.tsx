@@ -1,4 +1,4 @@
-﻿import { Input } from "@/common/components/ui/input";
+import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
 import { Textarea } from "@/common/components/ui/textarea";
 import {
@@ -74,7 +74,7 @@ type DistanceSlabItem = {
   slab_id: number;
   slab_name: string;
   min_distance: number;
-  max_distance?: number;
+  max_distance?: number | null;
   fee_amount: number;
 };
 
@@ -190,7 +190,7 @@ const SiblingRow = memo(
           value={sibling.gender || "MALE"}
           onValueChange={(value) => onUpdate(index, "gender", value)}
         >
-          <SelectTrigger>
+          <SelectTrigger id={`sibling-gender-${index}`}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -251,7 +251,7 @@ const StudentInfoSection = memo(
             value={form.gender}
             onValueChange={(value) => setForm({ ...form, gender: value })}
           >
-            <SelectTrigger>
+            <SelectTrigger id="gender">
               <SelectValue placeholder="Select gender" />
             </SelectTrigger>
             <SelectContent>
@@ -719,6 +719,7 @@ const ReservationFormComponent = ({
               <div>
                 <Label htmlFor="class_name">Class Name *</Label>
                 <SchoolClassDropdown
+                  id="class_name"
                   value={
                     form.class_name
                       ? classes.find((c) => c.class_name === form.class_name)
@@ -815,7 +816,7 @@ const ReservationFormComponent = ({
                     setForm({ ...form, transport_required: value === "true" })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="transport_required">
                     <SelectValue placeholder="Select transport" />
                   </SelectTrigger>
                   <SelectContent>
@@ -831,6 +832,7 @@ const ReservationFormComponent = ({
                       Transport Route
                     </Label>
                     <BusRouteDropdown
+                      id="preferred_transport_id"
                       value={
                         form.preferred_transport_id &&
                         form.preferred_transport_id !== "0"
@@ -852,6 +854,7 @@ const ReservationFormComponent = ({
                       Distance Slab
                     </Label>
                     <DistanceSlabDropdown
+                      id="preferred_distance_slab_id"
                       value={
                         form.preferred_distance_slab_id &&
                         form.preferred_distance_slab_id !== "0"
@@ -904,6 +907,7 @@ const ReservationFormComponent = ({
               <div>
                 <Label htmlFor="request_type">Request Type</Label>
                 <RadioGroup
+                  id="request_type"
                   value={form.request_type}
                   onValueChange={(value) => {
                     setForm({
@@ -937,44 +941,48 @@ const ReservationFormComponent = ({
                   </div>
                 </RadioGroup>
               </div>
-              <div>
-                <Label htmlFor="referred_by">Referred By</Label>
-                <EmployeeSelect
-                  value={form.referred_by}
-                  onValueChange={(value) => {
-                    setForm({
-                      ...form,
-                      referred_by: value,
-                      // Clear referred_by_name when selecting an employee
-                      referred_by_name: value ? "" : form.referred_by_name,
-                    });
-                  }}
-                  placeholder="Select referring employee..."
-                />
-              </div>
-              {(form.request_type === "REFERRAL" ||
-                form.referred_by === "" ||
-                !form.referred_by) && (
-                <div>
-                  <Label htmlFor="referred_by_name">
-                    Referred By Name (Other)
-                  </Label>
-                  <Input
-                    id="referred_by_name"
-                    value={form.referred_by_name}
-                    onChange={(e) =>
-                      setForm({ ...form, referred_by_name: e.target.value })
-                    }
-                    placeholder="Enter referrer name if not an employee"
-                  />
-                </div>
-              )}
+              {form.request_type === "REFERRAL" ? (
+                <>
+                  <div>
+                    <Label htmlFor="referred_by">Referred By</Label>
+                    <EmployeeSelect
+                      id="referred_by"
+                      value={form.referred_by}
+                      onValueChange={(value) => {
+                        setForm({
+                          ...form,
+                          referred_by: value,
+                          // Clear referred_by_name when selecting an employee
+                          referred_by_name: value ? "" : form.referred_by_name,
+                        });
+                      }}
+                      placeholder="Select referring employee..."
+                    />
+                  </div>
+                  {!form.referred_by ? (
+                    <div>
+                      <Label htmlFor="referred_by_name">
+                        Referred By Name (Other)
+                      </Label>
+                      <Input
+                        id="referred_by_name"
+                        value={form.referred_by_name}
+                        onChange={(e) =>
+                          setForm({ ...form, referred_by_name: e.target.value })
+                        }
+                        placeholder="Enter referrer name if not an employee"
+                      />
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
               <div>
                 <Label htmlFor="reservation_date">Reservation Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       id="reservation_date"
+                      type="button"
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",

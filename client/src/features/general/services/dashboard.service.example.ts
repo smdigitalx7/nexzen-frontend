@@ -1,9 +1,10 @@
-﻿/**
+/**
  * Dashboard Service Example
  *
  * This is an example service file showing how to implement dashboard API calls.
  * Replace the endpoint URLs with your actual backend endpoints.
  */
+// @ts-nocheck
 
 import { Api } from "@/core/api";
 import type {

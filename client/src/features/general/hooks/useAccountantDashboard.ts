@@ -20,13 +20,17 @@ export function useAccountantDashboard(): UseDashboardDataReturn<AccountantDashb
   const [data, setData] = useState<AccountantDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { accessToken, isAuthenticated, user, currentBranch, isAuthInitializing, isLoggingOut } = useAuthStore();
-  const token = accessToken; // Use accessToken directly
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const userId = useAuthStore((s) => s.user?.user_id);
+  const userRole = useAuthStore((s) => s.user?.role);
+  const branchId = useAuthStore((s) => s.currentBranch?.branch_id);
+  const isAuthInitializing = useAuthStore((s) => s.isAuthInitializing);
+  const isLoggingOut = useAuthStore((s) => s.isLoggingOut);
 
   // Reset state when user changes or logs out
   useEffect(() => {
     // CRITICAL: Also reset if auth is initializing or logout is in progress
-    if (!isAuthenticated || !user || isAuthInitializing || isLoggingOut) {
+    if (!isAuthenticated || !userId || isAuthInitializing || isLoggingOut) {
       setData(null);
       setError(null);
       setLoading(false);
@@ -35,7 +39,7 @@ export function useAccountantDashboard(): UseDashboardDataReturn<AccountantDashb
       setData(null);
       setError(null);
     }
-  }, [isAuthenticated, user?.user_id, user?.role, currentBranch?.branch_id, isAuthInitializing, isLoggingOut]);
+  }, [isAuthenticated, userId, userRole, branchId, isAuthInitializing, isLoggingOut]);
 
   const fetchDashboard = useCallback(async () => {
     // CRITICAL: Read token directly from store at fetch time, not from closure
@@ -81,7 +85,7 @@ export function useAccountantDashboard(): UseDashboardDataReturn<AccountantDashb
       setData(null);
       setLoading(false);
     }
-  }, [token, isAuthenticated, user?.user_id, user?.role, currentBranch?.branch_id, isAuthInitializing, isLoggingOut]);
+  }, [isAuthenticated, userId, userRole, branchId, isAuthInitializing, isLoggingOut]);
 
   useEffect(() => {
     // CRITICAL: Add cleanup to prevent requests after unmount/logout

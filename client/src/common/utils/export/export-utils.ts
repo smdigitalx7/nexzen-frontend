@@ -1,7 +1,13 @@
-﻿import { SchoolFinanceReport } from '@/features/school/types/income';
+import { SchoolFinanceReport } from '@/features/school/types/income';
 import { CollegeFinanceReport } from '@/features/college/types/income';
 import jsPDF from 'jspdf';
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
+
+// IMPORTANT: ExcelJS is large — load it only when exporting.
+async function loadExcelJS(): Promise<any> {
+  const mod: any = await import('exceljs');
+  return mod?.default ?? mod;
+}
 
 /**
  * Export finance report data to Excel format with professional styling
@@ -16,7 +22,8 @@ export const exportFinanceReportToExcel = async (
   }
 
   try {
-    const workbook = new ExcelJS.Workbook();
+    const ExcelJSRuntime = await loadExcelJS();
+    const workbook = new ExcelJSRuntime.Workbook();
     workbook.creator = 'Velocity ERP';
     workbook.created = new Date();
     workbook.modified = new Date();

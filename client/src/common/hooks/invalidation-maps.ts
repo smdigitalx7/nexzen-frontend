@@ -15,7 +15,7 @@ import { collegeKeys } from "@/features/college/hooks/query-keys";
  * Helper type for invalidation map entries
  * Can be a QueryKey array or a function that returns a QueryKey array
  */
-type InvalidationKey = QueryKey | ((id?: number) => QueryKey);
+type InvalidationKeys = readonly QueryKey[] | ((id: number) => readonly QueryKey[]);
 
 /**
  * School module invalidation maps
@@ -246,12 +246,13 @@ export const COLLEGE_INVALIDATION_MAPS = {
  * Handles both QueryKey arrays and functions that return QueryKey arrays
  */
 export function resolveInvalidationKeys(
-  keys: InvalidationKey[] | ((id?: number) => InvalidationKey[]),
+  keys: InvalidationKeys,
   id?: number
 ): QueryKey[] {
   if (typeof keys === "function") {
-    return keys(id).flat();
+    if (typeof id !== "number") return [];
+    return [...keys(id)];
   }
-  return keys.flat();
+  return [...keys];
 }
 

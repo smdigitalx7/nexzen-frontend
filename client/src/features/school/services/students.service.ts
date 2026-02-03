@@ -1,4 +1,4 @@
-﻿import { Api } from "@/core/api";
+import { Api } from "@/core/api";
 import type {
   SchoolStudentCreate,
   SchoolStudentFullDetails,
@@ -11,6 +11,10 @@ import type {
 export interface SchoolStudentsListParams {
   page?: number;
   page_size?: number;
+  // Optional filters (backend supports these)
+  class_id?: number;
+  section_id?: number;
+  search?: string;
 }
 
 /**

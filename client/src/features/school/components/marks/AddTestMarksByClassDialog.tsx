@@ -359,10 +359,11 @@ const AddTestMarksByClassDialog = ({
           {/* Selection Controls */}
           <div className="flex flex-wrap gap-4 items-end py-4 border-b">
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium whitespace-nowrap">
+              <label htmlFor="test-class-select" className="text-sm font-medium whitespace-nowrap">
                 Class: <span className="text-red-500">*</span>
               </label>
               <SchoolClassDropdown
+                id="test-class-select"
                 value={selectedClass}
                 onChange={setSelectedClass}
                 placeholder="Select class"
@@ -373,10 +374,11 @@ const AddTestMarksByClassDialog = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium whitespace-nowrap">
+              <label htmlFor="test-section-select" className="text-sm font-medium whitespace-nowrap">
                 Section:
               </label>
               <SchoolSectionDropdown
+                id="test-section-select"
                 classId={selectedClass || 0}
                 value={selectedSection}
                 onChange={setSelectedSection}
@@ -389,10 +391,11 @@ const AddTestMarksByClassDialog = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium whitespace-nowrap">
+              <label htmlFor="test-exam-select" className="text-sm font-medium whitespace-nowrap">
                 Test: <span className="text-red-500">*</span>
               </label>
               <SchoolTestDropdown
+                id="test-exam-select"
                 value={selectedTest}
                 onChange={setSelectedTest}
                 placeholder="Select test"
@@ -543,6 +546,8 @@ const AddTestMarksByClassDialog = ({
                               }`}
                             >
                               <Input
+                                id={`test-mark-${student.enrollment_id}-${subject.subject_id}`}
+                                name={`test-mark-${student.enrollment_id}-${subject.subject_id}`}
                                 type="number"
                                 min="0"
                                 step="0.01"
@@ -557,6 +562,8 @@ const AddTestMarksByClassDialog = ({
                                   )
                                 }
                                 className="h-9 text-sm text-center w-[100px]"
+                                autoComplete="off"
+                                aria-label={`Marks for ${student.student_name} in ${subject.subject_name}`}
                               />
                             </div>
                           );

@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Badge } from "@/common/components/ui/badge";
 import { ColumnDef } from "@tanstack/react-table";
 import { EnhancedDataTable, ConfirmDialog } from "@/common/components/shared";
@@ -97,16 +97,16 @@ const GradesTab = ({
 
   // Action button groups for EnhancedDataTable
   const actionButtonGroups = useMemo(() => {
-    const buttons = [
-      {
-        type: 'edit' as const,
-        onClick: (row: GradeRead) => handleEditGrade(row)
-      }
+    const buttons: Array<{
+      type: "edit" | "delete";
+      onClick: (row: GradeRead) => void;
+    }> = [
+      { type: "edit", onClick: (row: GradeRead) => handleEditGrade(row) },
     ];
     
     if (canDeleteGrade) {
       buttons.push({
-        type: 'delete' as const,
+        type: "delete",
         onClick: (row: GradeRead) => handleDeleteClick(row.grade)
       });
     }

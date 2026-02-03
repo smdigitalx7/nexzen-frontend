@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { CardContent, Card } from '@/common/components/ui/card';
 import { Button } from '@/common/components/ui/button';
@@ -111,7 +111,7 @@ export default function AttendanceView() {
     setEditOpen(true);
   };
 
-  const columns: ColumnDef<any>[] = [
+  const columns: ColumnDef<CollegeStudentAttendanceRead>[] = [
     { accessorKey: 'admission_no', header: 'Admission No' },
     { accessorKey: 'roll_number', header: 'Roll' },
     { accessorKey: 'student_name', header: 'Student' },
@@ -127,8 +127,9 @@ export default function AttendanceView() {
         <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 mb-4">
           {/* Required Filters */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">Class:</label>
+            <label htmlFor="college-attendance-class" className="text-sm font-medium">Class:</label>
             <CollegeClassDropdown
+              id="college-attendance-class"
               value={selectedClassId}
               onChange={(value: number | null) => {
                 setSelectedClassId(value);
@@ -142,8 +143,9 @@ export default function AttendanceView() {
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">Group:</label>
+            <label htmlFor="college-attendance-group" className="text-sm font-medium">Group:</label>
             <CollegeGroupDropdown
+              id="college-attendance-group"
               classId={selectedClassId || 0}
               value={selectedGroupId}
               onChange={(value: number | null) => setSelectedGroupId(value)}
@@ -262,12 +264,12 @@ export default function AttendanceView() {
         </DialogHeader>
         <div className="space-y-2">
           <div>
-            <Label>Absent Days</Label>
-            <Input type="number" value={editAbsent} onChange={(e) => setEditAbsent(e.target.value)} />
+            <Label htmlFor="college-attendance-edit-absent">Absent Days</Label>
+            <Input id="college-attendance-edit-absent" type="number" value={editAbsent} onChange={(e) => setEditAbsent(e.target.value)} autoComplete="off" />
           </div>
           <div>
-            <Label>Remarks</Label>
-            <Input value={editRemarks} onChange={(e) => setEditRemarks(e.target.value)} />
+            <Label htmlFor="college-attendance-edit-remarks">Remarks</Label>
+            <Input id="college-attendance-edit-remarks" value={editRemarks} onChange={(e) => setEditRemarks(e.target.value)} autoComplete="off" />
           </div>
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>

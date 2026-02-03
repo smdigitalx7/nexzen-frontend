@@ -1,4 +1,4 @@
-﻿import { useMemo, memo } from "react";
+﻿import { useMemo, memo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Eye, Download, User, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
@@ -11,6 +11,9 @@ import {
   createCurrencyColumn,
   createDateColumn,
 } from "@/common/utils/factory/columnFactories";
+import { ConcessionUpdateModal } from "@/common/components/shared/ConcessionUpdateModal";
+import { useUpdateSchoolTuitionConcession } from "@/features/school/hooks";
+import { Wallet } from "lucide-react";
 import type { SchoolClassRead } from "@/features/school/types";
 
 interface StudentFeeBalance {
@@ -98,7 +101,7 @@ const StatusCell = memo(({ status }: { status: string }) => (
 
 StatusCell.displayName = "StatusCell";
 
-const StudentFeeBalancesTableComponent = ({
+export const StudentFeeBalancesTable = ({
   studentBalances,
   onViewStudent,
   onExportCSV,
@@ -109,6 +112,20 @@ const StudentFeeBalancesTableComponent = ({
   loading = false,
   classes = [],
 }: StudentFeeBalancesTableProps) => {
+  const [selectedStudent, setSelectedStudent] = useState<StudentFeeBalance | null>(null);
+  const [concessionModalOpen, setConcessionModalOpen] = useState(false);
+  const updateConcessionMutation = useUpdateSchoolTuitionConcession(selectedStudent?.id || 0);
+
+  const handleOpenConcession = useCallback((student: StudentFeeBalance) => {
+    setSelectedStudent(student);
+    setConcessionModalOpen(true);
+  }, []);
+
+  const handleUpdateConcession = async (amount: number) => {
+    if (!selectedStudent) return;
+    await updateConcessionMutation.mutateAsync({ concession_amount: amount });
+  };
+
   // Memoized columns definition
   const columns: ColumnDef<StudentFeeBalance>[] = useMemo(() => [
     {
@@ -145,8 +162,15 @@ const StudentFeeBalancesTableComponent = ({
     {
       type: 'view' as const,
       onClick: onViewStudent
+    },
+    {
+      type: 'custom' as const,
+      label: 'Concession',
+      icon: Wallet,
+      variant: 'outline' as "outline",
+      onClick: handleOpenConcession
     }
-  ], [onViewStudent]);
+  ], [onViewStudent, handleOpenConcession]);
 
   // Memoized summary statistics
   const summaryStats = useMemo(() => {
@@ -208,9 +232,16 @@ const StudentFeeBalancesTableComponent = ({
           <div className="text-sm text-muted-foreground">Students</div>
         </div>
       </div>
+
+      <ConcessionUpdateModal
+        isOpen={concessionModalOpen}
+        onClose={() => setConcessionModalOpen(false)}
+        onUpdate={handleUpdateConcession}
+        currentConcession={0} // Note: The table doesn't have current concession, we might need it for a better UX
+        studentName={selectedStudent?.student_name}
+      />
     </motion.div>
   );
 };
 
-export const StudentFeeBalancesTable = StudentFeeBalancesTableComponent;
-export default StudentFeeBalancesTableComponent;
+export default StudentFeeBalancesTable;

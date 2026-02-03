@@ -42,10 +42,11 @@ export const EnrollmentSearchForm = ({
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">
+            <label htmlFor="enrollment-class-select" className="text-sm font-medium text-slate-700 mb-2 block">
               Class
             </label>
             <SchoolClassDropdown
+              id="enrollment-class-select"
               value={classId}
               onChange={(value) => onClassChange(value !== null ? value.toString() : "")}
               placeholder="Select class"
@@ -55,10 +56,11 @@ export const EnrollmentSearchForm = ({
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">
+            <label htmlFor="enrollment-section-select" className="text-sm font-medium text-slate-700 mb-2 block">
               Section
             </label>
             <SchoolSectionDropdown
+              id="enrollment-section-select"
               classId={hasClassId ? classId : 0}
               value={sectionId}
               onChange={(value) => onSectionChange(value !== null ? value.toString() : "")}
@@ -74,10 +76,12 @@ export const EnrollmentSearchForm = ({
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">
+            <label htmlFor="enrollment-admission-no" className="text-sm font-medium text-slate-700 mb-2 block">
               Admission No (optional)
             </label>
             <Input
+              id="enrollment-admission-no"
+              name="admission_no"
               placeholder="Enter admission number"
               value={query.admission_no ?? ""}
               onChange={(e) => onAdmissionNoChange(e.target.value)}

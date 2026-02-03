@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { CollegeReservationsService } from "@/features/college/services/reservations.service";
 import type {
@@ -153,14 +153,16 @@ export function useDeleteCollegeReservation() {
       });
 
       previousReservationsList.forEach(([queryKey, data]) => {
-        if (data?.data) {
+        if (data?.reservations) {
           queryClient.setQueryData<CollegePaginatedReservationRead>(
             queryKey,
             (old) => {
-              if (!old?.data) return old;
+              if (!old?.reservations) return old;
               return {
                 ...old,
-                data: old.data.filter((r) => r.reservation_id !== reservationId),
+                reservations: old.reservations.filter(
+                  (r) => r.reservation_id !== reservationId
+                ),
                 total_count: old.total_count - 1,
               };
             }
@@ -228,14 +230,14 @@ export function useUpdateCollegeReservationStatus(reservationId: number) {
       }
 
       previousReservationsList.forEach(([queryKey, data]) => {
-        if (data?.data) {
+        if (data?.reservations) {
           queryClient.setQueryData<CollegePaginatedReservationRead>(
             queryKey,
             (old) => {
-              if (!old?.data) return old;
+              if (!old?.reservations) return old;
               return {
                 ...old,
-                data: old.data.map((r) =>
+                reservations: old.reservations.map((r) =>
                   r.reservation_id === reservationId 
                     ? { ...r, status, remarks: remarks ?? r.remarks } 
                     : r

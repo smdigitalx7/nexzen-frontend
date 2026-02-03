@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { SchoolReservationsService } from "@/features/school/services/reservations.service";
 import type {
@@ -6,6 +6,7 @@ import type {
   SchoolReservationRead,
   SchoolReservationStatusEnum,
   SchoolReservationCreate,
+  SchoolReservationUpdate,
   SchoolReservationListItem,
   SchoolReservationConcessionUpdate,
 } from "@/features/school/types";
@@ -112,8 +113,8 @@ export function useUpdateSchoolReservation(reservationId: number) {
   const queryClient = useQueryClient();
 
   return useMutationWithSuccessToast({
-    mutationFn: (form: FormData) =>
-      SchoolReservationsService.update(reservationId, form),
+    mutationFn: (data: SchoolReservationUpdate | FormData) =>
+      SchoolReservationsService.update(reservationId, data),
     // ✅ PHASE 3: Optimistic update for immediate UI feedback
     // Note: FormData updates are complex, so we invalidate on success instead
     // For simple field updates, we could optimistically update here

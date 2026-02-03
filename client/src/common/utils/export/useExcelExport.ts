@@ -1,4 +1,4 @@
-﻿import { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useToast } from '@/common/hooks/use-toast';
 
 export interface ExportData {
@@ -97,7 +97,8 @@ async function exportSynchronously(
       message: 'Loading Excel library...',
     });
 
-    const ExcelJS = (await import('exceljs')).default;
+    const ExcelJSImport: any = await import('exceljs');
+    const ExcelJS = ExcelJSImport?.default ?? ExcelJSImport;
     
     setProgress({
       progress: 20,
@@ -159,7 +160,7 @@ async function exportSynchronously(
     });
 
     // Set column widths
-    worksheet.columns.forEach((column, index) => {
+    worksheet.columns.forEach((column: any, index: number) => {
       if (column) {
         const headerLength = data.headers[index]?.length || 10;
         const maxContentLength = Math.max(
@@ -177,8 +178,8 @@ async function exportSynchronously(
     });
 
     // Add borders
-    worksheet.eachRow((row) => {
-      row.eachCell((cell) => {
+    worksheet.eachRow((row: any) => {
+      row.eachCell((cell: any) => {
         cell.border = {
           top: { style: 'thin' },
           left: { style: 'thin' },
