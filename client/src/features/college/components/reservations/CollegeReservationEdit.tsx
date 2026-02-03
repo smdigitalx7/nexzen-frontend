@@ -40,9 +40,9 @@ export default function SchoolReservationEdit({ form, setForm, classFee, transpo
           <Input id="aadhar_no" value={form.aadhar_no || ""} onChange={(e) => setForm({ ...form, aadhar_no: e.target.value })} />
         </div>
         <div>
-          <Label>Gender</Label>
+          <Label htmlFor="gender">Gender</Label>
           <Select value={genderValue} onValueChange={(v) => setForm({ ...form, gender: v })}>
-            <SelectTrigger>
+            <SelectTrigger id="gender">
               <SelectValue placeholder="Select gender" />
             </SelectTrigger>
             <SelectContent>
@@ -105,8 +105,9 @@ export default function SchoolReservationEdit({ form, setForm, classFee, transpo
         <div className="font-medium mb-2">Academic Details</div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label>Preferred Class</Label>
+            <Label htmlFor="preferred_class_id">Preferred Class</Label>
             <CollegeClassDropdown
+              id="preferred_class_id"
               value={
                 form.preferred_class_id
                   ? typeof form.preferred_class_id === "string"
@@ -177,8 +178,9 @@ export default function SchoolReservationEdit({ form, setForm, classFee, transpo
             <Label htmlFor="transport_required">Transport Required</Label>
           </div>
           <div>
-            <Label>Distance Slab</Label>
+            <Label htmlFor="preferred_distance_slab_id">Distance Slab</Label>
             <DistanceSlabDropdown
+              id="preferred_distance_slab_id"
               value={
                 form.preferred_distance_slab_id &&
                 form.preferred_distance_slab_id !== "0"

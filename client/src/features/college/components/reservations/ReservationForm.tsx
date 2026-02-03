@@ -391,7 +391,7 @@ export default function ReservationForm({
                   value={form.gender}
                   onValueChange={(value) => setForm({ ...form, gender: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="gender">
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
                   <SelectContent>
@@ -596,7 +596,7 @@ export default function ReservationForm({
                           updateSibling(idx, "gender", value)
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger id={`sibling-gender-${idx}`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -633,6 +633,7 @@ export default function ReservationForm({
               <div>
                 <Label htmlFor="preferred_class_id">Preferred Class *</Label>
                 <CollegeClassDropdown
+                  id="preferred_class_id"
                   value={form.preferred_class_id || null}
                   onChange={(value) => {
                     if (value !== null) {
@@ -679,8 +680,8 @@ export default function ReservationForm({
                 />
               </div>
               <div>
-                <Label htmlFor="group_name">Group Name *</Label>
                 <CollegeGroupDropdown
+                  id="group_name"
                   classId={form.preferred_class_id || undefined}
                   value={form.preferred_group_id || null}
                   onChange={(value) => {
@@ -728,6 +729,7 @@ export default function ReservationForm({
               <div>
                 <Label htmlFor="course_name">Course Name *</Label>
                 <CollegeCourseDropdown
+                  id="course_name"
                   groupId={form.preferred_group_id || 0}
                   value={form.preferred_course_id || null}
                   onChange={(value) => {
@@ -821,7 +823,7 @@ export default function ReservationForm({
                     });
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="book_fee_required">
                     <SelectValue placeholder="Select book fee requirement" />
                   </SelectTrigger>
                   <SelectContent>
@@ -895,7 +897,7 @@ export default function ReservationForm({
                     setForm({ ...form, transport_required: value === "true" })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="transport_required">
                     <SelectValue placeholder="Select transport" />
                   </SelectTrigger>
                   <SelectContent>
@@ -911,6 +913,7 @@ export default function ReservationForm({
                       Transport Route
                     </Label>
                     <BusRouteDropdown
+                      id="preferred_transport_id"
                       value={form.preferred_transport_id || null}
                       onChange={(value) => {
                         setForm({
@@ -1003,6 +1006,7 @@ export default function ReservationForm({
                 <div>
                   <Label htmlFor="request_type">Request Type</Label>
                   <RadioGroup
+                    id="request_type"
                     value={form.request_type}
                     onValueChange={(value) => {
                       setForm({
@@ -1041,6 +1045,7 @@ export default function ReservationForm({
                     <div>
                       <Label htmlFor="referred_by">Referred By</Label>
                       <EmployeeSelect
+                        id="referred_by"
                         value={form.referred_by.toString()}
                         onValueChange={(value) => {
                           setForm({

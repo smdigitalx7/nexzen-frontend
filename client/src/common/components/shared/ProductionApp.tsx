@@ -18,6 +18,8 @@ const configUtils = {};
 import { productionUtils } from "@/common/utils/performance/production-optimizations";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
 import { useAuthStore } from "@/core/auth/authStore";
+import { useIdleTimeout } from "@/common/hooks/useIdleTimeout";
+import { IdleTimeoutWarningDialog } from "./IdleTimeoutWarningDialog";
 
 // Loading and error fallbacks are handled by ProductionErrorBoundary
 
@@ -29,7 +31,14 @@ interface ProductionAppProps {
 export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
   // ✅ PERF: Selector prevents whole app rerender on unrelated auth state changes
   const isBranchSwitching = useAuthStore((s) => s.isBranchSwitching);
+  const user = useAuthStore((s) => s.user);
   const [isAcademicYearSwitching, setIsAcademicYearSwitching] = useState(false);
+
+  // Setup idle timeout (5 mins total, 1 min warning)
+  const { isWarning, remainingTime, resetTimer, logout } = useIdleTimeout(
+    5 * 60 * 1000,
+    60 * 1000
+  );
 
   // MutationObserver and body overflow safety mechanism removed - caused infinite loops
   // Accessibilty fixes should be handled by Radix primitives or targeted fixes, not global observers
@@ -155,6 +164,17 @@ export const ProductionApp: React.FC<ProductionAppProps> = ({ children }) => {
             )}
             {children}
           </div>
+          
+          {/* Global Session Warning Modal */}
+          {user && (
+            <IdleTimeoutWarningDialog
+              open={isWarning}
+              remainingTime={remainingTime}
+              onStayLoggedIn={resetTimer}
+              onLogout={logout}
+            />
+          )}
+          
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>

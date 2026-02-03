@@ -717,18 +717,16 @@ const AdmissionsListComponent = () => {
     <div className="space-y-6">
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <div className="relative w-full max-w-md">
-            <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-            <Input
-              id="school-admissions-search"
-              name="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search admissions (server-side)…"
-              className="pl-9"
-              autoComplete="off"
-            />
-          </div>
+          <Input
+            id="school-admissions-search"
+            name="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search admissions…"
+            className="w-full max-w-md"
+            leftIcon={<Search className="h-4 w-4" />}
+            autoComplete="off"
+          />
           {search ? (
             <Button variant="outline" size="sm" onClick={() => setSearch("")}>
               Clear
