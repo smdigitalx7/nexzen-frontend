@@ -4,7 +4,8 @@ import { Button } from "@/common/components/ui/button";
 import { Badge } from "@/common/components/ui/badge";
 import { Dialog, DialogTrigger } from "@/common/components/ui/dialog";
 import { ColumnDef } from "@tanstack/react-table";
-import { EnhancedDataTable } from "@/common/components/shared";
+import { DataTable } from "@/common/components/shared";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import {
   createTextColumn
 } from "@/common/utils/factory/columnFactories";
@@ -45,7 +46,7 @@ const DistanceSlabsTab = ({
       id: 'slab_name',
       accessorKey: 'slab_name',
       header: 'Slab Name',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: { original: DistanceSlabRead } }) => (
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-green-600">₹</span>
           <span className="font-medium">{row.original.slab_name}</span>
@@ -56,18 +57,18 @@ const DistanceSlabsTab = ({
       id: 'min_distance',
       accessorKey: 'min_distance',
       header: 'Min Distance (km)',
-      cell: ({ row }) => row.original.min_distance,
+      cell: ({ row }: { row: { original: DistanceSlabRead } }) => row.original.min_distance,
     },
     {
       id: 'max_distance',
       accessorKey: 'max_distance',
       header: 'Max Distance (km)',
-      cell: ({ row }) => row.original.max_distance || '∞',
+      cell: ({ row }: { row: { original: DistanceSlabRead } }) => row.original.max_distance || '∞',
     },
     {
       id: 'range',
       header: 'Distance Range',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: { original: DistanceSlabRead } }) => (
         <span>
           {row.original.min_distance} - {row.original.max_distance || '∞'} km
         </span>
@@ -77,7 +78,7 @@ const DistanceSlabsTab = ({
       id: 'fee_amount',
       accessorKey: 'fee_amount',
       header: 'Amount',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: { original: DistanceSlabRead } }) => (
         <span className="font-semibold text-green-700">
           ₹{row.original.fee_amount.toFixed(2)}
         </span>
@@ -85,14 +86,19 @@ const DistanceSlabsTab = ({
     },
   ], []);
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
+  // Action configurations for DataTable V2
+  const actions: ActionConfig<DistanceSlabRead>[] = useMemo(() => [
     {
-      type: 'edit' as const,
+      id: "edit",
+      label: "Edit",
+      icon: Edit,
       onClick: (row: DistanceSlabRead) => handleEditSlab(row)
     },
     {
-      type: 'delete' as const,
+      id: "delete",
+      label: "Delete",
+      icon: Trash2,
+      variant: "destructive",
       onClick: (row: DistanceSlabRead) => handleDeleteSlab(row.slab_id)
     }
   ], []);
@@ -147,20 +153,17 @@ const DistanceSlabsTab = ({
         />
       </Dialog>
 
-      <EnhancedDataTable
+      <DataTable
         data={slabsData}
         columns={columns}
         title="Distance Slabs"
         searchKey="slab_name"
         searchPlaceholder="Search slabs..."
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
-        exportable={true}
+        actions={actions}
+        actionsHeader="Actions"
+        export={{ enabled: true, filename: "distance_slabs" }}
         onAdd={() => setIsAddFeeOpen(true)}
         addButtonText="Add Distance Slab"
-        addButtonVariant="default"
       />
 
       {/* Edit Fee Dialog */}

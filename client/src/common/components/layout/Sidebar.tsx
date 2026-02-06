@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -48,7 +48,8 @@ interface NavigationItem {
 }
 
 const Sidebar = () => {
-  const [location, setLocation] = useLocation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { user, currentBranch, logoutAsync } = useAuthStore();
   const { sidebarOpen, setActiveModule, toggleSidebar } = useNavigationStore();
   const queryClient = useQueryClient();
@@ -254,13 +255,30 @@ const Sidebar = () => {
     try {
       // logoutAsync() already handles query cache invalidation
       await logoutAsync();
-      setLocation("/");
+      navigate("/");
     } catch (error) {
       console.error("Logout failed:", error);
       // Still navigate to root even if logout fails
-      setLocation("/");
+      navigate("/");
     }
   };
+
+  // Theme configuration based on branch type
+  const themeColors = useMemo(() => {
+    const isSchool = currentBranch?.branch_type === "SCHOOL";
+    
+    // Get colors from environment variables with defaults
+    const schoolIconColor = import.meta.env.VITE_SCHOOL_ICON_COLOR || "#f37028";
+    const collegeIconColor = import.meta.env.VITE_COLLEGE_ICON_COLOR || "#fe0000";
+
+    const baseTheme = {
+      active: "bg-blue-50 text-blue-700 font-medium",
+      inactive: "text-slate-600 hover:bg-blue-50/50 hover:text-blue-800",
+      iconColor: isSchool ? schoolIconColor : collegeIconColor
+    };
+
+    return baseTheme;
+  }, [currentBranch?.branch_type]);
 
   const NavItem = ({
     item,
@@ -270,7 +288,7 @@ const Sidebar = () => {
     isActive: boolean;
   }) => (
     <Link
-      href={item.href}
+      to={item.href}
       onClick={() => {
         // Mark navigation as from sidebar with the target path and timestamp
         // Store path and timestamp to handle timing issues between navigation and route check
@@ -285,29 +303,20 @@ const Sidebar = () => {
         handleItemClick(item.href, item.title);
       }}
     >
-      <Button
-        variant={isActive ? "secondary" : "ghost"}
-        size="sm"
+      <div
         className={cn(
-          "w-full justify-start gap-3 h-10 hover-elevate relative transition-all duration-200 group rounded-lg overflow-hidden",
-          isActive
-            ? "bg-blue-100/80 text-blue-700 font-medium hover:bg-blue-100/90 "
-            : "hover:bg-slate-50/70 text-slate-600 hover:text-slate-800"
+          "w-full flex items-center justify-start gap-3 px-3 py-2 relative transition-colors duration-200 group rounded-md overflow-hidden cursor-pointer", 
+          isActive ? themeColors.active : themeColors.inactive
         )}
         data-testid={`nav-${item.title.toLowerCase().replace(" ", "-")}`}
       >
-        <motion.div
-          className="flex items-center gap-3 flex-1"
-          whileHover={{ x: 4 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-        >
+        <div className="flex items-center gap-3 flex-1">
           <item.icon
-            className={cn(
-              "h-4 w-4 shrink-0 transition-colors duration-200",
-              isActive
-                ? "text-blue-600"
-                : "text-slate-400 group-hover:text-slate-600"
-            )}
+            className="h-4 w-4 shrink-0 transition-opacity duration-200"
+            style={{ 
+              color: themeColors.iconColor,
+              opacity: isActive ? 1.5 : 0.5 
+            }}
           />
           {sidebarOpen && (
             <>
@@ -324,8 +333,8 @@ const Sidebar = () => {
               )}
             </>
           )}
-        </motion.div>
-      </Button>
+        </div>
+      </div>
     </Link>
   );
 
@@ -396,7 +405,7 @@ const Sidebar = () => {
                 icon: LayoutDashboard,
                 description: "Overview and analytics",
               }}
-              isActive={location === "/"}
+              isActive={location.pathname === "/"}
             />
           </div>
 
@@ -432,7 +441,7 @@ const Sidebar = () => {
                   <NavItem
                     key={item.href}
                     item={item}
-                    isActive={location === item.href}
+                    isActive={location.pathname === item.href}
                   />
                 ))}
               </div>
@@ -468,7 +477,7 @@ const Sidebar = () => {
                   <NavItem
                     key={item.href}
                     item={item}
-                    isActive={location === item.href}
+                    isActive={location.pathname === item.href}
                   />
                 ))}
               </div>

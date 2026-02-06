@@ -1,6 +1,6 @@
-﻿import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { GraduationCap, Plus, Trash2 } from 'lucide-react';
+import { GraduationCap, Plus, Trash2, Eye, Pencil } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/common/components/ui/button';
 import { Input } from '@/common/components/ui/input';
@@ -15,7 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { EnhancedDataTable } from '@/common/components/shared';
+import { DataTable } from '@/common/components/shared/DataTable';
+import type { ActionConfig } from '@/common/components/shared/DataTable/types';
 import { Loader } from '@/common/components/ui/ProfessionalLoader';
 import {
   CollegeClassDropdown,
@@ -535,26 +536,17 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
     ];
   }, []);
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
-    {
-      type: 'view' as const,
-      onClick: (row: ExamMarkRow) => handleViewExamMark(row.mark_id)
-    },
-    {
-      type: 'edit' as const,
-      onClick: (row: ExamMarkRow) => handleEditExamMark(row)
-    },
-    {
-      type: 'delete' as const,
-      onClick: (row: ExamMarkRow) => handleDeleteExamMark(row.mark_id)
-    }
+  // Actions for DataTable V2 (View, Edit, Delete)
+  const examMarkActions = useMemo<ActionConfig<ExamMarkRow>[]>(() => [
+    { id: 'view', label: 'View', icon: Eye, variant: 'ghost', onClick: (row) => handleViewExamMark(row.mark_id) },
+    { id: 'edit', label: 'Edit', icon: Pencil, variant: 'outline', onClick: handleEditExamMark },
+    { id: 'delete', label: 'Delete', icon: Trash2, variant: 'destructive', onClick: (row) => handleDeleteExamMark(row.mark_id) },
   ], [handleViewExamMark, handleEditExamMark, handleDeleteExamMark]);
 
   return (
     <div className="flex flex-col h-full bg-slate-50/30">
       <div className="flex-1 overflow-auto scrollbar-hide">
-        <div className="p-6 space-y-6">
+        <div className="">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -1128,10 +1120,10 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="space-y-6"
+            className="space-y-3"
           >
             {/* Unified Filter Controls */}
-            <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+            <div className="flex flex-wrap gap-3 items-center p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
               {/* Required Filters - Order: Class, Group, Exam, Subject (as per mandatory parameters)                  */}
               <div className="flex items-center gap-2">
                     <label htmlFor="exam-mgmt-class" className="text-sm font-medium">Class:</label>
@@ -1192,7 +1184,7 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
             </div>
 
             {/* Data Table */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* Filter Selection Alerts */}
               {!selectedClass && (
                 <Alert>
@@ -1223,21 +1215,20 @@ const ExamMarksManagement: React.FC<ExamMarksManagementProps> = ({
                 </Alert>
               )}
 
-              {/* Enhanced Data Table - Always shown */}
-              <EnhancedDataTable
+              {/* DataTable V2 */}
+              <DataTable<ExamMarkRow>
                 data={examMarks}
                 title="Exam Marks"
                 searchKey="student_name"
                 searchPlaceholder="Search students..."
                 columns={examMarkColumns}
+                loading={examMarksLoading}
                 onAdd={() => setShowExamMarkDialog(true)}
                 addButtonText="Add Exam Mark"
-                exportable={true}
-                showActions={true}
-                actionButtonGroups={actionButtonGroups}
-                actionColumnHeader="Actions"
-                showActionLabels={false}
-                loading={examMarksLoading}
+                export={{ enabled: true, filename: "exam-marks" }}
+                actions={examMarkActions}
+                actionsHeader="Actions"
+                emptyMessage="No exam marks found"
               />
             </div>
 

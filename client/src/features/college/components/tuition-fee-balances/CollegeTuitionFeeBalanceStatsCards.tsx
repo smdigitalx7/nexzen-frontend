@@ -183,7 +183,7 @@ export const CollegeTuitionFeeBalanceStatsCards: React.FC<
         ? "green"
         : stats.average_payment_completion >= 60
           ? "yellow"
-          : "red") as "green" | "yellow" | "red",
+          : "red"),
       description: "Average completion rate",
       variant: "gradient" as const,
       size: "sm" as const,

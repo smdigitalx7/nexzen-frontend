@@ -23,7 +23,7 @@ export function canPerformAction(
   const resourcePerms = GLOBAL_PERMISSIONS[resource];
   
   if (resourcePerms?.actions?.[action]) {
-    return resourcePerms.actions[action]!.includes(user.role);
+    return resourcePerms.actions[action].includes(user.role);
   }
 
   // Fall back to default permissions

@@ -1,6 +1,6 @@
 ﻿import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/common/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/common/components/ui/select';
+import { SmartSelect } from '@/common/components/ui/smart-select';
 import { Button } from '@/common/components/ui/button';
 import { useToast } from '@/common/hooks/use-toast';
 import { Input } from '@/common/components/ui/input';
@@ -72,27 +72,28 @@ export default function AttendanceCreate() {
   };
 
   return (
-    <Card className="shadow-sm">
-      <CardHeader className="pb-4">
+    <div className="space-y-6">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-lg bg-primary/10">
             <FileCheck className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-xl">Create Attendance</CardTitle>
-            <CardDescription className="mt-1">
+            <h2 className="text-xl font-semibold tracking-tight">Create Attendance</h2>
+            <p className="text-sm text-muted-foreground mt-1">
               Initialize monthly attendance records for a class and group
-            </CardDescription>
+            </p>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4 mb-6">
+        
+        <div className="flex-1 lg:max-w-2xl bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-3">
           <p className="text-sm text-blue-900 dark:text-blue-100 leading-relaxed">
             <strong>Note:</strong> Use this form to initialize monthly attendance records. After initialization, use the <strong>View</strong> tab to mark day-wise presence or adjust attendance counts.
           </p>
         </div>
-
+      </div>
+      
+      <div>
         <div className="space-y-6">
           {/* Class & Group Selection */}
           <div className="space-y-3">
@@ -145,21 +146,15 @@ export default function AttendanceCreate() {
                 <Label htmlFor="month-select" className="text-sm font-medium">
                   Month <span className="text-destructive">*</span>
                 </Label>
-                <Select value={String(bulkMonth)} onValueChange={(v) => setBulkMonth(parseInt(v))}>
-                  <SelectTrigger id="month-select" className="w-full">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <SelectValue placeholder="Select month" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                      <SelectItem key={m} value={String(m)}>
-                        {monthNames[m-1]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SmartSelect
+                  items={Array.from({ length: 12 }, (_, i) => ({
+                    value: String(i + 1),
+                    label: monthNames[i]
+                  }))}
+                  value={String(bulkMonth)}
+                  onSelect={(v: string) => setBulkMonth(parseInt(v))}
+                  placeholder="Select month"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="year-input" className="text-sm font-medium">
@@ -210,7 +205,7 @@ export default function AttendanceCreate() {
             </Button>
           </div>
         </div>
-      </CardContent>
+      </div>
 
       {/* Confirmation Dialog */}
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -257,7 +252,7 @@ export default function AttendanceCreate() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </div>
   );
 }
 

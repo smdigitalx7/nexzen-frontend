@@ -23,10 +23,12 @@ import {
   CreditCard,
   AlertCircle,
   Search,
+  Eye,
 } from "lucide-react";
 import { ReceiptPreviewModal } from "@/common/components/shared";
 import { handleCollegePayByAdmissionWithIncomeId } from "@/core/api/api-college";
-import { EnhancedDataTableServer } from "@/common/components/shared";
+import { DataTable } from "@/common/components/shared/DataTable";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import {
   useCollegeAdmissions,
   useCollegeAdmissionById,
@@ -259,27 +261,31 @@ const AdmissionsList = () => {
     }
   }, [selectedStudentId, receiptBlobUrl]);
 
-  // Memoized action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
+  // ✅ MIGRATED: Use DataTable V2 actions format
+  const actions: ActionConfig<CollegeAdmissionListItem>[] = useMemo(() => [
     {
-      type: "view" as const,
-      onClick: (row: CollegeAdmissionListItem) => handleViewDetails(row),
+      id: "view",
+      label: "View",
+      icon: Eye,
+      onClick: (row) => handleViewDetails(row),
     },
   ], [handleViewDetails]);
 
-  // Column definitions for the enhanced table
+  // Column definitions
   const columns: ColumnDef<CollegeAdmissionListItem>[] = useMemo(() => [
     {
       accessorKey: "admission_no",
       header: "Admission No",
       cell: ({ row }) => (
-        <span className="font-medium">{row.getValue("admission_no") || "N/A"}</span>
+        <span className="font-medium text-blue-600 truncate block max-w-[120px]">
+          {row.getValue("admission_no") || "N/A"}
+        </span>
       ),
     },
     {
       accessorKey: "student_name",
       header: "Student Name",
-      cell: ({ row }) => <span>{row.getValue("student_name")}</span>,
+      cell: ({ row }) => <span className="font-semibold">{row.getValue("student_name")}</span>,
     },
     {
       accessorKey: "group_course",
@@ -299,8 +305,8 @@ const AdmissionsList = () => {
         }
         
         return (
-          <div className="max-w-[150px] truncate">
-            <Badge variant="outline">{groupCourse}</Badge>
+          <div className="max-w-[200px] truncate">
+            <Badge variant="outline" className="bg-slate-50">{groupCourse}</Badge>
           </div>
         );
       },
@@ -308,7 +314,7 @@ const AdmissionsList = () => {
     {
       accessorKey: "admission_date",
       header: "Admission Date",
-      cell: ({ row }) => <span>{row.getValue("admission_date") || "N/A"}</span>,
+      cell: ({ row }) => <span className="text-muted-foreground">{row.getValue("admission_date") || "N/A"}</span>,
     },
     {
       accessorKey: "admission_fee_paid",
@@ -321,8 +327,8 @@ const AdmissionsList = () => {
       accessorKey: "payable_tuition_fee",
       header: "Tuition Fee",
       cell: ({ row }) => (
-        <span className="text-sm font-mono">
-          {row.getValue("payable_tuition_fee") || "N/A"}
+        <span className="text-sm font-mono font-medium">
+          ₹{(row.getValue("payable_tuition_fee") || 0).toLocaleString()}
         </span>
       ),
     },
@@ -330,8 +336,8 @@ const AdmissionsList = () => {
       accessorKey: "payable_transport_fee",
       header: "Transport Fee",
       cell: ({ row }) => (
-        <span className="text-sm font-mono">
-          {row.getValue("payable_transport_fee") || "N/A"}
+        <span className="text-sm font-mono font-medium text-orange-600">
+          ₹{(row.getValue("payable_transport_fee") || 0).toLocaleString()}
         </span>
       ),
     },
@@ -339,58 +345,35 @@ const AdmissionsList = () => {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <div className="relative w-full max-w-md">
-            <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search admissions (server-side)…"
-              className="pl-9"
-            />
-          </div>
-          {search ? (
-            <Button variant="outline" size="sm" onClick={() => setSearch("")}>
-              Clear
-            </Button>
-          ) : null}
-        </div>
-        <EnhancedDataTableServer
-          data={admissions}
-          columns={columns}
-          title="Student Admissions"
-          loading={isLoading}
-          exportable={true}
-          onExport={handleExportAll}
-          showSearch={false}
-          highlightSearchResults={true}
-          showActions={true}
-          actionButtonGroups={actionButtonGroups}
-          actionColumnHeader="Actions"
-          showActionLabels={true}
-          className="w-full"
-          serverPagination={
-            admissionsResp
-              ? {
-                  currentPage,
-                  totalPages: admissionsResp.total_pages || 1,
-                  totalCount: admissionsResp.total_count || admissions.length,
-                  pageSize,
-                  onPageChange: (page) => {
-                    setCurrentPage(page);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  },
-                  onPageSizeChange: (newPageSize) => {
-                    setPageSize(newPageSize);
-                    setCurrentPage(1);
-                  },
-                  isLoading,
-                }
-              : undefined
-          }
-        />
-      </div>
+      <DataTable
+        data={admissions}
+        columns={columns}
+        title="Student Admissions"
+        loading={isLoading}
+        pagination="server"
+        totalCount={admissionsResp?.total_count || 0}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        onPageChange={(page) => {
+          setCurrentPage(page);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setCurrentPage(1);
+        }}
+        showSearch={true}
+        searchPlaceholder="Search admissions (no, name, group)..."
+        searchValue={search}
+        onSearchChange={setSearch}
+        actions={actions}
+        export={{ 
+          enabled: true, 
+          filename: 'college_admissions',
+          onExport: handleExportAll 
+        }}
+        selectable={true}
+      />
 
       {/* Admission Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>

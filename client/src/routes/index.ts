@@ -1,4 +1,4 @@
-﻿export { AppRouter } from "./AppRouter";
+﻿export { router } from "./router";
 export { AuthenticatedLayout } from "./AuthenticatedLayout";
 export { ProtectedRoute } from "./ProtectedRoute";
 export { DashboardRouter } from "./DashboardRouter";

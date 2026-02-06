@@ -1,6 +1,6 @@
 ﻿import { Input } from '@/common/components/ui/input';
 import { Label } from '@/common/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/common/components/ui/select';
+import { ServerCombobox } from '@/common/components/ui/server-combobox';
 import { DatePicker } from '@/common/components/ui/date-picker';
 import { FormDialog } from '@/common/components/shared';
 import { BusRouteDropdown } from '@/common/components/shared/Dropdowns';
@@ -48,36 +48,26 @@ export const TransportCreateDialog = ({
       <div className="space-y-4">
         <div>
           <Label htmlFor="enrollment_id">Enrollment *</Label>
-          <Select
+          <ServerCombobox
+            items={enrollments.map((enrollment: any) => {
+              const displayParts = [
+                enrollment.student_name,
+                enrollment.class_name || '',
+                enrollment.group_name || '',
+              ].filter(Boolean);
+              const displayText = displayParts.join(' - ');
+              const rollNumber = enrollment.roll_number ? ` (Roll: ${enrollment.roll_number})` : '';
+              return {
+                value: enrollment.enrollment_id,
+                label: `${displayText}${rollNumber}`
+              };
+            })}
             value={formData.enrollment_id ? String(formData.enrollment_id) : ''}
-            onValueChange={(value) => onFormDataChange({ ...formData, enrollment_id: Number(value) })}
-          >
-            <SelectTrigger id="enrollment_id">
-              <SelectValue placeholder="Select enrollment" />
-            </SelectTrigger>
-            <SelectContent>
-              {enrollments.length === 0 ? (
-                <div className="px-2 py-2 text-center text-xs text-muted-foreground">
-                  No students
-                </div>
-              ) : (
-                enrollments.map((enrollment: any) => {
-                  const displayParts = [
-                    enrollment.student_name,
-                    enrollment.class_name || '',
-                    enrollment.group_name || '',
-                  ].filter(Boolean);
-                  const displayText = displayParts.join(' - ');
-                  const rollNumber = enrollment.roll_number ? ` (Roll: ${enrollment.roll_number})` : '';
-                  return (
-                    <SelectItem key={enrollment.enrollment_id} value={String(enrollment.enrollment_id)}>
-                      {displayText}{rollNumber}
-                    </SelectItem>
-                  );
-                })
-              )}
-            </SelectContent>
-          </Select>
+            onSelect={(value: string) => onFormDataChange({ ...formData, enrollment_id: Number(value) })}
+            placeholder="Select enrollment"
+            searchPlaceholder="Search student..."
+            emptyText="No students"
+          />
         </div>
         <div>
           <Label htmlFor="bus_route_id">Bus Route *</Label>

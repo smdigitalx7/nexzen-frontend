@@ -1,18 +1,13 @@
 ﻿import { useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { User } from "lucide-react";
+import { User, Wallet, Eye } from "lucide-react";
 import { Badge } from "@/common/components/ui/badge";
 import { formatCurrency } from "@/common/utils";
 import { ColumnDef } from "@tanstack/react-table";
-import { EnhancedDataTable } from "@/common/components/shared";
-import {
-  createTextColumn,
-  createCurrencyColumn,
-  createDateColumn,
-} from "@/common/utils/factory/columnFactories";
 import { ConcessionUpdateModal } from "@/common/components/shared/ConcessionUpdateModal";
 import { useUpdateCollegeTuitionConcession } from "@/features/college/hooks/use-college-tuition-balances";
-import { Wallet } from "lucide-react";
+import { ActionConfig, FilterConfig } from '@/common/components/shared/DataTable/types';
+import { DataTable } from '@/common/components/shared/DataTable';
 
 interface StudentFeeBalance {
   id: number;
@@ -80,48 +75,54 @@ export const StudentFeeBalancesTable = ({
     await updateConcessionMutation.mutateAsync({ concession_amount: amount });
   };
 
-  // Get unique classes for filter options
   const uniqueClasses = Array.from(new Set(studentBalances.map(s => s.class_name)));
 
-  // Define columns for EnhancedDataTable
   const columns: ColumnDef<StudentFeeBalance>[] = useMemo(() => [
     {
       id: 'student_info',
       header: 'Student',
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg">
+          <div className="p-2 bg-blue-50 rounded-lg">
             <User className="h-4 w-4 text-blue-600" />
           </div>
           <div>
-            <div className="font-medium">{row.original.student_name}</div>
-            <div className="text-sm text-muted-foreground font-mono">{row.original.student_id}</div>
+            <div className="font-semibold">{row.original.student_name}</div>
+            <div className="text-sm text-slate-500 font-mono">{row.original.student_id}</div>
           </div>
         </div>
       ),
     },
-    createTextColumn<StudentFeeBalance>("class_name", { header: "Class" }),
-    createCurrencyColumn<StudentFeeBalance>("total_fee", { header: "Total Fee" }),
     {
-      id: 'paid_amount',
+      accessorKey: "class_name",
+      header: "Class",
+      cell: ({ row }) => <Badge variant="outline" className="bg-slate-50">{row.getValue("class_name")}</Badge>
+    },
+    {
+      accessorKey: "total_fee",
+      header: "Total Fee",
+      cell: ({ row }) => <span className="font-mono">{formatCurrency(row.original.total_fee || 0)}</span>
+    },
+    {
+      accessorKey: 'paid_amount',
       header: 'Paid Amount',
       cell: ({ row }) => (
-        <span className="text-green-600 font-medium">
-          {formatCurrency(row.original.paid_amount)}
+        <span className="text-green-600 font-semibold font-mono">
+          {formatCurrency(row.original.paid_amount || 0)}
         </span>
       ),
     },
     {
-      id: 'outstanding_amount',
+      accessorKey: 'outstanding_amount',
       header: 'Outstanding',
       cell: ({ row }) => (
-        <span className="text-red-600 font-bold">
-          {formatCurrency(row.original.outstanding_amount)}
+        <span className="text-red-600 font-bold font-mono">
+          {formatCurrency(row.original.outstanding_amount || 0)}
         </span>
       ),
     },
     {
-      id: 'status',
+      accessorKey: 'status',
       header: 'Status',
       cell: ({ row }) => (
         <Badge className={getStatusColor(row.original.status)}>
@@ -129,50 +130,48 @@ export const StudentFeeBalancesTable = ({
         </Badge>
       ),
     },
-    createDateColumn<StudentFeeBalance>("last_payment_date", { 
+    {
+      accessorKey: "last_payment_date",
       header: "Last Payment",
-      className: "text-sm text-muted-foreground"
-    }),
+      cell: ({ row }) => {
+        const date = row.original.last_payment_date;
+        if (!date) return '-';
+        return <span className="text-sm text-slate-500">{date}</span>;
+      }
+    },
   ], []);
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
+  const actions: ActionConfig<StudentFeeBalance>[] = useMemo(() => [
     {
-      type: 'view' as const,
-      onClick: (row: StudentFeeBalance) => onViewStudent(row)
+      id: 'view',
+      label: 'View',
+      icon: Eye,
+      onClick: (row) => onViewStudent(row)
     },
     {
-      type: 'custom' as const,
+      id: 'concession',
       label: 'Concession',
       icon: Wallet,
-      variant: 'outline' as "outline",
-      onClick: handleOpenConcession
+      onClick: (row) => handleOpenConcession(row)
     }
   ], [onViewStudent, handleOpenConcession]);
 
-  // Prepare filter options for EnhancedDataTable
-  const filterOptions = [
+  const filters: FilterConfig[] = [
     {
       key: 'class_name',
       label: 'Class',
+      type: 'select',
       options: uniqueClasses.map(className => ({ value: className, label: className })),
-      value: 'all',
-      onChange: (_value: string) => {
-        // This will be handled by EnhancedDataTable's built-in filtering
-      }
     },
     {
       key: 'status',
       label: 'Status',
+      type: 'select',
       options: [
         { value: 'PAID', label: 'Paid' },
         { value: 'PARTIAL', label: 'Partial' },
         { value: 'OUTSTANDING', label: 'Outstanding' }
       ],
-      value: 'all',
-      onChange: (_value: string) => {
-        // This will be handled by EnhancedDataTable's built-in filtering
-      }
     }
   ];
 
@@ -183,22 +182,18 @@ export const StudentFeeBalancesTable = ({
       transition={{ delay: 0.3 }}
       className="space-y-4"
     >
-      {/* Enhanced Data Table */}
-      <EnhancedDataTable
+      <DataTable
         data={studentBalances}
         columns={columns}
+        actions={actions}
+        filters={filters}
         title={title}
         searchKey="student_name"
         searchPlaceholder="Search students..."
-        exportable={true}
+        loading={loading}
         onAdd={onBulkCreate}
         addButtonText="Bulk Create"
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
-        loading={loading}
-        filters={filterOptions}
+        export={{ enabled: true, filename: 'fee_balances' }}
       />
 
       <ConcessionUpdateModal

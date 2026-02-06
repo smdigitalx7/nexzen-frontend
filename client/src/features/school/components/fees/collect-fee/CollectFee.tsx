@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback, startTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useLocation, useSearch } from "wouter";
+import { useLocation, useNavigate } from "react-router-dom";
+
 import { ArrowLeft } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/common/components/ui/button";
@@ -44,8 +45,9 @@ export const CollectFee = ({
 }: CollectFeeProps) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [, navigate] = useLocation();
-  const search = useSearch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const search = location.search; // useLocation().search in react-router-dom is equivalent to useSearch() in wouter (returns query string)
   const [selectedStudent, setSelectedStudent] = useState<StudentFeeDetails | null>(null);
   const paymentSuccessRef = useRef<string | null>(null);
   const hasInitializedRef = useRef(false);
@@ -59,20 +61,21 @@ export const CollectFee = ({
     const newSearchParams = new URLSearchParams(search);
     newSearchParams.set("admission_no", admissionNo);
     const newSearch = newSearchParams.toString();
-    navigate(`${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`, {
+    // navigate in react-router-dom also accepts `replace: true`
+    navigate(`${location.pathname}${newSearch ? `?${newSearch}` : ""}`, {
       replace: true,
     });
-  }, [search, navigate]);
+  }, [search, navigate, location.pathname]);
 
   // Remove admission number from URL
   const removeAdmissionFromUrl = useCallback(() => {
     const newSearchParams = new URLSearchParams(search);
     newSearchParams.delete("admission_no");
     const newSearch = newSearchParams.toString();
-    navigate(`${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`, {
+    navigate(`${location.pathname}${newSearch ? `?${newSearch}` : ""}`, {
       replace: true,
     });
-  }, [search, navigate]);
+  }, [search, navigate, location.pathname]);
 
   const handleStartPayment = useCallback((studentDetails: StudentFeeDetails) => {
     setSelectedStudent(studentDetails);

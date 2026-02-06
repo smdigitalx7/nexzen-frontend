@@ -1,13 +1,7 @@
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
 import { Textarea } from "@/common/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/common/components/ui/select";
+import { SmartSelect } from "@/common/components/ui/smart-select";
 import { RadioGroup, RadioGroupItem } from "@/common/components/ui/radio-group";
 import { Button } from "@/common/components/ui/button";
 import { EmployeeSelect } from "@/common/components/ui/employee-select";
@@ -103,6 +97,7 @@ export type ReservationFormProps = {
   onDropdownOpen?: (
     dropdown: "classes" | "groups" | "courses" | "routes"
   ) => void;
+  modal?: boolean;
 };
 
 export default function ReservationForm({
@@ -124,6 +119,7 @@ export default function ReservationForm({
   isLoadingCourses = false,
   isLoadingRoutes = false,
   onDropdownOpen,
+  modal = false,
 }: ReservationFormProps) {
   const isSaveDisabled = useMemo(
     () =>
@@ -387,19 +383,17 @@ export default function ReservationForm({
               </div>
               <div>
                 <Label htmlFor="gender">Gender *</Label>
-                <Select
+                <SmartSelect
+                  items={[
+                    { value: "MALE", label: "MALE" },
+                    { value: "FEMALE", label: "FEMALE" },
+                    { value: "OTHER", label: "OTHER" },
+                  ]}
                   value={form.gender}
-                  onValueChange={(value) => setForm({ ...form, gender: value })}
-                >
-                  <SelectTrigger id="gender">
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MALE">MALE</SelectItem>
-                    <SelectItem value="FEMALE">FEMALE</SelectItem>
-                    <SelectItem value="OTHER">OTHER</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onSelect={(value: string) => setForm({ ...form, gender: value })}
+                  placeholder="Select gender"
+                  radioLayout="horizontal"
+                />
               </div>
               <div>
                 <Label htmlFor="dob">Date of Birth</Label>
@@ -590,21 +584,17 @@ export default function ReservationForm({
                     </div>
                     <div>
                       <Label htmlFor={`sibling-gender-${idx}`}>Gender</Label>
-                      <Select
+                      <SmartSelect
+                        items={[
+                          { value: "MALE", label: "MALE" },
+                          { value: "FEMALE", label: "FEMALE" },
+                          { value: "OTHER", label: "OTHER" },
+                        ]}
                         value={s.gender || "MALE"}
-                        onValueChange={(value) =>
-                          updateSibling(idx, "gender", value)
-                        }
-                      >
-                        <SelectTrigger id={`sibling-gender-${idx}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="MALE">MALE</SelectItem>
-                          <SelectItem value="FEMALE">FEMALE</SelectItem>
-                          <SelectItem value="OTHER">OTHER</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        onSelect={(value: string) => updateSibling(idx, "gender", value)}
+                        placeholder="Select gender"
+                        radioLayout="horizontal"
+                      />
                     </div>
                     <div>
                       <Button
@@ -652,6 +642,7 @@ export default function ReservationForm({
                   }}
                   placeholder="Select class"
                   required
+                  modal={modal}
                 />
               </div>
               <div>
@@ -724,6 +715,7 @@ export default function ReservationForm({
                   disabled={
                     !form.preferred_class_id || form.preferred_class_id === 0
                   }
+                  modal={modal}
                 />
               </div>
               <div>
@@ -764,6 +756,7 @@ export default function ReservationForm({
                   disabled={
                     !form.preferred_group_id || form.preferred_group_id === 0
                   }
+                  modal={modal}
                 />
                 {form.preferred_group_id > 0 &&
                   (!form.preferred_course_id ||
@@ -805,9 +798,13 @@ export default function ReservationForm({
               </div>
               <div>
                 <Label htmlFor="book_fee_required">Book Fee Required</Label>
-                <Select
+                <SmartSelect
+                  items={[
+                    { value: "true", label: "Yes" },
+                    { value: "false", label: "No" },
+                  ]}
                   value={form.book_fee_required ? "true" : "false"}
-                  onValueChange={(value) => {
+                  onSelect={(value: string) => {
                     const isRequired = value === "true";
                     const selectedGroup = groups.find(
                       (g) => g.group_id === form.preferred_group_id
@@ -822,15 +819,9 @@ export default function ReservationForm({
                           : 0,
                     });
                   }}
-                >
-                  <SelectTrigger id="book_fee_required">
-                    <SelectValue placeholder="Select book fee requirement" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">Yes</SelectItem>
-                    <SelectItem value="false">No</SelectItem>
-                  </SelectContent>
-                </Select>
+                  placeholder="Select book fee requirement"
+                  radioLayout="horizontal"
+                />
               </div>
               {form.book_fee_required && (
                 <div>
@@ -891,20 +882,18 @@ export default function ReservationForm({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="transport_required">Transport Required</Label>
-                <Select
+                <SmartSelect
+                  items={[
+                    { value: "true", label: "Yes" },
+                    { value: "false", label: "No" },
+                  ]}
                   value={form.transport_required ? "true" : "false"}
-                  onValueChange={(value) =>
+                  onSelect={(value: string) =>
                     setForm({ ...form, transport_required: value === "true" })
                   }
-                >
-                  <SelectTrigger id="transport_required">
-                    <SelectValue placeholder="Select transport" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">Yes</SelectItem>
-                    <SelectItem value="false">No</SelectItem>
-                  </SelectContent>
-                </Select>
+                  placeholder="Select transport"
+                  radioLayout="horizontal"
+                />
               </div>
               {form.transport_required && (
                 <>
@@ -922,6 +911,7 @@ export default function ReservationForm({
                         });
                       }}
                       placeholder="Select transport route"
+                      modal={modal}
                     />
                   </div>
                   <div>

@@ -1,11 +1,9 @@
-import { useState, useMemo, useEffect, memo, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { ClipboardList, Eye, Edit, Trash2, Plus } from "lucide-react";
+import { Eye, Edit, Trash2, Plus } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/common/components/ui/button";
 import { Input } from "@/common/components/ui/input";
-import { DatePicker } from "@/common/components/ui/date-picker";
-import { Card, CardContent, CardHeader, CardTitle } from "@/common/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/common/components/ui/tabs";
 import { Alert, AlertDescription } from "@/common/components/ui/alert";
 import {
@@ -13,7 +11,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/common/components/ui/dialog";
 import {
   AlertDialog,
@@ -43,15 +40,9 @@ import {
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { EnhancedDataTable } from "@/common/components/shared";
+import { DataTable } from "@/common/components/shared";
+import { ServerCombobox } from "@/common/components/ui/server-combobox";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
-import { useSearchFilters } from "@/common/hooks";
-import {
-  SchoolClassDropdown,
-  SchoolSectionDropdown,
-  SchoolSubjectDropdown,
-  SchoolTestDropdown,
-} from "@/common/components/shared/Dropdowns";
 import {
   useSchoolTestMarksList,
   useSchoolTestMark,
@@ -65,6 +56,7 @@ import {
   useSchoolSections,
   useSchoolSubjects,
   useSchoolTests,
+  useSchoolClasses,
 } from '@/features/school/hooks/use-school-dropdowns';
 import { useGrades } from "@/features/general/hooks/useGrades";
 import type { TestMarkWithDetails, TestMarksQuery } from '@/features/school/types/test-marks';
@@ -83,31 +75,9 @@ import {
 import AddTestMarksByClassDialog from "./AddTestMarksByClassDialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { schoolKeys } from "@/features/school/hooks/query-keys";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 
-// Utility function to calculate grade from percentage using grades from API
-// This will be used inside the component where grades are available
-const createCalculateGradeFunction = (grades: Array<{ grade: string; min_percentage: number; max_percentage: number }>) => {
-  return (percentage: number): string => {
-    // Find the grade where percentage falls within min_percentage and max_percentage
-    // Grades are ordered by max_percentage descending, so we check from highest to lowest
-    for (const grade of grades) {
-      if (percentage >= grade.min_percentage && percentage <= grade.max_percentage) {
-        return grade.grade;
-      }
-    }
-    // Default to "F" if no match found (shouldn't happen if grades are configured correctly)
-    return "F";
-  };
-};
-
-const calculatePercentage = (
-  marksObtained: number,
-  maxMarks: number = 100
-): number => {
-  return Math.round((marksObtained / maxMarks) * 100 * 10) / 10; // Round to 1 decimal place
-};
-
-// Grade colors mapping - moved outside component for better performance
+// Grade colors mapping
 const GRADE_COLORS = {
   "A+": "bg-green-600",
   A: "bg-green-500",
@@ -200,32 +170,27 @@ const TestMarksManagementComponent = ({
     [selectedClass]
   );
 
-  // Get sections, subjects, and tests data for lookup maps (for filtering by name)
-  const { data: sectionsData } = useSchoolSections(classId);
-  const { data: subjectsData } = useSchoolSubjects(classId);
-  const { data: testsData } = useSchoolTests();
-  
-  // Get grades from API endpoint
+  // Get dropdown data
+  const { data: classesData, isLoading: classesLoading } = useSchoolClasses();
+  const { data: sectionsData, isLoading: sectionsLoading } = useSchoolSections(classId);
+  const { data: subjectsData, isLoading: subjectsLoading } = useSchoolSubjects(classId);
+  const { data: testsData, isLoading: testsLoading } = useSchoolTests();
   const { grades } = useGrades();
   
-  // Create calculateGrade function using grades from API
-  const calculateGrade = useMemo(() => createCalculateGradeFunction(grades), [grades]);
-  
   // Get enrollments filtered by class and section
-  // ✅ FIX: Reduced page size from 1000 to 50 to prevent UI freezes
   const enrollmentsParams = useMemo(() => {
     if (!selectedClass) return undefined;
     return {
       class_id: selectedClass,
       section_id: selectedSection || undefined,
       page: 1,
-      page_size: 50, // ✅ CRITICAL FIX: Reduced from 100 to 50 for optimal performance
+      page_size: 50,
     };
   }, [selectedClass, selectedSection]);
 
   const { data: enrollmentsData } = useSchoolEnrollmentsList(enrollmentsParams);
   
-  // Extract enrollments - flatten the grouped response and add class_name
+  // Extract enrollments
   const enrollments = useMemo(() => {
     if (!enrollmentsData?.enrollments) return [];
     const allEnrollments: (SchoolEnrollmentRead & { class_name: string })[] = [];
@@ -242,51 +207,25 @@ const TestMarksManagementComponent = ({
     return allEnrollments;
   }, [enrollmentsData]);
 
-  // Create lookup maps: ID -> Name (for filtering)
-  const sectionIdToName = useMemo(() => {
-    const map = new Map<number, string>();
-    sectionsData?.items?.forEach((section) => {
-      map.set(section.section_id, section.section_name);
-    });
-    return map;
-  }, [sectionsData]);
-
-  const subjectIdToName = useMemo(() => {
-    const map = new Map<number, string>();
-    subjectsData?.items?.forEach((subject) => {
-      map.set(subject.subject_id, subject.subject_name);
-    });
-    return map;
-  }, [subjectsData]);
-
-  const testIdToName = useMemo(() => {
-    const map = new Map<number, string>();
-    testsData?.items?.forEach((test) => {
-      map.set(test.test_id, test.test_name);
-    });
-    return map;
-  }, [testsData]);
-
-  // Reset section, subject, and test when class changes
+  // Reset dependent filters when class changes
   useEffect(() => {
     setSelectedSection(null);
     setSelectedSubject(null);
     setSelectedTest(null);
-  }, [selectedClass]);
+  }, [selectedClass, setSelectedSection, setSelectedSubject, setSelectedTest]);
 
-  // Single test mark view data (enabled only when an id is set)
+  // Single test mark view data
   const viewQuery = useSchoolTestMark(viewingTestMarkId || 0);
   const viewedTestMark = viewingTestMarkId ? viewQuery.data : null;
   const viewTestLoading = viewingTestMarkId ? viewQuery.isLoading : false;
   const viewTestError = viewingTestMarkId ? viewQuery.error : null;
 
-  // Test marks query - require class_id, subject_id, and test_id (server-side)
+  // Test marks query
   const testMarksQuery = useMemo(() => {
     if (!selectedClass || !selectedSubject || !selectedTest) {
       return undefined;
     }
 
-    // Require class_id, subject_id, and test_id for API call
     const query: TestMarksQuery = {
       class_id: selectedClass,
       subject_id: selectedSubject,
@@ -296,12 +235,17 @@ const TestMarksManagementComponent = ({
     return query;
   }, [selectedClass, selectedSubject, selectedTest]);
 
-  // Test marks hooks - only fetch when class is selected
+  const hasRequiredFilters = Boolean(
+    selectedClass && selectedClass > 0 &&
+    selectedSubject && selectedSubject > 0 &&
+    selectedTest && selectedTest > 0
+  );
+
   const {
     data: testMarksData,
     isLoading: testMarksLoading,
-    error: testMarksError,
   } = useSchoolTestMarksList(testMarksQuery);
+
   const createTestMarkMutation = useCreateSchoolTestMark();
   const updateTestMarkMutation = useUpdateSchoolTestMark(
     editingTestMark?.test_mark_id || 0
@@ -337,26 +281,22 @@ const TestMarksManagementComponent = ({
     name: 'subjects',
   });
 
-  // Memoized handlers
-  const handleClassChange = useCallback((value: number | null) => {
-    setSelectedClass(value);
-  }, []);
+  // Handlers
+  const handleClassChange = useCallback((value: string) => {
+    setSelectedClass(value ? Number(value) : null);
+  }, [setSelectedClass]);
 
-  const handleSectionChange = useCallback((value: number | null) => {
-    setSelectedSection(value);
-  }, []);
+  const handleSectionChange = useCallback((value: string) => {
+    setSelectedSection(value ? Number(value) : null);
+  }, [setSelectedSection]);
 
-  const handleSubjectChange = useCallback((value: number | null) => {
-    setSelectedSubject(value);
-  }, []);
+  const handleSubjectChange = useCallback((value: string) => {
+    setSelectedSubject(value ? Number(value) : null);
+  }, [setSelectedSubject]);
 
-  const handleGradeChange = useCallback((value: string) => {
-    setSelectedGrade(value);
-  }, []);
-
-  const handleTestChange = useCallback((value: number | null) => {
-    setSelectedTest(value);
-  }, []);
+  const handleTestChange = useCallback((value: string) => {
+    setSelectedTest(value ? Number(value) : null);
+  }, [setSelectedTest]);
 
   // Single subject form submission handler
   const handleTestMarkSubmit = useCallback(
@@ -445,7 +385,6 @@ const TestMarksManagementComponent = ({
     setShowViewTestMarkDialog(true);
   }, []);
 
-  // Memoized dialog handlers
   const closeTestMarkDialog = useCallback(() => {
     setActiveTab('single');
     testMarkForm.reset();
@@ -462,15 +401,6 @@ const TestMarksManagementComponent = ({
     append({ subject_id: "", marks_obtained: "", remarks: "" });
   }, [append]);
 
-  const closeViewDialog = useCallback(() => {
-    setShowViewTestMarkDialog(false);
-    setViewingTestMarkId(null);
-  }, []);
-
-  const closeDeleteDialog = useCallback(() => {
-    setConfirmDeleteId(null);
-  }, []);
-
   const confirmDelete = useCallback(() => {
     if (confirmDeleteId) {
       deleteTestMarkMutation.mutate(confirmDeleteId);
@@ -478,7 +408,7 @@ const TestMarksManagementComponent = ({
     }
   }, [confirmDeleteId, deleteTestMarkMutation]);
 
-  // Process and filter data - flatten grouped response from backend
+  // Process and filter data
   const flattenedMarks = useMemo(() => {
     if (!testMarksData) return [] as TestMarkWithDetails[];
     
@@ -488,7 +418,6 @@ const TestMarksManagementComponent = ({
     if (Array.isArray(raw)) {
       dataArray = raw;
     } else if (raw && typeof raw === 'object') {
-      // Handle wrapped responses
       const wrapped = raw as any;
       if (Array.isArray(wrapped.data)) {
         dataArray = wrapped.data;
@@ -496,14 +425,7 @@ const TestMarksManagementComponent = ({
         dataArray = wrapped.items;
       } else if (Array.isArray(wrapped.results)) {
         dataArray = wrapped.results;
-      } else {
-        // If it's an object but not an array, return empty
-        console.warn('testMarksData is not an array or array-wrapped object:', raw);
-        return [] as TestMarkWithDetails[];
       }
-    } else {
-      console.warn('testMarksData is not a valid type:', typeof raw, raw);
-      return [] as TestMarkWithDetails[];
     }
     
     const items: TestMarkWithDetails[] = [];
@@ -526,66 +448,23 @@ const TestMarksManagementComponent = ({
     return items;
   }, [testMarksData]);
 
-  // Apply client-side filtering for section, subject, and grade
+  // Client-side filtering
   const filteredMarks = useMemo(() => {
     let filtered = flattenedMarks;
-
-    // Apply section filter (client-side) - filter by section_name using lookup
-    if (selectedSection !== null) {
-      const sectionName = sectionIdToName.get(selectedSection);
-      if (sectionName) {
-        filtered = filtered.filter(
-          (mark) => mark.section_name === sectionName
-        );
-      }
-    }
-
-    // Apply subject filter (client-side) - filter by subject_id
-    if (selectedSubject !== null) {
-      filtered = filtered.filter(
-        (mark) => mark.subject_id !== undefined && mark.subject_id === selectedSubject
-      );
-    }
-
-    // Apply grade filter (client-side)
     if (selectedGrade !== "all") {
       filtered = filtered.filter((mark) => mark.grade === selectedGrade);
     }
-
-    // Apply test filter (client-side) - filter by test_id
-    if (selectedTest !== null) {
-      filtered = filtered.filter(
-        (mark) => mark.test_id !== undefined && mark.test_id === selectedTest
-      );
-    }
-
     return filtered;
-  }, [
-    flattenedMarks,
-    selectedSection,
-    selectedSubject,
-    selectedGrade,
-    selectedTest,
-    sectionIdToName,
-  ]);
+  }, [flattenedMarks, selectedGrade]);
 
-  const {
-    searchTerm,
-    setSearchTerm,
-    filteredItems: testMarks,
-  } = useSearchFilters<TestMarkWithDetails>(filteredMarks, {
-    keys: ["student_name", "subject_name", "roll_number"] as any,
-  });
-
-  // Notify parent component when data changes - use flattenedMarks (all data) for statistics
   useEffect(() => {
     if (onDataChange) {
       onDataChange(flattenedMarks);
     }
   }, [flattenedMarks, onDataChange]);
 
-  // Table columns for test marks using column factories
-  const testMarkColumns: ColumnDef<TestMarkWithDetails>[] = useMemo(
+  // Columns & Actions
+  const columns: ColumnDef<TestMarkWithDetails>[] = useMemo(
     () => [
       createStudentColumn<TestMarkWithDetails>(
         "student_name",
@@ -612,911 +491,615 @@ const TestMarksManagementComponent = ({
     []
   );
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(
-    () => [
-      {
-        type: "view" as const,
-        onClick: (row: TestMarkWithDetails) =>
-          handleViewTestMark(row.test_mark_id),
-      },
-      {
-        type: "edit" as const,
-        onClick: (row: TestMarkWithDetails) => handleEditTestMark(row),
-      },
-      {
-        type: "delete" as const,
-        onClick: (row: TestMarkWithDetails) =>
-          handleDeleteTestMark(row.test_mark_id),
-      },
-    ],
-    [handleViewTestMark, handleEditTestMark, handleDeleteTestMark]
-  );
+  const actions: ActionConfig<TestMarkWithDetails>[] = useMemo(() => [
+    {
+      id: "view",
+      label: "View",
+      icon: Eye,
+      onClick: (row) => handleViewTestMark(row.test_mark_id),
+    },
+    {
+      id: "edit",
+      label: "Edit",
+      icon: Edit,
+      onClick: (row) => handleEditTestMark(row),
+    },
+    {
+      id: "delete",
+      label: "Delete",
+      icon: Trash2,
+      variant: "destructive",
+      onClick: (row) => handleDeleteTestMark(row.test_mark_id),
+    }
+  ], [handleViewTestMark, handleEditTestMark, handleDeleteTestMark]);
 
   return (
     <div className="flex flex-col h-full bg-slate-50/30">
-      <div className="flex-1 overflow-auto scrollbar-hide">
-        <div className="p-2 space-y-2">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
-          >
-            <div className="flex gap-3">
-              <Dialog
-                open={showTestMarkDialog}
-                onOpenChange={setShowTestMarkDialog}
-              >
-                <DialogContent className="sm:max-w-[700px]">
-                  <DialogHeader>
-                    <DialogTitle>
-                      {editingTestMark ? "Edit Test Mark" : "Add New Test Mark"}
-                    </DialogTitle>
-                  </DialogHeader>
-                  {!editingTestMark ? (
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="single">Single Subject</TabsTrigger>
-                        <TabsTrigger value="multiple">Multiple Subjects</TabsTrigger>
-                      </TabsList>
-                      
-                      <TabsContent value="single" className="mt-4">
-                        <Form {...testMarkForm}>
-                          <form
-                            onSubmit={testMarkForm.handleSubmit(handleTestMarkSubmit)}
-                            className="space-y-4"
-                          >
-                            <FormField
-                              control={testMarkForm.control}
-                              name="enrollment_id"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Student</FormLabel>
-                                  <FormControl>
-                                    <Select
-                                      onValueChange={field.onChange}
-                                      value={field.value}
-                                    >
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select student" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {enrollments.map((enrollment) => {
-                                          const displayParts = [
-                                            enrollment.student_name,
-                                            enrollment.class_name || '',
-                                            enrollment.section_name || '',
-                                          ].filter(Boolean);
-                                          const displayText = displayParts.join(' - ');
-                                          const rollNumber = enrollment.roll_number ? ` (Roll: ${enrollment.roll_number})` : '';
-                                          return (
-                                            <SelectItem
-                                              key={enrollment.enrollment_id}
-                                              value={
-                                                enrollment.enrollment_id?.toString() || ""
-                                              }
-                                            >
-                                              {displayText}{rollNumber}
-                                            </SelectItem>
-                                          );
-                                        })}
-                                      </SelectContent>
-                                    </Select>
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <div className="grid grid-cols-2 gap-4">
-                              <FormField
-                                control={testMarkForm.control}
-                                name="test_id"
-                                render={({ field }) => {
-                                  let numValue: number | null = null;
-                                  if (field.value && field.value !== '') {
-                                    const parsed = typeof field.value === 'string'
-                                      ? parseInt(field.value, 10)
-                                      : Number(field.value);
-                                    if (!isNaN(parsed) && parsed > 0) {
-                                      numValue = parsed;
-                                    }
-                                  }
+      <div className="flex-1 space-y-4">
+        {/* Filters and Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white p-4 rounded-lg border shadow-sm space-y-4"
+        >
+          <div className="flex flex-col lg:flex-row gap-4 justify-between">
+            <div className="flex flex-wrap gap-4 items-end flex-1">
+              <div className="w-full sm:w-48">
+                <label className="text-sm font-medium mb-1.5 block">
+                  Class <span className="text-red-500">*</span>
+                </label>
+                <ServerCombobox
+                  items={classesData?.items || []}
+                  value={selectedClass?.toString() || ""}
+                  onSelect={handleClassChange}
+                  valueKey="class_id"
+                  labelKey="class_name"
+                  placeholder="Select Class"
+                  searchPlaceholder="Search classes..."
+                  isLoading={classesLoading}
+                />
+              </div>
 
-                                  return (
-                                    <FormItem>
-                                      <FormLabel>Test</FormLabel>
-                                      <FormControl>
-                                        <SchoolTestDropdown
-                                          value={numValue}
-                                          onChange={(value) => {
-                                            if (value !== null && value !== undefined) {
-                                              field.onChange(value.toString());
-                                            } else {
-                                              field.onChange('');
-                                            }
-                                          }}
-                                          placeholder="Select test"
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  );
-                                }}
-                              />
-                              <FormField
-                                control={testMarkForm.control}
-                                name="subject_id"
-                                render={({ field }) => {
-                                  let numValue: number | null = null;
-                                  if (field.value && field.value !== '') {
-                                    const parsed = typeof field.value === 'string'
-                                      ? parseInt(field.value, 10)
-                                      : Number(field.value);
-                                    if (!isNaN(parsed) && parsed > 0) {
-                                      numValue = parsed;
-                                    }
-                                  }
+              <div className="w-full sm:w-48">
+                <label className="text-sm font-medium mb-1.5 block">
+                  Section
+                </label>
+                <ServerCombobox
+                  items={sectionsData?.items || []}
+                  value={selectedSection?.toString() || ""}
+                  onSelect={handleSectionChange}
+                  valueKey="section_id"
+                  labelKey="section_name"
+                  placeholder="Select Section"
+                  searchPlaceholder="Search sections..."
+                  isLoading={sectionsLoading}
+                  disabled={!selectedClass}
+                  emptyText={!selectedClass ? "Select a class first" : "No sections found"}
+                />
+              </div>
 
-                                  return (
-                                    <FormItem>
-                                      <FormLabel>Subject</FormLabel>
-                                      <FormControl>
-                                        <SchoolSubjectDropdown
-                                          classId={classId}
-                                          value={numValue}
-                                          onChange={(value) => {
-                                            if (value !== null && value !== undefined) {
-                                              field.onChange(value.toString());
-                                            } else {
-                                              field.onChange('');
-                                            }
-                                          }}
-                                          disabled={classId <= 0}
-                                          placeholder={classId <= 0 ? "Select class first" : "Select subject"}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  );
-                                }}
-                              />
-                            </div>
-                            <FormField
-                              control={testMarkForm.control}
-                              name="marks_obtained"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Marks Obtained</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      type="number"
-                                      placeholder="18"
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={testMarkForm.control}
-                              name="remarks"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Remarks (Optional)</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="Additional comments..."
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <div className="flex justify-end space-x-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={closeTestMarkDialog}
-                              >
-                                Cancel
-                              </Button>
-                              <Button type="submit">
-                                Add Test Mark
-                              </Button>
-                            </div>
-                          </form>
-                        </Form>
-                      </TabsContent>
+              <div className="w-full sm:w-48">
+                <label className="text-sm font-medium mb-1.5 block">
+                  Test <span className="text-red-500">*</span>
+                </label>
+                <ServerCombobox
+                  items={testsData?.items || []}
+                  value={selectedTest?.toString() || ""}
+                  onSelect={handleTestChange}
+                  valueKey="test_id"
+                  labelKey="test_name"
+                  placeholder="Select Test"
+                  searchPlaceholder="Search tests..."
+                  isLoading={testsLoading}
+                />
+              </div>
 
-                      <TabsContent value="multiple" className="mt-4">
-                        <Form {...multipleTestSubjectsForm}>
-                          <form
-                            onSubmit={multipleTestSubjectsForm.handleSubmit(handleMultipleTestSubjectsSubmit)}
-                            className="space-y-4"
-                          >
-                            <FormField
-                              control={multipleTestSubjectsForm.control}
-                              name="enrollment_id"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Student</FormLabel>
-                                  <FormControl>
-                                    <Select
-                                      onValueChange={field.onChange}
-                                      value={field.value}
-                                    >
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select student" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {enrollments.map((enrollment) => {
-                                          const displayParts = [
-                                            enrollment.student_name,
-                                            enrollment.class_name || '',
-                                            enrollment.section_name || '',
-                                          ].filter(Boolean);
-                                          const displayText = displayParts.join(' - ');
-                                          const rollNumber = enrollment.roll_number ? ` (Roll: ${enrollment.roll_number})` : '';
-                                          return (
-                                            <SelectItem
-                                              key={enrollment.enrollment_id}
-                                              value={
-                                                enrollment.enrollment_id?.toString() || ""
-                                              }
-                                            >
-                                              {displayText}{rollNumber}
-                                            </SelectItem>
-                                          );
-                                        })}
-                                      </SelectContent>
-                                    </Select>
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={multipleTestSubjectsForm.control}
-                              name="test_id"
-                              render={({ field }) => {
-                                let numValue: number | null = null;
-                                if (field.value && field.value !== '') {
-                                  const parsed = typeof field.value === 'string'
-                                    ? parseInt(field.value, 10)
-                                    : Number(field.value);
-                                  if (!isNaN(parsed) && parsed > 0) {
-                                    numValue = parsed;
-                                  }
-                                }
-
-                                return (
-                                  <FormItem>
-                                    <FormLabel>Test</FormLabel>
-                                    <FormControl>
-                                      <SchoolTestDropdown
-                                        value={numValue}
-                                        onChange={(value) => {
-                                          if (value !== null && value !== undefined) {
-                                            field.onChange(value.toString());
-                                          } else {
-                                            field.onChange('');
-                                          }
-                                        }}
-                                        placeholder="Select test"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                );
-                              }}
-                            />
-                            <div className="space-y-4">
-                              <div className="flex justify-between items-center">
-                                <FormLabel>Subjects</FormLabel>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={addSubjectRow}
-                                >
-                                  <Plus className="h-4 w-4 mr-2" />
-                                  Add Subject
-                                </Button>
-                              </div>
-                              {fields.map((field, index) => (
-                                <div key={field.id} className="border p-4 rounded-lg space-y-4">
-                                  <div className="flex justify-between items-center mb-2">
-                                    <span className="text-sm font-medium">Subject {index + 1}</span>
-                                    {fields.length > 1 && (
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => remove(index)}
-                                        className="text-red-600 hover:text-red-700"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    )}
-                                  </div>
-                                  <FormField
-                                    control={multipleTestSubjectsForm.control}
-                                    name={`subjects.${index}.subject_id`}
-                                    render={({ field }) => {
-                                      let numValue: number | null = null;
-                                      if (field.value && field.value !== '') {
-                                        const parsed = typeof field.value === 'string'
-                                          ? parseInt(field.value, 10)
-                                          : Number(field.value);
-                                        if (!isNaN(parsed) && parsed > 0) {
-                                          numValue = parsed;
-                                        }
-                                      }
-
-                                      return (
-                                        <FormItem>
-                                          <FormLabel>Subject</FormLabel>
-                                          <FormControl>
-                                            <SchoolSubjectDropdown
-                                              classId={classId}
-                                              value={numValue}
-                                              onChange={(value) => {
-                                                if (value !== null && value !== undefined) {
-                                                  field.onChange(value.toString());
-                                                } else {
-                                                  field.onChange('');
-                                                }
-                                              }}
-                                              disabled={classId <= 0}
-                                              placeholder={classId <= 0 ? "Select class first" : "Select subject"}
-                                            />
-                                          </FormControl>
-                                          <FormMessage />
-                                        </FormItem>
-                                      );
-                                    }}
-                                  />
-                                  <FormField
-                                    control={multipleTestSubjectsForm.control}
-                                    name={`subjects.${index}.marks_obtained`}
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Marks Obtained</FormLabel>
-                                        <FormControl>
-                                          <Input
-                                            type="number"
-                                            placeholder="18"
-                                            {...field}
-                                          />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                  <FormField
-                                    control={multipleTestSubjectsForm.control}
-                                    name={`subjects.${index}.remarks`}
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Remarks (Optional)</FormLabel>
-                                        <FormControl>
-                                          <Input
-                                            placeholder="Additional comments..."
-                                            {...field}
-                                          />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                            <div className="flex justify-end space-x-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={closeTestMarkDialog}
-                              >
-                                Cancel
-                              </Button>
-                              <Button 
-                                type="submit"
-                                disabled={createMultipleSubjectsMutation.isPending}
-                              >
-                                {createMultipleSubjectsMutation.isPending ? "Adding..." : "Add Test Marks"}
-                              </Button>
-                            </div>
-                          </form>
-                        </Form>
-                      </TabsContent>
-                    </Tabs>
-                  ) : (
-                    <Form {...testMarkForm}>
-                      <form
-                        onSubmit={testMarkForm.handleSubmit(handleTestMarkSubmit)}
-                        className="space-y-4"
-                      >
-                        <FormField
-                          control={testMarkForm.control}
-                          name="enrollment_id"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Student</FormLabel>
-                              <FormControl>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  value={field.value}
-                                  disabled={true}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select student" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                        {enrollments.map((enrollment) => (
-                                      <SelectItem
-                                        key={enrollment.enrollment_id}
-                                        value={
-                                          enrollment.enrollment_id?.toString() || ""
-                                        }
-                                      >
-                                        {enrollment.student_name} ({enrollment.admission_no})
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            control={testMarkForm.control}
-                            name="test_id"
-                            render={({ field }) => {
-                              let numValue: number | null = null;
-                              if (field.value && field.value !== '') {
-                                const parsed = typeof field.value === 'string'
-                                  ? parseInt(field.value, 10)
-                                  : Number(field.value);
-                                if (!isNaN(parsed) && parsed > 0) {
-                                  numValue = parsed;
-                                }
-                              }
-
-                              return (
-                                <FormItem>
-                                  <FormLabel>Test</FormLabel>
-                                  <FormControl>
-                                    <SchoolTestDropdown
-                                      value={numValue}
-                                      onChange={(value) => {
-                                        if (value !== null && value !== undefined) {
-                                          field.onChange(value.toString());
-                                        } else {
-                                          field.onChange('');
-                                        }
-                                      }}
-                                      disabled={true}
-                                      placeholder="Select test"
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              );
-                            }}
-                          />
-                          <FormField
-                            control={testMarkForm.control}
-                            name="subject_id"
-                            render={({ field }) => {
-                              let numValue: number | null = null;
-                              if (field.value && field.value !== '') {
-                                const parsed = typeof field.value === 'string'
-                                  ? parseInt(field.value, 10)
-                                  : Number(field.value);
-                                if (!isNaN(parsed) && parsed > 0) {
-                                  numValue = parsed;
-                                }
-                              }
-
-                              return (
-                                <FormItem>
-                                  <FormLabel>Subject</FormLabel>
-                                  <FormControl>
-                                    <SchoolSubjectDropdown
-                                      classId={classId}
-                                      value={numValue}
-                                      onChange={(value) => {
-                                        if (value !== null && value !== undefined) {
-                                          field.onChange(value.toString());
-                                        } else {
-                                          field.onChange('');
-                                        }
-                                      }}
-                                      disabled={true}
-                                      placeholder="Select subject"
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              );
-                            }}
-                          />
-                        </div>
-                        <FormField
-                          control={testMarkForm.control}
-                          name="marks_obtained"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Marks Obtained</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  placeholder="18"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={testMarkForm.control}
-                          name="remarks"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Remarks (Optional)</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="Additional comments..."
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={closeTestMarkDialog}
-                          >
-                            Cancel
-                          </Button>
-                          <Button type="submit">
-                            Update Test Mark
-                          </Button>
-                        </div>
-                      </form>
-                    </Form>
-                  )}
-                </DialogContent>
-              </Dialog>
-            </div>
-          </motion.div>
-
-          {/* Main Content */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-6"
-          >
-            {/* Unified Filter Controls with Add Button */}
-            <div className="space-y-4">
-              {/* Top Section: Filters and Add Button */}
-              <div className="flex flex-wrap gap-4 items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                {/* Left Side: Filters */}
-                <div className="flex flex-wrap gap-4 items-center flex-1">
-                  {/* Required Filters */}
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="test-mgmt-class" className="text-sm font-medium">
-                      Class: <span className="text-red-500">*</span>
-                    </label>
-                    <SchoolClassDropdown
-                      id="test-mgmt-class"
-                      value={selectedClass}
-                      onChange={handleClassChange}
-                      placeholder="Select class"
-                      emptyValue
-                      emptyValueLabel="Select class"
-                      className="w-40"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="test-mgmt-section" className="text-sm font-medium">Section:</label>
-                    <SchoolSectionDropdown
-                      id="test-mgmt-section"
-                      classId={classId}
-                      value={selectedSection}
-                      onChange={handleSectionChange}
-                      placeholder={
-                        selectedClass ? "Select section" : "Select class first"
-                      }
-                      emptyValue
-                      emptyValueLabel={
-                        selectedClass ? "Select section" : "Select class first"
-                      }
-                      className="w-40"
-                      disabled={!selectedClass}
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="test-mgmt-test" className="text-sm font-medium">
-                      Test: <span className="text-red-500">*</span>
-                    </label>
-                    <SchoolTestDropdown
-                      id="test-mgmt-test"
-                      value={selectedTest}
-                      onChange={handleTestChange}
-                      placeholder={
-                        selectedClass ? "Select test" : "Select class first"
-                      }
-                      emptyValue
-                      emptyValueLabel={
-                        selectedClass ? "Select test" : "Select class first"
-                      }
-                      className="w-40"
-                      disabled={!selectedClass}
-                    />
-                  </div>
-
-                  {/* Required Filters - Subject */}
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="test-mgmt-subject" className="text-sm font-medium">
-                      Subject: <span className="text-red-500">*</span>
-                    </label>
-                    <SchoolSubjectDropdown
-                      id="test-mgmt-subject"
-                      classId={classId}
-                      value={selectedSubject}
-                      onChange={handleSubjectChange}
-                      placeholder={
-                        selectedClass ? "Select subject" : "Select class first"
-                      }
-                      emptyValue
-                      emptyValueLabel={
-                        selectedClass ? "Select subject" : "Select class first"
-                      }
-                      className="w-40"
-                      disabled={!selectedClass}
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Grade:
-                    </label>
-                    <Select
-                      value={selectedGrade}
-                      onValueChange={handleGradeChange}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue placeholder="All Grades" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Grades</SelectItem>
-                        {grades.map((grade) => (
-                          <SelectItem key={grade.grade} value={grade.grade}>
-                            {grade.grade}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Right Side: Add Marks Button */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    onClick={() => setShowAddTestMarksDialog(true)}
-                    className="gap-2 bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Marks by Class
-                  </Button>
-                </div>
+              <div className="w-full sm:w-48">
+                <label className="text-sm font-medium mb-1.5 block">
+                  Subject <span className="text-red-500">*</span>
+                </label>
+                <ServerCombobox
+                  items={subjectsData?.items || []}
+                  value={selectedSubject?.toString() || ""}
+                  onSelect={handleSubjectChange}
+                  valueKey="subject_id"
+                  labelKey="subject_name"
+                  placeholder="Select Subject"
+                  searchPlaceholder="Search subjects..."
+                  isLoading={subjectsLoading}
+                  disabled={!selectedClass}
+                  emptyText={!selectedClass ? "Select a class first" : "No subjects found"}
+                />
+              </div>
+              
+              <div className="w-full sm:w-32">
+                 <label className="text-sm font-medium mb-1.5 block">
+                   Grade
+                 </label>
+                 <Select
+                   value={selectedGrade}
+                   onValueChange={setSelectedGrade}
+                 >
+                   <SelectTrigger>
+                     <SelectValue placeholder="All" />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="all">All Grades</SelectItem>
+                     {grades.map((g) => (
+                       <SelectItem key={g.grade} value={g.grade}>{g.grade}</SelectItem>
+                     ))}
+                   </SelectContent>
+                 </Select>
               </div>
             </div>
 
-            {/* Data Table */}
-            <div className="space-y-4">
-              {/* Filter Selection Alerts */}
-              {!selectedClass && (
-                <Alert>
-                  <AlertDescription>
-                    Please select a class, subject, and test from the dropdowns above to view test marks.
-                  </AlertDescription>
-                </Alert>
-              )}
-              {selectedClass && !selectedSubject && (
-                <Alert>
-                  <AlertDescription>
-                    Please select a subject from the dropdown above to view test marks.
-                  </AlertDescription>
-                </Alert>
-              )}
-              {selectedClass && selectedSubject && !selectedTest && (
-                <Alert>
-                  <AlertDescription>
-                    Please select a test from the dropdown above to view test marks for the selected class and subject.
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Enhanced Data Table - Always shown */}
-              <EnhancedDataTable
-                data={testMarks}
-                title="Test Marks"
-                searchKey={
-                  [
-                    "student_name",
-                    "roll_number",
-                    "class_name",
-                    "section_name",
-                    "test_name",
-                    "subject_name",
-                  ] as any
-                }
-                searchPlaceholder="Search students..."
-                columns={testMarkColumns}
-                onAdd={() => setShowTestMarkDialog(true)}
-                addButtonText="Add Test Mark"
-                exportable={true}
-                showActions={true}
-                actionButtonGroups={actionButtonGroups}
-                actionColumnHeader="Actions"
-                showActionLabels={true}
-                loading={testMarksLoading}
-              />
+            <div className="flex items-end gap-2">
+               <Button
+                 onClick={() => setShowTestMarkDialog(true)}
+                 className="gap-2 bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
+               >
+                 <Plus className="h-4 w-4" />
+                 Add Single
+               </Button>
+               <Button
+                 onClick={() => setShowAddTestMarksDialog(true)}
+                 variant="outline"
+                 className="gap-2 w-full sm:w-auto"
+               >
+                 <Plus className="h-4 w-4" />
+                 Bulk Add
+               </Button>
             </div>
+          </div>
+        </motion.div>
 
-            {/* View Test Mark Dialog */}
-            <Dialog
-              open={showViewTestMarkDialog}
-              onOpenChange={closeViewDialog}
-            >
-              <DialogContent className="sm:max-w-[520px]">
-                <DialogHeader>
-                  <DialogTitle>Test Mark Details</DialogTitle>
-                </DialogHeader>
-                {viewTestLoading ? (
-                  <Loader.Data message="Loading mark..." />
-                ) : viewTestError ? (
-                  <div className="p-6 text-center text-red-600">
-                    Failed to load mark details.
-                  </div>
-                ) : viewedTestMark ? (
-                  <div className="space-y-4 p-2">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <div className="text-xs text-slate-500">Student</div>
-                        <div className="font-medium text-slate-900">
-                          {viewedTestMark.student_name} (
-                          {viewedTestMark.roll_number})
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-slate-500">Section</div>
-                        <div className="font-medium text-slate-900">
-                          {viewedTestMark.section_name}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-slate-500">Test</div>
-                        <div className="font-medium text-slate-900">
-                          {viewedTestMark.test_name}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-slate-500">Subject</div>
-                        <div className="font-medium text-slate-900">
-                          {viewedTestMark.subject_name}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-slate-500">Marks</div>
-                        <div className="font-semibold text-slate-900">
-                          {viewedTestMark.marks_obtained ?? 0}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-slate-500">Grade</div>
-                        <div className="font-semibold text-slate-900">
-                          {viewedTestMark.grade ?? "N/A"}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-slate-500">Percentage</div>
-                        <div className="font-semibold text-slate-900">
-                          {viewedTestMark.percentage ?? 0}%
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-slate-500">Date</div>
-                        <div className="font-medium text-slate-900">
-                          {viewedTestMark.conducted_at
-                            ? new Date(
-                                viewedTestMark.conducted_at
-                              ).toLocaleDateString("en-US", {
-                                year: "numeric",
-                                month: "short",
-                                day: "numeric",
-                              })
-                            : "N/A"}
-                        </div>
-                      </div>
-                    </div>
-                    {viewedTestMark.remarks && (
-                      <div>
-                        <div className="text-xs text-slate-500">Remarks</div>
-                        <div className="text-slate-800">
-                          {viewedTestMark.remarks}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="p-6 text-center text-slate-600">
-                    No details found.
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
+        {/* Filters Alert */}
+        {!hasRequiredFilters && (
+          <Alert>
+            <AlertDescription>
+              Please select <strong>Class</strong>, <strong>Test</strong>, and <strong>Subject</strong> to view marks.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Data Table */}
+        {hasRequiredFilters && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1 }}
+          >
+            <DataTable
+              data={filteredMarks}
+              columns={columns}
+              title="Test Marks"
+              loading={testMarksLoading}
+              actions={actions}
+              actionsHeader="Actions"
+              showSearch={true}
+              searchPlaceholder="Search by student name..."
+              searchKeys={["student_name", "roll_number"]}
+              className=""
+            />
           </motion.div>
-        </div>
-      </div>
-      {/* Confirm Delete Test Mark */}
-      <AlertDialog
-        open={confirmDeleteId !== null}
-        onOpenChange={closeDeleteDialog}
-      >
-        <AlertDialogContent>
-          <AlertHeader>
-            <AlertDialogTitle>Delete Test Mark</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this test mark? This action cannot
-              be undone.
-            </AlertDialogDescription>
-          </AlertHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
-              onClick={confirmDelete}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        )}
 
-      {/* Add Test Marks by Class Dialog */}
-      <AddTestMarksByClassDialog
-        isOpen={showAddTestMarksDialog}
-        onClose={() => setShowAddTestMarksDialog(false)}
-        onSuccess={() => {
-          // Invalidate and refetch test marks after bulk save
-          void queryClient.invalidateQueries({
-            queryKey: schoolKeys.testMarks.root(),
-          });
-          void queryClient.refetchQueries({
-            queryKey: schoolKeys.testMarks.root(),
-            type: "active",
-          });
-        }}
-      />
+        {/* Dialogs */}
+        <Dialog open={showTestMarkDialog} onOpenChange={(open) => !open && closeTestMarkDialog()}>
+          <DialogContent className="sm:max-w-[700px]">
+            <DialogHeader>
+              <DialogTitle>
+                {editingTestMark ? "Edit Test Mark" : "Add New Test Mark"}
+              </DialogTitle>
+            </DialogHeader>
+            {!editingTestMark ? (
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="single">Single Subject</TabsTrigger>
+                  <TabsTrigger value="multiple">Multiple Subjects</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="single" className="mt-4">
+                  <Form {...testMarkForm}>
+                    <form onSubmit={testMarkForm.handleSubmit(handleTestMarkSubmit)} className="space-y-4">
+                      <FormField
+                        control={testMarkForm.control}
+                        name="enrollment_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Student</FormLabel>
+                            <FormControl>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select student" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {enrollments.map((enrollment) => (
+                                    <SelectItem
+                                      key={enrollment.enrollment_id}
+                                      value={enrollment.enrollment_id?.toString() || ""}
+                                    >
+                                      {enrollment.student_name} {enrollment.roll_number ? `(${enrollment.roll_number})` : ''} - {enrollment.class_name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={testMarkForm.control}
+                          name="test_id"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Test</FormLabel>
+                              <FormControl>
+                                <ServerCombobox
+                                   items={testsData?.items || []}
+                                   value={field.value}
+                                   onSelect={field.onChange}
+                                   valueKey="test_id"
+                                   labelKey="test_name"
+                                   placeholder="Select Test"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={testMarkForm.control}
+                          name="subject_id"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Subject</FormLabel>
+                              <FormControl>
+                                <ServerCombobox
+                                   items={subjectsData?.items || []}
+                                   value={field.value}
+                                   onSelect={field.onChange}
+                                   valueKey="subject_id"
+                                   labelKey="subject_name"
+                                   placeholder="Select Subject"
+                                   disabled={classId <= 0}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <FormField
+                        control={testMarkForm.control}
+                        name="marks_obtained"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Marks Obtained</FormLabel>
+                            <FormControl>
+                              <Input type="number" placeholder="0" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={testMarkForm.control}
+                        name="remarks"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Remarks (Optional)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Additional comments..." {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex justify-end space-x-2">
+                        <Button type="button" variant="outline" onClick={closeTestMarkDialog}>Cancel</Button>
+                        <Button type="submit">Add Test Mark</Button>
+                      </div>
+                    </form>
+                  </Form>
+                </TabsContent>
+
+                <TabsContent value="multiple" className="mt-4">
+                  <Form {...multipleTestSubjectsForm}>
+                    <form onSubmit={multipleTestSubjectsForm.handleSubmit(handleMultipleTestSubjectsSubmit)} className="space-y-4">
+                      <FormField
+                        control={multipleTestSubjectsForm.control}
+                        name="enrollment_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Student</FormLabel>
+                            <FormControl>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select student" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {enrollments.map((enrollment) => (
+                                    <SelectItem
+                                      key={enrollment.enrollment_id}
+                                      value={enrollment.enrollment_id?.toString() || ""}
+                                    >
+                                      {enrollment.student_name} {enrollment.roll_number ? `(${enrollment.roll_number})` : ''}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={multipleTestSubjectsForm.control}
+                        name="test_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Test</FormLabel>
+                            <FormControl>
+                              <ServerCombobox
+                                 items={testsData?.items || []}
+                                 value={field.value}
+                                 onSelect={field.onChange}
+                                 valueKey="test_id"
+                                 labelKey="test_name"
+                                 placeholder="Select Test"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <FormLabel>Subjects</FormLabel>
+                          <Button type="button" variant="outline" size="sm" onClick={addSubjectRow}>
+                            <Plus className="h-4 w-4 mr-2" /> Add Subject
+                          </Button>
+                        </div>
+                        {fields.map((field, index) => (
+                          <div key={field.id} className="border p-4 rounded-lg space-y-4">
+                             <div className="flex justify-between items-center mb-2">
+                               <span className="text-sm font-medium">Subject {index + 1}</span>
+                               {fields.length > 1 && (
+                                 <Button type="button" variant="ghost" size="sm" onClick={() => remove(index)} className="text-red-600 hover:text-red-700">
+                                   <Trash2 className="h-4 w-4" />
+                                 </Button>
+                               )}
+                             </div>
+                             <FormField
+                               control={multipleTestSubjectsForm.control}
+                               name={`subjects.${index}.subject_id`}
+                               render={({ field }) => (
+                                 <FormItem>
+                                   <FormLabel>Subject</FormLabel>
+                                   <FormControl>
+                                      <ServerCombobox
+                                         items={subjectsData?.items || []}
+                                         value={field.value}
+                                         onSelect={field.onChange}
+                                         valueKey="subject_id"
+                                         labelKey="subject_name"
+                                         placeholder="Select Subject"
+                                         disabled={classId <= 0}
+                                      />
+                                   </FormControl>
+                                   <FormMessage />
+                                 </FormItem>
+                               )}
+                             />
+                             <FormField
+                               control={multipleTestSubjectsForm.control}
+                               name={`subjects.${index}.marks_obtained`}
+                               render={({ field }) => (
+                                 <FormItem>
+                                   <FormLabel>Marks Obtained</FormLabel>
+                                   <FormControl>
+                                     <Input type="number" placeholder="0" {...field} />
+                                   </FormControl>
+                                   <FormMessage />
+                                 </FormItem>
+                               )}
+                             />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button type="button" variant="outline" onClick={closeTestMarkDialog}>Cancel</Button>
+                        <Button type="submit" disabled={createMultipleSubjectsMutation.isPending}>
+                          {createMultipleSubjectsMutation.isPending ? "Adding..." : "Add Test Marks"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </TabsContent>
+              </Tabs>
+            ) : (
+              <Form {...testMarkForm}>
+                <form onSubmit={testMarkForm.handleSubmit(handleTestMarkSubmit)} className="space-y-4">
+                   <FormField
+                     control={testMarkForm.control}
+                     name="enrollment_id"
+                     render={({ field }) => (
+                       <FormItem>
+                         <FormLabel>Student</FormLabel>
+                         <FormControl>
+                            <Select onValueChange={field.onChange} value={field.value} disabled>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select student" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {enrollments.map((enrollment) => (
+                                  <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ""}>
+                                    {enrollment.student_name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                         </FormControl>
+                         <FormMessage />
+                       </FormItem>
+                     )}
+                   />
+                   {/* Similar fields for Edit mode but disabled/pre-filled */}
+                   <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={testMarkForm.control}
+                        name="test_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Test</FormLabel>
+                            <FormControl>
+                              <ServerCombobox
+                                 items={testsData?.items || []}
+                                 value={field.value}
+                                 onSelect={field.onChange}
+                                 valueKey="test_id"
+                                 labelKey="test_name"
+                                 placeholder="Select Test"
+                                 disabled
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={testMarkForm.control}
+                        name="subject_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Subject</FormLabel>
+                            <FormControl>
+                              <ServerCombobox
+                                 items={subjectsData?.items || []}
+                                 value={field.value}
+                                 onSelect={field.onChange}
+                                 valueKey="subject_id"
+                                 labelKey="subject_name"
+                                 placeholder="Select Subject"
+                                 disabled
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                   </div>
+                   <FormField
+                      control={testMarkForm.control}
+                      name="marks_obtained"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Marks Obtained</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={testMarkForm.control}
+                      name="remarks"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Remarks (Optional)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Additional comments..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                   <div className="flex justify-end space-x-2">
+                      <Button type="button" variant="outline" onClick={closeTestMarkDialog}>Cancel</Button>
+                      <Button type="submit">Update Test Mark</Button>
+                   </div>
+                </form>
+              </Form>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showViewTestMarkDialog} onOpenChange={setShowViewTestMarkDialog}>
+          <DialogContent className="sm:max-w-[520px]">
+             <DialogHeader>
+               <DialogTitle>Test Mark Details</DialogTitle>
+             </DialogHeader>
+             {viewTestLoading ? (
+               <Loader.Data message="Loading mark..." />
+             ) : viewTestError ? (
+               <div className="p-6 text-center text-red-600">Failed to load mark details.</div>
+             ) : viewedTestMark ? (
+               <div className="space-y-4 pt-2">
+                 <div className="grid grid-cols-2 gap-4">
+                   <div>
+                     <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Student</div>
+                     <div className="font-medium text-lg">{viewedTestMark.student_name}</div>
+                     <div className="text-sm text-muted-foreground">Roll: {viewedTestMark.roll_number}</div>
+                   </div>
+                   <div>
+                     <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Class Info</div>
+                     <div className="font-medium">{viewedTestMark.class_name}</div>
+                     <div className="text-sm text-muted-foreground">{viewedTestMark.section_name}</div>
+                   </div>
+                   <div>
+                     <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Test & Subject</div>
+                     <div className="font-medium">{viewedTestMark.test_name}</div>
+                     <div className="text-sm text-muted-foreground">{viewedTestMark.subject_name}</div>
+                   </div>
+                   <div>
+                     <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Performance</div>
+                     <div className="flex items-center gap-2">
+                        <span className="font-bold text-xl">{viewedTestMark.marks_obtained}</span>
+                        <span className="text-muted-foreground">/ {viewedTestMark.max_marks || 100}</span>
+                     </div>
+                     <div className={`text-sm font-medium ${
+                       viewedTestMark.grade === 'F' ? 'text-red-600' : 'text-green-600'
+                     }`}>
+                       Grade: {viewedTestMark.grade} ({viewedTestMark.percentage}%)
+                     </div>
+                   </div>
+                 </div>
+                 {viewedTestMark.remarks && (
+                   <div className="bg-slate-50 p-3 rounded-md border text-sm">
+                      <span className="font-semibold block mb-1">Remarks:</span>
+                      {viewedTestMark.remarks}
+                   </div>
+                 )}
+                 <div className="text-xs text-muted-foreground text-right border-t pt-2">
+                    Date: {viewedTestMark.conducted_at ? new Date(viewedTestMark.conducted_at).toLocaleDateString() : 'N/A'}
+                 </div>
+               </div>
+             ) : (
+                <div className="p-6 text-center text-muted-foreground">No details found.</div>
+             )}
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={confirmDeleteId !== null} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertHeader>
+              <AlertDialogTitle>Delete Test Mark</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this test mark? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-600 hover:bg-red-700"
+                onClick={confirmDelete}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        
+        <AddTestMarksByClassDialog
+          isOpen={showAddTestMarksDialog}
+          onClose={() => setShowAddTestMarksDialog(false)}
+          onSuccess={() => {
+            void queryClient.invalidateQueries({
+              queryKey: schoolKeys.testMarks.root(),
+            });
+            void queryClient.refetchQueries({
+              queryKey: schoolKeys.testMarks.root(),
+              type: "active",
+            });
+          }}
+        />
+      </div>
     </div>
   );
 };
 
 export default TestMarksManagementComponent;
-

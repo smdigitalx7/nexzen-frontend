@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import {  ClipboardList, Plus, Trash2 } from 'lucide-react';
+import { ClipboardList, Plus, Trash2, Eye, Pencil } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/common/components/ui/button';
 import { Input } from '@/common/components/ui/input';
@@ -15,7 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { EnhancedDataTable } from '@/common/components/shared';
+import { DataTable } from '@/common/components/shared/DataTable';
+import type { ActionConfig } from '@/common/components/shared/DataTable/types';
 import { Loader } from '@/common/components/ui/ProfessionalLoader';
 import {
   CollegeClassDropdown,
@@ -560,26 +561,18 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
     ];
   }, []);
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
-    {
-      type: 'view' as const,
-      onClick: (row: CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; max_marks?: number }) => handleViewTestMark(row.mark_id)
-    },
-    {
-      type: 'edit' as const,
-      onClick: (row: CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; max_marks?: number }) => handleEditTestMark(row)
-    },
-    {
-      type: 'delete' as const,
-      onClick: (row: CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; max_marks?: number }) => handleDeleteTestMark(row.mark_id)
-    }
+  type TestMarkRow = CollegeTestMarkMinimalRead & { test_name?: string; subject_name?: string; max_marks?: number };
+  // Actions for DataTable V2 (View, Edit, Delete)
+  const testMarkActions = useMemo<ActionConfig<TestMarkRow>[]>(() => [
+    { id: 'view', label: 'View', icon: Eye, variant: 'ghost', onClick: (row) => handleViewTestMark(row.mark_id) },
+    { id: 'edit', label: 'Edit', icon: Pencil, variant: 'outline', onClick: handleEditTestMark },
+    { id: 'delete', label: 'Delete', icon: Trash2, variant: 'destructive', onClick: (row) => handleDeleteTestMark(row.mark_id) },
   ], [handleViewTestMark, handleEditTestMark, handleDeleteTestMark]);
 
   return (
     <div className="flex flex-col h-full bg-slate-50/30">
       <div className="flex-1 overflow-auto scrollbar-hide">
-        <div className="p-6 space-y-6">
+        <div className="">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -1147,10 +1140,10 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="space-y-6"
+            className="space-y-4"
           >
             {/* Unified Filter Controls */}
-            <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+            <div className="flex flex-wrap gap-3 items-center p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
               {/* Required Filters - Order: Class, Group, Test, Subject (as per mandatory parameters) */}
               <div className="flex items-center gap-2">
                     <label htmlFor="test-mgmt-class" className="text-sm font-medium">Class:</label>
@@ -1211,7 +1204,7 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
                 </div>
 
             {/* Data Table */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* Filter Selection Alerts */}
               {!selectedClass && (
                 <Alert>
@@ -1242,21 +1235,20 @@ const TestMarksManagement: React.FC<TestMarksManagementProps> = ({
                 </Alert>
               )}
 
-              {/* Enhanced Data Table - Always shown */}
-              <EnhancedDataTable
+              {/* DataTable V2 */}
+              <DataTable<TestMarkRow>
                 data={testMarks}
                 title="Test Marks"
                 searchKey="student_name"
                 searchPlaceholder="Search students..."
                 columns={testMarkColumns}
+                loading={testMarksLoading}
                 onAdd={() => setShowTestMarkDialog(true)}
                 addButtonText="Add Test Mark"
-                exportable={true}
-                showActions={true}
-                actionButtonGroups={actionButtonGroups}
-                actionColumnHeader="Actions"
-                showActionLabels={false}
-                loading={testMarksLoading}
+                export={{ enabled: true, filename: "test-marks" }}
+                actions={testMarkActions}
+                actionsHeader="Actions"
+                emptyMessage="No test marks found"
               />
             </div>
 

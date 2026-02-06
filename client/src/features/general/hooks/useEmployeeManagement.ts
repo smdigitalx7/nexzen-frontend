@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { startTransition } from "react";
 import { useAuthStore } from "@/core/auth/authStore";
@@ -115,6 +115,13 @@ export interface EmployeeLeaveRead {
 
 // Use the lib type which matches what the API actually returns
 export type AdvanceRead = LibAdvanceRead;
+
+/**
+ * Helper to clean up global UI state after dialog operations.
+ * Resolves "aria-hidden" accessibility issues and UI freezes caused by dialog locks.
+ * Use "!important" to override any lingering Radix UI inline styles.
+ */
+import { cleanupDialogState } from "@/common/utils/ui-cleanup";
 
 export const useEmployeeManagement = (
   viewMode: "branch" | "institute" = "branch"
@@ -390,304 +397,254 @@ export const useEmployeeManagement = (
   }, [advances, advancesPage, pageSize]);
 
   // Business logic functions
-  const handleCreateEmployee = async (data: EmployeeCreate) => {
+  // ✅ CRITICAL: Support manual refetching with delay
+  const refetchAdvances = () => {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        queryClient.refetchQueries({
+          queryKey: advanceKeys.all,
+          exact: false,
+          type: "active",
+        });
+      }, 300);
+    });
+  };
+
+  /**
+   * ✅ GLOBAL MODAL GUARDIAN
+   * This effect monitors all modal states. When ALL modals are closed, 
+   * it ensures the UI is actually unlocked. This is a failsafe for 
+   * Radix UI's occasional failure to clean up after rapid transitions.
+   */
+  useEffect(() => {
+    const anyModalOpen = 
+      showEmployeeForm || showEmployeeDetail || showDeleteEmployeeDialog ||
+      showAttendanceForm || showAttendanceBulkCreateDialog || showAttendanceViewDialog || showAttendanceDeleteDialog ||
+      showLeaveForm || showLeaveViewDialog || showLeaveDeleteDialog || showLeaveApproveDialog || showLeaveRejectDialog ||
+      showAdvanceForm || showAdvanceViewDialog || showAdvanceStatusDialog || showAdvanceAmountDialog || showAdvanceVoucherDialog;
+
+    if (!anyModalOpen) {
+      // Small delay to allow Radix UI to finish its internal transition
+      const timer = setTimeout(() => {
+        cleanupDialogState();
+      }, 100);
+      
+      const longTimer = setTimeout(() => {
+        cleanupDialogState();
+      }, 500);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(longTimer);
+      };
+    }
+  }, [
+    showEmployeeForm, showEmployeeDetail, showDeleteEmployeeDialog,
+    showAttendanceForm, showAttendanceBulkCreateDialog, showAttendanceViewDialog, showAttendanceDeleteDialog,
+    showLeaveForm, showLeaveViewDialog, showLeaveDeleteDialog, showLeaveApproveDialog, showLeaveRejectDialog,
+    showAdvanceForm, showAdvanceViewDialog, showAdvanceStatusDialog, showAdvanceAmountDialog, showAdvanceVoucherDialog
+  ]);
+
+  const handleCreateEmployee = (data: EmployeeCreate) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    setShowEmployeeForm(false);
+    cleanupDialogState();
+
     try {
-      await createEmployeeMutation.mutateAsync(data);
-      setShowEmployeeForm(false);
-
-      // ✅ FIX: Use selective invalidation to prevent UI freeze
-      invalidateQueriesSelective(employeeKeys.all, {
-        refetchType: "none",
-        delay: 0,
-      });
-
-      // Manually refetch with delay
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          queryClient.refetchQueries({
-            queryKey: employeeKeys.all,
-            exact: false,
-            type: "active",
+      createEmployeeMutation.mutate(data, {
+        onSuccess: () => {
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              queryClient.refetchQueries({ queryKey: employeeKeys.all });
+            }, 300);
           });
-        }, 200);
+        }
       });
     } catch (error) {
       console.error("Error creating employee:", error);
     }
   };
 
-  const handleUpdateEmployee = async (id: number, data: EmployeeUpdate) => {
+  const handleUpdateEmployee = (id: number, data: EmployeeUpdate) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    setShowEmployeeForm(false);
+    setIsEditingEmployee(false);
+    cleanupDialogState();
+
     try {
-      await updateEmployeeMutation.mutateAsync({ id, payload: data });
-      setShowEmployeeForm(false);
-      setIsEditingEmployee(false);
-
-      // ✅ FIX: Use selective invalidation to prevent UI freeze
-      invalidateQueriesSelective(employeeKeys.all, {
-        refetchType: "none",
-        delay: 0,
-      });
-
-      // Manually refetch with delay
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          queryClient.refetchQueries({
-            queryKey: employeeKeys.all,
-            exact: false,
-            type: "active",
+      updateEmployeeMutation.mutate({ id, payload: data }, {
+        onSuccess: () => {
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              queryClient.refetchQueries({ queryKey: employeeKeys.all });
+            }, 300);
           });
-        }, 200);
+        }
       });
     } catch (error) {
       console.error("Error updating employee:", error);
     }
   };
 
-  const handleDeleteEmployee = async (id: number) => {
+  const handleDeleteEmployee = (id: number) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    setShowDeleteEmployeeDialog(false);
+    cleanupDialogState();
+
     try {
-      await deleteEmployeeMutation.mutateAsync(id);
-      setShowDeleteEmployeeDialog(false);
-
-      // ✅ FIX: Use selective invalidation to prevent UI freeze
-      invalidateQueriesSelective(employeeKeys.all, {
-        refetchType: "none",
-        delay: 0,
-      });
-
-      // Manually refetch with delay
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          queryClient.refetchQueries({
-            queryKey: employeeKeys.all,
-            exact: false,
-            type: "active",
+      deleteEmployeeMutation.mutate(id, {
+        onSuccess: () => {
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              queryClient.refetchQueries({ queryKey: employeeKeys.all });
+            }, 300);
           });
-        }, 200);
+        }
       });
     } catch (error) {
       console.error("Error deleting employee:", error);
     }
   };
 
-  const handleUpdateEmployeeStatus = async (id: number, status: string) => {
+  const handleUpdateEmployeeStatus = (id: number, status: string) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    cleanupDialogState();
+
     try {
-      await updateStatusMutation.mutateAsync({ id, status });
-
-      // ✅ FIX: Use selective invalidation to prevent UI freeze
-      invalidateQueriesSelective(employeeKeys.all, {
-        refetchType: "none",
-        delay: 0,
-      });
-
-      // Manually refetch with delay
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          queryClient.refetchQueries({
-            queryKey: employeeKeys.all,
-            exact: false,
-            type: "active",
+      updateStatusMutation.mutate({ id, status }, {
+        onSuccess: () => {
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              queryClient.refetchQueries({ queryKey: employeeKeys.all });
+            }, 300);
           });
-        }, 200);
+        }
       });
     } catch (error) {
-      console.error("Error updating employee status:", error);
+      console.error("Error updating status:", error);
     }
   };
 
-  const handleCreateAttendance = async (data: {
+  const handleCreateAttendance = (data: {
     employee_id: number;
     total_working_days: number;
     month: number;
     year: number;
   }) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    setShowAttendanceForm(false);
+    cleanupDialogState();
+
     try {
-      await EmployeeAttendanceService.create(data);
-      setShowAttendanceForm(false);
-
-      // ✅ FIX: Use selective invalidation to prevent UI freeze
-      invalidateQueriesSelective(employeeAttendanceKeys.all, {
-        refetchType: "none",
-        delay: 0,
+      // RUN IN BACKGROUND
+      EmployeeAttendanceService.create(data).then(() => {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            queryClient.refetchQueries({ queryKey: employeeAttendanceKeys.all });
+          }, 300);
+        });
       });
-
-      // Manually refetch with delay
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          queryClient.refetchQueries({
-            queryKey: employeeAttendanceKeys.all,
-            exact: false,
-            type: "active",
-          });
-        }, 200);
-      });
-
-      toast({
-        title: "Attendance Created",
-        description: "Attendance record has been created successfully.",
-        variant: "success",
-      });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error creating attendance:", error);
-      toast({
-        title: "Error",
-        description:
-          error?.message ||
-          "Failed to create attendance record. Please try again.",
-        variant: "destructive",
-      });
-      throw error;
     }
   };
 
-  const handleBulkCreateAttendance = async (data: {
+  const handleBulkCreateAttendance = (data: {
     total_working_days: number;
     month: number;
     year: number;
   }) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    setShowAttendanceBulkCreateDialog(false);
     setIsBulkCreatingAttendance(true);
+    cleanupDialogState();
+
     try {
-      await EmployeeAttendanceService.createBulk(data);
-      setShowAttendanceBulkCreateDialog(false);
-
-      // ✅ FIX: Use selective invalidation to prevent UI freeze
-      invalidateQueriesSelective(employeeAttendanceKeys.all, {
-        refetchType: "none",
-        delay: 0,
+      // RUN IN BACKGROUND
+      EmployeeAttendanceService.createBulk(data).then(() => {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            queryClient.refetchQueries({ queryKey: employeeAttendanceKeys.all });
+          }, 300);
+        });
+      }).finally(() => {
+        setIsBulkCreatingAttendance(false);
       });
-
-      // Manually refetch with delay
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          queryClient.refetchQueries({
-            queryKey: employeeAttendanceKeys.all,
-            exact: false,
-            type: "active",
-          });
-        }, 200);
-      });
-
-      toast({
-        title: "Bulk Attendance Created",
-        description:
-          "Attendance records have been created successfully for all active employees.",
-        variant: "success",
-      });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error creating bulk attendance:", error);
-      toast({
-        title: "Error",
-        description:
-          error?.message ||
-          "Failed to create bulk attendance records. Please try again.",
-        variant: "destructive",
-      });
-      throw error;
-    } finally {
       setIsBulkCreatingAttendance(false);
     }
   };
 
-  const handleUpdateAttendance = async (
+  const handleUpdateAttendance = (
     employeeId: number,
     month: number,
     year: number
   ) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    setShowAttendanceForm(false);
+    setIsEditingAttendance(false);
+    cleanupDialogState();
+
     try {
-      await updateIndividualAttendanceMutation.mutateAsync({
+      // RUN IN BACKGROUND
+      updateIndividualAttendanceMutation.mutate({
         employee_id: employeeId,
         month,
         year,
-      });
-      setShowAttendanceForm(false);
-      setIsEditingAttendance(false);
-
-      // ✅ FIX: Use selective invalidation to prevent UI freeze
-      invalidateQueriesSelective(employeeAttendanceKeys.all, {
-        refetchType: "none",
-        delay: 0,
-      });
-
-      // Manually refetch with delay
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          queryClient.refetchQueries({
-            queryKey: employeeAttendanceKeys.all,
-            exact: false,
-            type: "active",
+      }, {
+        onSuccess: () => {
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              queryClient.refetchQueries({ queryKey: employeeAttendanceKeys.all });
+            }, 300);
           });
-        }, 200);
+        }
       });
     } catch (error) {
       console.error("Error updating attendance:", error);
     }
   };
 
-  const handleUpdateAttendanceBulk = async (data: {
+  const handleUpdateAttendanceBulk = (data: {
     total_working_days: number;
     month: number;
     year: number;
   }) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    setShowAttendanceForm(false);
+    setIsEditingAttendance(false);
+    cleanupDialogState();
+
     try {
-      await EmployeeAttendanceService.updateBulk(data);
-      setShowAttendanceForm(false);
-      setIsEditingAttendance(false);
-
-      // ✅ FIX: Use selective invalidation to prevent UI freeze
-      invalidateQueriesSelective(employeeAttendanceKeys.all, {
-        refetchType: "none",
-        delay: 0,
+      // RUN IN BACKGROUND
+      EmployeeAttendanceService.updateBulk(data).then(() => {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            queryClient.refetchQueries({ queryKey: employeeAttendanceKeys.all });
+          }, 300);
+        });
       });
-
-      // Manually refetch with delay
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          queryClient.refetchQueries({
-            queryKey: employeeAttendanceKeys.all,
-            exact: false,
-            type: "active",
-          });
-        }, 200);
-      });
-
-      toast({
-        title: "Attendance Updated",
-        description:
-          "Attendance records have been updated successfully for all employees in the branch.",
-        variant: "success",
-      });
-    } catch (error: any) {
-      console.error("Error updating attendance:", error);
-      toast({
-        title: "Error",
-        description:
-          error?.message ||
-          "Failed to update attendance records. Please try again.",
-        variant: "destructive",
-      });
-      throw error;
+    } catch (error) {
+      console.error("Error updating attendance bulk:", error);
     }
   };
 
-  const handleDeleteAttendance = async (id: number) => {
+  const handleDeleteAttendance = (id: number) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    setShowAttendanceDeleteDialog(false);
+    cleanupDialogState();
+
     try {
-      await deleteAttendanceMutation.mutateAsync(id);
-      setShowAttendanceDeleteDialog(false);
-
-      // ✅ FIX: Use selective invalidation to prevent UI freeze
-      invalidateQueriesSelective(employeeAttendanceKeys.all, {
-        refetchType: "none",
-        delay: 0,
-      });
-
-      // Manually refetch with delay
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          queryClient.refetchQueries({
-            queryKey: employeeAttendanceKeys.all,
-            exact: false,
-            type: "active",
+      // RUN IN BACKGROUND
+      deleteAttendanceMutation.mutate(id, {
+        onSuccess: () => {
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              queryClient.refetchQueries({ queryKey: employeeAttendanceKeys.all });
+            }, 300);
           });
-        }, 200);
+        }
       });
     } catch (error) {
       console.error("Error deleting attendance:", error);
@@ -699,146 +656,107 @@ export const useEmployeeManagement = (
     setShowAttendanceViewDialog(true);
   };
 
-  const handleCreateLeave = async (data: EmployeeLeaveCreate) => {
-    try {
-      await createLeaveMutation.mutateAsync(data);
-      setShowLeaveForm(false);
+  const handleCreateLeave = (data: EmployeeLeaveCreate) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    setShowLeaveForm(false);
+    cleanupDialogState();
 
-      // ✅ FIX: Note - invalidateEntity is already called in mutation hook's onSuccess
-      // No need to invalidate here to prevent double invalidation
+    try {
+      // RUN IN BACKGROUND
+      createLeaveMutation.mutate(data, {
+        onSuccess: () => {
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              queryClient.refetchQueries({ queryKey: employeeLeaveKeys.all });
+            }, 300);
+          });
+        }
+      });
     } catch (error) {
       console.error("Error creating leave:", error);
     }
   };
 
-  const handleUpdateLeave = async (id: number, data: EmployeeLeaveUpdate) => {
-    try {
-      await updateLeaveMutation.mutateAsync({ id, data });
-      setShowLeaveForm(false);
-      setIsEditingLeave(false);
+  const handleUpdateLeave = (id: number, data: EmployeeLeaveUpdate) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    setShowLeaveForm(false);
+    setIsEditingLeave(false);
+    cleanupDialogState();
 
-      // Note: invalidateEntity is already called in the mutation hook's onSuccess
+    try {
+      // RUN IN BACKGROUND
+      updateLeaveMutation.mutate({ id, data }, {
+        onSuccess: () => {
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              queryClient.refetchQueries({ queryKey: employeeLeaveKeys.all });
+            }, 300);
+          });
+        }
+      });
     } catch (error) {
       console.error("Error updating leave:", error);
     }
   };
 
-  const handleDeleteLeave = async (id: number) => {
-    try {
-      await deleteLeaveMutation.mutateAsync(id);
-      setShowLeaveDeleteDialog(false);
+  const handleDeleteLeave = (id: number) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    setShowLeaveDeleteDialog(false);
+    cleanupDialogState();
 
-      // Note: invalidateEntity is already called in the mutation hook's onSuccess
+    try {
+      // RUN IN BACKGROUND
+      deleteLeaveMutation.mutate(id, {
+        onSuccess: () => {
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              queryClient.refetchQueries({ queryKey: employeeLeaveKeys.all });
+            }, 300);
+          });
+        }
+      });
     } catch (error) {
       console.error("Error deleting leave:", error);
     }
   };
 
-  const handleApproveLeave = async (id: number, notes?: string) => {
-    // ✅ CRITICAL FIX: Force remove aria-hidden from focused elements immediately
-    const allElements = document.querySelectorAll('[aria-hidden="true"]');
-    allElements.forEach((el) => {
-      if (el.contains(document.activeElement)) {
-        el.removeAttribute('aria-hidden');
-      }
-    });
-    
-    // ✅ CRITICAL FIX: Restore body overflow IMMEDIATELY (synchronous)
-    // Radix UI AlertDialog locks body overflow, but may not restore it properly on optimistic close
-    const originalOverflow = document.body.style.overflow || '';
-    document.body.style.overflow = originalOverflow || '';
-    document.body.style.pointerEvents = '';
-
+  const handleApproveLeave = (id: number, notes?: string) => {
     // ✅ CRITICAL FIX: Close dialog immediately (optimistic) before mutation starts
     // This prevents UI freeze by allowing dialog to close while mutation runs in background
     setShowLeaveApproveDialog(false);
 
-    // ✅ CRITICAL FIX: Clear leave data immediately (synchronous, not deferred)
+    // ✅ CRITICAL FIX: Clear leave data immediately
     setLeaveToApprove(null);
 
-    // ✅ CRITICAL: Use requestAnimationFrame to ensure DOM updates happen immediately
-    requestAnimationFrame(() => {
-      // Force remove aria-hidden from root
-      const root = document.getElementById('root');
-      if (root && root.getAttribute('aria-hidden') === 'true') {
-        root.removeAttribute('aria-hidden');
-      }
-      
-      // Remove aria-hidden from any dialog containers
-      const dialogs = document.querySelectorAll('[role="dialog"], [role="alertdialog"]');
-      dialogs.forEach((dialog) => {
-        if (dialog.getAttribute('aria-hidden') === 'true') {
-          dialog.removeAttribute('aria-hidden');
-        }
-      });
-      
-      // Ensure body is fully unlocked
-      document.body.style.overflow = originalOverflow || '';
-      document.body.style.pointerEvents = '';
-    });
+    // Clean up accessibility and global UI state
+    cleanupDialogState();
 
     try {
       // Run mutation in background - don't await it to block UI
-      // The mutation's onSuccess will handle query invalidation with proper delay
       approveLeaveMutation.mutate(id, {
         onError: (error) => {
           console.error("Error approving leave:", error);
-          // Dialog already closed, error toast will be shown by mutation hook
         },
       });
     } catch (error) {
       console.error("Error approving leave:", error);
-      // Error handling is done by mutation hook's onError
     }
   };
 
-  const handleRejectLeave = async (id: number, reason: string) => {
-    // ✅ CRITICAL FIX: Force remove aria-hidden from focused elements immediately
-    const allElements = document.querySelectorAll('[aria-hidden="true"]');
-    allElements.forEach((el) => {
-      if (el.contains(document.activeElement)) {
-        el.removeAttribute('aria-hidden');
-      }
-    });
-    
-    // ✅ CRITICAL FIX: Restore body overflow IMMEDIATELY (synchronous)
-    // Radix UI AlertDialog locks body overflow, but may not restore it properly on optimistic close
-    const originalOverflow = document.body.style.overflow || '';
-    document.body.style.overflow = originalOverflow || '';
-    document.body.style.pointerEvents = '';
-
+  const handleRejectLeave = (id: number, reason: string) => {
     // ✅ CRITICAL FIX: Close dialog immediately (optimistic) before mutation starts
     // This prevents UI freeze by allowing dialog to close while mutation runs in background
     setShowLeaveRejectDialog(false);
 
-    // ✅ CRITICAL FIX: Clear leave data and rejection reason immediately (synchronous, not deferred)
+    // ✅ CRITICAL FIX: Clear leave data and rejection reason immediately
     setLeaveToReject(null);
     setRejectionReason("");
 
-    // ✅ CRITICAL: Use requestAnimationFrame to ensure DOM updates happen immediately
-    requestAnimationFrame(() => {
-      // Force remove aria-hidden from root
-      const root = document.getElementById('root');
-      if (root && root.getAttribute('aria-hidden') === 'true') {
-        root.removeAttribute('aria-hidden');
-      }
-      
-      // Remove aria-hidden from any dialog containers
-      const dialogs = document.querySelectorAll('[role="dialog"], [role="alertdialog"]');
-      dialogs.forEach((dialog) => {
-        if (dialog.getAttribute('aria-hidden') === 'true') {
-          dialog.removeAttribute('aria-hidden');
-        }
-      });
-      
-      // Ensure body is fully unlocked
-      document.body.style.overflow = originalOverflow || '';
-      document.body.style.pointerEvents = '';
-    });
+    // Clean up accessibility and global UI state
+    cleanupDialogState();
 
     try {
       // Run mutation in background - don't await it to block UI
-      // The mutation's onSuccess will handle query invalidation with proper delay
       rejectLeaveMutation.mutate(
         {
           id,
@@ -847,13 +765,11 @@ export const useEmployeeManagement = (
         {
           onError: (error) => {
             console.error("Error rejecting leave:", error);
-            // Dialog already closed, error toast will be shown by mutation hook
           },
         }
       );
     } catch (error) {
       console.error("Error rejecting leave:", error);
-      // Error handling is done by mutation hook's onError
     }
   };
 
@@ -862,123 +778,84 @@ export const useEmployeeManagement = (
     setShowLeaveViewDialog(true);
   };
 
-  const handleCreateAdvance = async (data: AdvanceCreate) => {
+  const handleCreateAdvance = (data: AdvanceCreate) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    setShowAdvanceForm(false);
+    cleanupDialogState();
+
     try {
-      const createdAdvance = await createAdvanceMutation.mutateAsync(data);
-      setShowAdvanceForm(false);
-
-      // ✅ FIX: Use selective invalidation to prevent UI freeze
-      invalidateQueriesSelective(advanceKeys.all, {
-        refetchType: "none",
-        delay: 0,
+      // RUN MUTATION IN BACKGROUND
+      createAdvanceMutation.mutate(data, {
+        onSuccess: () => refetchAdvances()
       });
-
-      // Manually refetch with delay
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          queryClient.refetchQueries({
-            queryKey: advanceKeys.all,
-            exact: false,
-            type: "active",
-          });
-        }, 200);
-      });
-
-      // Return created advance for PDF generation
-      return createdAdvance;
     } catch (error) {
       console.error("Error creating advance:", error);
-      throw error;
     }
   };
 
-  const handleUpdateAdvance = async (id: number, data: AdvanceUpdate) => {
+  const handleUpdateAdvance = (id: number, data: AdvanceUpdate) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    setShowAdvanceForm(false);
+    setIsEditingAdvance(false);
+    cleanupDialogState();
+
     try {
-      await updateAdvanceMutation.mutateAsync({ id, payload: data });
-      setShowAdvanceForm(false);
-      setIsEditingAdvance(false);
-
-      // ✅ FIX: Use selective invalidation to prevent UI freeze
-      invalidateQueriesSelective(advanceKeys.all, {
-        refetchType: "none",
-        delay: 0,
-      });
-
-      // Manually refetch with delay
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          queryClient.refetchQueries({
-            queryKey: advanceKeys.all,
-            exact: false,
-            type: "active",
-          });
-        }, 200);
+      // RUN MUTATION IN BACKGROUND
+      updateAdvanceMutation.mutate({ id, payload: data }, {
+        onSuccess: () => refetchAdvances()
       });
     } catch (error) {
       console.error("Error updating advance:", error);
     }
   };
 
-  const handleUpdateAdvanceStatus = async (
+  const handleUpdateAdvanceStatus = (
     id: number,
     status: string,
     reason?: string
   ) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    setShowAdvanceStatusDialog(false);
+    setAdvanceStatus("");
+    setAdvanceStatusReason("");
+    cleanupDialogState();
+
     try {
       const payload: AdvanceStatusUpdate = {
         status,
-        ...(reason && { reason }),
+        ...(reason && { request_reason: reason }),
       };
-      await updateAdvanceStatusMutation.mutateAsync({ id, payload });
-      setShowAdvanceStatusDialog(false);
-      setAdvanceStatus("");
-      setAdvanceStatusReason("");
 
-      // ✅ FIX: Use selective invalidation to prevent UI freeze
-      invalidateQueriesSelective(advanceKeys.all, {
-        refetchType: "none",
-        delay: 0,
-      });
-
-      // Manually refetch with delay
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          queryClient.refetchQueries({
-            queryKey: advanceKeys.all,
-            exact: false,
-            type: "active",
-          });
-        }, 200);
+      // RUN MUTATION IN BACKGROUND
+      updateAdvanceStatusMutation.mutate({ id, payload }, {
+        onSuccess: () => refetchAdvances()
       });
     } catch (error) {
       console.error("Error updating advance status:", error);
     }
   };
 
-  const handleUpdateAdvanceAmountPaid = async (id: number, amount: number) => {
+  const handleUpdateAdvanceAmountPaid = (id: number, amount: number) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    setShowAdvanceAmountDialog(false);
+    cleanupDialogState();
+
     try {
       const payload: AdvanceAmountPaidUpdate = { amount_paid: amount };
-      await updateAdvanceAmountPaidMutation.mutateAsync({
+      
+      // RUN MUTATION IN BACKGROUND - DON'T AWAIT
+      updateAdvanceAmountPaidMutation.mutate({
         id,
         payload,
-      });
-      setShowAdvanceAmountDialog(false);
-
-      // ✅ FIX: Use selective invalidation to prevent UI freeze
-      invalidateQueriesSelective(advanceKeys.all, {
-        refetchType: "none",
-        delay: 0,
-      });
-
-      // Manually refetch with delay
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          queryClient.refetchQueries({
-            queryKey: advanceKeys.all,
-            exact: false,
-            type: "active",
-          });
-        }, 200);
+      }, {
+        onSuccess: () => {
+          // Selective invalidation already handled in useUpdateAdvanceAmountPaid hook
+          // but we can force a refetch with delay for extra safety
+          refetchAdvances();
+        },
+        onError: (error) => {
+          console.error("Error updating advance amount:", error);
+        }
       });
     } catch (error) {
       console.error("Error updating advance amount:", error);

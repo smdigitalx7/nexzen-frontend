@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Button } from "@/common/components/ui/button";
 import { Input } from "@/common/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/common/components/ui/card";
@@ -12,7 +12,6 @@ export const StudentPerformanceSearchView = () => {
   const [admissionNo, setAdmissionNo] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Search by admission number
   const { data: enrollmentData, isLoading, error } = useCollegeEnrollmentByAdmission(
     searchValue.trim() || null
   );
@@ -32,7 +31,7 @@ export const StudentPerformanceSearchView = () => {
 
   return (
     <div className="space-y-6">
-      {/* Search Section */}
+      {/* Search Section - same style as School */}
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center justify-center gap-2">
@@ -92,7 +91,6 @@ export const StudentPerformanceSearchView = () => {
         </Alert>
       )}
 
-      {/* Student Performance View Dialog */}
       <StudentPerformanceView
         open={isDialogOpen}
         onOpenChange={(open) => {
@@ -106,4 +104,3 @@ export const StudentPerformanceSearchView = () => {
     </div>
   );
 };
-

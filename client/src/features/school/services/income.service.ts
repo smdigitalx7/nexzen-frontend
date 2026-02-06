@@ -24,7 +24,7 @@ export const SchoolIncomeService = {
   },
 
   list(params?: { admission_no?: string; purpose?: string; start_date?: string; end_date?: string; page?: number; page_size?: number }) {
-    return Api.get<SchoolIncomeRead[]>(`/school/income`, params as Record<string, string | number | boolean | null | undefined> | undefined);
+    return Api.get<{ data: SchoolIncomeRead[]; total_count: number }>(`/school/income`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
   
   getById(income_id: number) {

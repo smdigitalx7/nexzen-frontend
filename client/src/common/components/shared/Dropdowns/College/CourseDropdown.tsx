@@ -16,6 +16,7 @@ export interface CollegeCourseDropdownProps {
   emptyValue?: boolean;
   emptyValueLabel?: string;
   id?: string;
+  modal?: boolean;
 }
 
 /**
@@ -37,6 +38,7 @@ export function CollegeCourseDropdown({
   emptyValue = false,
   emptyValueLabel = "No course",
   id,
+  modal = false,
 }: CollegeCourseDropdownProps) {
   // ✅ OPTIMIZATION: Start with enabled: false - fetch only when dropdown opens
   const [shouldFetch, setShouldFetch] = React.useState(false);
@@ -93,6 +95,7 @@ export function CollegeCourseDropdown({
       emptyValue={emptyValue}
       emptyValueLabel={emptyValueLabel}
       onOpenChange={handleOpenChange}
+      modal={modal}
     />
   );
 }

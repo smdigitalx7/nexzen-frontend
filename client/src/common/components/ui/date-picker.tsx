@@ -1,4 +1,4 @@
-﻿import * as React from "react";
+import * as React from "react";
 import { format } from "date-fns";
 import {
   Calendar as CalendarIcon,
@@ -74,6 +74,7 @@ function DatePickerCaption(
   return (
     <div className="flex items-center justify-center gap-2 px-1 py-1 mb-1">
       <select
+        aria-label="Select month"
         value={currentMonth}
         onChange={handleMonthChange}
         className="h-7 rounded-md border border-input/50 bg-background pl-2 pr-6 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 cursor-pointer min-w-[100px] shadow-sm outline-none transition-all hover:border-primary/50 hover:bg-muted/30"
@@ -85,6 +86,7 @@ function DatePickerCaption(
         ))}
       </select>
       <select
+        aria-label="Select year"
         value={currentYear}
         onChange={handleYearChange}
         className="h-7 rounded-md border border-input/50 bg-background pl-2 pr-6 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 cursor-pointer min-w-[80px] shadow-sm outline-none transition-all hover:border-primary/50 hover:bg-muted/30"

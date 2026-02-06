@@ -31,7 +31,7 @@ import {
 import { Input } from "@/common/components/ui/input";
 import BranchSwitcher from "./BranchSwitcher";
 import AcademicYearSwitcher from "./AcademicYearSwitcher";
-import { useLocation } from "wouter";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useGlobalSearch } from "@/common/hooks/useGlobalSearch";
 import { SchoolSearchResultCard } from "@/common/components/shared/SchoolSearchResultCard";
 import { CollegeSearchResultCard } from "@/common/components/shared/CollegeSearchResultCard";
@@ -41,7 +41,7 @@ import type { CollegeFullStudentRead } from "@/features/college/types";
 const Header = () => {
   const { user, currentBranch, logoutAsync } = useAuthStore();
   const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
   const [showResultsDialog, setShowResultsDialog] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -216,20 +216,20 @@ const Header = () => {
       await logoutAsync();
       
       // Navigate to root after logout
-      setLocation("/");
+      navigate("/");
     } catch (error) {
       // Error handling is done by the auth store
       // Still navigate to root even if logout fails
-      setLocation("/");
+      navigate("/");
     }
   };
 
   const handleProfileClick = () => {
-    setLocation("/profile");
+    navigate("/profile");
   };
 
   const handleSettingsClick = () => {
-    setLocation("/settings");
+    navigate("/settings");
   };
 
   const handleCollectFee = () => {
@@ -252,7 +252,7 @@ const Header = () => {
     clearSearch();
 
     // Navigate to collect fee page
-    setLocation(url);
+    navigate(url);
   };
 
   return (

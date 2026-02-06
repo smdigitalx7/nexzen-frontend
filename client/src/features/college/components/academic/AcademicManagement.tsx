@@ -1,4 +1,4 @@
-﻿import { useState, useCallback } from "react";
+﻿import { useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   School,
@@ -32,10 +32,13 @@ import { TestTab } from "@/features/college/components/academic/tests/TestTab";
 import { GroupsTab } from "@/features/college/components/academic/groups/GroupsTab";
 import { CoursesTab } from "@/features/college/components/academic/courses/CoursesTab";
 import { TeachersTab } from "@/features/college/components/academic/teachers/TeachersTab";
-import { AcademicOverviewCards } from "@/features/college/components/academic/AcademicOverviewCards";
 import { useGrades } from "@/features/general/hooks/useGrades";
 import GradesTab from "@/features/general/components/grades/GradesTab";
 import { useTabNavigation, useTabEnabled } from "@/common/hooks/use-tab-navigation";
+import { StatsCard } from "@/common/components/shared/dashboard/StatsCard";
+import { DashboardGrid } from "@/common/components/shared/dashboard/DashboardGrid";
+import { Separator } from "@/common/components/ui/separator";
+import { TrendingUp, CheckCircle2, Trophy, ArrowRight, Activity } from "lucide-react";
 
 const AcademicManagement = () => {
   const { currentBranch } = useAuthStore();
@@ -93,7 +96,7 @@ const AcademicManagement = () => {
     enabled: testsTabEnabled, // Only fetch when tests tab is active
   });
   const tests = (testsData ||
-    []) as import("@/features/college/types").CollegeTestRead[];
+    []);
 
   const {
     data: groupsData,
@@ -115,7 +118,7 @@ const AcademicManagement = () => {
     enabled: coursesTabEnabled, // Only fetch when courses tab is active
   });
   const courses = (coursesData ||
-    []) as import("@/features/college/types").CollegeCourseResponse[];
+    []);
 
   // Calculate statistics
   const totalClasses = backendClasses.length;
@@ -186,65 +189,120 @@ const AcademicManagement = () => {
     deleteGradeMutation.mutate(gradeCode);
   };
 
-  // Dynamic header content based on active tab
-  const getHeaderContent = () => {
+  // Memoized header content
+  const headerContent = useMemo(() => {
     switch (activeTab) {
       case "classes":
         return {
-          title: "Classes Management",
-          description: "Manage academic classes and their subject assignments",
+          title: "Institutional Class Matrix",
+          description: "Manage academic classes and subject-stream configurations",
+          icon: Users,
+          color: "blue"
         };
       case "groups":
         return {
-          title: "Groups Management",
-          description: "Manage student groups and their academic structure",
+          title: "Academic Group Hierarchy",
+          description: "Stucture student groups and specialized academic batches",
+          icon: Layers,
+          color: "indigo"
         };
       case "courses":
         return {
-          title: "Courses Management",
-          description: "Manage academic courses and their curriculum",
+          title: "Curriculum Repository",
+          description: "Manage standard courses and educational framework",
+          icon: BookOpen,
+          color: "violet"
         };
       case "teachers":
         return {
-          title: "Teachers Management",
-          description: "Manage teaching staff and their assignments",
+          title: "Faculty Assignments",
+          description: "Coordinate teaching staff and academic responsibilities",
+          icon: UserCheck,
+          color: "rose"
         };
       case "subjects":
         return {
-          title: "Subjects Management",
-          description: "Manage academic subjects and their assignments",
+          title: "Knowledge Base Registry",
+          description: "Manage curriculum subjects and disciplinary domains",
+          icon: GraduationCap,
+          color: "emerald"
         };
       case "exams":
         return {
-          title: "Exams Management",
-          description: "Manage academic examinations and schedules",
+          title: "Examination Orchestrator",
+          description: "Oversee summative assessments and scheduling",
+          icon: Calendar,
+          color: "amber"
         };
       case "tests":
         return {
-          title: "Tests Management",
-          description: "Manage academic tests and assessments",
+          title: "Diagnostic Test Deck",
+          description: "Monitor formative assessments and periodic evaluations",
+          icon: FileText,
+          color: "orange"
         };
       case "grades":
         return {
-          title: "Grades Management",
-          description: "Define grade codes and their percentage ranges",
+          title: "Academic Standards Framework",
+          description: "Define performance benchmarks and grading rubrics",
+          icon: Award,
+          color: "cyan"
         };
       case "academic-years":
         return {
-          title: "Academic Years Management",
-          description: "Manage academic years, terms, and academic calendar",
+          title: "Institutional Calendar",
+          description: "Configure academic cycles and session timelines",
+          icon: Settings,
+          color: "slate"
         };
-
       default:
         return {
-          title: "Academic Management",
-          description:
-            "Comprehensive academic structure and performance management",
+          title: "Academic Intelligence Hub",
+          description: "Comprehensive administration of institutional academic structure",
+          icon: BookOpen,
+          color: "blue"
         };
     }
-  };
+  }, [activeTab]);
 
-  const headerContent = getHeaderContent();
+  // Memoized statistics cards
+  const statisticsCards = useMemo(() => [
+    {
+      title: "Total Classes",
+      value: totalClasses,
+      icon: Users,
+      color: "blue" as const,
+      description: "Active academic blocks"
+    },
+    {
+      title: "Current Subjects",
+      value: totalSubjects,
+      icon: GraduationCap,
+      color: "emerald" as const,
+      description: "Managed curriculum items"
+    },
+    {
+      title: "Academic Groups",
+      value: totalGroups,
+      icon: Layers,
+      color: "indigo" as const,
+      description: "Defined functional batches"
+    },
+    {
+      title: "Available Courses",
+      value: totalCourses,
+      icon: BookOpen,
+      color: "violet" as const,
+      description: "Primary educational paths"
+    },
+    {
+      title: "Active Evaluations",
+      value: activeExams,
+      icon: Activity,
+      color: "amber" as const,
+      description: "Ongoing/Upcoming assessments"
+    }
+  ], [totalClasses, totalSubjects, totalGroups, totalCourses, activeExams]);
 
   // ✅ URL-based tab management with persistence
   const handleTabChange = useCallback(
@@ -256,39 +314,50 @@ const AcademicManagement = () => {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
-      >
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {headerContent.title}
-          </h1>
-          <p className="text-muted-foreground">{headerContent.description}</p>
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm shadow-slate-200/50">
+        <div className="flex items-center gap-5">
+          <div className={`h-16 w-16 rounded-2xl bg-${headerContent.color}-50 flex items-center justify-center border border-${headerContent.color}-100 shadow-sm animate-in zoom-in duration-500`}>
+            {headerContent.icon && <headerContent.icon className={`h-8 w-8 text-${headerContent.color}-600`} />}
+          </div>
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+                {headerContent.title}
+              </h1>
+              <Badge variant="secondary" className="bg-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-500 rounded-lg px-2 py-0.5">
+                Module Active
+              </Badge>
+            </div>
+            <p className="text-slate-500 font-medium flex items-center gap-2">
+              {headerContent.description} — <span className="text-slate-400 font-bold text-[11px] uppercase tracking-widest">{currentBranch?.branch_name}</span>
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="gap-1">
-            {currentBranch?.branch_type === "SCHOOL" ? (
-              <School className="h-3 w-3" />
-            ) : (
-              <Building2 className="h-3 w-3" />
-            )}
-            {currentBranch?.branch_name}
-          </Badge>
-        </div>
-      </motion.div>
 
-      {/* Academic Overview Cards */}
-      <AcademicOverviewCards
-        totalClasses={totalClasses}
-        totalSubjects={totalSubjects}
-        activeExams={activeExams}
-        completedExams={completedExams}
-        totalGroups={totalGroups}
-        totalCourses={totalCourses}
-      />
+        <div className="flex items-center gap-3 self-end md:self-center">
+             <Badge variant="outline" className="h-10 rounded-xl px-4 flex items-center gap-2 bg-slate-50 border-slate-200">
+                <Building2 className="h-4 w-4 text-slate-400" />
+                <span className="font-bold text-slate-700">{currentBranch?.branch_name}</span>
+             </Badge>
+        </div>
+      </div>
+
+      <Separator className="bg-slate-100/50" />
+
+      {/* Overview Statistics Grid */}
+      <DashboardGrid>
+        {statisticsCards.map((card: any) => (
+          <StatsCard
+            key={card.title}
+            title={card.title}
+            value={card.value}
+            icon={card.icon}
+            color={card.color}
+            description={card.description}
+          />
+        ))}
+      </DashboardGrid>
 
       {/* Tabs */}
       <TabSwitcher

@@ -1,6 +1,6 @@
 ﻿import React from "react";
+import { DataTable } from "@/common/components/shared/DataTable";
 import { Card, CardContent } from "@/common/components/ui/card";
-import { EnhancedDataTable } from "@/common/components/shared";
 import type { ColumnDef } from "@tanstack/react-table";
 
 interface EmployeesTableProps {
@@ -43,13 +43,14 @@ const EmployeesTable = ({
   }
 
   return (
-    <EnhancedDataTable
+    <DataTable
       data={data}
-      columns={columns}
-      title={isLoading ? `${title} (Loading...)` : title}
-      searchKey={searchKey}
+      columns={columns as any}
+      title={title}
+      loading={isLoading}
+      searchKey={searchKey as any}
       searchPlaceholder="Search employees..."
-      exportable={exportable}
+      export={{ enabled: exportable, filename: "employees" }}
       showSearch={showSearch}
       onAdd={onAdd}
       addButtonText={addButtonText}

@@ -19,6 +19,7 @@ export function useSchoolSubjects(options?: { enabled?: boolean }) {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: false,
+    select: (data: any) => (Array.isArray(data) ? data : data.data || []),
   });
 }
 

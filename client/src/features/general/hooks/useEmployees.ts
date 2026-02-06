@@ -45,6 +45,7 @@ export const useEmployeesByBranch = (enabled: boolean = true) => {
     enabled, // Allow conditional query execution to prevent unnecessary fetches
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
+    select: (data: any) => Array.isArray(data) ? data : data.data || [],
   });
 };
 
@@ -65,6 +66,7 @@ export const useTeachersByBranch = (enabled: boolean = true) => {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: false,
+    select: (data: any) => Array.isArray(data) ? data : data.data || [],
   });
 };
 

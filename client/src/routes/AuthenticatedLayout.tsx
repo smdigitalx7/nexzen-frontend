@@ -1,7 +1,8 @@
-﻿import React from "react";
+﻿import React, { Suspense } from "react";
 import { Header, Sidebar } from "@/common/components/layout";
 import { useNavigationStore } from "@/store/navigationStore";
 import { cn } from "@/common/utils";
+import { Loader } from "@/common/components/ui/ProfessionalLoader";
 
 interface AuthenticatedLayoutProps {
   children: React.ReactNode;
@@ -33,7 +34,11 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
             maxWidth: "100%",
           }}
         >
-          <div className="p-2 relative min-h-full">{children}</div>
+          <div className="p-2 relative min-h-full">
+            <Suspense fallback={<Loader.Container message="Loading..." />}>
+              {children}
+            </Suspense>
+          </div>
         </main>
       </div>
     </div>

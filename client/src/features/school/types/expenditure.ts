@@ -31,6 +31,11 @@ export interface SchoolExpenditureRead {
   updated_by?: number | null;
 }
 
+export interface SchoolExpenditureListResponse {
+  data: SchoolExpenditureRead[];
+  total_count: number;
+}
+
 export interface SchoolExpenditureDashboardStats {
   total_expenditure_records: number;
   total_expenditure_amount: number;

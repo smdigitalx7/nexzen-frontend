@@ -113,7 +113,7 @@ export const SchoolTuitionFeeBalanceStatsCards: React.FC<SchoolTuitionFeeBalance
       title: "Payment Completion",
       value: `${stats.average_payment_completion.toFixed(1)}%`,
       icon: TrendingUp,
-      color: (stats.average_payment_completion >= 80 ? "green" : stats.average_payment_completion >= 60 ? "yellow" : "red") as "green" | "yellow" | "red",
+      color: (stats.average_payment_completion >= 80 ? "green" : stats.average_payment_completion >= 60 ? "yellow" : "red"),
       description: "Average completion rate",
       variant: "gradient" as const,
       size: "sm" as const,

@@ -28,7 +28,7 @@ export const SchoolExpenditureStatsCards: React.FC<
   const statsCards = [
     {
       title: "Total Expenditure Records",
-      value: stats.total_expenditure_records,
+      value: stats?.total_expenditure_records || 0,
       icon: FileText,
       color: "blue" as const,
       description: "All expenditure transactions",
@@ -37,7 +37,7 @@ export const SchoolExpenditureStatsCards: React.FC<
     },
     {
       title: "Total Expenditure Amount",
-      value: formatCurrency(stats.total_expenditure_amount),
+      value: formatCurrency(stats?.total_expenditure_amount || 0),
       icon: IndianRupeeIcon,
       color: "red" as const,
       description: "Total expenses incurred",
@@ -46,7 +46,7 @@ export const SchoolExpenditureStatsCards: React.FC<
     },
     {
       title: "Paid Expenditures",
-      value: stats.paid_expenditures,
+      value: stats?.paid_expenditures || 0,
       icon: CheckCircle,
       color: "green" as const,
       description: "Successfully paid bills",
@@ -55,7 +55,7 @@ export const SchoolExpenditureStatsCards: React.FC<
     },
     {
       title: "Unpaid Expenditures",
-      value: stats.unpaid_expenditures,
+      value: stats?.unpaid_expenditures || 0,
       icon: Clock,
       color: "orange" as const,
       description: "Pending payments",
@@ -64,7 +64,7 @@ export const SchoolExpenditureStatsCards: React.FC<
     },
     {
       title: "Total Paid Amount",
-      value: formatCurrency(stats.total_paid_amount),
+      value: formatCurrency(stats?.total_paid_amount || 0),
       icon: CreditCard,
       color: "emerald" as const,
       description: "Amount already paid",
@@ -73,27 +73,16 @@ export const SchoolExpenditureStatsCards: React.FC<
     },
     {
       title: "Total Unpaid Amount",
-      value: formatCurrency(stats.total_unpaid_amount),
+      value: formatCurrency(stats?.total_unpaid_amount || 0),
       icon: AlertTriangle,
       color: "rose" as const,
       description: "Outstanding payments",
       variant: "elevated" as const,
       size: "sm" as const,
-      // trend: {
-      //   value:
-      //     stats.total_expenditure_amount > 0
-      //       ? Math.round(
-      //           (stats.total_unpaid_amount / stats.total_expenditure_amount) *
-      //             100
-      //         )
-      //       : 0,
-      //   label: "outstanding rate",
-      //   isPositive: false,
-      // },
     },
     {
       title: "Expenditure This Month",
-      value: formatCurrency(stats.expenditure_this_month),
+      value: formatCurrency(stats?.expenditure_this_month || 0),
       icon: CalendarDays,
       color: "cyan" as const,
       description: "Current month's expenses",
@@ -102,7 +91,7 @@ export const SchoolExpenditureStatsCards: React.FC<
     },
     {
       title: "Expenditure This Year",
-      value: formatCurrency(stats.expenditure_this_year),
+      value: formatCurrency(stats?.expenditure_this_year || 0),
       icon: BarChart3,
       color: "violet" as const,
       description: "Current year's expenses",
@@ -111,7 +100,7 @@ export const SchoolExpenditureStatsCards: React.FC<
     },
     {
       title: "Records This Month",
-      value: stats.expenditure_records_this_month,
+      value: stats?.expenditure_records_this_month || 0,
       icon: Receipt,
       color: "yellow" as const,
       description: "Transactions this month",
@@ -120,7 +109,7 @@ export const SchoolExpenditureStatsCards: React.FC<
     },
     {
       title: "Records This Year",
-      value: stats.expenditure_records_this_year,
+      value: stats?.expenditure_records_this_year || 0,
       icon: TrendingUp,
       color: "indigo" as const,
       description: "Transactions this year",

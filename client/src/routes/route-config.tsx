@@ -42,6 +42,9 @@ export const SchoolReservationManagement = lazy(
 export const SchoolAdmissionsManagement = lazy(
   () => import("@/features/school/pages/SchoolAdmissionsPage")
 );
+export const SchoolAdmissionDetails = lazy(
+  () => import("@/features/school/components/admissions/AdmissionDetailsPage")
+);
 export const SchoolStudentsManagement = lazy(
   () => import("@/features/school/pages/SchoolStudentsPage")
 );
@@ -145,6 +148,17 @@ export const routes: RouteConfig[] = [
     roles: ["ADMIN", "INSTITUTE_ADMIN", "ACCOUNTANT"],
     component: SchoolAdmissionsManagement,
     preventDirectAccess: true,
+  },
+  {
+    path: "/school/admissions/:id",
+    roles: ["ADMIN", "INSTITUTE_ADMIN", "ACCOUNTANT"],
+    // We can lazily load the page directly or create a wrapper. 
+    // Since RouteConfig expects a component, and we exported the component default from the file.
+    // However, the component is likely not lazy loaded yet.
+    // I need to add a lazy load entry at the top, or just use react.lazy here inline if allowed, 
+    // but the pattern is to define it at the top. 
+    // Let's assume I will add `SchoolAdmissionDetails` at the top and use it here.
+    component: SchoolAdmissionDetails,
   },
   {
     path: "/school/students",

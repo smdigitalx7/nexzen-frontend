@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import * as React from "react";
-import { BaseDropdown } from "../BaseDropdown";
+import { ServerCombobox } from "@/common/components/ui/server-combobox";
 import { useSchoolClasses } from "@/features/school/hooks/use-school-dropdowns";
 import type { ClassOption } from "@/features/school/types/dropdowns";
 
@@ -15,6 +15,7 @@ export interface SchoolClassDropdownProps {
   emptyValue?: boolean;
   emptyValueLabel?: string;
   id?: string;
+  modal?: boolean;
 }
 
 /**
@@ -35,6 +36,7 @@ export function SchoolClassDropdown({
   emptyValue = false,
   emptyValueLabel = "No class",
   id,
+  modal = false,
 }: SchoolClassDropdownProps) {
   // ✅ OPTIMIZATION: Start with enabled: false - fetch only when dropdown opens
   const [shouldFetch, setShouldFetch] = React.useState(false);
@@ -44,15 +46,15 @@ export function SchoolClassDropdown({
     return data?.items || [];
   }, [data]);
 
-  const handleChange = React.useCallback(
-    (newValue: number | string | null) => {
-      onChange?.(newValue === null ? null : Number(newValue));
+  const handleSelect = React.useCallback(
+    (newValue: string) => {
+      onChange?.(newValue ? Number(newValue) : null);
     },
     [onChange]
   );
 
   // ✅ OPTIMIZATION: Trigger fetch when dropdown opens
-  const handleOpenChange = React.useCallback(
+  const handleDropdownOpen = React.useCallback(
     (open: boolean) => {
       if (open && !shouldFetch) {
         setShouldFetch(true);
@@ -62,26 +64,20 @@ export function SchoolClassDropdown({
   );
 
   return (
-    <BaseDropdown<ClassOption>
-      value={value}
-      onChange={handleChange}
-      options={options}
+    <ServerCombobox<ClassOption>
+      items={options}
+      value={value ? String(value) : ""}
+      onSelect={handleSelect}
       isLoading={isLoading}
-      error={error}
       disabled={disabled}
-      required={required}
       placeholder={placeholder}
+      searchPlaceholder="Search class..."
+      emptyText={error ? "Failed to load classes" : "No classes found."}
       className={className}
-      id={id}
-      getValue={(option) => option.class_id}
-      getLabel={(option) => option.class_name}
-      noOptionsText="No classes available"
-      loadingText="Loading classes..."
-      errorText="Failed to load classes"
-      onRetry={() => refetch()}
-      emptyValue={emptyValue}
-      emptyValueLabel={emptyValueLabel}
-      onOpenChange={handleOpenChange}
+      valueKey="class_id"
+      labelKey="class_name"
+      onDropdownOpen={handleDropdownOpen}
+      modal={modal}
     />
   );
 }

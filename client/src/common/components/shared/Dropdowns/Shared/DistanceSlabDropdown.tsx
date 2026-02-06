@@ -15,6 +15,7 @@ export interface DistanceSlabDropdownProps {
   className?: string;
   emptyValue?: boolean;
   id?: string;
+  modal?: boolean;
 }
 
 /**
@@ -34,6 +35,7 @@ export function DistanceSlabDropdown({
   className,
   emptyValue = false,
   id,
+  modal = false,
 }: DistanceSlabDropdownProps) {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["distance-slabs"],
@@ -93,6 +95,7 @@ export function DistanceSlabDropdown({
       onRetry={() => refetch()}
       emptyValue={emptyValue}
       emptyValueLabel="No slab"
+      modal={modal}
     />
   );
 }

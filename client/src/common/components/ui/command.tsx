@@ -1,7 +1,7 @@
 ﻿import * as React from "react"
 import { type DialogProps } from "@radix-ui/react-dialog"
 import { Command as CommandPrimitive } from "cmdk"
-import { Search } from "lucide-react"
+import { Search, Loader2 } from "lucide-react"
 
 import { cn } from "@/common/utils"
 import { Dialog, DialogContent } from "@/common/components/ui/dialog"
@@ -35,10 +35,14 @@ const CommandDialog = ({ children, ...props }: DialogProps) => {
 
 const CommandInput = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Input>,
-  React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input> & { isLoading?: boolean }
+>(({ className, isLoading, ...props }, ref) => (
   <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
-    <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+    {isLoading ? (
+      <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin opacity-50" />
+    ) : (
+      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+    )}
     <CommandPrimitive.Input
       ref={ref}
       className={cn(
@@ -58,7 +62,7 @@ const CommandList = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <CommandPrimitive.List
     ref={ref}
-    className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden scrollbar-hide", className)}
+    className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden", className)}
     {...props}
   />
 ))

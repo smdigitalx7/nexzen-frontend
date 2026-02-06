@@ -3,6 +3,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
 import { Switch } from "@/common/components/ui/switch";
+import { ServerCombobox } from "@/common/components/ui/server-combobox";
 import {
   Select,
   SelectContent,
@@ -10,8 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/common/components/ui/select";
-import { FormDialog, ConfirmDialog } from "@/common/components/shared";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { Badge } from "@/common/components/ui/badge";
+import { FormDialog, ConfirmDialog, DataTable } from "@/common/components/shared";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
+import { Edit, Trash2 } from "lucide-react";
 import { useSchoolClasses, useSchoolSectionsByClass, useCreateSchoolSection, useUpdateSchoolSection, useDeleteSchoolSection } from "@/features/school/hooks";
 import type { SchoolSectionRead, SchoolClassRead } from "@/features/school/types";
 import { useCanViewUIComponent } from "@/core/permissions";
@@ -24,7 +27,7 @@ const initialSectionForm = {
 };
 
 const SectionsTabComponent = () => {
-  const { data: classes = [] } = useSchoolClasses();
+  const { data: classes = [], isLoading: isLoadingClasses } = useSchoolClasses();
   
   // State management
   const [selectedClassId, setSelectedClassId] = useState<number | undefined>(undefined);
@@ -98,7 +101,15 @@ const SectionsTabComponent = () => {
   const columns: ColumnDef<SchoolSectionRead>[] = useMemo(() => [
     { accessorKey: "section_name", header: "Section Name" },
     { accessorKey: "current_enrollment", header: "Current Enrollment" },
-    { accessorKey: "is_active", header: "Active" }
+    {
+      accessorKey: "is_active",
+      header: "Status",
+      cell: ({ row }: { row: { original: SchoolSectionRead } }) => (
+        <Badge variant={row.original.is_active ? "default" : "secondary"}>
+          {row.original.is_active ? "Active" : "Inactive"}
+        </Badge>
+      ),
+    }
   ], []);
 
   // Memoized action handlers
@@ -148,21 +159,28 @@ const SectionsTabComponent = () => {
   // Permission checks
   const canDeleteSection = useCanViewUIComponent("sections", "button", "section-delete");
 
-  // Memoized action button groups
-  const actionButtonGroups = useMemo(() => {
-    const buttons: Array<{
-      type: "edit" | "delete";
-      onClick: (row: any) => void;
-    }> = [{ type: "edit", onClick: handleEditClick }];
-    
+  // Action configurations for DataTable V2
+  const actions: ActionConfig<SchoolSectionRead>[] = useMemo(() => {
+    const acts: ActionConfig<SchoolSectionRead>[] = [
+      {
+        id: "edit",
+        label: "Edit",
+        icon: Edit,
+        onClick: handleEditClick
+      }
+    ];
+
     if (canDeleteSection) {
-      buttons.push({
-        type: "delete",
+      acts.push({
+        id: "delete",
+        label: "Delete",
+        icon: Trash2,
+        variant: "destructive",
         onClick: handleDeleteClick
       });
     }
-    
-    return buttons;
+
+    return acts;
   }, [handleEditClick, handleDeleteClick, canDeleteSection]);
 
   // Memoized dialog close handlers
@@ -191,25 +209,17 @@ const SectionsTabComponent = () => {
       <div className="flex flex-wrap gap-4 items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
         <div className="flex items-center gap-2">
           <label htmlFor="sections-class-select" className="text-sm font-medium">Class:</label>
-          <Select
-            value={selectedClassId ? selectedClassId.toString() : "all"}
-            onValueChange={handleClassChange}
-        >
-            <SelectTrigger id="sections-class-select" className="w-40">
-              <SelectValue placeholder="Select class" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Select class</SelectItem>
-          {classes.map((c: SchoolClassRead) => (
-                <SelectItem
-                  key={c.class_id}
-                  value={c.class_id.toString()}
-                >
-                  {c.class_name}
-                </SelectItem>
-          ))}
-            </SelectContent>
-          </Select>
+          <ServerCombobox
+            items={classes}
+            isLoading={isLoadingClasses}
+            value={selectedClassId ? String(selectedClassId) : ""}
+            onSelect={(val) => handleClassChange(val)}
+            labelKey="class_name"
+            valueKey="class_id"
+            placeholder="Select class..."
+            searchPlaceholder="Search classes..."
+            width="w-56"
+          />
         </div>
       </div>
 
@@ -218,20 +228,19 @@ const SectionsTabComponent = () => {
           Please select a class to view sections
         </div>
       ) : (
-          <EnhancedDataTable
-          data={sections}
-          columns={columns}
-          title="Sections"
-          searchKey="section_name"
-          exportable={true}
-          onAdd={() => setIsAddOpen(true)}
-          addButtonText="Add Section"
-          showActions={true}
-          actionButtonGroups={actionButtonGroups}
-          actionColumnHeader="Actions"
-          showActionLabels={true}
-          loading={isLoadingSections} // ✅ Add loader while fetching sections
-        />
+        <DataTable
+            data={sections}
+            columns={columns}
+            title="Sections"
+            searchKey="section_name"
+            searchPlaceholder="Search sections..."
+            export={{ enabled: true, filename: "sections" }}
+            onAdd={() => setIsAddOpen(true)}
+            addButtonText="Add Section"
+            actions={actions}
+            actionsHeader="Actions"
+            loading={isLoadingSections}
+          />
       )}
 
       <FormDialog

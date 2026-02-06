@@ -2,6 +2,10 @@
 export { EnhancedDataTable } from "./EnhancedDataTable";
 export { EnhancedDataTableServer } from "./EnhancedDataTableServer";
 export { ServerSidePagination } from "./ServerSidePagination";
+
+// DataTable V2 - New modular table component
+export * from "./DataTable";
+
 export { FormDialog } from "./FormDialog";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { NetworkErrorPage } from "./NetworkErrorPage";

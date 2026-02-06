@@ -13,15 +13,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/common/components/ui/dialog";
-import {
-  SchoolClassDropdown,
-  SchoolSectionDropdown,
-  SchoolExamDropdown,
-} from "@/common/components/shared/Dropdowns";
+import { ServerCombobox } from "@/common/components/ui/server-combobox";
 import { useSchoolEnrollmentsList } from "@/features/school/hooks/use-school-enrollments";
 import {
+  useSchoolClasses,
+  useSchoolSections,
   useSchoolSubjects,
-  useSchoolExams,
+  useSchoolExams, // Fetches exams
 } from "@/features/school/hooks/use-school-dropdowns";
 import { useBulkCreateMultipleStudentsExamMarks } from "@/features/school/hooks/use-school-exam-marks";
 import type {
@@ -78,6 +76,11 @@ const AddMarksByClassDialog = ({
     }
   }, [selectedClass]);
 
+  // Fetch dropdown data
+  const { data: classesData, isLoading: classesLoading } = useSchoolClasses();
+  const { data: sectionsData, isLoading: sectionsLoading } = useSchoolSections(selectedClass || 0);
+  const { data: examsData, isLoading: examsLoading } = useSchoolExams({ enabled: true });
+
   // Fetch enrollments when class is selected (section is optional)
   const {
     data: enrollmentsData,
@@ -86,7 +89,7 @@ const AddMarksByClassDialog = ({
   } = useSchoolEnrollmentsList({
     class_id: selectedClass || 0,
     section_id: selectedSection || undefined,
-    enabled: Boolean(selectedClass), // Only require class_id, section_id is optional
+    enabled: Boolean(selectedClass),
     page: 1,
     page_size: 1000, // Get all students
   });
@@ -94,7 +97,6 @@ const AddMarksByClassDialog = ({
   // Explicitly refetch enrollments whenever class_id or section_id changes
   useEffect(() => {
     if (selectedClass) {
-      // Invalidate the specific query to force refetch when class_id or section_id changes
       void queryClient.invalidateQueries({
         queryKey: schoolKeys.enrollments.list({
           class_id: selectedClass,
@@ -103,7 +105,6 @@ const AddMarksByClassDialog = ({
           page_size: 1000,
         } as Record<string, unknown>),
       });
-      // Explicitly refetch to ensure fresh data is fetched
       void refetchEnrollments();
     }
   }, [selectedClass, selectedSection, queryClient, refetchEnrollments]);
@@ -113,8 +114,7 @@ const AddMarksByClassDialog = ({
     enabled: Boolean(selectedClass),
   });
 
-  // Fetch exam name when exam is selected
-  const { data: examsData } = useSchoolExams({ enabled: true });
+  // Set exam name when exam is selected
   useEffect(() => {
     if (selectedExam && examsData?.items) {
       const exam = examsData.items.find((e) => e.exam_id === selectedExam);
@@ -134,7 +134,7 @@ const AddMarksByClassDialog = ({
       return;
     }
 
-    // Flatten enrollments - same logic as students memo
+    // Flatten enrollments
     const allEnrollments: SchoolEnrollmentRead[] = [];
     enrollmentsData.enrollments.forEach((group) => {
       if (group?.students && Array.isArray(group.students)) {
@@ -146,7 +146,6 @@ const AddMarksByClassDialog = ({
       }
     });
 
-    // Only proceed if we have enrollments and subjects
     if (allEnrollments.length === 0 || subjectsData.items.length === 0) {
       return;
     }
@@ -192,15 +191,13 @@ const AddMarksByClassDialog = ({
     });
   }, [enrollmentsData?.enrollments, subjectsData?.items]);
 
-  // Memoized students list - properly flatten the nested structure
+  // Memoized students list
   const students = useMemo(() => {
     if (!enrollmentsData?.enrollments) {
       return [];
     }
 
     const allEnrollments: SchoolEnrollmentRead[] = [];
-
-    // Handle the nested structure: enrollments is an array of groups, each group has students
     enrollmentsData.enrollments.forEach((group) => {
       if (group?.students && Array.isArray(group.students)) {
         group.students.forEach((student) => {
@@ -211,7 +208,6 @@ const AddMarksByClassDialog = ({
       }
     });
 
-    // Sort by roll number (handle null/undefined roll numbers)
     return allEnrollments.sort((a, b) => {
       const rollA = a.roll_number || "";
       const rollB = b.roll_number || "";
@@ -261,10 +257,8 @@ const AddMarksByClassDialog = ({
     []
   );
 
-  // Bulk create mutation
   const bulkCreateMutation = useBulkCreateMultipleStudentsExamMarks();
 
-  // Handle save
   const handleSave = useCallback(() => {
     if (
       !selectedExam ||
@@ -330,12 +324,10 @@ const AddMarksByClassDialog = ({
     onClose,
   ]);
 
-  // Check if all required fields are selected (section is optional)
   const isReady = Boolean(
     selectedClass && selectedExam && students.length > 0 && subjects.length > 0
   );
 
-  // Check if there are any marks entered
   const hasMarks = useMemo(() => {
     return Object.values(marksData).some((studentData) =>
       Object.values(studentData.marks).some((mark) => mark.marks_obtained > 0)
@@ -344,64 +336,65 @@ const AddMarksByClassDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl w-full flex flex-col p-0">
+      <DialogContent className="max-w-7xl w-full flex flex-col p-0 h-[85vh]">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle className="text-xl font-semibold">
-            Add Marks by Class
+            Add Exam Marks by Class
           </DialogTitle>
           <DialogDescription className="sr-only">
-            Add exam marks for multiple students in a class by selecting class,
-            section, and exam.
+            Add exam marks for multiple students in a class.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden flex flex-col px-6 pb-6">
+        <div className="flex-1 flex flex-col px-6 pb-6 overflow-hidden">
           {/* Selection Controls */}
           <div className="flex flex-wrap gap-4 items-end py-4 border-b">
-            <div className="flex items-center gap-2">
-              <label htmlFor="class-select" className="text-sm font-medium whitespace-nowrap">
-                Class: <span className="text-red-500">*</span>
+            <div className="w-48">
+              <label className="text-sm font-medium whitespace-nowrap mb-1.5 block">
+                Class <span className="text-red-500">*</span>
               </label>
-              <SchoolClassDropdown
-                id="class-select"
-                value={selectedClass}
-                onChange={setSelectedClass}
-                placeholder="Select class"
-                emptyValue
-                emptyValueLabel="Select class"
-                className="w-48"
+              <ServerCombobox
+                 items={classesData?.items || []}
+                 value={selectedClass?.toString() || ""}
+                 onSelect={(val) => setSelectedClass(val ? Number(val) : null)}
+                 valueKey="class_id"
+                 labelKey="class_name"
+                 placeholder="Select Class"
+                 isLoading={classesLoading}
+                 modal={true}
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <label htmlFor="section-select" className="text-sm font-medium whitespace-nowrap">
-                Section:
+            <div className="w-48">
+              <label className="text-sm font-medium whitespace-nowrap mb-1.5 block">
+                Section
               </label>
-              <SchoolSectionDropdown
-                id="section-select"
-                classId={selectedClass || 0}
-                value={selectedSection}
-                onChange={setSelectedSection}
-                placeholder="All sections"
-                emptyValue
-                emptyValueLabel="All sections"
-                className="w-48"
-                disabled={!selectedClass}
+              <ServerCombobox
+                 items={sectionsData?.items || []}
+                 value={selectedSection?.toString() || ""}
+                 onSelect={(val) => setSelectedSection(val ? Number(val) : null)}
+                 valueKey="section_id"
+                 labelKey="section_name"
+                 placeholder="All Sections"
+                 isLoading={sectionsLoading}
+                 disabled={!selectedClass}
+                 modal={true}
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <label htmlFor="exam-select" className="text-sm font-medium whitespace-nowrap">
-                Exam: <span className="text-red-500">*</span>
+            <div className="w-48">
+              <label className="text-sm font-medium whitespace-nowrap mb-1.5 block">
+                Exam <span className="text-red-500">*</span>
               </label>
-              <SchoolExamDropdown
-                id="exam-select"
-                value={selectedExam}
-                onChange={setSelectedExam}
-                placeholder="Select exam"
-                emptyValue
-                emptyValueLabel="Select exam"
-                className="w-48"
+              <ServerCombobox
+                 items={examsData?.items || []}
+                 value={selectedExam?.toString() || ""}
+                 onSelect={(val) => setSelectedExam(val ? Number(val) : null)}
+                 valueKey="exam_id"
+                 labelKey="exam_name"
+                 placeholder="Select Exam"
+                 isLoading={examsLoading}
+                 modal={true}
               />
             </div>
 
@@ -410,7 +403,7 @@ const AddMarksByClassDialog = ({
             <Button
               onClick={handleSave}
               disabled={!isReady || !hasMarks || bulkCreateMutation.isPending}
-              className="gap-2"
+              className="gap-2 bg-blue-600 hover:bg-blue-700"
             >
               {bulkCreateMutation.isPending ? (
                 <>
@@ -481,97 +474,68 @@ const AddMarksByClassDialog = ({
             !enrollmentsLoading &&
             students.length > 0 &&
             subjects.length > 0 && (
-              <div className="flex-1 overflow-auto border rounded-lg mt-4 bg-white">
-                <div className="sticky top-0 bg-slate-50 border-b z-20">
-                  <div className="flex">
+              <div className="flex-1 overflow-auto border rounded-lg mt-4 bg-white relative">
+                 {/* Table Header */}
+                 <div className="sticky top-0 bg-slate-50 border-b z-20 flex min-w-max">
                     <div className="sticky left-0 z-30 bg-slate-50 border-r border-slate-200 px-3 py-2 w-[80px] flex-shrink-0">
-                      <div className="text-xs font-semibold text-slate-700 uppercase">
-                        Roll No
-                      </div>
+                      <div className="text-xs font-semibold text-slate-700 uppercase">Roll No</div>
                     </div>
-                    <div className="sticky left-[80px] z-30 bg-slate-50 border-r border-slate-200 px-3 py-2 w-[300px] flex-shrink-0">
-                      <div className="text-xs font-semibold text-slate-700 uppercase">
-                        Student
-                      </div>
+                    <div className="sticky left-[80px] z-30 bg-slate-50 border-r border-slate-200 px-3 py-2 w-[250px] flex-shrink-0">
+                      <div className="text-xs font-semibold text-slate-700 uppercase">Student</div>
                     </div>
                     {subjects.map((subject, index) => (
                       <div
                         key={subject.subject_id}
                         className={`px-3 py-2 text-center w-[120px] flex-shrink-0 ${
-                          index < subjects.length - 1
-                            ? "border-r border-slate-200"
-                            : ""
+                          index < subjects.length - 1 ? "border-r border-slate-200" : ""
                         }`}
                       >
-                        <div className="text-xs font-semibold text-slate-700 uppercase truncate">
+                        <div className="text-xs font-semibold text-slate-700 uppercase truncate" title={subject.subject_name}>
                           {subject.subject_name}
                         </div>
                       </div>
                     ))}
-                  </div>
-                </div>
+                 </div>
 
-                <div className="divide-y divide-slate-200">
-                  {students.map((student) => {
-                    const studentData = marksData[student.enrollment_id];
-                    return (
-                      <div
-                        key={student.enrollment_id}
-                        className="flex hover:bg-slate-50"
-                      >
-                        <div className="sticky left-0 z-10 bg-white border-r border-slate-200 px-3 py-2 w-[80px] flex-shrink-0">
-                          <div className="text-sm font-medium text-slate-900 truncate">
-                            {student.roll_number}
-                          </div>
-                        </div>
-                        <div className="sticky left-[80px] z-10 bg-white border-r border-slate-200 px-3 py-2 w-[300px] flex-shrink-0">
-                          <div className="text-sm font-medium text-slate-900 ">
-                            {student.student_name}
-                          </div>
-                        </div>
-                        {subjects.map((subject, index) => {
-                          const markData = studentData?.marks[
-                            subject.subject_id
-                          ] || {
-                            marks_obtained: 0,
-                            remarks: "",
-                          };
-                          return (
-                            <div
-                              key={subject.subject_id}
-                              className={`px-3 py-2 w-[120px] flex-shrink-0 flex items-center justify-center ${
-                                index < subjects.length - 1
-                                  ? "border-r border-slate-200"
-                                  : ""
-                              }`}
-                            >
-                              <Input
-                                id={`marks-${student.enrollment_id}-${subject.subject_id}`}
-                                name={`marks-${student.enrollment_id}-${subject.subject_id}`}
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                placeholder="0"
-                                value={markData.marks_obtained || ""}
-                                onChange={(e) =>
-                                  handleMarksChange(
-                                    student.enrollment_id,
-                                    subject.subject_id,
-                                    "marks_obtained",
-                                    e.target.value
-                                  )
-                                }
-                                className="h-9 text-sm text-center w-[100px]"
-                                aria-label={`Marks for ${student.student_name} in ${subject.subject_name}`}
-                                autoComplete="off"
-                              />
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
-                </div>
+                 {/* Table Body */}
+                 <div className="divide-y divide-slate-200 min-w-max">
+                   {students.map((student) => {
+                     const studentData = marksData[student.enrollment_id];
+                     return (
+                       <div key={student.enrollment_id} className="flex hover:bg-slate-50">
+                         <div className="sticky left-0 z-10 bg-white border-r border-slate-200 px-3 py-2 w-[80px] flex-shrink-0 flex items-center">
+                           <div className="text-sm font-medium text-slate-900 truncate">{student.roll_number}</div>
+                         </div>
+                         <div className="sticky left-[80px] z-10 bg-white border-r border-slate-200 px-3 py-2 w-[250px] flex-shrink-0 flex items-center">
+                           <div className="text-sm font-medium text-slate-900 truncate" title={student.student_name}>
+                             {student.student_name}
+                           </div>
+                         </div>
+                         {subjects.map((subject, index) => {
+                           const markData = studentData?.marks[subject.subject_id] || { marks_obtained: 0, remarks: "" };
+                           return (
+                             <div
+                               key={subject.subject_id}
+                               className={`px-3 py-2 w-[120px] flex-shrink-0 flex items-center justify-center ${
+                                 index < subjects.length - 1 ? "border-r border-slate-200" : ""
+                               }`}
+                             >
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="-"
+                                  value={markData.marks_obtained || ""}
+                                  onChange={(e) => handleMarksChange(student.enrollment_id, subject.subject_id, "marks_obtained", e.target.value)}
+                                  className="h-8 text-sm text-center w-20 px-1 focus:ring-1 focus:ring-blue-500"
+                                />
+                             </div>
+                           );
+                         })}
+                       </div>
+                     );
+                   })}
+                 </div>
               </div>
             )}
         </div>

@@ -1,6 +1,6 @@
-﻿import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Users, BookOpen, Clock, MapPin, Edit, Trash2, Search, Filter, Download, Upload, Calendar, CheckCircle2, AlertCircle, GraduationCap } from 'lucide-react';
+import { Plus, Users, BookOpen, Clock, MapPin, Pencil, Trash2, Search, Filter, Download, Upload, Calendar, CheckCircle2, AlertCircle, GraduationCap } from 'lucide-react';
 import { Button } from '@/common/components/ui/button';
 import { Input } from '@/common/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card';
@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { EnhancedDataTable } from '@/common/components/shared';
+import { DataTable } from '@/common/components/shared/DataTable';
+import type { ActionConfig } from '@/common/components/shared/DataTable/types';
 import { useSearchFilters, useTableFilters } from '@/common/hooks';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useToast } from '@/common/hooks/use-toast';
@@ -50,7 +51,7 @@ const classFormSchema = z.object({
 });
 
 const ClassesManagement = () => {
-  const { data: backendClasses = [], isLoading: classesLoading } = useCollegeClasses();
+  const { data: backendClasses = [], isLoading: classesLoading } = useCollegeClasses({ enabled: true });
   const { data: academicYears = [], isLoading: academicYearsLoading } = useAcademicYears();
   const [editingClass, setEditingClass] = useState<any>(null);
   const createClassMutation = useCreateCollegeClass();
@@ -143,23 +144,27 @@ const ClassesManagement = () => {
     }),
   ], [setEditingClass, form, setShowAddDialog, handleDeleteClass]);
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
+  // Actions for DataTable V2 (Edit, Delete)
+  const actions = useMemo<ActionConfig<UIClassRow>[]>(() => [
     {
-      type: 'edit' as const,
-      onClick: (row: UIClassRow) => {
+      id: 'edit',
+      label: 'Edit',
+      icon: Pencil,
+      variant: 'outline',
+      onClick: (row) => {
         setEditingClass(row);
-        form.reset({
-          class_name: row.class_name,
-        });
+        form.reset({ class_name: row.class_name });
         setShowAddDialog(true);
-      }
+      },
     },
     {
-      type: 'delete' as const,
-      onClick: (row: UIClassRow) => handleDeleteClass(row.class_id)
-    }
-  ], [setEditingClass, form, setShowAddDialog, handleDeleteClass]);
+      id: 'delete',
+      label: 'Delete',
+      icon: Trash2,
+      variant: 'destructive',
+      onClick: (row) => handleDeleteClass(row.class_id),
+    },
+  ], [form, handleDeleteClass]);
 
   const handleSubmit = (values: any) => {
     if (editingClass) {
@@ -457,25 +462,16 @@ const ClassesManagement = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            {classesLoading || academicYearsLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-2 text-sm text-slate-600">Loading classes and academic years...</p>
-                </div>
-              </div>
-            ) : (
-              <EnhancedDataTable
-                data={filteredData}
-                columns={columns as any}
-                exportable={true}
-                title="Classes"
-                showActions={true}
-                actionButtonGroups={actionButtonGroups}
-                actionColumnHeader="Actions"
-                showActionLabels={false}
-              />
-            )}
+            <DataTable<UIClassRow>
+              data={filteredData}
+              columns={columns}
+              title="Classes"
+              loading={classesLoading || academicYearsLoading}
+              export={{ enabled: true, filename: "classes" }}
+              actions={actions}
+              actionsHeader="Actions"
+              emptyMessage="No classes found"
+            />
           </motion.div>
         </div>
       </div>

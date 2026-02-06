@@ -8,10 +8,13 @@
  * @returns Formatted currency string
  */
 export const formatCurrency = (amount: number): string => {
+  // ✅ Safety: Handle undefined, null, or non-numeric values
+  const safeAmount = (typeof amount === "number" && !isNaN(amount)) ? amount : 0;
+  
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-  }).format(amount);
+  }).format(safeAmount);
 };
 
 /**

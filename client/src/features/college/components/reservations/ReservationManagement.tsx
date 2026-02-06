@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, memo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   useDeleteCollegeReservation,
@@ -109,6 +110,7 @@ import type { CollegeIncomeRead } from "@/features/college/types/income";
 import { Building2, University } from "lucide-react";
 
 function ReservationManagementComponent() {
+  const navigate = useNavigate();
   const { academicYear, currentBranch } = useAuthStore();
 
   // Initialize mutation hooks
@@ -1191,8 +1193,7 @@ function ReservationManagementComponent() {
   const handleConvertToAdmission = (
     reservation: CollegeReservationRead | CollegeReservationMinimalRead
   ) => {
-    // Navigate to admissions page with reservation data
-    window.location.href = `/admissions/new?reservation=${reservation.reservation_id}`;
+    navigate(`/admissions/new?reservation=${reservation.reservation_id}`);
   };
 
   // Handle API errors
@@ -1974,6 +1975,7 @@ function ReservationManagementComponent() {
                 await submitEdit();
               }}
               isEdit={true}
+              modal={true}
             />
           </div>
         )}

@@ -7,7 +7,7 @@ import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-to
 export function useCollegeTestMarksList(params?: CollegeTestMarksListParams) {
   return useQuery({
     queryKey: collegeKeys.testMarks.list(params),
-    queryFn: () => CollegeTestMarksService.list(params!),
+    queryFn: () => CollegeTestMarksService.list(params),
     enabled: 
       !!params && 
       typeof params.class_id === "number" && 

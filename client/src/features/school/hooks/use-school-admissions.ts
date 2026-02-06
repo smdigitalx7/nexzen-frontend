@@ -27,6 +27,7 @@ export function useSchoolAdmissions(params?: SchoolAdmissionsListParams) {
     enabled: isAuthenticated && !isLoggingOut,
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
+    select: (data: any) => (Array.isArray(data) ? data : data.data || []),
   });
 }
 

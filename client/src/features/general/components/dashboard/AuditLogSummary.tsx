@@ -1,5 +1,5 @@
 import { Receipt } from "lucide-react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/common/components/ui/button";
 import { Badge } from "@/common/components/ui/badge";
 
@@ -19,7 +19,7 @@ interface AuditLogSummaryProps {
 }
 
 export const AuditLogSummary = ({ data }: AuditLogSummaryProps) => {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
 
   if (data.length === 0) return null;
 
@@ -36,7 +36,7 @@ export const AuditLogSummary = ({ data }: AuditLogSummaryProps) => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setLocation("/audit-log")}
+            onClick={() => navigate("/audit-log")}
             className="text-sky-600 hover:text-sky-700"
           >
             View All

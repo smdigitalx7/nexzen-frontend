@@ -1,16 +1,15 @@
-﻿/**
+/**
  * Other Income Table Component
- * Displays other income records in a table format
+ * Displays other income records in a table format (DataTable V2)
  */
 
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Plus } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
 import { Badge } from "@/common/components/ui/badge";
 import { formatDate } from "@/common/utils";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable } from "@/common/components/shared/DataTable";
 import { createCurrencyColumn } from "@/common/utils/factory/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useAuthStore } from "@/core/auth/authStore";
@@ -35,7 +34,7 @@ interface OtherIncomeRecord {
 }
 
 interface OtherIncomeTableProps {
-  fetchOtherIncome: () => Promise<{ items: OtherIncomeRecord[]; total: number }>;
+  fetchOtherIncome: () => Promise<{ data: OtherIncomeRecord[]; total_count: number }>;
   onAddOtherIncome: () => void;
   enabled?: boolean;
   institutionType: "school" | "college";
@@ -70,8 +69,8 @@ export const OtherIncomeTable: React.FC<OtherIncomeTableProps> = ({
     refetchOnMount: true,
   });
 
-  // Define columns for Other Income table
-  const columns: ColumnDef<OtherIncomeRecord>[] = [
+  // Memoize columns to prevent re-render loops
+  const columns = useMemo<ColumnDef<OtherIncomeRecord>[]>(() => [
     {
       accessorKey: "income_date",
       header: "Date",
@@ -93,7 +92,7 @@ export const OtherIncomeTable: React.FC<OtherIncomeTableProps> = ({
       accessorKey: "description",
       header: "Description",
       cell: ({ row }) => {
-        const description = row.getValue("description") as string;
+        const description = row.getValue("description");
         return description ? (
           <Badge variant="secondary" className="max-w-[200px] truncate">
             {description}
@@ -107,7 +106,7 @@ export const OtherIncomeTable: React.FC<OtherIncomeTableProps> = ({
       accessorKey: "payment_method",
       header: "Payment Method",
       cell: ({ row }) => {
-        const method = row.getValue("payment_method") as string;
+        const method = row.getValue("payment_method");
         const colorMap: Record<string, string> = {
           CASH: "bg-green-100 text-green-700",
           UPI: "bg-blue-100 text-blue-700",
@@ -124,7 +123,7 @@ export const OtherIncomeTable: React.FC<OtherIncomeTableProps> = ({
       header: "Amount",
       className: "text-green-600 font-bold",
     }),
-  ];
+  ], []);
 
   return (
     <motion.div
@@ -152,57 +151,19 @@ export const OtherIncomeTable: React.FC<OtherIncomeTableProps> = ({
         </div>
       )}
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex items-center justify-center h-32">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <span className="ml-2">Loading other income data...</span>
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!isLoading &&
-        !error &&
-        (!otherIncomeData?.items || otherIncomeData.items.length === 0) && (
-          <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg bg-gray-50">
-            <p className="text-muted-foreground mb-4">No other income records found</p>
-            {canAddOtherIncome && (
-              <Button
-                variant="outline"
-                onClick={onAddOtherIncome}
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Add Other Income
-              </Button>
-            )}
-          </div>
-        )}
-
-      {/* Data Table */}
-      {!isLoading && !error && otherIncomeData && otherIncomeData.items.length > 0 && (
-        <EnhancedDataTable
-          data={otherIncomeData.items}
+      {/* Data Table V2 (handles loading and empty states) */}
+      {!error && (
+        <DataTable<OtherIncomeRecord>
+          data={otherIncomeData?.data ?? []}
           columns={columns}
           title="Other Income Records"
           searchKey="name"
           searchPlaceholder="Search by name, description, or receipt no..."
-          exportable={true}
           loading={isLoading}
-          showActions={false}
-          customAddButton={
-            canAddOtherIncome ? (
-              <Button
-                onClick={onAddOtherIncome}
-                variant="default"
-                size="sm"
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Add Other Income
-              </Button>
-            ) : undefined
-          }
+          export={{ enabled: true, filename: "other-income" }}
+          onAdd={canAddOtherIncome ? onAddOtherIncome : undefined}
+          addButtonText={canAddOtherIncome ? "Add Other Income" : undefined}
+          emptyMessage="No other income records found"
         />
       )}
     </motion.div>

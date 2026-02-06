@@ -1,6 +1,6 @@
-﻿import { useState } from "react";
+﻿import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import { BarChart3, Download } from "lucide-react";
+import { BarChart3, Download, TrendingUp, PieChart } from "lucide-react";
 import { Badge } from "@/common/components/ui/badge";
 import { useAuthStore } from "@/core/auth/authStore";
 import { Button } from "@/common/components/ui/button";
@@ -20,7 +20,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/common/components/ui/dialog";
-import { TrendingUp, Eye, PieChart } from "lucide-react";
 import { IndianRupeeIcon } from "@/common/components/shared/IndianRupeeIcon";
 import { TabSwitcher } from "@/common/components/shared";
 import { useTabNavigation, useTabEnabled } from "@/common/hooks/use-tab-navigation";
@@ -32,6 +31,7 @@ import { SchoolIncomeStatsCards } from "../income/SchoolIncomeStatsCards";
 import { SchoolExpenditureStatsCards } from "../expenditure/SchoolExpenditureStatsCards";
 import { SchoolFinanceReportButtons } from "../reports/components/SchoolFinanceReportButtons";
 import { SchoolFinancialAnalytics } from "./components/SchoolFinancialAnalytics";
+import { cleanupDialogState } from "@/common/utils/ui-cleanup";
 
 export const SchoolReportsTemplate = () => {
   const { currentBranch } = useAuthStore();
@@ -46,32 +46,90 @@ export const SchoolReportsTemplate = () => {
   const expenditureTabEnabled = useTabEnabled("expenditure", "income");
   const analyticsTabEnabled = useTabEnabled("analytics", "income");
 
-  // ✅ OPTIMIZATION: Only fetch income data when Income tab is active
-  const { data: incomeData = [] } = useSchoolIncomeList(undefined, { enabled: incomeTabEnabled });
+  // ✅ OPTIMIZATION: Use static empty arrays to prevent trigger re-renders
+  const EMPTY_ARRAY = useMemo(() => [], []);
 
-  // ✅ OPTIMIZATION: Only fetch expenditure data when Expenditure tab is active
-  const { data: expenditureData = [] } = useSchoolExpenditureList(undefined, { enabled: expenditureTabEnabled });
+  // ✅ OPTIMIZATION: Only fetch data when respective tab is active
+  const { data: incomeData = EMPTY_ARRAY } = useSchoolIncomeList(undefined, { enabled: incomeTabEnabled });
+  const { data: expenditureData = EMPTY_ARRAY } = useSchoolExpenditureList(undefined, { enabled: expenditureTabEnabled });
 
-  // ✅ OPTIMIZATION: Only fetch dashboard data when respective tabs are active
   const {
     data: incomeDashboard,
     error: incomeDashboardError,
     isLoading: incomeDashboardLoading,
   } = useSchoolIncomeDashboard({ enabled: incomeTabEnabled || analyticsTabEnabled });
+  
   const {
     data: expenditureDashboard,
     error: expenditureDashboardError,
     isLoading: expenditureDashboardLoading,
   } = useSchoolExpenditureDashboard({ enabled: expenditureTabEnabled || analyticsTabEnabled });
 
+  // ✅ GLOBAL MODAL GUARDIAN: Ensure UI is unlocked when no modals are open
+  useEffect(() => {
+    const anyModalOpen = showAddExpenditureDialog || showExportDialog;
+
+    if (!anyModalOpen) {
+      const timer = setTimeout(() => {
+        cleanupDialogState();
+      }, 100);
+      
+      const longTimer = setTimeout(() => {
+        cleanupDialogState();
+      }, 500);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(longTimer);
+      };
+    }
+  }, [showAddExpenditureDialog, showExportDialog]);
+
   // Handlers
-  const handleExportReport = () => {
-    // Export functionality - to be implemented when backend endpoint is available
+  const handleExportReport = useCallback(() => {
     if (import.meta.env.DEV) {
       console.log("Exporting report...");
     }
     setShowExportDialog(false);
-  };
+  }, []);
+
+  const handleAddExpenditure = useCallback(() => {
+    setShowAddExpenditureDialog(true);
+  }, []);
+
+  // ✅ STABILIZATION: Memoize tabs array to prevent infinite re-render loops in child components
+  const schoolTabs = useMemo(() => [
+    {
+      value: "income",
+      label: "Income",
+      icon: IndianRupeeIcon,
+      content: <IncomeSummaryTable onExportCSV={() => {}} enabled={incomeTabEnabled} />,
+    },
+    {
+      value: "expenditure",
+      label: "Expenditure",
+      icon: TrendingUp,
+      content: (
+        <ExpenditureTable
+          expenditureData={expenditureData as any[]}
+          onExportCSV={() => {}}
+          onAddExpenditure={handleAddExpenditure}
+        />
+      ),
+    },
+    {
+      value: "analytics",
+      label: "Analytics",
+      icon: PieChart,
+      content: (
+        <SchoolFinancialAnalytics
+          incomeDashboard={incomeDashboard}
+          expenditureDashboard={expenditureDashboard}
+          loading={incomeDashboardLoading || expenditureDashboardLoading}
+        />
+      ),
+    },
+  ], [incomeTabEnabled, expenditureData, handleAddExpenditure, incomeDashboard, expenditureDashboard, incomeDashboardLoading, expenditureDashboardLoading]);
 
   return (
     <div className="space-y-6 p-6">
@@ -109,7 +167,7 @@ export const SchoolReportsTemplate = () => {
         </div>
       )}
 
-      {/* Detailed Income Stats Cards - Only show when income tab is active */}
+      {/* Detailed Income Stats Cards */}
       {activeTab === "income" && incomeDashboard && (
         <SchoolIncomeStatsCards
           stats={incomeDashboard}
@@ -117,7 +175,7 @@ export const SchoolReportsTemplate = () => {
         />
       )}
 
-      {/* Detailed Expenditure Stats Cards - Only show when expenditure tab is active */}
+      {/* Detailed Expenditure Stats Cards */}
       {activeTab === "expenditure" && expenditureDashboard && (
         <SchoolExpenditureStatsCards
           stats={expenditureDashboard}
@@ -127,38 +185,7 @@ export const SchoolReportsTemplate = () => {
 
       {/* Tabs */}
       <TabSwitcher
-        tabs={[
-          {
-            value: "income",
-            label: "Income",
-            icon: IndianRupeeIcon,
-            content: <IncomeSummaryTable onExportCSV={() => {}} enabled={incomeTabEnabled} />,
-          },
-          {
-            value: "expenditure",
-            label: "Expenditure",
-            icon: TrendingUp,
-            content: (
-              <ExpenditureTable
-                expenditureData={expenditureData}
-                onExportCSV={() => {}}
-                onAddExpenditure={() => setShowAddExpenditureDialog(true)}
-              />
-            ),
-          },
-          {
-            value: "analytics",
-            label: "Analytics",
-            icon: PieChart,
-            content: (
-              <SchoolFinancialAnalytics
-                incomeDashboard={incomeDashboard}
-                expenditureDashboard={expenditureDashboard}
-                loading={incomeDashboardLoading || expenditureDashboardLoading}
-              />
-            ),
-          },
-        ]}
+        tabs={schoolTabs}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />

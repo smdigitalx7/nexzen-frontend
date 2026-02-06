@@ -4,7 +4,7 @@ import { Label } from "@/common/components/ui/label";
 import { Input } from "@/common/components/ui/input";
 import { DatePicker } from "@/common/components/ui/date-picker";
 import { Textarea } from "@/common/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/common/components/ui/select";
+import { SmartSelect } from "@/common/components/ui/smart-select";
 
 interface EmployeeFormData {
   employee_name: string;
@@ -76,36 +76,31 @@ const EmployeeFormDialog = ({ open, onOpenChange, isEditing, formData, onChange,
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="employee_type">Employee Type *</Label>
-              <Select
+              <SmartSelect
+                items={[
+                  { value: "TEACHING", label: "Teaching" },
+                  { value: "NON_TEACHING", label: "Non-Teaching" },
+                  { value: "OFFICE", label: "Administrative" },
+                  { value: "DRIVER", label: "Driver" },
+                ]}
                 value={formData.employee_type || ''}
-                onValueChange={(value) => onChange("employee_type", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="TEACHING">Teaching</SelectItem>
-                  <SelectItem value="NON_TEACHING">Non-Teaching</SelectItem>
-                  <SelectItem value="OFFICE">Administrative</SelectItem>
-                  <SelectItem value="DRIVER">Driver</SelectItem>
-                </SelectContent>
-              </Select>
+                onSelect={(value: string) => onChange("employee_type", value)}
+                placeholder="Select type"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="gender">Gender</Label>
-              <Select
+              <SmartSelect
+                items={[
+                  { value: "MALE", label: "Male" },
+                  { value: "FEMALE", label: "Female" },
+                  { value: "OTHER", label: "Other" },
+                ]}
                 value={formData.gender || ''}
-                onValueChange={(value) => onChange("gender", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="MALE">Male</SelectItem>
-                  <SelectItem value="FEMALE">Female</SelectItem>
-                  <SelectItem value="OTHER">Other</SelectItem>
-                </SelectContent>
-              </Select>
+                onSelect={(value: string) => onChange("gender", value)}
+                placeholder="Select gender"
+                radioLayout="horizontal"
+              />
             </div>
           </div>
 
@@ -208,18 +203,16 @@ const EmployeeFormDialog = ({ open, onOpenChange, isEditing, formData, onChange,
             {isEditing && (
               <div className="space-y-2">
                 <Label htmlFor="status">Status *</Label>
-                <Select
+                <SmartSelect
+                  items={[
+                    { value: "ACTIVE", label: "Active" },
+                    { value: "TERMINATED", label: "Terminated" },
+                  ]}
                   value={formData.status || 'ACTIVE'}
-                  onValueChange={(value) => onChange("status", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ACTIVE">Active</SelectItem>
-                    <SelectItem value="TERMINATED">Terminated</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onSelect={(value: string) => onChange("status", value)}
+                  placeholder="Select status"
+                  radioLayout="horizontal"
+                />
               </div>
             )}
           </div>

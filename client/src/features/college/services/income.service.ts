@@ -23,7 +23,7 @@ export const CollegeIncomeService = {
 
   // GET /api/v1/college/income
   list(params?: CollegeIncomeListParams) {
-    return Api.get<CollegeIncomeRead[]>(`/college/income`, params as Record<string, string | number | boolean | null | undefined> | undefined);
+    return Api.get<{ data: CollegeIncomeRead[]; total_count: number }>(`/college/income`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
 
   // GET /api/v1/college/income/{income_id}

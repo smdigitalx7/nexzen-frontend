@@ -15,6 +15,7 @@ export function useSchoolStudentTransport(params: { class_id: number; section_id
     queryKey: keys.byClass(params.class_id, params.section_id, params.bus_route_id),
     queryFn: () => StudentTransportService.list(params),
     enabled: Number.isFinite(params.class_id) && params.class_id > 0,
+    select: (data: any) => (Array.isArray(data) ? data : data.data || []),
   });
 }
 

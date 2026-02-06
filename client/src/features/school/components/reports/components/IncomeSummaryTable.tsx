@@ -1,7 +1,7 @@
 ﻿import React, { useState, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Printer, Plus, Receipt } from "lucide-react";
+import { Printer, Plus, Receipt, Eye } from "lucide-react";
 import { IndianRupeeIcon } from "@/common/components/shared/IndianRupeeIcon";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
 import { SchoolIncomeService } from "@/features/school/services";
@@ -11,7 +11,8 @@ import type {
 } from "@/features/school/types/income";
 import { ViewIncomeDialog } from "./ViewIncomeDialog";
 import { formatDate } from "@/common/utils";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable } from "@/common/components/shared";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import { createCurrencyColumn } from "@/common/utils/factory/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/common/components/ui/button";
@@ -97,6 +98,23 @@ export const IncomeSummaryTable = ({
     refetchOnMount: true, // Only refetch on mount if enabled and data is stale
   });
 
+  // Extract the list array safely - handle both raw arrays and paginated objects { data, total_count } or { items, ... }
+  const incomeList = useMemo(() => {
+    if (!incomeData) return [];
+    if (Array.isArray(incomeData)) return incomeData;
+    // Check for 'items' property as seen in some API responses
+    if (Array.isArray((incomeData as any).items)) return (incomeData as any).items;
+    return incomeData.data || [];
+  }, [incomeData]);
+
+  const totalCount = useMemo(() => {
+    if (!incomeData) return 0;
+    if (Array.isArray(incomeData)) return incomeData.length;
+    // Check for 'items' length if available
+    if (Array.isArray((incomeData as any).items)) return (incomeData as any).total_count || (incomeData as any).items.length;
+    return incomeData.total_count || (incomeData.data?.length || 0);
+  }, [incomeData]);
+
   // Fetch other income records (only when other-income tab is active)
   const otherIncomeQueryKey = useMemo(
     () => ["school-other-income"],
@@ -140,14 +158,14 @@ export const IncomeSummaryTable = ({
   });
 
   // Handle view action
-  const handleView = (income: SchoolIncomeSummary) => {
+  const handleView = useCallback((income: SchoolIncomeSummary) => {
     if (!income || !income.income_id) {
       console.error("Invalid income object:", income);
       return;
     }
     setViewIncomeId(income.income_id);
     setShowViewDialog(true);
-  };
+  }, []);
 
   // Handle print receipt action
   const handlePrintReceipt = useCallback(
@@ -218,8 +236,8 @@ export const IncomeSummaryTable = ({
     [queryClient]
   );
 
-  // Define columns for EnhancedDataTable
-  const columns: ColumnDef<SchoolIncomeSummary>[] = [
+  // ✅ CRITICAL FIX: Memoize columns to prevent infinite re-render loops in EnhancedDataTable
+  const columns = useMemo<ColumnDef<SchoolIncomeSummary>[]>(() => [
     {
       accessorKey: "created_at",
       header: "Date",
@@ -256,45 +274,41 @@ export const IncomeSummaryTable = ({
       header: "Amount",
       className: "text-green-600 font-bold",
     }),
-  ];
+  ], []);
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(
-    () => [
-      {
-        type: "view" as const,
-        onClick: (income: SchoolIncomeSummary) => {
-          if (income) {
-            handleView(income);
-          } else {
-            console.error("income is undefined");
-          }
-        },
+  // Merged action configurations for DataTable V2
+  const actions: ActionConfig<SchoolIncomeSummary>[] = useMemo(() => [
+    {
+      id: "view",
+      label: "View",
+      icon: Eye, // Ensure Eye is imported, it wasn't in original imports. I need to add it.
+      onClick: (income) => {
+        if (income) handleView(income);
       },
-    ],
-    []
-  );
-
-  // Action buttons for EnhancedDataTable (including print receipt)
-  const actionButtons = useMemo(
-    () => [
-      {
-        id: "print-receipt",
-        label: (income: SchoolIncomeSummary) =>
-          loadingReceiptId === income.income_id
-            ? "Generating..."
-            : "Print Receipt",
-        icon: (income: SchoolIncomeSummary) =>
-          loadingReceiptId === income.income_id ? LoadingIcon : Printer,
-        variant: "outline" as const,
-        onClick: (income: SchoolIncomeSummary) => handlePrintReceipt(income),
-        show: (income: SchoolIncomeSummary) => true,
-        disabled: (income: SchoolIncomeSummary) =>
-          loadingReceiptId === income.income_id,
-      },
-    ],
-    [handlePrintReceipt, loadingReceiptId]
-  );
+    },
+    {
+      id: "print-receipt",
+      label: "Print Receipt", // Dynamic label support depends on DataTable implementation. Keeping static for now or using standard text.
+      // ActionConfig usually expects static string for label? 
+      // types.ts: label: string.
+      // If I need dynamic label "Generating...", I can't easily do it with standard ActionConfig unless I force it.
+      // But disabled state handles visual feedback.
+      icon: (props: any) => { // Wrapper to handle dynamic icon
+        const income = props as unknown as SchoolIncomeSummary; // Wait, icon prop in ActionConfig receives className? 
+        // No, typically DataTable renders <Icon className... />.
+        // It doesn't pass 'row' data to the Icon component.
+        // So dynamic icon based on row state is tricky in standard V2 actions.
+        // I will use Printer icon and rely on disabled state.
+        return <Printer {...props} />;
+      }, 
+      // Actually, let's just use Printer icon. The Disabled state will show it's processing (dimmed).
+      // If I want a spinner, I might need a custom action rendering.
+      // For now, I'll stick to standard Printer icon.
+      variant: "outline",
+      onClick: (income) => handlePrintReceipt(income),
+      disabled: (income) => loadingReceiptId === income.income_id,
+    }
+  ], [handleView, handlePrintReceipt, loadingReceiptId]);
 
   return (
     <motion.div
@@ -329,7 +343,7 @@ export const IncomeSummaryTable = ({
             value: "income-summary",
             label: "Income Summary",
             icon: IndianRupeeIcon,
-            badge: incomeData?.total || 0,
+            badge: totalCount,
             content: (
               <>
       {/* Loading State */}
@@ -343,7 +357,7 @@ export const IncomeSummaryTable = ({
                 {/* Empty State for Income Summary */}
       {!isLoading &&
         !error &&
-        (!incomeData?.items || incomeData.items.length === 0) && (
+        (incomeList.length === 0) && (
           <div className="text-center py-8">
             <p className="text-muted-foreground">No income records found</p>
             <Button
@@ -357,20 +371,17 @@ export const IncomeSummaryTable = ({
         )}
 
                 {/* Income Summary Table */}
-                {!isLoading && incomeData && incomeData.items.length > 0 && (
-      <EnhancedDataTable
-                    data={incomeData.items}
-        columns={columns}
-        title="Income Summary"
-        searchKey="receipt_no"
-        searchPlaceholder="Search by receipt no, student name, or identity no..."
-        exportable={true}
+                {!isLoading && incomeList.length > 0 && (
+                  <DataTable
+                    data={incomeList}
+                    columns={columns}
+                    title="Income Summary"
+                    searchKey="receipt_no"
+                    searchPlaceholder="Search by receipt no, student name, or identity no..."
+                    export={{ enabled: true }}
                     loading={false}
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionButtons={actionButtons}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
+                    actions={actions}
+                    actionsHeader="Actions"
                   />
                 )}
               </>
@@ -380,7 +391,7 @@ export const IncomeSummaryTable = ({
             value: "other-income",
             label: "Other Income",
             icon: Receipt,
-            badge: otherIncomeData?.total || 0,
+            badge: otherIncomeData?.total_count || 0,
             content: (
               <OtherIncomeTable
                 fetchOtherIncome={() => getSchoolOtherIncome()}

@@ -11,7 +11,7 @@ import {
 } from "@/common/components/ui/select";
 import { Save } from "lucide-react";
 import { SchoolReservationsService } from "@/features/school/services";
-import { EnhancedDataTable } from "@/common/components/shared";
+import { DataTable } from "@/common/components/shared";
 import { ColumnDef } from "@tanstack/react-table";
 import { toast } from "@/common/hooks/use-toast";
 import { schoolKeys } from "@/features/school/hooks/query-keys";
@@ -76,10 +76,7 @@ const StatusSelect = memo(
     ) => void;
   }) => {
     const current = (reservation.status || "").toUpperCase();
-    const selected = (statusChanges[reservation.id] || current) as
-      | "PENDING"
-      | "CONFIRMED"
-      | "CANCELLED";
+    const selected = (statusChanges[reservation.id] || current);
     const isConfirmed = current === "CONFIRMED";
 
     return (
@@ -183,10 +180,7 @@ const UpdateButton = memo(
     ) => void | Promise<void>;
   }) => {
     const current = (reservation.status || "").toUpperCase();
-    const selected = (statusChanges[reservation.id] || current) as
-      | "PENDING"
-      | "CONFIRMED"
-      | "CANCELLED";
+    const selected = (statusChanges[reservation.id] || current);
     const same = selected === current;
 
     return (
@@ -196,16 +190,13 @@ const UpdateButton = memo(
           variant={same ? "outline" : "default"}
           disabled={same}
           onClick={() => {
-            const to = (statusChanges[reservation.id] || current) as
-              | "PENDING"
-              | "CONFIRMED"
-              | "CANCELLED";
+            const to = (statusChanges[reservation.id] || current);
             const remarks = statusRemarks[reservation.id] || "";
             onUpdate(reservation, to, remarks);
           }}
         >
           <Save className="h-4 w-4 mr-2" />
-          Update
+          Save
         </Button>
       </div>
     );
@@ -329,7 +320,7 @@ const StatusUpdateTableComponent = ({
         accessorKey: "status",
         header: "Current Status",
         cell: ({ row }) => {
-          const status = row.getValue("status") as string;
+          const status = row.getValue("status");
           return <StatusBadge status={status} />;
         },
       },
@@ -388,15 +379,14 @@ const StatusUpdateTableComponent = ({
 
   return (
     <div className="space-y-4">
-      <EnhancedDataTable
-        key={`status-update-table-${refreshKey}`}
+      <DataTable
         data={reservations}
         columns={statusColumns}
         title="Status Updates"
         searchPlaceholder="Search by student name or reservation number..."
-        exportable={false}
+        searchKey="studentName"
+        export={{ enabled: false }}
         loading={isLoading}
-        showActions={false}
         className="w-full"
       />
     </div>

@@ -1,8 +1,8 @@
 ﻿import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Check, X, Download, Clock, TrendingUp, Eye, Plus } from "lucide-react";
+import { Check, X, Download, TrendingUp, Eye, Plus, Users, Clock } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
-import { Card, CardContent } from "@/common/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/common/components/ui/card";
 import { TabSwitcher } from "@/common/components/shared";
 import { useTabNavigation } from "@/common/hooks/use-tab-navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -38,7 +38,7 @@ const AttendanceManagement = () => {
     // Subscribe to query cache updates
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
       if (event?.query?.queryKey?.[0] === "college-attendance-all") {
-        const data = event.query.state.data as any;
+        const data = event.query.state.data;
         if (data?.[0]?.attendance?.[0]?.students && Array.isArray(data[0].attendance[0].students)) {
           setFinalStudents(data[0].attendance[0].students);
         }
@@ -86,7 +86,7 @@ const AttendanceManagement = () => {
       totalRecords,
       presentCount: totalPresentDays,
       absentCount: totalAbsentDays,
-      lateCount: 0, // Late count not available in current data structure
+      lateCount: 0,
       presentPercentage,
       absentPercentage,
     };
@@ -97,17 +97,13 @@ const AttendanceManagement = () => {
       <div className="flex-1 overflow-auto scrollbar-hide">
         <div className="p-6 space-y-6">
           {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
-          >
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">
+              <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
                 Attendance Management
               </h1>
-              <p className="text-slate-600 mt-1">
-                Mark daily student attendance in a simple table
+              <p className="text-slate-500 mt-1">
+                Oversee student attendance, track presence, and manage records
               </p>
             </div>
             <div className="flex gap-3">
@@ -118,129 +114,92 @@ const AttendanceManagement = () => {
                   }
                 }}
                 variant="outline"
-                className="hover-elevate"
-                data-testid="button-export-attendance"
+                className="bg-white"
               >
                 <Download className="mr-2 h-4 w-4" />
-                Export
+                Export Report
               </Button>
             </div>
-          </motion.div>
+          </div>
 
           {/* Summary Cards */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
-          >
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
-                    <Check className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-600">
-                      Present Days
-                    </p>
-                    <p className="text-2xl font-bold text-slate-900">
-                      {attendanceStats.presentCount}
-                    </p>
-                    <p className="text-xs text-green-600">
-                      {attendanceStats.presentPercentage}%
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+             {/* Total Students Card */}
+            <Card className="hover:shadow-md transition-all duration-200 border border-blue-200 shadow-sm">
+               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                 <CardTitle className="text-sm font-medium text-slate-600">
+                   Total Students
+                 </CardTitle>
+                 <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                   <Users className="h-4 w-4 text-blue-600" />
+                 </div>
+               </CardHeader>
+               <CardContent>
+                 <div className="text-3xl font-bold text-blue-600">{attendanceStats.totalRecords}</div>
+                 <p className="text-xs text-slate-500 mt-1">
+                   {attendanceStats.totalRecords === 0 
+                     ? "Select class to view data" 
+                     : "Total active records"}
+                 </p>
+               </CardContent>
             </Card>
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
-                    <X className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-600">Absent Days</p>
-                    <p className="text-2xl font-bold text-slate-900">
-                      {attendanceStats.absentCount}
-                    </p>
-                    <p className="text-xs text-red-600">
-                      {attendanceStats.absentPercentage}%
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
+
+            {/* Present Card */}
+            <Card className="hover:shadow-md transition-all duration-200 border border-green-200 shadow-sm">
+               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                 <CardTitle className="text-sm font-medium text-slate-600">
+                   Present Days
+                 </CardTitle>
+                 <div className="h-8 w-8 rounded-lg bg-green-50 flex items-center justify-center">
+                   <Check className="h-4 w-4 text-green-600" />
+                 </div>
+               </CardHeader>
+               <CardContent>
+                 <div className="text-3xl font-bold text-green-600">{attendanceStats.presentCount}</div>
+                 <p className="text-xs text-slate-500 mt-1">
+                   {attendanceStats.presentPercentage}% attendance rate
+                 </p>
+               </CardContent>
             </Card>
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center">
-                    <Clock className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-600">Late</p>
-                    <p className="text-2xl font-bold text-slate-900">
-                      {attendanceStats.lateCount}
-                    </p>
-                    {attendanceStats.totalRecords === 0 && (
-                      <p className="text-xs text-slate-500 mt-1">
-                        Select class in View tab
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
+
+             {/* Absent Card */}
+            <Card className="hover:shadow-md transition-all duration-200 border border-red-200 shadow-sm">
+               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                 <CardTitle className="text-sm font-medium text-slate-600">
+                   Absent Days
+                 </CardTitle>
+                 <div className="h-8 w-8 rounded-lg bg-red-50 flex items-center justify-center">
+                   <X className="h-4 w-4 text-red-600" />
+                 </div>
+               </CardHeader>
+               <CardContent>
+                 <div className="text-3xl font-bold text-red-600">{attendanceStats.absentCount}</div>
+                 <p className="text-xs text-slate-500 mt-1">
+                   {attendanceStats.absentPercentage}% absence rate
+                 </p>
+               </CardContent>
             </Card>
-            <Card className="hover-elevate transition-all duration-200">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                    <TrendingUp className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-600">
-                      Total Students
-                    </p>
-                    <p className="text-2xl font-bold text-slate-900">
-                      {attendanceStats.totalRecords}
-                    </p>
-                    {attendanceStats.totalRecords === 0 && (
-                      <p className="text-xs text-slate-500 mt-1">
-                        Select class in View tab
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+          </div>
 
           {/* Main Content */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <TabSwitcher
-              tabs={[
-                {
-                  value: "view",
-                  label: "View Attendance",
-                  icon: Eye,
-                  content: <AttendanceView />,
-                },
-                {
-                  value: "create",
-                  label: "Create Attendance",
-                  icon: Plus,
-                  content: <AttendanceCreate />,
-                },
-              ]}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-            />
-          </motion.div>
+          <TabSwitcher
+            tabs={[
+              {
+                value: "view",
+                label: "View Attendance",
+                icon: Eye,
+                content: <AttendanceView />,
+              },
+              {
+                value: "create",
+                label: "Mark Attendance",
+                icon: Plus,
+                content: <AttendanceCreate />,
+              },
+            ]}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
         </div>
       </div>
     </div>

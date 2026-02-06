@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/common/components/ui/select";
 import { useCreateCollegeExpenditure } from "@/features/college/hooks";
+import { cleanupDialogState } from "@/common/utils/ui-cleanup";
 
 const expenditureSchema = z.object({
   expenditure_purpose: z.string().min(1, "Purpose is required"),
@@ -63,7 +64,11 @@ export const AddExpenditureDialog = ({ open, onOpenChange }: AddExpenditureDialo
     },
   });
 
-  const onSubmit = async (data: ExpenditureFormData) => {
+  const onSubmit = (data: ExpenditureFormData) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    onOpenChange(false);
+    cleanupDialogState();
+    
     setIsSubmitting(true);
     try {
       const payload = {
@@ -74,12 +79,16 @@ export const AddExpenditureDialog = ({ open, onOpenChange }: AddExpenditureDialo
         payment_date: data.payment_date && data.payment_date.trim() !== "" ? data.payment_date : null,
         remarks: data.remarks && data.remarks.trim() !== "" ? data.remarks : null,
       };
-      await createExpenditureMutation.mutateAsync(payload);
-      form.reset();
-      onOpenChange(false);
+      
+      // RUN MUTATION IN BACKGROUND - DON'T AWAIT
+      createExpenditureMutation.mutate(payload, {
+        onSuccess: () => {
+          form.reset();
+          setIsSubmitting(false);
+        }
+      });
     } catch (error) {
       console.error("Failed to create expenditure:", error);
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -100,9 +109,9 @@ export const AddExpenditureDialog = ({ open, onOpenChange }: AddExpenditureDialo
               name="expenditure_purpose"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Purpose</FormLabel>
+                  <FormLabel htmlFor="expenditure_purpose">Purpose</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Office Supplies, Maintenance" {...field} />
+                    <Input id="expenditure_purpose" placeholder="e.g., Office Supplies, Maintenance" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -113,9 +122,10 @@ export const AddExpenditureDialog = ({ open, onOpenChange }: AddExpenditureDialo
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Amount</FormLabel>
+                  <FormLabel htmlFor="amount">Amount</FormLabel>
                   <FormControl>
                     <Input
+                      id="amount"
                       type="number"
                       placeholder="0.00"
                       {...field}
@@ -131,9 +141,10 @@ export const AddExpenditureDialog = ({ open, onOpenChange }: AddExpenditureDialo
               name="bill_date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Bill Date</FormLabel>
+                  <FormLabel htmlFor="bill_date">Bill Date</FormLabel>
                   <FormControl>
                     <DatePicker
+                      id="bill_date"
                       value={field.value || ""}
                       onChange={field.onChange}
                       placeholder="Select bill date"
@@ -148,10 +159,10 @@ export const AddExpenditureDialog = ({ open, onOpenChange }: AddExpenditureDialo
               name="payment_method"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Payment Method (Optional)</FormLabel>
+                  <FormLabel htmlFor="payment_method">Payment Method (Optional)</FormLabel>
                   <FormControl>
                     <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger>
+                      <SelectTrigger id="payment_method">
                         <SelectValue placeholder="Select payment method" />
                       </SelectTrigger>
                       <SelectContent>
@@ -169,9 +180,10 @@ export const AddExpenditureDialog = ({ open, onOpenChange }: AddExpenditureDialo
               name="payment_date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Payment Date (Optional)</FormLabel>
+                  <FormLabel htmlFor="payment_date">Payment Date (Optional)</FormLabel>
                   <FormControl>
                     <DatePicker
+                      id="payment_date"
                       value={field.value || ""}
                       onChange={field.onChange}
                       placeholder="Select payment date"
@@ -186,9 +198,10 @@ export const AddExpenditureDialog = ({ open, onOpenChange }: AddExpenditureDialo
               name="remarks"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Remarks (Optional)</FormLabel>
+                  <FormLabel htmlFor="remarks">Remarks (Optional)</FormLabel>
                   <FormControl>
                     <Textarea
+                      id="remarks"
                       placeholder="Additional details about this expenditure"
                       {...field}
                     />

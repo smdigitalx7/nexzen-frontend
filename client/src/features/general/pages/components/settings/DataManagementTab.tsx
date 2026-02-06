@@ -48,16 +48,14 @@ const DataManagementTab = () => {
       // Clear browser cache
       await clearBrowserCache();
 
+      // Invalidate all queries so active views refetch fresh data
+      await queryClient.invalidateQueries();
+
       toast({
         title: "Cache Cleared",
-        description: "All cached data including browser cache has been cleared. The page will reload to apply changes.",
+        description: "All cached data including browser cache has been cleared. Active data will refetch automatically.",
         variant: "success",
       });
-
-      // Reload page after a short delay to apply cache clearing
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
     } catch (error) {
       console.error("Failed to clear cache:", error);
       toast({

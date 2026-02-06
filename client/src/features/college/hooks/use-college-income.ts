@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeIncomeService } from "@/features/college/services/income.service";
 import type { CollegeIncomeCreate, CollegeIncomeCreateReservation, CollegeIncomeRead, CollegeIncomeUpdate, CollegeIncomeDashboardStats, CollegeRecentIncome, CollegeFinanceReport, CollegeFinanceReportParams, CollegeIncomeSummaryParams } from "@/features/college/types/index.ts";
 import { collegeKeys } from "./query-keys";
@@ -12,6 +12,7 @@ export function useCollegeIncomeList(params?: { admission_no?: string; purpose?:
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: true, // Refetch on mount if enabled and data is stale
+    select: (data: any) => (Array.isArray(data) ? data : data.data || data.items || []), // Handle array, paginated .data, and .items
   });
 }
 
@@ -71,7 +72,7 @@ export function useCollegeIncomeDashboard(options?: { enabled?: boolean }) {
 
 export function useCollegeIncomeRecent(limit?: number) {
   return useQuery({
-    queryKey: [...collegeKeys.income.root(), "recent", { limit }],
+    queryKey: [...collegeKeys.income.root(), "recent", limit ?? undefined],
     queryFn: () => CollegeIncomeService.recent(limit),
   });
 }
@@ -92,5 +93,10 @@ export function useCollegeIncomeSummary(params?: CollegeIncomeSummaryParams, opt
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: true, // Refetch on mount if enabled and data is stale
+    select: (data: any) => {
+      const items = Array.isArray(data) ? data : (data.data || data.items || []);
+      const total = Array.isArray(data) ? data.length : (data.total_count || data.items?.length || items.length);
+      return { data: items, total_count: total };
+    },
   });
 }

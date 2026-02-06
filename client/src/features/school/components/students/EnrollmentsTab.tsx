@@ -1,6 +1,8 @@
 ﻿import { useState, useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { EnhancedDataTable } from '@/common/components/shared';
+import { DataTable } from '@/common/components/shared';
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
+import { Eye, Edit } from "lucide-react";
 import {
   EnrollmentSearchForm,
   EnrollmentViewDialog,
@@ -197,15 +199,19 @@ const EnrollmentsTabComponent = () => {
     return flattened;
   }, [shouldUseAdmissionNo, admissionNoResult.data, result.data?.enrollments, classes, allSections]);
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
+  // Action configurations for DataTable V2
+  const actions: ActionConfig<SchoolEnrollmentRead>[] = useMemo(() => [
     {
-      type: 'view' as const,
-      onClick: (row: SchoolEnrollmentRead) => handleView(row)
+      id: 'view',
+      label: 'View',
+      icon: Eye,
+      onClick: (row) => handleView(row)
     },
     {
-      type: 'edit' as const,
-      onClick: (row: SchoolEnrollmentRead) => handleEdit(row)
+      id: 'edit',
+      label: 'Edit',
+      icon: Edit,
+      onClick: (row) => handleEdit(row)
     }
   ], [handleView, handleEdit]);
 
@@ -257,19 +263,17 @@ const EnrollmentsTabComponent = () => {
       />
 
       {/* Enhanced Data Table */}
-      <EnhancedDataTable
+      {/* Data Table V2 */}
+      <DataTable
         data={flatData}
         columns={columns}
         title="Student Enrollments"
         searchKey="student_name"
         searchPlaceholder="Search by student name..."
         loading={isLoading}
-        exportable={true}
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
-        refreshKey={refreshKey}
+        export={{ enabled: true, filename: "enrollments" }}
+        actions={actions}
+        actionsHeader="Actions"
       />
 
       {/* View Enrollment Dialog */}

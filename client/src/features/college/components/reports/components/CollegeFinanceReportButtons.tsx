@@ -23,6 +23,8 @@ import { Alert, AlertDescription } from '@/common/components/ui/alert';
 import { useCollegeFinanceReport } from '@/features/college/hooks';
 import { CollegeFinanceReportDialog } from './CollegeFinanceReportDialog';
 import { CollegeFinanceReportParams } from '@/features/college/types/income';
+import { useEffect } from 'react';
+import { cleanupDialogState } from '@/common/utils/ui-cleanup';
 
 interface CollegeFinanceReportButtonsProps {
   className?: string;
@@ -43,6 +45,26 @@ export const CollegeFinanceReportButtons: React.FC<CollegeFinanceReportButtonsPr
     isLoading: reportLoading, 
     error: reportError
   } = useCollegeFinanceReport(reportParams);
+  
+  // ✅ GLOBAL MODAL GUARDIAN: Ensure UI is unlocked when no modals are open
+  useEffect(() => {
+    const anyModalOpen = showCustomReportDialog || showReportDialog;
+
+    if (!anyModalOpen) {
+      const timer = setTimeout(() => {
+        cleanupDialogState();
+      }, 100);
+      
+      const longTimer = setTimeout(() => {
+        cleanupDialogState();
+      }, 500);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(longTimer);
+      };
+    }
+  }, [showCustomReportDialog, showReportDialog]);
 
   // Date validation helper
   const validateDateRange = useCallback((startDate: string, endDate: string) => {

@@ -100,7 +100,7 @@ const MonthlyFeeConfigTab = () => {
 
         {hasError && (
           <div className="text-sm text-destructive">
-            Error loading configuration: {(monthlyFeeConfigError as any)?.response?.data?.detail || "Unknown error"}
+            Error loading configuration: {(monthlyFeeConfigError)?.response?.data?.detail || "Unknown error"}
           </div>
         )}
 

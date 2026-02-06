@@ -1,6 +1,6 @@
 ﻿import { useMemo } from "react";
 import { Eye, Edit, Trash2 } from "lucide-react";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable } from "@/common/components/shared/DataTable";
 import { useCanViewUIComponent, useCanCreate } from "@/core/permissions";
 import type { ColumnDef } from "@tanstack/react-table";
 import { 
@@ -66,46 +66,43 @@ export const EmployeeTable = ({
   const canDeleteEmployee = useCanViewUIComponent("employees", "button", "employee-delete");
   const canCreateEmployee = useCanCreate("employees");
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
+  // ✅ MIGRATED: Use DataTable V2 actions format
+  const actions = useMemo(() => [
     {
-      type: 'view' as const,
+      id: "view",
+      label: "View",
+      icon: Eye,
       onClick: (row: EmployeeRead) => onViewEmployee(row)
     },
     {
-      type: 'edit' as const,
+      id: "edit",
+      label: "Edit",
+      icon: Edit,
       onClick: (row: EmployeeRead) => onEditEmployee(row),
       show: () => canEditEmployee
     },
     {
-      type: 'delete' as const,
+      id: "delete",
+      label: "Delete",
+      icon: Trash2,
+      variant: "destructive" as const,
       onClick: (row: EmployeeRead) => onDeleteEmployee(row.employee_id),
       show: () => canDeleteEmployee
     }
   ], [onViewEmployee, onEditEmployee, onDeleteEmployee, canEditEmployee, canDeleteEmployee]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   return (
-    <EnhancedDataTable
+    <DataTable
       data={employees}
       columns={columns as any}
       title="Employees"
+      loading={isLoading}
       searchKey="employee_name"
-      exportable={true}
+      export={{ enabled: true, filename: "employees" }}
       showSearch={showSearch}
       onAdd={canCreateEmployee ? onAddEmployee : undefined}
       addButtonText="Add Employee"
-      showActions={true}
-      actionButtonGroups={actionButtonGroups}
-      actionColumnHeader="Actions"
-      showActionLabels={false}
+      actions={actions}
     />
   );
 };

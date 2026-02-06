@@ -1,9 +1,9 @@
 ﻿import { useState, memo, useMemo, useCallback } from "react";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, Edit as EditIcon, Trash2, AlertTriangle } from "lucide-react";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/common/components/shared";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable } from "@/common/components/shared/DataTable";
 import { useCollegeCourses, useUpdateCollegeCourse, useCreateCollegeCourse, useDeleteCollegeCourse } from '@/features/college/hooks';
 import { useToast } from '@/common/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
@@ -154,53 +154,52 @@ export const CoursesTab = memo(({
     {
       accessorKey: "course_fee",
       header: "Course Fee",
-      cell: ({ row }) => `₹${row.getValue("course_fee")}`,
+      cell: ({ row }: any) => `₹${row.getValue("course_fee")}`,
     }
   ], []);
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
+  // Action config for DataTable V2
+  const actions: import("@/common/components/shared/DataTable/types").ActionConfig<any>[] = useMemo(() => [
     {
-      type: 'edit' as const,
-      onClick: (courseItem: any) => handleEditClick(courseItem)
+      id: 'edit',
+      label: 'Edit',
+      icon: (props) => <EditIcon className={props.className} />,
+      onClick: (row) => handleEditClick(row),
     },
     {
-      type: 'delete' as const,
-      onClick: (courseItem: any) => handleDeleteClick(courseItem)
+      id: 'delete',
+      label: 'Delete',
+      icon: (props) => <Trash2 className={props.className} />,
+      onClick: (row) => handleDeleteClick(row),
+      variant: 'destructive',
     }
   ], [handleEditClick, handleDeleteClick]);
 
   if (hasError) {
     return (
-      <div className="text-center text-red-600 p-8">
-        <p>{errorMessage || "Failed to load courses"}</p>
-      </div>
-    );
-  }
-
-  if (coursesLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex flex-col items-center justify-center py-12 bg-white rounded-3xl border border-red-100">
+        <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
+           <AlertTriangle className="h-6 w-6 text-red-600" />
+        </div>
+        <p className="text-red-700 font-bold">{errorMessage || "Failed to load courses"}</p>
+        <p className="text-red-500 text-sm mt-1">Please refresh or contact administration</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <EnhancedDataTable
+      <DataTable
         data={coursesWithSubjects}
         columns={columns}
-        title="Courses"
+        title="Institutional Courses"
         searchKey="course_name"
-        searchPlaceholder="Search courses..."
-        exportable={true}
+        searchPlaceholder="Locate curriculum repository..."
+        loading={coursesLoading}
         onAdd={() => setIsAddCourseOpen(true)}
-        addButtonText="Add Course"
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
+        addButtonText="Create New Course"
+        actions={actions}
+        export={{ enabled: true, filename: 'college_courses_list' }}
       />
 
       {/* Add Course Dialog */}

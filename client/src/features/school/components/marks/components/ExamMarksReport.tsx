@@ -1,8 +1,9 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/common/components/ui/badge";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable } from "@/common/components/shared/DataTable";
+import { ServerCombobox } from "@/common/components/ui/server-combobox";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   GraduationCap,
@@ -11,11 +12,11 @@ import {
 import { useExamMarksReport } from "@/features/school/hooks";
 import type { SchoolStudentReport } from "@/features/school/types";
 import {
-  SchoolClassDropdown,
-  SchoolExamDropdown,
-  SchoolSubjectDropdown,
-  SchoolSectionDropdown,
-} from "@/common/components/shared/Dropdowns/School";
+  useSchoolClasses,
+  useSchoolSections,
+  useSchoolSubjects,
+  useSchoolExams,
+} from "@/features/school/hooks/use-school-dropdowns";
 import { cn } from "@/common/utils";
 
 // Helper function to get grade color
@@ -43,6 +44,12 @@ export const ExamMarksReport = () => {
   const [subjectId, setSubjectId] = useState<number | null>(null);
   const [sectionId, setSectionId] = useState<number | null>(null);
 
+  // Fetch dropdown data
+  const { data: classesData, isLoading: classesLoading } = useSchoolClasses();
+  const { data: examsData, isLoading: examsLoading } = useSchoolExams();
+  const { data: sectionsData, isLoading: sectionsLoading } = useSchoolSections(classId || 0);
+  const { data: subjectsData, isLoading: subjectsLoading } = useSchoolSubjects(classId || 0);
+
   const { data, isLoading, error } = useExamMarksReport(
     classId && examId
       ? {
@@ -54,9 +61,7 @@ export const ExamMarksReport = () => {
       : undefined
   );
 
-
   // Prepare table data
-  // Note: Backend handles section filtering via section_id parameter
   const tableData = useMemo(() => {
     if (!data?.students) return [];
     return data.students;
@@ -177,76 +182,75 @@ export const ExamMarksReport = () => {
         animate={{ opacity: 1, y: 0 }}
         className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="flex items-center gap-3">
-            <label htmlFor="exam-report-class" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+        <div className="flex flex-wrap gap-4 items-end">
+          <div className="w-full sm:w-48">
+            <label className="text-sm font-medium text-gray-700 whitespace-nowrap mb-1.5 block">
               Class <span className="text-red-500">*</span>
             </label>
-            <div className="flex-1">
-              <SchoolClassDropdown
-                id="exam-report-class"
-                value={classId}
-                onChange={(value) => {
-                  setClassId(value);
-                  if (!value) {
-                    setExamId(null);
-                    setSubjectId(null);
-                    setSectionId(null);
-                  }
-                }}
-              />
-            </div>
+            <ServerCombobox
+              items={classesData?.items || []}
+              value={classId?.toString() || ""}
+              onSelect={(val) => {
+                setClassId(val ? Number(val) : null);
+                if (!val) {
+                  setExamId(null);
+                  setSubjectId(null);
+                  setSectionId(null);
+                }
+              }}
+              valueKey="class_id"
+              labelKey="class_name"
+              placeholder="Select Class"
+              isLoading={classesLoading}
+            />
           </div>
-          <div className="flex items-center gap-3">
-            <label htmlFor="exam-report-exam" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+
+          <div className="w-full sm:w-48">
+            <label className="text-sm font-medium text-gray-700 whitespace-nowrap mb-1.5 block">
               Exam <span className="text-red-500">*</span>
             </label>
-            <div className="flex-1">
-              <SchoolExamDropdown
-                id="exam-report-exam"
-                value={examId}
-                onChange={setExamId}
-                disabled={!classId}
-              />
-            </div>
+            <ServerCombobox
+              items={examsData?.items || []}
+              value={examId?.toString() || ""}
+              onSelect={(val) => setExamId(val ? Number(val) : null)}
+              valueKey="exam_id"
+              labelKey="exam_name"
+              placeholder="Select Exam"
+              isLoading={examsLoading}
+              disabled={!classId}
+            />
           </div>
-          <div className="flex items-center gap-3">
-            <label htmlFor="exam-report-section" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+
+          <div className="w-full sm:w-48">
+            <label className="text-sm font-medium text-gray-700 whitespace-nowrap mb-1.5 block">
               Section <span className="text-xs text-gray-500">(Optional)</span>
             </label>
-            <div className="flex-1">
-              {classId ? (
-                <SchoolSectionDropdown
-                  id="exam-report-section"
-                  value={sectionId}
-                  onChange={setSectionId}
-                  classId={classId}
-                />
-              ) : (
-                <div className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-400 text-sm">
-                  Select class first
-                </div>
-              )}
-            </div>
+            <ServerCombobox
+              items={sectionsData?.items || []}
+              value={sectionId?.toString() || ""}
+              onSelect={(val) => setSectionId(val ? Number(val) : null)}
+              valueKey="section_id"
+              labelKey="section_name"
+              placeholder="Select Section"
+              isLoading={sectionsLoading}
+              disabled={!classId}
+            />
           </div>
-          <div className="flex items-center gap-3">
-            <label htmlFor="exam-report-subject" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+
+          <div className="w-full sm:w-48">
+            <label className="text-sm font-medium text-gray-700 whitespace-nowrap mb-1.5 block">
               Subject <span className="text-xs text-gray-500">(Optional)</span>
             </label>
-            <div className="flex-1">
-              {classId ? (
-                <SchoolSubjectDropdown
-                  id="exam-report-subject"
-                  value={subjectId}
-                  onChange={setSubjectId}
-                  classId={classId}
-                />
-              ) : (
-                <div className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-400 text-sm">
-                  Select class first
-                </div>
-              )}
-            </div>
+            <ServerCombobox
+              items={subjectsData?.items || []}
+              value={subjectId?.toString() || ""}
+              onSelect={(val) => setSubjectId(val ? Number(val) : null)}
+              valueKey="subject_id"
+              labelKey="subject_name"
+              placeholder="Select Subject"
+              isLoading={subjectsLoading}
+              disabled={!classId}
+            />
           </div>
         </div>
       </motion.div>
@@ -255,7 +259,10 @@ export const ExamMarksReport = () => {
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="text-red-600 text-sm">
-            Failed to load exam marks report. Please try again.
+            {(error as any)?.response?.data?.detail || 
+             (error as any)?.response?.data?.message || 
+             (error as any)?.message || 
+             "Failed to load exam marks report. Please try again."}
           </div>
         </div>
       )}
@@ -340,14 +347,16 @@ export const ExamMarksReport = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <EnhancedDataTable
+            <DataTable
               data={tableData}
               columns={columns}
               title="Student Marks"
+              showSearch={true}
               searchKey="name"
               searchPlaceholder="Search by student name..."
-              exportable={true}
               loading={isLoading}
+              export={{ enabled: true }}
+              className=""
             />
           </motion.div>
         </>
@@ -365,4 +374,3 @@ export const ExamMarksReport = () => {
     </div>
   );
 };
-

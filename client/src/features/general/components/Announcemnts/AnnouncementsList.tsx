@@ -1,9 +1,10 @@
-﻿import { motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Megaphone, AlertTriangle } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
 import AnnouncementCard from "./AnnouncementCard";
 import type { Announcement } from "@/features/general/hooks/useAnnouncements";
+import { queryClient } from "@/core/query";
 
 interface AnnouncementsListProps {
   announcements: Announcement[];
@@ -15,6 +16,7 @@ interface AnnouncementsListProps {
   getPriorityIcon: (priority: string) => React.ReactNode;
   getPriorityColor: (priority: string) => string;
   getCategoryColor: (category: string) => string;
+  onRetry?: () => void;
 }
 
 const AnnouncementsList = ({
@@ -27,7 +29,13 @@ const AnnouncementsList = ({
   getPriorityIcon,
   getPriorityColor,
   getCategoryColor,
+  onRetry,
 }: AnnouncementsListProps) => {
+  const handleRetry = () => {
+    if (onRetry) onRetry();
+    else queryClient.invalidateQueries({ queryKey: ["announcements"] });
+  };
+
   if (isLoading) {
     return (
       <div className="py-8">
@@ -53,7 +61,7 @@ const AnnouncementsList = ({
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => window.location.reload()}
+            onClick={handleRetry}
           >
             Retry
           </Button>

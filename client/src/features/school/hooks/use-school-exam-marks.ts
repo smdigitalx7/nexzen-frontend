@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolExamMarksService } from "@/features/school/services/exam-marks.service";
 import type { CreateExamMarkBulk, ExamMarkBulkCreateResult, ExamMarkFullReadResponse, ExamMarksQuery, ExamGroupAndSubjectResponse, ExamMarkCreate, ExamMarkUpdate, CreateExamMarksMultipleSubjects, ExamMarksMultipleSubjectsResult, CreateBulkMultipleStudentsRequest, BulkMultipleStudentsResponse } from "@/features/school/types";
 import { schoolKeys } from "./query-keys";
@@ -7,15 +7,22 @@ import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-to
 export function useSchoolExamMarksList(params?: ExamMarksQuery) {
   return useQuery({
     queryKey: schoolKeys.examMarks.list(params as Record<string, unknown> | undefined),
-    queryFn: () => SchoolExamMarksService.list(params!),
-    enabled: 
-      typeof params?.class_id === "number" && 
+    queryFn: () => SchoolExamMarksService.list(params),
+    enabled:
+      typeof params?.class_id === "number" &&
       params.class_id > 0 &&
-      typeof params?.subject_id === "number" && 
+      typeof params?.subject_id === "number" &&
       params.subject_id > 0 &&
-      typeof params?.exam_id === "number" && 
+      typeof params?.exam_id === "number" &&
       params.exam_id > 0,
-    // section_id is optional, so we don't check it in enabled condition
+    select: (data: unknown): ExamGroupAndSubjectResponse[] => {
+      if (Array.isArray(data)) return data as ExamGroupAndSubjectResponse[];
+      if (data && typeof data === "object" && "data" in data) {
+        const inner = (data as { data: unknown }).data;
+        return Array.isArray(inner) ? (inner as ExamGroupAndSubjectResponse[]) : [];
+      }
+      return [];
+    },
   });
 }
 

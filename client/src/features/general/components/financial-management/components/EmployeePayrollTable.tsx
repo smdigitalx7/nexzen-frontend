@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-
 import { formatCurrency } from "@/common/utils";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable } from "@/common/components/shared/DataTable";
+import { Eye, Edit } from "lucide-react";
 import type { PayrollRead } from "@/features/general/types/payrolls";
 import { PayrollStatusEnum } from "@/features/general/types/payrolls";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -166,7 +166,7 @@ export const EmployeePayrollTable = ({
         header: "Status",
         cell: ({ row }) => {
           const payroll = row.original;
-          const currentStatus = payroll.status as PayrollStatusEnum;
+          const currentStatus = payroll.status;
           const allowedStatuses = getAllowedStatuses(currentStatus);
           const isUpdating = updatingStatusId === payroll.payroll_id;
           const isPaid = currentStatus === PayrollStatusEnum.PAID;
@@ -234,73 +234,36 @@ export const EmployeePayrollTable = ({
     [onUpdateStatus, updatingStatusId, _getStatusText]
   );
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(
+  // ✅ MIGRATED: Use DataTable V2 actions format
+  const actions = useMemo(
     () => [
       {
-        type: "view" as const,
+        id: "view",
+        label: "View Payslip",
+        icon: Eye,
         onClick: (row: PayrollWithEmployee) => onViewPayslip(row),
       },
       {
-        type: "edit" as const,
+        id: "edit",
+        label: "Edit",
+        icon: Edit,
         onClick: (row: PayrollWithEmployee) => onEditPayroll(row),
       },
     ],
     [onViewPayslip, onEditPayroll]
   );
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (!payrolls || payrolls.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-          <svg
-            className="w-12 h-12 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
-        </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
-          No Payroll Records Found
-        </h3>
-        <p className="text-gray-500 mb-4">
-          There are no payroll records for the selected filters. Try adjusting
-          your search criteria or create new payroll entries.
-        </p>
-        <div className="text-sm text-gray-400">
-          💡 <strong>Tip:</strong> Make sure you have payroll data for the
-          selected month and year.
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <EnhancedDataTable
+    <DataTable
       data={payrolls}
-      columns={columns}
+      columns={columns as any}
       title="Employee Payrolls"
+      loading={isLoading}
       searchKey="employee_name"
-      exportable={true}
-      showActions={true}
-      actionButtonGroups={actionButtonGroups}
-      actionColumnHeader="Actions"
-      showActionLabels={true}
+      searchPlaceholder="Search by employee name..."
+      export={{ enabled: true, filename: "payrolls" }}
+      actions={actions}
+      emptyMessage="No payroll records found for the selected filters."
     />
   );
 };

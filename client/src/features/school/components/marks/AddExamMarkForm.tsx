@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { Input } from '@/common/components/ui/input';
 import { Button } from '@/common/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/common/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/common/components/ui/select';
+import { ServerCombobox } from '@/common/components/ui/server-combobox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/common/components/ui/tabs';
 import { FormDialog } from '@/common/components/shared/FormDialog';
 import { SchoolExamDropdown, SchoolSubjectDropdown } from '@/common/components/shared/Dropdowns';
@@ -282,27 +282,25 @@ const AddExamMarkForm = ({
                 <FormItem>
                   <FormLabel>Student</FormLabel>
                   <FormControl>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={!!editingExamMark}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select student" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {enrollments.map((enrollment) => {
-                          const displayParts = [
-                            enrollment.student_name,
-                            enrollment.class_name || '',
-                            enrollment.section_name || '',
-                          ].filter(Boolean);
-                          const displayText = displayParts.join(' - ');
-                          const rollNumber = enrollment.roll_number ? ` (Roll: ${enrollment.roll_number})` : '';
-                          return (
-                            <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
-                              {displayText}{rollNumber}
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
+                    <ServerCombobox
+                      items={enrollments}
+                      value={field.value}
+                      onSelect={(val) => field.onChange(val)}
+                      labelKey={(enrollment) => {
+                        const displayParts = [
+                          enrollment.student_name,
+                          enrollment.class_name || '',
+                          enrollment.section_name || '',
+                        ].filter(Boolean);
+                        const displayText = displayParts.join(' - ');
+                        const rollNumber = enrollment.roll_number ? ` (Roll: ${enrollment.roll_number})` : '';
+                        return `${displayText}${rollNumber}`;
+                      }}
+                      valueKey={(enrollment) => enrollment.enrollment_id?.toString() || ''}
+                      placeholder="Select student..."
+                      searchPlaceholder="Search by name or roll number..."
+                      disabled={!!editingExamMark}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -436,18 +434,15 @@ const AddExamMarkForm = ({
                     <FormItem>
                       <FormLabel>Student</FormLabel>
                       <FormControl>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select student" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {enrollments.map((enrollment) => (
-                              <SelectItem key={enrollment.enrollment_id} value={enrollment.enrollment_id?.toString() || ''}>
-                                {enrollment.student_name} ({enrollment.admission_no})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <ServerCombobox
+                          items={enrollments}
+                          value={field.value}
+                          onSelect={(val) => field.onChange(val)}
+                          labelKey={(enrollment) => `${enrollment.student_name} (${enrollment.admission_no})`}
+                          valueKey={(enrollment) => enrollment.enrollment_id?.toString() || ''}
+                          placeholder="Select student..."
+                          searchPlaceholder="Search by name or admission no..."
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

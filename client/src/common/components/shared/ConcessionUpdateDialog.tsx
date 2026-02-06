@@ -72,9 +72,9 @@ export function ConcessionUpdateDialog({
 
     // Calculate tuition fee based on reservation type
     const reservationTuitionFee = 'total_tuition_fee' in reservation || 'group_fee' in reservation
-      ? ((reservation as CollegeReservationRead).total_tuition_fee || 
-         ((reservation as CollegeReservationRead).group_fee || 0) + 
-         ((reservation as CollegeReservationRead).course_fee || 0))
+      ? ((reservation).total_tuition_fee || 
+         ((reservation).group_fee || 0) + 
+         ((reservation).course_fee || 0))
       : ((reservation as SchoolReservationRead).tuition_fee || 0);
     
     if (tuitionConcession > reservationTuitionFee) {
@@ -130,9 +130,9 @@ export function ConcessionUpdateDialog({
   
   // For college reservations, use total_tuition_fee; for school, use tuition_fee
   const tuitionFee = isCollegeReservation
-    ? ((reservation as CollegeReservationRead).total_tuition_fee || 
-       ((reservation as CollegeReservationRead).group_fee || 0) + 
-       ((reservation as CollegeReservationRead).course_fee || 0))
+    ? ((reservation).total_tuition_fee || 
+       ((reservation).group_fee || 0) + 
+       ((reservation).course_fee || 0))
     : ((reservation as SchoolReservationRead).tuition_fee || 0);
   
   const transportFee = reservation.transport_fee || 0;

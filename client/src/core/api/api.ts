@@ -19,7 +19,7 @@ import { queryClient } from "@/core/query";
 
 // Base URL for auth endpoints
 // Handle both cases: full URL or path-only
-const ENV_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) || "https://erpapi.velonex.in";
+const ENV_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL) || "https://erpapi.velonex.in";
 
 // Determine the base URL for apiClient
 // If VITE_API_BASE_URL includes /api/v1, remove it (we'll add it back in baseURL)

@@ -21,7 +21,7 @@ export const CollegeExpenditureService = {
 
   // GET /api/v1/college/expenditure
   list(params?: CollegeExpenditureListParams) {
-    return Api.get<CollegeExpenditureRead[]>(`/college/expenditure`, params as Record<string, string | number | boolean | null | undefined> | undefined);
+    return Api.get<{ data: CollegeExpenditureRead[]; total_count: number }>(`/college/expenditure`, params as Record<string, string | number | boolean | null | undefined> | undefined);
   },
 
   // GET /api/v1/college/expenditure/{expenditure_id}

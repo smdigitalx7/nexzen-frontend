@@ -29,7 +29,7 @@ const AcademicYearSwitcher = () => {
       
       console.log(`Academic year switch initiated for ${year.year_name}`);
     } catch (error) {
-      // eslint-disable-next-line no-console
+       
       console.error("Failed to switch academic year:", error);
     }
   };

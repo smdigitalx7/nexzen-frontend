@@ -1,6 +1,6 @@
 ﻿import { Input } from '@/common/components/ui/input';
 import { Label } from '@/common/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/common/components/ui/select';
+import { ServerCombobox } from '@/common/components/ui/server-combobox';
 import { FormDialog } from '@/common/components/shared';
 import { CollegeClassDropdown, CollegeGroupDropdown, CollegeCourseDropdown } from '@/common/components/shared/Dropdowns';
 import type { CollegeEnrollmentCreate } from '@/features/college/types';
@@ -51,21 +51,15 @@ export const EnrollmentCreateDialog = ({
       <div className="space-y-4">
         <div>
           <Label htmlFor="student_id">Student *</Label>
-          <Select
+          <ServerCombobox
+            items={students}
             value={formData.student_id ? String(formData.student_id) : ''}
-            onValueChange={(value) => onFormDataChange({ ...formData, student_id: Number(value) })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select student" />
-            </SelectTrigger>
-            <SelectContent>
-              {students.map((student: any) => (
-                <SelectItem key={student.student_id} value={String(student.student_id)}>
-                  {student.admission_no} - {student.student_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onSelect={(value: string) => onFormDataChange({ ...formData, student_id: Number(value) })}
+            labelKey={(student: any) => `${student.admission_no} - ${student.student_name}`}
+            valueKey="student_id"
+            placeholder="Select student"
+            searchPlaceholder="Search by name or admission no..."
+          />
         </div>
         <div>
           <Label htmlFor="class_id">Class *</Label>

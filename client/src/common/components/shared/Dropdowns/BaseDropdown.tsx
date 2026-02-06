@@ -34,6 +34,8 @@ export interface BaseDropdownProps<T> {
   emptyValueLabel?: string;
   /** ✅ OPTIMIZATION: Callback when dropdown opens/closes - used for on-demand fetching */
   onOpenChange?: (open: boolean) => void;
+  /** ✅ MODAL COMPATIBILITY: Pass this when dropdown is inside a dialog */
+  modal?: boolean;
 }
 
 /**
@@ -68,6 +70,7 @@ export function BaseDropdown<T>({
   emptyValue = false,
   emptyValueLabel = "None",
   onOpenChange,
+  modal = false,
 }: BaseDropdownProps<T>) {
   const handleValueChange = React.useCallback(
     (newValue: string) => {

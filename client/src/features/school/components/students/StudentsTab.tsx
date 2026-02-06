@@ -1,13 +1,14 @@
 import { useState, useMemo, memo, useCallback, useEffect } from 'react';
-import { Users, Save, X, Edit, Trash2, Search } from 'lucide-react';
+import { Users, Save, X, Edit, Eye, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card';
 import { Button } from '@/common/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/common/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/common/components/ui/form';
 import { Input } from '@/common/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/common/components/ui/select';
+import { ServerCombobox } from "@/common/components/ui/server-combobox";
+import { SmartSelect } from "@/common/components/ui/smart-select";
 import { DatePicker } from '@/common/components/ui/date-picker';
-import { EnhancedDataTableServer } from '@/common/components/shared';
+import { DataTable } from '@/common/components/shared/DataTable';
 import { Loader } from '@/common/components/ui/ProfessionalLoader';
 import { 
   createAvatarColumn, 
@@ -89,14 +90,17 @@ const PersonalInfoSection = memo(({ form }: { form: any }) => (
         <FormField control={form.control} name="gender" render={({ field }) => (
           <FormItem>
             <FormLabel>Gender</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value}>
-              <FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl>
-              <SelectContent>
-                <SelectItem value="MALE">Male</SelectItem>
-                <SelectItem value="FEMALE">Female</SelectItem>
-                <SelectItem value="OTHER">Other</SelectItem>
-              </SelectContent>
-            </Select>
+            <SmartSelect
+              items={[
+                { value: "MALE", label: "Male" },
+                { value: "FEMALE", label: "Female" },
+                { value: "OTHER", label: "Other" },
+              ]}
+              value={field.value}
+              onSelect={field.onChange}
+              placeholder="Select gender"
+              radioLayout="horizontal"
+            />
             <FormMessage />
           </FormItem>
         )} />
@@ -242,15 +246,17 @@ const AdmissionInfoSection = memo(({ form }: { form: any }) => (
         <FormField control={form.control} name="status" render={({ field }) => (
           <FormItem>
             <FormLabel>Status</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value}>
-              <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
-              <SelectContent>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="INACTIVE">Inactive</SelectItem>
-                <SelectItem value="DROPPED_OUT">Dropped Out</SelectItem>
-                <SelectItem value="ABSCONDED">Absconded</SelectItem>
-              </SelectContent>
-            </Select>
+            <SmartSelect
+              items={[
+                { value: "ACTIVE", label: "Active" },
+                { value: "INACTIVE", label: "Inactive" },
+                { value: "DROPPED_OUT", label: "Dropped Out" },
+                { value: "ABSCONDED", label: "Absconded" },
+              ]}
+              value={field.value}
+              onSelect={field.onChange}
+              placeholder="Select status"
+            />
             <FormMessage />
           </FormItem>
         )} />
@@ -381,16 +387,10 @@ const StudentsTabComponent = () => {
     setIsViewDialogOpen(true);
   }, []);
 
-  // Memoized action button groups
-  const actionButtonGroups = useMemo(() => [
-    {
-      type: 'view' as const,
-      onClick: (row: SchoolStudentRead) => handleViewStudent(row)
-    },
-    {
-      type: 'edit' as const,
-      onClick: (row: SchoolStudentRead) => handleEditStudent(row)
-    }
+  // ✅ MIGRATED: Use DataTable V2 actions format
+  const actions = useMemo(() => [
+    { id: 'view', label: 'View', icon: Eye, onClick: handleViewStudent },
+    { id: 'edit', label: 'Edit', icon: Edit, onClick: handleEditStudent },
   ], [handleViewStudent, handleEditStudent]);
 
   return (
@@ -401,60 +401,30 @@ const StudentsTabComponent = () => {
         <Card><CardContent className="py-8 text-center text-red-600">Error loading students</CardContent></Card>
       ) : (
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="relative w-full max-w-md">
-              <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-              <Input
-                id="students-list-search"
-                name="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search students (server-side)…"
-                className="pl-9"
-                autoComplete="off"
-              />
-            </div>
-            {search ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSearch("")}
-              >
-                Clear
-              </Button>
-            ) : null}
-          </div>
-          <EnhancedDataTableServer
+          {/* ✅ MIGRATED: Using DataTable V2 with integrated search and server pagination */}
+          <DataTable
             data={students}
             columns={columns}
             title="Students"
-            exportable={true}
+            loading={isLoading}
+            pagination="server"
+            totalCount={studentsResp?.total_count || 0}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            showSearch={true}
+            searchPlaceholder="Search students..."
+            searchKey="student_name"
+            actions={actions}
+            export={{ enabled: true, filename: 'students' }}
             selectable={true}
-            showActions={true}
-            actionButtonGroups={actionButtonGroups}
-            actionColumnHeader="Actions"
-            showActionLabels={true}
-            refreshKey={refreshKey}
-            showSearch={false}
-            serverPagination={
-              studentsResp
-                ? {
-                    currentPage,
-                    totalPages: studentsResp.total_pages || 1,
-                    totalCount: studentsResp.total_count || students.length,
-                    pageSize,
-                    onPageChange: (page) => {
-                      setCurrentPage(page);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    },
-                    onPageSizeChange: (newPageSize) => {
-                      setPageSize(newPageSize);
-                      setCurrentPage(1);
-                    },
-                    isLoading,
-                  }
-                : undefined
-            }
           />
         </div>
       )}

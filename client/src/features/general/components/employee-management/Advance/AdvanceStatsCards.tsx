@@ -25,7 +25,7 @@ export const AdvanceStatsCards: React.FC<AdvanceStatsCardsProps> = ({
   const statsCards = [
     {
       title: "Total Advances",
-      value: stats.total_advances,
+      value: stats.total_advances ?? 0,
       icon: IndianRupeeIcon,
       color: "blue" as const,
       description: "All advance requests",
@@ -34,46 +34,34 @@ export const AdvanceStatsCards: React.FC<AdvanceStatsCardsProps> = ({
     },
     {
       title: "Pending Advances",
-      value: stats.pending_advances,
+      value: stats.requested_advances ?? 0,
       icon: Clock,
       color: "yellow" as const,
       description: "Awaiting approval",
       variant: "bordered" as const,
       size: "sm" as const,
-      // trend: {
-      //   value: stats.total_advances > 0 ? 
-      //     Math.round((stats.pending_advances / stats.total_advances) * 100) : 0,
-      //   label: "of total advances",
-      //   isPositive: false,
-      // },
     },
     {
       title: "Approved Advances",
-      value: stats.approved_advances,
+      value: stats.approved_advances ?? 0,
       icon: CheckCircle,
       color: "green" as const,
       description: "Successfully approved",
       variant: "gradient" as const,
       size: "sm" as const,
-      // trend: {
-      //   value: stats.total_advances > 0 ? 
-      //     Math.round((stats.approved_advances / stats.total_advances) * 100) : 0,
-      //   label: "approval rate",
-      //   isPositive: true,
-      // },
     },
     {
-      title: "Rejected Advances",
-      value: stats.rejected_advances,
-      icon: XCircle,
-      color: "red" as const,
-      description: "Not approved",
-      variant: "default" as const,
+      title: "Repaid Advances",
+      value: stats.repaid_advances ?? 0,
+      icon: CheckCircle,
+      color: "emerald" as const,
+      description: "Fully repaid",
+      variant: "bordered" as const,
       size: "sm" as const,
     },
     {
       title: "Total Amount",
-      value: formatCurrency(stats.total_advance_amount),
+      value: formatCurrency(stats.total_advance_amount ?? 0),
       icon: IndianRupeeIcon,
       color: "indigo" as const,
       description: "All advance amounts",
@@ -82,18 +70,12 @@ export const AdvanceStatsCards: React.FC<AdvanceStatsCardsProps> = ({
     },
     {
       title: "Total Repaid",
-      value: formatCurrency(stats.total_repaid_amount),
+      value: formatCurrency(stats.total_repaid_amount ?? 0),
       icon: TrendingUp,
       color: "teal" as const,
       description: "Amount repaid",
       variant: "bordered" as const,
       size: "sm" as const,
-      // trend: {
-      //   value: stats.total_advance_amount > 0 ? 
-      //     Math.round((stats.total_repaid_amount / stats.total_advance_amount) * 100) : 0,
-      //   label: "repayment rate",
-      //   isPositive: true,
-      // },
     },
   ];
 

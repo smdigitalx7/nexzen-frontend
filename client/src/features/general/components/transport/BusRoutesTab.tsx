@@ -4,9 +4,9 @@ import { Plus, Bus, MapPin, Clock, Users, Eye, Edit, Trash2 } from "lucide-react
 import { Button } from "@/common/components/ui/button";
 import { Badge } from "@/common/components/ui/badge";
 import { Dialog, DialogTrigger } from "@/common/components/ui/dialog";
-import { ConfirmDialog } from "@/common/components/shared";
+import { DataTable, ConfirmDialog } from "@/common/components/shared";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import { ColumnDef } from "@tanstack/react-table";
-import { EnhancedDataTable } from "@/common/components/shared";
 import {
   createTextColumn,
   createBadgeColumn
@@ -82,8 +82,8 @@ const BusRoutesTab = ({
     ? finalRouteData 
     : (viewRouteId && finalRouteData 
         ? { ...finalRouteData, bus_route_id: viewRouteId } 
-        : (finalRouteData && (finalRouteData as any).id
-            ? { ...finalRouteData, bus_route_id: (finalRouteData as any).id }
+        : (finalRouteData && (finalRouteData).id
+            ? { ...finalRouteData, bus_route_id: (finalRouteData).id }
             : finalRouteData));
   
   // Ensure we have data or show loading state
@@ -133,7 +133,7 @@ const BusRoutesTab = ({
       id: 'route_name',
       accessorKey: 'route_name',
       header: 'Route Name',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: { original: BusRouteRead } }) => (
         <div className="flex items-center gap-3">
           <div className="p-2 bg-blue-100 rounded-lg">
             <Bus className="h-4 w-4 text-blue-600" />
@@ -149,7 +149,7 @@ const BusRoutesTab = ({
       id: 'via',
       accessorKey: 'via',
       header: 'Via',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: { original: BusRouteRead } }) => (
         <div className="max-w-[200px]">
           <span className="text-sm">{row.original.via || '-'}</span>
         </div>
@@ -159,7 +159,7 @@ const BusRoutesTab = ({
       id: 'vehicle_number',
       accessorKey: 'vehicle_number',
       header: 'Vehicle Number',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: { original: BusRouteRead } }) => (
         <div>
           <div className="font-medium">{row.original.vehicle_number}</div>
           <div className="text-sm text-muted-foreground">Capacity: {row.original.vehicle_capacity}</div>
@@ -170,7 +170,7 @@ const BusRoutesTab = ({
       id: 'distance_km',
       accessorKey: 'distance_km',
       header: 'Distance (km)',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: { original: BusRouteRead } }) => (
         <div className="space-y-1">
           <div className="flex items-center gap-1 text-sm">
             <MapPin className="h-3 w-3 text-muted-foreground" />
@@ -187,7 +187,7 @@ const BusRoutesTab = ({
       id: 'students_count',
       accessorKey: 'students_count',
       header: 'Students Count',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: { original: BusRouteRead } }) => (
         <div className="flex items-center gap-1">
           <Users className="h-4 w-4 text-muted-foreground" />
           <span>{(row.original as any).students_count ?? '-'}</span>
@@ -198,7 +198,7 @@ const BusRoutesTab = ({
       id: 'is_active',
       accessorKey: 'is_active',
       header: 'Status',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: { original: BusRouteRead } }) => (
         <Badge variant={row.original.is_active ? "default" : "secondary"}>
           {row.original.is_active ? 'Active' : 'Inactive'}
         </Badge>
@@ -206,18 +206,25 @@ const BusRoutesTab = ({
     },
   ], []);
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
+  // Action configurations for DataTable V2
+  const actions: ActionConfig<BusRouteRead>[] = useMemo(() => [
     {
-      type: 'view' as const,
+      id: "view",
+      label: "View",
+      icon: Eye,
       onClick: (row: BusRouteRead) => handleViewRoute(row)
     },
     {
-      type: 'edit' as const,
+      id: "edit",
+      label: "Edit",
+      icon: Edit,
       onClick: (row: BusRouteRead) => handleEditRoute(row)
     },
     {
-      type: 'delete' as const,
+      id: "delete",
+      label: "Delete",
+      icon: Trash2,
+      variant: "destructive",
       onClick: (row: BusRouteRead) => handleDeleteRoute(row)
     }
   ], []);
@@ -358,7 +365,7 @@ const BusRoutesTab = ({
               const route = routesData.find(r => r.bus_route_id === routeEditingId) || 
                            busRoutes.find((r: any) => (r.bus_route_id === routeEditingId || r.id === routeEditingId));
               return route ? { 
-                id: route.bus_route_id ?? (route as any).id,
+                id: route.bus_route_id ?? (route).id,
                 route_number: route.route_no ?? undefined,
                 route_no: route.route_no ?? undefined,
                 route_name: route.route_name ?? undefined,
@@ -376,21 +383,18 @@ const BusRoutesTab = ({
         />
       </Dialog>
 
-      <EnhancedDataTable
+      <DataTable
         data={busRoutes}
         columns={columns}
         title="Bus Routes"
         searchKey="route_name"
         searchPlaceholder="Search routes..."
         loading={isLoading}
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={false}
-        exportable={true}
+        actions={actions}
+        actionsHeader="Actions"
+        export={{ enabled: true, filename: "bus_routes" }}
         onAdd={() => setIsAddRouteOpen(true)}
         addButtonText="Add Bus Route"
-        addButtonVariant="default"
       />
 
       {/* View Route Details Dialog */}

@@ -1,7 +1,9 @@
+
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Badge } from '@/common/components/ui/badge';
-import { ConfirmDialog } from '@/common/components/shared';
-import { EnhancedDataTable } from '@/common/components/shared';
+import { DataTable, ConfirmDialog } from '@/common/components/shared';
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
+import { Eye, Edit, Trash2 } from "lucide-react";
 import {
   TransportSearchForm,
   TransportCreateDialog,
@@ -309,22 +311,38 @@ const TransportTabComponent = () => {
 
   // Action button groups for EnhancedDataTable
   type FlatTransportData = SchoolStudentTransportAssignmentMinimal & { route_name: string; class_name: string };
-  const actionButtonGroups = useMemo(() => [
-    {
-      type: 'view' as const,
-      onClick: (row: FlatTransportData) => handleView(row)
-    },
-    {
-      type: 'edit' as const,
-      onClick: (row: FlatTransportData) => handleEdit(row),
-      show: () => canEditTransport
-    },
-    {
-      type: 'delete' as const,
-      onClick: (row: FlatTransportData) => handleDelete(row),
-      show: () => canDeleteTransport
+  // Action configurations for DataTable V2
+  const actions: ActionConfig<FlatTransportData>[] = useMemo(() => {
+    const acts: ActionConfig<FlatTransportData>[] = [
+      {
+        id: 'view',
+        label: 'View',
+        icon: Eye,
+        onClick: (row) => handleView(row)
+      }
+    ];
+
+    if (canEditTransport) {
+      acts.push({
+        id: 'edit',
+        label: 'Edit',
+        icon: Edit,
+        onClick: (row) => handleEdit(row)
+      });
     }
-  ], [handleView, handleEdit, handleDelete, canEditTransport, canDeleteTransport]);
+
+    if (canDeleteTransport) {
+      acts.push({
+        id: 'delete',
+        label: 'Delete',
+        icon: Trash2,
+        variant: 'destructive',
+        onClick: (row) => handleDelete(row)
+      });
+    }
+    
+    return acts;
+  }, [handleView, handleEdit, handleDelete, canEditTransport, canDeleteTransport]);
 
   // Define columns
   const columns: ColumnDef<FlatTransportData>[] = useMemo(() => [
@@ -385,20 +403,18 @@ const TransportTabComponent = () => {
       />
 
       {/* Enhanced Data Table */}
-      <EnhancedDataTable<FlatTransportData>
+      <DataTable
         data={flatData}
         columns={columns}
         title="Transport Assignments"
         searchKey="student_name"
         searchPlaceholder="Search by student name..."
         loading={result.isLoading}
+        export={{ enabled: true, filename: "transport_assignments" }}
         onAdd={query.class_id ? () => setIsCreateDialogOpen(true) : undefined}
         addButtonText="Add Transport Assignment"
-        addButtonVariant="default"
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
+        actions={actions}
+        actionsHeader="Actions"
       />
 
       {/* Create Transport Assignment Dialog */}

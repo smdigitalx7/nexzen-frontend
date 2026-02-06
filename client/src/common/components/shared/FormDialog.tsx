@@ -93,10 +93,6 @@ export const FormDialog: React.FC<FormDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className={cn(DIALOG_SIZES[size], "max-h-[90vh] flex flex-col p-0")}
-        onOpenAutoFocus={(e) => {
-          // Prevent auto-focus to avoid aria-hidden conflicts
-          e.preventDefault();
-        }}
       >
         <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
           <DialogTitle>{title}</DialogTitle>

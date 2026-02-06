@@ -3,8 +3,8 @@ import { Calendar, Edit, Trash2 } from 'lucide-react';
 import { Input } from '@/common/components/ui/input';
 import { Label } from '@/common/components/ui/label';
 import { DatePicker } from '@/common/components/ui/date-picker';
-import { FormDialog, ConfirmDialog } from '@/common/components/shared';
-import { EnhancedDataTable } from '@/common/components/shared/EnhancedDataTable';
+import { FormDialog, ConfirmDialog, DataTable } from '@/common/components/shared';
+import type { ActionConfig } from '@/common/components/shared/DataTable/types';
 import { useAcademicYears, useCreateAcademicYear, useUpdateAcademicYear, useDeleteAcademicYear } from '@/features/general/hooks/useAcademicYear';
 import { useToast } from '@/common/hooks/use-toast';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -145,26 +145,31 @@ const AcademicYearManagement = () => {
   const canEditAcademicYear = useCanViewUIComponent("academic_years", "button", "academic-year-edit");
   const canDeleteAcademicYear = useCanViewUIComponent("academic_years", "button", "academic-year-delete");
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => {
-    const buttons = [];
+  // Action configurations for DataTable V2
+  const actions: ActionConfig<UIAcademicYearRow>[] = useMemo(() => {
+    const acts: ActionConfig<UIAcademicYearRow>[] = [];
     
     if (canEditAcademicYear) {
-      buttons.push({
-        type: 'edit' as const,
+      acts.push({
+        id: "edit",
+        label: "Edit",
+        icon: Edit,
         onClick: (academicYear: UIAcademicYearRow) => handleEditClick(academicYear)
       });
     }
     
     if (canDeleteAcademicYear) {
-      buttons.push({
-        type: 'delete' as const,
+      acts.push({
+        id: "delete",
+        label: "Delete",
+        icon: Trash2,
+        variant: "destructive",
         onClick: (academicYear: UIAcademicYearRow) => handleDeleteClick(academicYear)
       });
     }
     
-    return buttons;
-  }, [handleEditClick, handleDeleteClick, canEditAcademicYear, canDeleteAcademicYear]);
+    return acts;
+  }, [canEditAcademicYear, canDeleteAcademicYear]);
 
   if (error) {
     return (
@@ -184,18 +189,17 @@ const AcademicYearManagement = () => {
 
   return (
     <div className="space-y-4">
-      <EnhancedDataTable
+      <DataTable
         data={academicYears as UIAcademicYearRow[]}
         columns={columns}
         title="Academic Years"
         searchKey="year_name"
-        exportable={true}
+        export={{ enabled: true, filename: "academic_years" }}
         onAdd={canAddAcademicYear ? () => setIsAddDialogOpen(true) : undefined}
         addButtonText="Add Academic Year"
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
+        actions={actions}
+        actionsHeader="Actions"
+        loading={academicYearsLoading}
       />
 
       {/* Add Academic Year Dialog */}

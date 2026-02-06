@@ -1,26 +1,26 @@
 ﻿import React, { useMemo, useState } from "react";
-import { Button } from "@/common/components/ui/button";
 import { Badge } from "@/common/components/ui/badge";
-import { Card, CardContent, CardHeader } from "@/common/components/ui/card";
+import { Button } from "@/common/components/ui/button";
 import { Input } from "@/common/components/ui/input";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/common/components/ui/collapsible";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/common/components/ui/table";
 import {
-  ChevronDown,
-  ChevronRight,
   Trash2,
   Plus,
-  User,
+  Phone,
   BookOpen,
   GraduationCap,
-  Phone,
-  Hash,
-  X,
+  ChevronDown,
+  ChevronRight,
   Search,
   Download,
+  User,
 } from "lucide-react";
 import { useCanViewUIComponent } from "@/core/permissions";
 import {
@@ -33,6 +33,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/common/components/ui/alert-dialog";
+import { Card, CardContent } from "@/common/components/ui/card";
+import { cn } from "@/common/utils";
 
 interface TeacherAssignmentsTabProps {
   hierarchicalAssignments: any[];
@@ -58,8 +60,6 @@ export const TeacherAssignmentsTab = ({
   handleDelete,
   handleAddClick,
 }: TeacherAssignmentsTabProps) => {
-  const [searchQuery, setSearchQuery] = useState("");
-
   // Permission checks
   const canAddSubject = useCanViewUIComponent(
     "teachers",
@@ -71,7 +71,9 @@ export const TeacherAssignmentsTab = ({
     "button",
     "teacher-assignment-delete-subject"
   );
-  const [deleteConfirm, setDeleteConfirm] = React.useState<{
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState<{
     open: boolean;
     teacherId: number;
     classId: number;
@@ -110,36 +112,33 @@ export const TeacherAssignmentsTab = ({
   };
 
   // Filter teachers based on search query
-  const filteredAssignments = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return hierarchicalAssignments;
-    }
+  const filteredTeachers = useMemo(() => {
+    if (!Array.isArray(hierarchicalAssignments)) return [];
+    if (!searchQuery.trim()) return hierarchicalAssignments;
+    
     const query = searchQuery.toLowerCase().trim();
     return hierarchicalAssignments.filter((teacher) => {
       const teacherDetails = teacherDetailsMap.get(teacher.employee_id);
       const nameMatch = teacher.teacher_name.toLowerCase().includes(query);
-      const codeMatch = teacherDetails?.employee_code
-        ?.toLowerCase()
-        .includes(query);
+      const codeMatch = teacherDetails?.employee_code?.toLowerCase().includes(query);
       const phoneMatch = teacherDetails?.mobile_no?.includes(query);
       return nameMatch || codeMatch || phoneMatch;
     });
   }, [hierarchicalAssignments, searchQuery, teacherDetailsMap]);
 
-  // Calculate total assignments
-  const totalAssignments = filteredAssignments.reduce((acc, teacher) => {
-    return (
-      acc +
-      teacher.classes.reduce((classAcc: number, classItem: any) => {
-        return (
-          classAcc +
-          classItem.sections.reduce((sectionAcc: number, section: any) => {
-            return sectionAcc + section.subjects.length;
-          }, 0)
-        );
-      }, 0)
-    );
-  }, 0);
+  // Calculate total assignments count
+  const totalAssignmentsCount = useMemo(() => {
+    if (!Array.isArray(filteredTeachers)) return 0;
+    return filteredTeachers.reduce((acc, teacher) => {
+      const classes = Array.isArray(teacher.classes) ? teacher.classes : [];
+      return acc + classes.reduce((cAcc: number, cls: any) => {
+        const sections = Array.isArray(cls.sections) ? cls.sections : [];
+        return cAcc + sections.reduce((sAcc: number, sec: any) => {
+          return sAcc + (Array.isArray(sec.subjects) ? sec.subjects.length : 0);
+        }, 0);
+      }, 0);
+    }, 0);
+  }, [filteredTeachers]);
 
   // Export to Excel
   const handleExportToExcel = async () => {
@@ -152,7 +151,7 @@ export const TeacherAssignmentsTab = ({
 
       const worksheet = workbook.addWorksheet("Teacher Assignments");
 
-      // Header row with styling
+      // Header row
       const headerRow = worksheet.addRow([
         "Teacher Name",
         "Employee Code",
@@ -163,58 +162,33 @@ export const TeacherAssignmentsTab = ({
         "Class Teacher",
         "Status",
       ]);
-      headerRow.font = { bold: true, size: 12, color: { argb: "FFFFFFFF" } };
-      headerRow.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FF2C3E50" },
-      };
-      headerRow.alignment = { horizontal: "center", vertical: "middle" };
-      headerRow.height = 25;
+      headerRow.font = { bold: true };
 
       // Data rows
-      filteredAssignments.forEach((teacher) => {
-        const teacherDetails = teacherDetailsMap.get(teacher.employee_id);
-        teacher.classes.forEach((classItem: any) => {
-          classItem.sections.forEach((section: any) => {
-            section.subjects.forEach((subject: any) => {
-              const row = worksheet.addRow([
-                teacher.teacher_name || "N/A",
-                teacherDetails?.employee_code || "N/A",
-                teacherDetails?.mobile_no || "N/A",
-                classItem.class_name || "N/A",
-                section.section_name || "N/A",
-                subject.subject_name || "N/A",
-                subject.is_class_teacher ? "Yes" : "No",
-                subject.is_active ? "Active" : "Inactive",
-              ]);
-              row.alignment = { vertical: "middle" };
+      if (Array.isArray(hierarchicalAssignments)) {
+        hierarchicalAssignments.forEach((teacher) => {
+          const teacherDetails = teacherDetailsMap.get(teacher.employee_id);
+          const classes = Array.isArray(teacher.classes) ? teacher.classes : [];
+          classes.forEach((classItem: any) => {
+            const sections = Array.isArray(classItem.sections) ? classItem.sections : [];
+            sections.forEach((section: any) => {
+              const subjects = Array.isArray(section.subjects) ? section.subjects : [];
+              subjects.forEach((subject: any) => {
+                worksheet.addRow([
+                  teacher.teacher_name || "N/A",
+                  teacherDetails?.employee_code || "N/A",
+                  teacherDetails?.mobile_no || "N/A",
+                  classItem.class_name || "N/A",
+                  section.section_name || "N/A",
+                  subject.subject_name || "N/A",
+                  subject.is_class_teacher ? "Yes" : "No",
+                  subject.is_active ? "Active" : "Inactive",
+                ]);
+              });
             });
           });
         });
-      });
-
-      // Set column widths
-      worksheet.getColumn(1).width = 25; // Teacher Name
-      worksheet.getColumn(2).width = 15; // Employee Code
-      worksheet.getColumn(3).width = 15; // Phone
-      worksheet.getColumn(4).width = 12; // Class
-      worksheet.getColumn(5).width = 12; // Section
-      worksheet.getColumn(6).width = 20; // Subject
-      worksheet.getColumn(7).width = 15; // Class Teacher
-      worksheet.getColumn(8).width = 12; // Status
-
-      // Add borders to all cells
-      worksheet.eachRow((row) => {
-        row.eachCell((cell) => {
-          cell.border = {
-            top: { style: "thin" },
-            left: { style: "thin" },
-            bottom: { style: "thin" },
-            right: { style: "thin" },
-          };
-        });
-      });
+      }
 
       // Generate Excel file
       const buffer = await workbook.xlsx.writeBuffer();
@@ -230,358 +204,246 @@ export const TeacherAssignmentsTab = ({
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error exporting to Excel:", error);
-      // Fallback to CSV
-      const csvRows = [
-        [
-          "Teacher Name",
-          "Employee Code",
-          "Phone",
-          "Class",
-          "Section",
-          "Subject",
-          "Class Teacher",
-          "Status",
-        ],
-      ];
-
-      filteredAssignments.forEach((teacher) => {
-        const teacherDetails = teacherDetailsMap.get(teacher.employee_id);
-        teacher.classes.forEach((classItem: any) => {
-          classItem.sections.forEach((section: any) => {
-            section.subjects.forEach((subject: any) => {
-              csvRows.push([
-                teacher.teacher_name || "N/A",
-                teacherDetails?.employee_code || "N/A",
-                teacherDetails?.mobile_no || "N/A",
-                classItem.class_name || "N/A",
-                section.section_name || "N/A",
-                subject.subject_name || "N/A",
-                subject.is_class_teacher ? "Yes" : "No",
-                subject.is_active ? "Active" : "Inactive",
-              ]);
-            });
-          });
-        });
-      });
-
-      const csvContent = csvRows.map((row) => row.join(",")).join("\n");
-      const blob = new Blob([csvContent], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `teacher_assignments_${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
+      {/* Header and Toolbar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">
-            Teacher Assignments
-          </h2>
+          <h2 className="text-2xl font-bold tracking-tight">Teacher Assignments</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Manage subject assignments for teachers across classes and sections
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted border">
-            <GraduationCap className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">
-              {totalAssignments}{" "}
-              {totalAssignments === 1 ? "Assignment" : "Assignments"}
-            </span>
-          </div>
-          <Button
-            onClick={handleExportToExcel}
-            variant="outline"
-            className="flex items-center gap-2"
-            size="default"
-          >
-            <Download className="h-4 w-4" />
-            Export Excel
-          </Button>
-          {canAddSubject && (
-            <Button
-              onClick={handleAddClick}
-              className="flex items-center gap-2"
-              size="default"
-            >
-              <Plus className="h-4 w-4" />
-              Assign Subject
-            </Button>
-          )}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+           <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted border whitespace-nowrap hidden sm:flex">
+             <GraduationCap className="h-4 w-4 text-muted-foreground" />
+             <span className="text-sm font-medium">
+               {totalAssignmentsCount} Assignments
+             </span>
+           </div>
+           <Button
+             onClick={handleExportToExcel}
+             variant="outline"
+             size="sm"
+             className="hidden sm:flex"
+           >
+             <Download className="h-4 w-4 mr-2" />
+             Export
+           </Button>
+           {canAddSubject && (
+             <Button onClick={handleAddClick} size="sm" className="w-full sm:w-auto">
+               <Plus className="h-4 w-4 mr-2" />
+               Assign Subject
+             </Button>
+           )}
         </div>
       </div>
 
-      {/* Search Box */}
-      {hierarchicalAssignments.length > 0 && (
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search teachers by name, code, or phone..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          {searchQuery && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSearchQuery("")}
-              className="h-9"
-            >
-              Clear
-            </Button>
-          )}
+      {/* Search Bar */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+          <Input
+            placeholder="Search teachers..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 h-9"
+          />
         </div>
-      )}
+      </div>
 
-      {/* Content Section */}
+      {/* Content */}
       {assignmentsLoading ? (
-        <Card>
-          <CardContent className="flex items-center justify-center py-16">
-            <div className="text-center space-y-3">
-              <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent mx-auto"></div>
-              <p className="text-sm text-muted-foreground">
-                Loading assignments...
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : hierarchicalAssignments.length === 0 ? (
+        <div className="flex items-center justify-center py-20 border rounded-md">
+           <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+        </div>
+      ) : filteredTeachers.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="rounded-full bg-muted p-4 mb-4">
-              <User className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">No Assignments Found</h3>
-            <p className="text-sm text-muted-foreground text-center mb-4 max-w-sm">
-              Start by assigning subjects to teachers. Click the button above to
-              get started.
-            </p>
-            <Button
-              onClick={handleAddClick}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Create First Assignment
-            </Button>
-          </CardContent>
-        </Card>
-      ) : filteredAssignments.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="rounded-full bg-muted p-4 mb-4">
-              <Search className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">No Teachers Found</h3>
-            <p className="text-sm text-muted-foreground text-center mb-4 max-w-sm">
-              No teachers match your search query. Try a different search term.
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => setSearchQuery("")}
-              className="flex items-center gap-2"
-            >
-              Clear Search
-            </Button>
+             <div className="rounded-full bg-muted p-4 mb-4">
+               <User className="h-8 w-8 text-muted-foreground" />
+             </div>
+             <h3 className="text-lg font-semibold mb-2">No Teachers Found</h3>
+             <p className="text-sm text-muted-foreground text-center mb-4">
+               {searchQuery ? "Try adjusting your search query." : "Start by assigning subjects to teachers."}
+             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {filteredAssignments.map((teacher) => {
-            const teacherDetails = teacherDetailsMap.get(teacher.employee_id);
-            const isExpanded = expandedTeachers.has(teacher.employee_id);
-            const totalClasses = teacher.classes.length;
-            const totalSections = teacher.classes.reduce(
-              (acc: number, classItem: any) => acc + classItem.sections.length,
-              0
-            );
-            const totalSubjects = teacher.classes.reduce(
-              (acc: number, classItem: any) =>
-                acc +
-                classItem.sections.reduce(
-                  (sectionAcc: number, section: any) =>
-                    sectionAcc + section.subjects.length,
-                  0
-                ),
-              0
-            );
+        <div className="rounded-md border bg-card">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="w-[50px]"></TableHead>
+                <TableHead>Teacher</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Assignment Stats</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTeachers.map((teacher) => {
+                const teacherDetails = teacherDetailsMap.get(teacher.employee_id);
+                const isExpanded = expandedTeachers.has(teacher.employee_id);
+                
+                // Calculate stats for this teacher
+                const classes = Array.isArray(teacher.classes) ? teacher.classes : [];
+                const totalClasses = classes.length;
+                const totalSections = classes.reduce((acc: number, c: any) => 
+                  acc + (Array.isArray(c.sections) ? c.sections.length : 0), 0);
+                const totalSubjects = classes.reduce((acc: number, c: any) => 
+                  acc + (Array.isArray(c.sections) ? c.sections.reduce((sAcc: number, s: any) => 
+                    sAcc + (Array.isArray(s.subjects) ? s.subjects.length : 0), 0) : 0), 0);
 
-            return (
-              <Card key={teacher.employee_id} className="overflow-hidden">
-                <Collapsible
-                  open={isExpanded}
-                  onOpenChange={() => toggleTeacher(teacher.employee_id)}
-                >
-                  <CollapsibleTrigger className="w-full">
-                    <CardHeader className="pb-3 hover:bg-muted/50 transition-colors cursor-pointer">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-start gap-3 flex-1">
-                          <div className="mt-1">
-                            {isExpanded ? (
-                              <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                            ) : (
-                              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-lg font-semibold">
-                                {teacher.teacher_name}
-                              </h3>
-                              {/* {teacherDetails?.employee_code && (
-                                <Badge
-                                  variant="secondary"
-                                  className="text-xs font-normal"
-                                >
-                                  <Hash className="h-3 w-3 mr-1" />
-                                  {teacherDetails.employee_code}
-                                </Badge>
-                              )} */}
-                            </div>
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                              {teacherDetails?.mobile_no && (
-                                <div className="flex items-center gap-1.5">
-                                  <Phone className="h-3.5 w-3.5" />
-                                  <span>{teacherDetails.mobile_no}</span>
-                                </div>
-                              )}
-                              <div className="flex items-center gap-1.5">
-                                <BookOpen className="h-3.5 w-3.5" />
-                                <span>
-                                  {totalClasses}{" "}
-                                  {totalClasses === 1 ? "Class" : "Classes"}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <GraduationCap className="h-3.5 w-3.5" />
-                                <span>
-                                  {totalSubjects}{" "}
-                                  {totalSubjects === 1 ? "Section" : "Sections"}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
+                return (
+                  <React.Fragment key={teacher.employee_id}>
+                    {/* Master Row */}
+                    <TableRow 
+                      className={cn(
+                        "cursor-pointer transition-colors hover:bg-muted/50",
+                        isExpanded && "bg-muted/50 border-b-0"
+                      )}
+                      onClick={() => toggleTeacher(teacher.employee_id)}
+                    >
+                      <TableCell className="w-[50px]">
+                         {isExpanded ? (
+                           <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                         ) : (
+                           <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                         )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-semibold">{teacher.teacher_name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {teacherDetails?.employee_code || "ID: N/A"}
+                          </span>
                         </div>
-                        <Badge variant="outline" className="shrink-0">
-                          {totalSections}{" "}
-                          {totalSections === 1 ? "Section" : "Sections"}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                  </CollapsibleTrigger>
+                      </TableCell>
+                      <TableCell>
+                        {teacherDetails?.mobile_no ? (
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <Phone className="h-3.5 w-3.5" />
+                            <span>{teacherDetails.mobile_no}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                           <div className="flex items-center gap-1">
+                              <BookOpen className="h-3.5 w-3.5" />
+                              <span>{totalClasses} Cls</span>
+                           </div>
+                           <div className="flex items-center gap-1">
+                              <GraduationCap className="h-3.5 w-3.5" />
+                              <span>{totalSubjects} Sub</span>
+                           </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             toggleTeacher(teacher.employee_id);
+                           }}
+                         >
+                           {isExpanded ? "Collapse" : "View Details"}
+                         </Button>
+                      </TableCell>
+                    </TableRow>
 
-                  <CollapsibleContent>
-                    <CardContent className="pt-0 space-y-4">
-                      {teacher.classes.map((classItem: any) => (
-                        <div key={classItem.class_id} className="space-y-3">
-                          {/* Class Header */}
-                          <div className="flex items-center gap-2 pb-2 border-b">
-                            <div className="flex items-center gap-2">
-                              <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center">
-                                <span className="text-sm font-semibold text-primary">
-                                  {classItem.class_name}
-                                </span>
-                              </div>
-                              <h4 className="font-semibold text-base">
-                                Class {classItem.class_name}
-                              </h4>
+                    {/* Detail Row (Nested Table) */}
+                    {isExpanded && (
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableCell colSpan={5} className="p-0 border-t-0">
+                          <div className="p-4 pt-0 pl-14">
+                            <div className="rounded-md border bg-background overflow-hidden animate-in fade-in-50 zoom-in-95 duration-200">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow className="bg-muted hover:bg-muted h-9">
+                                    <TableHead className="h-9">Class & Section</TableHead>
+                                    <TableHead className="h-9">Subject</TableHead>
+                                    <TableHead className="h-9">Status</TableHead>
+                                    <TableHead className="h-9 text-right">Actions</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {classes.map((cls: any) => (
+                                     Array.isArray(cls.sections) && cls.sections.map((sec: any) => (
+                                        Array.isArray(sec.subjects) && sec.subjects.map((sub: any) => (
+                                          <TableRow key={`${cls.class_id}-${sec.section_id}-${sub.subject_id}`}>
+                                             <TableCell>
+                                               <div className="flex items-center gap-2">
+                                                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                                   {cls.class_name}
+                                                 </Badge>
+                                                 <span className="text-muted-foreground">-</span>
+                                                 <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
+                                                   {sec.section_name}
+                                                 </Badge>
+                                               </div>
+                                             </TableCell>
+                                             <TableCell>
+                                               <div className="flex items-center gap-2">
+                                                 <span className="font-medium">{sub.subject_name}</span>
+                                                 {sub.is_class_teacher && (
+                                                   <Badge className="bg-amber-500 text-white text-[10px] px-1.5 h-4.5">CT</Badge>
+                                                 )}
+                                               </div>
+                                             </TableCell>
+                                             <TableCell>
+                                                <Badge variant={sub.is_active ? "default" : "secondary"} className="h-5 text-[10px] px-1.5">
+                                                  {sub.is_active ? "Active" : "Inactive"}
+                                                </Badge>
+                                             </TableCell>
+                                             <TableCell className="text-right">
+                                               {canDeleteSubject && (
+                                                 <Button
+                                                   variant="ghost"
+                                                   size="sm"
+                                                   className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                   onClick={() => handleDeleteClick(
+                                                     teacher.employee_id,
+                                                     cls.class_id,
+                                                     sub.subject_id,
+                                                     sec.section_id,
+                                                     sub.subject_name
+                                                   )}
+                                                 >
+                                                   <Trash2 className="h-4 w-4" />
+                                                 </Button>
+                                               )}
+                                             </TableCell>
+                                          </TableRow>
+                                        ))
+                                     ))
+                                  ))}
+                                  {classes.length === 0 && (
+                                    <TableRow>
+                                       <TableCell colSpan={4} className="text-center text-muted-foreground h-16">
+                                          No subjects assigned.
+                                       </TableCell>
+                                    </TableRow>
+                                  )}
+                                </TableBody>
+                              </Table>
                             </div>
                           </div>
-
-                          {/* Sections */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pl-2">
-                            {classItem.sections.map((section: any) => (
-                              <div
-                                key={section.section_id}
-                                className="rounded-lg border bg-card p-4 space-y-3"
-                              >
-                                {/* Section Header */}
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <Badge
-                                      variant="outline"
-                                      className="font-medium"
-                                    >
-                                      Section {section.section_name}
-                                    </Badge>
-                                    <span className="text-xs text-muted-foreground">
-                                      {section.subjects.length}{" "}
-                                      {section.subjects.length === 1
-                                        ? "subject"
-                                        : "subjects"}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Subjects */}
-                                {section.subjects.length > 0 ? (
-                                  <div className="flex flex-col gap-2">
-                                    {section.subjects.map((subject: any) => (
-                                      <div
-                                        key={subject.subject_id}
-                                        className="group relative flex items-center justify-between gap-2 px-3 py-2 rounded-md border bg-background hover:bg-muted/50 transition-colors"
-                                      >
-                                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                          <span className="text-sm font-medium truncate">
-                                            {subject.subject_name}
-                                          </span>
-                                          {subject.is_class_teacher && (
-                                            <Badge
-                                              variant="default"
-                                              className="text-xs px-1.5 py-0 bg-amber-500 hover:bg-amber-600 shrink-0"
-                                            >
-                                              CT
-                                            </Badge>
-                                          )}
-                                        </div>
-                                        {canDeleteSubject && (
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground shrink-0"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleDeleteClick(
-                                                teacher.employee_id,
-                                                classItem.class_id,
-                                                subject.subject_id,
-                                                section.section_id,
-                                                subject.subject_name
-                                              );
-                                            }}
-                                            title={`Remove ${subject.subject_name}`}
-                                          >
-                                            <X className="h-3 w-3" />
-                                          </Button>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div className="text-sm text-muted-foreground italic py-2">
-                                    No subjects assigned
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
-              </Card>
-            );
-          })}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
       )}
 

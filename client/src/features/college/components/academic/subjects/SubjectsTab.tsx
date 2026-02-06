@@ -1,9 +1,9 @@
 ﻿import { useState, useMemo, useCallback } from "react";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Edit as EditIcon, Trash2 } from "lucide-react";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/common/components/shared";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable } from "@/common/components/shared/DataTable";
 import { useCreateCollegeSubject, useUpdateCollegeSubject, useDeleteCollegeSubject } from '@/features/college/hooks';
 import { useToast } from '@/common/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
@@ -127,41 +127,36 @@ export const SubjectsTab = ({
     })
   ], []);
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
+  // Action config for DataTable V2
+  const actions: import("@/common/components/shared/DataTable/types").ActionConfig<any>[] = useMemo(() => [
     {
-      type: 'edit' as const,
-      onClick: handleEditClick
+      id: 'edit',
+      label: 'Edit',
+      icon: (props) => <EditIcon className={props.className} />,
+      onClick: (row) => handleEditClick(row),
     },
     {
-      type: 'delete' as const,
-      onClick: handleDeleteClick
+      id: 'delete',
+      label: 'Delete',
+      icon: (props) => <Trash2 className={props.className} />,
+      onClick: (row) => handleDeleteClick(row),
+      variant: 'destructive',
     }
   ], [handleEditClick, handleDeleteClick]);
 
-  if (subjectsLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
-      <EnhancedDataTable
+      <DataTable
         data={backendSubjects}
         columns={columns}
-        title="Subjects"
+        title="Knowledge Base (Subjects)"
         searchKey="subject_name"
-        searchPlaceholder="Search subjects..."
-        exportable={true}
+        searchPlaceholder="Locate disciplinary domain..."
+        loading={subjectsLoading}
         onAdd={() => setIsAddSubjectOpen(true)}
-        addButtonText="Add Subject"
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
+        addButtonText="Register New Subject"
+        actions={actions}
+        export={{ enabled: true, filename: 'college_subjects_list' }}
       />
 
       {/* Add Subject Dialog */}

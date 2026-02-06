@@ -24,6 +24,10 @@ interface TabSwitcherProps {
   showBadges?: boolean;
   size?: "sm" | "md" | "lg";
   /**
+   * "default" = main tabs (underline style). "subtab" = nested text-style tabs with thin underline (no buttons).
+   */
+  variant?: "default" | "subtab";
+  /**
    * ✅ OPTIMIZATION: If true, keeps all tabs mounted (for state preservation)
    * If false, only active tab is mounted (prevents queries in inactive tabs)
    * Default: false (on-demand rendering for better performance)
@@ -41,11 +45,14 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
   contentClassName = "",
   showBadges = true,
   size = "md",
+  variant = "default",
   forceMount = false, // ✅ OPTIMIZATION: Default to false - only mount active tab
 }) => {
   const handleTabChange = (value: string) => {
     onTabChange(value);
   };
+
+  const isSubtab = variant === "subtab";
 
   const getSizeClasses = () => {
     switch (size) {
@@ -73,7 +80,7 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
   const sizeClasses = getSizeClasses();
 
   return (
-    <div className={cn("space-y-6", className)}>
+    <div className={cn(isSubtab ? "space-y-4" : "space-y-6", className)}>
       <Tabs
         value={activeTab}
         onValueChange={handleTabChange}
@@ -81,7 +88,9 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
       >
         <TabsList
           className={cn(
-            "flex w-full h-auto bg-transparent p-0 justify-start border-b border-gray-200 dark:border-gray-700 mb-6",
+            isSubtab
+              ? "flex w-full h-auto bg-transparent p-0 justify-start gap-8 border-b border-slate-200 dark:border-slate-700 mb-4 min-h-0"
+              : "flex w-full h-auto bg-transparent p-0 justify-start border-b border-gray-200 dark:border-gray-700 mb-6",
             tabListClassName
           )}
         >
@@ -93,13 +102,14 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
                 value={tab.value}
                 disabled={tab.disabled}
                 className={cn(
-                  "flex items-center gap-2 font-medium transition-colors",
-                  "text-gray-600 dark:text-gray-400",
-                  "data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-500",
-                  "hover:text-gray-800 dark:hover:text-gray-300",
+                  "flex items-center gap-2 font-medium transition-colors duration-200 rounded-none border-0 shadow-none bg-transparent",
+                  isSubtab
+                    ? "text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:font-semibold pb-2.5 pt-0 px-0 relative after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-full after:bg-transparent data-[state=active]:after:bg-blue-600 dark:data-[state=active]:after:bg-blue-400"
+                    : "text-gray-600 dark:text-gray-400 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-500 hover:text-gray-800 dark:hover:text-gray-300 relative pb-3",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
-                  "relative pb-3",
-                  sizeClasses.trigger,
+                  !isSubtab && "after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[3px] after:rounded-t data-[state=active]:after:bg-blue-600 dark:data-[state=active]:after:bg-blue-500",
+                  !isSubtab && sizeClasses.trigger,
+                  isSubtab && "gap-1.5",
                   tabTriggerClassName
                 )}
               >
@@ -133,7 +143,7 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
             value={tab.value}
             forceMount={forceMount ? true : undefined} // Radix type is `forceMount?: true`
             className={cn(
-              "mt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+              isSubtab ? "mt-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2" : "mt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
               contentClassName
             )}
             // ✅ OPTIMIZATION: If forceMount is false, Radix will handle conditional rendering

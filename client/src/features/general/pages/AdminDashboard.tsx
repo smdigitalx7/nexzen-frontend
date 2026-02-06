@@ -1,4 +1,4 @@
-import { useLocation } from "wouter";
+
 import { useMemo } from "react";
 import {
   UserCheck,
@@ -30,13 +30,14 @@ import { FinancialSummary } from "@/features/general/components/dashboard/Financ
 import { AcademicSummary } from "@/features/general/components/dashboard/AcademicSummary";
 import { EnrollmentStats } from "@/features/general/components/dashboard/EnrollmentStats";
 import { AuditLogSummary } from "@/features/general/components/dashboard/AuditLogSummary";
+import { useNavigate } from "react-router-dom";
 import { IncomeChart } from "@/features/general/components/dashboard/IncomeChart";
 
 const AdminDashboard = () => {
   const { user } = useAuthStore();
   const { dashboardData, loading, error, auditLogSummary } =
     useAdminDashboardData();
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
 
   const auditLogSummaryForUi = useMemo(() => {
     const raw: any[] = Array.isArray(auditLogSummary) ? (auditLogSummary as any[]) : [];
@@ -106,7 +107,7 @@ const AdminDashboard = () => {
           return (
             <DropdownMenuItem
               key={link.title}
-              onClick={() => setLocation(link.href)}
+              onClick={() => navigate(link.href)}
               className="cursor-pointer"
             >
               <Icon className={`h-4 w-4 mr-2 ${link.color}`} />

@@ -24,6 +24,8 @@ import { useSchoolFinanceReport } from '@/features/school/hooks';
 import { FinanceReportDialog } from './FinanceReportDialog';
 import { SchoolFinanceReportParams } from '@/features/school/types/income';
 import { useAuthStore } from '@/core/auth/authStore';
+import { useEffect } from 'react';
+import { cleanupDialogState } from '@/common/utils/ui-cleanup';
 
 interface SchoolFinanceReportButtonsProps {
   className?: string;
@@ -44,6 +46,26 @@ export const SchoolFinanceReportButtons: React.FC<SchoolFinanceReportButtonsProp
     isLoading: reportLoading, 
     error: reportError
   } = useSchoolFinanceReport(reportParams);
+  
+  // ✅ GLOBAL MODAL GUARDIAN: Ensure UI is unlocked when no modals are open
+  useEffect(() => {
+    const anyModalOpen = showCustomReportDialog || showReportDialog;
+
+    if (!anyModalOpen) {
+      const timer = setTimeout(() => {
+        cleanupDialogState();
+      }, 100);
+      
+      const longTimer = setTimeout(() => {
+        cleanupDialogState();
+      }, 500);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(longTimer);
+      };
+    }
+  }, [showCustomReportDialog, showReportDialog]);
 
   // Date validation helper
   const validateDateRange = useCallback((startDate: string, endDate: string) => {

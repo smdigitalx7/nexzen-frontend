@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SchoolIncomeService } from "@/features/school/services/income.service";
 import { SchoolExpenditureService } from "@/features/school/services/expenditure.service";
 import type { SchoolExpenditureCreate, SchoolExpenditureRead, SchoolExpenditureUpdate, SchoolIncomeCreate, SchoolIncomeCreateReservation, SchoolIncomeRead, SchoolIncomeUpdate, SchoolExpenditureDashboardStats, SchoolRecentExpenditure, SchoolFinanceReport, SchoolFinanceReportParams } from "@/features/school/types";
@@ -13,6 +13,7 @@ export function useSchoolIncomeList(params?: { admission_no?: string; purpose?: 
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: true, // Refetch on mount if enabled and data is stale
+    select: (data: any) => (Array.isArray(data) ? data : data.data || data.items || []), // Handle array, paginated .data, and .items
   });
 }
 
@@ -32,12 +33,18 @@ export function useSchoolIncomeDashboard(options?: { enabled?: boolean }) {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: true, // Refetch on mount if enabled and data is stale
+    select: (data: any) => {
+      // Handle potential { items: [stats] } wrapper or [stats] array
+      if (data?.items && Array.isArray(data.items) && data.items.length > 0) return data.items[0];
+      if (Array.isArray(data) && data.length > 0) return data[0];
+      return data;
+    },
   });
 }
 
 export function useSchoolIncomeRecent(limit?: number) {
   return useQuery({
-    queryKey: [...schoolKeys.income.root(), "recent", { limit }],
+    queryKey: [...schoolKeys.income.root(), "recent", limit ?? undefined],
     queryFn: () => SchoolIncomeService.getRecent(limit),
   });
 }
@@ -50,12 +57,18 @@ export function useSchoolExpenditureDashboard(options?: { enabled?: boolean }) {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: true, // Refetch on mount if enabled and data is stale
+    select: (data: any) => {
+        // Handle potential { items: [stats] } wrapper or [stats] array
+        if (data?.items && Array.isArray(data.items) && data.items.length > 0) return data.items[0];
+        if (Array.isArray(data) && data.length > 0) return data[0];
+        return data;
+      },
   });
 }
 
 export function useSchoolExpenditureRecent(limit?: number) {
   return useQuery({
-    queryKey: [...schoolKeys.expenditure.root(), "recent", { limit }],
+    queryKey: [...schoolKeys.expenditure.root(), "recent", limit ?? undefined],
     queryFn: () => SchoolExpenditureService.getRecent(limit),
   });
 }
@@ -114,6 +127,7 @@ export function useSchoolExpenditureList(params?: { start_date?: string; end_dat
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: true, // Refetch on mount if enabled and data is stale
+    select: (data: any) => (Array.isArray(data) ? data : data.data || data.items || []), // Handle array, paginated .data, and .items
   });
 }
 

@@ -12,7 +12,8 @@ import { Label } from "@/common/components/ui/label";
 import { Textarea } from "@/common/components/ui/textarea";
 import { Input } from "@/common/components/ui/input";
 import { DatePicker } from "@/common/components/ui/date-picker";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable } from "@/common/components/shared";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import { createTextColumn, createCurrencyColumn } from "@/common/utils/factory/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/common/components/ui/badge";
@@ -20,6 +21,8 @@ import { Button } from "@/common/components/ui/button";
 import { useAuthStore } from "@/core/auth/authStore";
 import { ROLES } from "@/common/constants";
 import { toast } from "@/common/hooks/use-toast";
+import { cleanupDialogState } from "@/common/utils/ui-cleanup";
+import { startTransition } from "react";
 
 interface ExpenditureTableProps {
   expenditureData: SchoolExpenditureRead[];
@@ -68,7 +71,16 @@ export const ExpenditureTable = ({
   const [statusUpdateId, setStatusUpdateId] = useState<number | null>(null);
   const statusUpdateMutation = useUpdateSchoolExpenditureStatus(statusUpdateId ?? 0);
 
-  const handleEdit = (expenditure: SchoolExpenditureRead) => {
+  const handleView = useCallback((expenditure: SchoolExpenditureRead) => {
+    if (!expenditure || !expenditure.expenditure_id) {
+      console.error("Invalid expenditure object:", expenditure);
+      return;
+    }
+    setViewExpenditureId(expenditure.expenditure_id);
+    setShowViewDialog(true);
+  }, []);
+
+  const handleEdit = useCallback((expenditure: SchoolExpenditureRead) => {
     if (!expenditure || !expenditure.expenditure_id) {
       console.error("Invalid expenditure object:", expenditure);
       return;
@@ -83,99 +95,124 @@ export const ExpenditureTable = ({
       remarks: expenditure.remarks || "",
     });
     openEditDialog(expenditure);
-  };
+  }, [openEditDialog, setSelectedExpenditure]);
 
-  const handleDelete = (expenditure: SchoolExpenditureRead) => {
+  const handleDelete = useCallback((expenditure: SchoolExpenditureRead) => {
     if (!expenditure || !expenditure.expenditure_id) {
       console.error("Invalid expenditure object:", expenditure);
       return;
     }
     setSelectedExpenditure(expenditure);
     openDeleteDialog(expenditure);
-  };
+  }, [openDeleteDialog, setSelectedExpenditure]);
 
-  const handleView = (expenditure: SchoolExpenditureRead) => {
-    if (!expenditure || !expenditure.expenditure_id) {
-      console.error("Invalid expenditure object:", expenditure);
-      return;
-    }
-    setViewExpenditureId(expenditure.expenditure_id);
-    setShowViewDialog(true);
-  };
-
-  const handleUpdateExpenditure = async () => {
+  const handleUpdateExpenditure = () => {
     if (!selectedExpenditure) return;
     
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    closeEditDialog();
+    cleanupDialogState();
+
     try {
-      await updateExpenditureMutation.mutateAsync({
+      updateExpenditureMutation.mutate({
         expenditure_purpose: editForm.expenditure_purpose,
         amount: parseFloat(editForm.amount),
         bill_date: editForm.bill_date,
         payment_method: editForm.payment_method && editForm.payment_method.trim() !== "" ? editForm.payment_method : null,
         remarks: editForm.remarks && editForm.remarks.trim() !== "" ? editForm.remarks : null,
+      }, {
+        onError: (error) => {
+          console.error("Failed to update expenditure:", error);
+        }
       });
-      closeEditDialog();
     } catch (error) {
       console.error("Failed to update expenditure:", error);
     }
   };
 
-  const handleDeleteExpenditure = async () => {
+  const handleDeleteExpenditure = () => {
     if (!selectedExpenditure) return;
     
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    closeDeleteDialog();
+    cleanupDialogState();
+
     try {
-      await deleteExpenditureMutation.mutateAsync(selectedExpenditure.expenditure_id);
-      closeDeleteDialog();
+      deleteExpenditureMutation.mutate(selectedExpenditure.expenditure_id, {
+        onError: (error) => {
+          console.error("Failed to delete expenditure:", error);
+        }
+      });
     } catch (error) {
       console.error("Failed to delete expenditure:", error);
     }
   };
 
   // Handle approve/reject
-  const handleApprove = useCallback(async (expenditure: SchoolExpenditureRead) => {
+  const handleApprove = useCallback((expenditure: SchoolExpenditureRead) => {
     if (!expenditure?.expenditure_id) return;
+    
+    // ✅ CRITICAL FIX: Clean up state before mutation to prevent UI freeze
+    cleanupDialogState();
+    
     setStatusUpdateId(expenditure.expenditure_id);
     try {
-      await statusUpdateMutation.mutateAsync("APPROVED");
-      toast({
-        title: "Success",
-        description: "Expenditure approved successfully.",
-        variant: "success",
+      statusUpdateMutation.mutate("APPROVED", {
+        onSuccess: () => {
+          toast({
+            title: "Success",
+            description: "Expenditure approved successfully.",
+            variant: "success",
+          });
+          setStatusUpdateId(null);
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Error",
+            description: error.message || "Failed to approve expenditure.",
+            variant: "destructive",
+          });
+          setStatusUpdateId(null);
+        }
       });
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to approve expenditure.",
-        variant: "destructive",
-      });
-    } finally {
       setStatusUpdateId(null);
     }
   }, [statusUpdateMutation]);
 
-  const handleReject = useCallback(async (expenditure: SchoolExpenditureRead) => {
+  const handleReject = useCallback((expenditure: SchoolExpenditureRead) => {
     if (!expenditure?.expenditure_id) return;
+    
+    // ✅ CRITICAL FIX: Clean up state before mutation
+    cleanupDialogState();
+    
     setStatusUpdateId(expenditure.expenditure_id);
     try {
-      await statusUpdateMutation.mutateAsync("REJECTED");
-      toast({
-        title: "Success",
-        description: "Expenditure rejected successfully.",
-        variant: "success",
+      statusUpdateMutation.mutate("REJECTED", {
+        onSuccess: () => {
+          toast({
+            title: "Success",
+            description: "Expenditure rejected successfully.",
+            variant: "success",
+          });
+          setStatusUpdateId(null);
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Error",
+            description: error.message || "Failed to reject expenditure.",
+            variant: "destructive",
+          });
+          setStatusUpdateId(null);
+        }
       });
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to reject expenditure.",
-        variant: "destructive",
-      });
-    } finally {
       setStatusUpdateId(null);
     }
   }, [statusUpdateMutation]);
 
-  // Define columns for EnhancedDataTable
-  const columns: ColumnDef<SchoolExpenditureRead>[] = [
+  // ✅ CRITICAL FIX: Memoize columns to prevent infinite re-render loops in EnhancedDataTable
+  const columns = useMemo<ColumnDef<SchoolExpenditureRead>[]>(() => [
     {
       id: 'bill_date',
       header: 'Bill Date',
@@ -213,70 +250,70 @@ export const ExpenditureTable = ({
       header: 'Remarks',
       cell: ({ row }) => row.original.remarks || "-",
     },
-  ];
+  ], []);
 
   // Check permissions for edit/delete
   const canEditExpenditure = useCanEdit("expenditure");
   const canDeleteExpenditure = useCanDelete("expenditure");
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
-    {
-      type: 'view' as const,
-      onClick: (expenditure: SchoolExpenditureRead) => {
-        handleView(expenditure);
+  // Merged action configurations for DataTable V2
+  const actions: ActionConfig<SchoolExpenditureRead>[] = useMemo(() => {
+    const baseActions: ActionConfig<SchoolExpenditureRead>[] = [
+      {
+        id: "view",
+        label: "View",
+        icon: Eye,
+        onClick: handleView
+      },
+      {
+        id: "edit",
+        label: "Edit",
+        icon: Edit,
+        onClick: handleEdit,
+        show: (expenditure) => 
+          canEditExpenditure && expenditure.status !== "APPROVED" && expenditure.status !== "REJECTED"
+      },
+      {
+        id: "delete",
+        label: "Delete",
+        icon: Trash2,
+        onClick: handleDelete,
+        show: (expenditure) => 
+          canDeleteExpenditure && expenditure.status !== "APPROVED" && expenditure.status !== "REJECTED"
       }
-    },
-    {
-      type: 'edit' as const,
-      onClick: (expenditure: SchoolExpenditureRead) => {
-        handleEdit(expenditure);
-      },
-      show: (expenditure: SchoolExpenditureRead) => 
-        canEditExpenditure && expenditure.status !== "APPROVED" && expenditure.status !== "REJECTED"
-    },
-    {
-      type: 'delete' as const,
-      onClick: (expenditure: SchoolExpenditureRead) => {
-        handleDelete(expenditure);
-      },
-      show: (expenditure: SchoolExpenditureRead) => 
-        canDeleteExpenditure && expenditure.status !== "APPROVED" && expenditure.status !== "REJECTED"
-    }
-  ], [canEditExpenditure, canDeleteExpenditure]);
+    ];
 
-  // Action buttons for approve/reject (Admin and Institute Admin only)
-  const actionButtons = useMemo(() => {
-    if (!canApproveExpenditure) return [];
-    
-    return [
+    if (!canApproveExpenditure) return baseActions;
+
+    const approvalActions: ActionConfig<SchoolExpenditureRead>[] = [
       {
         id: "approve-expenditure",
-        label: (expenditure: SchoolExpenditureRead) => 
-          statusUpdateId === expenditure.expenditure_id ? "Approving..." : "Approve",
+        label: "Approve", // Label is string in V2 type, for dynamic label we might need to rely on title or just keep it static "Approve"
+        // Wait, ActionConfig label is string. If I need dynamic "Approving...", I might need a different approach or just use loading state in table.
+        // For now, I'll use static "Approve" / "Reject" but rely on disabled state.
         icon: CheckCircle,
-        variant: "default" as const,
-        onClick: (expenditure: SchoolExpenditureRead) => handleApprove(expenditure),
-        show: (expenditure: SchoolExpenditureRead) => 
+        variant: "default",
+        onClick: (expenditure) => handleApprove(expenditure),
+        show: (expenditure) => 
           expenditure.status === "PENDING" || !expenditure.status,
-        disabled: (expenditure: SchoolExpenditureRead) =>
+        disabled: (expenditure) =>
           statusUpdateId === expenditure.expenditure_id,
-        className: "text-green-600 hover:text-green-700",
       },
       {
         id: "reject-expenditure",
-        label: (expenditure: SchoolExpenditureRead) => 
-          statusUpdateId === expenditure.expenditure_id ? "Rejecting..." : "Reject",
+        label: "Reject",
         icon: XCircle,
-        variant: "destructive" as const,
-        onClick: (expenditure: SchoolExpenditureRead) => handleReject(expenditure),
-        show: (expenditure: SchoolExpenditureRead) => 
+        variant: "destructive",
+        onClick: (expenditure) => handleReject(expenditure),
+        show: (expenditure) => 
           expenditure.status === "PENDING" || !expenditure.status,
-        disabled: (expenditure: SchoolExpenditureRead) =>
+        disabled: (expenditure) =>
           statusUpdateId === expenditure.expenditure_id,
       },
     ];
-  }, [canApproveExpenditure, statusUpdateId, handleApprove, handleReject]);
+
+    return [...baseActions, ...approvalActions];
+  }, [canEditExpenditure, canDeleteExpenditure, canApproveExpenditure, handleView, handleEdit, handleDelete, handleApprove, handleReject, statusUpdateId]);
 
   return (
     <motion.div
@@ -285,21 +322,17 @@ export const ExpenditureTable = ({
       transition={{ delay: 0.3 }}
       className="space-y-4"
     >
-      <EnhancedDataTable
+      <DataTable
         data={expenditureData}
         columns={columns}
         title="Expenditure Records"
         searchKey="expenditure_purpose"
         searchPlaceholder="Search by purpose or remarks..."
-        exportable={!!onExportCSV}
-        onExport={onExportCSV}
+        export={{ enabled: !!onExportCSV, onExport: onExportCSV }}
         onAdd={onAddExpenditure}
         addButtonText="Add Expenditure"
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionButtons={actionButtons}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
+        actions={actions}
+        actionsHeader="Actions"
       />
 
       {/* Edit Dialog */}

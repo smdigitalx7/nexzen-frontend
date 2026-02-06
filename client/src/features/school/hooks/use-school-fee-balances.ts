@@ -16,6 +16,7 @@ export function useSchoolTuitionBalancesList(params?: { page?: number; page_size
         params as { class_id: number; page?: number; page_size?: number; section_id?: number }
       ),
     enabled: !!params?.class_id && params.class_id > 0,
+    select: (data: any) => (Array.isArray(data) ? data : data.data || []),
   });
 }
 
@@ -169,6 +170,7 @@ export function useSchoolTransportBalancesList(params?: { page?: number; page_si
         params as { class_id: number; page?: number; page_size?: number; section_id?: number }
       ),
     enabled: !!params?.class_id && params.class_id > 0,
+    select: (data: any) => (Array.isArray(data) ? data : data.data || []),
   });
 }
 

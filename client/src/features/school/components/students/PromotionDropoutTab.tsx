@@ -15,15 +15,10 @@ import {
   useSchoolClasses
 } from "@/features/school/hooks";
 import { useAcademicYears } from "@/features/general/hooks/useAcademicYear";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/common/components/ui/select";
+import { ServerCombobox } from "@/common/components/ui/server-combobox";
 import { Checkbox } from "@/common/components/ui/checkbox";
-import { EnhancedDataTable } from "@/common/components/shared";
+import { DataTable } from "@/common/components/shared";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import { Button } from "@/common/components/ui/button";
 import { Badge } from "@/common/components/ui/badge";
 import { 
@@ -123,31 +118,10 @@ export const PromotionDropoutTab = () => {
     }
   };
 
+
+
+  // Define columns
   const columns: ColumnDef<SchoolPromotionEligibility>[] = useMemo(() => [
-    {
-      id: "select",
-      header: ({ table }) => (
-        <input
-          type="checkbox"
-          checked={table.getIsAllPageRowsSelected()}
-          onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300"
-          aria-label="Select all students"
-        />
-      ),
-      cell: ({ row }) => (
-        <input
-          type="checkbox"
-          disabled={!row.original.is_promotable}
-          checked={row.getIsSelected()}
-          onChange={(e) => row.toggleSelected(!!e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300 disabled:opacity-50"
-          aria-label={`Select student ${row.original.student_name}`}
-        />
-      ),
-      enableSorting: false,
-      enableHiding: false,
-    },
     {
       accessorKey: "admission_no",
       header: "Admission No",
@@ -161,47 +135,39 @@ export const PromotionDropoutTab = () => {
       header: "Current Class",
     },
     {
-      accessorKey: "next_class_name",
-      header: "Next Class",
-    },
-    {
-      accessorKey: "is_promotable",
-      header: "Eligibility",
+      id: "fees_status",
+      header: "Fees Status",
       cell: ({ row }) => {
-        const isPromotable = row.original.is_promotable;
-        const pendingFees = row.original.pending_fee_types;
-        
+        const pending = row.original.total_pending_amount;
         return (
-          <div className="flex flex-col gap-1">
-            <Badge variant={isPromotable ? "success" : "destructive"}>
-              {isPromotable ? "Eligible" : "Not Eligible"}
-            </Badge>
-            {!isPromotable && pendingFees && (
-              <span className="text-[10px] text-destructive font-medium">
-                Pending: {pendingFees}
-              </span>
-            )}
-          </div>
+             <Badge variant={pending > 0 ? "destructive" : "outline"}>
+                {pending > 0 ? `Pending (${pending})` : "Paid"}
+             </Badge>
         );
       }
     },
     {
-      id: "actions",
-      header: "Actions",
+      id: "eligibility",
+      header: "Eligibility",
       cell: ({ row }) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={() => {
-            setSelectedStudentForDropout(row.original);
-            setDropoutModalOpen(true);
-          }}
-        >
-          <UserMinus className="h-4 w-4 mr-1" />
-          Dropout
-        </Button>
+        <Badge variant={row.original.is_promotable ? "default" : "secondary"}>
+          {row.original.is_promotable ? "Eligible" : "Not Eligible"}
+        </Badge>
       )
+    }
+  ], []);
+
+  // Action configurations for DataTable V2
+  const actions: ActionConfig<SchoolPromotionEligibility>[] = useMemo(() => [
+    {
+      id: "dropout",
+      label: "Dropout",
+      icon: UserMinus,
+      variant: "destructive", // Use destructive variant for dropout
+      onClick: (row) => {
+        setSelectedStudentForDropout(row);
+        setDropoutModalOpen(true);
+      }
     }
   ], []);
 
@@ -241,13 +207,16 @@ export const PromotionDropoutTab = () => {
         </Button>
       </div>
 
-      <EnhancedDataTable
+      <DataTable
         data={students}
         columns={columns}
         loading={isLoading}
-        onRowSelectionChange={onSelectionChange}
+        selectable={true}
+        onSelectionChange={onSelectionChange}
         searchKey="student_name"
         searchPlaceholder="Filter students..."
+        actions={actions}
+        actionsHeader="Actions"
       />
 
       {/* Promotion Confirmation Dialog */}
@@ -267,21 +236,15 @@ export const PromotionDropoutTab = () => {
           <div className="space-y-4 py-4">
              <div className="space-y-2">
                <Label htmlFor="next-year">Target Academic Year</Label>
-               <Select 
-                 value={String(nextAcademicYearId)} 
-                 onValueChange={(val) => setNextAcademicYearId(Number(val))}
-               >
-                 <SelectTrigger id="next-year">
-                   <SelectValue placeholder="Select target academic year..." />
-                 </SelectTrigger>
-                 <SelectContent>
-                   {yearsData?.map((year) => (
-                     <SelectItem key={year.academic_year_id} value={String(year.academic_year_id)}>
-                       {year.year_name}
-                     </SelectItem>
-                   ))}
-                 </SelectContent>
-               </Select>
+               <ServerCombobox
+                 items={yearsData || []}
+                 value={String(nextAcademicYearId)}
+                 onSelect={(val: string) => setNextAcademicYearId(Number(val))}
+                 labelKey="year_name"
+                 valueKey="academic_year_id"
+                 placeholder="Select target academic year..."
+                 searchPlaceholder="Search academic year..."
+               />
              </div>
 
              <div className="flex items-center space-x-2">

@@ -41,70 +41,8 @@ const DialogContent = React.forwardRef<
 >(({ className, children, size = 'md', showCloseButton = true, style, ...props }, ref) => {
   const contentRef = React.useRef<HTMLDivElement | null>(null);
 
-  // ✅ CRITICAL FIX: Prevent aria-hidden from being set on dialog when it contains focused elements
-  React.useEffect(() => {
-    const contentElement = contentRef.current;
-    if (!contentElement) return;
+  // No manual aria-hidden manipulation needed - Radix handles this internally
 
-    const fixAriaHidden = () => {
-      // If this dialog contains the active element, remove aria-hidden
-      if (contentElement.contains(document.activeElement)) {
-        if (contentElement.getAttribute("aria-hidden") === "true") {
-          contentElement.removeAttribute("aria-hidden");
-        }
-        // Also check parent elements
-        let parent = contentElement.parentElement;
-        while (parent) {
-          if (parent.getAttribute("aria-hidden") === "true" && parent.contains(document.activeElement)) {
-            parent.removeAttribute("aria-hidden");
-          }
-          parent = parent.parentElement;
-        }
-      }
-    };
-
-    // Watch for focus changes inside this dialog
-    const handleFocus = () => {
-      requestAnimationFrame(fixAriaHidden);
-    };
-
-    // Watch for aria-hidden attribute changes
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === "attributes" && mutation.attributeName === "aria-hidden") {
-          fixAriaHidden();
-        }
-      });
-    });
-
-    observer.observe(contentElement, {
-      attributes: true,
-      attributeFilter: ["aria-hidden"],
-      subtree: true,
-    });
-
-    // Also observe parent elements
-    let parent = contentElement.parentElement;
-    while (parent) {
-      observer.observe(parent, {
-        attributes: true,
-        attributeFilter: ["aria-hidden"],
-      });
-      parent = parent.parentElement;
-    }
-
-    contentElement.addEventListener("focusin", handleFocus);
-    contentElement.addEventListener("focusout", handleFocus);
-
-    // Initial check
-    fixAriaHidden();
-
-    return () => {
-      observer.disconnect();
-      contentElement.removeEventListener("focusin", handleFocus);
-      contentElement.removeEventListener("focusout", handleFocus);
-    };
-  }, []);
 
   const getSizeStyles = () => {
     switch (size) {
@@ -134,9 +72,7 @@ const DialogContent = React.forwardRef<
           if (typeof ref === "function") {
             ref(node);
           } else if (ref) {
-            (ref as React.MutableRefObject<
-              React.ElementRef<typeof DialogPrimitive.Content> | null
-            >).current = node;
+            (ref).current = node;
           }
           contentRef.current = node;
         }}

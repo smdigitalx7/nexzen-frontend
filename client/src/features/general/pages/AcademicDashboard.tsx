@@ -1,5 +1,6 @@
 ﻿import { useMemo } from "react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
+
 import {
   Card,
   CardContent,
@@ -43,7 +44,8 @@ import { DashboardGrid } from "@/common/components/shared/dashboard/DashboardGri
 const AcademicDashboard = () => {
   const user = useAuthStore((state) => state.user);
   const currentBranch = useAuthStore((state) => state.currentBranch);
-  const [, setLocation] = useLocation();
+
+  const navigate = useNavigate();
   const branchPrefix =
     currentBranch?.branch_type === "SCHOOL" ? "/school" : "/college";
   const { data: dashboardData, loading, error } = useAcademicDashboard();
@@ -85,7 +87,7 @@ const AcademicDashboard = () => {
           return (
             <DropdownMenuItem
               key={link.title}
-              onClick={() => setLocation(link.href)}
+              onClick={() => navigate(link.href)}
               className="cursor-pointer"
             >
               <Icon className={`h-4 w-4 mr-2 ${link.color}`} />
@@ -95,7 +97,7 @@ const AcademicDashboard = () => {
         })}
       </DropdownMenuContent>
     </DropdownMenu>
-  ), [quickLinks, setLocation]);
+  ), [quickLinks]);
 
   return (
     <DashboardContainer loading={loading}>

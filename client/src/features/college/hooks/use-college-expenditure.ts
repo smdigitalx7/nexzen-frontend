@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeExpenditureService } from "@/features/college/services/expenditure.service";
 import type { CollegeExpenditureCreate, CollegeExpenditureRead, CollegeExpenditureUpdate, CollegeExpenditureDashboardStats, CollegeRecentExpenditure } from "@/features/college/types/index.ts";
 import { collegeKeys } from "./query-keys";
@@ -12,6 +12,7 @@ export function useCollegeExpenditureList(params?: { start_date?: string; end_da
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: true, // Refetch on mount if enabled and data is stale
+    select: (data: any) => (Array.isArray(data) ? data : data.data || []), // Handle both array and paginated response
   });
 }
 
@@ -70,7 +71,7 @@ export function useCollegeExpenditureDashboard(options?: { enabled?: boolean }) 
 
 export function useCollegeExpenditureRecent(limit?: number) {
   return useQuery({
-    queryKey: [...collegeKeys.expenditure.root(), "recent", { limit }],
+    queryKey: [...collegeKeys.expenditure.root(), "recent", limit ?? undefined],
     queryFn: () => CollegeExpenditureService.recent(limit),
   });
 }

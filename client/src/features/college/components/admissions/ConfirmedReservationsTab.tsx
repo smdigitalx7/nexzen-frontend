@@ -26,6 +26,7 @@ import {
   GraduationCap,
   Edit,
   CheckCircle,
+  Eye,
 } from "lucide-react";
 import { useCollegeReservationsList, useUpdateCollegeReservation, useUpdateCollegeReservationStatus, useCreateCollegeStudent } from "@/features/college/hooks";
 import { CollegeReservationsService, CollegeStudentsService } from "@/features/college/services";
@@ -33,7 +34,8 @@ import { toast } from "@/common/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { ReceiptPreviewModal } from "@/common/components/shared";
 import { handleCollegePayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/core/api/api-college";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable } from "@/common/components/shared/DataTable";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import { startTransition } from "react";
 import { collegeKeys } from "@/features/college/hooks/query-keys";
 
@@ -798,6 +800,7 @@ const ConfirmedReservationsTabComponent = () => {
   // Edit form state
   const [editForm, setEditForm] = useState<Reservation | null>(null);
 
+  // Fetch reservations
   const {
     data: reservationsData,
     isLoading,
@@ -808,48 +811,22 @@ const ConfirmedReservationsTabComponent = () => {
     status: statusFilter,
   });
 
+  // Memoized data processing
+  const allReservations = useMemo(() => {
+    if (!reservationsData?.reservations) return [];
+    if (!Array.isArray(reservationsData.reservations)) return [];
+    return reservationsData.reservations;
+  }, [reservationsData]);
+
   // Initialize mutation hooks
   const createStudentMutation = useCreateCollegeStudent();
   const updateReservationMutation = useUpdateCollegeReservation(selectedReservation?.reservation_id ?? 0);
   const updateStatusMutation = useUpdateCollegeReservationStatus(selectedReservation?.reservation_id ?? 0);
 
-  // Process reservations data
-  const allReservations = useMemo(() => {
-    if (!reservationsData?.reservations) return [];
-    if (!Array.isArray(reservationsData.reservations)) return [];
-
-    return reservationsData.reservations;
-  }, [reservationsData]);
-
-  // Watch for reservations data changes and force table re-render
-  // OPTIMIZED: Use efficient hash for large arrays to prevent UI freeze
-  const reservationsHash = useMemo(() => {
-    if (allReservations.length === 0) return '';
-    
-    // For large arrays, use a more efficient hash to prevent UI freeze
-    if (allReservations.length > 50) {
-      // Only track changes in critical fields, use length as part of hash
-      const criticalFields = allReservations
-        .slice(0, 20) // Only check first 20 for performance
-        .map(r => `${r.reservation_id}:${r.is_enrolled ? '1' : '0'}:${r.application_income_id || 0}:${r.admission_income_id || 0}`);
-      return criticalFields.join('|') + `|${allReservations.length}`;
-    }
-    
-    // For small arrays, use simple join
-    return allReservations.map(r => 
-      `${r.reservation_id}-${r.is_enrolled}-${r.application_income_id}-${r.admission_income_id}`
-    ).join('|');
-  }, [allReservations]);
-  
-  useEffect(() => {
-    // When reservations data actually changes (especially is_enrolled status), force table re-render
-    setRefreshKey((prev) => prev + 1);
-  }, [reservationsHash]);
-
-  const handleEnrollStudent = useCallback(async (reservationId: number) => {
+  // Define handleViewDetails
+  const handleViewDetails = useCallback(async (reservationId: number) => {
     try {
-      const reservationDetails =
-        await CollegeReservationsService.getById(reservationId);
+      const reservationDetails = await CollegeReservationsService.getById(reservationId);
       setSelectedReservation(reservationDetails as unknown as Reservation);
       setEditForm(reservationDetails as unknown as Reservation);
       setAdmissionFee(3000);
@@ -864,6 +841,88 @@ const ConfirmedReservationsTabComponent = () => {
       });
     }
   }, []);
+
+  const handleEnrollStudent = useCallback(async (reservationId: number) => {
+    try {
+      const reservationDetails = await CollegeReservationsService.getById(reservationId);
+      setSelectedReservation(reservationDetails as unknown as Reservation);
+      setEditForm(reservationDetails as unknown as Reservation);
+      setAdmissionFee(3000);
+      setIsEditMode(false);
+      setShowDetailsDialog(true);
+    } catch (error) {
+      console.error("Failed to load reservation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load reservation details. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, []);
+
+  // ✅ MIGRATED: Use DataTable V2 actions format
+  const actions: ActionConfig<CollegeReservationMinimalRead>[] = useMemo(() => [
+    {
+      id: "view",
+      label: "View",
+      icon: Eye,
+      onClick: (row) => handleViewDetails(row.reservation_id),
+    },
+  ], [handleViewDetails]);
+
+  // Define columns
+  const columns: ColumnDef<CollegeReservationMinimalRead>[] = useMemo(() => [
+    {
+      accessorKey: "reservation_no",
+      header: "Reservation No",
+      cell: ({ row }) => (
+        <span className="font-semibold text-blue-600">
+          {row.getValue("reservation_no")}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "student_name",
+      header: "Student Name",
+      cell: ({ row }) => <span className="font-medium">{row.getValue("student_name")}</span>,
+    },
+    {
+      accessorKey: "reservation_date",
+      header: "Date",
+      cell: ({ row }) => <span className="text-muted-foreground">{formatDate(row.getValue("reservation_date"))}</span>,
+    },
+    {
+      accessorKey: "class_name",
+      header: "Class",
+      cell: ({ row }) => (
+        <Badge variant="outline" className="bg-slate-50">
+          {row.getValue("class_name")}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "application_income_id",
+      header: "App Fee",
+      cell: ({ row }) => (
+        <PaymentStatusBadge
+          applicationIncomeId={row.getValue("application_income_id")}
+        />
+      ),
+    },
+    {
+      accessorKey: "is_enrolled",
+      header: "Enrollment Status",
+      cell: ({ row }) => {
+        const isEnrolled = row.original.is_enrolled;
+        return isEnrolled ? <EnrolledBadge /> : (
+          <EnrollButton
+            reservationId={row.original.reservation_id}
+            onEnrollStudent={handleEnrollStudent}
+          />
+        );
+      },
+    },
+  ], [handleEnrollStudent]);
 
   const handleEditDetails = useCallback(() => {
     setIsEditMode(true);
@@ -893,7 +952,7 @@ const ConfirmedReservationsTabComponent = () => {
       const updatePayload = {
         student_name: editForm.student_name,
         aadhar_no: editForm.aadhar_no,
-        gender: editForm.gender as "MALE" | "FEMALE" | "OTHER",
+        gender: editForm.gender,
         dob: editForm.dob,
         father_name: editForm.father_or_guardian_name,
         father_aadhar_no: editForm.father_or_guardian_aadhar_no,
@@ -1245,93 +1304,20 @@ const ConfirmedReservationsTabComponent = () => {
     }
   }, [receiptBlobUrl, refetch]);
 
-  // Column definitions for the enhanced table
-  const columns: ColumnDef<any>[] = useMemo(() => [
-    {
-      accessorKey: "reservation_no",
-      header: "Reservation No",
-      cell: ({ row }) => (
-        <span className="font-medium">{row.getValue("reservation_no")}</span>
-      ),
-    },
-    {
-      accessorKey: "student_name",
-      header: "Student Name",
-      cell: ({ row }) => <span>{row.getValue("student_name")}</span>,
-    },
-    {
-      accessorKey: "group_course",
-      header: "Group/Course",
-      cell: ({ row }) => {
-        const reservation = row.original;
-        const groupCourse = reservation.group_name
-          ? `${reservation.group_name}${reservation.course_name ? ` - ${reservation.course_name}` : ""}`
-          : "-";
-        return (
-          <div className="max-w-[150px] truncate">{groupCourse}</div>
-        );
-      },
-    },
-    {
-      accessorKey: "application_income_id",
-      header: "Payment Status",
-      cell: ({ row }) => {
-        const applicationIncomeId = row.getValue("application_income_id") as number | null | undefined;
-        return (
-          <PaymentStatusBadge applicationIncomeId={applicationIncomeId} />
-        );
-      },
-    },
-    {
-      accessorKey: "reservation_date",
-      header: "Date",
-      cell: ({ row }) => (
-        <span>{formatDate(row.getValue("reservation_date"))}</span>
-      ),
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => {
-        const status = row.getValue("status") as string;
-        return <StatusBadge status={status} />;
-      },
-    },
-    {
-      id: "actions",
-      header: "Actions",
-      cell: ({ row }) => {
-        const reservation = row.original;
-        const isEnrolled = reservation.is_enrolled === true;
-        return isEnrolled ? (
-          <EnrolledBadge />
-        ) : (
-          <EnrollButton
-            reservationId={reservation.reservation_id}
-            onEnrollStudent={handleEnrollStudent}
-          />
-        );
-      },
-    },
-  ], [handleEnrollStudent]);
-
   return (
     <div className="space-y-6">
-      {/* Enhanced Reservations Table */}
-      <EnhancedDataTable
+      {/* Reservations Table */}
+      <DataTable
         key={`confirmed-reservations-${refreshKey}`}
         data={allReservations}
         columns={columns}
+        actions={actions}
         title="Confirmed Reservations"
         searchKey="student_name"
         searchPlaceholder="Search by name, reservation number..."
         loading={isLoading}
         showSearch={true}
-        enableDebounce={true}
-        debounceDelay={300}
-        highlightSearchResults={true}
         className="w-full"
-        exportable={true}
       />
 
       {/* Reservation Details Dialog */}

@@ -1,8 +1,16 @@
-﻿import React from "react";
+import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { useAuthStore } from "@/core/auth/authStore";
+
+// Production: suppress console.log/debug/trace to reduce noise (keep error/warn)
+if (!import.meta.env.DEV && typeof console !== "undefined") {
+  const noop = () => {};
+  console.log = noop;
+  console.debug = noop;
+  console.trace = noop;
+}
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 

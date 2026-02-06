@@ -2,13 +2,12 @@ import React, { useEffect } from "react";
 import { useAuthStore } from "@/core/auth/authStore";
 import { componentPreloader } from "@/common/utils/performance/preloader";
 import ProductionApp from "@/common/components/shared/ProductionApp";
-import { AppRouter } from "@/routes";
+import { router } from "@/routes/router";
+import { RouterProvider } from "react-router-dom";
 import { useTokenManagement } from "@/common/hooks/useTokenManagement";
-import { useDocumentTitle } from "@/common/hooks/useDocumentTitle";
-import { useFavicon } from "@/common/hooks/useFavicon";
-import { SEOHead } from "@/common/components/shared/SEOHead";
-import { useNetworkStatus } from "@/common/hooks/useNetworkStatus";
-import { NetworkErrorPage } from "@/common/components/shared/NetworkErrorPage";
+// Removed unused hooks
+import { UIStabilityProvider } from "@/common/components/providers/UIStabilityProvider";
+
 
 /**
  * Main App component
@@ -48,17 +47,8 @@ function App() {
   // Handle token management (refresh, expiration, visibility)
   useTokenManagement();
 
-  // Monitor network status
-  const { isOnline, isNetworkError, retry } = useNetworkStatus();
-  // Show network error page if we detect a network error
-  // (Either browser says offline OR we detected actual connectivity issues)
-  const showNetworkError = isNetworkError || (!isOnline && typeof navigator !== "undefined" && !navigator.onLine);
+  // (Network status is handled in RootLayout)
 
-  // Manage document title based on route
-  useDocumentTitle();
-
-  // Manage favicon based on branch
-  useFavicon();
 
   // Preload components based on user role
   useEffect(() => {
@@ -73,9 +63,7 @@ function App() {
 
   return (
     <ProductionApp>
-      <SEOHead />
-      <NetworkErrorPage isVisible={showNetworkError} onRetry={retry} />
-      {!showNetworkError && <AppRouter />}
+      <RouterProvider router={router} />
     </ProductionApp>
   );
 }

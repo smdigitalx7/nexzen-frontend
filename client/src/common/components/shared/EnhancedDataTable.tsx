@@ -376,13 +376,13 @@ function EnhancedDataTableComponent<TData>({
               const label =
                 typeof button.label === "function"
                   ? (button.label as (row: TData) => string)(row.original)
-                  : (button.label as string);
+                  : (button.label);
 
               // Handle dynamic className - can be a string or a function that returns a string
               const className =
                 typeof button.className === "function"
                   ? (button.className as (row: TData) => string)(row.original)
-                  : (button.className as string | undefined);
+                  : (button.className);
 
               const isDisabled = button.disabled
                 ? button.disabled(row.original)
@@ -548,7 +548,7 @@ function EnhancedDataTableComponent<TData>({
     estimateSize: () => 60, // Estimated row height
     overscan: 10, // Number of rows to render outside visible area
     enabled: shouldVirtualize,
-  }) as Virtualizer<HTMLDivElement, Element>;
+  });
 
   // Truncate text helper - kept for potential future use
   // const truncateText = useCallback((text: string, maxLength: number = 20) => {
@@ -1476,12 +1476,9 @@ function EnhancedDataTableComponent<TData>({
                 shouldVirtualize && rowVirtualizer ? (
                   // Virtualized rendering
                   (() => {
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                    const virtualizer = rowVirtualizer as Virtualizer<
-                      HTMLDivElement,
-                      Element
-                    >;
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
+                     
+                    const virtualizer = rowVirtualizer;
+                     
                     return virtualizer
                       .getVirtualItems()
                       .map(
@@ -1516,7 +1513,7 @@ function EnhancedDataTableComponent<TData>({
                               data-index={rowIndex}
                               ref={(node) => {
                                 if (node) {
-                                  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+                                   
                                   virtualizer.measureElement(node);
                                 }
                               }}

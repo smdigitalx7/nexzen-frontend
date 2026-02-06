@@ -1,6 +1,6 @@
 ﻿import { useMemo } from "react";
 import { Eye, Edit, Trash2 } from "lucide-react";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable } from "@/common/components/shared/DataTable";
 import { useCanViewUIComponent, useCanEdit, useCanCreate } from "@/core/permissions";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
@@ -19,6 +19,8 @@ interface LeavesTableProps {
   onApproveLeave?: (leave: EmployeeLeaveRead) => void;
   onRejectLeave?: (leave: EmployeeLeaveRead) => void;
   showSearch?: boolean;
+  toolbarMiddleContent?: React.ReactNode;
+  headerContent?: React.ReactNode;
 }
 
 export const LeavesTable = ({
@@ -31,6 +33,8 @@ export const LeavesTable = ({
   onApproveLeave,
   onRejectLeave,
   showSearch = true,
+  toolbarMiddleContent,
+  headerContent,
 }: LeavesTableProps) => {
 
   // Define columns for the data table using column factories
@@ -72,46 +76,45 @@ export const LeavesTable = ({
   const canDeleteLeave = useCanViewUIComponent("employee_leaves", "button", "leave-delete");
   const canCreateLeave = useCanCreate("employee_leaves");
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
+  // ✅ MIGRATED: Use DataTable V2 actions format
+  const actions = useMemo(() => [
     {
-      type: 'view' as const,
+      id: "view",
+      label: "View",
+      icon: Eye,
       onClick: (row: EmployeeLeaveRead) => onViewLeave(row)
     },
     {
-      type: 'edit' as const,
+      id: "edit",
+      label: "Edit",
+      icon: Edit,
       onClick: (row: EmployeeLeaveRead) => onEditLeave(row),
       show: () => canEditLeave
     },
     {
-      type: 'delete' as const,
+      id: "delete",
+      label: "Delete",
+      icon: Trash2,
+      variant: "destructive" as const,
       onClick: (row: EmployeeLeaveRead) => onDeleteLeave(row.leave_id),
       show: () => canDeleteLeave
     }
   ], [onViewLeave, onEditLeave, onDeleteLeave, canEditLeave, canDeleteLeave]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   return (
-    <EnhancedDataTable
+    <DataTable
       data={leaves}
       columns={columns as any}
       title="Employee Leaves"
+      loading={isLoading}
       searchKey="employee_name"
       showSearch={showSearch}
-      exportable={true}
+      export={{ enabled: true, filename: "leaves" }}
       onAdd={canCreateLeave ? onAddLeave : undefined}
       addButtonText="Add Leave"
-      showActions={true}
-      actionButtonGroups={actionButtonGroups}
-      actionColumnHeader="Actions"
-      showActionLabels={false}
+      actions={actions}
+      toolbarMiddleContent={toolbarMiddleContent}
+      headerContent={headerContent}
     />
   );
 };

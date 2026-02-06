@@ -1,16 +1,16 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { Label } from "@/common/components/ui/label";
 import { Button } from "@/common/components/ui/button";
 import { FormDialog } from "@/common/components/shared";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
 import { TabSwitcher } from "@/common/components/shared";
-import { User, BookOpen, ArrowRight } from "lucide-react";
+import { User, BookOpen, ArrowRight, Phone, Mail, IdCard, Briefcase, Info } from "lucide-react";
 import { useEmployeesByBranch } from "@/features/general/hooks";
 import { useToast } from "@/common/hooks/use-toast";
 import { Badge } from "@/common/components/ui/badge";
 import { TeacherCourseSubjectAssignmentsTab } from "./TeacherCourseSubjectAssignmentsTab";
+import { cleanupDialogState } from "@/common/utils/ui-cleanup";
 import {
   useTeacherCourseSubjectsList,
   useCreateTeacherCourseSubject,
@@ -29,38 +29,49 @@ import {
   SelectValue,
 } from "@/common/components/ui/select";
 import { Checkbox } from "@/common/components/ui/checkbox";
+import { ActionConfig } from '@/common/components/shared/DataTable/types';
+import { DataTable } from '@/common/components/shared/DataTable';
 
 export const TeachersTab = () => {
-  // ✅ OPTIMIZATION: Only fetch assignments data - teachers/groups/courses/subjects fetched on-demand when dialog opens
-  // User requirement: Don't call Teachers, Groups, Courses, Subjects APIs - only call when clicking dropdowns
   const { data: assignments = [], isLoading: assignmentsLoading } =
     useTeacherCourseSubjectsList();
 
-  const [, navigate] = useLocation();
+  const navigate = useNavigate();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<any>(null);
   const [activeSubTab, setActiveSubTab] = useState("teachers");
 
-  // Form state
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
   const [isActive, setIsActive] = useState(true);
 
-  // ✅ OPTIMIZATION: Track dropdown open states for on-demand fetching
   const [teachersDropdownOpen, setTeachersDropdownOpen] = useState(false);
   const [groupsDropdownOpen, setGroupsDropdownOpen] = useState(false);
   const [coursesDropdownOpen, setCoursesDropdownOpen] = useState(false);
   const [subjectsDropdownOpen, setSubjectsDropdownOpen] = useState(false);
 
-  // ✅ OPTIMIZATION: Only fetch teachers/employees when their dropdown is opened
-  // User requirement: Don't call Teachers API - only call when clicking dropdowns
-  const { data: allEmployees = [], isLoading, error } = useEmployeesByBranch(teachersDropdownOpen);
+  const { data: allEmployees = [], isLoading, error, refetch: refetchEmployees } = useEmployeesByBranch(teachersDropdownOpen);
 
-  // Filter to only teaching staff and map to include all fields
+  useEffect(() => {
+    if (!isAddOpen && !isEditOpen) {
+      const timer = setTimeout(() => {
+        cleanupDialogState();
+      }, 100);
+      const longTimer = setTimeout(() => {
+        cleanupDialogState();
+      }, 500);
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(longTimer);
+      };
+    }
+  }, [isAddOpen, isEditOpen]);
+
   const teachers = useMemo(() => {
+    if (!Array.isArray(allEmployees)) return [];
     return allEmployees
       .filter((employee: any) => employee.employee_type === "TEACHING")
       .map((employee: any) => ({
@@ -70,12 +81,13 @@ export const TeachersTab = () => {
       }));
   }, [allEmployees]);
 
-  // Create a map of full employee details by employee_id for quick lookup
   const teacherDetailsMap = useMemo(() => {
     const map = new Map();
-    allEmployees.forEach((employee: any) => {
-      map.set(employee.employee_id, employee);
-    });
+    if (Array.isArray(allEmployees)) {
+      allEmployees.forEach((employee: any) => {
+        map.set(employee.employee_id, employee);
+      });
+    }
     return map;
   }, [allEmployees]);
 
@@ -83,21 +95,15 @@ export const TeachersTab = () => {
   const deleteMutation = useDeleteTeacherCourseSubjectRelation();
   const { toast } = useToast();
 
-  // ✅ OPTIMIZATION: Only fetch groups when groups dropdown is opened
-  // User requirement: Don't call Groups API - only call when clicking dropdowns
   const { data: groupsData } = useCollegeGroups({ enabled: groupsDropdownOpen });
   const groups = Array.isArray(groupsData) ? groupsData : [];
 
-  // ✅ OPTIMIZATION: Only fetch courses when courses dropdown is opened AND groupId is selected
-  // User requirement: Don't call Courses API - only call when clicking dropdowns
   const { data: coursesData } = useCollegeCourses(
     coursesDropdownOpen && selectedGroupId ? parseInt(selectedGroupId) : 0,
     { enabled: coursesDropdownOpen && !!selectedGroupId }
   );
   const courses = coursesData?.items || [];
 
-  // ✅ OPTIMIZATION: Only fetch subjects when subjects dropdown is opened AND groupId is selected
-  // User requirement: Don't call Subjects API - only call when clicking dropdowns
   const { data: subjectsData } = useCollegeSubjects(
     subjectsDropdownOpen && selectedGroupId ? parseInt(selectedGroupId) : 0,
     { enabled: subjectsDropdownOpen && !!selectedGroupId }
@@ -123,18 +129,11 @@ export const TeachersTab = () => {
   ) => {
     try {
       await deleteMutation.mutateAsync({ teacherId, courseId, subjectId });
-    } catch (error: any) {
-      // Error toast handled by mutation hook
-    }
+    } catch (error: any) {}
   };
 
   const handleFormSubmit = async () => {
-    if (
-      !selectedTeacherId ||
-      !selectedGroupId ||
-      !selectedCourseId ||
-      !selectedSubjectId
-    ) {
+    if (!selectedTeacherId || !selectedGroupId || !selectedCourseId || !selectedSubjectId) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -144,32 +143,34 @@ export const TeachersTab = () => {
     }
 
     try {
-      // We need to get the current academic_year_id and branch_id
-      // For now, using placeholders - these should come from the auth context
       await createMutation.mutateAsync({
         teacher_id: parseInt(selectedTeacherId),
         course_id: parseInt(selectedCourseId),
         subject_id: parseInt(selectedSubjectId),
-        academic_year_id: 1, // Get from auth context when available
+        academic_year_id: 1,
         is_active: isActive,
       });
-
       resetForm();
       setIsAddOpen(false);
-    } catch (error: any) {
-      // Error toast handled by mutation hook
-    }
+    } catch (error: any) {}
   };
 
   const columns: ColumnDef<any>[] = useMemo(
     () => [
       {
         accessorKey: "employee_name",
-        header: "Name",
+        header: "Teacher Name",
         cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-gray-500" />
-            <span className="font-medium">{row.getValue("employee_name")}</span>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100 shadow-sm">
+              <User className="h-4 w-4 text-blue-600" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bold text-slate-900">{row.original.employee_name}</span>
+              <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider flex items-center gap-1">
+                <IdCard className="h-2.5 w-2.5" /> {row.original.employee_id}
+              </span>
+            </div>
           </div>
         ),
       },
@@ -177,25 +178,40 @@ export const TeachersTab = () => {
         accessorKey: "designation",
         header: "Designation",
         cell: ({ row }) => (
-          <Badge variant="secondary">
-            {row.getValue("designation") || "Teacher"}
-          </Badge>
+          <div className="flex items-center gap-1.5">
+            <Briefcase className="h-3.5 w-3.5 text-slate-400" />
+            <Badge variant="outline" className="font-medium bg-slate-50 text-slate-700 border-slate-200">
+              {row.original.designation || "Educator"}
+            </Badge>
+          </div>
         ),
       },
       {
         accessorKey: "email",
-        header: "Email",
+        header: "Email Address",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2 text-slate-600">
+            <Mail className="h-3.5 w-3.5 text-slate-400" />
+            <span className="text-sm italic">{row.original.email}</span>
+          </div>
+        )
       },
       {
         accessorKey: "phone",
-        header: "Phone",
+        header: "Phone Number",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2 text-slate-600">
+            <Phone className="h-3.5 w-3.5 text-slate-400" />
+            <span className="text-sm font-mono">{row.original.phone}</span>
+          </div>
+        )
       },
       {
         accessorKey: "is_active",
         header: "Status",
         cell: ({ row }) => (
-          <Badge variant={row.getValue("is_active") ? "default" : "secondary"}>
-            {row.getValue("is_active") ? "Active" : "Inactive"}
+          <Badge variant={row.original.is_active ? "success" : "secondary"} className="shadow-none">
+            {row.original.is_active ? "Active" : "Inactive"}
           </Badge>
         ),
       },
@@ -203,11 +219,12 @@ export const TeachersTab = () => {
     []
   );
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(
+  const actions: ActionConfig<any>[] = useMemo(
     () => [
       {
-        type: "edit" as const,
+        id: "edit",
+        label: "Edit Profile",
+        icon: Briefcase,
         onClick: (row: any) => {
           setSelectedTeacher(row);
           setIsEditOpen(true);
@@ -219,41 +236,44 @@ export const TeachersTab = () => {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <p className="text-red-500 mb-2">Error loading teachers</p>
-          <p className="text-sm text-gray-500">Please try again later</p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center p-8 bg-white rounded-2xl border border-red-50 shadow-xl">
+          <div className="h-16 w-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-100">
+            <User className="h-8 w-8 text-red-600" />
+          </div>
+          <p className="text-xl font-bold text-slate-900 mb-2">Error Loading Teachers</p>
+          <p className="text-slate-500 max-w-xs mx-auto mb-6">We encountered a problem fetching the teaching staff records. Please check your connection.</p>
+          <Button onClick={() => refetchEmployees()} variant="outline" className="rounded-xl px-8">Try Refreshing</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <>
+    <div className="space-y-6">
       <TabSwitcher
         tabs={[
           {
             value: "teachers",
-            label: "Teachers",
+            label: "Teaching Staff",
             icon: User,
             content: (
-              <EnhancedDataTable
+              <DataTable
                 data={teachers}
                 columns={columns}
-                title="Teachers"
+                actions={actions}
+                title="Academic Educators"
                 searchKey="employee_name"
-                exportable={true}
-                showActions={true}
-                actionButtonGroups={actionButtonGroups}
-                actionColumnHeader="Actions"
-                showActionLabels={true}
+                searchPlaceholder="Search teachers by name or ID..."
                 loading={isLoading}
+                export={{ enabled: true, filename: 'teaching_staff' }}
+                className="border-none shadow-none"
               />
             ),
           },
           {
             value: "management",
-            label: "Teacher Course Subject Assignments",
+            label: "Subject Assignments",
             icon: BookOpen,
             content: (
               <TeacherCourseSubjectAssignmentsTab
@@ -268,6 +288,7 @@ export const TeachersTab = () => {
         ]}
         activeTab={activeSubTab}
         onTabChange={setActiveSubTab}
+        className="bg-transparent border-none shadow-none p-0"
       />
 
       {/* Assignment Form Dialog */}
@@ -275,40 +296,32 @@ export const TeachersTab = () => {
         open={isAddOpen}
         onOpenChange={(open) => {
           setIsAddOpen(open);
-          if (!open) {
-            resetForm();
-          }
+          if (!open) resetForm();
         }}
-        title="Assign Teacher to Subject"
-        description="Assign a teacher to a group, course, and subject"
+        title="Associate Educator"
+        description="Configure teaching assignments for subjects and courses."
         onSave={handleFormSubmit}
         onCancel={() => {
           setIsAddOpen(false);
           resetForm();
         }}
-        saveText="Assign"
+        saveText="Assign Subject"
         cancelText="Cancel"
       >
-        <div className="space-y-4">
-          {/* Teacher Selection */}
+        <div className="space-y-5 py-2">
           <div className="space-y-2">
-            <Label htmlFor="teacher">Teacher *</Label>
+            <Label className="text-sm font-semibold text-slate-700">Educator *</Label>
             <Select
               value={selectedTeacherId}
               onValueChange={setSelectedTeacherId}
-              onOpenChange={(open) => {
-                setTeachersDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
-              }}
+              onOpenChange={setTeachersDropdownOpen}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select teacher" />
+              <SelectTrigger className="h-11 rounded-lg">
+                <SelectValue placeholder="Select faculty member" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl shadow-xl border-slate-100">
                 {teachers.map((teacher: any) => (
-                  <SelectItem
-                    key={teacher.employee_id}
-                    value={teacher.employee_id.toString()}
-                  >
+                  <SelectItem key={teacher.employee_id} value={teacher.employee_id.toString()} className="py-2.5">
                     {teacher.employee_name}
                   </SelectItem>
                 ))}
@@ -316,90 +329,66 @@ export const TeachersTab = () => {
             </Select>
           </div>
 
-          {/* Group Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="group">Group *</Label>
-            <Select
-              value={selectedGroupId}
-              onValueChange={(value) => {
-                setSelectedGroupId(value);
-                setSelectedCourseId(""); // Reset course when group changes
-              }}
-              onOpenChange={(open) => {
-                setGroupsDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select group" />
-              </SelectTrigger>
-              <SelectContent>
-                {groups.map((group: any) => (
-                  <SelectItem
-                    key={group.group_id}
-                    value={group.group_id.toString()}
-                  >
-                    {group.group_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-700">Group *</Label>
+              <Select
+                value={selectedGroupId}
+                onValueChange={(value) => {
+                  setSelectedGroupId(value);
+                  setSelectedCourseId("");
+                }}
+                onOpenChange={setGroupsDropdownOpen}
+              >
+                <SelectTrigger className="h-11 rounded-lg">
+                  <SelectValue placeholder="Select group" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl shadow-xl border-slate-100">
+                  {Array.isArray(groups) && groups.map((group: any) => (
+                    <SelectItem key={group.group_id} value={group.group_id.toString()} className="py-2.5">
+                      {group.group_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-700">Course / Level *</Label>
+              <Select
+                value={selectedCourseId}
+                onValueChange={setSelectedCourseId}
+                disabled={!selectedGroupId}
+                onOpenChange={setCoursesDropdownOpen}
+              >
+                <SelectTrigger className="h-11 rounded-lg">
+                  <SelectValue placeholder={selectedGroupId ? "Select course" : "Select group first"} />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl shadow-xl border-slate-100">
+                  {Array.isArray(courses) && courses.map((course: any) => (
+                    <SelectItem key={course.course_id} value={course.course_id.toString()} className="py-2.5">
+                      {course.course_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Course Selection */}
           <div className="space-y-2">
-            <Label htmlFor="course">Course *</Label>
-            <Select
-              value={selectedCourseId}
-              onValueChange={setSelectedCourseId}
-              disabled={!selectedGroupId}
-              onOpenChange={(open) => {
-                setCoursesDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    selectedGroupId ? "Select course" : "Select group first"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {courses.map((course: any) => (
-                  <SelectItem
-                    key={course.course_id}
-                    value={course.course_id.toString()}
-                  >
-                    {course.course_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Subject Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="subject">Subject *</Label>
+            <Label className="text-sm font-semibold text-slate-700">Academic Subject *</Label>
             <Select
               value={selectedSubjectId}
               onValueChange={setSelectedSubjectId}
               disabled={!selectedGroupId}
-              onOpenChange={(open) => {
-                setSubjectsDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
-              }}
+              onOpenChange={setSubjectsDropdownOpen}
             >
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    selectedGroupId ? "Select subject" : "Select group first"
-                  }
-                />
+              <SelectTrigger className="h-11 rounded-lg">
+                <SelectValue placeholder={selectedGroupId ? "Select subject" : "Select group first"} />
               </SelectTrigger>
-              <SelectContent>
-                {subjects.map((subject: any) => (
-                  <SelectItem
-                    key={subject.subject_id}
-                    value={subject.subject_id.toString()}
-                  >
+              <SelectContent className="rounded-xl shadow-xl border-slate-100">
+                {Array.isArray(subjects) && subjects.map((subject: any) => (
+                  <SelectItem key={subject.subject_id} value={subject.subject_id.toString()} className="py-2.5">
                     {subject.subject_name}
                   </SelectItem>
                 ))}
@@ -407,18 +396,15 @@ export const TeachersTab = () => {
             </Select>
           </div>
 
-          {/* Active Toggle */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3 p-3 bg-slate-50 rounded-xl border border-slate-100 mt-2">
             <Checkbox
               id="is_active"
               checked={isActive}
               onCheckedChange={(checked) => setIsActive(checked as boolean)}
+              className="h-5 w-5 data-[state=checked]:bg-blue-600"
             />
-            <Label
-              htmlFor="is_active"
-              className="text-sm font-normal cursor-pointer"
-            >
-              Active Assignment
+            <Label htmlFor="is_active" className="text-sm font-medium cursor-pointer text-slate-700">
+              Set assignment as currently active
             </Label>
           </div>
         </div>
@@ -428,20 +414,34 @@ export const TeachersTab = () => {
       <FormDialog
         open={isEditOpen}
         onOpenChange={setIsEditOpen}
-        title="Edit Teacher"
-        description="Update teacher information"
+        title="Teacher Profile"
+        description="Detailed educator information and management."
         onCancel={() => {
           setIsEditOpen(false);
           setSelectedTeacher(null);
         }}
-        cancelText="Close"
+        cancelText="Close Profile"
       >
-        <div className="space-y-4">
-          <div className="text-center py-8">
-            <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 mb-6">
-              To edit teacher information, please use the Employee Management
-              section.
+        <div className="py-6 px-1">
+          <div className="text-center bg-slate-50 border border-slate-200 rounded-2xl p-8 mb-6 shadow-inner">
+            <div className="h-20 w-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-xl">
+              <User className="h-10 w-10 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-1">{selectedTeacher?.employee_name}</h3>
+            <p className="text-sm text-slate-500 font-medium mb-4">{selectedTeacher?.designation || "Academic Faculty"}</p>
+            
+            <div className="inline-flex gap-2">
+               <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none shadow-none font-bold">STAFF-ID: {selectedTeacher?.employee_id}</Badge>
+               <Badge variant={selectedTeacher?.is_active ? "success" : "secondary"} className="shadow-none">
+                 {selectedTeacher?.is_active ? "ACTIVE STATUS" : "INACTIVE STATUS"}
+               </Badge>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600 bg-blue-50/50 p-4 rounded-xl border border-blue-100/50 flex gap-3 italic">
+              <Info className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
+              Teacher demographic and payroll data is centralized in Employee Management for security compliance.
             </p>
             <Button
               onClick={() => {
@@ -449,14 +449,14 @@ export const TeachersTab = () => {
                 setSelectedTeacher(null);
                 navigate("/employees");
               }}
-              className="gap-2"
+              className="w-full h-12 rounded-xl text-base font-bold shadow-lg shadow-blue-100 transition-all hover:shadow-xl hover:-translate-y-0.5"
             >
-              Go to Employees
-              <ArrowRight className="h-4 w-4" />
+              Access Complete Employee File
+              <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
         </div>
       </FormDialog>
-    </>
+    </div>
   );
 };

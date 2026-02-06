@@ -156,8 +156,8 @@ export interface SchoolIncomeSummary {
 }
 
 export interface SchoolIncomeSummaryListResponse {
-  items: SchoolIncomeSummary[];
-  total: number;
+  data: SchoolIncomeSummary[];
+  total_count: number;
   page: number;
   size: number;
 }

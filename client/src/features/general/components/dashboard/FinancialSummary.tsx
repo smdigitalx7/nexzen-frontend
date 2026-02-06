@@ -6,7 +6,7 @@ import {
   ArrowDownRight,
   Calendar,
 } from "lucide-react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/common/utils";
 
 interface FinancialSummaryProps {
@@ -22,14 +22,14 @@ interface FinancialSummaryProps {
 }
 
 export const FinancialSummary = ({ data }: FinancialSummaryProps) => {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       {/* Total Financials */}
       <div
         className="lg:col-span-8 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-        onClick={() => setLocation("/school/financial-reports")}
+        onClick={() => navigate("/school/financial-reports")}
       >
         <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
           <h3 className="text-lg font-semibold text-slate-900">

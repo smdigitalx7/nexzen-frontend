@@ -1,42 +1,37 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/common/components/ui/badge";
-import { Separator } from "@/common/components/ui/separator";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable } from "@/common/components/shared/DataTable";
 import { ColumnDef } from "@tanstack/react-table";
+import { ServerCombobox } from "@/common/components/ui/server-combobox";
 import {
   GraduationCap,
   BarChart3,
+  Users,
+  BookOpen,
+  Search,
+  AlertCircle,
 } from "lucide-react";
 import { useExamMarksReport } from "@/features/college/hooks";
 import type { CollegeStudentReport } from "@/features/college/types";
 import {
-  CollegeClassDropdown,
-  CollegeExamDropdown,
-  CollegeSubjectDropdown,
-  CollegeGroupDropdown,
-  CollegeCourseDropdown,
-} from "@/common/components/shared/Dropdowns/College";
+  useCollegeClasses,
+  useCollegeGroups,
+  useCollegeSubjects,
+  useCollegeExams,
+  useCollegeCourses,
+} from "@/features/college/hooks/use-college-dropdowns";
 import { cn } from "@/common/utils";
 
-// Helper function to get grade color
-const getGradeColor = (grade: string | null): string => {
-  if (!grade) return "bg-gray-100 text-gray-700";
-  const gradeUpper = grade.toUpperCase();
-  if (gradeUpper.includes("A+") || gradeUpper === "A+") {
-    return "bg-green-100 text-green-700 border-green-300";
-  }
-  if (gradeUpper.startsWith("A")) {
-    return "bg-blue-100 text-blue-700 border-blue-300";
-  }
-  if (gradeUpper.startsWith("B")) {
-    return "bg-yellow-100 text-yellow-700 border-yellow-300";
-  }
-  if (gradeUpper.startsWith("C")) {
-    return "bg-orange-100 text-orange-700 border-orange-300";
-  }
-  return "bg-red-100 text-red-700 border-red-300";
+const getGradeStyles = (grade: string | null) => {
+  if (!grade) return { bg: "bg-slate-100", text: "text-slate-600", border: "border-slate-200" };
+  const g = grade.toUpperCase();
+  if (g.includes("A+") || g === "O") return { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" };
+  if (g.startsWith("A")) return { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" };
+  if (g.startsWith("B")) return { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200" };
+  if (g.startsWith("C")) return { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" };
+  return { bg: "bg-red-50", text: "text-red-700", border: "border-red-200" };
 };
 
 export const ExamMarksReport = () => {
@@ -45,6 +40,12 @@ export const ExamMarksReport = () => {
   const [subjectId, setSubjectId] = useState<number | null>(null);
   const [groupId, setGroupId] = useState<number | null>(null);
   const [courseId, setCourseId] = useState<number | null>(null);
+
+  const { data: classesData, isLoading: classesLoading } = useCollegeClasses({ enabled: true });
+  const { data: groupsData, isLoading: groupsLoading } = useCollegeGroups(classId || 0, { enabled: !!classId });
+  const { data: coursesData, isLoading: coursesLoading } = useCollegeCourses(groupId || 0, { enabled: !!groupId });
+  const { data: subjectsData, isLoading: subjectsLoading } = useCollegeSubjects(groupId || 0, { enabled: !!groupId });
+  const { data: examsData, isLoading: examsLoading } = useCollegeExams({ enabled: true });
 
   const { data, isLoading, error } = useExamMarksReport(
     classId && examId && groupId && courseId
@@ -58,98 +59,79 @@ export const ExamMarksReport = () => {
       : undefined
   );
 
+  useEffect(() => {
+    setGroupId(null);
+    setCourseId(null);
+    setSubjectId(null);
+    setExamId(null);
+  }, [classId]);
 
-  // Prepare table data
-  const tableData = useMemo(() => {
-    if (!data?.students) return [];
-    return data.students;
-  }, [data]);
+  useEffect(() => {
+    setCourseId(null);
+    setSubjectId(null);
+  }, [groupId]);
 
-  // Create dynamic columns based on subjects
+  const tableData = useMemo(() => data?.students || [], [data]);
+
   const columns = useMemo<ColumnDef<CollegeStudentReport>[]>(() => {
     const baseColumns: ColumnDef<CollegeStudentReport>[] = [
       {
-        id: "roll_no",
-        header: "Roll No",
-        accessorKey: "roll_no",
-        cell: ({ row }) => (
-          <span className="font-medium">
-            {row.original.roll_no}
-          </span>
-        ),
-      },
-      {
-        id: "name",
-        header: "Name",
+        id: "student_profile",
+        header: "Student",
         accessorKey: "name",
         cell: ({ row }) => (
-          <span className="font-medium">{row.original.name}</span>
+          <div className="flex items-center gap-2 py-1">
+            <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200">
+              <Users className="h-4 w-4 text-slate-500" />
+            </div>
+            <div>
+              <p className="font-medium text-slate-900">{row.original.name}</p>
+              <p className="text-xs text-slate-500">Roll: {row.original.roll_no}</p>
+            </div>
+          </div>
         ),
       },
     ];
 
-    // Add subject columns
-    if (data?.students && data.students.length > 0) {
-      const subjects = data.students[0].subjects;
-      subjects.forEach((subject) => {
+    if (data?.subject_wise_overall_marks && Array.isArray(data.subject_wise_overall_marks)) {
+      data.subject_wise_overall_marks.forEach((subject) => {
         baseColumns.push({
           id: `subject_${subject.subject_name}`,
           header: subject.subject_name,
           cell: ({ row }) => {
-            const subjectMark = row.original.subjects.find(
-              (s) => s.subject_name === subject.subject_name
-            );
-            const marks = subjectMark?.marks || "NO RECORD";
-            const isNoRecord = marks === "NO RECORD";
-            return (
-              <span
-                className={cn(
-                  "font-medium",
-                  isNoRecord && "text-gray-400 italic"
-                )}
-              >
-                {marks}
-              </span>
-            );
+            const mark = row.original.subjects.find((s) => s.subject_name === subject.subject_name);
+            if (!mark) return <span className="text-slate-400">—</span>;
+            return <span className="font-medium text-slate-800">{mark.marks}</span>;
           },
         });
       });
     }
 
-    // Add total and percentage columns
     baseColumns.push(
       {
-        id: "overall_total_marks",
+        accessorKey: "overall_total_marks",
         header: "Total",
-        cell: ({ row }) => {
-          const total = typeof row.original.overall_total_marks === 'number' 
-            ? row.original.overall_total_marks 
-            : parseFloat(String(row.original.overall_total_marks)) || 0;
-          return (
-            <span className="font-semibold">
-              {total}
-            </span>
-          );
-        },
+        cell: ({ row }) => (
+          <span className="font-semibold">{row.original.overall_total_marks}</span>
+        ),
       },
       {
-        id: "overall_percentage",
+        accessorKey: "overall_percentage",
         header: "Percentage",
         cell: ({ row }) => {
-          const percentage = typeof row.original.overall_percentage === 'number' 
-            ? row.original.overall_percentage 
-            : parseFloat(String(row.original.overall_percentage)) || 0;
+          const val = row.original.overall_percentage;
+          const percentage = typeof val === "number" ? val : Number.parseFloat(String(val)) || 0;
           return (
             <div className="flex items-center gap-2">
-              <span className="font-semibold">
-                {percentage.toFixed(1)}%
-              </span>
+              <span className="font-semibold">{percentage.toFixed(1)}%</span>
               {row.original.overall_grade && (
                 <Badge
                   variant="outline"
                   className={cn(
                     "text-xs",
-                    getGradeColor(row.original.overall_grade)
+                    getGradeStyles(row.original.overall_grade).bg,
+                    getGradeStyles(row.original.overall_grade).text,
+                    getGradeStyles(row.original.overall_grade).border
                   )}
                 >
                   {row.original.overall_grade}
@@ -158,7 +140,7 @@ export const ExamMarksReport = () => {
             </div>
           );
         },
-      },
+      }
     );
 
     return baseColumns;
@@ -168,159 +150,151 @@ export const ExamMarksReport = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-3">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Exam Marks Report</h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Generate comprehensive exam marks reports
-            </p>
-          </div>
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Exam Marks Report</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Generate comprehensive exam marks reports
+          </p>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters - same style as School */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
+        className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-gray-700 whitespace-nowrap">
+        <div className="flex flex-wrap gap-4 items-end">
+          <div className="w-full sm:w-48">
+            <label className="text-sm font-medium text-slate-700 whitespace-nowrap mb-1.5 block">
               Class <span className="text-red-500">*</span>
             </label>
-            <div className="flex-1">
-              <CollegeClassDropdown
-                value={classId}
-                onChange={(value) => {
-                  setClassId(value);
-                  if (!value) {
-                    setExamId(null);
-                    setSubjectId(null);
-                    setGroupId(null);
-                    setCourseId(null);
-                  }
-                }}
-              />
-            </div>
+            <ServerCombobox
+              items={classesData?.items || []}
+              value={classId?.toString() || ""}
+              onSelect={(val) => {
+                setClassId(val ? Number(val) : null);
+                if (!val) {
+                  setExamId(null);
+                  setSubjectId(null);
+                  setGroupId(null);
+                  setCourseId(null);
+                }
+              }}
+              valueKey="class_id"
+              labelKey="class_name"
+              placeholder="Select Class"
+              isLoading={classesLoading}
+            />
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-gray-700 whitespace-nowrap">
+          <div className="w-full sm:w-48">
+            <label className="text-sm font-medium text-slate-700 whitespace-nowrap mb-1.5 block">
               Group <span className="text-red-500">*</span>
             </label>
-            <div className="flex-1">
-              {classId ? (
-                <CollegeGroupDropdown
-                  value={groupId}
-                  onChange={(value) => {
-                    setGroupId(value);
-                    if (!value) {
-                      setSubjectId(null);
-                      setCourseId(null);
-                    }
-                  }}
-                  classId={classId}
-                />
-              ) : (
-                <div className="px-2 py-1.5 border border-gray-300 rounded-md bg-gray-50 text-gray-400 text-xs">
-                  Select class first
-                </div>
-              )}
-            </div>
+            <ServerCombobox
+              items={groupsData?.items || []}
+              value={groupId?.toString() || ""}
+              onSelect={(val) => setGroupId(val ? Number(val) : null)}
+              valueKey="group_id"
+              labelKey="group_name"
+              placeholder="Select Group"
+              isLoading={groupsLoading}
+              disabled={!classId}
+            />
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-gray-700 whitespace-nowrap">
+          <div className="w-full sm:w-48">
+            <label className="text-sm font-medium text-slate-700 whitespace-nowrap mb-1.5 block">
               Course <span className="text-red-500">*</span>
             </label>
-            <div className="flex-1">
-              {groupId ? (
-                <CollegeCourseDropdown
-                  value={courseId}
-                  onChange={setCourseId}
-                  groupId={groupId}
-                />
-              ) : (
-                <div className="px-2 py-1.5 border border-gray-300 rounded-md bg-gray-50 text-gray-400 text-xs">
-                  Select group first
-                </div>
-              )}
-            </div>
+            <ServerCombobox
+              items={coursesData?.items || []}
+              value={courseId?.toString() || ""}
+              onSelect={(val) => setCourseId(val ? Number(val) : null)}
+              valueKey="course_id"
+              labelKey="course_name"
+              placeholder="Select Course"
+              isLoading={coursesLoading}
+              disabled={!groupId}
+            />
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-gray-700 whitespace-nowrap">
+          <div className="w-full sm:w-48">
+            <label className="text-sm font-medium text-slate-700 whitespace-nowrap mb-1.5 block">
               Exam <span className="text-red-500">*</span>
             </label>
-            <div className="flex-1">
-              <CollegeExamDropdown
-                value={examId}
-                onChange={setExamId}
-                disabled={!classId || !groupId || !courseId}
-              />
-            </div>
+            <ServerCombobox
+              items={examsData?.items || []}
+              value={examId?.toString() || ""}
+              onSelect={(val) => setExamId(val ? Number(val) : null)}
+              valueKey="exam_id"
+              labelKey="exam_name"
+              placeholder="Select Exam"
+              isLoading={examsLoading}
+            />
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-gray-700 whitespace-nowrap">
-              Subject <span className="text-xs text-gray-500">(Optional)</span>
+          <div className="w-full sm:w-48">
+            <label className="text-sm font-medium text-slate-700 whitespace-nowrap mb-1.5 block">
+              Subject <span className="text-xs text-slate-500">(Optional)</span>
             </label>
-            <div className="flex-1">
-              {groupId ? (
-                <CollegeSubjectDropdown
-                  value={subjectId}
-                  onChange={setSubjectId}
-                  groupId={groupId}
-                />
-              ) : (
-                <div className="px-2 py-1.5 border border-gray-300 rounded-md bg-gray-50 text-gray-400 text-xs">
-                  Select group first
-                </div>
-              )}
-            </div>
+            <ServerCombobox
+              items={subjectsData?.items || []}
+              value={subjectId?.toString() || ""}
+              onSelect={(val) => setSubjectId(val ? Number(val) : null)}
+              valueKey="subject_id"
+              labelKey="subject_name"
+              placeholder="All Subjects"
+              isLoading={subjectsLoading}
+              disabled={!groupId}
+            />
           </div>
         </div>
       </motion.div>
 
-      {/* Report Content */}
+      {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
           <div className="text-red-600 text-sm">
-            Failed to load exam marks report. Please try again.
+            {(error as Error)?.message ||
+              "Failed to load exam marks report. Please try again."}
           </div>
         </div>
       )}
 
+      {/* Report Content */}
       {isLoading ? (
         <Loader.Data message="Loading exam marks report..." />
       ) : data ? (
         <>
-          {/* Report Header Info */}
+          {/* Report Header Info - same as School */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm"
+            className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm"
           >
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-slate-900">
                   {data.exam_name}
                 </h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-slate-600">
                   Class: {data.class_name} | Max Marks: {data.max_marks}
                 </p>
               </div>
             </div>
 
-            {/* Subject-wise Statistics */}
-            {data.subject_wise_overall_marks.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <h4 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            {/* Subject-wise Statistics - same as School */}
+            {data.subject_wise_overall_marks?.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-slate-200">
+                <h4 className="text-base font-semibold text-slate-900 mb-3 flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-blue-600" />
                   Subject-wise Statistics
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                   {data.subject_wise_overall_marks.map((subject, index) => {
-                    const percentage = typeof subject.average_percentage === 'number' 
-                      ? subject.average_percentage 
-                      : parseFloat(String(subject.average_percentage)) || 0;
+                    const percentage =
+                      typeof subject.average_percentage === "number"
+                        ? subject.average_percentage
+                        : Number.parseFloat(String(subject.average_percentage)) || 0;
                     const getPercentageColor = (pct: number) => {
                       if (pct >= 90) return "text-emerald-600 bg-emerald-50 border-emerald-200";
                       if (pct >= 80) return "text-blue-600 bg-blue-50 border-blue-200";
@@ -328,32 +302,30 @@ export const ExamMarksReport = () => {
                       if (pct >= 60) return "text-orange-600 bg-orange-50 border-orange-200";
                       return "text-red-600 bg-red-50 border-red-200";
                     };
-                    const overallMarks = typeof subject.overall_marks === 'number' 
-                      ? subject.overall_marks 
-                      : parseFloat(String(subject.overall_marks)) || 0;
                     return (
                       <div
                         key={index}
-                        className="bg-gray-50 rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+                        className="bg-slate-50 rounded-lg p-3 border border-slate-200 shadow-sm"
                       >
                         <div className="flex items-start justify-between mb-2">
-                          <h5 className="font-semibold text-gray-900 text-sm leading-tight">
+                          <h5 className="font-semibold text-slate-900 text-sm flex items-center gap-1.5">
+                            <BookOpen className="h-3.5 w-3.5 text-slate-500" />
                             {subject.subject_name}
                           </h5>
                         </div>
                         <div className="space-y-1.5">
-                          {subject.average_percentage !== null && (
-                            <div className={`flex items-center justify-between px-2 py-1 rounded-md border ${getPercentageColor(percentage)}`}>
-                              <span className="text-xs font-medium">Average</span>
-                              <span className="text-sm font-bold">
-                                {percentage.toFixed(1)}%
-                              </span>
-                            </div>
-                          )}
-                          <div className="flex items-center justify-between text-xs text-gray-600 bg-white px-2 py-1 rounded-md">
+                          <div
+                            className={`flex items-center justify-between px-2 py-1 rounded-md border ${getPercentageColor(percentage)}`}
+                          >
+                            <span className="text-xs font-medium">Average</span>
+                            <span className="text-sm font-bold">
+                              {percentage.toFixed(1)}%
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-slate-600 bg-white px-2 py-1 rounded-md border border-slate-100">
                             <span>Total Marks</span>
-                            <span className="font-semibold text-gray-900">
-                              {overallMarks}
+                            <span className="font-semibold text-slate-900">
+                              {subject.overall_marks}
                             </span>
                           </div>
                         </div>
@@ -371,29 +343,29 @@ export const ExamMarksReport = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <EnhancedDataTable
+            <DataTable
               data={tableData}
               columns={columns}
               title="Student Marks"
               searchKey="name"
               searchPlaceholder="Search by student name..."
-              exportable={true}
               loading={isLoading}
+              className=""
+              export={{ enabled: true, filename: `exam_report_${data.exam_name}` }}
             />
           </motion.div>
         </>
       ) : classId && examId && groupId && courseId ? (
-        <div className="text-center py-12 text-gray-500">
-          <GraduationCap className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <div className="text-center py-12 text-slate-500">
+          <GraduationCap className="h-12 w-12 mx-auto mb-4 text-slate-400" />
           <p>No exam marks data available for the selected filters</p>
         </div>
       ) : (
-        <div className="text-center py-12 text-gray-500">
-          <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-          <p>Please select Class, Group, Course, and Exam to generate the report</p>
+        <div className="text-center py-12 text-slate-500">
+          <Search className="h-12 w-12 mx-auto mb-4 text-slate-400" />
+          <p>Please select Class, Group, Course and Exam to generate the report</p>
         </div>
       )}
     </div>
   );
 };
-

@@ -4,8 +4,9 @@ import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
 import { Switch } from "@/common/components/ui/switch";
 import { Button } from "@/common/components/ui/button";
-import { FormDialog, ConfirmDialog } from "@/common/components/shared";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { Badge } from "@/common/components/ui/badge";
+import { FormDialog, ConfirmDialog, DataTable } from "@/common/components/shared";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import { useToast } from '@/common/hooks/use-toast';
 import { useFormState } from "@/common/hooks";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -228,18 +229,11 @@ export const ExamsTab = ({
     {
       accessorKey: "is_active",
       header: "Status",
-      cell: ({ row }) => {
-        const isActive = row.original.is_active;
-        return (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-            isActive 
-              ? "bg-green-100 text-green-800" 
-              : "bg-gray-100 text-gray-800"
-          }`}>
-            {isActive ? "Active" : "Inactive"}
-          </span>
-        );
-      },
+      cell: ({ row }: { row: { original: SchoolExamRead } }) => (
+        <Badge variant={row.original.is_active ? "default" : "secondary"}>
+          {row.original.is_active ? "Active" : "Inactive"}
+        </Badge>
+      ),
     },
   ], []);
 
@@ -253,30 +247,38 @@ export const ExamsTab = ({
     setIsScheduleDialogOpen(true);
   };
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => {
-    const buttons: Array<any> = [
-      { type: "edit", onClick: (row: SchoolExamRead) => handleEditClick(row) },
+  // Action configurations for DataTable V2
+  const actions: ActionConfig<SchoolExamRead>[] = useMemo(() => {
+    const acts: ActionConfig<SchoolExamRead>[] = [
+      {
+        id: "edit",
+        label: "Edit",
+        icon: Edit,
+        onClick: (row) => handleEditClick(row)
+      }
     ];
     
     if (canManageSchedules) {
-      buttons.push({
-        type: "custom",
-        label: 'Manage Schedules',
+      acts.push({
+        id: "schedule",
+        label: "Manage Schedules",
         icon: Calendar,
-        onClick: (row: SchoolExamRead) => handleScheduleClick(row),
-        variant: 'outline' as const,
+        // variant: 'outline', // Removed as it might conflict if not standard, default ghost is fine for actions usually, or specific if supported
+        onClick: (row) => handleScheduleClick(row),
       });
     }
     
     if (canDeleteExam) {
-      buttons.push({
-        type: "delete",
-        onClick: (row: SchoolExamRead) => handleDeleteClick(row)
+      acts.push({
+        id: "delete",
+        label: "Delete",
+        icon: Trash2,
+        variant: "destructive",
+        onClick: (row) => handleDeleteClick(row)
       });
     }
     
-    return buttons;
+    return acts;
   }, [canDeleteExam, canManageSchedules]);
 
   if (hasError) {
@@ -297,18 +299,17 @@ export const ExamsTab = ({
 
   return (
     <div className="space-y-4">
-      <EnhancedDataTable
+      <DataTable
         data={exams}
         columns={columns}
         title="Exams"
         searchKey="exam_name"
-        exportable={true}
+        searchPlaceholder="Search exams..."
+        export={{ enabled: true, filename: "exams" }}
         onAdd={canAddExam ? () => setIsAddExamOpen(true) : undefined}
         addButtonText="Add Exam"
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
+        actions={actions}
+        actionsHeader="Actions"
       />
 
       {/* Add Exam Dialog */}

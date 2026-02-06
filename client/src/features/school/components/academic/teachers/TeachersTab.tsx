@@ -23,6 +23,11 @@ import { Checkbox } from "@/common/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/common/components/ui/tabs";
 import { TeacherAssignmentsTab } from "./TeacherAssignmentsTab";
 import { ClassTeacherTab } from "./ClassTeacherTab";
+import { useEffect, useCallback } from "react";
+import { cleanupDialogState } from "@/common/utils/ui-cleanup";
+import { ServerCombobox } from "@/common/components/ui/server-combobox";
+import { useUrlState } from "@/common/hooks/useUrlState";
+import { useEmployeesMinimal } from "@/features/general/hooks";
 
 export const TeachersTab = () => {
   // ✅ OPTIMIZATION: Only fetch assignments data - teachers/employees/classes/subjects fetched on-demand when dialog opens
@@ -34,7 +39,7 @@ export const TeachersTab = () => {
   const deleteMutation = useDeleteTeacherClassSubject();
 
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState("assignments");
+  const [activeSubTab, setActiveSubTab] = useUrlState("subtab", "assignments");
 
   // Form state
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
@@ -51,34 +56,54 @@ export const TeachersTab = () => {
 
   // ✅ OPTIMIZATION: Only fetch teachers/employees when their dropdown is opened
   // User requirement: Don't call Teachers API - only call when clicking dropdowns
-  const { data: teachersList = [], error } = useTeachersByBranch(teachersDropdownOpen);
-  const { data: allEmployees = [] } = useEmployeesByBranch(teachersDropdownOpen);
+  const { data: teachersList = [], error, isLoading: isLoadingTeachers } = useTeachersByBranch(teachersDropdownOpen);
+  const { data: allEmployees = [], isLoading: isLoadingEmployees } = useEmployeesByBranch(teachersDropdownOpen);
 
   // Create a map of full employee details by employee_id for quick lookup
   const teacherDetailsMap = useMemo(() => {
     const map = new Map();
-    allEmployees.forEach((employee: any) => {
-      map.set(employee.employee_id, employee);
-    });
+    if (Array.isArray(allEmployees)) {
+      allEmployees.forEach((employee: any) => {
+        map.set(employee.employee_id, employee);
+      });
+    }
     return map;
   }, [allEmployees]);
 
   // ✅ OPTIMIZATION: Only fetch classes when classes dropdown is opened
   // User requirement: Don't call Classes API - only call when clicking dropdowns
-  const { data: classes = [] } = useSchoolClasses({ enabled: classesDropdownOpen });
+  const { data: classes = [], isLoading: isLoadingClasses } = useSchoolClasses({ enabled: classesDropdownOpen });
 
   // Get sections based on selected class - only fetch when classes dropdown was opened AND class is selected
-  const { data: sections = [] } = useSchoolSectionsByClass(
+  const { data: sections = [], isLoading: isLoadingSections } = useSchoolSectionsByClass(
     classesDropdownOpen && selectedClassId ? parseInt(selectedClassId) : null
   );
 
   // ✅ OPTIMIZATION: Only fetch subjects when subjects dropdown is opened
   // User requirement: Don't call Subjects API - only call when clicking dropdowns
-  const { data: subjects = [] } = useSchoolSubjects({ enabled: subjectsDropdownOpen });
+  const { data: subjects = [], isLoading: isLoadingSubjects } = useSchoolSubjects({ enabled: subjectsDropdownOpen });
 
   const [expandedTeachers, setExpandedTeachers] = useState<Set<number>>(
     new Set()
   );
+
+  // ✅ GLOBAL MODAL GUARDIAN: Ensure UI is unlocked when no modals are open
+  useEffect(() => {
+    if (!isAddOpen) {
+      const timer = setTimeout(() => {
+        cleanupDialogState();
+      }, 100);
+      
+      const longTimer = setTimeout(() => {
+        cleanupDialogState();
+      }, 500);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(longTimer);
+      };
+    }
+  }, [isAddOpen]);
 
   const { toast } = useToast();
 
@@ -230,110 +255,68 @@ export const TeachersTab = () => {
           {/* Teacher Selection */}
           <div className="space-y-2">
             <Label htmlFor="teacher">Teacher *</Label>
-            <Select
+            <ServerCombobox
+              items={Array.isArray(allEmployees) ? allEmployees : []}
+              isLoading={isLoadingEmployees}
               value={selectedTeacherId}
-              onValueChange={setSelectedTeacherId}
-              onOpenChange={(open) => {
-                setTeachersDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select teacher" />
-              </SelectTrigger>
-              <SelectContent>
-                {allEmployees.map((teacher: any) => (
-                  <SelectItem
-                    key={teacher.employee_id}
-                    value={teacher.employee_id.toString()}
-                  >
-                    {teacher.employee_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onSelect={setSelectedTeacherId}
+              labelKey="employee_name"
+              valueKey="employee_id"
+              placeholder="Select teacher..."
+              searchPlaceholder="Search teacher name..."
+              emptyText="No teachers found"
+              onDropdownOpen={setTeachersDropdownOpen}
+            />
           </div>
 
           {/* Class Selection */}
           <div className="space-y-2">
             <Label htmlFor="class">Class *</Label>
-            <Select
+            <ServerCombobox
+              items={Array.isArray(classes) ? classes : []}
+              isLoading={isLoadingClasses}
               value={selectedClassId}
-              onValueChange={(value) => {
-                setSelectedClassId(value);
-                setSelectedSectionId(""); // Reset section when class changes
+              onSelect={(val) => {
+                 setSelectedClassId(val);
+                 setSelectedSectionId("");
               }}
-              onOpenChange={(open) => {
-                setClassesDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select class" />
-              </SelectTrigger>
-              <SelectContent>
-                {classes.map((classItem) => (
-                  <SelectItem
-                    key={classItem.class_id}
-                    value={classItem.class_id.toString()}
-                  >
-                    {classItem.class_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              labelKey="class_name"
+              valueKey="class_id"
+              placeholder="Select class..."
+              searchPlaceholder="Search class..."
+              onDropdownOpen={setClassesDropdownOpen}
+            />
           </div>
 
           {/* Section Selection */}
           <div className="space-y-2">
             <Label htmlFor="section">Section *</Label>
-            <Select
+            <ServerCombobox
+              items={Array.isArray(sections) ? sections : []}
+              isLoading={isLoadingSections}
               value={selectedSectionId}
-              onValueChange={setSelectedSectionId}
+              onSelect={setSelectedSectionId}
+              labelKey="section_name"
+              valueKey="section_id"
+              placeholder={selectedClassId ? "Select section..." : "Select class first"}
               disabled={!selectedClassId}
-            >
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    selectedClassId ? "Select section" : "Select class first"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {sections.map((section) => (
-                  <SelectItem
-                    key={section.section_id}
-                    value={section.section_id.toString()}
-                  >
-                    {section.section_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
           </div>
 
           {/* Subject Selection */}
           <div className="space-y-2">
             <Label htmlFor="subject">Subject *</Label>
-            <Select
+            <ServerCombobox
+              items={Array.isArray(subjects) ? subjects : []}
+              isLoading={isLoadingSubjects}
               value={selectedSubjectId}
-              onValueChange={setSelectedSubjectId}
-              onOpenChange={(open) => {
-                setSubjectsDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select subject" />
-              </SelectTrigger>
-              <SelectContent>
-                {subjects.map((subject) => (
-                  <SelectItem
-                    key={subject.subject_id}
-                    value={subject.subject_id.toString()}
-                  >
-                    {subject.subject_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onSelect={setSelectedSubjectId}
+              labelKey="subject_name"
+              valueKey="subject_id"
+              placeholder="Select subject..."
+              searchPlaceholder="Search subject..."
+              onDropdownOpen={setSubjectsDropdownOpen}
+            />
           </div>
 
           {/* Options */}

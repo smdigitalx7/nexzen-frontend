@@ -1,35 +1,23 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/common/components/ui/table";
+"use client";
+
+import React, { useMemo, useState, memo, useCallback } from "react";
+import { 
+  Printer, 
+  Eye, 
+  Edit, 
+  Trash2, 
+  Percent 
+} from "lucide-react";
+import { DataTable } from "@/common/components/shared/DataTable";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import { Badge } from "@/common/components/ui/badge";
-import { Button } from "@/common/components/ui/button";
-import { Input } from "@/common/components/ui/input";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
-import { useMemo, useState, useEffect, useCallback } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/common/components/ui/select";
 import { toast } from "@/common/hooks/use-toast";
 import {
   CollegeReservationsService,
   CollegeIncomeService,
 } from "@/features/college/services";
-import {
-  ReceiptPreviewModal,
-  ConcessionUpdateDialog,
-  ServerSidePagination,
-} from "@/common/components/shared";
+import { ReceiptPreviewModal } from "@/common/components/shared";
 import type {
-  CollegeReservationMinimalRead,
   ReservationStatusEnum,
 } from "@/features/college/types/reservations";
 
@@ -78,100 +66,25 @@ export type ReservationsTableProps = {
   isLoading?: boolean;
 };
 
-export default function ReservationsTable({
+const ReservationsTableComponent = ({
   reservations,
   onView,
   onEdit,
   onDelete,
   onUpdateConcession,
-  // ✅ Server-side pagination props
-  currentPage: serverCurrentPage,
-  totalPages: serverTotalPages,
-  totalCount: serverTotalCount,
-  pageSize: serverPageSize,
-  onPageChange: onServerPageChange,
-  onPageSizeChange: onServerPageSizeChange,
+  currentPage,
+  totalCount,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
   enableServerSidePagination = false,
   isLoading = false,
-}: ReservationsTableProps) {
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  // ✅ Use server-side pagination if enabled, otherwise use client-side
-  const [clientCurrentPage, setClientCurrentPage] = useState<number>(1);
-  const [clientItemsPerPage, setClientItemsPerPage] = useState<number>(10);
-
-  // Determine which pagination to use
-  const currentPage = enableServerSidePagination
-    ? (serverCurrentPage ?? 1)
-    : clientCurrentPage;
-  const itemsPerPage = enableServerSidePagination
-    ? (serverPageSize ?? 10)
-    : clientItemsPerPage;
-  const setCurrentPage = enableServerSidePagination
-    ? (onServerPageChange ?? (() => {}))
-    : setClientCurrentPage;
-  const setItemsPerPage = enableServerSidePagination
-    ? (onServerPageSizeChange ?? (() => {}))
-    : setClientItemsPerPage;
+}: ReservationsTableProps) => {
   const [regeneratingReceipts, setRegeneratingReceipts] = useState<Set<number>>(
     new Set()
   );
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptBlobUrl, setReceiptBlobUrl] = useState<string | null>(null);
-
-  const filteredReservations = useMemo(() => {
-    let filtered = reservations;
-
-    // Filter by status
-    if (statusFilter !== "all") {
-      const target = statusFilter.toUpperCase();
-      filtered = filtered.filter((r) => r.status === target);
-    }
-
-    // Filter by search term
-    if (searchTerm.trim()) {
-      const search = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (r) =>
-          r.student_name.toLowerCase().includes(search) ||
-          r.reservation_id.toString().includes(search) ||
-          (r.group_name || "").toLowerCase().includes(search) ||
-          (r.course_name || "").toLowerCase().includes(search) ||
-          (r.father_name || "").toLowerCase().includes(search)
-      );
-    }
-
-    return filtered;
-  }, [reservations, statusFilter, searchTerm]);
-
-  // ✅ Pagination logic - Use server-side if enabled, otherwise client-side
-  const totalPages = enableServerSidePagination
-    ? (serverTotalPages ?? 1)
-    : Math.ceil(filteredReservations.length / itemsPerPage);
-  const totalCount = enableServerSidePagination
-    ? (serverTotalCount ?? 0)
-    : filteredReservations.length;
-
-  // For server-side pagination, use all reservations (already paginated by server)
-  // For client-side pagination, slice the filtered results
-  const paginatedReservations = enableServerSidePagination
-    ? filteredReservations // Server already paginated, just filter/search
-    : filteredReservations.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-      );
-
-  const startIndex = enableServerSidePagination
-    ? (currentPage - 1) * itemsPerPage + 1
-    : (currentPage - 1) * itemsPerPage + 1;
-  const endIndex = enableServerSidePagination
-    ? Math.min(currentPage * itemsPerPage, totalCount)
-    : Math.min(currentPage * itemsPerPage, filteredReservations.length);
-
-  // Reset to first page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [statusFilter, searchTerm]);
 
   const handleRegenerateReceipt = async (reservation: Reservation) => {
     if (!reservation.income_id) {
@@ -222,7 +135,6 @@ export default function ReservationsTable({
     }
   };
 
-  // ✅ OPTIMIZED: Memoized close handler with proper cleanup
   const handleCloseReceiptModal = useCallback(() => {
     setShowReceiptModal(false);
     if (receiptBlobUrl) {
@@ -231,276 +143,122 @@ export default function ReservationsTable({
     }
   }, [receiptBlobUrl]);
 
+  const columns = useMemo(() => [
+    {
+      accessorKey: "reservation_no",
+      header: "Reservation No",
+      cell: ({ row }: { row: { original: Reservation } }) => (
+        <span className="font-medium text-xs">
+          {row.original.reservation_no || row.original.reservation_id}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "student_name",
+      header: "Student Name",
+      cell: ({ row }: { row: { original: Reservation } }) => <span className="text-xs">{row.original.student_name}</span>,
+    },
+    {
+      accessorKey: "group_name",
+      header: "Group",
+      cell: ({ row }: { row: { original: Reservation } }) => <span className="text-xs">{row.original.group_name || "N/A"}</span>,
+    },
+    {
+      accessorKey: "course_name",
+      header: "Course",
+      cell: ({ row }: { row: { original: Reservation } }) => <span className="text-xs">{row.original.course_name || "N/A"}</span>,
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }: { row: { original: Reservation } }) => {
+        const status = row.original.status;
+        return (
+          <Badge
+            variant={
+              status === "PENDING"
+                ? "default"
+                : status === "CANCELLED"
+                  ? "destructive"
+                  : status === "CONFIRMED"
+                    ? "secondary"
+                    : "outline"
+            }
+            className={status === "CONFIRMED" ? "bg-green-500 text-white text-[10px]" : "text-[10px]"}
+          >
+            {status}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: "reservation_date",
+      header: "Date",
+      cell: ({ row }: { row: { original: Reservation } }) => {
+        const date = row.original.reservation_date || row.original.created_at;
+        return <span className="text-xs">{date ? new Date(date).toLocaleDateString() : "-"}</span>;
+      },
+    },
+  ], []);
+
+  const actions: ActionConfig<Reservation>[] = useMemo(() => [
+    {
+      id: "view",
+      label: "View",
+      icon: Eye,
+      onClick: onView,
+    },
+    {
+      id: "edit",
+      label: "Edit",
+      icon: Edit,
+      onClick: onEdit,
+    },
+    {
+      id: "receipt",
+      label: "Receipt",
+      icon: Printer,
+      onClick: handleRegenerateReceipt,
+      show: (row: Reservation) => !!(row.income_id && Number(row.income_id) > 0),
+    },
+    {
+      id: "concession",
+      label: "Concession",
+      icon: Percent,
+      onClick: (row: Reservation) => onUpdateConcession?.(row),
+      show: (row: Reservation) => !!onUpdateConcession && !row.concession_lock,
+    },
+    {
+      id: "delete",
+      label: "Delete",
+      icon: Trash2,
+      variant: "destructive",
+      onClick: onDelete,
+    },
+  ], [onView, onEdit, onDelete, onUpdateConcession]);
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h3 className="text-xl font-semibold">All Reservations</h3>
-          <p className="text-lg text-muted-foreground">
-            View and manage all student reservations
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search reservations..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <div className="w-48">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger aria-label="Filter by status">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                <SelectItem value="CANCELLED">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
+      <DataTable
+        data={reservations}
+        columns={columns}
+        actions={actions}
+        loading={isLoading}
+        // Search configuration
+        showSearch={true}
+        searchPlaceholder="Search students..."
+        searchKey="student_name"
+        // Pagination configuration
+        pagination={enableServerSidePagination ? "server" : "client"}
+        currentPage={currentPage}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+        // Export configuration
+        export={{ enabled: true, filename: "college_reservations" }}
+      />
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Reservation ID</TableHead>
-            <TableHead>Student Name</TableHead>
-            <TableHead>Group</TableHead>
-            <TableHead>Course</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {paginatedReservations.length === 0 ? (
-            <TableRow>
-              <TableCell
-                colSpan={7}
-                className="h-24 text-center text-sm text-muted-foreground"
-              >
-                <div className="space-y-2">
-                  <p>No reservations found</p>
-                  <p className="text-xs">
-                    Create your first reservation using the "New Reservations"
-                    tab
-                  </p>
-                </div>
-              </TableCell>
-            </TableRow>
-          ) : (
-            paginatedReservations.map((reservation) => (
-              <TableRow key={reservation.reservation_id}>
-                <TableCell className="font-medium">
-                  {reservation.reservation_no || reservation.reservation_id}
-                </TableCell>
-                <TableCell>{reservation.student_name}</TableCell>
-                <TableCell>{reservation.group_name || "N/A"}</TableCell>
-                <TableCell>{reservation.course_name || "N/A"}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      reservation.status === "PENDING"
-                        ? "default"
-                        : reservation.status === "CANCELLED"
-                          ? "destructive"
-                          : reservation.status === "CONFIRMED"
-                            ? "secondary"
-                            : "outline"
-                    }
-                    className={
-                      reservation.status === "CONFIRMED"
-                        ? "bg-green-500 text-white hover:bg-green-600"
-                        : ""
-                    }
-                  >
-                    {reservation.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {reservation.reservation_date
-                    ? new Date(
-                        reservation.reservation_date
-                      ).toLocaleDateString()
-                    : new Date(reservation.created_at).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onView(reservation)}
-                    >
-                      View
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onEdit(reservation)}
-                    >
-                      Edit
-                    </Button>
-                    {reservation.income_id &&
-                      Number(reservation.income_id) > 0 && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleRegenerateReceipt(reservation);
-                          }}
-                          disabled={regeneratingReceipts.has(
-                            reservation.income_id
-                          )}
-                        >
-                          {regeneratingReceipts.has(reservation.income_id) ? (
-                            <>
-                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-2"></div>
-                              Loading...
-                            </>
-                          ) : (
-                            "Receipt"
-                          )}
-                        </Button>
-                      )}
-                    {onUpdateConcession && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onUpdateConcession(reservation);
-                        }}
-                        disabled={reservation.concession_lock}
-                      >
-                        {reservation.concession_lock ? "Locked" : "Concession"}
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => onDelete(reservation)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-
-      {/* ✅ Pagination Controls - Use ServerSidePagination when enabled */}
-      {enableServerSidePagination &&
-      serverCurrentPage !== undefined &&
-      serverTotalPages !== undefined &&
-      serverTotalCount !== undefined &&
-      serverPageSize !== undefined &&
-      onServerPageChange &&
-      onServerPageSizeChange ? (
-        <ServerSidePagination
-          currentPage={serverCurrentPage}
-          totalPages={serverTotalPages}
-          pageSize={serverPageSize}
-          totalCount={serverTotalCount}
-          onPageChange={onServerPageChange}
-          onPageSizeChange={onServerPageSizeChange}
-          isLoading={isLoading}
-        />
-      ) : filteredReservations.length > 0 ? (
-        // Fallback to client-side pagination controls
-        <div className="flex items-center justify-between px-2 py-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>
-              Showing {startIndex} to{" "}
-              {Math.min(endIndex, filteredReservations.length)} of{" "}
-              {filteredReservations.length} reservations
-            </span>
-            <div className="flex items-center gap-2">
-              <span>Rows per page:</span>
-              <Select
-                value={itemsPerPage.toString()}
-                onValueChange={(value) => {
-                  setItemsPerPage(Number(value));
-                  setCurrentPage(1);
-                }}
-              >
-                <SelectTrigger className="w-20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Previous
-            </Button>
-
-            <div className="flex items-center gap-1">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-
-                return (
-                  <Button
-                    key={pageNum}
-                    variant={currentPage === pageNum ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setCurrentPage(pageNum)}
-                    className="w-8 h-8 p-0"
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
-              disabled={currentPage === totalPages}
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Receipt Preview Modal */}
       <ReceiptPreviewModal
         isOpen={showReceiptModal}
         onClose={handleCloseReceiptModal}
@@ -508,4 +266,7 @@ export default function ReservationsTable({
       />
     </div>
   );
-}
+};
+
+export const ReservationsTable = memo(ReservationsTableComponent);
+export default ReservationsTableComponent;

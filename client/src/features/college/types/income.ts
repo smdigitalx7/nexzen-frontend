@@ -155,8 +155,8 @@ export interface CollegeIncomeSummary {
 }
 
 export interface CollegeIncomeSummaryListResponse {
-  items: CollegeIncomeSummary[];
-  total: number;
+  data: CollegeIncomeSummary[];
+  total_count: number;
   page: number;
   size: number;
 }

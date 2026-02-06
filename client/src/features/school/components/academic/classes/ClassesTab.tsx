@@ -19,8 +19,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/common/components/ui/dialog";
-import { FormDialog } from "@/common/components/shared";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable, FormDialog } from "@/common/components/shared";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import {
   useCreateSchoolClass,
   useUpdateSchoolClass,
@@ -187,7 +187,7 @@ export const ClassesTab = memo(
 
     // ✅ OPTIMIZATION: Subject management hooks - only fetch when "Manage Subjects" dialog is open
     // User requirement: Subjects API should NOT be called in Classes tab - only when clicking "View" or "Manage subjects"
-    const { data: allSubjects = [] } = useSchoolSubjects({
+    const { data: allSubjects = [], isLoading: isLoadingSubjects } = useSchoolSubjects({
       enabled: isManageSubjectsOpen || isViewDialogOpen, // ✅ Only fetch when dialog is open
     });
     const { data: classWithSubjects } = useSchoolClassById(
@@ -380,7 +380,7 @@ export const ClassesTab = memo(
         {
           id: "book_fee",
           header: "Book Fee",
-          cell: ({ row }) => (
+          cell: ({ row }: { row: { original: SchoolClassRead } }) => (
             <span className="font-medium text-green-600">
               ₹{row.original.book_fee}
             </span>
@@ -389,7 +389,7 @@ export const ClassesTab = memo(
         {
           id: "tuition_fee",
           header: "Tuition Fee",
-          cell: ({ row }) => (
+          cell: ({ row }: { row: { original: SchoolClassRead } }) => (
             <span className="font-medium text-blue-600">
               ₹{row.original.tuition_fee}
             </span>
@@ -398,7 +398,7 @@ export const ClassesTab = memo(
         {
           id: "subjects",
           header: "Subjects",
-          cell: ({ row }) => {
+          cell: ({ row }: { row: { original: SchoolClassRead } }) => {
             const subjects = row.original.subjects;
             return <ClassSubjectsCell subjects={subjects} />;
           },
@@ -415,22 +415,28 @@ export const ClassesTab = memo(
       "class-edit"
     );
 
-    // Memoized action button groups
-    const actionButtonGroups = useMemo(() => {
-      const buttons: Array<{
-        type: "view" | "edit";
-        onClick: (row: any) => void;
-      }> = [{ type: "view", onClick: handleViewClick }];
+    // Action configurations for DataTable V2
+    const actions: ActionConfig<SchoolClassRead>[] = useMemo(() => {
+      const acts: ActionConfig<SchoolClassRead>[] = [
+        {
+          id: "view",
+          label: "View",
+          icon: Eye,
+          onClick: handleViewClick,
+        },
+      ];
 
       // Only add edit button if user has permission
       if (canEditClass) {
-        buttons.push({
-          type: "edit",
+        acts.push({
+          id: "edit",
+          label: "Edit",
+          icon: Edit,
           onClick: handleEditClick,
         });
       }
 
-      return buttons;
+      return acts;
     }, [handleViewClick, handleEditClick, canEditClass]);
 
     // Use optimistic subjects if available, otherwise use server data
@@ -491,19 +497,18 @@ export const ClassesTab = memo(
     return (
       <div className="space-y-4">
         {/* Table */}
-        <EnhancedDataTable
+        {/* Table */}
+        <DataTable
           data={classesWithSubjects}
-          columns={columns as any}
+          columns={columns}
           title="Classes"
           searchKey="class_name"
           searchPlaceholder="Search classes..."
-          exportable={true}
+          export={{ enabled: true, filename: "classes" }}
           onAdd={canAddClass ? () => setIsAddClassOpen(true) : undefined}
           addButtonText="Add Class"
-          showActions={true}
-          actionButtonGroups={actionButtonGroups}
-          actionColumnHeader="Actions"
-          showActionLabels={true}
+          actions={actions}
+          actionsHeader="Actions"
         />
 
         {/* Add Class Dialog */}
@@ -769,39 +774,47 @@ export const ClassesTab = memo(
                   )}
                 </div>
 
-                {/* Available Subjects */}
+                {/* Available subjects as cards (same style as Current Subjects) */}
                 <div className="space-y-3">
                   <Label className="text-sm font-medium text-muted-foreground">
-                    Available Subjects
+                    Add Subject
                   </Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {availableSubjects.map((subject) => (
-                      <div
-                        key={subject.subject_id}
-                        className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border"
-                      >
-                        <div className="flex items-center gap-2">
-                          <BookOpen className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="font-medium text-sm">
-                            {subject.subject_name}
-                          </span>
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={() =>
-                            handleAssignSubject(subject.subject_id)
-                          }
-                          disabled={createClassSubjectMutation.isPending}
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                  {availableSubjects.length === 0 && (
+                  {isLoadingSubjects ? (
                     <div className="text-center py-4">
                       <span className="text-sm text-muted-foreground">
-                        All subjects are already assigned to this class
+                        Loading subjects…
+                      </span>
+                    </div>
+                  ) : availableSubjects.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {availableSubjects.map((subject) => (
+                        <div
+                          key={subject.subject_id}
+                          className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border"
+                        >
+                          <div className="flex items-center gap-2">
+                            <BookOpen className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                            <span className="font-medium text-sm">
+                              {subject.subject_name}
+                            </span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              handleAssignSubject(subject.subject_id)
+                            }
+                            disabled={createClassSubjectMutation.isPending}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <span className="text-sm text-muted-foreground">
+                        All subjects are assigned.
                       </span>
                     </div>
                   )}

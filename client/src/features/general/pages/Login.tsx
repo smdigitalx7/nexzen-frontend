@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, Phone, KeyRound, ArrowLeft, Send, CheckCircle2 } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
@@ -15,7 +15,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/common/components/ui/in
 import { assets, brand, brandConfig } from "@/lib/config";
 
 const Login = () => {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
   const [view, setView] = useState<"login" | "forgot" | "otp" | "reset">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -90,7 +90,7 @@ const Login = () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Redirect to dashboard
-      setLocation("/");
+      navigate("/");
     } catch (err: unknown) {
       // Extract error message
       let errorMessage = "Login failed";

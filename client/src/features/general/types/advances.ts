@@ -48,10 +48,10 @@ export interface AdvanceListResponse {
 
 export interface AdvanceDashboardStats {
   total_advances: number;
-  pending_advances: number;
+  requested_advances: number;
   approved_advances: number;
   rejected_advances: number;
-  active_advances: number;
+  cancelled_advances: number;
   repaid_advances: number;
   total_advance_amount: number;
   total_repaid_amount: number;

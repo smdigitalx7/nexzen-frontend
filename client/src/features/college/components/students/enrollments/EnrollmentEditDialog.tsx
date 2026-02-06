@@ -2,7 +2,7 @@
 import { Input } from '@/common/components/ui/input';
 import { Label } from '@/common/components/ui/label';
 import { Textarea } from '@/common/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/common/components/ui/select';
+import { SmartSelect } from '@/common/components/ui/smart-select';
 import { Badge } from '@/common/components/ui/badge';
 import { FormDialog } from '@/common/components/shared';
 import { DatePicker } from '@/common/components/ui/date-picker';
@@ -170,19 +170,17 @@ export const EnrollmentEditDialog = ({
             />
             <div>
               <Label htmlFor="gender">Gender</Label>
-              <Select
+              <SmartSelect
+                items={[
+                  { value: "MALE", label: "Male" },
+                  { value: "FEMALE", label: "Female" },
+                  { value: "OTHER", label: "Other" },
+                ]}
                 value={formData.gender || ''}
-                onValueChange={(value) => setFormData({ ...formData, gender: value || null })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="MALE">Male</SelectItem>
-                  <SelectItem value="FEMALE">Female</SelectItem>
-                  <SelectItem value="OTHER">Other</SelectItem>
-                </SelectContent>
-              </Select>
+                onSelect={(value: string) => setFormData({ ...formData, gender: value || null })}
+                placeholder="Select gender"
+                radioLayout="horizontal"
+              />
             </div>
             <div>
               <Label htmlFor="dob">Date of Birth</Label>
@@ -201,19 +199,16 @@ export const EnrollmentEditDialog = ({
                   </Badge>
                 )}
               </div>
-              <Select
+              <SmartSelect
+                items={[
+                  { value: "ACTIVE", label: "Active" },
+                  { value: "INACTIVE", label: "Inactive" },
+                  { value: "ALUMNI", label: "Alumni" },
+                ]}
                 value={formData.status || ''}
-                onValueChange={(value) => setFormData({ ...formData, status: value as any || null })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="INACTIVE">Inactive</SelectItem>
-                  <SelectItem value="ALUMNI">Alumni</SelectItem>
-                </SelectContent>
-              </Select>
+                onSelect={(value: string) => setFormData({ ...formData, status: value as any || null })}
+                placeholder="Select status"
+              />
             </div>
           </div>
         </div>

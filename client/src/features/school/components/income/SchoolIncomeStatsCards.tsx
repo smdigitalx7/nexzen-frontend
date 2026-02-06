@@ -31,7 +31,7 @@ export const SchoolIncomeStatsCards: React.FC<SchoolIncomeStatsCardsProps> = ({
   const statsCards = [
     {
       title: "Total Income Records",
-      value: stats.total_income_records,
+      value: stats?.total_income_records || 0,
       icon: FileText,
       color: "blue" as const,
       description: "All income transactions",
@@ -40,7 +40,7 @@ export const SchoolIncomeStatsCards: React.FC<SchoolIncomeStatsCardsProps> = ({
     },
     {
       title: "Total Income Amount",
-      value: formatCurrency(stats.total_income_amount),
+      value: formatCurrency(stats?.total_income_amount || 0),
       icon: IndianRupeeIcon,
       color: "green" as const,
       description: "Total revenue collected",
@@ -49,7 +49,7 @@ export const SchoolIncomeStatsCards: React.FC<SchoolIncomeStatsCardsProps> = ({
     },
     {
       title: "Tuition Fee Income",
-      value: formatCurrency(stats.tuition_fee_income),
+      value: formatCurrency(stats?.tuition_fee_income || 0),
       icon: GraduationCap,
       color: "purple" as const,
       description: "From tuition fees",
@@ -58,7 +58,7 @@ export const SchoolIncomeStatsCards: React.FC<SchoolIncomeStatsCardsProps> = ({
     },
     {
       title: "Transport Fee Income",
-      value: formatCurrency(stats.transport_fee_income),
+      value: formatCurrency(stats?.transport_fee_income || 0),
       icon: Bus,
       color: "orange" as const,
       description: "From transport fees",
@@ -67,7 +67,7 @@ export const SchoolIncomeStatsCards: React.FC<SchoolIncomeStatsCardsProps> = ({
     },
     {
       title: "Book Fee Income",
-      value: formatCurrency(stats.book_fee_income),
+      value: formatCurrency(stats?.book_fee_income || 0),
       icon: BookOpen,
       color: "indigo" as const,
       description: "From book fees",
@@ -76,7 +76,7 @@ export const SchoolIncomeStatsCards: React.FC<SchoolIncomeStatsCardsProps> = ({
     },
     {
       title: "Reservation Fee Income",
-      value: formatCurrency(stats.reservation_fee_income),
+      value: formatCurrency(stats?.reservation_fee_income || 0),
       icon: CreditCard,
       color: "teal" as const,
       description: "From reservation fees",
@@ -85,7 +85,7 @@ export const SchoolIncomeStatsCards: React.FC<SchoolIncomeStatsCardsProps> = ({
     },
     {
       title: "Other Income",
-      value: formatCurrency(stats.other_income),
+      value: formatCurrency(stats?.other_income || 0),
       icon: Wallet,
       color: "emerald" as const,
       description: "Miscellaneous income",
@@ -94,7 +94,7 @@ export const SchoolIncomeStatsCards: React.FC<SchoolIncomeStatsCardsProps> = ({
     },
     {
       title: "Income This Month",
-      value: formatCurrency(stats.income_this_month),
+      value: formatCurrency(stats?.income_this_month || 0),
       icon: CalendarDays,
       color: "cyan" as const,
       description: "Current month's income",
@@ -103,25 +103,16 @@ export const SchoolIncomeStatsCards: React.FC<SchoolIncomeStatsCardsProps> = ({
     },
     {
       title: "Income This Year",
-      value: formatCurrency(stats.income_this_year),
+      value: formatCurrency(stats?.income_this_year || 0),
       icon: BarChart3,
       color: "violet" as const,
       description: "Current year's income",
       variant: "elevated" as const,
       size: "sm" as const,
     },
-    // {
-    //   title: "Records This Month",
-    //   value: stats.income_records_this_month,
-    //   icon: Users,
-    //   color: "rose" as const,
-    //   description: "Transactions this month",
-    //   variant: "elevated" as const,
-    //   size: "sm" as const,
-    // },
     {
       title: "Records This Year",
-      value: stats.income_records_this_year,
+      value: stats?.income_records_this_year || 0,
       icon: TrendingUp,
       color: "yellow" as const,
       description: "Transactions this year",

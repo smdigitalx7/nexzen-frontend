@@ -1,9 +1,9 @@
 ﻿import { useState, useMemo, useCallback } from "react";
-import { Award } from "lucide-react";
+import { Award, Edit as EditIcon, Trash2, AlertTriangle } from "lucide-react";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
 import { FormDialog, ConfirmDialog } from "@/common/components/shared";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable } from "@/common/components/shared/DataTable";
 import { useToast } from '@/common/hooks/use-toast';
 import { useFormState } from "@/common/hooks";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -199,48 +199,48 @@ export const ExamsTab = ({
     })
   ], []);
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
+  // Action config for DataTable V2
+  const actions: import("@/common/components/shared/DataTable/types").ActionConfig<any>[] = useMemo(() => [
     {
-      type: 'edit' as const,
-      onClick: (row: CollegeExamRead) => handleEditClick(row)
+      id: 'edit',
+      label: 'Edit',
+      icon: (props) => <EditIcon className={props.className} />,
+      onClick: (row) => handleEditClick(row),
     },
     {
-      type: 'delete' as const,
-      onClick: (row: CollegeExamRead) => handleDeleteClick(row)
+      id: 'delete',
+      label: 'Delete',
+      icon: (props) => <Trash2 className={props.className} />,
+      onClick: (row) => handleDeleteClick(row),
+      variant: 'destructive',
     }
   ], [handleEditClick, handleDeleteClick]);
 
   if (hasError) {
     return (
-      <div className="text-center text-red-600 p-8">
-        <p>{errorMessage || "Failed to load exams"}</p>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex flex-col items-center justify-center py-12 bg-white rounded-3xl border border-red-100">
+        <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
+           <AlertTriangle className="h-6 w-6 text-red-600" />
+        </div>
+        <p className="text-red-700 font-bold">{errorMessage || "Failed to load exams"}</p>
+        <p className="text-red-500 text-sm mt-1">Please refresh or contact administration</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <EnhancedDataTable
+      <DataTable
         data={exams}
         columns={columns}
-        title="Exams"
+        title="Summative Assessments (Exams)"
         searchKey="exam_name"
-        exportable={true}
+        searchPlaceholder="Locate examination record..."
+        loading={isLoading}
         onAdd={() => setIsAddExamOpen(true)}
-        addButtonText="Add Exam"
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
+        addButtonText="Schedule New Exam"
+        actions={actions}
+        export={{ enabled: true, filename: 'college_exams_list' }}
       />
 
       {/* Add Exam Dialog */}

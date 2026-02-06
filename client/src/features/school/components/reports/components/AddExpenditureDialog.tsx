@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/common/components/ui/select";
 import { useCreateSchoolExpenditure } from "@/features/school/hooks";
+import { cleanupDialogState } from "@/common/utils/ui-cleanup";
 
 const expenditureSchema = z.object({
   expenditure_purpose: z.string().min(1, "Purpose is required"),
@@ -82,22 +83,25 @@ const FormFieldWrapper = memo(({
     name={name}
     render={({ field }) => (
       <FormItem>
-        <FormLabel>{label}</FormLabel>
+        <FormLabel htmlFor={name}>{label}</FormLabel>
         <FormControl>
           {type === "textarea" ? (
             <Textarea
+              id={name}
               placeholder={placeholder}
               rows={rows}
               {...field}
             />
           ) : type === "date" ? (
             <DatePicker
+              id={name}
               value={field.value || ""}
               onChange={field.onChange}
               placeholder={placeholder || "Select date"}
             />
           ) : (
             <Input
+              id={name}
               type={type}
               step={step}
               placeholder={placeholder}
@@ -158,9 +162,10 @@ const AmountField = memo(({ control }: { control: any }) => (
     name="amount"
     render={({ field }) => (
       <FormItem>
-        <FormLabel>Amount</FormLabel>
+        <FormLabel htmlFor="amount">Amount</FormLabel>
         <FormControl>
           <Input
+            id="amount"
             type="number"
             placeholder="0.00"
             {...field}
@@ -189,7 +194,11 @@ const AddExpenditureDialogComponent = ({ open, onOpenChange }: AddExpenditureDia
     onOpenChange(false);
   }, [onOpenChange]);
 
-  const onSubmit = useCallback(async (data: ExpenditureFormData) => {
+  const onSubmit = useCallback((data: ExpenditureFormData) => {
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    onOpenChange(false);
+    cleanupDialogState();
+    
     setIsSubmitting(true);
     try {
       const payload = {
@@ -200,12 +209,20 @@ const AddExpenditureDialogComponent = ({ open, onOpenChange }: AddExpenditureDia
         payment_date: data.payment_date && data.payment_date.trim() !== "" ? data.payment_date : null,
         remarks: data.remarks && data.remarks.trim() !== "" ? data.remarks : null,
       };
-      await createExpenditureMutation.mutateAsync(payload);
-      form.reset();
-      onOpenChange(false);
+      
+      // RUN MUTATION IN BACKGROUND - DON'T AWAIT
+      createExpenditureMutation.mutate(payload, {
+        onSuccess: () => {
+          form.reset();
+          setIsSubmitting(false);
+        },
+        onError: (error) => {
+          console.error("Failed to create expenditure:", error);
+          setIsSubmitting(false);
+        }
+      });
     } catch (error) {
       console.error("Failed to create expenditure:", error);
-    } finally {
       setIsSubmitting(false);
     }
   }, [createExpenditureMutation, form, onOpenChange]);
@@ -235,10 +252,10 @@ const AddExpenditureDialogComponent = ({ open, onOpenChange }: AddExpenditureDia
               name="payment_method"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Payment Method (Optional)</FormLabel>
+                  <FormLabel htmlFor="payment_method">Payment Method (Optional)</FormLabel>
                   <FormControl>
                     <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger>
+                      <SelectTrigger id="payment_method">
                         <SelectValue placeholder="Select payment method" />
                       </SelectTrigger>
                       <SelectContent>

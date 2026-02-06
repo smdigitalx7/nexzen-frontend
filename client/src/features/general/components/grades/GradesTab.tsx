@@ -1,7 +1,9 @@
 import { useState, useMemo } from "react";
 import { Badge } from "@/common/components/ui/badge";
-import { ColumnDef } from "@tanstack/react-table";
-import { EnhancedDataTable, ConfirmDialog } from "@/common/components/shared";
+import { DataTable, ConfirmDialog } from "@/common/components/shared";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
+import { Edit, Trash2 } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
 import GradeFormDialog from "./GradeFormDialog";
 import type { GradeRead, GradeCreate, GradeUpdate } from "@/features/general/types/grades";
 import type { UseMutationResult } from "@tanstack/react-query";
@@ -61,7 +63,7 @@ const GradesTab = ({
       id: 'grade',
       accessorKey: 'grade',
       header: 'Grade',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: { original: GradeRead } }) => (
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="font-bold text-lg">
             {row.original.grade}
@@ -73,18 +75,18 @@ const GradesTab = ({
       id: 'min_percentage',
       accessorKey: 'min_percentage',
       header: 'Min Percentage',
-      cell: ({ row }) => `${row.original.min_percentage}%`,
+      cell: ({ row }: { row: { original: GradeRead } }) => `${row.original.min_percentage}%`,
     },
     {
       id: 'max_percentage',
       accessorKey: 'max_percentage',
       header: 'Max Percentage',
-      cell: ({ row }) => `${row.original.max_percentage}%`,
+      cell: ({ row }: { row: { original: GradeRead } }) => `${row.original.max_percentage}%`,
     },
     {
       id: 'range',
       header: 'Percentage Range',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: { original: GradeRead } }) => (
         <span className="text-sm text-muted-foreground">
           {row.original.min_percentage}% - {row.original.max_percentage}%
         </span>
@@ -95,23 +97,28 @@ const GradesTab = ({
   // Permission checks
   const canDeleteGrade = useCanViewUIComponent("grades", "button", "grade-delete");
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => {
-    const buttons: Array<{
-      type: "edit" | "delete";
-      onClick: (row: GradeRead) => void;
-    }> = [
-      { type: "edit", onClick: (row: GradeRead) => handleEditGrade(row) },
+  // Action configurations for DataTable V2
+  const actions: ActionConfig<GradeRead>[] = useMemo(() => {
+    const acts: ActionConfig<GradeRead>[] = [
+      {
+        id: "edit",
+        label: "Edit",
+        icon: Edit,
+        onClick: (row: GradeRead) => handleEditGrade(row),
+      },
     ];
-    
+
     if (canDeleteGrade) {
-      buttons.push({
-        type: "delete",
-        onClick: (row: GradeRead) => handleDeleteClick(row.grade)
+      acts.push({
+        id: "delete",
+        label: "Delete",
+        icon: Trash2,
+        variant: "destructive",
+        onClick: (row: GradeRead) => handleDeleteClick(row.grade),
       });
     }
-    
-    return buttons;
+
+    return acts;
   }, [canDeleteGrade]);
 
   const handleAddGrade = (data: GradeCreate | { gradeCode: string; data: GradeUpdate }) => {
@@ -162,20 +169,17 @@ const GradesTab = ({
         isEditing={false}
       />
 
-      <EnhancedDataTable
+      <DataTable
         data={gradesData}
         columns={columns}
         title="Grades"
         searchKey="grade"
         searchPlaceholder="Search grades..."
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
-        exportable={true}
+        actions={actions}
+        actionsHeader="Actions"
+        export={{ enabled: true, filename: "grades" }}
         onAdd={() => setIsAddGradeOpen(true)}
         addButtonText="Add Grade"
-        addButtonVariant="default"
       />
 
       {/* Edit Grade Dialog */}

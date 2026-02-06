@@ -294,7 +294,7 @@ export const useAuthStore = create<AuthState>()(
               if (meResponse.data) {
                 const currentState = get();
                 if (currentState.user && meResponse.data) {
-                  const meData = meResponse.data as any;
+                  const meData = meResponse.data;
                   set((state) => {
                     if (state.user) {
                       if (meData.user_id) {

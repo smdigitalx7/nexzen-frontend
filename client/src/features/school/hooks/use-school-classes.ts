@@ -16,6 +16,7 @@ export function useSchoolClasses(options?: { enabled?: boolean }) {
     enabled: options?.enabled !== false,
     staleTime: 5 * 60 * 1000, // 5 minutes - classes don't change often
     gcTime: 10 * 60 * 1000, // 10 minutes
+    select: (data: any) => (Array.isArray(data) ? data : data.data || []),
   });
 }
 

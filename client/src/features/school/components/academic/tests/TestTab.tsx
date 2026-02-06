@@ -3,8 +3,8 @@ import { FileText, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
 import { DatePicker } from "@/common/components/ui/date-picker";
-import { FormDialog, ConfirmDialog } from "@/common/components/shared";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { FormDialog, ConfirmDialog, DataTable } from "@/common/components/shared";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import { useToast } from '@/common/hooks/use-toast';
 import { useFormState } from "@/common/hooks";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -264,21 +264,28 @@ const TestTabComponent = ({
   // Permission checks
   const canDeleteTest = useCanViewUIComponent("tests", "button", "test-delete");
 
-  // Memoized action button groups
-  const actionButtonGroups = useMemo(() => {
-    const buttons: Array<{
-      type: "edit" | "delete";
-      onClick: (row: any) => void;
-    }> = [{ type: "edit", onClick: handleEditClick }];
+  // Action configurations for DataTable V2
+  const actions: ActionConfig<SchoolTestRead>[] = useMemo(() => {
+    const acts: ActionConfig<SchoolTestRead>[] = [
+      {
+        id: "edit",
+        label: "Edit",
+        icon: Edit,
+        onClick: handleEditClick
+      }
+    ];
     
     if (canDeleteTest) {
-      buttons.push({
-        type: "delete",
+      acts.push({
+        id: "delete",
+        label: "Delete",
+        icon: Trash2,
+        variant: "destructive",
         onClick: handleDeleteClick
       });
     }
     
-    return buttons;
+    return acts;
   }, [handleEditClick, handleDeleteClick, canDeleteTest]);
 
   // Memoized dialog close handlers
@@ -342,18 +349,17 @@ const TestTabComponent = ({
           </div>
         </div>
       ) : (
-        <EnhancedDataTable
+        <DataTable
           data={tests}
           columns={columns}
           title="Tests"
           searchKey="test_name"
-          exportable={true}
+          searchPlaceholder="Search tests..."
+          export={{ enabled: true, filename: "tests" }}
           onAdd={() => setIsAddTestOpen(true)}
           addButtonText="Add Test"
-          showActions={true}
-          actionButtonGroups={actionButtonGroups}
-          actionColumnHeader="Actions"
-          showActionLabels={true}
+          actions={actions}
+          actionsHeader="Actions"
         />
       )}
 

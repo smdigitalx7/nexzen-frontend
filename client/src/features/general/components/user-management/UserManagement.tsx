@@ -1,7 +1,7 @@
 ﻿import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ColumnDef } from '@tanstack/react-table';
-import { Trash2, Shield, ShieldX } from 'lucide-react';
+import { Trash2, Shield, ShieldX, Eye, Edit } from 'lucide-react';
 import { Badge } from '@/common/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/common/components/ui/avatar';
 import { Button } from '@/common/components/ui/button';
@@ -11,7 +11,7 @@ import { Label } from '@/common/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/common/components/ui/select';
 import { Checkbox } from '@/common/components/ui/checkbox';
 import { Card, CardContent } from '@/common/components/ui/card';
-import { EnhancedDataTable } from '@/common/components/shared/EnhancedDataTable';
+import { DataTable } from '@/common/components/shared/DataTable';
 import { useToast } from '@/common/hooks/use-toast';
 import {
   createAvatarColumn,
@@ -404,26 +404,32 @@ const UserManagement = () => {
     createDateColumn<UserWithRolesAndBranches>('created_at', { header: 'Created' })
   ]), []);
 
-  // Action button groups for the EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
-    {
-      type: 'view' as const,
+  // ✅ MIGRATED: Use DataTable V2 actions format
+  const actions = useMemo(() => [
+    { 
+      id: 'view', 
+      label: 'View', 
+      icon: Eye, 
       onClick: (row: UserWithRolesAndBranches) => { setSelectedUser(row); setShowDetail(true); }
     },
-    {
-      type: 'edit' as const,
+    { 
+      id: 'edit', 
+      label: 'Edit', 
+      icon: Edit, 
       onClick: (row: UserWithRolesAndBranches) => handleEditUser(row)
     },
-    {
-      type: 'custom' as const,
-      label: 'Access',
-      icon: Shield,
-      onClick: (row: UserWithRolesAndBranches) => handleAddAccess(row),
+    { 
+      id: 'access', 
+      label: 'Access', 
+      icon: Shield, 
       variant: 'outline' as const,
-      className: 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'
+      onClick: (row: UserWithRolesAndBranches) => handleAddAccess(row)
     },
-    {
-      type: 'delete' as const,
+    { 
+      id: 'delete', 
+      label: 'Delete', 
+      icon: Trash2, 
+      variant: 'destructive' as const,
       onClick: (row: UserWithRolesAndBranches) => handleDeleteUser(row)
     }
   ], [handleEditUser, handleDeleteUser]);
@@ -471,19 +477,18 @@ const UserManagement = () => {
           </CardContent>
         </Card>
       ) : (
-        <EnhancedDataTable
+        <DataTable
           data={users}
           columns={columns}
-          title={isLoading ? "Users (Loading...)" : "Users"}
+          title="Users"
+          loading={isLoading}
+          pagination="client"
           searchKey="full_name"
-          searchPlaceholder="Search users..."
-          exportable={true}
+          searchPlaceholder="Search users by name..."
+          actions={actions}
           onAdd={handleAddUser}
           addButtonText="Add User"
-          showActions={true}
-          actionButtonGroups={actionButtonGroups}
-          actionColumnHeader="Actions"
-          showActionLabels={false}
+          export={{ enabled: true, filename: 'users' }}
         />
       )}
 

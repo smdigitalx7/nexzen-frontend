@@ -1,10 +1,10 @@
-﻿import { useState, useMemo } from "react";
-import { FileText, Edit, Trash2 } from "lucide-react";
+﻿import { useState, useMemo, useCallback } from "react";
+import { FileText, Edit as EditIcon, Trash2, AlertTriangle } from "lucide-react";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
 import { DatePicker } from "@/common/components/ui/date-picker";
 import { FormDialog, ConfirmDialog } from "@/common/components/shared";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable } from "@/common/components/shared/DataTable";
 import { useToast } from '@/common/hooks/use-toast';
 import { useFormState } from "@/common/hooks";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -219,7 +219,7 @@ export const TestTab = ({
     }
   };
 
-  const handleEditClick = (test: CollegeTestRead) => {
+  const handleEditClick = useCallback((test: CollegeTestRead) => {
     setSelectedTest(test);
     setEditTest({ 
       test_name: test.test_name,
@@ -228,12 +228,12 @@ export const TestTab = ({
       max_marks: test.max_marks?.toString() || "50"
     });
     setIsEditTestOpen(true);
-  };
+  }, [setEditTest]);
 
-  const handleDeleteClick = (test: CollegeTestRead) => {
+  const handleDeleteClick = useCallback((test: CollegeTestRead) => {
     setSelectedTest(test);
     setIsDeleteDialogOpen(true);
-  };
+  }, []);
 
   // Define columns for the data table using column factories
   const columns: ColumnDef<CollegeTestRead>[] = useMemo(() => [
@@ -254,32 +254,48 @@ export const TestTab = ({
     })
   ], []);
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
+  // Action config for DataTable V2
+  const actions: import("@/common/components/shared/DataTable/types").ActionConfig<any>[] = useMemo(() => [
     {
-      type: 'edit' as const,
-      onClick: (row: CollegeTestRead) => handleEditClick(row)
+      id: 'edit',
+      label: 'Edit',
+      icon: (props) => <EditIcon className={props.className} />,
+      onClick: (row) => handleEditClick(row),
     },
     {
-      type: 'delete' as const,
-      onClick: (row: CollegeTestRead) => handleDeleteClick(row)
+      id: 'delete',
+      label: 'Delete',
+      icon: (props) => <Trash2 className={props.className} />,
+      onClick: (row) => handleDeleteClick(row),
+      variant: 'destructive',
     }
-  ], []);
+  ], [handleEditClick, handleDeleteClick]);
+
+  if (hasError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 bg-white rounded-3xl border border-red-100">
+        <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
+           <AlertTriangle className="h-6 w-6 text-red-600" />
+        </div>
+        <p className="text-red-700 font-bold">{errorMessage || "Failed to load tests"}</p>
+        <p className="text-red-500 text-sm mt-1">Please refresh or contact administration</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      <EnhancedDataTable
+      <DataTable
         data={tests}
         columns={columns}
-        title="Tests"
+        title="Diagnostic Evaluations (Tests)"
         searchKey="test_name"
-        exportable={true}
+        searchPlaceholder="Locate assessment record..."
+        loading={isLoading}
         onAdd={() => setIsAddTestOpen(true)}
-        addButtonText="Add Test"
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
+        addButtonText="Register New Test"
+        actions={actions}
+        export={{ enabled: true, filename: 'college_tests_list' }}
       />
 
       {/* Add Test Dialog */}

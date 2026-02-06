@@ -260,46 +260,71 @@ export const exportStudentPerformanceToPDF = (
     doc.text(`Overall Percentage: ${overallPercentage.toFixed(2)}%`, margin, yPosition);
     yPosition += 10;
 
-    // Subject Performance
+    // Subject Performance - tabular format
     checkPageBreak(15);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.text('Subject Performance', margin, yPosition);
     yPosition += 8;
 
-    performanceData.subjects.forEach((subject, index) => {
-      checkPageBreak(25);
-      
-      // Subject header
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.text(subject.subject_name, margin, yPosition);
-      yPosition += 7;
+    const colWidths = [45, 22, 22, 28, 28, 22, 22];
+    const colSum = colWidths.reduce((a, b) => a + b, 0);
+    const rowHeight = 7;
+    const tableLeft = margin;
+    const tableWidth = pageWidth - 2 * margin;
 
-      // Subject details
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.text(`Total Exams: ${subject.total_exams}`, margin + 5, yPosition);
-      yPosition += 6;
-      doc.text(`Total Tests: ${subject.total_tests}`, margin + 5, yPosition);
-      yPosition += 6;
-      doc.text(`Total Assessments: ${subject.total_assessments}`, margin + 5, yPosition);
-      yPosition += 6;
-      doc.text(`Marks Obtained: ${subject.total_marks_obtained}`, margin + 5, yPosition);
-      yPosition += 6;
-      doc.text(`Max Marks: ${subject.total_max_marks}`, margin + 5, yPosition);
-      yPosition += 6;
-      doc.setFont('helvetica', 'bold');
-      doc.text(`Percentage: ${subject.percentage.toFixed(2)}%`, margin + 5, yPosition);
-      yPosition += 10;
+    const getColRight = (colIndex: number) => {
+      let x = tableLeft;
+      for (let i = 0; i <= colIndex; i++) x += (tableWidth * colWidths[i]) / colSum;
+      return x;
+    };
 
-      // Add separator between subjects
-      if (index < performanceData.subjects.length - 1) {
-        checkPageBreak(5);
-        doc.setDrawColor(200, 200, 200);
-        doc.line(margin, yPosition, pageWidth - margin, yPosition);
-        yPosition += 5;
+    // Table header
+    checkPageBreak(rowHeight * 2);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    const headers = ['Subject', 'Exams', 'Tests', 'Assessments', 'Obtained', 'Max', '%'];
+    headers.forEach((h, i) => {
+      const left = i === 0 ? tableLeft : getColRight(i - 1);
+      const right = getColRight(i);
+      doc.text(h, i >= 1 ? right - 2 : left + 2, yPosition + 4, { align: i >= 1 ? 'right' : 'left' });
+    });
+    doc.setDrawColor(0, 0, 0);
+    doc.line(tableLeft, yPosition, tableLeft + tableWidth, yPosition);
+    doc.line(tableLeft, yPosition + rowHeight, tableLeft + tableWidth, yPosition + rowHeight);
+    for (let i = 0; i <= colWidths.length; i++) {
+      const x = i === 0 ? tableLeft : getColRight(i - 1);
+      doc.line(x, yPosition, x, yPosition + rowHeight);
+    }
+    doc.line(tableLeft + tableWidth, yPosition, tableLeft + tableWidth, yPosition + rowHeight);
+    yPosition += rowHeight;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    performanceData.subjects.forEach((subject) => {
+      checkPageBreak(rowHeight + 2);
+      const cells = [
+        subject.subject_name.length > 28 ? subject.subject_name.substring(0, 26) + '..' : subject.subject_name,
+        String(subject.total_exams),
+        String(subject.total_tests),
+        String(subject.total_assessments),
+        String(subject.total_marks_obtained),
+        String(subject.total_max_marks),
+        subject.percentage.toFixed(1) + '%'
+      ];
+      cells.forEach((cell, i) => {
+        const left = i === 0 ? tableLeft : getColRight(i - 1);
+        const right = getColRight(i);
+        doc.text(cell, i >= 1 ? right - 2 : left + 2, yPosition + 4, { align: i >= 1 ? 'right' : 'left' });
+      });
+      doc.setDrawColor(200, 200, 200);
+      doc.line(tableLeft, yPosition + rowHeight, tableLeft + tableWidth, yPosition + rowHeight);
+      for (let i = 0; i <= colWidths.length; i++) {
+        const x = i === 0 ? tableLeft : getColRight(i - 1);
+        doc.line(x, yPosition, x, yPosition + rowHeight);
       }
+      doc.line(tableLeft + tableWidth, yPosition, tableLeft + tableWidth, yPosition + rowHeight);
+      yPosition += rowHeight;
     });
 
     // Save PDF

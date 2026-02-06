@@ -3,16 +3,10 @@ import { Badge } from "@/common/components/ui/badge";
 import { Trash2, Plus } from "lucide-react";
 import { Label } from "@/common/components/ui/label";
 import { FormDialog } from "@/common/components/shared";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/common/components/ui/select";
+import { ServerCombobox } from "@/common/components/ui/server-combobox";
 import { ColumnDef } from "@tanstack/react-table";
-import { EnhancedDataTable } from "@/common/components/shared";
-import { createTextColumn } from "@/common/utils/factory/columnFactories";
+import { DataTable } from "@/common/components/shared";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import {
   useClassTeachers,
   useCreateClassTeacher,
@@ -23,6 +17,8 @@ import {
 import { useEmployeesByBranch } from "@/features/general/hooks";
 import { useToast } from "@/common/hooks/use-toast";
 import { useCanViewUIComponent } from "@/core/permissions";
+import { useEffect, useCallback } from "react";
+import { cleanupDialogState } from "@/common/utils/ui-cleanup";
 
 interface ClassTeacherData {
   id?: number;
@@ -80,6 +76,24 @@ export const ClassTeacherTab = () => {
   const { data: sections = [] } = useSchoolSectionsByClass(
     classesDropdownOpen && selectedClassId ? parseInt(selectedClassId) : null
   );
+
+  // ✅ GLOBAL MODAL GUARDIAN: Ensure UI is unlocked when no modals are open
+  useEffect(() => {
+    if (!isAddOpen) {
+      const timer = setTimeout(() => {
+        cleanupDialogState();
+      }, 100);
+      
+      const longTimer = setTimeout(() => {
+        cleanupDialogState();
+      }, 500);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(longTimer);
+      };
+    }
+  }, [isAddOpen]);
 
   const resetForm = () => {
     setSelectedTeacherId("");
@@ -139,51 +153,61 @@ export const ClassTeacherTab = () => {
         ),
       },
       {
-        id: "class_name",
-        header: "Class",
+        id: "class_section",
+        header: "Class & Section",
         cell: ({ row }) => (
-          <span className="text-green-700 font-semibold">
-            {row.original.class_name}
-          </span>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+              {row.original.class_name}
+            </Badge>
+            {row.original.section_name && (
+              <>
+                <span className="text-muted-foreground">-</span>
+                <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
+                  {row.original.section_name}
+                </Badge>
+              </>
+            )}
+          </div>
         ),
       },
-      createTextColumn<ClassTeacherData>("section_name", {
-        header: "Section",
-      }),
     ],
     []
   );
 
+  // Memoized actions for DataTable V2
+  const actions: ActionConfig<ClassTeacherData>[] = useMemo(
+    () => {
+      const acts: ActionConfig<ClassTeacherData>[] = [];
+      
+      if (canDeleteClassTeacher) {
+        acts.push({
+          id: "delete",
+          label: "Delete",
+          icon: Trash2,
+          variant: "destructive",
+          onClick: (row) => handleDelete(row),
+        });
+      }
+      return acts;
+    },
+    [canDeleteClassTeacher]
+  );
+
   return (
     <React.Fragment>
-      <EnhancedDataTable<ClassTeacherData>
+      <DataTable
         data={classTeachers as ClassTeacherData[]}
         columns={columns}
         title="Class Teacher Assignments"
         searchKey="teacher_name"
         searchPlaceholder="Search by teacher name..."
         loading={assignmentsLoading}
-        exportable={true}
+        export={{ enabled: true }}
         onAdd={canAssignClassTeacher ? handleAddClick : undefined}
         addButtonText="Assign Class Teacher"
-        actionButtons={
-          canDeleteClassTeacher
-            ? [
-                {
-                  id: "delete",
-                  label: "Delete",
-                  icon: Trash2,
-                  variant: "destructive" as const,
-                  size: "sm" as const,
-                  onClick: (row) => handleDelete(row),
-                  className: "text-red-600 hover:text-red-700 hover:bg-red-50",
-                },
-              ]
-            : []
-        }
-        actionColumnHeader="Actions"
-        showActions={true}
-        showActionLabels={true}
+        actions={actions}
+        actionsHeader="Actions"
       />
 
       <FormDialog
@@ -208,88 +232,58 @@ export const ClassTeacherTab = () => {
           {/* Teacher Selection */}
           <div className="space-y-2">
             <Label htmlFor="teacher">Teacher *</Label>
-            <Select
+            <ServerCombobox
+              items={Array.isArray(allEmployees) ? allEmployees : []}
               value={selectedTeacherId}
-              onValueChange={setSelectedTeacherId}
-              onOpenChange={(open) => {
-                setTeachersDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select teacher" />
-              </SelectTrigger>
-              <SelectContent>
-                {allEmployees.map((teacher: any) => (
-                  <SelectItem
-                    key={teacher.employee_id}
-                    value={teacher.employee_id.toString()}
-                  >
-                    {teacher.employee_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onSelect={setSelectedTeacherId}
+              onDropdownOpen={setTeachersDropdownOpen}
+              labelKey="employee_name"
+              valueKey="employee_id"
+              placeholder="Select teacher"
+              searchPlaceholder="Search teacher..."
+              emptyText="No teachers found"
+            />
           </div>
 
           {/* Class Selection */}
           <div className="space-y-2">
             <Label htmlFor="class">Class *</Label>
-            <Select
+            <ServerCombobox
+              items={Array.isArray(classes) ? classes : []}
               value={selectedClassId}
-              onValueChange={(value) => {
+              onSelect={(value: string) => {
                 setSelectedClassId(value);
                 setSelectedSectionId(""); // Reset section when class changes
               }}
-              onOpenChange={(open) => {
-                setClassesDropdownOpen(open); // ✅ Trigger fetch when dropdown opens
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select class" />
-              </SelectTrigger>
-              <SelectContent>
-                {classes.map((classItem) => (
-                  <SelectItem
-                    key={classItem.class_id}
-                    value={classItem.class_id.toString()}
-                  >
-                    {classItem.class_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onDropdownOpen={setClassesDropdownOpen}
+              labelKey="class_name"
+              valueKey="class_id"
+              placeholder="Select class"
+              searchPlaceholder="Search class..."
+              emptyText="No classes found"
+            />
           </div>
 
           {/* Section Selection */}
           <div className="space-y-2">
             <Label htmlFor="section">Section (Optional)</Label>
-            <Select
+            <ServerCombobox
+              items={Array.isArray(sections) ? sections : []}
               value={selectedSectionId}
-              onValueChange={setSelectedSectionId}
+              onSelect={setSelectedSectionId}
+              labelKey="section_name"
+              valueKey="section_id"
+              placeholder={
+                !selectedClassId
+                  ? "Select class first"
+                  : sections.length === 0
+                  ? "No sections available"
+                  : "Select section (optional)"
+              }
+              searchPlaceholder="Search section..."
+              emptyText="No sections found"
               disabled={!selectedClassId || sections.length === 0}
-            >
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    !selectedClassId
-                      ? "Select class first"
-                      : sections.length === 0
-                        ? "No sections available"
-                        : "Select section (optional)"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {sections.map((section) => (
-                  <SelectItem
-                    key={section.section_id}
-                    value={section.section_id.toString()}
-                  >
-                    {section.section_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
             {sections.length === 0 && selectedClassId && (
               <p className="text-sm text-muted-foreground">
                 This class has no sections

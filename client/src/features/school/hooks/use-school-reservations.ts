@@ -42,6 +42,7 @@ export function useSchoolReservationsList(params?: {
     refetchOnWindowFocus: false, // ✅ OPTIMIZATION: No refetch on tab focus
     refetchOnReconnect: false, // ✅ OPTIMIZATION: No refetch on reconnect
     refetchOnMount: true, // Only refetch on mount if data is stale
+    select: (data: any) => (Array.isArray(data) ? data : data.data || []),
   });
 }
 
@@ -255,7 +256,7 @@ export function useUpdateSchoolReservationStatus(reservationId: number) {
                 ...old,
                 reservations: old.reservations.map((r) =>
                   r.reservation_id === reservationId 
-                    ? { ...r, status: status as string, remarks: remarks ?? r.remarks } 
+                    ? { ...r, status: status, remarks: remarks ?? r.remarks } 
                     : r
                 ),
               };

@@ -30,7 +30,7 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
     balanceClass ? parseInt(balanceClass) : undefined,
     [balanceClass]
   );
-  const { data: transportResp, refetch } = useSchoolTransportBalancesList({ class_id: classIdNum, page: 1, page_size: 50 });
+  const { data: transportResp, isLoading, refetch } = useSchoolTransportBalancesList({ class_id: classIdNum, page: 1, page_size: 50 });
   const [selectedBalanceId, setSelectedBalanceId] = useState<number | undefined>();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const { data: selectedBalance } = useSchoolTransportBalance(selectedBalanceId);
@@ -104,14 +104,17 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
 
       {classIdNum && (
         <StudentFeeBalancesTable
-        studentBalances={rows}
-        onViewStudent={(student) => {
-          setSelectedBalanceId(student.id);
-          setDetailsOpen(true);
-          onViewStudent(student);
-        }}
-        onExportCSV={onExportCSV}
-        showHeader={false}
+          studentBalances={rows}
+          onViewStudent={(student) => {
+            setSelectedBalanceId(student.id);
+            setDetailsOpen(true);
+            onViewStudent(student);
+          }}
+          onExportCSV={onExportCSV}
+          showHeader={false}
+          title="Transport Fee Balances"
+          description="Track student transport fee payments and outstanding amounts"
+          loading={isLoading}
         />
       )}
 

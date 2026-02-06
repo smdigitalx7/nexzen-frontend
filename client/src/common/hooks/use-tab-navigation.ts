@@ -1,13 +1,14 @@
 import { useCallback, useMemo } from "react";
-import { useLocation, useSearch } from "wouter";
+import { useLocation, useNavigate } from "react-router-dom";
 
 /**
  * Global hook for managing tab navigation with URL query parameters
  * Provides consistent tab state management across all modules
  */
 export function useTabNavigation(defaultTab: string = "overview") {
-  const [, navigate] = useLocation();
-  const search = useSearch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const search = location.search;
 
   // Parse search parameters manually and memoize to prevent unnecessary re-renders
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
@@ -26,10 +27,10 @@ export function useTabNavigation(defaultTab: string = "overview") {
       newSearchParams.set("tab", tab);
       const newSearch = newSearchParams.toString();
       navigate(
-        `${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`
+        `${location.pathname}${newSearch ? `?${newSearch}` : ""}`
       );
     },
-    [navigate, search]
+    [navigate, search, location.pathname]
   );
 
   /**
@@ -55,18 +56,18 @@ export function useTabNavigation(defaultTab: string = "overview") {
       }
       const newSearch = newSearchParams.toString();
       navigate(
-        `${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`
+        `${location.pathname}${newSearch ? `?${newSearch}` : ""}`
       );
     },
-    [navigate, search]
+    [navigate, search, location.pathname]
   );
 
   /**
    * Clear all query parameters
    */
   const clearQueryParams = useCallback(() => {
-    navigate(window.location.pathname);
-  }, [navigate]);
+    navigate(location.pathname);
+  }, [navigate, location.pathname]);
 
   return {
     activeTab,
@@ -81,10 +82,11 @@ export function useTabNavigation(defaultTab: string = "overview") {
 /**
  * Hook for modules that need lazy loading based on active tab
  * Returns whether a specific tab is currently active
- * This hook directly uses wouter hooks to avoid hook order issues
+ * This hook directly uses react-router-dom hooks to avoid hook order issues
  */
 export function useTabActive(tabName: string) {
-  const search = useSearch();
+  const location = useLocation();
+  const search = location.search;
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
   const activeTab = useMemo(
     () => searchParams.get("tab") || "overview",
@@ -97,12 +99,13 @@ export function useTabActive(tabName: string) {
 /**
  * Hook for conditional data fetching based on active tab
  * Returns enabled state for React Query hooks
- * This hook directly uses wouter hooks to avoid hook order issues
+ * This hook directly uses react-router-dom hooks to avoid hook order issues
  * @param tabName - The tab name(s) to check for
  * @param defaultTab - The default tab to use if no tab is in the URL (should match useTabNavigation defaultTab)
  */
 export function useTabEnabled(tabName: string | string[], defaultTab: string = "overview") {
-  const search = useSearch();
+  const location = useLocation();
+  const search = location.search;
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
   const activeTab = useMemo(
     () => searchParams.get("tab") || defaultTab,

@@ -119,7 +119,7 @@ const CompleteMarksTab = () => {
     }
 
     // Check if we already have data for all students - if so, don't overwrite
-    const hasAllStudents = enrollmentsData.items!.every((enrollment) => 
+    const hasAllStudents = enrollmentsData.items.every((enrollment) => 
       marksData[enrollment.enrollment_id]
     );
     if (hasAllStudents && Object.keys(marksData).length > 0) {

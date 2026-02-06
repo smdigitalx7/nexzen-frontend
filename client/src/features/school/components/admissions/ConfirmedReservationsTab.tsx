@@ -36,7 +36,7 @@ import { toast } from "@/common/hooks/use-toast";
 import { ReceiptPreviewModal } from "@/common/components/shared";
 import { handleRegenerateReceipt } from "@/core/api";
 import { handleSchoolPayByAdmissionWithIncomeId as handlePayByAdmissionWithIncomeId } from "@/core/api/api-school";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable } from "@/common/components/shared";
 import type { SchoolReservationListItem } from "@/features/school/types/reservations";
 import { useQueryClient } from "@tanstack/react-query";
 import { schoolKeys } from "@/features/school/hooks/query-keys";
@@ -1205,7 +1205,7 @@ const ConfirmedReservationsTabComponent = () => {
         accessorKey: "application_income_id",
         header: "Payment Status",
         cell: ({ row }) => {
-          const applicationIncomeId = row.getValue("application_income_id") as number | null | undefined;
+          const applicationIncomeId = row.getValue("application_income_id");
           return (
             <PaymentStatusBadge applicationIncomeId={applicationIncomeId} />
           );
@@ -1222,7 +1222,7 @@ const ConfirmedReservationsTabComponent = () => {
         accessorKey: "status",
         header: "Status",
         cell: ({ row }) => {
-          const status = row.getValue("status") as string;
+          const status = row.getValue("status");
           return <StatusBadge status={status} />;
         },
       },
@@ -1250,19 +1250,16 @@ const ConfirmedReservationsTabComponent = () => {
   return (
     <div className="space-y-6">
       {/* Enhanced Reservations Table */}
-      <EnhancedDataTable
+      {/* Data Table V2 */}
+      <DataTable
         data={allReservations}
         columns={columns}
         title="Confirmed Reservations"
         searchKey="student_name"
         searchPlaceholder="Search by name, reservation number..."
         loading={isLoading}
-        showSearch={true}
-        enableDebounce={true}
-        debounceDelay={300}
-        highlightSearchResults={true}
+        export={{ enabled: true, filename: "confirmed_reservations" }}
         className="w-full"
-        exportable={true}
       />
 
       {/* Reservation Details Dialog */}

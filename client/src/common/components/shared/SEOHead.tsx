@@ -1,5 +1,5 @@
 ﻿import { useEffect } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/core/auth/authStore';
 import { brand } from '@/lib/config';
 
@@ -41,7 +41,7 @@ const routeDescriptionMap: Record<string, string> = {
  * Manages meta tags for SEO and social sharing
  */
 export function SEOHead() {
-  const [location] = useLocation();
+  const location = useLocation();
   const { currentBranch, user } = useAuthStore();
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export function SEOHead() {
     const brandKeywords = brand.getKeywords();
     
     // Get page-specific description
-    const description = routeDescriptionMap[location] || brandDescription;
+    const description = routeDescriptionMap[location.pathname] || brandDescription;
     
     // Get branch name
     const branchName = currentBranch?.branch_name || 'Educational Institute';

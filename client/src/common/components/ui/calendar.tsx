@@ -1,4 +1,4 @@
-﻿import * as React from "react";
+import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker, CaptionProps, useNavigation } from "react-day-picker";
 
@@ -58,6 +58,7 @@ function CustomCaption(
   return (
     <div className="flex justify-center pt-0 relative items-center mb-1.5 gap-2 px-1">
       <select
+        aria-label="Select month"
         value={currentMonth}
         onChange={handleMonthChange}
         className="h-7 rounded-md border border-input/50 bg-background pl-2 pr-6 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 cursor-pointer min-w-[100px] shadow-sm outline-none transition-all hover:border-primary/50 hover:bg-muted/30"
@@ -69,6 +70,7 @@ function CustomCaption(
         ))}
       </select>
       <select
+        aria-label="Select year"
         value={currentYear}
         onChange={handleYearChange}
         className="h-7 rounded-md border border-input/50 bg-background pl-2 pr-6 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 cursor-pointer min-w-[80px] shadow-sm outline-none transition-all hover:border-primary/50 hover:bg-muted/30"

@@ -16,6 +16,7 @@ export function useTeacherClassSubjectsHierarchical() {
     queryFn: () => SchoolTeacherClassSubjectsService.getHierarchical(),
     staleTime: 30 * 1000, // 30 seconds - teacher assignments change more frequently
     gcTime: 5 * 60 * 1000, // 5 minutes
+    select: (data: any) => (Array.isArray(data) ? data : data.data || []),
   });
 }
 
@@ -25,6 +26,7 @@ export function useClassTeachers() {
     queryFn: () => SchoolTeacherClassSubjectsService.getClassTeachers(),
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
+    select: (data: any) => (Array.isArray(data) ? data : data.data || []),
   });
 }
 

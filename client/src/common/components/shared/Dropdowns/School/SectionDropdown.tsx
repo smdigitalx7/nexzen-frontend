@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import * as React from "react";
-import { BaseDropdown } from "../BaseDropdown";
+import { ServerCombobox } from "@/common/components/ui/server-combobox";
 import { useSchoolSections } from "@/features/school/hooks/use-school-dropdowns";
 import type { SectionOption } from "@/features/school/types/dropdowns";
 
@@ -57,15 +57,15 @@ export function SchoolSectionDropdown({
     }
   }, [classId, value, onChange]);
 
-  const handleChange = React.useCallback(
-    (newValue: number | string | null) => {
-      onChange?.(newValue === null ? null : Number(newValue));
+  const handleSelect = React.useCallback(
+    (newValue: string) => {
+      onChange?.(newValue ? Number(newValue) : null);
     },
     [onChange]
   );
 
   // ✅ OPTIMIZATION: Trigger fetch when dropdown opens (only if classId is valid)
-  const handleOpenChange = React.useCallback(
+  const handleDropdownOpen = React.useCallback(
     (open: boolean) => {
       if (open && !shouldFetch && classId > 0) {
         setShouldFetch(true);
@@ -82,30 +82,20 @@ export function SchoolSectionDropdown({
     ? (placeholder || "Select class first")
     : placeholder;
 
-  // When no class is selected, don't use emptyValue so placeholder can show
-  const shouldUseEmptyValue = hasNoClass ? false : emptyValue;
-
   return (
-    <BaseDropdown<SectionOption>
-      value={value}
-      onChange={handleChange}
-      options={options}
+    <ServerCombobox<SectionOption>
+      items={options}
+      value={value ? String(value) : ""}
+      onSelect={handleSelect}
       isLoading={hasNoClass ? false : isLoading}
-      error={hasNoClass ? null : error}
       disabled={isDisabled}
-      required={required}
       placeholder={displayPlaceholder}
+      searchPlaceholder="Search section..."
+      emptyText={hasNoClass ? "Select class first" : (error ? "Failed to load sections" : "No sections found.")}
       className={className}
-      id={id}
-      getValue={(option) => option.section_id}
-      getLabel={(option) => option.section_name}
-      noOptionsText={hasNoClass ? displayPlaceholder : "No sections available"}
-      loadingText="Loading sections..."
-      errorText="Failed to load sections"
-      onRetry={() => refetch()}
-      emptyValue={shouldUseEmptyValue}
-      emptyValueLabel={emptyValueLabel}
-      onOpenChange={handleOpenChange}
+      valueKey="section_id"
+      labelKey="section_name"
+      onDropdownOpen={handleDropdownOpen}
     />
   );
 }

@@ -133,12 +133,12 @@ DetailsDialog.displayName = "DetailsDialog";
 
 const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: TuitionFeeBalancesPanelProps) => {
   // State management
-  const { data: classesData } = useCollegeClasses();
+  const { data: classesData } = useCollegeClasses({ enabled: true });
   const classes = classesData?.items || [];
   const [balanceClass, setBalanceClass] = useState<string>("");
   const [balanceGroup, setBalanceGroup] = useState<string>("");
   const classIdNum = balanceClass ? parseInt(balanceClass) : undefined;
-  const { data: groupsData } = useCollegeGroups(classIdNum);
+  const { data: groupsData } = useCollegeGroups(classIdNum || 0, { enabled: !!classIdNum });
   const groups = groupsData?.items || [];
   // Optional: when a row is clicked, fetch full details
   const [selectedAdmissionNo, setSelectedAdmissionNo] = useState<string | null>(null);

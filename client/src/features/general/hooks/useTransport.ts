@@ -5,6 +5,8 @@ import type {
   BusRouteUpdate,
 } from '@/features/general/types/transport';
 import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-toast";
+import { useState, useCallback, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useGlobalRefetch } from "@/common/hooks/useGlobalRefetch";
 
 // Query keys
@@ -52,6 +54,17 @@ export const useRecentRoutes = (limit: number = 5) => {
     queryKey: transportKeys.recent(limit),
     queryFn: () => TransportService.getRecent(limit),
   });
+};
+
+export const useTransport = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
+    
+    const navigateToTransport = useCallback(() => {
+        navigate("/transport");
+    }, [navigate]);
+
+    return { navigateToTransport, location };
 };
 
 

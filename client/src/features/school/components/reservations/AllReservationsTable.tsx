@@ -1,8 +1,9 @@
 ﻿import { useMemo, memo, useState, useEffect, useCallback } from "react";
 import { Button } from "@/common/components/ui/button";
 import { Badge } from "@/common/components/ui/badge";
-import { Percent, CreditCard } from "lucide-react";
-import { EnhancedDataTable, ServerSidePagination } from "@/common/components/shared";
+import { Percent, CreditCard, Eye, Edit, Trash2 } from "lucide-react";
+import { DataTable } from "@/common/components/shared";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import { ColumnDef } from "@tanstack/react-table";
 import { useAuthStore } from "@/core/auth/authStore";
 import { ROLES } from "@/common/constants";
@@ -14,6 +15,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/common/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/common/components/ui/select";
 import {
   ReservationPaymentProcessor,
   ReservationPaymentData,
@@ -247,7 +255,7 @@ const AllReservationsTableComponent = ({
         accessorKey: "status",
         header: "Status",
         cell: ({ row }) => {
-          const status = row.getValue("status") as string;
+          const status = row.getValue("status");
           return <StatusBadge status={status} />;
         },
       },
@@ -262,10 +270,7 @@ const AllReservationsTableComponent = ({
         accessorKey: "application_income_id",
         header: "Application Fee Status",
         cell: ({ row }) => {
-          const applicationIncomeId = row.getValue("application_income_id") as
-            | number
-            | null
-            | undefined;
+          const applicationIncomeId = row.getValue("application_income_id");
           return (
             <ApplicationFeeBadge applicationIncomeId={applicationIncomeId} />
           );
@@ -292,39 +297,6 @@ const AllReservationsTableComponent = ({
 
   // Check delete permission
   const canDeleteReservation = useCanDelete("reservations");
-
-  // Memoized action buttons for EnhancedDataTable
-  // Use actionButtonGroups for standard actions (view, edit, delete) to use EnhancedDataTable's built-in icons
-  // Show view/edit buttons ONLY when fee IS paid
-  // Show delete button when fee IS paid OR status is PENDING AND user has delete permission
-  const actionButtonGroups = useMemo(
-    () => [
-      {
-        type: "view" as const,
-        onClick: (row: Reservation) => onView(row),
-        show: (row: Reservation) => isApplicationFeePaid(row),
-      },
-      {
-        type: "edit" as const,
-        onClick: (row: Reservation) => onEdit(row),
-        show: (row: Reservation) => isApplicationFeePaid(row),
-      },
-      {
-        type: "delete" as const,
-        onClick: (row: Reservation) => onDelete(row),
-        show: (row: Reservation) => {
-          // Hide delete button if user doesn't have permission
-          if (!canDeleteReservation) return false;
-          // Show delete button if:
-          // 1. Application fee is paid, OR
-          // 2. Status is PENDING (allow deletion of pending reservations)
-          const isPending = row.status === "PENDING";
-          return isApplicationFeePaid(row) || isPending;
-        },
-      },
-    ],
-    [onView, onEdit, onDelete, isApplicationFeePaid, canDeleteReservation]
-  );
 
   // Handle pay fee button click
   const handlePayFee = useCallback(async (reservation: Reservation) => {
@@ -407,44 +379,69 @@ const AllReservationsTableComponent = ({
     } finally {
       setIsLoadingPaymentData(false);
     }
-  }, []);
+  }, [toast]);
 
-  // Custom action buttons
-  const actionButtons = useMemo(
+  // Combined actions for DataTable V2
+  const combinedActions: ActionConfig<Reservation>[] = useMemo(
     () => [
+      // Custom Actions first
       {
         id: "pay-fee",
-        label: "Pay Application Fee",
+        label: "Pay Fee",
         icon: CreditCard,
-        variant: "default" as const,
+        // variant: "default", // V2 variant types are limited, use default or leave undefined
         onClick: handlePayFee,
-        show: (row: Reservation) => {
-          // Show "Pay Application Fee" button ONLY when application fee is NOT paid
-          // Hide the button after fee is paid
-          return !isApplicationFeePaid(row);
-        },
+        show: (row: Reservation) => !isApplicationFeePaid(row),
       },
       {
         id: "concession",
         label: "Concession",
         icon: Percent,
-        variant: "outline" as const,
+        variant: "outline",
         onClick: (row: Reservation) => onUpdateConcession?.(row),
         show: (row: Reservation) => {
-          // Show concession button if:
-          // 1. User has permission
-          // 2. Concession is not locked
-          // 3. Status is PENDING (show for pending reservations)
-          // Note: Backend will validate that reservation fee exists when applying concession
           const isPending = row.status === "PENDING";
-
-          return Boolean(
-            canViewConcession && !row.concession_lock && isPending
-          );
+          return Boolean(canViewConcession && !row.concession_lock && isPending);
+        },
+      },
+      // Standard Actions
+      {
+        id: "view",
+        label: "View",
+        icon: Eye,
+        onClick: (row: Reservation) => onView(row),
+        show: (row: Reservation) => isApplicationFeePaid(row),
+      },
+      {
+        id: "edit",
+        label: "Edit",
+        icon: Edit,
+        onClick: (row: Reservation) => onEdit(row),
+        show: (row: Reservation) => isApplicationFeePaid(row),
+      },
+      {
+        id: "delete",
+        label: "Delete",
+        icon: Trash2,
+        variant: "destructive",
+        onClick: (row: Reservation) => onDelete(row),
+        show: (row: Reservation) => {
+          if (!canDeleteReservation) return false;
+          const isPending = row.status === "PENDING";
+          return isApplicationFeePaid(row) || isPending;
         },
       },
     ],
-    [onUpdateConcession, canViewConcession, handlePayFee, isApplicationFeePaid]
+    [
+      onView,
+      onEdit,
+      onDelete,
+      handlePayFee,
+      onUpdateConcession,
+      isApplicationFeePaid,
+      canViewConcession,
+      canDeleteReservation,
+    ]
   );
 
   // Memoized status filter options
@@ -468,51 +465,57 @@ const AllReservationsTableComponent = ({
   return (
     <>
       <div className="w-full max-w-full mt-6">
-        <EnhancedDataTable
-        key={`all-reservations-${refreshKey}`}
-        data={reservations}
-        columns={reservationColumns}
-        title="All Reservations"
-        searchPlaceholder="Search by student name, reservation number, or class..."
-        exportable={true}
-        loading={isLoading}
-        showActions={true}
-        actionButtons={actionButtons}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        customGlobalFilterFn={customSearchFunction}
-        filters={[
-          {
-            key: "status",
-            label: "Status",
-            options: statusFilterOptions,
-            value: statusFilter,
-            onChange: onStatusFilterChange,
-          },
-        ]}
-        className="w-full"
-        // ✅ Disable client-side pagination when server-side pagination is enabled
-        enableClientSidePagination={!enableServerSidePagination}
-      />
-      
-      {/* ✅ Server-side pagination controls */}
-      {enableServerSidePagination &&
-        currentPage !== undefined &&
-        totalPages !== undefined &&
-        totalCount !== undefined &&
-        pageSize !== undefined &&
-        onPageChange &&
-        onPageSizeChange && (
-          <ServerSidePagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            totalCount={totalCount}
-            onPageChange={onPageChange}
-            onPageSizeChange={onPageSizeChange}
-            isLoading={isLoading}
-          />
-        )}
+        <DataTable
+          data={reservations}
+          columns={reservationColumns}
+          title="All Reservations"
+          showSearch={true}
+          searchPlaceholder="Search by student name..."
+          searchKey="studentName"
+          export={{
+            enabled: true,
+            filename: "reservations",
+          }}
+          loading={isLoading}
+          actions={combinedActions}
+          actionsHeader="Actions"
+          
+          // Filters
+          toolbarLeftContent={
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium">Status:</span>
+              <div className="w-[180px]">
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) => onStatusFilterChange(value)}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="All Statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    {statusFilterOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          }
+
+          // Server-side pagination configuration
+          pagination={enableServerSidePagination ? "server" : "client"}
+          totalCount={totalCount}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
+          pageSizeOptions={[10, 20, 50, 100]}
+          
+          className="w-full"
+        />
       </div>
 
       {/* Payment Processor Dialog */}

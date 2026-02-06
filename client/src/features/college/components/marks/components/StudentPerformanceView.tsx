@@ -1,4 +1,4 @@
-﻿import { motion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -6,7 +6,6 @@ import {
   DialogTitle,
 } from "@/common/components/ui/dialog";
 import { Button } from "@/common/components/ui/button";
-import { Badge } from "@/common/components/ui/badge";
 import { Separator } from "@/common/components/ui/separator";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
 import {
@@ -154,16 +153,16 @@ export const StudentPerformanceView = ({
           e.preventDefault();
         }}
       >
-        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
+        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b border-slate-200">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-3 text-xl">
-              <div className="p-2 rounded-lg bg-purple-100">
-                <BarChart3 className="h-5 w-5 text-purple-600" />
+              <div className="p-2 rounded-lg bg-slate-100">
+                <BarChart3 className="h-5 w-5 text-slate-600" />
               </div>
               <div>
                 <div>Student Performance</div>
                 {data && (
-                  <div className="text-sm font-normal text-muted-foreground">
+                  <div className="text-sm font-normal text-slate-500">
                     {data.student_details.student_name}
                   </div>
                 )}
@@ -198,8 +197,8 @@ export const StudentPerformanceView = ({
           {isLoading ? (
             <Loader.Data message="Loading student performance data..." />
           ) : !data ? (
-            <div className="text-center py-12 text-gray-500">
-              <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <div className="text-center py-12 text-slate-500">
+              <BarChart3 className="h-12 w-12 mx-auto mb-4 text-slate-400" />
               <p>No performance data available</p>
             </div>
           ) : (
@@ -208,22 +207,22 @@ export const StudentPerformanceView = ({
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm mb-6"
+                className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm mb-6"
               >
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-gray-500" />
+                    <User className="h-4 w-4 text-slate-500" />
                     <div>
-                      <div className="text-xs text-gray-500">Admission No</div>
+                      <div className="text-xs text-slate-500">Admission No</div>
                       <div className="font-medium">
                         {data.student_details.admission_no}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <GraduationCap className="h-4 w-4 text-gray-500" />
+                    <GraduationCap className="h-4 w-4 text-slate-500" />
                     <div>
-                      <div className="text-xs text-gray-500">Class</div>
+                      <div className="text-xs text-slate-500">Class</div>
                       <div className="font-medium">
                         {data.student_details.class_name}
                         {data.student_details.group_name &&
@@ -235,9 +234,9 @@ export const StudentPerformanceView = ({
                   </div>
                   {data.student_details.roll_number && (
                     <div className="flex items-center gap-2">
-                      <Hash className="h-4 w-4 text-gray-500" />
+                      <Hash className="h-4 w-4 text-slate-500" />
                       <div>
-                        <div className="text-xs text-gray-500">Roll Number</div>
+                        <div className="text-xs text-slate-500">Roll Number</div>
                         <div className="font-medium">
                           {data.student_details.roll_number}
                         </div>
@@ -245,9 +244,9 @@ export const StudentPerformanceView = ({
                     </div>
                   )}
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <Calendar className="h-4 w-4 text-slate-500" />
                     <div>
-                      <div className="text-xs text-gray-500">Academic Year</div>
+                      <div className="text-xs text-slate-500">Academic Year</div>
                       <div className="font-medium">
                         {data.student_details.academic_year}
                       </div>
@@ -263,15 +262,15 @@ export const StudentPerformanceView = ({
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm"
+                    className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm"
                   >
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 rounded-lg bg-blue-100">
-                        <GraduationCap className="h-5 w-5 text-blue-600" />
+                      <div className="p-2 rounded-lg bg-slate-100">
+                        <GraduationCap className="h-5 w-5 text-slate-600" />
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">Total Exams</div>
-                        <div className="text-2xl font-bold text-gray-900">
+                        <div className="text-sm text-slate-500">Total Exams</div>
+                        <div className="text-2xl font-bold text-slate-900">
                           {overallStats.totalExams}
                         </div>
                       </div>
@@ -282,15 +281,15 @@ export const StudentPerformanceView = ({
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm"
+                    className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm"
                   >
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 rounded-lg bg-green-100">
-                        <FileText className="h-5 w-5 text-green-600" />
+                      <div className="p-2 rounded-lg bg-slate-100">
+                        <FileText className="h-5 w-5 text-slate-600" />
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">Total Tests</div>
-                        <div className="text-2xl font-bold text-gray-900">
+                        <div className="text-sm text-slate-500">Total Tests</div>
+                        <div className="text-2xl font-bold text-slate-900">
                           {overallStats.totalTests}
                         </div>
                       </div>
@@ -301,14 +300,14 @@ export const StudentPerformanceView = ({
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm"
+                    className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm"
                   >
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 rounded-lg bg-purple-100">
-                        <TrendingUp className="h-5 w-5 text-purple-600" />
+                      <div className="p-2 rounded-lg bg-slate-100">
+                        <TrendingUp className="h-5 w-5 text-slate-600" />
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">Overall %</div>
+                        <div className="text-sm text-slate-500">Overall %</div>
                         <div
                           className={cn(
                             "text-2xl font-bold",
@@ -325,12 +324,12 @@ export const StudentPerformanceView = ({
 
               {/* Subject Performance List */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                <h3 className="text-lg font-semibold text-slate-900 mb-4">
                   Subject Performance
                 </h3>
                 {data.subjects.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <div className="text-center py-12 text-slate-500">
+                    <BookOpen className="h-12 w-12 mx-auto mb-4 text-slate-400" />
                     <p>No performance data available</p>
                   </div>
                 ) : (
@@ -340,12 +339,12 @@ export const StudentPerformanceView = ({
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
-                      className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm"
+                      className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm"
                     >
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <BookOpen className="h-5 w-5 text-blue-600" />
-                          <h4 className="text-lg font-semibold text-gray-900">
+                          <BookOpen className="h-5 w-5 text-slate-600" />
+                          <h4 className="text-lg font-semibold text-slate-900">
                             {subject.subject_name}
                           </h4>
                         </div>
@@ -358,7 +357,7 @@ export const StudentPerformanceView = ({
                           >
                             {subject.percentage.toFixed(1)}%
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-slate-500">
                             {subject.total_marks_obtained}/
                             {subject.total_max_marks} marks
                           </div>
@@ -369,22 +368,22 @@ export const StudentPerformanceView = ({
 
                       <div className="grid grid-cols-3 gap-4 mb-4">
                         <div>
-                          <div className="text-sm text-gray-500">Exams</div>
-                          <div className="text-lg font-semibold text-gray-900">
+                          <div className="text-sm text-slate-500">Exams</div>
+                          <div className="text-lg font-semibold text-slate-900">
                             {subject.total_exams}
                           </div>
                         </div>
                         <div>
-                          <div className="text-sm text-gray-500">Tests</div>
-                          <div className="text-lg font-semibold text-gray-900">
+                          <div className="text-sm text-slate-500">Tests</div>
+                          <div className="text-lg font-semibold text-slate-900">
                             {subject.total_tests}
                           </div>
                         </div>
                         <div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-slate-500">
                             Total Assessments
                           </div>
-                          <div className="text-lg font-semibold text-gray-900">
+                          <div className="text-lg font-semibold text-slate-900">
                             {subject.total_assessments}
                           </div>
                         </div>
@@ -393,7 +392,7 @@ export const StudentPerformanceView = ({
                       {/* Progress Bar */}
                       <div className="mt-4">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-700">
+                          <span className="text-sm font-medium text-slate-700">
                             Performance
                           </span>
                           <span
@@ -405,7 +404,7 @@ export const StudentPerformanceView = ({
                             {subject.percentage.toFixed(1)}%
                           </span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                        <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
                           <div
                             className={cn(
                               "h-full rounded-full transition-all duration-500",

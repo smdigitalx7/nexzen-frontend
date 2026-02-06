@@ -1,7 +1,7 @@
-﻿import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/common/components/ui/button";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, Eye, Pencil, Trash2 } from "lucide-react";
 import { useUpdateCollegeExpenditure, useDeleteCollegeExpenditure, useCollegeExpenditure, useUpdateCollegeExpenditureStatus } from "@/features/college/hooks";
 import { useCanEdit, useCanDelete } from "@/core/permissions";
 import type { CollegeExpenditureRead } from "@/features/college/types";
@@ -13,13 +13,15 @@ import { Label } from "@/common/components/ui/label";
 import { Textarea } from "@/common/components/ui/textarea";
 import { Input } from "@/common/components/ui/input";
 import { DatePicker } from "@/common/components/ui/date-picker";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable } from "@/common/components/shared/DataTable";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import { createTextColumn, createCurrencyColumn } from "@/common/utils/factory/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/common/components/ui/badge";
 import { useAuthStore } from "@/core/auth/authStore";
 import { ROLES } from "@/common/constants";
 import { toast } from "@/common/hooks/use-toast";
+import { cleanupDialogState } from "@/common/utils/ui-cleanup";
 
 interface ExpenditureTableProps {
   expenditureData: CollegeExpenditureRead[];
@@ -68,7 +70,7 @@ export const ExpenditureTable = ({
   const [selectedExpenditureId, setSelectedExpenditureId] = useState<number | null>(null);
   const { data: viewedExpenditure, isLoading: viewLoading, error: viewError } = useCollegeExpenditure(selectedExpenditureId);
 
-  const handleEdit = (expenditure: CollegeExpenditureRead) => {
+  const handleEdit = useCallback((expenditure: CollegeExpenditureRead) => {
     if (!expenditure || !expenditure.expenditure_id) {
       console.error("Invalid expenditure object:", expenditure);
       return;
@@ -86,9 +88,9 @@ export const ExpenditureTable = ({
       remarks: expenditure.remarks || "",
     });
     openEditDialog(expenditure);
-  };
+  }, [openEditDialog, setSelectedExpenditure]);
 
-  const handleDelete = (expenditure: CollegeExpenditureRead) => {
+  const handleDelete = useCallback((expenditure: CollegeExpenditureRead) => {
     if (!expenditure || !expenditure.expenditure_id) {
       console.error("Invalid expenditure object:", expenditure);
       return;
@@ -98,81 +100,115 @@ export const ExpenditureTable = ({
     }
     setSelectedExpenditure(expenditure);
     openDeleteDialog(expenditure);
-  };
+  }, [openDeleteDialog, setSelectedExpenditure]);
 
-  const handleUpdateExpenditure = async () => {
+  const handleUpdateExpenditure = () => {
     if (!selectedExpenditure) return;
     
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    closeEditDialog();
+    cleanupDialogState();
+
     try {
-      await updateExpenditureMutation.mutateAsync({
+      updateExpenditureMutation.mutate({
         expenditure_purpose: editForm.expenditure_purpose,
         amount: parseFloat(editForm.amount),
         bill_date: editForm.bill_date,
         payment_method: editForm.payment_method && editForm.payment_method.trim() !== "" ? editForm.payment_method : null,
         remarks: editForm.remarks && editForm.remarks.trim() !== "" ? editForm.remarks : null,
+      }, {
+        onError: (error) => {
+          console.error("Failed to update expenditure:", error);
+        }
       });
-      closeEditDialog();
     } catch (error) {
       console.error("Failed to update expenditure:", error);
     }
   };
 
-  const handleDeleteExpenditure = async () => {
+  const handleDeleteExpenditure = () => {
     if (!selectedExpenditure) return;
     
+    // ✅ PHASE 2: Close immediately and cleanup state synchronously
+    closeDeleteDialog();
+    cleanupDialogState();
+
     try {
-      await deleteExpenditureMutation.mutateAsync(selectedExpenditure.expenditure_id);
-      closeDeleteDialog();
+      deleteExpenditureMutation.mutate(selectedExpenditure.expenditure_id, {
+        onError: (error) => {
+          console.error("Failed to delete expenditure:", error);
+        }
+      });
     } catch (error) {
       console.error("Failed to delete expenditure:", error);
     }
   };
 
   // Handle approve/reject
-  const handleApprove = useCallback(async (expenditure: CollegeExpenditureRead) => {
+  const handleApprove = useCallback((expenditure: CollegeExpenditureRead) => {
     if (!expenditure?.expenditure_id) return;
+    
+    // ✅ CRITICAL FIX: Clean up state before mutation to prevent UI freeze
+    cleanupDialogState();
+    
     setStatusUpdateId(expenditure.expenditure_id);
     try {
-      await statusUpdateMutation.mutateAsync("APPROVED");
-      toast({
-        title: "Success",
-        description: "Expenditure approved successfully.",
-        variant: "success",
+      statusUpdateMutation.mutate("APPROVED", {
+        onSuccess: () => {
+          toast({
+            title: "Success",
+            description: "Expenditure approved successfully.",
+            variant: "success",
+          });
+          setStatusUpdateId(null);
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Error",
+            description: error.message || "Failed to approve expenditure.",
+            variant: "destructive",
+          });
+          setStatusUpdateId(null);
+        }
       });
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to approve expenditure.",
-        variant: "destructive",
-      });
-    } finally {
       setStatusUpdateId(null);
     }
   }, [statusUpdateMutation]);
 
-  const handleReject = useCallback(async (expenditure: CollegeExpenditureRead) => {
+  const handleReject = useCallback((expenditure: CollegeExpenditureRead) => {
     if (!expenditure?.expenditure_id) return;
+    
+    // ✅ CRITICAL FIX: Clean up state before mutation
+    cleanupDialogState();
+    
     setStatusUpdateId(expenditure.expenditure_id);
     try {
-      await statusUpdateMutation.mutateAsync("REJECTED");
-      toast({
-        title: "Success",
-        description: "Expenditure rejected successfully.",
-        variant: "success",
+      statusUpdateMutation.mutate("REJECTED", {
+        onSuccess: () => {
+          toast({
+            title: "Success",
+            description: "Expenditure rejected successfully.",
+            variant: "success",
+          });
+          setStatusUpdateId(null);
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Error",
+            description: error.message || "Failed to reject expenditure.",
+            variant: "destructive",
+          });
+          setStatusUpdateId(null);
+        }
       });
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to reject expenditure.",
-        variant: "destructive",
-      });
-    } finally {
       setStatusUpdateId(null);
     }
   }, [statusUpdateMutation]);
 
-  // Define columns for EnhancedDataTable
-  const columns: ColumnDef<CollegeExpenditureRead>[] = [
+  // Memoize columns to prevent re-render loops (DataTable V2)
+  const columns = useMemo<ColumnDef<CollegeExpenditureRead>[]>(() => [
     {
       id: 'bill_date',
       header: 'Bill Date',
@@ -228,85 +264,71 @@ export const ExpenditureTable = ({
         return value || "-";
       },
     },
-  ];
+  ], []);
 
   // Check permissions for edit/delete
   const canEditExpenditure = useCanEdit("expenditure");
   const canDeleteExpenditure = useCanDelete("expenditure");
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
-    {
-      type: 'view' as const,
-      onClick: (expenditure: CollegeExpenditureRead) => {
-        if (import.meta.env.DEV) {
-          console.log("College View clicked - expenditure:", expenditure);
-        }
-        if (!expenditure || !expenditure.expenditure_id) {
-          console.error("Invalid expenditure object:", expenditure);
-          return;
-        }
-        setSelectedExpenditureId(expenditure.expenditure_id);
-        setShowViewDialog(true);
-        onViewExpenditure?.(expenditure);
-      }
-    },
+  // Actions for DataTable V2 (View, Edit, Delete, Approve, Reject)
+  const actions = useMemo<ActionConfig<CollegeExpenditureRead>[]>(() => {
+    const list: ActionConfig<CollegeExpenditureRead>[] = [
       {
-        type: 'edit' as const,
-        onClick: (expenditure: CollegeExpenditureRead) => {
-          if (import.meta.env.DEV) {
-            console.log("College Edit clicked - expenditure:", expenditure);
+        id: "view",
+        label: "View",
+        icon: Eye,
+        onClick: (expenditure) => {
+          if (expenditure?.expenditure_id) {
+            setSelectedExpenditureId(expenditure.expenditure_id);
+            setShowViewDialog(true);
+            onViewExpenditure?.(expenditure);
           }
-          handleEdit(expenditure);
         },
-        show: (expenditure: CollegeExpenditureRead) => 
-          canEditExpenditure && expenditure.status !== "APPROVED" && expenditure.status !== "REJECTED"
+        variant: "ghost",
       },
       {
-        type: 'delete' as const,
-        onClick: (expenditure: CollegeExpenditureRead) => {
-          if (import.meta.env.DEV) {
-            console.log("College Delete clicked - expenditure:", expenditure);
-          }
-          handleDelete(expenditure);
-        },
-        show: (expenditure: CollegeExpenditureRead) => 
-          canDeleteExpenditure && expenditure.status !== "APPROVED" && expenditure.status !== "REJECTED"
-      }
-  ], [canEditExpenditure, canDeleteExpenditure, onViewExpenditure]);
-
-  // Action buttons for approve/reject (Admin and Institute Admin only)
-  const actionButtons = useMemo(() => {
-    if (!canApproveExpenditure) return [];
-    
-    return [
-      {
-        id: "approve-expenditure",
-        label: (expenditure: CollegeExpenditureRead) => 
-          statusUpdateId === expenditure.expenditure_id ? "Approving..." : "Approve",
-        icon: CheckCircle,
-        variant: "default" as const,
-        onClick: (expenditure: CollegeExpenditureRead) => handleApprove(expenditure),
-        show: (expenditure: CollegeExpenditureRead) => 
-          expenditure.status === "PENDING" || !expenditure.status,
-        disabled: (expenditure: CollegeExpenditureRead) =>
-          statusUpdateId === expenditure.expenditure_id,
-        className: "text-green-600 hover:text-green-700",
+        id: "edit",
+        label: "Edit",
+        icon: Pencil,
+        onClick: handleEdit,
+        variant: "outline",
+        show: (exp) =>
+          canEditExpenditure && exp.status !== "APPROVED" && exp.status !== "REJECTED",
       },
       {
-        id: "reject-expenditure",
-        label: (expenditure: CollegeExpenditureRead) => 
-          statusUpdateId === expenditure.expenditure_id ? "Rejecting..." : "Reject",
-        icon: XCircle,
-        variant: "destructive" as const,
-        onClick: (expenditure: CollegeExpenditureRead) => handleReject(expenditure),
-        show: (expenditure: CollegeExpenditureRead) => 
-          expenditure.status === "PENDING" || !expenditure.status,
-        disabled: (expenditure: CollegeExpenditureRead) =>
-          statusUpdateId === expenditure.expenditure_id,
+        id: "delete",
+        label: "Delete",
+        icon: Trash2,
+        onClick: handleDelete,
+        variant: "destructive",
+        show: (exp) =>
+          canDeleteExpenditure && exp.status !== "APPROVED" && exp.status !== "REJECTED",
       },
     ];
-  }, [canApproveExpenditure, statusUpdateId, handleApprove, handleReject]);
+    if (canApproveExpenditure) {
+      list.push(
+        {
+          id: "approve",
+          label: "Approve",
+          icon: CheckCircle,
+          variant: "default",
+          onClick: handleApprove,
+          show: (exp) => exp.status === "PENDING" || !exp.status,
+          disabled: (exp) => statusUpdateId === exp.expenditure_id,
+        },
+        {
+          id: "reject",
+          label: "Reject",
+          icon: XCircle,
+          variant: "destructive",
+          onClick: handleReject,
+          show: (exp) => exp.status === "PENDING" || !exp.status,
+          disabled: (exp) => statusUpdateId === exp.expenditure_id,
+        }
+      );
+    }
+    return list;
+  }, [canEditExpenditure, canDeleteExpenditure, canApproveExpenditure, onViewExpenditure, handleEdit, handleDelete, handleApprove, handleReject, statusUpdateId]);
 
   return (
     <motion.div
@@ -315,21 +337,22 @@ export const ExpenditureTable = ({
       transition={{ delay: 0.3 }}
       className="space-y-4"
     >
-      <EnhancedDataTable
+      <DataTable<CollegeExpenditureRead>
         data={expenditureData}
         columns={columns}
         title="Expenditure Records"
         searchKey="expenditure_purpose"
         searchPlaceholder="Search by purpose or remarks..."
-        exportable={!!onExportCSV}
-        onExport={onExportCSV}
+        export={
+          onExportCSV
+            ? { enabled: true, filename: "expenditure-records", onExport: onExportCSV }
+            : undefined
+        }
         onAdd={onAddExpenditure}
         addButtonText="Add Expenditure"
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionButtons={actionButtons}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
+        actions={actions}
+        actionsHeader="Actions"
+        emptyMessage="No expenditure records found"
       />
 
       {/* Edit Dialog */}

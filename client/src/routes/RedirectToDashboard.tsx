@@ -1,16 +1,16 @@
 import React, { useEffect } from "react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 
 /**
  * Component that redirects users to dashboard when direct access is blocked
  */
 export function RedirectToDashboard() {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Redirect to dashboard
-    setLocation("/");
-  }, [setLocation]);
+    navigate("/", { replace: true });
+  }, [navigate]);
 
   return (
     <div className="flex items-center justify-center h-full">

@@ -1,4 +1,4 @@
-﻿import { useAuthStore } from "@/core/auth/authStore";
+import { useAuthStore } from "@/core/auth/authStore";
 import { getApiBaseUrl } from "./api";
 
 // Ensure API_BASE_URL includes /api/v1 prefix
@@ -81,7 +81,7 @@ export async function getSchoolOtherIncome(params?: {
   end_date?: string;
   skip?: number;
   limit?: number;
-}): Promise<{ items: any[]; total: number }> {
+}): Promise<{ data: any[]; total_count: number }> {
   const state = useAuthStore.getState();
   const token = state.accessToken || (state as any).token;
 
@@ -125,7 +125,15 @@ export async function getSchoolOtherIncome(params?: {
       throw new Error(errorMessage);
     }
 
-    return await response.json();
+    const json = await response.json();
+    // Backend may return { items, total }; normalize to { data, total_count } for UI
+    if (Array.isArray(json?.items) && typeof json?.total === "number") {
+      return { data: json.items, total_count: json.total };
+    }
+    if (Array.isArray(json?.data) && typeof json?.total_count === "number") {
+      return { data: json.data, total_count: json.total_count };
+    }
+    return json;
   } catch (error) {
     console.error("❌ Get other income failed:", error);
     if (error instanceof TypeError && error.message.includes("fetch")) {

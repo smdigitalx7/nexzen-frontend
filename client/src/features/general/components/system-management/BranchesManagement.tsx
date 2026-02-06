@@ -4,9 +4,10 @@ import { Button } from "@/common/components/ui/button";
 import { Badge } from "@/common/components/ui/badge";
 import { useToast } from "@/common/hooks/use-toast";
 import { ConfirmDialog } from "@/common/components/shared";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { ConfirmDialog, DataTable } from "@/common/components/shared";
 import { Edit, Trash2, Eye, Building2 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import { 
   createIconTextColumn, 
   createBadgeColumn, 
@@ -63,10 +64,12 @@ export default function BranchesManagement() {
     }),
   ], []);
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
+  // Action configurations for DataTable V2
+  const actions: ActionConfig<any>[] = useMemo(() => [
     {
-      type: 'delete' as const,
+      label: "Delete",
+      icon: Trash2,
+      variant: "destructive",
       onClick: (branch: any) => handleDeleteClick(branch)
     }
   ], []);
@@ -89,16 +92,15 @@ export default function BranchesManagement() {
 
   return (
     <div className="space-y-4">
-      <EnhancedDataTable
+      <DataTable
         data={data || []}
         columns={columns}
+        loading={isLoading}
         title="Branches"
         searchKey="branch_name"
-        exportable={true}
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={false}
+        export={{ enabled: true, filename: "branches" }}
+        actions={actions}
+        actionsHeader="Actions"
       />
 
       {/* Delete Confirmation Dialog */}

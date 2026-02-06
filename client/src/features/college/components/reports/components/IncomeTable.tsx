@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Printer, Plus } from "lucide-react";
-import { Loader } from "@/common/components/ui/ProfessionalLoader";
+import { Printer, Eye } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
 import type {
   CollegeIncomeSummary,
@@ -10,7 +9,7 @@ import type {
 import { useCollegeIncomeSummary } from "@/features/college/hooks";
 import { useQuery } from "@tanstack/react-query";
 import { formatDate } from "@/common/utils";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable } from "@/common/components/shared/DataTable";
 import { createCurrencyColumn } from "@/common/utils/factory/columnFactories";
 import type { ColumnDef } from "@tanstack/react-table";
 import { handleRegenerateReceipt } from "@/core/api";
@@ -32,14 +31,7 @@ import { useTabNavigation } from "@/common/hooks/use-tab-navigation";
 import { Receipt } from "lucide-react";
 import { IndianRupeeIcon } from "@/common/components/shared/IndianRupeeIcon";
 
-// ✅ FIX: Create a proper component wrapper for Loader.Button that accepts className
-// Moved outside component to prevent recreation on every render
-const LoadingIcon = React.memo<{ className?: string }>(({ className }) => (
-  <div className={className}>
-    <Loader.Button size="xs" />
-  </div>
-));
-LoadingIcon.displayName = "LoadingIcon";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 
 interface IncomeTableProps {
   onViewIncome?: (income: CollegeIncomeSummary) => void;
@@ -108,11 +100,11 @@ export const IncomeTable = ({
   const isLoading = isLoadingIncome;
   const error = incomeError;
 
-  const incomeData = incomeResponse?.items || [];
-  const totalCount = incomeResponse?.total || 0;
+  const incomeData = incomeResponse?.data || [];
+  const totalCount = incomeResponse?.total_count || 0;
 
-  // Define columns for EnhancedDataTable
-  const columns: ColumnDef<CollegeIncomeSummary>[] = [
+  // Memoize columns to prevent re-render loops (DataTable V2)
+  const columns = useMemo<ColumnDef<CollegeIncomeSummary>[]>(() => [
     {
       id: "created_at",
       header: "Date",
@@ -157,28 +149,7 @@ export const IncomeTable = ({
       header: "Amount",
       className: "text-green-600 font-bold",
     }),
-  ];
-
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(
-    () => [
-      ...(onViewIncome
-        ? [
-            {
-              type: "view" as const,
-              onClick: (income: CollegeIncomeSummary) => {
-                if (!income || !income.income_id) {
-                  console.error("Invalid income object:", income);
-                  return;
-                }
-                onViewIncome(income);
-              },
-            },
-          ]
-        : []),
-    ],
-    [onViewIncome]
-  );
+  ], []);
 
   // Handle print receipt action
   const handlePrintReceipt = useCallback(
@@ -249,26 +220,30 @@ export const IncomeTable = ({
     [queryClient]
   );
 
-  // Action buttons for EnhancedDataTable (including print receipt)
-  const actionButtons = useMemo(
-    () => [
-      {
-        id: "print-receipt",
-        label: (income: CollegeIncomeSummary) =>
-          loadingReceiptId === income.income_id
-            ? "Generating..."
-            : "Print Receipt",
-        icon: (income: CollegeIncomeSummary) =>
-          loadingReceiptId === income.income_id ? LoadingIcon : Printer,
-        variant: "outline" as const,
-        onClick: (income: CollegeIncomeSummary) => handlePrintReceipt(income),
-        show: (income: CollegeIncomeSummary) => true,
-        disabled: (income: CollegeIncomeSummary) =>
-          loadingReceiptId === income.income_id,
-      },
-    ],
-    [handlePrintReceipt, loadingReceiptId]
-  );
+  // Actions for DataTable V2 (View + Print Receipt)
+  const actions = useMemo<ActionConfig<CollegeIncomeSummary>[]>(() => {
+    const list: ActionConfig<CollegeIncomeSummary>[] = [];
+    if (onViewIncome) {
+      list.push({
+        id: "view",
+        label: "View",
+        icon: Eye,
+        onClick: (income) => {
+          if (income?.income_id) onViewIncome(income);
+        },
+        variant: "ghost",
+      });
+    }
+    list.push({
+      id: "print-receipt",
+      label: "Print Receipt",
+      icon: Printer,
+      onClick: handlePrintReceipt,
+      variant: "outline",
+      disabled: (income) => loadingReceiptId === income.income_id,
+    });
+    return list;
+  }, [onViewIncome, handlePrintReceipt, loadingReceiptId]);
 
   // Handle loading and error states
   if (isLoading) {
@@ -317,43 +292,22 @@ export const IncomeTable = ({
             value: "income-summary",
             label: "Income Summary",
             icon: IndianRupeeIcon,
-            badge: incomeResponse?.total || 0,
+            badge: incomeResponse?.total_count || 0,
             content: (
               <>
-                {/* Empty State for Income Summary */}
-                {!isLoading &&
-                  !error &&
-                  (!incomeData || incomeData.length === 0) && (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">
-                        No income records found
-                      </p>
-                      <Button
-                        variant="outline"
-                        onClick={() => refetch()}
-                        className="mt-2"
-                      >
-                        Refresh
-                      </Button>
-                    </div>
-                  )}
-
-                {/* Income Summary Table */}
-                {!isLoading && incomeData && incomeData.length > 0 && (
-                  <EnhancedDataTable
-                    data={incomeData}
-                    columns={columns}
-                    title="Income Records"
-                    searchKey="receipt_no"
-                    searchPlaceholder="Search by receipt no, student name, or identity no..."
-                    exportable={true}
-                    showActions={true}
-                    actionButtonGroups={actionButtonGroups}
-                    actionButtons={actionButtons}
-                    actionColumnHeader="Actions"
-                    showActionLabels={true}
-                  />
-                )}
+                {/* Income Summary Table (DataTable V2) */}
+                <DataTable<CollegeIncomeSummary>
+                  data={incomeData || []}
+                  columns={columns}
+                  title="Income Records"
+                  searchKey="receipt_no"
+                  searchPlaceholder="Search by receipt no, student name, or identity no..."
+                  loading={isLoading}
+                  export={{ enabled: true, filename: "income-records" }}
+                  actions={actions}
+                  actionsHeader="Actions"
+                  emptyMessage="No income records found"
+                />
               </>
             ),
           },
@@ -361,7 +315,7 @@ export const IncomeTable = ({
             value: "other-income",
             label: "Other Income",
             icon: Receipt,
-            badge: otherIncomeData?.total || 0,
+            badge: otherIncomeData?.total_count || 0,
             content: (
               <OtherIncomeTable
                 fetchOtherIncome={() => getCollegeOtherIncome()}

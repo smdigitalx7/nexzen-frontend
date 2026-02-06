@@ -1,7 +1,7 @@
 ﻿import { useMemo } from "react";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/common/components/ui/select";
+import { SmartSelect } from "@/common/components/ui/smart-select";
 import { Switch } from "@/common/components/ui/switch";
 import { Button } from "@/common/components/ui/button";
 import { DatePicker } from "@/common/components/ui/date-picker";
@@ -23,9 +23,10 @@ type Props = {
   onClassChange: (classId: string) => void;
   onDistanceSlabChange: (slabId: string) => void;
   onSave: () => Promise<void> | void;
+  modal?: boolean;
 };
 
-export default function SchoolReservationEdit({ form, setForm, classFee, transportFee, routes, classes, distanceSlabs, onClassChange, onDistanceSlabChange, onSave }: Props) {
+export default function CollegeReservationEdit({ form, setForm, classFee, transportFee, routes, classes, distanceSlabs, onClassChange, onDistanceSlabChange, onSave, modal = false }: Props) {
   const genderValue = useMemo(() => (form.gender || "OTHER").toString(), [form.gender]);
 
   return (
@@ -41,16 +42,17 @@ export default function SchoolReservationEdit({ form, setForm, classFee, transpo
         </div>
         <div>
           <Label htmlFor="gender">Gender</Label>
-          <Select value={genderValue} onValueChange={(v) => setForm({ ...form, gender: v })}>
-            <SelectTrigger id="gender">
-              <SelectValue placeholder="Select gender" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="MALE">Male</SelectItem>
-              <SelectItem value="FEMALE">Female</SelectItem>
-              <SelectItem value="OTHER">Other</SelectItem>
-            </SelectContent>
-          </Select>
+          <SmartSelect
+            items={[
+              { value: "MALE", label: "Male" },
+              { value: "FEMALE", label: "Female" },
+              { value: "OTHER", label: "Other" },
+            ]}
+            value={genderValue}
+            onSelect={(v: string) => setForm({ ...form, gender: v })}
+            placeholder="Select gender"
+            radioLayout="horizontal"
+          />
         </div>
         <div>
           <Label htmlFor="dob">Date of Birth</Label>
@@ -119,6 +121,7 @@ export default function SchoolReservationEdit({ form, setForm, classFee, transpo
                 onClassChange(value !== null ? value.toString() : "0");
               }}
               placeholder="Select class"
+              modal={modal}
             />
           </div>
           <div>
@@ -194,6 +197,7 @@ export default function SchoolReservationEdit({ form, setForm, classFee, transpo
                 onDistanceSlabChange(valueStr);
               }}
               placeholder="Select distance slab"
+              modal={modal}
             />
           </div>
           <div>

@@ -5,7 +5,8 @@ import { Button } from "@/common/components/ui/button";
 import { Badge } from "@/common/components/ui/badge";
 import { formatCurrency } from "@/common/utils";
 import { ColumnDef } from "@tanstack/react-table";
-import { EnhancedDataTable } from "@/common/components/shared";
+import { DataTable } from "@/common/components/shared";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 import {
   createTextColumn,
   createCurrencyColumn,
@@ -157,17 +158,19 @@ export const StudentFeeBalancesTable = ({
     }),
   ], []);
 
-  // Memoized action button groups
-  const actionButtonGroups = useMemo(() => [
+  // Memoized action configurations
+  const actions: ActionConfig<StudentFeeBalance>[] = useMemo(() => [
     {
-      type: 'view' as const,
+      id: 'view',
+      label: 'View',
+      icon: Eye,
       onClick: onViewStudent
     },
     {
-      type: 'custom' as const,
+      id: 'concession',
       label: 'Concession',
       icon: Wallet,
-      variant: 'outline' as "outline",
+      variant: 'outline',
       onClick: handleOpenConcession
     }
   ], [onViewStudent, handleOpenConcession]);
@@ -194,20 +197,18 @@ export const StudentFeeBalancesTable = ({
       className="space-y-4"
     >
       {/* Enhanced Data Table */}
-      <EnhancedDataTable
+      {/* Data Table V2 */}
+      <DataTable
         data={studentBalances}
         columns={columns}
         title={title}
         searchKey="student_name"
         searchPlaceholder="Search students..."
-        exportable={true}
-        onExport={onExportCSV}
+        export={{ enabled: true, onExport: onExportCSV }}
         onAdd={onBulkCreate}
         addButtonText="Bulk Create"
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
+        actions={actions}
+        actionsHeader="Actions"
         loading={loading}
       />
 

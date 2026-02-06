@@ -11,7 +11,7 @@ import { registerAbortController } from "./request-cancellation";
 // For the simple API, we need to use /api/v1 since the proxy forwards /api to the external server
 // and the external server expects /v1 paths
 // ✅ FIX: Properly type import.meta.env
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) || "/api/v1";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL) || "/api/v1";
 
 // Debug: Log API configuration on module load
 
@@ -639,7 +639,7 @@ export async function api<T = unknown>({
       throw new ApiError(message, res.status, data);
     }
 
-    return data as T;
+    return data;
   } catch (error) {
     clearTimeout(timeoutId);
     unregister(); // CRITICAL: Unregister controller on error

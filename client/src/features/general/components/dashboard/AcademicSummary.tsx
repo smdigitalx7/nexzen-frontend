@@ -1,5 +1,5 @@
 import { Award, TrendingUp } from "lucide-react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 
 interface AcademicSummaryProps {
   data: {
@@ -16,13 +16,13 @@ interface AcademicSummaryProps {
 }
 
 export const AcademicSummary = ({ data }: AcademicSummaryProps) => {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       <div
         className="lg:col-span-6 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-        onClick={() => setLocation("/school/academic")}
+        onClick={() => navigate("/school/academic")}
       >
         <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-white">
           <div className="flex items-center gap-2">

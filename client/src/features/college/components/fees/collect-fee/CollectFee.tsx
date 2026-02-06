@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, startTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useLocation, useSearch } from "wouter";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/common/components/ui/button";
@@ -57,8 +57,9 @@ export const CollectFee = ({
 }: CollectFeeProps) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [, navigate] = useLocation();
-  const search = useSearch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const search = location.search;
   const [selectedStudent, setSelectedStudent] =
     useState<StudentFeeDetails | null>(null);
   const paymentSuccessRef = useRef<string | null>(null);
@@ -75,11 +76,11 @@ export const CollectFee = ({
       newSearchParams.set("admission_no", admissionNo);
       const newSearch = newSearchParams.toString();
       navigate(
-        `${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`,
+        `${location.pathname}${newSearch ? `?${newSearch}` : ""}`,
         { replace: true }
       );
     },
-    [search, navigate]
+    [search, navigate, location.pathname]
   );
 
   // Remove admission number from URL
@@ -87,10 +88,10 @@ export const CollectFee = ({
     const newSearchParams = new URLSearchParams(search);
     newSearchParams.delete("admission_no");
     const newSearch = newSearchParams.toString();
-    navigate(`${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`, {
+    navigate(`${location.pathname}${newSearch ? `?${newSearch}` : ""}`, {
       replace: true,
     });
-  }, [search, navigate]);
+  }, [search, navigate, location.pathname]);
 
   const handleStartPayment = useCallback(
     (studentDetails: StudentFeeDetails) => {

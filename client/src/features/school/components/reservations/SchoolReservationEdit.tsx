@@ -254,6 +254,7 @@ const AcademicDetailsSection = memo(
               onClassChange(value !== null ? value.toString() : "0");
             }}
             placeholder="Select class"
+            modal={true}
           />
         </div>
         <FormField
@@ -420,6 +421,7 @@ const TransportSection = memo(
                   });
                 }}
                 placeholder="Select transport route"
+                modal={true}
               />
             </div>
             <div>
@@ -439,6 +441,7 @@ const TransportSection = memo(
                   onDistanceSlabChange(valueStr);
                 }}
                 placeholder="Select distance slab"
+                modal={true}
               />
             </div>
             <FormField

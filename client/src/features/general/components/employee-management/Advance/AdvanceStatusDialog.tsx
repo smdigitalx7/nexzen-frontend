@@ -44,12 +44,12 @@ const AdvanceStatusDialog = ({ open, onOpenChange, status, onStatusChange, reaso
               <SelectValue placeholder="Select status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="REQUESTED">Requested</SelectItem>
+              {/* <SelectItem value="REQUESTED">Requested</SelectItem> */}
               <SelectItem value="APPROVED">Approved</SelectItem>
-              <SelectItem value="ACTIVE">Active</SelectItem>
+              {/* <SelectItem value="ACTIVE">Active</SelectItem> */}
               <SelectItem value="REJECTED">Rejected</SelectItem>
-              <SelectItem value="CANCELLED">Cancelled</SelectItem>
-              <SelectItem value="REPAID">Repaid</SelectItem>
+              {/* <SelectItem value="CANCELLED">Cancelled</SelectItem> */}
+              {/* <SelectItem value="REPAID">Repaid</SelectItem> */}
             </SelectContent>
           </Select>
         </div>

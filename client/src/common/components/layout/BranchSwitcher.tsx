@@ -2,7 +2,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { Loader } from "@/common/components/ui/ProfessionalLoader";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/common/components/ui/button";
 import {
@@ -19,7 +19,7 @@ import { getLogoByBranchType, getLogoAltByBranchType } from "@/lib/config";
 const BranchSwitcher = () => {
   const { currentBranch, branches, switchBranch, isBranchSwitching } =
     useAuthStore();
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
 
   const handleBranchSwitch = useCallback(
     async (branch: any) => {
@@ -44,7 +44,7 @@ const BranchSwitcher = () => {
         if (window.location.pathname !== equivalentUrl) {
           // Navigate smoothly to the equivalent URL
           // The cache has already been cleared and queries refetched by switchBranch
-          setLocation(equivalentUrl);
+          navigate(equivalentUrl);
           
           // Small delay to ensure navigation completes before any potential refetch
           // This prevents race conditions
@@ -54,13 +54,13 @@ const BranchSwitcher = () => {
           window.dispatchEvent(new Event('branch-switched'));
         }
       } catch (error) {
-        // eslint-disable-next-line no-console
+         
         console.error("Failed to switch branch:", error);
         // Don't logout on error - just show error
         // The error handling in switchBranch should preserve auth state
       }
     },
-    [switchBranch, currentBranch?.branch_type, setLocation]
+    [switchBranch, currentBranch?.branch_type, navigate]
   );
 
   return (

@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import * as React from "react";
-import { BaseDropdown } from "../BaseDropdown";
+import { ServerCombobox } from "@/common/components/ui/server-combobox";
 import { useCollegeGroups } from "@/features/college/hooks/use-college-dropdowns";
 import type { GroupOption } from "@/features/college/types/dropdowns";
 
@@ -16,6 +16,7 @@ export interface CollegeGroupDropdownProps {
   emptyValue?: boolean;
   emptyValueLabel?: string;
   id?: string;
+  modal?: boolean;
 }
 
 /**
@@ -37,6 +38,7 @@ export function CollegeGroupDropdown({
   emptyValue = false,
   emptyValueLabel = "No group",
   id,
+  modal = false,
 }: CollegeGroupDropdownProps) {
   // ✅ OPTIMIZATION: Start with enabled: false - fetch only when dropdown opens
   const [shouldFetch, setShouldFetch] = React.useState(false);
@@ -53,15 +55,15 @@ export function CollegeGroupDropdown({
     }
   }, [classId, value, onChange]);
 
-  const handleChange = React.useCallback(
-    (newValue: number | string | null) => {
-      onChange?.(newValue === null ? null : Number(newValue));
+  const handleSelect = React.useCallback(
+    (newValue: string) => {
+      onChange?.(newValue ? Number(newValue) : null);
     },
     [onChange]
   );
 
   // ✅ OPTIMIZATION: Trigger fetch when dropdown opens
-  const handleOpenChange = React.useCallback(
+  const handleDropdownOpen = React.useCallback(
     (open: boolean) => {
       if (open && !shouldFetch) {
         setShouldFetch(true);
@@ -74,33 +76,34 @@ export function CollegeGroupDropdown({
   // Allow dropdown to work when classId is undefined (shows all groups)
   const isDisabled = disabled || (classId !== undefined && classId <= 0);
 
+  const displayPlaceholder = 
+    classId !== undefined && classId <= 0
+      ? "Select class first"
+      : isLoading
+      ? "Loading groups..."
+      : placeholder;
+
   return (
-    <BaseDropdown<GroupOption>
-      value={value}
-      onChange={handleChange}
-      options={options}
+    <ServerCombobox<GroupOption>
+      items={options}
+      value={value ? String(value) : ""}
+      onSelect={handleSelect}
       isLoading={isLoading}
-      error={error}
       disabled={isDisabled}
-      required={required}
-      placeholder={
+      placeholder={displayPlaceholder}
+      searchPlaceholder="Search group..."
+      emptyText={
         classId !== undefined && classId <= 0
           ? "Select class first"
-          : isLoading
-          ? "Loading groups..."
-          : placeholder
+          : error
+          ? "Failed to load groups"
+          : "No groups found."
       }
       className={className}
-      id={id}
-      getValue={(option) => option.group_id}
-      getLabel={(option) => option.group_name}
-      noOptionsText="No groups available"
-      loadingText="Loading groups..."
-      errorText="Failed to load groups"
-      onRetry={() => refetch()}
-      emptyValue={emptyValue}
-      emptyValueLabel={emptyValueLabel}
-      onOpenChange={handleOpenChange}
+      valueKey="group_id"
+      labelKey="group_name"
+      onDropdownOpen={handleDropdownOpen}
+      modal={modal}
     />
   );
 }

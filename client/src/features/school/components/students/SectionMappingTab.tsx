@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect, useMemo } from 'react';
+﻿import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card';
 import { Alert, AlertDescription } from '@/common/components/ui/alert';
 import { Info } from 'lucide-react';
@@ -9,14 +9,8 @@ import { Checkbox } from '@/common/components/ui/checkbox';
 import { Button } from '@/common/components/ui/button';
 import { useToast } from '@/common/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/common/components/ui/table';
+import { DataTable } from '@/common/components/shared';
+import type { ColumnDef } from "@tanstack/react-table";
 import type { SchoolEnrollmentForSectionAssignment, AssignSectionsRequest } from '@/features/school/types';
 
 const SectionMappingTab = () => {
@@ -30,44 +24,29 @@ const SectionMappingTab = () => {
   const { data: sectionsData } = useSchoolSections(selectedClassId || 0);
   const assignSectionsMutation = useAssignSectionsToEnrollments();
 
-  // Toggle selection for a single enrollment
-  const toggleEnrollment = (enrollmentId: number) => {
-    setSelectedEnrollments((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(enrollmentId)) {
-        newSet.delete(enrollmentId);
-      } else {
-        newSet.add(enrollmentId);
-      }
-      return newSet;
-    });
-  };
+  // Handle selection change from DataTable
+  const onSelectionChange = useCallback((rows: SchoolEnrollmentForSectionAssignment[]) => {
+    setSelectedEnrollments(new Set(rows.map(r => r.enrollment_id)));
+  }, []);
 
-  // Toggle select all
-  const toggleSelectAll = () => {
-    if (selectedEnrollments.size === enrollments.length) {
-      setSelectedEnrollments(new Set());
-    } else {
-      setSelectedEnrollments(new Set(enrollments.map((e) => e.enrollment_id)));
-    }
-  };
+  // Define columns
+  const columns: ColumnDef<SchoolEnrollmentForSectionAssignment>[] = useMemo(() => [
+    { accessorKey: "alphabetical_order", header: "Alphabetical Order" },
+    { accessorKey: "admission_no", header: "Admission No" },
+    { accessorKey: "student_name", header: "Student Name" },
+    { 
+      accessorKey: "current_section_name", 
+      header: "Current Section", 
+      cell: ({ row }) => row.original.current_section_name || 'Not assigned' 
+    },
+    { 
+      accessorKey: "current_roll_number", 
+      header: "Current Roll Number", 
+      cell: ({ row }) => row.original.current_roll_number || '-' 
+    },
+  ], []);
+  
 
-  // Check if all are selected
-  const isAllSelected = enrollments.length > 0 && selectedEnrollments.size === enrollments.length;
-  const isIndeterminate = selectedEnrollments.size > 0 && selectedEnrollments.size < enrollments.length;
-  
-  // Ref for select all checkbox to set indeterminate state
-  const selectAllCheckboxRef = useRef<HTMLButtonElement>(null);
-  
-  useEffect(() => {
-    if (selectAllCheckboxRef.current) {
-      // Set indeterminate state on the underlying input element
-      const input = selectAllCheckboxRef.current.querySelector('input');
-      if (input) {
-        input.indeterminate = isIndeterminate;
-      }
-    }
-  }, [isIndeterminate]);
 
   // Get selected enrollments with their data, sorted by alphabetical order
   const selectedEnrollmentsData = useMemo(() => {
@@ -219,50 +198,14 @@ const SectionMappingTab = () => {
             </Alert>
           ) : (
             <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox
-                        id="select-all-students"
-                        ref={selectAllCheckboxRef}
-                        checked={isAllSelected}
-                        onCheckedChange={toggleSelectAll}
-                        aria-label="Select all students"
-                      />
-                    </TableHead>
-                    <TableHead>Alphabetical Order</TableHead>
-                    <TableHead>Admission No</TableHead>
-                    <TableHead>Student Name</TableHead>
-                    <TableHead>Current Section</TableHead>
-                    <TableHead>Current Roll Number</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {enrollments.map((enrollment) => (
-                    <TableRow
-                      key={enrollment.enrollment_id}
-                      className={selectedEnrollments.has(enrollment.enrollment_id) ? 'bg-muted/50' : ''}
-                    >
-                      <TableCell>
-                        <Checkbox
-                          id={`select-student-${enrollment.enrollment_id}`}
-                          checked={selectedEnrollments.has(enrollment.enrollment_id)}
-                          onCheckedChange={() => toggleEnrollment(enrollment.enrollment_id)}
-                          aria-label={`Select ${enrollment.student_name}`}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {enrollment.alphabetical_order}
-                      </TableCell>
-                      <TableCell>{enrollment.admission_no}</TableCell>
-                      <TableCell>{enrollment.student_name}</TableCell>
-                      <TableCell>{enrollment.current_section_name || 'Not assigned'}</TableCell>
-                      <TableCell>{enrollment.current_roll_number || '-'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <DataTable
+                data={enrollments}
+                columns={columns}
+                selectable={true}
+                onSelectionChange={onSelectionChange}
+                searchKey="student_name"
+                searchPlaceholder="Search students..."
+              />
             </div>
           )}
         </CardContent>

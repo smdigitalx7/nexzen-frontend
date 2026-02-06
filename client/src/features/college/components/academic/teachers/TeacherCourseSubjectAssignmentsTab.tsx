@@ -103,8 +103,12 @@ export const TeacherCourseSubjectAssignmentsTab = ({
   const hierarchicalAssignments = useMemo(() => {
     const teacherMap = new Map<number, any>();
 
+    if (!Array.isArray(assignments)) return [];
+
     assignments.forEach((assignment) => {
-      assignment.teachers?.forEach((teacher: any) => {
+      if (!Array.isArray(assignment.teachers)) return;
+      
+      assignment.teachers.forEach((teacher: any) => {
         const teacherId = teacher.teacher_id;
 
         if (!teacherMap.has(teacherId)) {
@@ -152,20 +156,21 @@ export const TeacherCourseSubjectAssignmentsTab = ({
       ...teacher,
       groups: Array.from(teacher.groups.values()).map((group: any) => ({
         ...group,
-        courses: Array.from(group.courses.values()),
+        courses: Array.from((group.courses as Map<any, any>).values()),
       })),
     }));
   }, [assignments]);
 
   // Filter teachers based on search query
   const filteredAssignments = useMemo(() => {
+    if (!Array.isArray(hierarchicalAssignments)) return [];
     if (!searchQuery.trim()) {
       return hierarchicalAssignments;
     }
     const query = searchQuery.toLowerCase().trim();
     return hierarchicalAssignments.filter((teacher) => {
       const teacherDetails = teacherDetailsMap.get(teacher.employee_id);
-      const nameMatch = teacher.teacher_name.toLowerCase().includes(query);
+      const nameMatch = (teacher.teacher_name || "").toLowerCase().includes(query);
       const codeMatch = teacherDetails?.employee_code
         ?.toLowerCase()
         .includes(query);
@@ -175,19 +180,25 @@ export const TeacherCourseSubjectAssignmentsTab = ({
   }, [hierarchicalAssignments, searchQuery, teacherDetailsMap]);
 
   // Calculate total assignments
-  const totalAssignments = filteredAssignments.reduce((acc, teacher) => {
-    return (
-      acc +
-      teacher.groups.reduce((groupAcc: number, group: any) => {
-        return (
-          groupAcc +
-          group.courses.reduce((courseAcc: number, course: any) => {
-            return courseAcc + course.subjects.length;
-          }, 0)
-        );
-      }, 0)
-    );
-  }, 0);
+  const totalAssignments = useMemo(() => {
+    if (!Array.isArray(filteredAssignments)) return 0;
+    return filteredAssignments.reduce((acc, teacher) => {
+      const groups = Array.isArray(teacher.groups) ? teacher.groups : [];
+      return (
+        acc +
+        groups.reduce((groupAcc: number, group: any) => {
+          const courses = Array.isArray(group.courses) ? group.courses : [];
+          return (
+            groupAcc +
+            courses.reduce((courseAcc: number, course: any) => {
+              const subjects = Array.isArray(course.subjects) ? course.subjects : [];
+              return courseAcc + subjects.length;
+            }, 0)
+          );
+        }, 0)
+      );
+    }, 0);
+  }, [filteredAssignments]);
 
   // Export to Excel - transform teacher-centric data back to group-centric for export
   const handleExportToExcel = async () => {
@@ -459,7 +470,7 @@ export const TeacherCourseSubjectAssignmentsTab = ({
 
                   <CollapsibleContent>
                     <CardContent className="pt-0 space-y-4">
-                      {teacher.groups.map((group: any) => (
+                      {Array.isArray(teacher.groups) && teacher.groups.map((group: any) => (
                         <div key={group.group_id} className="space-y-3">
                           {/* Group Header */}
                           <div className="flex items-center gap-2 pb-2 border-b">
@@ -477,7 +488,7 @@ export const TeacherCourseSubjectAssignmentsTab = ({
 
                           {/* Courses */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pl-2">
-                            {group.courses.map((course: any) => (
+                            {Array.isArray(group.courses) && group.courses.map((course: any) => (
                               <div
                                 key={course.course_id}
                                 className="rounded-lg border bg-card p-4 space-y-3"
@@ -501,7 +512,7 @@ export const TeacherCourseSubjectAssignmentsTab = ({
                                 </div>
 
                                 {/* Subjects */}
-                                {course.subjects.length > 0 ? (
+                                {Array.isArray(course.subjects) && course.subjects.length > 0 ? (
                                   <div className="flex flex-col gap-2">
                                     {course.subjects.map((subject: any) => (
                                       <div

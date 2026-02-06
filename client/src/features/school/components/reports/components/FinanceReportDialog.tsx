@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { 
   Dialog, 
@@ -27,7 +27,7 @@ import { formatCurrency } from '@/common/utils';
 import { SchoolFinanceReport } from '@/features/school/types/income';
 import { exportFinanceReportToExcel, exportFinanceReportToPDF, generateExportFilename } from '@/common/utils/export/export-utils';
 import { Loader } from '@/common/components/ui/ProfessionalLoader';
-import { EnhancedDataTable } from '@/common/components/shared/EnhancedDataTable';
+import { DataTable } from '@/common/components/shared/DataTable';
 import { ColumnDef } from '@tanstack/react-table';
 
 interface FinanceReportDialogProps {
@@ -291,13 +291,12 @@ export const FinanceReportDialog: React.FC<FinanceReportDialogProps> = ({
                         { accessorKey: 'created_by', header: 'Created By' },
                       ];
                       return (
-                        <EnhancedDataTable<Row>
+                        <DataTable<Row>
                           data={report.income_object.income_list}
                           columns={columns}
-                          title={undefined}
                           searchKey={'student_name' as keyof Row}
-                          exportable={false}
                           showSearch={true}
+                          emptyMessage="No income details"
                         />
                       );
                     })()}
@@ -335,13 +334,12 @@ export const FinanceReportDialog: React.FC<FinanceReportDialogProps> = ({
                         { accessorKey: 'created_by', header: 'Created By' },
                       ];
                       return (
-                        <EnhancedDataTable<Row>
+                        <DataTable<Row>
                           data={report.expenditure_object.expenditure_list}
                           columns={columns}
-                          title={undefined}
                           searchKey={'purpose' as keyof Row}
-                          exportable={false}
                           showSearch={true}
+                          emptyMessage="No expenditure details"
                         />
                       );
                     })()}

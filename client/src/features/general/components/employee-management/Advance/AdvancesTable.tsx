@@ -1,12 +1,12 @@
 import { useMemo, memo } from "react";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { DataTable } from "@/common/components/shared/DataTable";
+import { Eye, Edit, Coins } from "lucide-react";
 import { useCanViewUIComponent, useCanCreate } from "@/core/permissions";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   createTextColumn,
   createDateColumn
 } from "@/common/utils/factory/columnFactories";
-import { Coins } from "lucide-react";
 
 interface EmployeeAdvanceRead {
   advance_id: number;
@@ -124,25 +124,26 @@ const AdvancesTableComponent = ({
   const canEditAdvance = useCanViewUIComponent("employee_advances", "button", "advance-edit");
   const canCreateAdvance = useCanCreate("employee_advances");
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
-    {
-      type: 'view' as const,
-      onClick: (row: EmployeeAdvanceRead) => onViewAdvance(row)
-    },
-    {
-      type: 'edit' as const,
-      onClick: (row: EmployeeAdvanceRead) => onEditAdvance(row),
-      show: () => canEditAdvance
-    }
-  ], [onViewAdvance, onEditAdvance, canEditAdvance]);
-
-  // Action buttons for update amount paid
-  const actionButtons = useMemo(() => {
-    if (!onUpdateAmount) return [];
-    
-    return [
+  // ✅ MIGRATED: Use DataTable V2 actions format
+  const actions = useMemo(() => {
+    const baseActions: any[] = [
       {
+        id: "view",
+        label: "View",
+        icon: Eye,
+        onClick: (row: EmployeeAdvanceRead) => onViewAdvance(row)
+      },
+      {
+        id: "edit",
+        label: "Edit",
+        icon: Edit,
+        onClick: (row: EmployeeAdvanceRead) => onEditAdvance(row),
+        show: (row: EmployeeAdvanceRead) => canEditAdvance && row.status?.toUpperCase() !== "REPAID"
+      }
+    ];
+
+    if (onUpdateAmount) {
+      baseActions.push({
         id: "update-amount-paid",
         label: "Update Amount Paid",
         icon: Coins,
@@ -154,33 +155,24 @@ const AdvancesTableComponent = ({
           return (status === "ACTIVE" || status === "APPROVED") &&
                  (row.remaining_balance ?? row.advance_amount) > 0;
         },
-      },
-    ];
-  }, [onUpdateAmount]);
+      });
+    }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+    return baseActions;
+  }, [onViewAdvance, onEditAdvance, onUpdateAmount, canEditAdvance]);
 
   return (
-    <EnhancedDataTable
+    <DataTable
       data={advances}
       columns={columns as any}
       title="Employee Advances"
+      loading={isLoading}
       searchKey="employee_name"
       showSearch={showSearch}
-      exportable={true}
+      export={{ enabled: true, filename: "advances" }}
       onAdd={canCreateAdvance ? onAddAdvance : undefined}
       addButtonText="Add Advance"
-      showActions={true}
-      actionButtonGroups={actionButtonGroups}
-      actionButtons={actionButtons}
-      actionColumnHeader="Actions"
-      showActionLabels={false}
+      actions={actions}
     />
   );
 };

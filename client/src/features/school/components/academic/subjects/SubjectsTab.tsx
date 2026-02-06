@@ -1,9 +1,9 @@
 ﻿import { useState, useMemo, memo, useCallback } from "react";
-import { BookOpen } from "lucide-react";
+import { DataTable, FormDialog, ConfirmDialog } from "@/common/components/shared";
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
-import { FormDialog, ConfirmDialog } from "@/common/components/shared";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import type { ActionConfig } from "@/common/components/shared/DataTable/types";
+import { BookOpen, Edit, Trash2 } from "lucide-react";
 import { useCreateSchoolSubject, useUpdateSchoolSubject, useDeleteSchoolSubject } from '@/features/school/hooks';
 import { useToast } from '@/common/hooks/use-toast';
 import type { ColumnDef } from "@tanstack/react-table";
@@ -140,25 +140,30 @@ const SubjectsTabComponent = ({
   const canEditSubject = useCanViewUIComponent("subjects", "button", "subject-edit");
   const canDeleteSubject = useCanViewUIComponent("subjects", "button", "subject-delete");
 
-  // Memoized action button groups
-  const actionButtonGroups = useMemo(() => {
-    const buttons = [];
+  // Action configurations for DataTable V2
+  const actions: ActionConfig<SchoolSubjectRead>[] = useMemo(() => {
+    const acts: ActionConfig<SchoolSubjectRead>[] = [];
     
     if (canEditSubject) {
-      buttons.push({
-        type: 'edit' as const,
+      acts.push({
+        id: "edit",
+        label: "Edit",
+        icon: Edit,
         onClick: handleEditClick
       });
     }
     
     if (canDeleteSubject) {
-      buttons.push({
-        type: 'delete' as const,
+      acts.push({
+        id: "delete",
+        label: "Delete",
+        icon: Trash2,
+        variant: "destructive",
         onClick: handleDeleteClick
       });
     }
     
-    return buttons;
+    return acts;
   }, [handleEditClick, handleDeleteClick, canEditSubject, canDeleteSubject]);
 
   // Memoized dialog close handlers
@@ -197,18 +202,17 @@ const SubjectsTabComponent = ({
 
   return (
     <div className="space-y-4">
-      <EnhancedDataTable
+      <DataTable
         data={backendSubjects}
         columns={columns}
         title="Subjects"
         searchKey="subject_name"
-        exportable={true}
+        export={{ enabled: true, filename: "subjects" }}
         onAdd={canAddSubject ? () => setIsAddSubjectOpen(true) : undefined}
         addButtonText="Add Subject"
-        showActions={true}
-        actionButtonGroups={actionButtonGroups}
-        actionColumnHeader="Actions"
-        showActionLabels={true}
+        actions={actions}
+        actionsHeader="Actions"
+        loading={subjectsLoading}
       />
 
       {/* Add Subject Dialog */}

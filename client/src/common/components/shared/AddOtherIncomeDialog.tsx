@@ -131,11 +131,12 @@ export const AddOtherIncomeDialog = ({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>
+                  <FormLabel htmlFor="income-name">
                     Name <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
                     <Input
+                      id="income-name"
                       placeholder="e.g., Donation, Grant, Rental Income"
                       {...field}
                       disabled={isSubmitting}
@@ -151,9 +152,10 @@ export const AddOtherIncomeDialog = ({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormLabel htmlFor="income-description">Description (Optional)</FormLabel>
                   <FormControl>
                     <Textarea
+                      id="income-description"
                       placeholder="Add any additional details..."
                       rows={3}
                       {...field}
@@ -170,11 +172,12 @@ export const AddOtherIncomeDialog = ({
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>
+                  <FormLabel htmlFor="income-amount">
                     Amount <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
                     <Input
+                      id="income-amount"
                       type="number"
                       step="0.01"
                       min="0.01"
@@ -201,11 +204,12 @@ export const AddOtherIncomeDialog = ({
               name="income_date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>
+                  <FormLabel htmlFor="income-date">
                     Income Date <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
                     <DatePicker
+                      id="income-date"
                       value={field.value || ""}
                       onChange={field.onChange}
                       placeholder="Select income date"

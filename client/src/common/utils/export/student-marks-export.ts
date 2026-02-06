@@ -372,82 +372,93 @@ export const exportStudentMarksToPDF = (
     doc.text(`Overall Percentage: ${overallPercentage.toFixed(2)}%`, margin, yPosition);
     yPosition += 10;
 
-    // Subject-wise marks
-    marksData.subjects.forEach((subject, subjectIndex) => {
-      checkPageBreak(30);
-      
-      // Subject header
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.text(subject.subject_name, margin, yPosition);
-      yPosition += 8;
-
-      // Calculate subject totals
-      const examTotal = subject.exam_marks.reduce((sum, exam) => sum + exam.marks_obtained, 0);
-      const examMax = subject.exam_marks.reduce((sum, exam) => sum + exam.max_marks, 0);
-      const testTotal = subject.test_marks.reduce((sum, test) => sum + test.marks_obtained, 0);
-      const testMax = subject.test_marks.reduce((sum, test) => sum + test.max_marks, 0);
-      const totalObtained = examTotal + testTotal;
-      const totalMax = examMax + testMax;
-      const percentage = totalMax > 0 ? (totalObtained / totalMax) * 100 : 0;
-
-      // Exams
-      if (subject.exam_marks.length > 0) {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.text('Exams:', margin + 5, yPosition);
-        yPosition += 6;
-        doc.setFont('helvetica', 'normal');
-        subject.exam_marks.forEach((exam) => {
-          checkPageBreak(8);
-          doc.setFontSize(9);
-          doc.text(
-            `  ${exam.exam_name}: ${exam.marks_obtained}/${exam.max_marks} (${exam.percentage.toFixed(2)}%)${exam.grade ? ` - Grade: ${exam.grade}` : ''}`,
-            margin + 5,
-            yPosition
-          );
-          yPosition += 6;
+    // Tabular format: build rows
+    const tableRows: Array<{ subject: string; type: string; assessment: string; max: number; obtained: number; pct: number; grade: string }> = [];
+    marksData.subjects.forEach((subject) => {
+      subject.exam_marks.forEach((exam) => {
+        tableRows.push({
+          subject: subject.subject_name,
+          type: 'Exam',
+          assessment: exam.exam_name,
+          max: exam.max_marks,
+          obtained: exam.marks_obtained,
+          pct: exam.percentage,
+          grade: exam.grade ?? '-'
         });
-      }
-
-      // Tests
-      if (subject.test_marks.length > 0) {
-        checkPageBreak(10);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.text('Tests:', margin + 5, yPosition);
-        yPosition += 6;
-        doc.setFont('helvetica', 'normal');
-        subject.test_marks.forEach((test) => {
-          checkPageBreak(8);
-          doc.setFontSize(9);
-          doc.text(
-            `  ${test.test_name}: ${test.marks_obtained}/${test.max_marks} (${test.percentage.toFixed(2)}%)${test.grade ? ` - Grade: ${test.grade}` : ''}`,
-            margin + 5,
-            yPosition
-          );
-          yPosition += 6;
+      });
+      subject.test_marks.forEach((test) => {
+        tableRows.push({
+          subject: subject.subject_name,
+          type: 'Test',
+          assessment: test.test_name,
+          max: test.max_marks,
+          obtained: test.marks_obtained,
+          pct: test.percentage,
+          grade: test.grade ?? '-'
         });
-      }
+      });
+    });
 
-      // Subject summary
-      checkPageBreak(8);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.text(
-        `Subject Total: ${totalObtained}/${totalMax} (${percentage.toFixed(2)}%)`,
-        margin + 5,
-        yPosition
-      );
-      yPosition += 10;
+    // Table layout (column width proportions)
+    const colWidths = [32, 18, 45, 18, 22, 18, 18];
+    const colSum = colWidths.reduce((a, b) => a + b, 0);
+    const rowHeight = 7;
+    const tableLeft = margin;
+    const tableWidth = pageWidth - 2 * margin;
 
-      // Add separator between subjects
-      if (subjectIndex < marksData.subjects.length - 1) {
-        checkPageBreak(5);
-        doc.setDrawColor(200, 200, 200);
-        doc.line(margin, yPosition, pageWidth - margin, yPosition);
-        yPosition += 5;
+    const getColRight = (colIndex: number) => {
+      let x = tableLeft;
+      for (let i = 0; i <= colIndex; i++) x += (tableWidth * colWidths[i]) / colSum;
+      return x;
+    };
+
+    // Table header
+    checkPageBreak(rowHeight * 2);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    const headers = ['Subject', 'Type', 'Assessment', 'Max', 'Obtained', '%', 'Grade'];
+    headers.forEach((h, i) => {
+      const left = i === 0 ? tableLeft : getColRight(i - 1);
+      const right = getColRight(i);
+      doc.text(h, i >= 3 ? right - 2 : left + 2, yPosition + 4, { align: i >= 3 ? 'right' : 'left' });
+    });
+    doc.setDrawColor(0, 0, 0);
+    doc.line(tableLeft, yPosition, tableLeft + tableWidth, yPosition);
+    doc.line(tableLeft, yPosition + rowHeight, tableLeft + tableWidth, yPosition + rowHeight);
+    for (let i = 0; i <= colWidths.length; i++) {
+      const x = i === 0 ? tableLeft : getColRight(i - 1);
+      doc.line(x, yPosition, x, yPosition + rowHeight);
+    }
+    doc.line(tableLeft + tableWidth, yPosition, tableLeft + tableWidth, yPosition + rowHeight);
+    yPosition += rowHeight;
+
+    // Data rows
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    tableRows.forEach((row) => {
+      checkPageBreak(rowHeight + 2);
+      const cells = [
+        row.subject.length > 20 ? row.subject.substring(0, 18) + '..' : row.subject,
+        row.type,
+        row.assessment.length > 28 ? row.assessment.substring(0, 26) + '..' : row.assessment,
+        String(row.max),
+        String(row.obtained),
+        row.pct.toFixed(1) + '%',
+        row.grade
+      ];
+      cells.forEach((cell, i) => {
+        const left = i === 0 ? tableLeft : getColRight(i - 1);
+        const right = getColRight(i);
+        doc.text(cell, i >= 3 ? right - 2 : left + 2, yPosition + 4, { align: i >= 3 ? 'right' : 'left' });
+      });
+      doc.setDrawColor(200, 200, 200);
+      doc.line(tableLeft, yPosition + rowHeight, tableLeft + tableWidth, yPosition + rowHeight);
+      for (let i = 0; i <= colWidths.length; i++) {
+        const x = i === 0 ? tableLeft : getColRight(i - 1);
+        doc.line(x, yPosition, x, yPosition + rowHeight);
       }
+      doc.line(tableLeft + tableWidth, yPosition, tableLeft + tableWidth, yPosition + rowHeight);
+      yPosition += rowHeight;
     });
 
     // Save PDF

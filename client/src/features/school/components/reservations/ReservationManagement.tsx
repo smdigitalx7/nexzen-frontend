@@ -1149,9 +1149,9 @@ const ReservationManagementComponent = () => {
     pickup_point: r.pickup_point || "",
     transport_fee: r.transport_fee != null ? String(r.transport_fee) : "0",
     status: r.status || "PENDING",
-    request_type: (r as any).request_type || "WALK_IN",
+    request_type: (r).request_type || "WALK_IN",
     referred_by: r.referred_by != null ? String(r.referred_by) : "",
-    referred_by_name: (r as any).referred_by_name || "",
+    referred_by_name: (r).referred_by_name || "",
     remarks: r.remarks || "",
     reservation_date: r.reservation_date || "",
   });
@@ -1280,7 +1280,7 @@ const ReservationManagementComponent = () => {
                 created_at: new Date().toISOString(),
                 tuition_fee: reservation.tuition_fee || 0,
                 book_fee: reservation.book_fee || 0,
-                status: reservation.status as SchoolReservationStatusEnum,
+                status: reservation.status,
               };
               setReservationToDelete(reservationToDelete);
               setShowDeleteDialog(true);

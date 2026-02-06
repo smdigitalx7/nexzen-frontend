@@ -1,19 +1,19 @@
-﻿import { useEffect } from "react";
-import { useLocation } from "wouter";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/common/components/ui/card";
 import { AlertCircle } from "lucide-react";
 
 export default function NotFound() {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Auto-redirect to dashboard after 2 seconds
     const timer = setTimeout(() => {
-      setLocation("/");
+      navigate("/");
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [setLocation]);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">

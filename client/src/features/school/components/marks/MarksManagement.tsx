@@ -1,31 +1,22 @@
-﻿import { memo, useMemo, useCallback, useState } from "react";
+import { memo, useMemo, useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import {
   GraduationCap,
   ClipboardList,
   FileText,
-  Calculator,
-  Target,
   Building2,
-  TrophyIcon,
   BarChart3,
 } from "lucide-react";
 import { Badge } from "@/common/components/ui/badge";
 import { TabSwitcher } from "@/common/components/shared";
-import { StatsCard } from "@/common/components/shared/dashboard/StatsCard";
-import { DashboardGrid } from "@/common/components/shared/dashboard/DashboardGrid";
-import {
-  useMarksStatistics,
-  type MarksData,
-} from "@/features/school/hooks";
+import { type MarksData } from "@/features/school/hooks";
 import { useTabNavigation } from "@/common/hooks/use-tab-navigation";
 import ExamMarksManagement from "./ExamMarksManagement";
 import TestMarksManagement from "./TestMarksManagement";
 import { 
   ExamMarksReport, 
   TestMarksReport,
-  StudentMarksSearchView,
-  StudentPerformanceSearchView,
+  StudentReportView,
 } from "./components";
 import { useAuthStore } from "@/core/auth/authStore";
 import { useFilteredTabs } from "@/core/permissions";
@@ -51,15 +42,6 @@ const MarksManagementComponent = () => {
   const [testSelectedSubject, setTestSelectedSubject] = useState<number | null>(null);
   const [testSelectedGrade, setTestSelectedGrade] = useState("all");
   const [testSelectedTest, setTestSelectedTest] = useState<number | null>(null);
-
-  // Memoized current marks data
-  const currentMarksData = useMemo(
-    () => (activeTab === "exam-marks" ? examMarksData : testMarksData),
-    [activeTab, examMarksData, testMarksData]
-  );
-
-  // Calculate statistics for current active tab
-  const statistics = useMarksStatistics(currentMarksData);
 
   // Memoized tab change handler
   const handleTabChange = useCallback(
@@ -94,13 +76,8 @@ const MarksManagementComponent = () => {
         };
       case "reports":
         return {
-          title: "Marks Reports",
-          description: "Generate and view comprehensive marks reports",
-        };
-      case "student-views":
-        return {
-          title: "Student Views",
-          description: "View individual student marks and performance",
+          title: "Reports",
+          description: "Exam reports, test reports, and student reports",
         };
       default:
         return {
@@ -110,42 +87,8 @@ const MarksManagementComponent = () => {
     }
   }, [activeTab]);
 
-  // Memoized statistics cards
-  const statisticsCards = useMemo(
-    () => [
-      {
-        title: `Total ${activeTab === "exam-marks" ? "Marks" : "Tests"}`,
-        value: statistics.totalMarks,
-        icon: FileText,
-        color: "blue" as const,
-      },
-      {
-        title: "Avg Score",
-        value: `${statistics.avgPercentage}%`,
-        icon: Calculator,
-        color: "green" as const,
-      },
-      {
-        title: "Pass Rate",
-        value: `${statistics.passPercentage}%`,
-        icon: Target,
-        color: "purple" as const,
-      },
-      {
-        title: "Top Score",
-        value: `${statistics.topScore}%`,
-        icon: TrophyIcon,
-        color: "orange" as const,
-      },
-    ],
-    [activeTab, statistics]
-  );
-
-  // Reports tab state
-  const [reportsActiveTab, setReportsActiveTab] = useState<"exam" | "test">("exam");
-  
-  // Student Views tab state
-  const [studentViewsActiveTab, setStudentViewsActiveTab] = useState<"marks" | "performance">("marks");
+  // Reports tab state: Exam Reports | Test Reports | Student Reports
+  const [reportsActiveTab, setReportsActiveTab] = useState<"exam" | "test" | "student">("exam");
 
   // Memoized tabs configuration - components receive props but instances stay stable
   // ✅ OPTIMIZATION: TabSwitcher defaults to forceMount={false}, so inactive tabs are not mounted
@@ -199,8 +142,9 @@ const MarksManagementComponent = () => {
         label: "Reports",
         icon: BarChart3,
         content: (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <TabSwitcher
+              variant="subtab"
               tabs={[
                 {
                   value: "exam",
@@ -214,36 +158,15 @@ const MarksManagementComponent = () => {
                   icon: ClipboardList,
                   content: <TestMarksReport />,
                 },
+                {
+                  value: "student",
+                  label: "Student Reports",
+                  icon: FileText,
+                  content: <StudentReportView />,
+                },
               ]}
               activeTab={reportsActiveTab}
-              onTabChange={(value) => setReportsActiveTab(value as "exam" | "test")}
-            />
-          </div>
-        ),
-      },
-      {
-        value: "student-views",
-        label: "Student Views",
-        icon: FileText,
-        content: (
-          <div className="space-y-6">
-            <TabSwitcher
-              tabs={[
-                {
-                  value: "marks",
-                  label: "Marks View",
-                  icon: FileText,
-                  content: <StudentMarksSearchView />,
-                },
-                {
-                  value: "performance",
-                  label: "Performance View",
-                  icon: BarChart3,
-                  content: <StudentPerformanceSearchView />,
-                },
-              ]}
-              activeTab={studentViewsActiveTab}
-              onTabChange={(value) => setStudentViewsActiveTab(value as "marks" | "performance")}
+              onTabChange={(value) => setReportsActiveTab(value as "exam" | "test" | "student")}
             />
           </div>
         ),
@@ -263,7 +186,6 @@ const MarksManagementComponent = () => {
       testSelectedGrade,
       testSelectedTest,
       reportsActiveTab,
-      studentViewsActiveTab,
     ]
   );
 
@@ -297,29 +219,6 @@ const MarksManagementComponent = () => {
               </Badge>
             </div>
           </motion.div>
-
-          {/* Statistics Cards - Only show for Marks and Tests tabs */}
-          {(activeTab === "exam-marks" || activeTab === "test-marks") && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <DashboardGrid columns={4} gap="md">
-                {statisticsCards.map((card, index) => (
-                  <StatsCard
-                    key={`${card.title}-${index}`}
-                    title={card.title}
-                    value={card.value}
-                    icon={card.icon}
-                    color={card.color}
-                    variant="elevated"
-                    size="md"
-                  />
-                ))}
-              </DashboardGrid>
-            </motion.div>
-          )}
 
           {/* Main Content */}
           <TabSwitcher

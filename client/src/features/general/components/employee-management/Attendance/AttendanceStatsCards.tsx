@@ -46,7 +46,7 @@ export const AttendanceStatsCards: React.FC<AttendanceStatsCardsProps> = ({
       title: "Average Attendance",
       value: `${stats.average_attendance_rate.toFixed(1)}%`,
       icon: TrendingUp,
-      color: (stats.average_attendance_rate >= 90 ? "green" : stats.average_attendance_rate >= 80 ? "yellow" : "red") as "green" | "yellow" | "red",
+      color: (stats.average_attendance_rate >= 90 ? "green" : stats.average_attendance_rate >= 80 ? "yellow" : "red"),
       description: "Overall attendance rate",
       variant: "gradient" as const,
       size: "sm" as const,

@@ -1,5 +1,5 @@
 ﻿import { useEffect } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/core/auth/authStore';
 import { useAuthHydration } from '@/common/hooks/useAuthHydration';
 import { brand } from '@/lib/config';
@@ -45,7 +45,7 @@ const routeTitleMap: Record<string, string> = {
  * Updates title with format: "Page Title | Velonex"
  */
 export function useDocumentTitle() {
-  const [location] = useLocation();
+  const location = useLocation();
   const { currentBranch, isAuthenticated, isAuthInitializing, user } = useAuthStore();
   const isHydrated = useAuthHydration();
 
@@ -73,7 +73,7 @@ export function useDocumentTitle() {
     }
 
     // Get page title from route
-    const pageTitle = routeTitleMap[location] || brandName;
+    const pageTitle = routeTitleMap[location.pathname] || brandName;
     
     // Get branch name if available
     const branchName = currentBranch?.branch_name 
@@ -87,6 +87,6 @@ export function useDocumentTitle() {
     
     // Update document title
     document.title = fullTitle;
-  }, [location, currentBranch, isAuthenticated, isAuthInitializing, user, isHydrated]);
+  }, [location.pathname, currentBranch, isAuthenticated, isAuthInitializing, user, isHydrated]);
 }
 

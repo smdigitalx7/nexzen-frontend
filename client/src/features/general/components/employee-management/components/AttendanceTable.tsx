@@ -1,6 +1,6 @@
 ﻿import { useMemo } from "react";
-import { Plus } from "lucide-react";
-import { EnhancedDataTable } from "@/common/components/shared/EnhancedDataTable";
+import { Plus, Eye, Edit, Trash2 } from "lucide-react";
+import { DataTable } from "@/common/components/shared/DataTable";
 import { Button } from "@/common/components/ui/button";
 import { useCanViewUIComponent } from "@/core/permissions";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -27,8 +27,10 @@ interface AttendanceTableProps {
   onBulkCreateAttendance?: () => void;
   onEditAttendance: (attendance: EmployeeAttendanceRead) => void;
   onDeleteAttendance: (id: number) => void;
-  onViewAttendance: (attendance: EmployeeAttendanceRead) => void;
+  onViewAttendance: (record: EmployeeAttendanceRead) => void;
   showSearch?: boolean;
+  toolbarMiddleContent?: React.ReactNode;
+  headerContent?: React.ReactNode;
 }
 
 export const AttendanceTable = ({
@@ -40,6 +42,8 @@ export const AttendanceTable = ({
   onDeleteAttendance,
   onViewAttendance,
   showSearch = true,
+  toolbarMiddleContent,
+  headerContent,
 }: AttendanceTableProps) => {
   // Define columns for the data table using column factories
   const columns: ColumnDef<EmployeeAttendanceRead>[] = useMemo(() => [
@@ -67,48 +71,44 @@ export const AttendanceTable = ({
   const canEditAttendance = useCanViewUIComponent("employee_attendance", "button", "attendance-edit");
   const canDeleteAttendance = useCanViewUIComponent("employee_attendance", "button", "attendance-delete");
 
-  // Action button groups for EnhancedDataTable
-  const actionButtonGroups = useMemo(() => [
+  // ✅ MIGRATED: Use DataTable V2 actions format
+  const actions = useMemo(() => [
     {
-      type: 'view' as const,
+      id: "view",
+      label: "View",
+      icon: Eye,
       onClick: (row: EmployeeAttendanceRead) => onViewAttendance(row)
     },
     {
-      type: 'edit' as const,
+      id: "edit",
+      label: "Edit",
+      icon: Edit,
       onClick: (row: EmployeeAttendanceRead) => onEditAttendance(row),
       show: () => canEditAttendance
     },
     {
-      type: 'delete' as const,
+      id: "delete",
+      label: "Delete",
+      icon: Trash2,
+      variant: "destructive" as const,
       onClick: (row: EmployeeAttendanceRead) => onDeleteAttendance(row.attendance_id),
       show: () => canDeleteAttendance
     }
   ], [onViewAttendance, onEditAttendance, onDeleteAttendance, canEditAttendance, canDeleteAttendance]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   return (
-    <EnhancedDataTable
+    <DataTable
       data={attendance}
       columns={columns as any}
       title="Employee Attendance"
+      loading={isLoading}
       searchKey="employee_name"
       showSearch={showSearch}
-      exportable={true}
-      onAdd={onBulkCreateAttendance}
-      addButtonText="Bulk Create"
-      addButtonVariant="default"
-      showActions={true}
-      actionButtonGroups={actionButtonGroups}
-      actionColumnHeader="Actions"
-      showActionLabels={false}
-      customAddButton={
+      export={{ enabled: true, filename: "attendance" }}
+      actions={actions}
+      toolbarMiddleContent={toolbarMiddleContent}
+      headerContent={headerContent}
+      toolbarRightContent={
         onBulkCreateAttendance ? (
           <div className="flex items-center gap-2">
             <Button
@@ -128,7 +128,16 @@ export const AttendanceTable = ({
               Bulk Create
             </Button>
           </div>
-        ) : undefined
+        ) : (
+          <Button
+            onClick={onAddAttendance}
+            variant="default"
+            size="sm"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Attendance
+          </Button>
+        )
       }
     />
   );

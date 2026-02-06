@@ -2,13 +2,7 @@
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
 import { DatePicker } from "@/common/components/ui/date-picker";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/common/components/ui/select";
+import { SmartSelect } from "@/common/components/ui/smart-select";
 import {
   Dialog,
   DialogContent,
@@ -70,21 +64,19 @@ export const AddExamDialog = ({
             </div>
             <div>
               <Label htmlFor="exam_type">Exam Type</Label>
-              <Select
+              <SmartSelect
+                items={[
+                  { value: "Formal", label: "Formal Exam" },
+                  { value: "Test", label: "Test" },
+                  { value: "Quiz", label: "Quiz" },
+                ]}
                 value={examData.exam_type}
-                onValueChange={(value) =>
+                onSelect={(value: string) =>
                   setExamData({ ...examData, exam_type: value })
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Formal">Formal Exam</SelectItem>
-                  <SelectItem value="Test">Test</SelectItem>
-                  <SelectItem value="Quiz">Quiz</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select type"
+                radioLayout="horizontal"
+              />
             </div>
           </div>
           <div>

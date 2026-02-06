@@ -200,36 +200,33 @@ export const EmployeeManagementTabs = ({
       label: "Leaves",
       icon: FileText,
       content: (
-        <div className="space-y-4">
-          {/* Month/Year Filter */}
-          <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
-            <div className="flex items-center gap-3">
-              <p className="text-xs text-muted-foreground whitespace-nowrap">Filter by month and year:</p>
-              <MonthYearFilter
-                month={leaveMonth}
-                year={leaveYear}
-                onMonthChange={setLeaveMonth}
-                onYearChange={setLeaveYear}
-                monthId="leave-month"
-                yearId="leave-year"
-                showLabels={false}
-                className="flex-1 items-center"
-              />
-            </div>
-          </div>
-          
-          <LeavesTable
-            leaves={leaves}
-            isLoading={leavesLoading}
-            onAddLeave={onAddLeave}
-            onEditLeave={onEditLeave}
-            onDeleteLeave={onDeleteLeave}
-            onViewLeave={onViewLeave}
-            onApproveLeave={onApproveLeave}
-            onRejectLeave={onRejectLeave}
-            showSearch={true}
-          />
-        </div>
+        <LeavesTable
+          leaves={leaves}
+          isLoading={leavesLoading}
+          onAddLeave={onAddLeave}
+          onEditLeave={onEditLeave}
+          onDeleteLeave={onDeleteLeave}
+          onViewLeave={onViewLeave}
+          onApproveLeave={onApproveLeave}
+          onRejectLeave={onRejectLeave}
+          showSearch={true}
+          headerContent={
+            <MonthYearFilter
+              label="Period:"
+              month={leaveMonth}
+              year={leaveYear}
+              onMonthChange={setLeaveMonth}
+              onYearChange={setLeaveYear}
+              monthId="leave-month"
+              yearId="leave-year"
+              showLabels={false}
+              monthWidth="140px"
+              labelClassName="text-blue-900"
+              monthClassName="text-blue-700 font-semibold"
+              yearClassName="text-blue-700 font-semibold"
+            />
+          }
+        />
       ),
     },
     {
@@ -237,35 +234,32 @@ export const EmployeeManagementTabs = ({
       label: "Attendance",
       icon: Calendar,
       content: (
-        <div className="space-y-4">
-          {/* Month/Year Filter */}
-          <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
-            <div className="flex items-center gap-3">
-              <p className="text-xs text-muted-foreground whitespace-nowrap">Filter by month and year:</p>
-              <MonthYearFilter
-                month={attendanceMonth}
-                year={attendanceYear}
-                onMonthChange={setAttendanceMonth}
-                onYearChange={setAttendanceYear}
-                monthId="attendance-month"
-                yearId="attendance-year"
-                showLabels={false}
-                className="flex-1 items-center"
-              />
-            </div>
-          </div>
-          
-          <AttendanceTable
-            attendance={attendance}
-            isLoading={attendanceLoading}
-            onAddAttendance={onAddAttendance}
-            onBulkCreateAttendance={onBulkCreateAttendance}
-            onEditAttendance={onEditAttendance}
-            onDeleteAttendance={onDeleteAttendance}
-            onViewAttendance={onViewAttendance}
-            showSearch={true}
-          />
-        </div>
+        <AttendanceTable
+          attendance={attendance}
+          isLoading={attendanceLoading}
+          onAddAttendance={onAddAttendance}
+          onBulkCreateAttendance={onBulkCreateAttendance}
+          onEditAttendance={onEditAttendance}
+          onDeleteAttendance={onDeleteAttendance}
+          onViewAttendance={onViewAttendance}
+          showSearch={true}
+          headerContent={
+            <MonthYearFilter
+              label="Period:"
+              month={attendanceMonth}
+              year={attendanceYear}
+              onMonthChange={setAttendanceMonth}
+              onYearChange={setAttendanceYear}
+              monthId="attendance-month"
+              yearId="attendance-year"
+              showLabels={false}
+              monthWidth="140px"
+              labelClassName="text-blue-900"
+              monthClassName="text-blue-700 font-semibold"
+              yearClassName="text-blue-700 font-semibold"
+            />
+          }
+        />
       ),
     },
     {

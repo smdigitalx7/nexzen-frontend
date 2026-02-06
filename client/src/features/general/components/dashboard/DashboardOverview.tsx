@@ -1,5 +1,5 @@
 import { Users, GraduationCap, BookOpen, Building2 } from "lucide-react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 
 interface DashboardOverviewProps {
   data: {
@@ -11,7 +11,7 @@ interface DashboardOverviewProps {
 }
 
 export const DashboardOverview = ({ data }: DashboardOverviewProps) => {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
 
   return (
     <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-100/50 shadow-sm">
@@ -28,7 +28,7 @@ export const DashboardOverview = ({ data }: DashboardOverviewProps) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div
             className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-white/60 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
-            onClick={() => setLocation("/school/admissions")}
+            onClick={() => navigate("/school/admissions")}
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors">
@@ -50,7 +50,7 @@ export const DashboardOverview = ({ data }: DashboardOverviewProps) => {
 
           <div
             className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-white/60 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
-            onClick={() => setLocation("/employees")}
+            onClick={() => navigate("/employees")}
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-colors">
@@ -70,7 +70,7 @@ export const DashboardOverview = ({ data }: DashboardOverviewProps) => {
 
           <div
             className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-white/60 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
-            onClick={() => setLocation("/school/academic")}
+            onClick={() => navigate("/school/academic")}
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 rounded-lg bg-indigo-100 group-hover:bg-indigo-200 transition-colors">

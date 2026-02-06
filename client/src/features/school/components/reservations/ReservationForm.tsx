@@ -1,13 +1,7 @@
 import { Input } from "@/common/components/ui/input";
 import { Label } from "@/common/components/ui/label";
 import { Textarea } from "@/common/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/common/components/ui/select";
+import { SmartSelect } from "@/common/components/ui/smart-select";
 import { RadioGroup, RadioGroupItem } from "@/common/components/ui/radio-group";
 import {
   SchoolClassDropdown,
@@ -186,19 +180,17 @@ const SiblingRow = memo(
       </div>
       <div>
         <Label htmlFor={`sibling-gender-${index}`}>Gender</Label>
-        <Select
+        <SmartSelect
+          items={[
+            { value: "MALE", label: "MALE" },
+            { value: "FEMALE", label: "FEMALE" },
+            { value: "OTHER", label: "OTHER" },
+          ]}
           value={sibling.gender || "MALE"}
-          onValueChange={(value) => onUpdate(index, "gender", value)}
-        >
-          <SelectTrigger id={`sibling-gender-${index}`}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="MALE">MALE</SelectItem>
-            <SelectItem value="FEMALE">FEMALE</SelectItem>
-            <SelectItem value="OTHER">OTHER</SelectItem>
-          </SelectContent>
-        </Select>
+          onSelect={(value: string) => onUpdate(index, "gender", value)}
+          placeholder="Select gender"
+          radioLayout="horizontal"
+        />
       </div>
       <div>
         <Button
@@ -247,19 +239,17 @@ const StudentInfoSection = memo(
         </div>
         <div>
           <Label htmlFor="gender">Gender *</Label>
-          <Select
+          <SmartSelect
+            items={[
+              { value: "MALE", label: "MALE" },
+              { value: "FEMALE", label: "FEMALE" },
+              { value: "OTHER", label: "OTHER" },
+            ]}
             value={form.gender}
-            onValueChange={(value) => setForm({ ...form, gender: value })}
-          >
-            <SelectTrigger id="gender">
-              <SelectValue placeholder="Select gender" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="MALE">MALE</SelectItem>
-              <SelectItem value="FEMALE">FEMALE</SelectItem>
-              <SelectItem value="OTHER">OTHER</SelectItem>
-            </SelectContent>
-          </Select>
+            onSelect={(value: string) => setForm({ ...form, gender: value })}
+            placeholder="Select gender"
+            radioLayout="horizontal"
+          />
         </div>
         <div>
           <Label htmlFor="dob">Date of Birth</Label>
@@ -810,20 +800,18 @@ const ReservationFormComponent = ({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="transport_required">Transport Required</Label>
-                <Select
+                <SmartSelect
+                  items={[
+                    { value: "true", label: "Yes" },
+                    { value: "false", label: "No" },
+                  ]}
                   value={form.transport_required ? "true" : "false"}
-                  onValueChange={(value) =>
+                  onSelect={(value: string) =>
                     setForm({ ...form, transport_required: value === "true" })
                   }
-                >
-                  <SelectTrigger id="transport_required">
-                    <SelectValue placeholder="Select transport" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">Yes</SelectItem>
-                    <SelectItem value="false">No</SelectItem>
-                  </SelectContent>
-                </Select>
+                  placeholder="Select transport"
+                  radioLayout="horizontal"
+                />
               </div>
               {form.transport_required && (
                 <>
