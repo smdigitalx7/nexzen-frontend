@@ -140,11 +140,12 @@ export const ClassTeacherTab = () => {
     }
   };
 
-  // Memoized columns definition
+  // Memoized columns definition (accessorKey/accessorFn needed for Excel export)
   const columns: ColumnDef<ClassTeacherData>[] = useMemo(
     () => [
       {
         id: "teacher_name",
+        accessorKey: "teacher_name",
         header: "Teacher",
         cell: ({ row }) => (
           <div className="font-medium text-base">
@@ -155,6 +156,12 @@ export const ClassTeacherTab = () => {
       {
         id: "class_section",
         header: "Class & Section",
+        accessorFn: (row: ClassTeacherData | { original: ClassTeacherData }) => {
+          const d = "original" in row ? row.original : row;
+          return d.section_name
+            ? `${d.class_name} - ${d.section_name}`
+            : d.class_name;
+        },
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
@@ -266,7 +273,7 @@ export const ClassTeacherTab = () => {
 
           {/* Section Selection */}
           <div className="space-y-2">
-            <Label htmlFor="section">Section (Optional)</Label>
+            <Label htmlFor="section">Section</Label>
             <ServerCombobox
               items={Array.isArray(sections) ? sections : []}
               value={selectedSectionId}
@@ -278,7 +285,7 @@ export const ClassTeacherTab = () => {
                   ? "Select class first"
                   : sections.length === 0
                   ? "No sections available"
-                  : "Select section (optional)"
+                  : "Select section"
               }
               searchPlaceholder="Search section..."
               emptyText="No sections found"

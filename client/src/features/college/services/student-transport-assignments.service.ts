@@ -1,5 +1,5 @@
-﻿import { Api } from "@/core/api";
-import { CollegeTransportAssignmentCreate, CollegeTransportAssignmentRead, CollegeTransportAssignmentUpdate, CollegeStudentTransportDashboardStats, CollegeTransportRoute } from "@/features/college/types";
+import { Api } from "@/core/api";
+import { CollegeTransportAssignmentCreate, CollegeTransportAssignmentRead, CollegeTransportAssignmentUpdate, CollegeTransportAssignmentCancel, CollegeStudentTransportDashboardStats, CollegeTransportRoute } from "@/features/college/types";
 
 export const CollegeStudentTransportAssignmentsService = {
   // GET /api/v1/college/student-transport-assignments/dashboard
@@ -37,6 +37,11 @@ export const CollegeStudentTransportAssignmentsService = {
   // DELETE /api/v1/college/student-transport-assignments/{assignment_id}
   delete(assignment_id: number) {
     return Api.delete<void>(`/college/student-transport-assignments/${assignment_id}`);
+  },
+
+  // POST /api/v1/college/student-transport-assignments/{assignment_id}/cancel
+  cancel(assignment_id: number, payload: CollegeTransportAssignmentCancel) {
+    return Api.post<any>(`/college/student-transport-assignments/${assignment_id}/cancel`, payload);
   },
 };
 

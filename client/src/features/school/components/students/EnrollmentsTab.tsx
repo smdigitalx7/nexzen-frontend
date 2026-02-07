@@ -1,12 +1,10 @@
-﻿import { useState, useMemo, useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useState, useMemo, useCallback } from 'react';
 import { DataTable } from '@/common/components/shared';
 import type { ActionConfig } from "@/common/components/shared/DataTable/types";
-import { Eye, Edit } from "lucide-react";
+import { Eye } from "lucide-react";
 import {
   EnrollmentSearchForm,
   EnrollmentViewDialog,
-  EnrollmentEditDialog,
 } from './enrollments';
 import { 
   useSchoolEnrollmentsList,
@@ -15,16 +13,12 @@ import {
 } from '@/features/school/hooks';
 // Note: useSchoolClasses, useSchoolSections from dropdowns (naming conflict)
 import { useSchoolClasses, useSchoolSections } from '@/features/school/hooks/use-school-dropdowns';
-import { schoolKeys } from '@/features/school/hooks/query-keys';
-import { batchInvalidateAndRefetch } from '@/common/hooks/useGlobalRefetch';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SchoolEnrollmentRead } from '@/features/school/types';
 import { formatDate } from '@/common/utils/formatting/date';
 import { useTabEnabled } from '@/common/hooks/use-tab-navigation';
 
 const EnrollmentsTabComponent = () => {
-  const queryClient = useQueryClient();
-  
   // ✅ OPTIMIZATION: Check if this tab is active before fetching
   const isTabActive = useTabEnabled("enrollments", "enrollments");
   
@@ -34,8 +28,6 @@ const EnrollmentsTabComponent = () => {
     section_id: '', 
     admission_no: '' 
   });
-  // ✅ FIX: Add refreshKey to force table refresh after updates
-  const [refreshKey, setRefreshKey] = useState(0);
 
   // ✅ OPTIMIZATION: Only fetch dropdowns when tab is active
   // ✅ FIX: Get loading states from hooks, not just data existence
@@ -92,13 +84,10 @@ const EnrollmentsTabComponent = () => {
     (isTabActive && query.class_id && isLoadingSections) ||
     (isTabActive && enrollmentClassId && isLoadingEnrollmentSections) ||
     (shouldUseAdmissionNo ? admissionNoResult.isLoading : (shouldFetchEnrollments && result.isLoading));
-  const isError = shouldUseAdmissionNo ? admissionNoResult.isError : result.isError;
 
   // Dialog state
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [viewEnrollmentId, setViewEnrollmentId] = useState<number | null>(null);
-  const [editStudentId, setEditStudentId] = useState<number | null>(null);
 
   // Fetch selected enrollment for viewing
   const { data: viewEnrollment, isLoading: isLoadingView } = useSchoolEnrollment(viewEnrollmentId);
@@ -109,28 +98,6 @@ const EnrollmentsTabComponent = () => {
     setIsViewDialogOpen(true);
   }, []);
 
-  // Handle edit from table action
-  const handleEdit = useCallback((enrollment: SchoolEnrollmentRead) => {
-    if (enrollment?.student_id) {
-      setEditStudentId(enrollment.student_id);
-      setIsEditDialogOpen(true);
-    }
-  }, []);
-
-  // ✅ FIX: Handle edit success - batch invalidate queries and force table refresh
-  const handleEditSuccess = useCallback(async () => {
-    // Batch invalidate all related queries
-    batchInvalidateAndRefetch([
-      schoolKeys.enrollments.root(),
-      schoolKeys.students.root(),
-    ]);
-
-    // Small delay to ensure React Query cache is updated
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    // ✅ FIX: Increment refreshKey to force table refresh
-    setRefreshKey(prev => prev + 1);
-  }, []);
 
   // Memoized handlers
   const handleSectionChange = useCallback((value: string) => {
@@ -206,14 +173,8 @@ const EnrollmentsTabComponent = () => {
       label: 'View',
       icon: Eye,
       onClick: (row) => handleView(row)
-    },
-    {
-      id: 'edit',
-      label: 'Edit',
-      icon: Edit,
-      onClick: (row) => handleEdit(row)
     }
-  ], [handleView, handleEdit]);
+  ], [handleView]);
 
   // Define columns
   const columns: ColumnDef<SchoolEnrollmentRead>[] = useMemo(() => [
@@ -289,23 +250,6 @@ const EnrollmentsTabComponent = () => {
         isLoading={isLoadingView}
         classes={classes}
         sections={sections}
-      />
-
-      {/* Edit Student Dialog */}
-      <EnrollmentEditDialog
-        open={isEditDialogOpen}
-        onOpenChange={(open) => {
-          setIsEditDialogOpen(open);
-          if (!open) {
-            setEditStudentId(null);
-            // Reopen view dialog after edit closes
-            if (viewEnrollmentId) {
-              setIsViewDialogOpen(true);
-            }
-          }
-        }}
-        studentId={editStudentId}
-        onSuccess={handleEditSuccess}
       />
     </div>
   );

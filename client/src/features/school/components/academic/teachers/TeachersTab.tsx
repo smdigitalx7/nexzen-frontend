@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Label } from "@/common/components/ui/label";
 import { FormDialog } from "@/common/components/shared";
 import { UserCheck, ClipboardList } from "lucide-react";
@@ -54,10 +54,11 @@ export const TeachersTab = () => {
   const [classesDropdownOpen, setClassesDropdownOpen] = useState(false);
   const [subjectsDropdownOpen, setSubjectsDropdownOpen] = useState(false);
 
-  // ✅ OPTIMIZATION: Only fetch teachers/employees when their dropdown is opened
-  // User requirement: Don't call Teachers API - only call when clicking dropdowns
+  // Fetch teachers/employees when dropdown is opened OR when Teacher Assignments tab is active (so export has employee code & phone)
   const { data: teachersList = [], error, isLoading: isLoadingTeachers } = useTeachersByBranch(teachersDropdownOpen);
-  const { data: allEmployees = [], isLoading: isLoadingEmployees } = useEmployeesByBranch(teachersDropdownOpen);
+  const { data: allEmployees = [], isLoading: isLoadingEmployees } = useEmployeesByBranch(
+    teachersDropdownOpen || activeSubTab === "assignments"
+  );
 
   // Create a map of full employee details by employee_id for quick lookup
   const teacherDetailsMap = useMemo(() => {

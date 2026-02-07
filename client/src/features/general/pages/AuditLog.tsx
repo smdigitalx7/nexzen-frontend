@@ -59,6 +59,7 @@ import { useUsersWithRolesAndBranches } from "@/features/general/hooks/useUsers"
 import { DatePicker } from "@/common/components/ui/date-picker";
 import { useToast } from "@/common/hooks/use-toast";
 import { useExcelExport } from "@/common/utils/export/useExcelExport";
+import { getExportFilename } from "@/common/utils/export/excel-export-utils";
 import { ExportProgressDialog } from "@/common/components/shared/ExportProgressDialog";
 import { ProductionErrorBoundary } from "@/common/components/shared/ProductionErrorBoundary";
 
@@ -116,7 +117,7 @@ function SummaryTab() {
       headers,
       rows,
       sheetName: "Activity Summary",
-      fileName: `activity_summary_${new Date().toISOString().slice(0, 10)}.xlsx`,
+      fileName: getExportFilename("activity_summary", "xlsx"),
     });
   };
 
@@ -199,7 +200,7 @@ function SummaryTab() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `activity_summary_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.download = getExportFilename("activity_summary", "xlsx");
       a.click();
       URL.revokeObjectURL(url);
     } catch (error) {
@@ -236,7 +237,7 @@ function SummaryTab() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `activity_summary_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = getExportFilename("activity_summary", "csv");
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -712,12 +713,11 @@ function LogsTab() {
       log.description,
     ]);
 
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
     await exportToExcel({
       headers,
       rows,
       sheetName: "Audit Logs",
-      fileName: `audit_logs_${timestamp}.xlsx`,
+      fileName: getExportFilename("audit_logs", "xlsx"),
     });
   };
 

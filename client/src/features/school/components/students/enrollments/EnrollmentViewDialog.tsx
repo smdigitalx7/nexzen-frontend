@@ -1,8 +1,11 @@
-﻿import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/common/components/ui/sheet";
-import { User, Calendar, GraduationCap } from 'lucide-react';
-import type { ViewDialogAction } from '@/common/components/shared/ViewDialog'; // Keep type if needed or remove
-import type { SchoolEnrollmentWithStudentDetails } from '@/features/school/types';
+import { useState, useMemo } from 'react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/common/components/ui/sheet";
+import { Button } from '@/common/components/ui/button';
+import { User, Calendar, GraduationCap, ArrowRightLeft } from 'lucide-react';
+import type { SchoolEnrollmentWithStudentDetails, SchoolClassRead, SchoolSectionRead } from '@/features/school/types';
 import { useSchoolStudent } from '@/features/school/hooks';
+import { useSchoolSections } from '@/features/school/hooks/use-school-dropdowns';
+import { ChangeSectionDialog } from './ChangeSectionDialog';
 
 // Utility function to get status badge variant and display name
 const getStudentStatusBadge = (status: string | null | undefined) => {
@@ -23,13 +26,31 @@ const getStudentStatusBadge = (status: string | null | undefined) => {
   }
 };
 
+function getStatusBadgeClassName(
+  variant: 'success' | 'secondary' | 'destructive' | 'warning'
+): string {
+  switch (variant) {
+    case 'secondary':
+      return 'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80';
+    case 'destructive':
+      return 'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80';
+    case 'success':
+      return 'border-transparent bg-green-100 text-green-800';
+    case 'warning':
+      return 'border-transparent bg-amber-100 text-amber-800';
+    default:
+      return 'border-transparent bg-primary text-primary-foreground hover:bg-primary/80';
+  }
+}
+
 interface EnrollmentViewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   enrollment: SchoolEnrollmentWithStudentDetails | null;
   isLoading: boolean;
-  classes: any[];
-  sections: any[];
+  classes: Pick<SchoolClassRead, 'class_id' | 'class_name'>[];
+  sections: Pick<SchoolSectionRead, 'section_id' | 'section_name'>[];
+  onSuccess?: () => void;
 }
 
 export const EnrollmentViewDialog = ({
@@ -39,7 +60,19 @@ export const EnrollmentViewDialog = ({
   isLoading,
   classes,
   sections,
+  onSuccess,
 }: EnrollmentViewDialogProps) => {
+  const [isChangeSectionOpen, setIsChangeSectionOpen] = useState(false);
+
+  // Sections for the enrollment's class (for Change Section - API moves within same class)
+  const { data: sectionsForClassData } = useSchoolSections(enrollment?.class_id ?? 0, {
+    enabled: Boolean(open && enrollment?.class_id),
+  });
+  const sectionsForChangeSection = useMemo(
+    () => sectionsForClassData?.items ?? sections,
+    [sectionsForClassData?.items, sections]
+  );
+
   // Fetch full student details using student_id from enrollment
   const { data: studentData, isLoading: isLoadingStudent } = useSchoolStudent(
     enrollment?.student_id || null
@@ -47,44 +80,45 @@ export const EnrollmentViewDialog = ({
 
   // Get class and section names
   const className = enrollment 
-    ? classes.find((cls: any) => cls.class_id === enrollment.class_id)?.class_name || '-'
+    ? classes.find((cls) => cls.class_id === enrollment.class_id)?.class_name || '-'
     : '-';
   const sectionName = enrollment 
-    ? sections.find((sec: any) => sec.section_id === enrollment.section_id)?.section_name || '-'
+    ? sections.find((sec) => sec.section_id === enrollment.section_id)?.section_name || '-'
     : '-';
 
-  // Use student data from GET /students/{student_id} endpoint for student information
-  // Note: API returns father_or_guardian_name and mother_or_guardian_name, but TypeScript types use father_name/mother_name
-  const studentName = studentData?.student_name || enrollment?.student_name || '-';
-  const admissionNo = studentData?.admission_no || enrollment?.admission_no || '-';
-  const aadharNo = studentData?.aadhar_no || '-';
-  const gender = studentData?.gender || '-';
-  const dob = studentData?.dob || '-';
-  const fatherName = (studentData as any)?.father_or_guardian_name || studentData?.father_name || '-';
-  const motherName = (studentData as any)?.mother_or_guardian_name || studentData?.mother_name || '-';
-  const fatherMobile = studentData?.father_or_guardian_mobile || '-';
-  const motherMobile = studentData?.mother_or_guardian_mobile || '-';
-  const presentAddress = studentData?.present_address || '-';
-  const permanentAddress = studentData?.permanent_address || '-';
-  const admissionDate = studentData?.admission_date || '-';
+  // Get status badge for view mode
   const status = studentData?.status || '-';
   const statusBadge = getStudentStatusBadge(status);
 
-    // Actions for the dialog
-  const actions: ViewDialogAction[] = [];
-
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[400px] sm:w-[540px] overflow-y-auto">
-        <SheetHeader className="mb-6">
-          <SheetTitle className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-blue-600" />
-            Enrollment Details
-          </SheetTitle>
-          <SheetDescription>
-            {enrollment ? `Enrollment #${enrollment.enrollment_id}` : 'View enrollment details'}
-          </SheetDescription>
-        </SheetHeader>
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="right" className="!w-[900px] sm:!w-[600px] !max-w-[800px] overflow-y-auto">
+          <SheetHeader className="mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <SheetTitle className="flex items-center gap-2">
+                  <GraduationCap className="h-5 w-5 text-blue-600" />
+                  Enrollment Details
+                </SheetTitle>
+                <SheetDescription>
+                  {enrollment ? `Enrollment #${enrollment.enrollment_id}` : 'View enrollment details'}
+                </SheetDescription>
+              </div>
+              {enrollment && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsChangeSectionOpen(true)}
+                  className="gap-2"
+                >
+                  <ArrowRightLeft className="h-4 w-4" />
+                  Change Section
+                </Button>
+              )}
+            </div>
+          </SheetHeader>
 
         {(isLoading || isLoadingStudent) && (
           <div className="flex items-center justify-center py-12">
@@ -103,74 +137,109 @@ export const EnrollmentViewDialog = ({
 
         {!isLoading && enrollment && (
           <div className="space-y-6">
-            {/* Render Sections */}
-            {[
-              {
-                title: "Student Information",
-                icon: <User className="h-4 w-4" />,
-                iconColor: "text-blue-600",
-                fields: [
-                  { label: "Student Name", value: studentData?.student_name || enrollment?.student_name || '-' },
-                  { label: "Admission No", value: studentData?.admission_no || enrollment?.admission_no || '-' },
-                  { label: "Aadhar No", value: studentData?.aadhar_no || '-' },
-                  { label: "Gender", value: studentData?.gender || '-' },
-                  { label: "Date of Birth", value: studentData?.dob ? new Date(studentData.dob).toLocaleDateString() : '-' },
-                  { label: "Father Name", value: (studentData as any)?.father_or_guardian_name || studentData?.father_name || '-' },
-                  { label: "Mobile", value: studentData?.father_or_guardian_mobile || '-' },
-                  { label: "Status", value: statusBadge.label, isBadge: true, badgeVariant: statusBadge.variant },
-                ],
-              },
-              {
-                title: "Enrollment Info",
-                icon: <GraduationCap className="h-4 w-4" />,
-                iconColor: "text-purple-600",
-                fields: [
-                  { label: "Roll Number", value: enrollment.roll_number },
-                  { label: "Class", value: className },
-                  { label: "Section", value: sectionName },
-                  { label: "Active", value: enrollment.is_active ? "Yes" : "No", isBadge: true, badgeVariant: enrollment.is_active ? "default" : "secondary" },
-                ],
-              },
-              {
-                title: "Timestamps",
-                icon: <Calendar className="h-4 w-4" />,
-                iconColor: "text-gray-500",
-                fields: [
-                  { label: "Created", value: new Date(enrollment.created_at).toLocaleDateString() },
-                  { label: "Enrollment Date", value: enrollment.enrollment_date ? new Date(enrollment.enrollment_date).toLocaleDateString() : '-' },
-                ],
-              }
-            ].map((section, idx) => (
-              <div key={idx} className="border rounded-lg p-4 bg-muted/20">
-                <div className="flex items-center gap-2 mb-4 pb-2 border-b">
-                  <span className={section.iconColor}>{section.icon}</span>
-                  <h4 className="font-semibold text-sm">{section.title}</h4>
+            {/* Student Information */}
+            <div className="border rounded-lg p-4 bg-muted/20">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b">
+                <User className="h-4 w-4 text-blue-600" />
+                <h4 className="font-semibold text-sm">Student Information</h4>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Student Name</p>
+                  <p className="text-sm font-medium break-words">{studentData?.student_name || enrollment?.student_name || '-'}</p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {section.fields.map((field: any, fIdx) => (
-                    <div key={fIdx}>
-                      <p className="text-xs text-muted-foreground font-medium mb-1">{field.label}</p>
-                      {field.isBadge ? (
-                         <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                           field.badgeVariant === 'secondary' ? 'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80' :
-                           field.badgeVariant === 'destructive' ? 'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80' :
-                           field.badgeVariant === 'success' ? 'border-transparent bg-green-100 text-green-800' :
-                           'border-transparent bg-primary text-primary-foreground hover:bg-primary/80'
-                         }`}>
-                           {field.value}
-                         </span>
-                      ) : (
-                        <p className="text-sm font-medium break-words">{field.value}</p>
-                      )}
-                    </div>
-                  ))}
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Admission No</p>
+                  <p className="text-sm font-medium break-words">{studentData?.admission_no || enrollment?.admission_no || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Aadhar No</p>
+                  <p className="text-sm font-medium break-words">{studentData?.aadhar_no || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Gender</p>
+                  <p className="text-sm font-medium break-words">{studentData?.gender || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Date of Birth</p>
+                  <p className="text-sm font-medium break-words">{studentData?.dob ? new Date(studentData.dob).toLocaleDateString() : '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Father Name</p>
+                  <p className="text-sm font-medium break-words">{(studentData as { father_or_guardian_name?: string | null; father_name?: string | null } | undefined)?.father_or_guardian_name || studentData?.father_name || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Mobile</p>
+                  <p className="text-sm font-medium break-words">{studentData?.father_or_guardian_mobile || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Status</p>
+                  <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${getStatusBadgeClassName(statusBadge.variant)}`}>
+                    {statusBadge.label}
+                  </span>
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Enrollment Info */}
+            <div className="border rounded-lg p-4 bg-muted/20">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b">
+                <GraduationCap className="h-4 w-4 text-purple-600" />
+                <h4 className="font-semibold text-sm">Enrollment Info</h4>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Roll Number</p>
+                  <p className="text-sm font-medium break-words">{enrollment.roll_number || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Class</p>
+                  <p className="text-sm font-medium break-words">{className}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Section</p>
+                  <p className="text-sm font-medium break-words">{sectionName}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Active</p>
+                  <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${
+                    enrollment.is_active ? 'border-transparent bg-primary text-primary-foreground hover:bg-primary/80' : 'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                  }`}>
+                    {enrollment.is_active ? 'Yes' : 'No'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Timestamps */}
+            <div className="border rounded-lg p-4 bg-muted/20">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b">
+                <Calendar className="h-4 w-4 text-gray-500" />
+                <h4 className="font-semibold text-sm">Timestamps</h4>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Created</p>
+                  <p className="text-sm font-medium break-words">{new Date(enrollment.created_at).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Enrollment Date</p>
+                  <p className="text-sm font-medium break-words">{enrollment.enrollment_date ? new Date(enrollment.enrollment_date).toLocaleDateString() : '-'}</p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
-      </SheetContent>
-    </Sheet>
+        </SheetContent>
+      </Sheet>
+
+      <ChangeSectionDialog
+        open={isChangeSectionOpen}
+        onOpenChange={setIsChangeSectionOpen}
+        enrollment={enrollment}
+        sections={sectionsForChangeSection}
+        onSuccess={onSuccess}
+      />
+    </>
   );
 };
-

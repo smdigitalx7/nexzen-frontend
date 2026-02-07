@@ -1,6 +1,6 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { StudentTransportService } from "@/features/school/services/student-transport.service";
-import type { SchoolStudentTransportAssignmentCreate, SchoolStudentTransportAssignmentUpdate, SchoolStudentTransportRouteWiseResponse, SchoolStudentTransportAssignmentRead } from "@/features/school/types";
+import type { SchoolStudentTransportAssignmentCreate, SchoolStudentTransportAssignmentUpdate, SchoolStudentTransportAssignmentCancel, SchoolStudentTransportRouteWiseResponse, SchoolStudentTransportAssignmentRead } from "@/features/school/types";
 import type { SchoolTransportDashboardStats } from "@/features/school/types/student-transport-assignments";
 import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-toast";
 
@@ -60,6 +60,18 @@ export function useDeleteSchoolStudentTransport() {
       void qc.refetchQueries({ queryKey: keys.root, type: 'active' });
     },
   }, "Student transport assignment deleted successfully");
+}
+
+export function useCancelSchoolStudentTransport() {
+  const qc = useQueryClient();
+  return useMutationWithSuccessToast({
+    mutationFn: (payload: SchoolStudentTransportAssignmentCancel) => StudentTransportService.cancel(payload),
+    onSuccess: (_, payload) => {
+      void qc.invalidateQueries({ queryKey: keys.root });
+      void qc.invalidateQueries({ queryKey: keys.detail(payload.transport_assignment_id) });
+      void qc.refetchQueries({ queryKey: keys.root, type: 'active' });
+    },
+  }, "Transport assignment cancelled successfully");
 }
 
 export function useSchoolStudentTransportDashboard() {

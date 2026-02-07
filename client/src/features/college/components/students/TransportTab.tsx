@@ -1,17 +1,15 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Badge } from '@/common/components/ui/badge';
 import { ConfirmDialog } from '@/common/components/shared';
 import {
   TransportSearchForm,
   TransportCreateDialog,
-  TransportEditDialog,
   TransportViewDialog,
 } from './transport';
 import { 
   useCollegeStudentTransportAssignments,
   useCollegeStudentTransportAssignmentById,
   useCreateCollegeStudentTransportAssignment,
-  useUpdateCollegeStudentTransportAssignment,
   useDeleteCollegeStudentTransportAssignment,
   useCollegeEnrollmentsList,
 } from '@/features/college/hooks';
@@ -81,17 +79,15 @@ export const TransportTabComponent = () => {
 
   const result = useCollegeStudentTransportAssignments(apiParams);
   const createMutation = useCreateCollegeStudentTransportAssignment();
-  const updateMutation = useUpdateCollegeStudentTransportAssignment();
   const deleteMutation = useDeleteCollegeStudentTransportAssignment();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<number | null>(null);
   const [viewAssignmentId, setViewAssignmentId] = useState<number | null>(null);
+  const [openInEditMode, setOpenInEditMode] = useState(false);
 
-  const { data: selectedAssignment } = useCollegeStudentTransportAssignmentById(selectedAssignmentId);
   const { data: viewAssignment, isLoading: isLoadingView } = useCollegeStudentTransportAssignmentById(viewAssignmentId);
 
   const [formData, setFormData] = useState<CollegeTransportAssignmentCreate>({
@@ -99,15 +95,6 @@ export const TransportTabComponent = () => {
     bus_route_id: 0,
     pickup_point: '',
     start_date: new Date().toISOString().split('T')[0],
-  });
-
-  const [editFormData, setEditFormData] = useState({
-    bus_route_id: 0,
-    slab_id: 0,
-    pickup_point: '',
-    start_date: '',
-    end_date: null as string | null,
-    is_active: true,
   });
 
   const resetForm = useCallback(() => {
@@ -119,16 +106,6 @@ export const TransportTabComponent = () => {
     });
   }, []);
 
-  const resetEditForm = useCallback(() => {
-    setEditFormData({
-      bus_route_id: 0,
-      slab_id: 0,
-      pickup_point: '',
-      start_date: '',
-      end_date: null,
-      is_active: true,
-    });
-  }, []);
 
   const handleCreate = useCallback(async () => {
     if (!formData.enrollment_id || !formData.bus_route_id || !formData.start_date || !formData.pickup_point?.trim()) {
@@ -142,13 +119,16 @@ export const TransportTabComponent = () => {
   }, [formData, createMutation, resetForm]);
 
   const handleView = useCallback((student: any) => {
+    setOpenInEditMode(false);
     setViewAssignmentId(student.transport_assignment_id);
     setIsViewDialogOpen(true);
   }, []);
 
+  // Handle edit - open sheet directly in edit mode
   const handleEdit = useCallback((student: any) => {
-    setSelectedAssignmentId(student.transport_assignment_id);
-    setIsEditDialogOpen(true);
+    setOpenInEditMode(true);
+    setViewAssignmentId(student.transport_assignment_id);
+    setIsViewDialogOpen(true);
   }, []);
 
   const handleDelete = useCallback((student: any) => {
@@ -176,25 +156,19 @@ export const TransportTabComponent = () => {
     }));
   }, []);
 
-  const handleUpdate = useCallback(async () => {
-    if (!selectedAssignmentId || !selectedAssignment) return;
-    const updatePayload: CollegeTransportAssignmentUpdate = {
-      bus_route_id: editFormData.bus_route_id || undefined,
-      slab_id: editFormData.slab_id || undefined,
-      pickup_point: editFormData.pickup_point || undefined,
-      start_date: editFormData.start_date || undefined,
-      end_date: editFormData.end_date || undefined,
-    };
-    if (typeof editFormData.is_active === 'boolean') {
-      updatePayload.is_active = editFormData.is_active;
+  // Handle view/edit success - refresh data
+  const handleViewEditSuccess = useCallback(() => {
+    // Data will be refreshed automatically by React Query
+  }, []);
+
+  // Stable callback for view dialog open/close to avoid unnecessary TransportViewDialog re-renders
+  const handleViewDialogOpenChange = useCallback((open: boolean) => {
+    setIsViewDialogOpen(open);
+    if (!open) {
+      setViewAssignmentId(null);
+      setOpenInEditMode(false);
     }
-    try {
-      await updateMutation.mutateAsync({ id: selectedAssignmentId, payload: updatePayload });
-      setIsEditDialogOpen(false);
-      setSelectedAssignmentId(null);
-      resetEditForm();
-    } catch (error) {}
-  }, [selectedAssignmentId, selectedAssignment, editFormData, updateMutation, resetEditForm]);
+  }, []);
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!selectedAssignmentId) return;
@@ -205,18 +179,6 @@ export const TransportTabComponent = () => {
     } catch (error) {}
   }, [selectedAssignmentId, deleteMutation]);
 
-  useEffect(() => {
-    if (isEditDialogOpen && selectedAssignment) {
-      setEditFormData({
-        bus_route_id: selectedAssignment.bus_route_id,
-        slab_id: selectedAssignment.slab_id,
-        pickup_point: selectedAssignment.pickup_point || '',
-        start_date: selectedAssignment.start_date,
-        end_date: selectedAssignment.end_date || null,
-        is_active: selectedAssignment.is_active,
-      });
-    }
-  }, [isEditDialogOpen, selectedAssignment]);
 
   const flatData = useMemo(() => {
     if (!result.data || !Array.isArray(result.data)) return [];
@@ -351,38 +313,14 @@ export const TransportTabComponent = () => {
         busRoutes={busRoutes}
       />
 
-      <TransportEditDialog
-        open={isEditDialogOpen}
-        onOpenChange={(open) => {
-          setIsEditDialogOpen(open);
-          if (!open) {
-            setSelectedAssignmentId(null);
-            resetEditForm();
-          }
-        }}
-        isLoading={updateMutation.isPending}
-        formData={editFormData}
-        onFormDataChange={setEditFormData}
-        onSave={handleUpdate}
-        onCancel={() => {
-          setIsEditDialogOpen(false);
-          setSelectedAssignmentId(null);
-          resetEditForm();
-        }}
-        busRoutes={busRoutes}
-        slabs={slabs}
-      />
-
       <TransportViewDialog
         open={isViewDialogOpen}
-        onOpenChange={(open) => {
-          setIsViewDialogOpen(open);
-          if (!open) {
-            setViewAssignmentId(null);
-          }
-        }}
+        onOpenChange={handleViewDialogOpenChange}
         viewAssignment={viewAssignment || null}
         isLoading={isLoadingView}
+        busRoutes={busRoutes}
+        defaultEditMode={openInEditMode}
+        onSuccess={handleViewEditSuccess}
       />
 
       <ConfirmDialog

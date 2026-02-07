@@ -2,6 +2,7 @@ import { SchoolFinanceReport } from '@/features/school/types/income';
 import { CollegeFinanceReport } from '@/features/college/types/income';
 import jsPDF from 'jspdf';
 import type ExcelJS from 'exceljs';
+import { getExportFilename } from './excel-export-utils';
 
 // IMPORTANT: ExcelJS is large — load it only when exporting.
 async function loadExcelJS(): Promise<any> {
@@ -46,7 +47,7 @@ export const exportFinanceReportToExcel = async (
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${filename}-${new Date().toISOString().split('T')[0]}.xlsx`;
+    link.download = getExportFilename(filename, "xlsx");
 
     document.body.appendChild(link);
     link.click();
@@ -513,7 +514,7 @@ const downloadCSV = (csvContent: string, filename: string) => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `${filename}-${new Date().toISOString().split('T')[0]}.csv`;
+  link.download = getExportFilename(filename, "csv");
   
   // Add to DOM, click, and remove
   document.body.appendChild(link);
@@ -574,8 +575,7 @@ export const exportFinanceReportToPDF = (
   });
 
   // Save the PDF
-  const finalFilename = `${filename}-${new Date().toISOString().split('T')[0]}.pdf`;
-  doc.save(finalFilename);
+  doc.save(getExportFilename(filename, "pdf"));
 };
 
 /**

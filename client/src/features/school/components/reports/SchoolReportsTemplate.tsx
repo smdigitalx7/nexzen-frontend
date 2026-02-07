@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { BarChart3, Download, TrendingUp, PieChart } from "lucide-react";
 import { Badge } from "@/common/components/ui/badge";
@@ -29,6 +29,7 @@ import { ExpenditureTable } from "@/features/school/components/reports/component
 import { AddExpenditureDialog } from "@/features/school/components/reports/components/AddExpenditureDialog";
 import { SchoolIncomeStatsCards } from "../income/SchoolIncomeStatsCards";
 import { SchoolExpenditureStatsCards } from "../expenditure/SchoolExpenditureStatsCards";
+import { CollapsibleStatsSection } from "@/common/components/shared/dashboard";
 import { SchoolFinanceReportButtons } from "../reports/components/SchoolFinanceReportButtons";
 import { SchoolFinancialAnalytics } from "./components/SchoolFinancialAnalytics";
 import { cleanupDialogState } from "@/common/utils/ui-cleanup";
@@ -169,18 +170,22 @@ export const SchoolReportsTemplate = () => {
 
       {/* Detailed Income Stats Cards */}
       {activeTab === "income" && incomeDashboard && (
-        <SchoolIncomeStatsCards
-          stats={incomeDashboard}
-          loading={incomeDashboardLoading}
-        />
+        <CollapsibleStatsSection label="Stats" defaultOpen>
+          <SchoolIncomeStatsCards
+            stats={incomeDashboard}
+            loading={incomeDashboardLoading}
+          />
+        </CollapsibleStatsSection>
       )}
 
       {/* Detailed Expenditure Stats Cards */}
       {activeTab === "expenditure" && expenditureDashboard && (
-        <SchoolExpenditureStatsCards
-          stats={expenditureDashboard}
-          loading={expenditureDashboardLoading}
-        />
+        <CollapsibleStatsSection label="Stats" defaultOpen>
+          <SchoolExpenditureStatsCards
+            stats={expenditureDashboard}
+            loading={expenditureDashboardLoading}
+          />
+        </CollapsibleStatsSection>
       )}
 
       {/* Tabs */}

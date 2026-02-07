@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Badge } from "@/common/components/ui/badge";
 import { Button } from "@/common/components/ui/button";
 import { Input } from "@/common/components/ui/input";
@@ -21,6 +21,7 @@ import {
   Search,
   Download,
   User,
+  Loader2,
 } from "lucide-react";
 import { useCanViewUIComponent } from "@/core/permissions";
 import {
@@ -34,6 +35,16 @@ import {
   AlertDialogTitle,
 } from "@/common/components/ui/alert-dialog";
 import { Card, CardContent } from "@/common/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/common/components/ui/dialog";
+import { Progress } from "@/common/components/ui/progress";
+import { useToast } from "@/common/hooks/use-toast";
+import { exportToExcel } from "@/common/utils/export/excel-export-utils";
 import { cn } from "@/common/utils";
 
 interface TeacherAssignmentsTabProps {
@@ -60,6 +71,8 @@ export const TeacherAssignmentsTab = ({
   handleDelete,
   handleAddClick,
 }: TeacherAssignmentsTabProps) => {
+  const { toast } = useToast();
+
   // Permission checks
   const canAddSubject = useCanViewUIComponent(
     "teachers",
@@ -73,6 +86,8 @@ export const TeacherAssignmentsTab = ({
   );
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
   const [deleteConfirm, setDeleteConfirm] = useState<{
     open: boolean;
     teacherId: number;
@@ -140,70 +155,92 @@ export const TeacherAssignmentsTab = ({
     }, 0);
   }, [filteredTeachers]);
 
-  // Export to Excel
+  // Export to Excel using shared professional design (global code, employee code, phone included)
   const handleExportToExcel = async () => {
-    try {
-      const ExcelJS = (await import("exceljs")).default;
-      const workbook = new ExcelJS.Workbook();
-      workbook.creator = "Velocity ERP";
-      workbook.created = new Date();
-      workbook.modified = new Date();
+    const flatData: Record<string, string | number>[] = [];
 
-      const worksheet = workbook.addWorksheet("Teacher Assignments");
+    if (Array.isArray(hierarchicalAssignments)) {
+      hierarchicalAssignments.forEach((teacher) => {
+        const teacherDetails = teacherDetailsMap.get(teacher.employee_id) as Record<string, unknown> | undefined;
+        const globalCode = String(teacherDetails?.global_code ?? teacherDetails?.employee_code ?? "N/A");
+        const employeeCode = String(teacherDetails?.employee_code ?? "N/A");
+        const phone = String(teacherDetails?.mobile_no ?? "N/A");
 
-      // Header row
-      const headerRow = worksheet.addRow([
-        "Teacher Name",
-        "Employee Code",
-        "Phone",
-        "Class",
-        "Section",
-        "Subject",
-        "Class Teacher",
-        "Status",
-      ]);
-      headerRow.font = { bold: true };
-
-      // Data rows
-      if (Array.isArray(hierarchicalAssignments)) {
-        hierarchicalAssignments.forEach((teacher) => {
-          const teacherDetails = teacherDetailsMap.get(teacher.employee_id);
-          const classes = Array.isArray(teacher.classes) ? teacher.classes : [];
-          classes.forEach((classItem: any) => {
-            const sections = Array.isArray(classItem.sections) ? classItem.sections : [];
-            sections.forEach((section: any) => {
-              const subjects = Array.isArray(section.subjects) ? section.subjects : [];
-              subjects.forEach((subject: any) => {
-                worksheet.addRow([
-                  teacher.teacher_name || "N/A",
-                  teacherDetails?.employee_code || "N/A",
-                  teacherDetails?.mobile_no || "N/A",
-                  classItem.class_name || "N/A",
-                  section.section_name || "N/A",
-                  subject.subject_name || "N/A",
-                  subject.is_class_teacher ? "Yes" : "No",
-                  subject.is_active ? "Active" : "Inactive",
-                ]);
+        const classes = Array.isArray(teacher.classes) ? teacher.classes : [];
+        classes.forEach((classItem: any) => {
+          const sections = Array.isArray(classItem.sections) ? classItem.sections : [];
+          sections.forEach((section: any) => {
+            const subjects = Array.isArray(section.subjects) ? section.subjects : [];
+            subjects.forEach((subject: any) => {
+              flatData.push({
+                teacher_name: teacher.teacher_name || "N/A",
+                global_code: globalCode,
+                employee_code: employeeCode,
+                phone,
+                class_name: classItem.class_name || "N/A",
+                section_name: section.section_name || "N/A",
+                subject_name: subject.subject_name || "N/A",
+                class_teacher: subject.is_class_teacher ? "Yes" : "No",
+                status: subject.is_active ? "Active" : "Inactive",
               });
             });
           });
         });
-      }
-
-      // Generate Excel file
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
+    }
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `teacher_assignments_${new Date().toISOString().slice(0, 10)}.xlsx`;
-      a.click();
-      URL.revokeObjectURL(url);
+    if (flatData.length === 0) {
+      toast({
+        title: "No data to export",
+        description: "There are no teacher assignments to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExporting(true);
+    setExportProgress(10);
+
+    const progressInterval = setInterval(() => {
+      setExportProgress((p) => (p >= 90 ? 90 : p + 15));
+    }, 200);
+
+    try {
+      await exportToExcel(flatData, [
+        { header: "Teacher Name", key: "teacher_name", width: 22 },
+        { header: "Global Code", key: "global_code", width: 14 },
+        { header: "Employee Code", key: "employee_code", width: 14 },
+        { header: "Phone", key: "phone", width: 14 },
+        { header: "Class", key: "class_name", width: 12 },
+        { header: "Section", key: "section_name", width: 12 },
+        { header: "Subject", key: "subject_name", width: 20 },
+        { header: "Class Teacher", key: "class_teacher", width: 12 },
+        { header: "Status", key: "status", width: 10 },
+      ], {
+        filename: "teacher_assignments",
+        sheetName: "Teacher Assignments",
+        title: "Teacher Assignments",
+        includeMetadata: true,
+      });
+      toast({
+        title: "Export complete",
+        description: "Teacher assignments have been downloaded.",
+        variant: "success",
+      });
     } catch (error) {
       console.error("Error exporting to Excel:", error);
+      toast({
+        title: "Export failed",
+        description: error instanceof Error ? error.message : "Failed to export. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      clearInterval(progressInterval);
+      setExportProgress(100);
+      setTimeout(() => {
+        setIsExporting(false);
+        setExportProgress(0);
+      }, 500);
     }
   };
 
@@ -229,6 +266,7 @@ export const TeacherAssignmentsTab = ({
              variant="outline"
              size="sm"
              className="hidden sm:flex"
+             disabled={isExporting}
            >
              <Download className="h-4 w-4 mr-2" />
              Export
@@ -446,6 +484,27 @@ export const TeacherAssignmentsTab = ({
           </Table>
         </div>
       )}
+
+      {/* Export progress dialog */}
+      <Dialog open={isExporting} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              Exporting Data...
+            </DialogTitle>
+            <DialogDescription>
+              Preparing your teacher assignments export. Please wait.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Progress value={exportProgress} className="h-2" />
+            <p className="text-sm text-muted-foreground mt-2 text-center">
+              {exportProgress}%
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog

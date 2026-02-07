@@ -1,6 +1,6 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CollegeStudentTransportAssignmentsService } from "@/features/college/services/student-transport-assignments.service";
-import type { CollegeTransportAssignmentCreate, CollegeTransportAssignmentRead, CollegeTransportAssignmentUpdate, CollegeStudentTransportDashboardStats, CollegeTransportRoute } from "@/features/college/types/index.ts";
+import type { CollegeTransportAssignmentCreate, CollegeTransportAssignmentRead, CollegeTransportAssignmentUpdate, CollegeTransportAssignmentCancel, CollegeStudentTransportDashboardStats, CollegeTransportRoute } from "@/features/college/types/index.ts";
 import { collegeKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-toast";
 
@@ -54,6 +54,19 @@ export function useDeleteCollegeStudentTransportAssignment() {
       void qc.refetchQueries({ queryKey: collegeKeys.studentTransport.root(), type: 'active' });
     },
   }, "Student transport assignment deleted successfully");
+}
+
+export function useCancelCollegeStudentTransportAssignment() {
+  const qc = useQueryClient();
+  return useMutationWithSuccessToast({
+    mutationFn: ({ assignmentId, payload }: { assignmentId: number; payload: CollegeTransportAssignmentCancel }) => 
+      CollegeStudentTransportAssignmentsService.cancel(assignmentId, payload),
+    onSuccess: (_, { assignmentId }) => {
+      void qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.root() });
+      void qc.invalidateQueries({ queryKey: collegeKeys.studentTransport.detail(assignmentId) });
+      void qc.refetchQueries({ queryKey: collegeKeys.studentTransport.root(), type: 'active' });
+    },
+  }, "Transport assignment cancelled successfully");
 }
 
 export function useCollegeStudentTransportDashboard() {

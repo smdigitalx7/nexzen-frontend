@@ -1,4 +1,4 @@
-﻿import { useMemo, memo, useState, useCallback } from "react";
+import { useMemo, memo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Eye, Download, User, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
@@ -47,6 +47,13 @@ interface StudentFeeBalancesTableProps {
   showHeader?: boolean;
   loading?: boolean;
   classes?: SchoolClassRead[];
+  /** Server-side pagination */
+  pagination?: "client" | "server" | "none";
+  totalCount?: number;
+  currentPage?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
 }
 
 // Status color mapping - moved outside component for better performance
@@ -112,6 +119,12 @@ export const StudentFeeBalancesTable = ({
   showHeader = true,
   loading = false,
   classes = [],
+  pagination: paginationMode = "client",
+  totalCount,
+  currentPage,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
 }: StudentFeeBalancesTableProps) => {
   const [selectedStudent, setSelectedStudent] = useState<StudentFeeBalance | null>(null);
   const [concessionModalOpen, setConcessionModalOpen] = useState(false);
@@ -210,6 +223,12 @@ export const StudentFeeBalancesTable = ({
         actions={actions}
         actionsHeader="Actions"
         loading={loading}
+        pagination={paginationMode}
+        totalCount={totalCount}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
       />
 
       {/* Summary Cards */}

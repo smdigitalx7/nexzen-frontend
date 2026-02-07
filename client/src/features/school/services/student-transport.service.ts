@@ -1,7 +1,8 @@
-﻿import { Api } from "@/core/api";
+import { Api } from "@/core/api";
 import type { 
   SchoolStudentTransportAssignmentCreate,
   SchoolStudentTransportAssignmentUpdate,
+  SchoolStudentTransportAssignmentCancel,
   SchoolStudentTransportAssignmentRead,
   SchoolStudentTransportRouteWiseResponse,
   SchoolTransportDashboardStats 
@@ -40,6 +41,10 @@ export const StudentTransportService = {
 
   delete(transport_assignment_id: number): Promise<void> {
     return Api.delete<void>(`/school/student-transport-assignments/${transport_assignment_id}`);
+  },
+
+  cancel(payload: SchoolStudentTransportAssignmentCancel): Promise<any> {
+    return Api.post<any>(`/school/student-transport-assignments/cancel`, payload);
   },
 };
 

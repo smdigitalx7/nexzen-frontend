@@ -10,11 +10,12 @@ export interface SchoolStudentTransportAssignmentCreate {
 
 export interface SchoolStudentTransportAssignmentUpdate {
   bus_route_id?: number;
-  slab_id?: number;
   pickup_point?: string | null;
-  start_date?: string | null;
-  end_date?: string | null;
-  is_active?: boolean | null;
+}
+
+export interface SchoolStudentTransportAssignmentCancel {
+  transport_assignment_id: number;
+  end_date: string; // ISO date format: YYYY-MM-DD
 }
 
 export interface SchoolStudentTransportAssignmentRead {

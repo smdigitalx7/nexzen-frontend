@@ -1,7 +1,7 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { EnrollmentsService } from "@/features/school/services/enrollments.service";
-import type { SchoolEnrollmentCreate, SchoolEnrollmentFilterParams, SchoolEnrollmentWithStudentDetails, SchoolEnrollmentsPaginatedResponse, SchoolEnrollmentForSectionAssignment, AssignSectionsRequest } from "@/features/school/types";
+import type { SchoolEnrollmentCreate, SchoolEnrollmentFilterParams, SchoolEnrollmentWithStudentDetails, SchoolEnrollmentsPaginatedResponse, SchoolEnrollmentForSectionAssignment, AssignSectionsRequest, ChangeEnrollmentSectionRequest } from "@/features/school/types";
 import { schoolKeys } from "./query-keys";
 import { useMutationWithSuccessToast } from "@/common/hooks/use-mutation-with-toast";
 
@@ -98,4 +98,20 @@ export function useAssignSectionsToEnrollments() {
       });
     },
   }, "Sections assigned successfully");
+}
+
+export function useChangeEnrollmentSection() {
+  const qc = useQueryClient();
+  return useMutationWithSuccessToast(
+    {
+      mutationFn: ({ enrollment_id, payload }: { enrollment_id: number; payload: ChangeEnrollmentSectionRequest }) =>
+        EnrollmentsService.changeEnrollmentSection(enrollment_id, payload),
+      onSuccess: (_, variables) => {
+        void qc.invalidateQueries({ queryKey: schoolKeys.enrollments.root() });
+        void qc.invalidateQueries({ queryKey: schoolKeys.enrollments.detail(variables.enrollment_id) });
+        void qc.refetchQueries({ queryKey: schoolKeys.enrollments.root(), type: "active" });
+      },
+    },
+    "Section updated successfully"
+  );
 }

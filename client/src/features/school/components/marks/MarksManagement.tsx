@@ -26,8 +26,8 @@ const MarksManagementComponent = () => {
   const { activeTab, setActiveTab } = useTabNavigation("exam-marks");
 
   // State management for marks data
-  const [examMarksData, setExamMarksData] = useState<MarksData[]>([]);
-  const [testMarksData, setTestMarksData] = useState<MarksData[]>([]);
+  const [_examMarksData, setExamMarksData] = useState<MarksData[]>([]);
+  const [_testMarksData, setTestMarksData] = useState<MarksData[]>([]);
 
   // Separate filter states for Exam Marks - maintains independent state
   const [examSelectedClass, setExamSelectedClass] = useState<number | null>(null);

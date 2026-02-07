@@ -91,13 +91,19 @@ export const TestMarksReport = () => {
       },
     ];
 
-    // Add subject columns
+    // Add subject columns (accessorFn needed for Excel export to read marks from row.original.subjects)
     if (data?.students && data.students.length > 0) {
       const subjects = data.students[0].subjects;
       subjects.forEach((subject) => {
+        const subjectName = subject.subject_name;
         baseColumns.push({
-          id: `subject_${subject.subject_name}`,
-          header: subject.subject_name,
+          id: `subject_${subjectName}`,
+          header: subjectName,
+          accessorFn: (row: SchoolStudentReport | { original: SchoolStudentReport }) => {
+            const d = "original" in row ? row.original : row;
+            const subjectMark = d.subjects.find((s) => s.subject_name === subjectName);
+            return subjectMark?.marks ?? "-";
+          },
           cell: ({ row }) => {
             const subjectMark = row.original.subjects.find(
               (s) => s.subject_name === subject.subject_name
@@ -119,10 +125,11 @@ export const TestMarksReport = () => {
       });
     }
 
-    // Add total and percentage columns
+    // Add total and percentage columns (accessorKey/accessorFn for Excel export)
     baseColumns.push(
       {
         id: "overall_total_marks",
+        accessorKey: "overall_total_marks",
         header: "Total",
         cell: ({ row }) => (
           <span className="font-semibold">
@@ -133,6 +140,11 @@ export const TestMarksReport = () => {
       {
         id: "overall_percentage",
         header: "Percentage",
+        accessorFn: (row: SchoolStudentReport | { original: SchoolStudentReport }) => {
+          const d = "original" in row ? row.original : row;
+          const pct = typeof d.overall_percentage === "number" ? d.overall_percentage : parseFloat(String(d.overall_percentage)) || 0;
+          return `${pct.toFixed(1)}%`;
+        },
         cell: ({ row }) => {
           const percentage = typeof row.original.overall_percentage === 'number' 
             ? row.original.overall_percentage 
@@ -163,9 +175,9 @@ export const TestMarksReport = () => {
   }, [data]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-3">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Test Marks Report</h2>
@@ -361,11 +373,13 @@ export const TestMarksReport = () => {
         </>
       ) : classId && testId ? (
         <div className="text-center py-12 text-gray-500">
+          <GraduationCap className="h-12 w-12 mx-auto mb-4 text-gray-400" />
           <p>No test marks data available for the selected filters</p>
         </div>
       ) : (
         <div className="text-center py-12 text-gray-500">
-          <p>Please select Class and Test to generate the report</p>
+          <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+          <p>Please select Class and Test to generate the report.</p>
         </div>
       )}
     </div>

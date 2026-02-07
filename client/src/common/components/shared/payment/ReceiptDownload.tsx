@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Download, 
@@ -28,6 +28,7 @@ import { Input } from '@/common/components/ui/input';
 import { Label } from '@/common/components/ui/label';
 import { useGeneratePaymentReceipt, useDownloadPaymentReceipt, useSendReceiptEmail } from '@/features/general/hooks/use-payment-receipts';
 import { cn } from '@/common/utils';
+import { getExportFilename } from '@/common/utils/export/excel-export-utils';
 import { PaymentData } from './PaymentProcessor';
 
 export interface ReceiptDownloadProps {
@@ -85,7 +86,7 @@ const ReceiptDownload: React.FC<ReceiptDownloadProps> = ({
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `payment-receipt-${response.receiptData.transactionId}.pdf`;
+      link.download = getExportFilename(`payment-receipt-${response.receiptData.transactionId}`, "pdf");
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

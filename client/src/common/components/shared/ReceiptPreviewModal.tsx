@@ -1,4 +1,4 @@
-﻿import React, {
+import React, {
   useEffect,
   useState,
   useCallback,
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/common/hooks/use-toast";
 import { cn } from "@/common/utils";
+import { getExportFilename } from "@/common/utils/export/excel-export-utils";
 
 interface ReceiptPreviewModalProps {
   isOpen: boolean;
@@ -46,13 +47,11 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   const closingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Generate filename from receipt number or fallback
-  const downloadFilename = useMemo(() => {
-    if (receiptNo) {
-      return `Receipt_${receiptNo}.pdf`;
-    }
-    return `receipt-${Date.now()}.pdf`;
-  }, [receiptNo]);
+  // Generate filename from receipt number or fallback (consistent naming: base_YYYY-MM-DD.pdf)
+  const downloadFilename = useMemo(
+    () => getExportFilename(receiptNo ? `Receipt_${receiptNo}` : "receipt", "pdf"),
+    [receiptNo]
+  );
 
   // Ensure component is mounted (for portal)
   useEffect(() => {

@@ -131,6 +131,7 @@ export interface ExamMarkFullReadResponse {
   percentage: number | null;
   grade: string | null;
   remarks: string | null;
+  max_marks?: number;
   conducted_at: string | null;
   created_at: string;
   updated_at: string | null;

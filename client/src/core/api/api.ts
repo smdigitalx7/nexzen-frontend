@@ -1,3 +1,4 @@
+
 /**
  * Axios Instance + Interceptors + Refresh Logic
  * 
@@ -15,7 +16,6 @@
 
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from "axios";
 import { useAuthStore } from "@/core/auth/authStore";
-import { queryClient } from "@/core/query";
 
 // Base URL for auth endpoints
 // Handle both cases: full URL or path-only
@@ -46,7 +46,7 @@ let refreshPromise: Promise<string | null> | null = null;
 /**
  * Track if a request is already being retried to prevent infinite loops
  */
-const retryingRequests = new WeakSet<InternalAxiosRequestConfig>();
+const _retryingRequests = new WeakSet<InternalAxiosRequestConfig>();
 
 /**
  * Call the refresh endpoint to get a new access token
@@ -66,7 +66,7 @@ function isAuthUserInfo(
   branches: Array<{ branch_id: number; branch_name: string; roles: string[] }>;
 } {
   if (!value || typeof value !== "object") return false;
-  const v = value as any;
+  const v = value as Record<string, unknown>;
   return (
     typeof v.full_name === "string" &&
     typeof v.email === "string" &&
@@ -76,7 +76,7 @@ function isAuthUserInfo(
 
 async function callRefreshEndpoint(): Promise<RefreshResponse> {
   // Use apiClient which already has the correct baseURL configured
-  const response = await apiClient.post("/auth/refresh", {}, {
+  const response = await apiClient.post<RefreshResponse>("/auth/refresh", {}, {
     withCredentials: true, // CRITICAL: Send cookies (refreshToken)
   });
 
@@ -144,7 +144,7 @@ async function refreshAccessToken(): Promise<string | null> {
       if (!currentState.isLoggingOut) {
         // Use logout() which handles redirect internally
         // Don't redirect here to prevent double redirects
-        useAuthStore.getState().logout();
+        void useAuthStore.getState().logout();
       }
       
       throw error;
@@ -205,7 +205,7 @@ apiClient.interceptors.request.use(
     }
     
     // Use accessToken (new) or token (legacy alias) for backward compatibility
-    const token = state.accessToken || (state as any).token;
+    const token = state.accessToken ?? (state as { token?: string | null }).token;
     
     // Add Authorization header if we have a token
     if (token) {
@@ -218,7 +218,7 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
-    return Promise.reject(error);
+    throw error;
   }
 );
 
@@ -238,7 +238,7 @@ apiClient.interceptors.response.use(
     const authState = useAuthStore.getState();
     if (authState.isLoggingOut) {
       // Logout in progress - don't attempt refresh, just reject
-      return Promise.reject(error);
+      throw error;
     }
 
     // Only handle 401 errors (Unauthorized)
@@ -248,13 +248,13 @@ apiClient.interceptors.response.use(
       
       if (!hadAuthHeader) {
         // This request didn't use auth, so don't try to refresh
-        return Promise.reject(error);
+        throw error;
       }
 
       // Double-check logout state before attempting refresh (race condition protection)
       const currentAuthState = useAuthStore.getState();
       if (currentAuthState.isLoggingOut) {
-        return Promise.reject(error);
+        throw error;
       }
 
       // Mark request as retry to prevent infinite loops
@@ -267,7 +267,7 @@ apiClient.interceptors.response.use(
         // Triple-check logout state after refresh (logout might have happened during refresh)
         const postRefreshState = useAuthStore.getState();
         if (postRefreshState.isLoggingOut) {
-          return Promise.reject(error);
+          throw error;
         }
         
         if (newToken) {
@@ -280,12 +280,12 @@ apiClient.interceptors.response.use(
         }
       } catch (refreshError) {
         // Refresh failed - error already handled in refreshAccessToken
-        return Promise.reject(refreshError);
+        throw refreshError instanceof Error ? refreshError : new Error(String(refreshError));
       }
     }
 
     // For non-401 errors or if refresh failed, reject with original error
-    return Promise.reject(error);
+    throw error;
   }
 );
 

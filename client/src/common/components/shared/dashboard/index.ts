@@ -1,5 +1,6 @@
 export { StatsCard, type StatsCardConfig } from './StatsCard';
 export { DashboardGrid } from './DashboardGrid';
+export { CollapsibleStatsSection, type CollapsibleStatsSectionProps } from './CollapsibleStatsSection';
 export { DashboardHeader } from './DashboardHeader';
 export { DashboardFilters } from './DashboardFilters';
 export { DashboardContainer } from './DashboardContainer';

@@ -2,8 +2,7 @@ import React, { useState, useMemo, useCallback, memo, useEffect } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/common/components/ui/badge";
 import { Button } from "@/common/components/ui/button";
-import { Input } from "@/common/components/ui/input";
-import { Search } from "lucide-react";
+import { Eye } from "lucide-react";
 import { useSchoolAdmissions } from "@/features/school/hooks";
 import { toast } from "@/common/hooks/use-toast";
 import { exportAdmissionsToExcel } from "@/common/utils/export/admissionsExport";
@@ -124,8 +123,9 @@ const AdmissionsListComponent = () => {
     {
       id: "view",
       label: "View",
-      icon: Search,
+      icon: Eye,
       onClick: (row) => handleViewDetails(row),
+      showLabel: true,
     }
   ], [handleViewDetails]);
 
@@ -180,48 +180,32 @@ const AdmissionsListComponent = () => {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Input
-            id="school-admissions-search"
-            name="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search admissions…"
-            className="w-full max-w-md"
-            leftIcon={<Search className="h-4 w-4" />}
-            autoComplete="off"
-          />
-          {search ? (
-            <Button variant="outline" size="sm" onClick={() => setSearch("")}>
-              Clear
-            </Button>
-          ) : null}
-        </div>
-        <DataTable
-          data={admissions}
-          columns={columns}
-          title="Student Admissions"
-          loading={isLoading}
-          showSearch={false} // Keeping existing external search
-          export={{ enabled: true, onExport: handleExportAll }}
-          actions={actions}
-          actionsHeader="Actions"
-          pagination="server"
-          currentPage={paginationMeta.current_page}
-          totalCount={paginationMeta.total_count}
-          pageSize={paginationMeta.page_size}
-          onPageChange={(page) => {
-            setCurrentPage(page);
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-          onPageSizeChange={(newPageSize) => {
-            setPageSize(newPageSize);
-            setCurrentPage(1);
-          }}
-          className="w-full"
-        />
-      </div>
+      <DataTable
+        data={admissions}
+        columns={columns}
+        title="Student Admissions"
+        loading={isLoading}
+        showSearch={true}
+        searchPlaceholder="Search admissions (no, name, group)..."
+        searchValue={search}
+        onSearchChange={setSearch}
+        export={{ enabled: true, onExport: handleExportAll }}
+        actions={actions}
+        actionsHeader="Actions"
+        pagination="server"
+        currentPage={paginationMeta.current_page}
+        totalCount={paginationMeta.total_count}
+        pageSize={paginationMeta.page_size}
+        onPageChange={(page) => {
+          setCurrentPage(page);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+        onPageSizeChange={(newPageSize) => {
+          setPageSize(newPageSize);
+          setCurrentPage(1);
+        }}
+        className="w-full"
+      />
     </div>
   );
 };

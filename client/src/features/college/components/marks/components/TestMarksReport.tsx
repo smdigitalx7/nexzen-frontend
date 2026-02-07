@@ -95,9 +95,15 @@ export const TestMarksReport = () => {
 
     if (data?.subject_wise_overall_marks && Array.isArray(data.subject_wise_overall_marks)) {
       data.subject_wise_overall_marks.forEach((subject) => {
+        const subjectName = subject.subject_name;
         baseColumns.push({
-          id: `subject_${subject.subject_name}`,
-          header: subject.subject_name,
+          id: `subject_${subjectName}`,
+          header: subjectName,
+          accessorFn: (row: CollegeStudentReport | { original: CollegeStudentReport }) => {
+            const d = "original" in row ? row.original : row;
+            const mark = d.subjects.find((s) => s.subject_name === subjectName);
+            return mark?.marks ?? "-";
+          },
           cell: ({ row }) => {
             const mark = row.original.subjects.find((s) => s.subject_name === subject.subject_name);
             if (!mark) return <span className="text-slate-400">—</span>;
@@ -147,9 +153,9 @@ export const TestMarksReport = () => {
   }, [data]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Test Marks Report</h2>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -358,12 +364,12 @@ export const TestMarksReport = () => {
       ) : classId && testId && groupId && courseId ? (
         <div className="text-center py-12 text-slate-500">
           <ClipboardList className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-          <p>No test marks data available for the selected filters</p>
+          <p>No test marks data available for the selected filters.</p>
         </div>
       ) : (
         <div className="text-center py-12 text-slate-500">
-          <Search className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-          <p>Please select Class, Group, Course and Test to generate the report</p>
+          <BarChart3 className="h-12 w-12 mx-auto mb-4 text-slate-400" />
+          <p>Please select Class, Group, Course and Test to generate the report.</p>
         </div>
       )}
     </div>

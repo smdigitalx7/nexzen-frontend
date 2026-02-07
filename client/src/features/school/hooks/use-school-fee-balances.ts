@@ -16,7 +16,6 @@ export function useSchoolTuitionBalancesList(params?: { page?: number; page_size
         params as { class_id: number; page?: number; page_size?: number; section_id?: number }
       ),
     enabled: !!params?.class_id && params.class_id > 0,
-    select: (data: any) => (Array.isArray(data) ? data : data.data || []),
   });
 }
 
@@ -153,7 +152,13 @@ export function useUpdateSchoolBookFeePayment(enrollmentId: number) {
 
 export function useUpdateSchoolTuitionConcession(enrollmentId: number) {
   return useMutationWithSuccessToast({
-    mutationFn: (payload: ConcessionUpdateRequest) => SchoolTuitionFeeBalancesService.updateConcession(enrollmentId, payload),
+    mutationFn: async (payload: ConcessionUpdateRequest) => {
+      const result = await SchoolTuitionFeeBalancesService.updateConcession(enrollmentId, payload);
+      if (result && result.success === false) {
+        throw new Error(result.message || "Tuition concession update failed");
+      }
+      return result;
+    },
     onSuccess: () => {
       const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.update, enrollmentId);
       batchInvalidateQueries(keysToInvalidate);
@@ -170,7 +175,6 @@ export function useSchoolTransportBalancesList(params?: { page?: number; page_si
         params as { class_id: number; page?: number; page_size?: number; section_id?: number }
       ),
     enabled: !!params?.class_id && params.class_id > 0,
-    select: (data: any) => (Array.isArray(data) ? data : data.data || []),
   });
 }
 
@@ -243,7 +247,13 @@ export function useUpdateSchoolTransportTermPayment(enrollmentId: number) {
 
 export function useUpdateSchoolTransportConcession(enrollmentId: number) {
   return useMutationWithSuccessToast({
-    mutationFn: (payload: ConcessionUpdateRequest) => SchoolTransportFeeBalancesService.updateConcession(enrollmentId, payload),
+    mutationFn: async (payload: ConcessionUpdateRequest) => {
+      const result = await SchoolTransportFeeBalancesService.updateConcession(enrollmentId, payload);
+      if (result && result.success === false) {
+        throw new Error(result.message || "Transport concession update failed");
+      }
+      return result;
+    },
     onSuccess: () => {
       const keysToInvalidate = resolveInvalidationKeys(SCHOOL_INVALIDATION_MAPS.fee.update, enrollmentId);
       batchInvalidateQueries(keysToInvalidate);

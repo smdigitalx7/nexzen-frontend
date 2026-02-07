@@ -1,10 +1,8 @@
-﻿import { useState, useMemo, useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useState, useMemo, useCallback } from 'react';
 import { Badge } from '@/common/components/ui/badge';
 import { 
   EnrollmentSearchForm,
   EnrollmentViewDialog,
-  EnrollmentEditDialog,
 } from './enrollments';
 import { 
   useCollegeEnrollmentsList,
@@ -12,18 +10,14 @@ import {
   useCollegeEnrollmentByAdmission,
 } from '@/features/college/hooks';
 import { useCollegeClasses, useCollegeGroups, useCollegeCourses } from '@/features/college/hooks/use-college-dropdowns';
-import { collegeKeys } from '@/features/college/hooks/query-keys';
-import { batchInvalidateAndRefetch } from '@/common/hooks/useGlobalRefetch';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { CollegeEnrollmentRead, CollegeEnrollmentFilterParams } from '@/features/college/types';
 import { formatDate } from '@/common/utils/formatting/date';
 import { ActionConfig } from '@/common/components/shared/DataTable/types';
 import { DataTable } from '@/common/components/shared/DataTable';
-import { Eye, Edit as EditIcon } from 'lucide-react';
+import { Eye } from 'lucide-react';
 
 export const EnrollmentsTabComponent = () => {
-  const queryClient = useQueryClient();
-  
   // State management
   const [query, setQuery] = useState<{ class_id: number | ''; group_id?: number | ''; course_id?: number | ''; admission_no?: string }>({ 
     class_id: '', 
@@ -31,7 +25,6 @@ export const EnrollmentsTabComponent = () => {
     course_id: '',
     admission_no: ''
   });
-  const [refreshKey, setRefreshKey] = useState(0);
 
   // Fetch dropdown data
   const { data: classesData } = useCollegeClasses({ enabled: true });
@@ -71,31 +64,13 @@ export const EnrollmentsTabComponent = () => {
 
   // Dialog state
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [viewEnrollmentId, setViewEnrollmentId] = useState<number | null>(null);
-  const [editStudentId, setEditStudentId] = useState<number | null>(null);
 
   const { data: viewEnrollment, isLoading: isLoadingView } = useCollegeEnrollment(viewEnrollmentId);
 
   const handleView = useCallback((enrollment: CollegeEnrollmentRead) => {
     setViewEnrollmentId(enrollment.enrollment_id);
     setIsViewDialogOpen(true);
-  }, []);
-
-  const handleEdit = useCallback((enrollment: CollegeEnrollmentRead) => {
-    if (enrollment?.student_id) {
-      setEditStudentId(enrollment.student_id);
-      setIsEditDialogOpen(true);
-    }
-  }, []);
-
-  const handleEditSuccess = useCallback(async () => {
-    batchInvalidateAndRefetch([
-      collegeKeys.enrollments.root(),
-      collegeKeys.students.root(),
-    ]);
-    await new Promise(resolve => setTimeout(resolve, 200));
-    setRefreshKey(prev => prev + 1);
   }, []);
 
   const handleGroupChange = useCallback((value: string) => {
@@ -164,14 +139,8 @@ export const EnrollmentsTabComponent = () => {
       label: 'View',
       icon: Eye,
       onClick: (row) => handleView(row),
-    },
-    {
-      id: 'edit',
-      label: 'Edit',
-      icon: EditIcon,
-      onClick: (row) => handleEdit(row),
     }
-  ], [handleView, handleEdit]);
+  ], [handleView]);
 
   const columns: ColumnDef<any>[] = useMemo(() => [
     {
@@ -240,7 +209,6 @@ export const EnrollmentsTabComponent = () => {
       />
 
       <DataTable
-        key={`enrollments-table-${refreshKey}`}
         data={flattenedEnrollments}
         columns={columns}
         actions={actions}
@@ -264,21 +232,6 @@ export const EnrollmentsTabComponent = () => {
         classes={classes}
         groups={groups}
         courses={courses}
-      />
-
-      <EnrollmentEditDialog
-        open={isEditDialogOpen}
-        onOpenChange={(open) => {
-          setIsEditDialogOpen(open);
-          if (!open) {
-            setEditStudentId(null);
-            if (viewEnrollmentId) {
-              setIsViewDialogOpen(true);
-            }
-          }
-        }}
-        studentId={editStudentId}
-        onSuccess={handleEditSuccess}
       />
     </div>
   );

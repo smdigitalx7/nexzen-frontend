@@ -96,3 +96,9 @@ export interface AssignSectionsRequest {
   class_id: number;
   section_groups: SectionGroup[];
 }
+
+/** PATCH /school/enrollments/{enrollment_id}/section - change section (and optionally roll number) within same class */
+export interface ChangeEnrollmentSectionRequest {
+  section_id: number;
+  roll_number?: string;
+}

@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -22,13 +22,8 @@ import { Input } from "@/common/components/ui/input";
 import { DatePicker } from "@/common/components/ui/date-picker";
 import { Textarea } from "@/common/components/ui/textarea";
 import { Button } from "@/common/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/common/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/common/components/ui/radio-group";
+import { Label } from "@/common/components/ui/label";
 import { useCreateCollegeExpenditure } from "@/features/college/hooks";
 import { cleanupDialogState } from "@/common/utils/ui-cleanup";
 
@@ -159,17 +154,36 @@ export const AddExpenditureDialog = ({ open, onOpenChange }: AddExpenditureDialo
               name="payment_method"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel htmlFor="payment_method">Payment Method (Optional)</FormLabel>
+                  <FormLabel>Payment Method</FormLabel>
                   <FormControl>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger id="payment_method">
-                        <SelectValue placeholder="Select payment method" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="CASH">CASH</SelectItem>
-                        <SelectItem value="ONLINE">ONLINE</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <RadioGroup
+                      value={field.value || ""}
+                      onValueChange={field.onChange}
+                      className="grid grid-cols-2 gap-2"
+                    >
+                      <Label
+                        htmlFor="payment_method_cash"
+                        className={`flex items-center justify-center rounded-md border px-4 py-3 text-sm font-medium cursor-pointer transition-colors ${
+                          field.value === "CASH"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-input hover:bg-muted/50"
+                        }`}
+                      >
+                        <RadioGroupItem value="CASH" id="payment_method_cash" className="sr-only" />
+                        Cash
+                      </Label>
+                      <Label
+                        htmlFor="payment_method_online"
+                        className={`flex items-center justify-center rounded-md border px-4 py-3 text-sm font-medium cursor-pointer transition-colors ${
+                          field.value === "ONLINE"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-input hover:bg-muted/50"
+                        }`}
+                      >
+                        <RadioGroupItem value="ONLINE" id="payment_method_online" className="sr-only" />
+                        Online
+                      </Label>
+                    </RadioGroup>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

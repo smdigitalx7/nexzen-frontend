@@ -1,4 +1,4 @@
-﻿import { Api } from "@/core/api";
+import { Api } from "@/core/api";
 import type {
   SchoolEnrollmentCreate,
   SchoolEnrollmentWithStudentDetails,
@@ -6,6 +6,7 @@ import type {
   SchoolEnrollmentFilterParams,
   SchoolEnrollmentForSectionAssignment,
   AssignSectionsRequest,
+  ChangeEnrollmentSectionRequest,
 } from "@/features/school/types/enrollments";
 
 export const EnrollmentsService = {
@@ -45,6 +46,11 @@ export const EnrollmentsService = {
   // PUT /api/v1/school/enrollments/assign-sections
   assignSections(payload: AssignSectionsRequest): Promise<void> {
     return Api.put<void>(`/school/enrollments/assign-sections`, payload);
+  },
+
+  // PATCH /api/v1/school/enrollments/{enrollment_id}/section - change section (and optionally roll number) within same class
+  changeEnrollmentSection(enrollment_id: number, payload: ChangeEnrollmentSectionRequest): Promise<void> {
+    return Api.patch<void>(`/school/enrollments/${enrollment_id}/section`, payload);
   },
 
   // GET /api/v1/school/enrollments/promotion-eligibility

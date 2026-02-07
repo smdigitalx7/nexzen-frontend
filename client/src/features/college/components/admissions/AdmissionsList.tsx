@@ -268,6 +268,7 @@ const AdmissionsList = () => {
       label: "View",
       icon: Eye,
       onClick: (row) => handleViewDetails(row),
+      showLabel: true,
     },
   ], [handleViewDetails]);
 

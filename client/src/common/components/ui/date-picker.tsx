@@ -167,6 +167,7 @@ export function DatePicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent
+        data-datepicker-popover
         className="w-auto p-0 z-[10001]"
         align="start"
         style={{ pointerEvents: "auto" }}

@@ -1,5 +1,6 @@
-﻿import jsPDF from "jspdf";
+import jsPDF from "jspdf";
 import type { AdvanceRead } from "@/features/general/types/advances";
+import { getExportFilename } from "./excel-export-utils";
 
 interface AdvanceVoucherData {
   advance: AdvanceRead;
@@ -241,7 +242,7 @@ export const generateAdvanceVoucherPDF = (data: AdvanceVoucherData): void => {
   } else {
     // Fallback: Download if popup blocked
     doc.save(
-      `Advance-Voucher-${advance.advance_id}-${new Date().toISOString().split("T")[0]}.pdf`
+      getExportFilename(`Advance_Voucher_${advance.advance_id}`, "pdf")
     );
   }
 };

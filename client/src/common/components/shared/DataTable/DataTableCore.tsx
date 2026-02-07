@@ -129,28 +129,46 @@ function DataTableCoreComponent<TData>({
                 {visibleActions.map((action) => {
                   const Icon = action.icon;
                   const isDisabled = action.disabled?.(row.original) ?? false;
+                  const showLabel = action.showLabel ?? false;
+
+                  const button = (
+                    <Button
+                      variant={showLabel ? "outline" : (action.variant || "ghost")}
+                      size="sm"
+                      onClick={() => !isDisabled && action.onClick(row.original)}
+                      disabled={isDisabled}
+                      className={cn(
+                        "h-8",
+                        showLabel 
+                          ? "px-3 gap-2 border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-700" 
+                          : "px-2"
+                      )}
+                      aria-label={action.label}
+                    >
+                      <Icon className={cn("h-4 w-4", showLabel && "text-blue-600")} />
+                      {showLabel ? (
+                        <span className="text-sm font-medium">{action.label}</span>
+                      ) : (
+                        <span className="sr-only">{action.label}</span>
+                      )}
+                    </Button>
+                  );
 
                   return (
-                    <Tooltip key={action.id}>
-                      <TooltipTrigger asChild>
-                        <div>
-                          <Button
-                            variant={action.variant || "ghost"}
-                            size="sm"
-                            onClick={() => !isDisabled && action.onClick(row.original)}
-                            disabled={isDisabled}
-                            className="h-8 px-2"
-                            aria-label={action.label}
-                          >
-                            <Icon className="h-4 w-4" />
-                            <span className="sr-only">{action.label}</span>
-                          </Button>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" align="center">
-                        {action.label}
-                      </TooltipContent>
-                    </Tooltip>
+                    <div key={action.id}>
+                      {showLabel ? (
+                        button
+                      ) : (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>{button}</div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" align="center">
+                            {action.label}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
                   );
                 })}
               </div>

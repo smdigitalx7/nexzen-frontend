@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import { RootLayout } from "./RootLayout";
 import { AuthenticatedLayout } from "./AuthenticatedLayout";
@@ -6,6 +7,7 @@ import { DashboardRouter } from "./DashboardRouter";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { useAuthStore } from "@/core/auth/authStore";
 import { RouterErrorElement } from "@/common/components/shared/RouterErrorElement";
+import { Loader } from "@/common/components/ui/ProfessionalLoader";
 
 // Wrapper to protect routes using the existing ProtectedRoute logic (adapted)
 // Note: We might need to refactor ProtectedRoute to be RRD compatible.
@@ -43,10 +45,14 @@ export const router = createBrowserRouter([
     element: <RootLayout />,
     errorElement: <RouterErrorElement />,
     children: [
-        // Public Routes
+        // Public Routes (Suspense so lazy components don't suspend during sync input)
         {
             path: "login",
-            element: <Login />,
+            element: (
+              <Suspense fallback={<Loader.Page message="Loading..." />}>
+                <Login />
+              </Suspense>
+            ),
         },
         // Protected Routes
         {
@@ -57,35 +63,53 @@ export const router = createBrowserRouter([
             children: [
                 {
                     index: true,
-                    element: <DashboardRouter />,
+                    element: (
+                      <Suspense fallback={<Loader.Container message="Loading..." />}>
+                        <DashboardRouter />
+                      </Suspense>
+                    ),
                 },
                 {
                     path: "profile",
-                    element: <ProfilePage />,
+                    element: (
+                      <Suspense fallback={<Loader.Container message="Loading..." />}>
+                        <ProfilePage />
+                      </Suspense>
+                    ),
                 },
                 {
                     path: "settings",
-                    element: <SettingsPage />,
+                    element: (
+                      <Suspense fallback={<Loader.Container message="Loading..." />}>
+                        <SettingsPage />
+                      </Suspense>
+                    ),
                 },
                 {
                     path: "college", // existing placeholder
                     element: null, 
                 },
-                // Spread the config routes
+                // Spread the config routes (Suspense so lazy route components don't suspend during sync input)
                 ...appRoutes.map((route) => ({
                     path: route.path.startsWith("/") ? route.path.substring(1) : route.path,
                     element: (
-                        <RoleGuard 
-                            roles={route.roles} 
-                            component={route.component} 
-                            preventDirectAccess={route.preventDirectAccess} 
-                        />
+                        <Suspense fallback={<Loader.Container message="Loading..." />}>
+                          <RoleGuard 
+                              roles={route.roles} 
+                              component={route.component} 
+                              preventDirectAccess={route.preventDirectAccess} 
+                          />
+                        </Suspense>
                     ),
                 })),
                 // 404 for authenticated context
                 {
                     path: "*",
-                    element: <NotFound />,
+                    element: (
+                      <Suspense fallback={<Loader.Container message="Loading..." />}>
+                        <NotFound />
+                      </Suspense>
+                    ),
                 },
             ],
         },
@@ -93,6 +117,10 @@ export const router = createBrowserRouter([
   },
   {
       path: "*",
-      element: <NotFound />
+      element: (
+        <Suspense fallback={<Loader.Page message="Loading..." />}>
+          <NotFound />
+        </Suspense>
+      ),
   }
 ]);

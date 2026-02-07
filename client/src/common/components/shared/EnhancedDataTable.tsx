@@ -45,6 +45,7 @@ import {
 } from "@/common/components/ui/select";
 
 import { cn } from "@/common/utils";
+import { getExportFilename } from "@/common/utils/export/excel-export-utils";
 
 export interface FilterOption {
   value: string;
@@ -1024,10 +1025,7 @@ function EnhancedDataTableComponent<TData>({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      const sanitizedTitle = (title || "data")
-        .replace(/[^a-z0-9]/gi, "_")
-        .toLowerCase();
-      link.download = `${sanitizedTitle}_${new Date().toISOString().split("T")[0]}.xlsx`;
+      link.download = getExportFilename(title || "data", "xlsx");
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1066,10 +1064,7 @@ function EnhancedDataTableComponent<TData>({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      const sanitizedTitle = (title || "data")
-        .replace(/[^a-z0-9]/gi, "_")
-        .toLowerCase();
-      link.download = `${sanitizedTitle}_${new Date().toISOString().split("T")[0]}.csv`;
+      link.download = getExportFilename(title || "data", "csv");
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

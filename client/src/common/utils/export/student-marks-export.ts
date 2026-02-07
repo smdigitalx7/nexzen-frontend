@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import type { StudentMarksResponse as CollegeStudentMarksResponse } from '@/features/college/types/student-marks';
 import type { StudentMarksResponse as SchoolStudentMarksResponse } from '@/features/school/types/marks';
+import { getExportFilename } from './excel-export-utils';
 
 type StudentMarksData = CollegeStudentMarksResponse | SchoolStudentMarksResponse;
 
@@ -256,8 +257,7 @@ export const exportStudentMarksToExcel = async (
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    const sanitizedFilename = filename.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    link.download = `${sanitizedFilename}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    link.download = getExportFilename(filename, 'xlsx');
 
     document.body.appendChild(link);
     link.click();
@@ -462,8 +462,7 @@ export const exportStudentMarksToPDF = (
     });
 
     // Save PDF
-    const sanitizedFilename = filename.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    doc.save(`${sanitizedFilename}_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(getExportFilename(filename, 'pdf'));
   } catch (error) {
     console.error('Error exporting to PDF:', error);
     throw error;

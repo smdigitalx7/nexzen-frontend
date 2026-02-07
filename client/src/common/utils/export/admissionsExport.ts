@@ -5,6 +5,7 @@ import {
 } from "@/features/school/types/admissions";
 import { CollegeAdmissionDetails } from "@/features/college/types/admissions";
 import { assets, brand } from "@/lib/config";
+import { getExportFilename } from "./excel-export-utils";
 
 // IMPORTANT: ExcelJS is large — load it only when exporting.
 async function loadExcelJS(): Promise<any> {
@@ -168,7 +169,7 @@ export async function exportAdmissionsToExcel(
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${fileName}_${new Date().toISOString().split("T")[0]}.xlsx`;
+  link.download = getExportFilename(fileName, "xlsx");
   link.click();
   window.URL.revokeObjectURL(url);
 }
@@ -375,9 +376,7 @@ export async function exportSingleAdmissionToExcel(
   link.href = url;
   link.download =
     fileName ||
-    `Admission_${admission.admission_no}_${
-      new Date().toISOString().split("T")[0]
-    }.xlsx`;
+    getExportFilename(`Admission_${admission.admission_no}`, "xlsx");
   link.click();
   window.URL.revokeObjectURL(url);
 }
@@ -781,9 +780,10 @@ export async function exportSchoolAdmissionFormToPDF(
 
   // Save PDF
   doc.save(
-    `Admission_Form_${String(admission.admission_no || "N/A")}_${
-      new Date().toISOString().split("T")[0]
-    }.pdf`
+    getExportFilename(
+      `Admission_Form_${String(admission.admission_no || "N/A")}`,
+      "pdf"
+    )
   );
 }
 
@@ -1170,9 +1170,10 @@ export async function exportCollegeAdmissionFormToPDF(
 
   // Save PDF
   doc.save(
-    `Admission_Form_${admission.admission_no || "N/A"}_${
-      new Date().toISOString().split("T")[0]
-    }.pdf`
+    getExportFilename(
+      `Admission_Form_${admission.admission_no || "N/A"}`,
+      "pdf"
+    )
   );
 }
 

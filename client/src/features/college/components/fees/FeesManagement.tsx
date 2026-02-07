@@ -9,6 +9,7 @@ import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalances
 import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeBalancesPanel";
 import { CollectFee, type StudentFeeDetails } from "./collect-fee/CollectFee";
 import { CollegeTuitionFeeBalanceStatsCards } from "../tuition-fee-balances/CollegeTuitionFeeBalanceStatsCards";
+import { CollapsibleStatsSection } from "@/common/components/shared/dashboard";
 import { useAuthStore } from "@/core/auth/authStore";
 import { Badge } from "@/common/components/ui/badge";
 
@@ -84,10 +85,12 @@ export const FeesManagement = () => {
 
       {/* College Tuition Fee Balance Dashboard Stats - Only show when tuition-balances tab is active */}
       {activeTab === 'tuition-balances' && tuitionDashboardStats && (
-        <CollegeTuitionFeeBalanceStatsCards
-          stats={tuitionDashboardStats}
-          loading={tuitionDashboardLoading}
-        />
+        <CollapsibleStatsSection label="Stats" defaultOpen>
+          <CollegeTuitionFeeBalanceStatsCards
+            stats={tuitionDashboardStats}
+            loading={tuitionDashboardLoading}
+          />
+        </CollapsibleStatsSection>
       )}
 
       {/* Main Content Tabs */}

@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import React, { useMemo, memo, useCallback } from "react";
-import { CreditCard, Building2, Truck } from "lucide-react";
+import { CreditCard, Building2, Truck, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { IndianRupeeIcon } from "@/common/components/shared/IndianRupeeIcon";
 import { TabSwitcher } from "@/common/components/shared";
 import { useSchoolFeesManagement, useSchoolTuitionBalancesDashboard, useSchoolTransportBalancesDashboard } from "@/features/school/hooks";
@@ -9,10 +9,12 @@ import { TuitionFeeBalancesPanel } from "./tution-fee-balance/TuitionFeeBalances
 import { TransportFeeBalancesPanel } from "./transport-fee-balance/TransportFeeBalancesPanel";
 import { SchoolTuitionFeeBalanceStatsCards } from "./tution-fee-balance/SchoolTuitionFeeBalanceStatsCards";
 import { SchoolTransportFeeBalanceStatsCards } from "./transport-fee-balance/SchoolTransportFeeBalanceStatsCards";
+import { CollapsibleStatsSection } from "@/common/components/shared/dashboard";
 import { CollectFee } from "./collect-fee/CollectFee";
 import type { StudentFeeDetails } from "./collect-fee/CollectFee";
 import { useAuthStore } from "@/core/auth/authStore";
 import { Badge } from "@/common/components/ui/badge";
+import { cn } from "@/common/utils";
 
 // Wrapper component to pass state to CollectFee
 const CollectFeeWithState = memo(({ 
@@ -39,11 +41,19 @@ const CollectFeeWithState = memo(({
 CollectFeeWithState.displayName = "CollectFeeWithState";
 
 // Memoized header content component
-const HeaderContent = memo(({ currentBranch }: { currentBranch: any }) => (
+const HeaderContent = memo(({
+  currentBranch,
+  statsOpen,
+  onToggleStats,
+}: {
+  currentBranch: any;
+  statsOpen: boolean;
+  onToggleStats: () => void;
+}) => (
   <motion.div
     initial={{ opacity: 0, y: -20 }}
     animate={{ opacity: 1, y: 0 }}
-    className="flex items-center justify-between"
+    className="flex items-center justify-between gap-4 flex-wrap"
   >
     <div>
       <h1 className="text-3xl font-bold tracking-tight">Fee Management</h1>
@@ -52,6 +62,28 @@ const HeaderContent = memo(({ currentBranch }: { currentBranch: any }) => (
       </p>
     </div>
     <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={onToggleStats}
+        aria-expanded={statsOpen}
+        aria-label={statsOpen ? "Hide stats" : "Show stats"}
+        className={cn(
+          "inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground",
+          "transition-colors rounded px-2 py-1 -mx-2 -my-1 hover:bg-muted/50"
+        )}
+      >
+        {statsOpen ? (
+          <>
+            <PanelRightClose className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span>Hide stats</span>
+          </>
+        ) : (
+          <>
+            <PanelRightOpen className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span>Show stats</span>
+          </>
+        )}
+      </button>
       <Badge variant="outline" className="gap-1">
         {currentBranch?.branch_type === "SCHOOL" ? (
           <span className="text-xs font-bold">₹</span>
@@ -82,6 +114,9 @@ const FeesManagementComponent = () => {
     enabled: isTransportTabActive,
   });
   
+  // Stats section visibility (header button + right-edge tag both control this)
+  const [statsOpen, setStatsOpen] = React.useState(true);
+
   // State for collect fee search persistence across tab switches
   const [collectFeeSearchResults, setCollectFeeSearchResults] = React.useState<any[]>([]);
   const [collectFeeSearchQuery, setCollectFeeSearchQuery] = React.useState("");
@@ -165,22 +200,40 @@ const FeesManagementComponent = () => {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <HeaderContent currentBranch={currentBranch} />
+      <HeaderContent
+        currentBranch={currentBranch}
+        statsOpen={statsOpen}
+        onToggleStats={() => setStatsOpen((prev) => !prev)}
+      />
 
-      {/* School Tuition Fee Balance Dashboard Stats - Only show when tuition-balances tab is active */}
-      {activeTab === 'tuition-balances' && tuitionDashboardStats && (
-        <SchoolTuitionFeeBalanceStatsCards
-          stats={tuitionDashboardStats}
-          loading={tuitionDashboardLoading}
-        />
+      {/* School Tuition Fee Balance Dashboard Stats - Only mount when tab active and stats open (avoids extra gap when hidden) */}
+      {statsOpen && activeTab === 'tuition-balances' && tuitionDashboardStats && (
+        <CollapsibleStatsSection
+          label="Stats"
+          open={statsOpen}
+          onOpenChange={setStatsOpen}
+          showTag={false}
+        >
+          <SchoolTuitionFeeBalanceStatsCards
+            stats={tuitionDashboardStats}
+            loading={tuitionDashboardLoading}
+          />
+        </CollapsibleStatsSection>
       )}
 
-      {/* School Transport Fee Balance Dashboard Stats - Only show when transport-balances tab is active */}
-      {activeTab === 'transport-balances' && transportDashboardStats && (
-        <SchoolTransportFeeBalanceStatsCards
-          stats={transportDashboardStats}
-          loading={transportDashboardLoading}
-        />
+      {/* School Transport Fee Balance Dashboard Stats - Only mount when tab active and stats open (avoids extra gap when hidden) */}
+      {statsOpen && activeTab === 'transport-balances' && transportDashboardStats && (
+        <CollapsibleStatsSection
+          label="Stats"
+          open={statsOpen}
+          onOpenChange={setStatsOpen}
+          showTag={false}
+        >
+          <SchoolTransportFeeBalanceStatsCards
+            stats={transportDashboardStats}
+            loading={transportDashboardLoading}
+          />
+        </CollapsibleStatsSection>
       )}
 
       {/* Main Content Tabs */}

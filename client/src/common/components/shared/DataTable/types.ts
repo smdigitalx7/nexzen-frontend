@@ -54,6 +54,10 @@ export interface ActionConfig<TData> {
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost";
   show?: (row: TData) => boolean;
   disabled?: (row: TData) => boolean;
+  /**
+   * If true, shows the label text alongside the icon. If false or undefined, shows only the icon with a tooltip.
+   */
+  showLabel?: boolean;
 }
 
 /**

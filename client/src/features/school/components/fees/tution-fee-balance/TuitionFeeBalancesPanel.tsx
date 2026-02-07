@@ -1,12 +1,28 @@
-﻿import { useEffect, useMemo, useState, memo, useCallback } from "react";
+import { useEffect, useMemo, useState, memo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/common/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/common/components/ui/dialog";
 import { Label } from "@/common/components/ui/label";
 import { useSchoolClasses, useSchoolTuitionBalancesList, useSchoolTuitionBalance } from "@/features/school/hooks";
 import { SchoolClassDropdown } from "@/common/components/shared/Dropdowns";
 import type { SchoolTuitionFeeBalanceRead, SchoolTuitionFeeBalanceFullRead } from "@/features/school/types";
 import { StudentFeeBalancesTable } from "./StudentFeeBalancesTable";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/common/components/ui/sheet";
+import { Separator } from "@/common/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/common/components/ui/table";
+import { User, BookOpen, Wallet, Calendar, FileText } from "lucide-react";
+import { formatCurrency } from "@/common/utils";
 
 type StudentRow = React.ComponentProps<typeof StudentFeeBalancesTable>["studentBalances"][number];
 
@@ -15,125 +31,197 @@ interface TuitionFeeBalancesPanelProps {
   onExportCSV: () => void;
 }
 
-// Memoized details dialog component
-const DetailsDialog = memo(({ 
-  isOpen, 
-  onClose, 
-  selectedBalanceId, 
-  selectedBalance 
+// Right-side sheet: Tuition Fee Balance Details
+const DetailsSheet = memo(({
+  isOpen,
+  onClose,
+  selectedBalanceId,
+  selectedBalance,
 }: {
   isOpen: boolean;
   onClose: () => void;
   selectedBalanceId: number | undefined;
   selectedBalance: SchoolTuitionFeeBalanceFullRead | undefined;
 }) => (
-  <Dialog open={isOpen} onOpenChange={onClose}>
-    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-      <DialogHeader>
-        <DialogTitle>Tuition Fee Balance Details</DialogTitle>
-        <DialogDescription className="sr-only">View detailed tuition fee balance information for the selected student</DialogDescription>
-      </DialogHeader>
-      {!selectedBalanceId ? (
-        <div className="p-2 text-sm text-muted-foreground">No balance selected.</div>
-      ) : !selectedBalance ? (
-        <div className="p-2 text-sm text-muted-foreground">Loading...</div>
-      ) : (
-        <div className="space-y-6">
-          {/* Student Information */}
-          <div className="bg-slate-50 p-4 rounded-lg">
-            <h3 className="font-semibold text-lg mb-3">Student Information</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><span className="text-muted-foreground">Admission No:</span> <span className="font-medium">{selectedBalance.admission_no}</span></div>
-              <div><span className="text-muted-foreground">Roll Number:</span> <span className="font-medium">{selectedBalance.roll_number}</span></div>
-              <div><span className="text-muted-foreground">Student Name:</span> <span className="font-medium">{selectedBalance.student_name}</span></div>
-              <div><span className="text-muted-foreground">Class:</span> <span className="font-medium">{selectedBalance.class_name}</span></div>
-              <div><span className="text-muted-foreground">Section:</span> <span className="font-medium">{selectedBalance.section_name || '-'}</span></div>
-              <div><span className="text-muted-foreground">Father Name:</span> <span className="font-medium">{selectedBalance.father_name}</span></div>
-              <div><span className="text-muted-foreground">Phone Number:</span> <span className="font-medium">{selectedBalance.phone_number}</span></div>
-            </div>
-          </div>
-
-          {/* Fee Summary */}
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h3 className="font-semibold text-lg mb-3">Fee Summary</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><span className="text-muted-foreground">Actual Fee:</span> <span className="font-medium">₹{selectedBalance.actual_fee}</span></div>
-              <div><span className="text-muted-foreground">Concession Amount:</span> <span className="font-medium">₹{selectedBalance.concession_amount}</span></div>
-              <div><span className="text-muted-foreground">Total Fee:</span> <span className="font-medium text-lg">₹{selectedBalance.total_fee}</span></div>
-              <div><span className="text-muted-foreground">Overall Balance:</span> <span className="font-medium text-lg text-red-600">₹{selectedBalance.overall_balance_fee}</span></div>
-            </div>
-          </div>
-
-          {/* Book Fee Details */}
-          <div className="bg-green-50 p-4 rounded-lg">
-            <h3 className="font-semibold text-lg mb-3">Book Fee Details</h3>
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div><span className="text-muted-foreground">Book Fee:</span> <span className="font-medium">₹{selectedBalance.book_fee}</span></div>
-              <div><span className="text-muted-foreground">Book Paid:</span> <span className="font-medium">₹{selectedBalance.book_paid}</span></div>
-              <div><span className="text-muted-foreground">Status:</span> <span className="font-medium">{selectedBalance.book_paid_status}</span></div>
-            </div>
-          </div>
-
-          {/* Term-wise Payment Details */}
-          <div className="bg-yellow-50 p-4 rounded-lg">
-            <h3 className="font-semibold text-lg mb-3">Term-wise Payment Details</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Term 1 */}
-              <div className="bg-white p-4 rounded-lg border">
-                <h4 className="font-semibold text-base mb-3 text-blue-600">Term 1</h4>
-                <div className="space-y-2 text-sm">
-                  <div><span className="text-muted-foreground">Amount:</span> <span className="font-medium">₹{selectedBalance.term1_amount}</span></div>
-                  <div><span className="text-muted-foreground">Paid:</span> <span className="font-medium">₹{selectedBalance.term1_paid}</span></div>
-                  <div><span className="text-muted-foreground">Balance:</span> <span className="font-medium text-red-600">₹{selectedBalance.term1_balance}</span></div>
-                  <div><span className="text-muted-foreground">Status:</span> <span className="font-medium">{selectedBalance.term1_status}</span></div>
+  <Sheet open={isOpen} onOpenChange={onClose}>
+    <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto p-0 flex flex-col">
+      <SheetHeader className="px-6 pt-6 pb-4 border-b bg-muted/30 shrink-0">
+        <SheetTitle>Tuition Fee Balance</SheetTitle>
+        <SheetDescription className="sr-only">Detailed tuition fee balance for the selected student</SheetDescription>
+      </SheetHeader>
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
+        {selectedBalanceId == null ? (
+          <p className="text-sm text-muted-foreground py-8">No student selected.</p>
+        ) : selectedBalance == null ? (
+          <p className="text-sm text-muted-foreground py-8">Loading...</p>
+        ) : (
+          <div className="space-y-6 pt-4">
+            {/* Student info */}
+            <section>
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+                <User className="h-4 w-4" />
+                Student
+              </div>
+              <div className="rounded-lg border bg-card p-4 space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Admission No</span>
+                  <span className="font-medium tabular-nums">{selectedBalance.admission_no}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Roll No</span>
+                  <span className="font-medium">{selectedBalance.roll_number}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Name</span>
+                  <span className="font-medium">{selectedBalance.student_name}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Class / Section</span>
+                  <span className="font-medium">{selectedBalance.class_name} / {selectedBalance.section_name || "–"}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Father</span>
+                  <span className="font-medium">{selectedBalance.father_name}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Phone</span>
+                  <span className="font-medium">{selectedBalance.phone_number || "–"}</span>
                 </div>
               </div>
+            </section>
 
-              {/* Term 2 */}
-              <div className="bg-white p-4 rounded-lg border">
-                <h4 className="font-semibold text-base mb-3 text-green-600">Term 2</h4>
-                <div className="space-y-2 text-sm">
-                  <div><span className="text-muted-foreground">Amount:</span> <span className="font-medium">₹{selectedBalance.term2_amount}</span></div>
-                  <div><span className="text-muted-foreground">Paid:</span> <span className="font-medium">₹{selectedBalance.term2_paid}</span></div>
-                  <div><span className="text-muted-foreground">Balance:</span> <span className="font-medium text-red-600">₹{selectedBalance.term2_balance}</span></div>
-                  <div><span className="text-muted-foreground">Status:</span> <span className="font-medium">{selectedBalance.term2_status}</span></div>
+            <Separator />
+
+            {/* Fee summary */}
+            <section>
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+                <Wallet className="h-4 w-4" />
+                Fee Summary
+              </div>
+              <div className="rounded-lg border bg-card p-4 space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Actual Fee</span>
+                  <span className="font-medium">{formatCurrency(selectedBalance.actual_fee)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Concession</span>
+                  <span className="font-medium">{formatCurrency(selectedBalance.concession_amount)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-medium">
+                  <span>Total Fee</span>
+                  <span>{formatCurrency(selectedBalance.total_fee)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-medium text-destructive">
+                  <span>Overall Balance</span>
+                  <span>{formatCurrency(selectedBalance.overall_balance_fee)}</span>
                 </div>
               </div>
+            </section>
 
-              {/* Term 3 */}
-              <div className="bg-white p-4 rounded-lg border">
-                <h4 className="font-semibold text-base mb-3 text-purple-600">Term 3</h4>
-                <div className="space-y-2 text-sm">
-                  <div><span className="text-muted-foreground">Amount:</span> <span className="font-medium">₹{selectedBalance.term3_amount}</span></div>
-                  <div><span className="text-muted-foreground">Paid:</span> <span className="font-medium">₹{selectedBalance.term3_paid}</span></div>
-                  <div><span className="text-muted-foreground">Balance:</span> <span className="font-medium text-red-600">₹{selectedBalance.term3_balance}</span></div>
-                  <div><span className="text-muted-foreground">Status:</span> <span className="font-medium">{selectedBalance.term3_status}</span></div>
+            <Separator />
+
+            {/* Book fee */}
+            <section>
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+                <BookOpen className="h-4 w-4" />
+                Book Fee
+              </div>
+              <div className="rounded-lg border bg-card p-4 space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Book Fee</span>
+                  <span className="font-medium">{formatCurrency(selectedBalance.book_fee)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Paid</span>
+                  <span className="font-medium">{formatCurrency(selectedBalance.book_paid)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Status</span>
+                  <span className="font-medium">{selectedBalance.book_paid_status}</span>
                 </div>
               </div>
-            </div>
-          </div>
+            </section>
 
-          {/* Timestamps */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-semibold text-lg mb-3">Record Information</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><span className="text-muted-foreground">Created At:</span> <span className="font-medium">{new Date(selectedBalance.created_at).toLocaleString()}</span></div>
-              <div><span className="text-muted-foreground">Updated At:</span> <span className="font-medium">{selectedBalance.updated_at ? new Date(selectedBalance.updated_at).toLocaleString() : 'Never'}</span></div>
-            </div>
+            <Separator />
+
+            {/* Terms table */}
+            <section>
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+                <FileText className="h-4 w-4" />
+                Term-wise
+              </div>
+              <div className="rounded-lg border bg-card overflow-hidden">
+                <Table bordered>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[80px]">Term</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Paid</TableHead>
+                      <TableHead className="text-right">Balance</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="font-medium">Term 1</TableCell>
+                      <TableCell className="text-right">{formatCurrency(selectedBalance.term1_amount)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(selectedBalance.term1_paid)}</TableCell>
+                      <TableCell className="text-right text-destructive font-medium">{formatCurrency(selectedBalance.term1_balance)}</TableCell>
+                      <TableCell>{selectedBalance.term1_status}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Term 2</TableCell>
+                      <TableCell className="text-right">{formatCurrency(selectedBalance.term2_amount)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(selectedBalance.term2_paid)}</TableCell>
+                      <TableCell className="text-right text-destructive font-medium">{formatCurrency(selectedBalance.term2_balance)}</TableCell>
+                      <TableCell>{selectedBalance.term2_status}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Term 3</TableCell>
+                      <TableCell className="text-right">{formatCurrency(selectedBalance.term3_amount)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(selectedBalance.term3_paid)}</TableCell>
+                      <TableCell className="text-right text-destructive font-medium">{formatCurrency(selectedBalance.term3_balance)}</TableCell>
+                      <TableCell>{selectedBalance.term3_status}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </section>
+
+            <Separator />
+
+            <section>
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+                <Calendar className="h-4 w-4" />
+                Record
+              </div>
+              <div className="rounded-lg border bg-card p-4 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Created</span>
+                  <span className="font-medium">{new Date(selectedBalance.created_at).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Updated</span>
+                  <span className="font-medium">{selectedBalance.updated_at ? new Date(selectedBalance.updated_at).toLocaleString() : "–"}</span>
+                </div>
+              </div>
+            </section>
           </div>
-        </div>
-      )}
-    </DialogContent>
-  </Dialog>
+        )}
+      </div>
+    </SheetContent>
+  </Sheet>
 ));
 
-DetailsDialog.displayName = "DetailsDialog";
+DetailsSheet.displayName = "DetailsSheet";
 
 const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: TuitionFeeBalancesPanelProps) => {
   // State management
   const [balanceClass, setBalanceClass] = useState<string>("");
   const [selectedBalanceId, setSelectedBalanceId] = useState<number | undefined>();
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
 
   // Hooks
   const { data: classes = [] } = useSchoolClasses();
@@ -144,11 +232,11 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
     [balanceClass]
   );
 
-  // API hooks with memoized parameters
-  const { data: tuitionResp, refetch } = useSchoolTuitionBalancesList({ 
+  // API hooks with memoized parameters (returns full response: { data, total_pages, current_page, page_size, total_count })
+  const { data: tuitionResp, isLoading: tuitionLoading } = useSchoolTuitionBalancesList({ 
     class_id: classIdNum, 
-    page: 1, 
-    page_size: 50 
+    page, 
+    page_size: pageSize 
   });
   const { data: selectedBalance } = useSchoolTuitionBalance(selectedBalanceId);
 
@@ -163,6 +251,11 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
     }
   }, [classes, balanceClass]);
 
+  // Reset to first page when class changes
+  useEffect(() => {
+    setPage(1);
+  }, [classIdNum]);
+
   // Memoized handlers
   const handleViewStudent = useCallback((student: StudentRow) => {
     setSelectedBalanceId(student.id);
@@ -175,9 +268,10 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
     setSelectedBalanceId(undefined);
   }, []);
 
-  // Memoized data transformation
+  // Memoized data transformation (tuitionResp is full API response: { data, total_pages, current_page, ... })
   const rows = useMemo<StudentRow[]>(() => {
-    return (tuitionResp?.data || []).map((t: SchoolTuitionFeeBalanceRead) => {
+    const list = tuitionResp?.data ?? [];
+    return (Array.isArray(list) ? list : []).map((t: SchoolTuitionFeeBalanceRead) => {
       const totalFee = (t.total_fee || 0) + (t.book_fee || 0); // Include book_fee in total
       const paidTotal = (t.term1_paid || 0) + (t.term2_paid || 0) + (t.term3_paid || 0) + (t.book_paid || 0);
       const outstanding = Math.max(0, totalFee - paidTotal);
@@ -238,16 +332,26 @@ const TuitionFeeBalancesPanelComponent = ({ onViewStudent, onExportCSV }: Tuitio
 
       {classIdNum && (
         <StudentFeeBalancesTable
-        studentBalances={rows}
-        onViewStudent={handleViewStudent}
-        onExportCSV={onExportCSV}
-        showHeader={false}
-        classes={classes}
+          studentBalances={rows}
+          onViewStudent={handleViewStudent}
+          onExportCSV={onExportCSV}
+          showHeader={false}
+          classes={classes}
+          loading={tuitionLoading}
+          pagination="server"
+          totalCount={tuitionResp?.total_count ?? 0}
+          currentPage={tuitionResp?.current_page ?? 1}
+          pageSize={tuitionResp?.page_size ?? pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
         />
       )}
 
-      {/* Details Dialog */}
-      <DetailsDialog
+      {/* Details: right-side sheet */}
+      <DetailsSheet
         isOpen={detailsOpen}
         onClose={handleCloseDetails}
         selectedBalanceId={selectedBalanceId}

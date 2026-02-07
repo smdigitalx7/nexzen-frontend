@@ -7,11 +7,11 @@ export interface CollegeTransportAssignmentCreate {
 
 export interface CollegeTransportAssignmentUpdate {
   bus_route_id?: number;
-  slab_id?: number;
   pickup_point?: string | null;
-  start_date?: string;
-  end_date?: string | null;
-  is_active?: boolean;
+}
+
+export interface CollegeTransportAssignmentCancel {
+  end_date: string; // ISO date format: YYYY-MM-DD
 }
 
 export interface CollegeTransportAssignmentRead {

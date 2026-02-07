@@ -1,7 +1,24 @@
 // IMPORTANT: ExcelJS is large — load it only when exporting.
+import { brandConfig } from "@/lib/config/brand";
+
 async function loadExcelJS(): Promise<any> {
   const mod: any = await import("exceljs");
   return mod?.default ?? mod;
+}
+
+/** Default company name for Excel metadata (configurable via VITE_BRAND_NAME) */
+function getDefaultCompanyName(): string {
+  return `${brandConfig.name} ERP`;
+}
+
+/**
+ * Standard export filename: {baseName}_{YYYY-MM-DD}.{ext}
+ * Use everywhere for consistent download names (e.g. teacher_assignments_2026-02-07.xlsx).
+ */
+export function getExportFilename(baseName: string, extension = "xlsx"): string {
+  const date = new Date().toISOString().slice(0, 10);
+  const safeName = baseName.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
+  return `${safeName}_${date}.${extension}`;
 }
 
 /**
@@ -105,7 +122,7 @@ export async function exportToExcel(
     freezeHeader = true,
     autoFilter = true,
     showGridlines = false,
-    companyName = "Velonex ERP",
+    companyName = getDefaultCompanyName(),
     reportType,
     dateRange,
     customFooter,
@@ -649,7 +666,7 @@ export async function exportToExcel(
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${filename}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    link.download = getExportFilename(filename, "xlsx");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

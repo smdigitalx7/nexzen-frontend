@@ -1,4 +1,4 @@
-﻿import { motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { useEffect, useMemo } from "react";
 import { Users, IdCard, MapPin, School, Building2, LayoutGrid } from "lucide-react";
 import { Badge } from "@/common/components/ui/badge";
@@ -16,18 +16,19 @@ import { ArrowUpCircle } from "lucide-react";
 const StudentManagement = () => {
   const currentBranch = useAuthStore((state) => state.currentBranch);
   
+  // Tabs in hierarchical workflow order: Enrollments → Section Mapping → Transport → Promotion & Dropout
   const allTabs = useMemo(() => [
-    {
-      value: "section-mapping",
-      label: "Section Mapping",
-      icon: LayoutGrid,
-      content: <SectionMappingTab />,
-    },
     {
       value: "enrollments",
       label: "Enrollments",
       icon: IdCard,
       content: <EnrollmentsTab />,
+    },
+    {
+      value: "section-mapping",
+      label: "Section Mapping",
+      icon: LayoutGrid,
+      content: <SectionMappingTab />,
     },
     {
       value: "transport",

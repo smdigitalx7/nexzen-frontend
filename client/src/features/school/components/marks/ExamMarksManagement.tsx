@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Plus, Search, Eye, Edit, Trash2 } from "lucide-react";
+import { Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/common/components/ui/button";
@@ -206,9 +206,8 @@ const ExamMarksManagementComponent = ({
     return Math.round((marksObtained / maxMarks) * 100 * 10) / 10;
   };
 
-  // Form handling
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleExamMarkSubmit = useCallback((data: {
+  // Form handling (reserved for form submit integration)
+  const _handleExamMarkSubmit = useCallback((data: {
     enrollment_id: number;
     exam_id: number;
     subject_id: number;
@@ -262,7 +261,7 @@ const ExamMarksManagementComponent = ({
     if (!examMarksData || !Array.isArray(examMarksData)) return [] as ExamMarkWithDetails[];
     const items: ExamMarkWithDetails[] = [];
     examMarksData.forEach((group) => {
-      if (group && group.students && Array.isArray(group.students)) {
+      if (group?.students && Array.isArray(group.students)) {
         group.students.forEach((student) => {
           items.push({
             ...student,
@@ -426,14 +425,14 @@ const ExamMarksManagementComponent = ({
               </div>
               
               <div className="w-full sm:w-32">
-                 <label className="text-sm font-medium mb-1.5 block">
+                 <label htmlFor="exam-marks-grade" className="text-sm font-medium mb-1.5 block">
                    Grade
                  </label>
                  <Select
                    value={selectedGrade}
                    onValueChange={setSelectedGrade}
                  >
-                   <SelectTrigger>
+                   <SelectTrigger id="exam-marks-grade">
                      <SelectValue placeholder="All" />
                    </SelectTrigger>
                    <SelectContent>
@@ -478,7 +477,7 @@ const ExamMarksManagementComponent = ({
             actionsHeader="Actions"
             showSearch={true}
             searchPlaceholder="Search by student name..."
-            searchKeys={["student_name", "roll_number"]}
+            searchKey="student_name"
             className=""
           />
         )}

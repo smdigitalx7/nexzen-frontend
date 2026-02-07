@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { BarChart3, TrendingUp, PieChart } from "lucide-react";
 import { Badge } from "@/common/components/ui/badge";
@@ -19,6 +19,7 @@ import { AddExpenditureDialog } from "./components/AddExpenditureDialog";
 import { ViewIncomeDialog } from "./components/ViewIncomeDialog";
 import { CollegeIncomeStatsCards } from "../income/CollegeIncomeStatsCards";
 import { CollegeExpenditureStatsCards } from "../expenditure/CollegeExpenditureStatsCards";
+import { CollapsibleStatsSection } from "@/common/components/shared/dashboard";
 import { CollegeFinanceReportButtons } from "./components/CollegeFinanceReportButtons";
 import { CollegeFinancialAnalytics } from "./components/CollegeFinancialAnalytics";
 import { cleanupDialogState } from "@/common/utils/ui-cleanup";
@@ -218,18 +219,22 @@ export const CollegeReportsTemplate = () => {
 
       {/* Detailed Income Stats Cards */}
       {activeTab === "income" && incomeDashboard && (
-        <CollegeIncomeStatsCards
-          stats={incomeDashboard}
-          loading={incomeDashboardLoading}
-        />
+        <CollapsibleStatsSection label="Stats" defaultOpen>
+          <CollegeIncomeStatsCards
+            stats={incomeDashboard}
+            loading={incomeDashboardLoading}
+          />
+        </CollapsibleStatsSection>
       )}
 
       {/* Detailed Expenditure Stats Cards */}
       {activeTab === "expenditure" && expenditureDashboard && (
-        <CollegeExpenditureStatsCards
-          stats={expenditureDashboard}
-          loading={expenditureDashboardLoading}
-        />
+        <CollapsibleStatsSection label="Stats" defaultOpen>
+          <CollegeExpenditureStatsCards
+            stats={expenditureDashboard}
+            loading={expenditureDashboardLoading}
+          />
+        </CollapsibleStatsSection>
       )}
 
       {/* Tabs */}

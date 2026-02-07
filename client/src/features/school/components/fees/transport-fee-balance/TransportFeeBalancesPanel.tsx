@@ -1,14 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/common/components/ui/select";
 import { Label } from "@/common/components/ui/label";
 import { useSchoolClasses, useSchoolTransportBalancesList, useSchoolTransportBalance, useUpdateSchoolTransportConcession } from "@/features/school/hooks";
 import { ConcessionUpdateModal } from "@/common/components/shared/ConcessionUpdateModal";
-import { Wallet } from "lucide-react";
+import { Wallet, User, FileText, Calendar } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
 import { SchoolClassDropdown } from "@/common/components/shared/Dropdowns";
 import type { SchoolTransportFeeBalanceListRead, SchoolTransportFeeBalanceFullRead } from "@/features/school/types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/common/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/common/components/ui/sheet";
+import { Separator } from "@/common/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/common/components/ui/table";
+import { formatCurrency } from "@/common/utils";
 import StudentFeeBalancesTable from "../tution-fee-balance/StudentFeeBalancesTable";
 
 type StudentRow = React.ComponentProps<typeof StudentFeeBalancesTable>["studentBalances"][number];
@@ -16,6 +31,8 @@ type StudentRow = React.ComponentProps<typeof StudentFeeBalancesTable>["studentB
 export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onViewStudent: (s: StudentRow) => void; onExportCSV: () => void; }) {
   const { data: classes = [] } = useSchoolClasses();
   const [balanceClass, setBalanceClass] = useState<string>("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
 
   useEffect(() => {
     if (!balanceClass && classes.length > 0) {
@@ -30,8 +47,14 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
     balanceClass ? parseInt(balanceClass) : undefined,
     [balanceClass]
   );
-  const { data: transportResp, isLoading, refetch } = useSchoolTransportBalancesList({ class_id: classIdNum, page: 1, page_size: 50 });
+  // Returns full API response: { data, total_pages, current_page, page_size, total_count }
+  const { data: transportResp, isLoading } = useSchoolTransportBalancesList({ class_id: classIdNum, page, page_size: pageSize });
   const [selectedBalanceId, setSelectedBalanceId] = useState<number | undefined>();
+
+  // Reset to first page when class changes
+  useEffect(() => {
+    setPage(1);
+  }, [classIdNum]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const { data: selectedBalance } = useSchoolTransportBalance(selectedBalanceId);
   
@@ -44,7 +67,8 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
   };
 
   const rows = useMemo<StudentRow[]>(() => {
-    return (transportResp?.data || []).map((t: SchoolTransportFeeBalanceListRead) => {
+    const list = transportResp?.data ?? [];
+    return (Array.isArray(list) ? list : []).map((t: SchoolTransportFeeBalanceListRead) => {
       const paidTotal = (t.term1_paid || 0) + (t.term2_paid || 0);
       const outstanding = t.overall_balance_fee || 0;
       return {
@@ -115,98 +139,167 @@ export function TransportFeeBalancesPanel({ onViewStudent, onExportCSV }: { onVi
           title="Transport Fee Balances"
           description="Track student transport fee payments and outstanding amounts"
           loading={isLoading}
+          pagination="server"
+          totalCount={transportResp?.total_count ?? 0}
+          currentPage={transportResp?.current_page ?? 1}
+          pageSize={transportResp?.page_size ?? pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
         />
       )}
 
-      {/* Details Dialog */}
-      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-hide">
-          <DialogHeader>
-            <DialogTitle>Transport Fee Balance Details</DialogTitle>
-            <DialogDescription className="sr-only">View detailed transport fee balance information for the selected student</DialogDescription>
-          </DialogHeader>
-          {!selectedBalanceId ? (
-            <div className="p-2 text-sm text-muted-foreground">No balance selected.</div>
-          ) : !selectedBalance ? (
-            <div className="p-2 text-sm text-muted-foreground">Loading...</div>
-          ) : (
-            <div className="space-y-6">
-              {/* Student Information */}
-              <div className="bg-slate-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-lg mb-3">Student Information</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><span className="text-muted-foreground">Admission No:</span> <span className="font-medium">{selectedBalance.admission_no}</span></div>
-                  <div><span className="text-muted-foreground">Roll Number:</span> <span className="font-medium">{selectedBalance.roll_number}</span></div>
-                  <div><span className="text-muted-foreground">Student Name:</span> <span className="font-medium">{selectedBalance.student_name}</span></div>
-                  <div><span className="text-muted-foreground">Class:</span> <span className="font-medium">{selectedBalance.class_name || 'N/A'}</span></div>
-                  <div><span className="text-muted-foreground">Section:</span> <span className="font-medium">{selectedBalance.section_name || '-'}</span></div>
-                  <div><span className="text-muted-foreground">Father Name:</span> <span className="font-medium">{selectedBalance.father_name || 'N/A'}</span></div>
-                  <div><span className="text-muted-foreground">Phone Number:</span> <span className="font-medium">{selectedBalance.phone_number || 'N/A'}</span></div>
-                </div>
-              </div>
+      {/* Details: right-side sheet */}
+      <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto p-0 flex flex-col">
+          <SheetHeader className="px-6 pt-6 pb-4 border-b bg-muted/30 shrink-0">
+            <SheetTitle>Transport Fee Balance</SheetTitle>
+            <SheetDescription className="sr-only">Detailed transport fee balance for the selected student</SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto px-6 pb-6">
+            {selectedBalanceId == null ? (
+              <p className="text-sm text-muted-foreground py-8">No student selected.</p>
+            ) : selectedBalance == null ? (
+              <p className="text-sm text-muted-foreground py-8">Loading...</p>
+            ) : (
+              <div className="space-y-6 pt-4">
+                {/* Student info */}
+                <section>
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+                    <User className="h-4 w-4" />
+                    Student
+                  </div>
+                  <div className="rounded-lg border bg-card p-4 space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Admission No</span>
+                      <span className="font-medium tabular-nums">{selectedBalance.admission_no}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Roll No</span>
+                      <span className="font-medium">{selectedBalance.roll_number}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Name</span>
+                      <span className="font-medium">{selectedBalance.student_name}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Class / Section</span>
+                      <span className="font-medium">{selectedBalance.class_name || "–"} / {selectedBalance.section_name || "–"}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Father</span>
+                      <span className="font-medium">{selectedBalance.father_name || "–"}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Phone</span>
+                      <span className="font-medium">{selectedBalance.phone_number || "–"}</span>
+                    </div>
+                  </div>
+                </section>
 
-              {/* Fee Summary */}
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-lg mb-3">Transport Fee Summary</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><span className="text-muted-foreground">Actual Fee:</span> <span className="font-medium">₹{selectedBalance.actual_fee}</span></div>
-                  <div><span className="text-muted-foreground">Concession Amount:</span> <span className="font-medium">₹{selectedBalance.concession_amount}</span></div>
-                  <div><span className="text-muted-foreground">Total Fee:</span> <span className="font-medium text-lg">₹{selectedBalance.total_fee}</span></div>
-                  <div><span className="text-muted-foreground">Overall Balance:</span> <span className="font-medium text-lg text-red-600">₹{selectedBalance.overall_balance_fee}</span></div>
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2"
-                    onClick={() => setConcessionModalOpen(true)}
-                  >
+                <Separator />
+
+                {/* Fee summary */}
+                <section>
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
                     <Wallet className="h-4 w-4" />
-                    Update Concession
-                  </Button>
-                </div>
-              </div>
-
-              {/* Term-wise Payment Details */}
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-lg mb-3">Term-wise Payment Details</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Term 1 */}
-                  <div className="bg-white p-4 rounded-lg border">
-                    <h4 className="font-semibold text-base mb-3 text-blue-600">Term 1</h4>
-                    <div className="space-y-2 text-sm">
-                      <div><span className="text-muted-foreground">Amount:</span> <span className="font-medium">₹{selectedBalance.term1_amount}</span></div>
-                      <div><span className="text-muted-foreground">Paid:</span> <span className="font-medium">₹{selectedBalance.term1_paid}</span></div>
-                      <div><span className="text-muted-foreground">Balance:</span> <span className="font-medium text-red-600">₹{selectedBalance.term1_balance}</span></div>
-                      <div><span className="text-muted-foreground">Status:</span> <span className="font-medium">{selectedBalance.term1_status}</span></div>
+                    Transport Fee Summary
+                  </div>
+                  <div className="rounded-lg border bg-card p-4 space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Actual Fee</span>
+                      <span className="font-medium">{formatCurrency(selectedBalance.actual_fee)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Concession</span>
+                      <span className="font-medium">{formatCurrency(selectedBalance.concession_amount)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-medium">
+                      <span>Total Fee</span>
+                      <span>{formatCurrency(selectedBalance.total_fee)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-medium text-destructive">
+                      <span>Overall Balance</span>
+                      <span>{formatCurrency(selectedBalance.overall_balance_fee)}</span>
+                    </div>
+                    <div className="pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-2"
+                        onClick={() => setConcessionModalOpen(true)}
+                      >
+                        <Wallet className="h-4 w-4" />
+                        Update Concession
+                      </Button>
                     </div>
                   </div>
+                </section>
 
-                  {/* Term 2 */}
-                  <div className="bg-white p-4 rounded-lg border">
-                    <h4 className="font-semibold text-base mb-3 text-green-600">Term 2</h4>
-                    <div className="space-y-2 text-sm">
-                      <div><span className="text-muted-foreground">Amount:</span> <span className="font-medium">₹{selectedBalance.term2_amount}</span></div>
-                      <div><span className="text-muted-foreground">Paid:</span> <span className="font-medium">₹{selectedBalance.term2_paid}</span></div>
-                      <div><span className="text-muted-foreground">Balance:</span> <span className="font-medium text-red-600">₹{selectedBalance.term2_balance}</span></div>
-                      <div><span className="text-muted-foreground">Status:</span> <span className="font-medium">{selectedBalance.term2_status}</span></div>
+                <Separator />
+
+                {/* Term-wise table */}
+                <section>
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+                    <FileText className="h-4 w-4" />
+                    Term-wise
+                  </div>
+                  <div className="rounded-lg border bg-card overflow-hidden">
+                    <Table bordered>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[80px]">Term</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
+                          <TableHead className="text-right">Paid</TableHead>
+                          <TableHead className="text-right">Balance</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell className="font-medium">Term 1</TableCell>
+                          <TableCell className="text-right">{formatCurrency(selectedBalance.term1_amount)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(selectedBalance.term1_paid)}</TableCell>
+                          <TableCell className="text-right text-destructive font-medium">{formatCurrency(selectedBalance.term1_balance)}</TableCell>
+                          <TableCell>{selectedBalance.term1_status}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">Term 2</TableCell>
+                          <TableCell className="text-right">{formatCurrency(selectedBalance.term2_amount)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(selectedBalance.term2_paid)}</TableCell>
+                          <TableCell className="text-right text-destructive font-medium">{formatCurrency(selectedBalance.term2_balance)}</TableCell>
+                          <TableCell>{selectedBalance.term2_status}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                </section>
+
+                <Separator />
+
+                <section>
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
+                    <Calendar className="h-4 w-4" />
+                    Record
+                  </div>
+                  <div className="rounded-lg border bg-card p-4 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Created</span>
+                      <span className="font-medium">{new Date(selectedBalance.created_at).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Updated</span>
+                      <span className="font-medium">{selectedBalance.updated_at ? new Date(selectedBalance.updated_at).toLocaleString() : "–"}</span>
                     </div>
                   </div>
-                </div>
+                </section>
               </div>
-
-              {/* Timestamps */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-lg mb-3">Record Information</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><span className="text-muted-foreground">Created At:</span> <span className="font-medium">{new Date(selectedBalance.created_at).toLocaleString()}</span></div>
-                  <div><span className="text-muted-foreground">Updated At:</span> <span className="font-medium">{selectedBalance.updated_at ? new Date(selectedBalance.updated_at).toLocaleString() : 'Never'}</span></div>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <ConcessionUpdateModal
         isOpen={concessionModalOpen}

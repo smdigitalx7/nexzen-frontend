@@ -11,6 +11,7 @@ import { Wallet, Send, CheckCircle2, Clock, AlertTriangle, ShieldCheck, Download
 import { format, subDays, differenceInDays } from "date-fns";
 import { motion } from "framer-motion";
 import { useToast } from "@/common/hooks/use-toast";
+import { getExportFilename } from "@/common/utils/export/excel-export-utils";
 
 const SMSReports = () => {
   const { toast } = useToast();
@@ -100,7 +101,7 @@ const SMSReports = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `SMS_Logs_${analyticsRange.from_date}_to_${analyticsRange.to_date}.xlsx`;
+    a.download = getExportFilename("SMS_Logs", "xlsx");
     a.click();
     window.URL.revokeObjectURL(url);
 

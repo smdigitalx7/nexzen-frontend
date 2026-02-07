@@ -24,7 +24,7 @@ interface TabSwitcherProps {
   showBadges?: boolean;
   size?: "sm" | "md" | "lg";
   /**
-   * "default" = main tabs (underline style). "subtab" = nested text-style tabs with thin underline (no buttons).
+   * "default" = main tabs. "subtab" = same underline style as main, but smaller (secondary nav).
    */
   variant?: "default" | "subtab";
   /**
@@ -89,7 +89,7 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
         <TabsList
           className={cn(
             isSubtab
-              ? "flex w-full h-auto bg-transparent p-0 justify-start gap-8 border-b border-slate-200 dark:border-slate-700 mb-4 min-h-0"
+              ? "flex w-full h-auto bg-transparent p-0 justify-start gap-6 mb-4"
               : "flex w-full h-auto bg-transparent p-0 justify-start border-b border-gray-200 dark:border-gray-700 mb-6",
             tabListClassName
           )}
@@ -104,12 +104,11 @@ export const TabSwitcher: React.FC<TabSwitcherProps> = ({
                 className={cn(
                   "flex items-center gap-2 font-medium transition-colors duration-200 rounded-none border-0 shadow-none bg-transparent",
                   isSubtab
-                    ? "text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:font-semibold pb-2.5 pt-0 px-0 relative after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-full after:bg-transparent data-[state=active]:after:bg-blue-600 dark:data-[state=active]:after:bg-blue-400"
+                    ? "text-sm text-slate-500 dark:text-slate-400 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:font-semibold hover:text-slate-700 dark:hover:text-slate-300 py-2 gap-1.5 border-l border-slate-200 dark:border-slate-600 first:border-l-0 first:pl-0 pl-6 after:!content-none"
                     : "text-gray-600 dark:text-gray-400 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-500 hover:text-gray-800 dark:hover:text-gray-300 relative pb-3",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
                   !isSubtab && "after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[3px] after:rounded-t data-[state=active]:after:bg-blue-600 dark:data-[state=active]:after:bg-blue-500",
                   !isSubtab && sizeClasses.trigger,
-                  isSubtab && "gap-1.5",
                   tabTriggerClassName
                 )}
               >

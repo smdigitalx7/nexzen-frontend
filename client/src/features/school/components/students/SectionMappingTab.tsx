@@ -1,5 +1,4 @@
-﻿import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/common/components/ui/card';
+import { useState, useMemo, useCallback } from 'react';
 import { Alert, AlertDescription } from '@/common/components/ui/alert';
 import { Info } from 'lucide-react';
 import { SchoolClassDropdown, SchoolSectionDropdown } from '@/common/components/shared/Dropdowns';
@@ -120,14 +119,9 @@ const SectionMappingTab = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Section Mapping</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Class and Section Selection */}
-          <div className="flex items-center gap-4 flex-wrap">
+    <div className="space-y-4">
+      {/* Class and Section Selection */}
+      <div className="flex items-center gap-4 flex-wrap">
             <div className="w-[200px]">
               <SchoolClassDropdown
                 value={selectedClassId}
@@ -171,45 +165,41 @@ const SectionMappingTab = () => {
                 {assignSectionsMutation.isPending ? 'Assigning...' : `Assign ${selectedEnrollments.size} Student${selectedEnrollments.size !== 1 ? 's' : ''} to Section`}
               </Button>
             )}
-          </div>
+      </div>
 
-          {/* Students Table */}
-          {!selectedClassId ? (
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                Please select a class to view students for section assignment.
-              </AlertDescription>
-            </Alert>
-          ) : isLoading ? (
-            <div className="py-8 text-center text-muted-foreground">Loading students...</div>
-          ) : isError ? (
-            <Alert variant="destructive">
-              <AlertDescription>
-                {error instanceof Error ? error.message : 'Failed to load students. Please try again.'}
-              </AlertDescription>
-            </Alert>
-          ) : enrollments.length === 0 ? (
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                No students found for this class.
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <div className="border rounded-lg">
-              <DataTable
-                data={enrollments}
-                columns={columns}
-                selectable={true}
-                onSelectionChange={onSelectionChange}
-                searchKey="student_name"
-                searchPlaceholder="Search students..."
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Students Table */}
+      {!selectedClassId ? (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Please select a class to view students for section assignment.
+          </AlertDescription>
+        </Alert>
+      ) : isLoading ? (
+        <div className="py-8 text-center text-muted-foreground">Loading students...</div>
+      ) : isError ? (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {error instanceof Error ? error.message : 'Failed to load students. Please try again.'}
+          </AlertDescription>
+        </Alert>
+      ) : enrollments.length === 0 ? (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            No students found for this class.
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <DataTable
+          data={enrollments}
+          columns={columns}
+          selectable={true}
+          onSelectionChange={onSelectionChange}
+          searchKey="student_name"
+          searchPlaceholder="Search students..."
+        />
+      )}
     </div>
   );
 };

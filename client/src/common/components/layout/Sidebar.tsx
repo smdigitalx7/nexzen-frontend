@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, startTransition } from "react";
 import { motion } from "framer-motion";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -174,6 +174,13 @@ const Sidebar = () => {
         ],
       },
       {
+        title: "Fee Payments",
+        href: `${branchPrefix}/fees`,
+        icon: IndianRupeeIcon,
+        description: "Fee management",
+        allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACCOUNTANT],
+      },
+      {
         title: "Academic",
         href: `${branchPrefix}/academic`,
         icon: FileText,
@@ -194,15 +201,9 @@ const Sidebar = () => {
         description: "Exam results",
         allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACADEMIC],
       },
+      
       {
-        title: "Fees",
-        href: `${branchPrefix}/fees`,
-        icon: IndianRupeeIcon,
-        description: "Fee management",
-        allowedRoles: [ROLES.ADMIN, ROLES.INSTITUTE_ADMIN, ROLES.ACCOUNTANT],
-      },
-      {
-        title: "Financial Reports",
+        title: "Finance & Reports",
         href: `${branchPrefix}/financial-reports`,
         icon: BarChart3,
         description: `${branchType} financial analytics`,
@@ -289,9 +290,9 @@ const Sidebar = () => {
   }) => (
     <Link
       to={item.href}
-      onClick={() => {
+      onClick={(e) => {
+        e.preventDefault();
         // Mark navigation as from sidebar with the target path and timestamp
-        // Store path and timestamp to handle timing issues between navigation and route check
         const navData = {
           path: item.href,
           timestamp: Date.now(),
@@ -301,6 +302,10 @@ const Sidebar = () => {
           JSON.stringify(navData)
         );
         handleItemClick(item.href, item.title);
+        // Wrap navigation in startTransition so lazy route components don't suspend during sync input
+        startTransition(() => {
+          navigate(item.href);
+        });
       }}
     >
       <div
