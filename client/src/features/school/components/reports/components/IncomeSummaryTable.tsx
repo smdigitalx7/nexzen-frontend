@@ -50,7 +50,7 @@ function listRowToSummary(r: SchoolIncomeRead): SchoolIncomeSummary {
     student_name: r.student_name ?? "-",
     identity_no: r.admission_no ?? "-",
     total_amount: r.total_amount,
-    purpose: "-",
+    purpose: r.purpose ?? "-",
     created_at: r.created_at,
   };
 }

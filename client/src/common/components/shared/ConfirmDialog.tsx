@@ -161,7 +161,17 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         }
       });
       
-      onConfirm();
+      try {
+        const result = onConfirm() as any;
+        // Check if result is a Promise-like object (has then method)
+        if (result && typeof result === 'object' && 'then' in result && typeof result.then === 'function') {
+          result.catch(() => {
+            // Silently handle promise rejection - error is handled by the callback
+          });
+        }
+      } catch (error) {
+        // Silently handle synchronous errors - error is handled by the callback
+      }
     }
   };
 

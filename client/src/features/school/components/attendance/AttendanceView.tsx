@@ -14,7 +14,7 @@ import { useSchoolAttendance, useDeleteSchoolAttendance, useSchoolAttendanceAllS
 import { useToast } from '@/common/hooks/use-toast';
 import { SchoolStudentAttendanceService } from '@/features/school/services';
 import { schoolKeys } from '@/features/school/hooks/query-keys';
-import type { SchoolStudentAttendanceMonthlyGroupedResponse, SchoolStudentAttendanceRead } from '@/features/school/types';
+import type { SchoolStudentAttendancePaginatedResponse, SchoolStudentAttendanceRead } from '@/features/school/types';
 import { invalidateAndRefetch } from '@/common/hooks/useGlobalRefetch';
 import { useTabEnabled } from '@/common/hooks/use-tab-navigation';
 import type { ActionConfig } from '@/common/components/shared/DataTable/types';
@@ -43,8 +43,8 @@ export default function AttendanceView() {
   }, [selectedClassId, selectedMonth, selectedYear, selectedSectionId, isTabActive]);
   
   const studentsQuery = useSchoolAttendanceAllStudents(attendeeParams);
-  const grouped: SchoolStudentAttendanceMonthlyGroupedResponse = studentsQuery.data || { groups: [] };
-  const allStudents = ((grouped as any)?.groups?.[0]?.data as any[]) || [];
+  const response = studentsQuery.data || { data: [] };
+  const allStudents = (response?.data as any[]) || [];
   const { toast } = useToast();
   
   const [editOpen, setEditOpen] = useState(false);

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { Input } from '@/common/components/ui/input';
 import { Button } from '@/common/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/common/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/common/components/ui/select';
 import { ServerCombobox } from '@/common/components/ui/server-combobox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/common/components/ui/tabs';
 import { FormDialog } from '@/common/components/shared/FormDialog';

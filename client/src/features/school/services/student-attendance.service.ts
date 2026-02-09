@@ -1,5 +1,5 @@
 ﻿import { Api } from "@/core/api";
-import type { SchoolBulkCreateAttendanceResult, SchoolBulkStudentAttendanceCreate, SchoolStudentAttendanceCreate, SchoolStudentAttendanceMonthlyGroupedResponse, SchoolStudentAttendancePaginatedResponse, SchoolStudentAttendanceRead, SchoolStudentAttendanceUpdate } from "@/features/school/types";
+import type { SchoolBulkCreateAttendanceResult, SchoolBulkStudentAttendanceCreate, SchoolStudentAttendanceCreate, SchoolStudentAttendancePaginatedResponse, SchoolStudentAttendanceRead, SchoolStudentAttendanceUpdate } from "@/features/school/types";
 
 export interface SchoolAttendanceListParams {
   page?: number;
@@ -37,7 +37,7 @@ export const SchoolStudentAttendanceService = {
   },
 
   getAllStudents(params: { class_id: number; month: number; year: number; section_id?: number | null; }) {
-    return Api.get<SchoolStudentAttendanceMonthlyGroupedResponse>(`/school/student-attendance/students`, params as any);
+    return Api.get<SchoolStudentAttendancePaginatedResponse>(`/school/student-attendance/students`, params as any);
   },
 
   bulkUpdate(payload: any) {

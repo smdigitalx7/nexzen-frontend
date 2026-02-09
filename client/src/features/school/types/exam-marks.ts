@@ -14,10 +14,7 @@ export interface ExamMarkCreate {
 
 export interface ExamMarkUpdate {
   marks_obtained: number;
-  percentage: number;
-  grade: string;
-  remarks: string;
-  conducted_at: string;
+  remarks?: string | null;
 }
 
 export interface ExamMarkRead {

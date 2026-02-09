@@ -47,9 +47,10 @@ import {
   useSchoolTestMarksList,
   useSchoolTestMark,
   useCreateSchoolTestMark,
-  useUpdateSchoolTestMark,
   useDeleteSchoolTestMark,
 } from '@/features/school/hooks';
+import { SchoolTestMarksService } from '@/features/school/services/test-marks.service';
+import { useToast } from '@/common/hooks/use-toast';
 import { useSchoolEnrollmentsList } from '@/features/school/hooks/use-school-enrollments';
 import { useCreateSchoolTestMarksMultipleSubjects } from '@/features/school/hooks/use-school-test-marks';
 import {
@@ -240,12 +241,10 @@ const TestMarksManagementComponent = ({
   } = useSchoolTestMarksList(testMarksQuery);
 
   const createTestMarkMutation = useCreateSchoolTestMark();
-  const updateTestMarkMutation = useUpdateSchoolTestMark(
-    editingTestMark?.test_mark_id || 0
-  );
   const deleteTestMarkMutation = useDeleteSchoolTestMark();
   const createMultipleSubjectsMutation = useCreateSchoolTestMarksMultipleSubjects();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Single subject form
   const testMarkForm = useForm({
@@ -293,7 +292,7 @@ const TestMarksManagementComponent = ({
 
   // Single subject form submission handler
   const handleTestMarkSubmit = useCallback(
-    (values: z.infer<typeof testMarkFormSchema>) => {
+    async (values: z.infer<typeof testMarkFormSchema>) => {
       const markData = {
         enrollment_id: parseInt(values.enrollment_id),
         test_id: parseInt(values.test_id),
@@ -302,27 +301,52 @@ const TestMarksManagementComponent = ({
         remarks: values.remarks || "",
       };
 
-      if (editingTestMark) {
-        updateTestMarkMutation.mutate({
-          marks_obtained: markData.marks_obtained,
-          percentage: 0, // Will be calculated by backend
-          grade: '', // Will be calculated by backend
-          remarks: markData.remarks,
-          conducted_at: new Date().toISOString(),
-        });
+      if (editingTestMark?.test_mark_id) {
+        // For update we follow backend spec: only send marks_obtained and remarks
+        try {
+          await SchoolTestMarksService.update(editingTestMark.test_mark_id, {
+            marks_obtained: markData.marks_obtained,
+            remarks: markData.remarks,
+          });
+          toast({
+            title: "Success",
+            description: "Test mark updated successfully",
+            variant: "success",
+          });
+          testMarkForm.reset();
+          setEditingTestMark(null);
+          setShowTestMarkDialog(false);
+          void queryClient.invalidateQueries({
+            queryKey: schoolKeys.testMarks.root(),
+          });
+          void queryClient.refetchQueries({
+            queryKey: schoolKeys.testMarks.root(),
+            type: "active",
+          });
+        } catch (error: any) {
+          const errorMessage = error?.response?.data?.detail || error?.message || "Failed to update test mark";
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
       } else {
-        createTestMarkMutation.mutate(markData);
+        createTestMarkMutation.mutate(markData, {
+          onSuccess: () => {
+            testMarkForm.reset();
+            setEditingTestMark(null);
+            setShowTestMarkDialog(false);
+          }
+        });
       }
-
-      testMarkForm.reset();
-      setEditingTestMark(null);
-      setShowTestMarkDialog(false);
     },
     [
       editingTestMark,
-      updateTestMarkMutation,
       createTestMarkMutation,
       testMarkForm,
+      queryClient,
+      toast,
     ]
   );
 

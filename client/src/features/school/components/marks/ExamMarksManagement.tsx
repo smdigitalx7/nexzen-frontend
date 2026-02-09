@@ -38,6 +38,8 @@ import {
   useUpdateSchoolExamMark,
   useDeleteSchoolExamMark,
 } from "@/features/school/hooks/use-school-exam-marks";
+import { SchoolExamMarksService } from "@/features/school/services/exam-marks.service";
+import { useToast } from "@/common/hooks/use-toast";
 import {
   useSchoolSections,
   useSchoolSubjects,
@@ -57,6 +59,7 @@ import {
   createTestDateColumn,
 } from "@/common/utils/factory/columnFactories";
 import AddMarksByClassDialog from "./AddMarksByClassDialog";
+import AddExamMarkForm from "./AddExamMarkForm";
 import type { ActionConfig } from "@/common/components/shared/DataTable/types";
 
 interface ExamMarksManagementProps {
@@ -118,6 +121,7 @@ const ExamMarksManagementComponent = ({
 
   // Dialog states
   const [showAddMarksDialog, setShowAddMarksDialog] = useState(false);
+  const [showEditMarkDialog, setShowEditMarkDialog] = useState(false);
   const [editingExamMark, setEditingExamMark] = useState<ExamMarkWithDetails | null>(null);
   const [showViewExamMarkDialog, setShowViewExamMarkDialog] = useState(false);
   const [viewingExamMarkId, setViewingExamMarkId] = useState<number | null>(null);
@@ -171,8 +175,8 @@ const ExamMarksManagementComponent = ({
   } = useSchoolExamMarksList(examMarksQuery);
 
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const createExamMarkMutation = useCreateSchoolExamMark();
-  const updateExamMarkMutation = useUpdateSchoolExamMark(editingExamMark?.mark_id || 0);
   const deleteExamMarkMutation = useDeleteSchoolExamMark();
 
   // Handlers
@@ -206,38 +210,73 @@ const ExamMarksManagementComponent = ({
     return Math.round((marksObtained / maxMarks) * 100 * 10) / 10;
   };
 
-  // Form handling (reserved for form submit integration)
-  const _handleExamMarkSubmit = useCallback((data: {
+  // Handle single mark form submission (for edit dialog)
+  const handleSingleMarkSubmit = useCallback(async (data: {
     enrollment_id: number;
     exam_id: number;
     subject_id: number;
     marks_obtained: number;
     remarks: string;
   }) => {
-    const maxMarks = editingExamMark?.max_marks ?? 100;
-    const percentage = calculatePercentage(data.marks_obtained, maxMarks);
-    const grade = calculateGrade(percentage);
-
-    const payload = {
-      ...data,
-      percentage,
-      grade,
-      conducted_at: (editingExamMark?.conducted_at || new Date().toISOString()),
-    };
-
-    if (editingExamMark) {
-      updateExamMarkMutation.mutate(payload);
+    if (editingExamMark?.mark_id) {
+      // For update we follow backend spec: only send marks_obtained and remarks
+      try {
+        await SchoolExamMarksService.update(editingExamMark.mark_id, {
+          marks_obtained: data.marks_obtained,
+          remarks: data.remarks,
+        });
+        toast({
+          title: "Success",
+          description: "Exam mark updated successfully",
+          variant: "success",
+        });
+        setEditingExamMark(null);
+        setShowEditMarkDialog(false);
+        void queryClient.invalidateQueries({
+          queryKey: schoolKeys.examMarks.root(),
+        });
+        void queryClient.refetchQueries({
+          queryKey: schoolKeys.examMarks.root(),
+          type: "active",
+        });
+      } catch (error: any) {
+        const errorMessage = error?.response?.data?.detail || error?.message || "Failed to update exam mark";
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } else {
-      createExamMarkMutation.mutate(payload);
+      // For create we can still send full details; backend may compute percentage/grade
+      const maxMarks = 100; // Default max marks
+      const percentage = calculatePercentage(data.marks_obtained, maxMarks);
+      const grade = calculateGrade(percentage);
+      const payload = {
+        ...data,
+        percentage,
+        grade,
+        conducted_at: new Date().toISOString(),
+      };
+      createExamMarkMutation.mutate(payload, {
+        onSuccess: () => {
+          setEditingExamMark(null);
+          setShowEditMarkDialog(false);
+          void queryClient.invalidateQueries({
+            queryKey: schoolKeys.examMarks.root(),
+          });
+          void queryClient.refetchQueries({
+            queryKey: schoolKeys.examMarks.root(),
+            type: "active",
+          });
+        }
+      });
     }
-
-    setEditingExamMark(null);
-    setShowAddMarksDialog(false);
-  }, [editingExamMark, updateExamMarkMutation, createExamMarkMutation, calculateGrade]);
+  }, [editingExamMark, createExamMarkMutation, calculateGrade, calculatePercentage, queryClient, toast]);
 
   const handleEditExamMark = useCallback((mark: ExamMarkWithDetails) => {
     setEditingExamMark(mark);
-    setShowAddMarksDialog(true);
+    setShowEditMarkDialog(true);
   }, []);
 
   const handleDeleteExamMark = useCallback((markId: number) => {
@@ -559,9 +598,13 @@ const ExamMarksManagementComponent = ({
           </AlertDialogContent>
         </AlertDialog>
         
+        {/* Bulk Add Dialog */}
         <AddMarksByClassDialog
           isOpen={showAddMarksDialog}
-          onClose={() => setShowAddMarksDialog(false)}
+          onClose={() => {
+            setShowAddMarksDialog(false);
+            setEditingExamMark(null);
+          }}
           onSuccess={() => {
             void queryClient.invalidateQueries({
               queryKey: schoolKeys.examMarks.root(),
@@ -571,6 +614,19 @@ const ExamMarksManagementComponent = ({
               type: "active",
             });
           }}
+        />
+
+        {/* Single Edit/Add Dialog */}
+        <AddExamMarkForm
+          isOpen={showEditMarkDialog}
+          onClose={() => {
+            setShowEditMarkDialog(false);
+            setEditingExamMark(null);
+          }}
+          onSubmit={handleSingleMarkSubmit}
+          editingExamMark={editingExamMark}
+          selectedClass={selectedClass}
+          selectedSection={selectedSection}
         />
       </div>
     </div>

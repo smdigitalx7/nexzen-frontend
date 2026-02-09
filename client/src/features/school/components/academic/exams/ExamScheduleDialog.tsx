@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Calendar, Plus, Edit, Trash2, X } from "lucide-react";
 import { Button } from "@/common/components/ui/button";
 import { Input } from "@/common/components/ui/input";
@@ -56,6 +56,9 @@ export const ExamScheduleDialog = ({
   const [selectedAcademicYearId, setSelectedAcademicYearId] = useState<number | null>(null);
   const [examDate, setExamDate] = useState<string>("");
   const [editExamDate, setEditExamDate] = useState<string>("");
+  
+  // ✅ FIX: Use ref to persist schedule value even if state is cleared
+  const scheduleToDeleteRef = useRef<ExamScheduleRead | null>(null);
   
   // Update schedule hook - use a default value to avoid conditional hook calls
   const updateSchedule = useUpdateExamSchedule(examId, selectedSchedule?.academic_year_id || 0);
@@ -129,22 +132,6 @@ export const ExamScheduleDialog = ({
     }
   };
 
-  const handleDeleteSchedule = async () => {
-    if (!selectedSchedule) return;
-
-    try {
-      await deleteSchedule.mutateAsync({
-        examId,
-        academicYearId: selectedSchedule.academic_year_id,
-      });
-      setIsDeleteDialogOpen(false);
-      setSelectedSchedule(null);
-      refetch();
-    } catch (error) {
-      // Error handled by mutation hook
-    }
-  };
-
   const handleEditClick = (schedule: ExamScheduleRead) => {
     setSelectedSchedule(schedule);
     setEditExamDate(schedule.exam_date);
@@ -153,7 +140,34 @@ export const ExamScheduleDialog = ({
 
   const handleDeleteClick = (schedule: ExamScheduleRead) => {
     setSelectedSchedule(schedule);
+    // ✅ FIX: Store in ref to persist even if state is cleared
+    scheduleToDeleteRef.current = schedule;
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteSchedule = async () => {
+    // ✅ FIX: Use ref value first, fallback to state (ref persists even if state is cleared)
+    const scheduleToDelete = scheduleToDeleteRef.current || selectedSchedule;
+    
+    if (!scheduleToDelete) {
+      return;
+    }
+
+    const deleteParams = {
+      examId,
+      academicYearId: scheduleToDelete.academic_year_id,
+    };
+
+    try {
+      await deleteSchedule.mutateAsync(deleteParams);
+      setIsDeleteDialogOpen(false);
+      setSelectedSchedule(null);
+      scheduleToDeleteRef.current = null; // Clear ref after successful delete
+      refetch();
+    } catch (error) {
+      // Error handled by mutation hook
+      // Don't close dialog on error so user can retry
+    }
   };
 
   // Get academic year name by ID
@@ -359,6 +373,7 @@ export const ExamScheduleDialog = ({
         onCancel={() => {
           setIsDeleteDialogOpen(false);
           setSelectedSchedule(null);
+          scheduleToDeleteRef.current = null; // Clear ref on cancel
         }}
         confirmText="Delete"
         variant="destructive"
